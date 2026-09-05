@@ -21,7 +21,6 @@ public static class WebApplicationExtensions
 
         var rrhhDbContext = scope.ServiceProvider.GetRequiredService<RecursosHumanosDbContext>();
         await rrhhDbContext.Database.MigrateAsync();
-        await rrhhDbContext.Database.ExecuteSqlRawAsync("UPDATE rrhh.\"Empleados\" SET \"Email\" = NULL WHERE \"Email\" = '';");
 
         // 2. Ejecutar sembradores modulares
         await SeguridadSeeder.SeedAsync(scope.ServiceProvider);
