@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { NzButtonModule } from 'ng-zorro-antd/button';
@@ -17,10 +17,11 @@ import { AuthService } from '../../../core/services/auth.service';
     NzInputModule,
     NzFormModule,
     NzCheckboxModule,
-    NzIconModule
+    NzIconModule,
   ],
   templateUrl: './login.component.html',
-  styles: ``
+  changeDetection: ChangeDetectionStrategy.Eager,
+  styles: ``,
 })
 export class LoginComponent {
   loginForm: FormGroup;
@@ -29,7 +30,7 @@ export class LoginComponent {
     this.loginForm = this.fb.group({
       email: ['admin@bubbabag.com', [Validators.required, Validators.email]],
       password: ['Admin123!', [Validators.required]],
-      remember: [true]
+      remember: [true],
     });
   }
 
@@ -44,10 +45,10 @@ export class LoginComponent {
         },
         error: (err: any) => {
           console.error('Error de login', err);
-        }
+        },
       });
     } else {
-      Object.values(this.loginForm.controls).forEach(control => {
+      Object.values(this.loginForm.controls).forEach((control) => {
         if (control.invalid) {
           control.markAsDirty();
           control.updateValueAndValidity({ onlySelf: true });

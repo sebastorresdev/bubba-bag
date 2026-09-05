@@ -1,16 +1,16 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { EmpleadoService } from '../../services/empleado.service';
-import { 
-  ActualizarEmpleadoCommand, 
-  CrearEmpleadoCommand, 
-  CatalogosRrhhDto, 
-  DepartamentoCatalogoDto, 
-  CargoCatalogoDto, 
+import {
+  ActualizarEmpleadoCommand,
+  CrearEmpleadoCommand,
+  CatalogosRrhhDto,
+  DepartamentoCatalogoDto,
+  CargoCatalogoDto,
   EstadoEmpleadoCatalogoDto,
-  EmpleadoDto
+  EmpleadoDto,
 } from '../../models/empleado.model';
 
 import { NzFormModule } from 'ng-zorro-antd/form';
@@ -39,9 +39,10 @@ import { NzAlertModule } from 'ng-zorro-antd/alert';
     NzSwitchModule,
     NzIconModule,
     NzTagModule,
-    NzAlertModule
+    NzAlertModule,
   ],
-  templateUrl: './empleado-form.html'
+  changeDetection: ChangeDetectionStrategy.Eager,
+  templateUrl: './empleado-form.html',
 })
 export class EmpleadoFormComponent implements OnInit {
   private fb = inject(FormBuilder);
@@ -109,7 +110,7 @@ export class EmpleadoFormComponent implements OnInit {
       // Bancarios
       entidadFinanciera: [''],
       cuentaBancaria: [''],
-      cuentaInterbancaria: ['']
+      cuentaInterbancaria: [''],
     });
   }
 
@@ -134,7 +135,7 @@ export class EmpleadoFormComponent implements OnInit {
       },
       error: () => {
         this.loadingCatalogos = false;
-      }
+      },
     });
   }
 
@@ -147,12 +148,12 @@ export class EmpleadoFormComponent implements OnInit {
       return;
     }
 
-    const depto = this.departamentos.find(d => d.id === departamentoId);
+    const depto = this.departamentos.find((d) => d.id === departamentoId);
     this.cargosFiltrados = depto ? depto.cargos : [];
 
     if (resetCargo) {
       const currentCargoId = this.form.get('cargoId')?.value;
-      if (currentCargoId && !this.cargosFiltrados.some(c => c.id === currentCargoId)) {
+      if (currentCargoId && !this.cargosFiltrados.some((c) => c.id === currentCargoId)) {
         this.form.get('cargoId')?.setValue(null);
       }
     }
@@ -164,7 +165,7 @@ export class EmpleadoFormComponent implements OnInit {
       next: (empleado) => {
         this.empleadoActual = empleado;
         this.form.patchValue({
-          ...empleado
+          ...empleado,
         });
         if (empleado.departamentoId) {
           this.onDepartamentoChange(empleado.departamentoId, false);
@@ -174,13 +175,13 @@ export class EmpleadoFormComponent implements OnInit {
       error: () => {
         this.loading = false;
         this.router.navigate(['/rrhh/empleados']);
-      }
+      },
     });
   }
 
   guardar(): void {
     if (this.form.invalid) {
-      Object.values(this.form.controls).forEach(control => {
+      Object.values(this.form.controls).forEach((control) => {
         if (control.invalid) {
           control.markAsDirty();
           control.updateValueAndValidity({ onlySelf: true });
@@ -192,7 +193,7 @@ export class EmpleadoFormComponent implements OnInit {
     this.loading = true;
     const formValue = { ...this.form.value };
     // Normalizar campos opcionales vacíos a null
-    Object.keys(formValue).forEach(key => {
+    Object.keys(formValue).forEach((key) => {
       if (typeof formValue[key] === 'string' && formValue[key].trim() === '') {
         formValue[key] = null;
       }
@@ -201,7 +202,7 @@ export class EmpleadoFormComponent implements OnInit {
     if (this.isEdit) {
       const command: ActualizarEmpleadoCommand = {
         ...formValue,
-        id: this.empleadoId!
+        id: this.empleadoId!,
       };
 
       this.empleadoService.actualizarEmpleado(this.empleadoId!, command).subscribe({
@@ -211,7 +212,7 @@ export class EmpleadoFormComponent implements OnInit {
         },
         error: () => {
           this.loading = false;
-        }
+        },
       });
     } else {
       const command: CrearEmpleadoCommand = formValue;
@@ -223,7 +224,7 @@ export class EmpleadoFormComponent implements OnInit {
         },
         error: () => {
           this.loading = false;
-        }
+        },
       });
     }
   }

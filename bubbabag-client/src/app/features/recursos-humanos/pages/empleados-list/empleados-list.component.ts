@@ -1,13 +1,19 @@
-import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  inject,
+  OnInit,
+  ChangeDetectorRef,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { EmpleadoService } from '../../services/empleado.service';
-import { 
-  EmpleadoDto, 
-  CatalogosRrhhDto, 
-  DepartamentoCatalogoDto, 
-  DarDeBajaRequest 
+import {
+  EmpleadoDto,
+  CatalogosRrhhDto,
+  DepartamentoCatalogoDto,
+  DarDeBajaRequest,
 } from '../../models/empleado.model';
 
 import { NzTableModule } from 'ng-zorro-antd/table';
@@ -38,9 +44,10 @@ import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
     NzSelectModule,
     NzModalModule,
     NzDatePickerModule,
-    NzTooltipModule
+    NzTooltipModule,
   ],
-  templateUrl: './empleados-list.html'
+  changeDetection: ChangeDetectionStrategy.Eager,
+  templateUrl: './empleados-list.html',
 })
 export class EmpleadosListComponent implements OnInit {
   private empleadoService = inject(EmpleadoService);
@@ -84,27 +91,25 @@ export class EmpleadosListComponent implements OnInit {
           this.motivoCeseSeleccionado = this.motivosCese[0];
         }
         this.cdr.detectChanges();
-      }
+      },
     });
   }
 
   cargarEmpleados() {
     this.loading = true;
-    this.empleadoService.getEmpleados(
-      this.searchTerm,
-      this.filtroEstado,
-      this.filtroDepartamento || undefined
-    ).subscribe({
-      next: (data) => {
-        this.empleados = data;
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.loading = false;
-        this.cdr.detectChanges();
-      }
-    });
+    this.empleadoService
+      .getEmpleados(this.searchTerm, this.filtroEstado, this.filtroDepartamento || undefined)
+      .subscribe({
+        next: (data) => {
+          this.empleados = data;
+          this.loading = false;
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        },
+      });
   }
 
   buscar() {
@@ -150,7 +155,7 @@ export class EmpleadosListComponent implements OnInit {
     const request: DarDeBajaRequest = {
       fechaCese: fechaFormatted,
       motivoCese: this.motivoCeseSeleccionado,
-      observacionesCese: this.observacionesCese ? this.observacionesCese.trim() : null
+      observacionesCese: this.observacionesCese ? this.observacionesCese.trim() : null,
     };
 
     this.empleadoService.darDeBaja(this.empleadoParaBaja.id, request).subscribe({
@@ -162,7 +167,7 @@ export class EmpleadosListComponent implements OnInit {
       },
       error: () => {
         this.guardandoBaja = false;
-      }
+      },
     });
   }
 
@@ -175,7 +180,7 @@ export class EmpleadosListComponent implements OnInit {
       },
       error: () => {
         // Manejado por interceptor global
-      }
+      },
     });
   }
 
@@ -187,18 +192,24 @@ export class EmpleadosListComponent implements OnInit {
       },
       error: () => {
         // Manejado por el interceptor global
-      }
+      },
     });
   }
 
   getEstadoColor(estado: string): string {
     switch (estado) {
-      case 'Activo': return 'success';
-      case 'Vacaciones': return 'processing';
-      case 'Licencia': return 'warning';
-      case 'Suspendido': return 'purple';
-      case 'Cesado': return 'error';
-      default: return 'default';
+      case 'Activo':
+        return 'success';
+      case 'Vacaciones':
+        return 'processing';
+      case 'Licencia':
+        return 'warning';
+      case 'Suspendido':
+        return 'purple';
+      case 'Cesado':
+        return 'error';
+      default:
+        return 'default';
     }
   }
 }

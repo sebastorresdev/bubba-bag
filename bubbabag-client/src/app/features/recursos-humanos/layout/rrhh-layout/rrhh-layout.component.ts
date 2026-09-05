@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { NzLayoutModule } from 'ng-zorro-antd/layout';
@@ -21,10 +21,11 @@ import { ThemeService } from '../../../../core/services/theme.service';
     NzIconModule,
     NzBreadCrumbModule,
     NzButtonModule,
-    NzTooltipModule
+    NzTooltipModule,
   ],
   templateUrl: './rrhh-layout.html',
-  styleUrls: ['./rrhh-layout.css']
+  changeDetection: ChangeDetectionStrategy.Eager,
+  styleUrls: ['./rrhh-layout.css'],
 })
 export class RrhhLayoutComponent {
   isCollapsed = false;
@@ -34,13 +35,38 @@ export class RrhhLayoutComponent {
 
   menuItems = [
     { title: 'Gestión de Colaboradores', icon: 'team', path: '/rrhh/empleados', matchPrefix: true },
-    { title: 'Asistencia y Turnos', icon: 'clock-circle', path: '/rrhh/asistencia', matchPrefix: false },
-    { title: 'Licencias y Vacaciones', icon: 'calendar', path: '/rrhh/licencias', matchPrefix: false },
+    {
+      title: 'Asistencia y Turnos',
+      icon: 'clock-circle',
+      path: '/rrhh/asistencia',
+      matchPrefix: false,
+    },
+    {
+      title: 'Licencias y Vacaciones',
+      icon: 'calendar',
+      path: '/rrhh/licencias',
+      matchPrefix: false,
+    },
     { title: 'Planilla / Nómina', icon: 'dollar', path: '/rrhh/planilla', matchPrefix: false },
-    { title: 'Reclutamiento (ATS)', icon: 'user-add', path: '/rrhh/reclutamiento', matchPrefix: false },
+    {
+      title: 'Reclutamiento (ATS)',
+      icon: 'user-add',
+      path: '/rrhh/reclutamiento',
+      matchPrefix: false,
+    },
     { title: 'Portal del Empleado', icon: 'solution', path: '/rrhh/portal', matchPrefix: false },
-    { title: 'Desempeño y Desarrollo', icon: 'line-chart', path: '/rrhh/desempeno', matchPrefix: false },
-    { title: 'Reportes e Indicadores', icon: 'pie-chart', path: '/rrhh/reportes', matchPrefix: false }
+    {
+      title: 'Desempeño y Desarrollo',
+      icon: 'line-chart',
+      path: '/rrhh/desempeno',
+      matchPrefix: false,
+    },
+    {
+      title: 'Reportes e Indicadores',
+      icon: 'pie-chart',
+      path: '/rrhh/reportes',
+      matchPrefix: false,
+    },
   ];
 
   isActive(item: any): boolean {
