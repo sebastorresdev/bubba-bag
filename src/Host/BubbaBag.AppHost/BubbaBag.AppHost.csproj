@@ -1,0 +1,21 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.5.3">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>f559c34a-ccd8-49da-bdd3-94d749fd3b26</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.NodeJs" Version="9.5.2" />
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="13.5.3" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.5.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BubbaBag.Api\BubbaBag.Api.csproj" />
+  </ItemGroup>
+
+</Project>

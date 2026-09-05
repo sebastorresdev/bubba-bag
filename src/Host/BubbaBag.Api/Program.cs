@@ -1,0 +1,37 @@
+using BubbaBag.Api;
+using BubbaBag.Modules.Seguridad.Api;
+using BubbaBag.Modules.RecursosHumanos.Api;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Hosting;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.AddServiceDefaults();
+
+builder.Services.AddOpenApi();
+builder.AddNpgsqlDbContext<BubbaBag.Modules.Seguridad.Infrastructure.Persistence.SeguridadDbContext>("sqldb");
+builder.AddNpgsqlDbContext<BubbaBag.Modules.RecursosHumanos.Infrastructure.Database.RecursosHumanosDbContext>("sqldb");
+builder.Services.AddBubbaBagServices(builder.Configuration);
+
+BubbaBag.Modules.RecursosHumanos.Api.RecursosHumanosModule.AddRecursosHumanosModule(builder.Services);
+
+var app = builder.Build();
+
+app.MapDefaultEndpoints();
+await app.ApplyMigrationsAndSeedAsync();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
+
+app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapSeguridadEndpoints();
+app.MapRecursosHumanosEndpoints();
+
+
+app.Run();

@@ -1,0 +1,300 @@
+<div class="max-w-5xl mx-auto pb-12">
+  <!-- Page Header & Actions -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div class="flex items-center gap-3">
+      <button 
+        nz-button 
+        nzType="default" 
+        routerLink="/rrhh/empleados"
+        class="w-10 h-10 rounded-lg flex items-center justify-center border border-gray-200 dark:border-[#374151] bg-white dark:bg-[#1f2939] text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors cursor-pointer shadow-xs"
+        nz-tooltip
+        nzTooltipTitle="Volver a la lista"
+      >
+        <nz-icon nzType="arrow-left" class="text-base" />
+      </button>
+
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-white! mb-0">
+            {{ isEdit ? 'Editar Colaborador' : 'Nuevo Colaborador' }}
+          </h1>
+          @if (isEdit) {
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/20 text-gray-900 dark:text-primary border border-primary/30">
+              Modo Edición
+            </span>
+          }
+        </div>
+        <p class="text-gray-500 dark:text-gray-400! text-sm mt-0.5 mb-0">
+          {{ isEdit ? 'Actualiza la información del colaborador en el sistema.' : 'Completa la información para registrar al colaborador en la empresa.' }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Quick Action Buttons at Header -->
+    <div class="flex items-center gap-3">
+      <button 
+        type="button"
+        nz-button 
+        nzType="default" 
+        routerLink="/rrhh/empleados"
+        class="rounded-lg h-9 px-4 font-medium border border-gray-200 dark:border-[#374151] bg-white dark:bg-[#1f2939] text-gray-700 dark:text-gray-300 hover:border-gray-300 cursor-pointer"
+      >
+        Cancelar
+      </button>
+      <button 
+        type="button"
+        nz-button 
+        nzType="primary" 
+        [nzLoading]="loading" 
+        (click)="guardar()"
+        class="rounded-lg h-9 px-5 bg-primary hover:bg-primary-hover text-black font-bold border-none shadow-xs flex items-center gap-1.5 cursor-pointer"
+      >
+        <nz-icon nzType="check" class="text-sm font-bold" />
+        {{ isEdit ? 'Actualizar' : 'Guardar' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Form Container -->
+  <form nz-form [formGroup]="form" nzLayout="vertical" (ngSubmit)="guardar()">
+    
+    <!-- 1. Sección: Datos Personales e Identificación -->
+    <div class="bg-white dark:bg-[#1f2939] rounded-xl border border-gray-200 dark:border-[#374151] shadow-xs p-6 mb-6">
+      <div class="flex items-center gap-3 mb-5 pb-3 border-b border-gray-100 dark:border-[#374151]">
+        <div class="w-9 h-9 rounded-lg bg-primary/15 dark:bg-primary/20 flex items-center justify-center text-gray-900 dark:text-primary">
+          <nz-icon nzType="user" class="text-lg" />
+        </div>
+        <div>
+          <h2 class="text-base font-bold text-gray-900 dark:text-white! mb-0">Información Personal</h2>
+          <p class="text-xs text-gray-500 dark:text-gray-400! mb-0">Identidad y documentos oficiales del colaborador</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        <nz-form-item class="mb-2">
+          <nz-form-label nzRequired nzFor="nombres">Nombres</nz-form-label>
+          <nz-form-control nzErrorTip="Por favor ingresa los nombres">
+            <input nz-input formControlName="nombres" id="nombres" placeholder="Ej: Juan Carlos" class="rounded-lg" />
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item class="mb-2">
+          <nz-form-label nzRequired nzFor="apellidos">Apellidos</nz-form-label>
+          <nz-form-control nzErrorTip="Por favor ingresa los apellidos">
+            <input nz-input formControlName="apellidos" id="apellidos" placeholder="Ej: Pérez García" class="rounded-lg" />
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item class="mb-2">
+          <nz-form-label nzRequired nzFor="tipoDocumento">Tipo de Documento</nz-form-label>
+          <nz-form-control nzErrorTip="Selecciona el tipo de documento">
+            <nz-select formControlName="tipoDocumento" id="tipoDocumento" class="rounded-lg">
+              @for (t of tiposDocumento; track t) {
+                <nz-option [nzValue]="t" [nzLabel]="t"></nz-option>
+              }
+            </nz-select>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item class="mb-2">
+          <nz-form-label nzRequired nzFor="numeroDocumento">Número de Documento</nz-form-label>
+          <nz-form-control nzErrorTip="Ingresa el número de documento">
+            <input nz-input formControlName="numeroDocumento" id="numeroDocumento" placeholder="Número de documento" class="rounded-lg" />
+          </nz-form-control>
+        </nz-form-item>
+
+        @if (isEdit) {
+          <nz-form-item class="mb-2 md:col-span-2">
+            <nz-form-label nzFor="estado">Estado del Colaborador</nz-form-label>
+            <nz-form-control>
+              <nz-select formControlName="estado" id="estado" class="rounded-lg">
+                @for (e of estados; track e) {
+                  <nz-option [nzValue]="e" [nzLabel]="e"></nz-option>
+                }
+              </nz-select>
+            </nz-form-control>
+          </nz-form-item>
+        }
+      </div>
+    </div>
+
+    <!-- 2. Sección: Contacto y Domicilio -->
+    <div class="bg-white dark:bg-[#1f2939] rounded-xl border border-gray-200 dark:border-[#374151] shadow-xs p-6 mb-6">
+      <div class="flex items-center gap-3 mb-5 pb-3 border-b border-gray-100 dark:border-[#374151]">
+        <div class="w-9 h-9 rounded-lg bg-primary/15 dark:bg-primary/20 flex items-center justify-center text-gray-900 dark:text-primary">
+          <nz-icon nzType="mail" class="text-lg" />
+        </div>
+        <div>
+          <h2 class="text-base font-bold text-gray-900 dark:text-white! mb-0">Contacto y Residencia</h2>
+          <p class="text-xs text-gray-500 dark:text-gray-400! mb-0">Medios de comunicación directa y dirección actual</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        <nz-form-item class="mb-2">
+          <nz-form-label nzFor="email">Correo Electrónico</nz-form-label>
+          <nz-form-control nzErrorTip="Ingresa un correo electrónico válido">
+            <nz-input-wrapper class="w-full">
+              <input nz-input formControlName="email" id="email" type="email" placeholder="colaborador@bubbabag.com" class="rounded-lg" />
+              <span nzInputSuffix>
+                <nz-icon nzType="mail" class="text-gray-400" />
+              </span>
+            </nz-input-wrapper>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item class="mb-2">
+          <nz-form-label nzFor="telefono">Teléfono / Celular</nz-form-label>
+          <nz-form-control>
+            <nz-input-wrapper class="w-full">
+              <input nz-input formControlName="telefono" id="telefono" placeholder="+51 987 654 321" class="rounded-lg" />
+              <span nzInputSuffix>
+                <nz-icon nzType="phone" class="text-gray-400" />
+              </span>
+            </nz-input-wrapper>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item class="mb-2 md:col-span-2">
+          <nz-form-label nzFor="direccion">Dirección de Domicilio</nz-form-label>
+          <nz-form-control>
+            <input nz-input formControlName="direccion" id="direccion" placeholder="Av. Principal 123, Dpto. 401, Lima" class="rounded-lg" />
+          </nz-form-control>
+        </nz-form-item>
+      </div>
+    </div>
+
+    <!-- 3. Sección: Información Laboral y Previsional -->
+    <div class="bg-white dark:bg-[#1f2939] rounded-xl border border-gray-200 dark:border-[#374151] shadow-xs p-6 mb-6">
+      <div class="flex items-center gap-3 mb-5 pb-3 border-b border-gray-100 dark:border-[#374151]">
+        <div class="w-9 h-9 rounded-lg bg-primary/15 dark:bg-primary/20 flex items-center justify-center text-gray-900 dark:text-primary">
+          <nz-icon nzType="dollar" class="text-lg" />
+        </div>
+        <div>
+          <h2 class="text-base font-bold text-gray-900 dark:text-white! mb-0">Laboral y Compensación</h2>
+          <p class="text-xs text-gray-500 dark:text-gray-400! mb-0">Detalles del puesto, sueldo pactado y fondo de pensiones</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        <nz-form-item class="mb-2">
+          <nz-form-label nzFor="cargo">Cargo o Posición</nz-form-label>
+          <nz-form-control>
+            <input nz-input formControlName="cargo" id="cargo" placeholder="Ej: Analista de Finanzas" class="rounded-lg" />
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item class="mb-2">
+          <nz-form-label nzFor="departamento">Área o Departamento</nz-form-label>
+          <nz-form-control>
+            <input nz-input formControlName="departamento" id="departamento" placeholder="Ej: Administración y Finanzas" class="rounded-lg" />
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item class="mb-2">
+          <nz-form-label nzFor="salarioBase">Salario Base</nz-form-label>
+          <nz-form-control>
+            <input nz-input type="number" formControlName="salarioBase" id="salarioBase" placeholder="0.00" class="rounded-lg" />
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item class="mb-2">
+          <nz-form-label nzFor="monedaSalario">Moneda</nz-form-label>
+          <nz-form-control>
+            <nz-select formControlName="monedaSalario" id="monedaSalario" class="rounded-lg">
+              <nz-option nzValue="PEN" nzLabel="Soles Peruanos (PEN)"></nz-option>
+              <nz-option nzValue="USD" nzLabel="Dólares Americanos (USD)"></nz-option>
+            </nz-select>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item class="mb-2">
+          <nz-form-label nzFor="regimenPensionario">Régimen Pensionario (AFP / ONP)</nz-form-label>
+          <nz-form-control>
+            <nz-select formControlName="regimenPensionario" id="regimenPensionario" nzAllowClear nzPlaceHolder="Seleccionar régimen" class="rounded-lg">
+              <nz-option nzValue="ONP" nzLabel="ONP (Sistema Nacional)"></nz-option>
+              <nz-option nzValue="AFP Integra" nzLabel="AFP Integra"></nz-option>
+              <nz-option nzValue="AFP Prima" nzLabel="AFP Prima"></nz-option>
+              <nz-option nzValue="AFP Profuturo" nzLabel="AFP Profuturo"></nz-option>
+              <nz-option nzValue="AFP Habitat" nzLabel="AFP Habitat"></nz-option>
+            </nz-select>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item class="mb-2">
+          <nz-form-label nzFor="cuspp">Código CUSPP</nz-form-label>
+          <nz-form-control>
+            <input nz-input formControlName="cuspp" id="cuspp" placeholder="Código Único de Identificación AFP" class="rounded-lg" />
+          </nz-form-control>
+        </nz-form-item>
+
+        <!-- Switch Asignación Familiar con tarjeta descriptiva -->
+        <div class="md:col-span-2 p-4 rounded-xl bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-[#374151] flex items-center justify-between mt-2">
+          <div>
+            <div class="font-semibold text-sm text-gray-900 dark:text-white">Asignación Familiar</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">Marca esta opción si el colaborador tiene hijos menores o dependientes acreditados ante ley.</div>
+          </div>
+          <nz-switch formControlName="tieneAsignacionFamiliar"></nz-switch>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Sección: Datos Bancarios -->
+    <div class="bg-white dark:bg-[#1f2939] rounded-xl border border-gray-200 dark:border-[#374151] shadow-xs p-6 mb-8">
+      <div class="flex items-center gap-3 mb-5 pb-3 border-b border-gray-100 dark:border-[#374151]">
+        <div class="w-9 h-9 rounded-lg bg-primary/15 dark:bg-primary/20 flex items-center justify-center text-gray-900 dark:text-primary">
+          <nz-icon nzType="shop" class="text-lg" />
+        </div>
+        <div>
+          <h2 class="text-base font-bold text-gray-900 dark:text-white! mb-0">Información Bancaria</h2>
+          <p class="text-xs text-gray-500 dark:text-gray-400! mb-0">Datos para depósito de planilla y transferencias interbancarias</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+        <nz-form-item class="mb-2">
+          <nz-form-label nzFor="entidadFinanciera">Entidad Financiera</nz-form-label>
+          <nz-form-control>
+            <input nz-input formControlName="entidadFinanciera" id="entidadFinanciera" placeholder="Ej: BCP, BBVA, Interbank" class="rounded-lg" />
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item class="mb-2">
+          <nz-form-label nzFor="cuentaBancaria">Número de Cuenta</nz-form-label>
+          <nz-form-control>
+            <input nz-input formControlName="cuentaBancaria" id="cuentaBancaria" placeholder="Ej: 191-12345678-0-12" class="rounded-lg" />
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item class="mb-2">
+          <nz-form-label nzFor="cuentaInterbancaria">Código Interbancario (CCI)</nz-form-label>
+          <nz-form-control>
+            <input nz-input formControlName="cuentaInterbancaria" id="cuentaInterbancaria" placeholder="Ej: 002-191-123456780012-55" class="rounded-lg" />
+          </nz-form-control>
+        </nz-form-item>
+      </div>
+    </div>
+
+    <!-- Bottom Actions Bar -->
+    <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-[#374151]">
+      <button 
+        type="button"
+        nz-button 
+        nzType="default" 
+        routerLink="/rrhh/empleados"
+        class="rounded-lg h-10 px-5 font-medium border border-gray-200 dark:border-[#374151] bg-white dark:bg-[#1f2939] text-gray-700 dark:text-gray-300 hover:border-gray-300 cursor-pointer"
+      >
+        Cancelar
+      </button>
+      <button 
+        nz-button 
+        nzType="primary" 
+        [nzLoading]="loading"
+        class="rounded-lg h-10 px-6 bg-primary hover:bg-primary-hover text-black font-bold border-none shadow-xs flex items-center gap-1.5 cursor-pointer"
+      >
+        <nz-icon nzType="check" class="text-sm font-bold" />
+        {{ isEdit ? 'Actualizar Colaborador' : 'Guardar Colaborador' }}
+      </button>
+    </div>
+  </form>
+</div>

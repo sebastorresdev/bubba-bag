@@ -1,0 +1,30 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Host/">
+    <Project Path="src/Host/BubbaBag.Api/BubbaBag.Api.csproj" />
+    <Project Path="src/Host/BubbaBag.AppHost/BubbaBag.AppHost.csproj" />
+    <Project Path="src/Host/BubbaBag.ServiceDefaults/BubbaBag.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/RecursosHumanos/">
+    <Project Path="src/Modules/RecursosHumanos/BubbaBag.Modules.RecursosHumanos.Api/BubbaBag.Modules.RecursosHumanos.Api.csproj" />
+    <Project Path="src/Modules/RecursosHumanos/BubbaBag.Modules.RecursosHumanos.Application/BubbaBag.Modules.RecursosHumanos.Application.csproj" />
+    <Project Path="src/Modules/RecursosHumanos/BubbaBag.Modules.RecursosHumanos.Domain/BubbaBag.Modules.RecursosHumanos.Domain.csproj" />
+    <Project Path="src/Modules/RecursosHumanos/BubbaBag.Modules.RecursosHumanos.Infrastructure/BubbaBag.Modules.RecursosHumanos.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Seguridad/">
+    <Project Path="src/Modules/Seguridad/BubbaBag.Modules.Seguridad.Api/BubbaBag.Modules.Seguridad.Api.csproj" />
+    <Project Path="src/Modules/Seguridad/BubbaBag.Modules.Seguridad.Application/BubbaBag.Modules.Seguridad.Application.csproj" />
+    <Project Path="src/Modules/Seguridad/BubbaBag.Modules.Seguridad.Domain/BubbaBag.Modules.Seguridad.Domain.csproj" />
+    <Project Path="src/Modules/Seguridad/BubbaBag.Modules.Seguridad.Infrastructure/BubbaBag.Modules.Seguridad.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Ventas/">
+    <Project Path="src/Modules/Ventas/BubbaBag.Modules.Ventas.Api/BubbaBag.Modules.Ventas.Api.csproj" />
+    <Project Path="src/Modules/Ventas/BubbaBag.Modules.Ventas.Application/BubbaBag.Modules.Ventas.Application.csproj" />
+    <Project Path="src/Modules/Ventas/BubbaBag.Modules.Ventas.Domain/BubbaBag.Modules.Ventas.Domain.csproj" />
+    <Project Path="src/Modules/Ventas/BubbaBag.Modules.Ventas.Infrastructure/BubbaBag.Modules.Ventas.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Shared/">
+    <Project Path="src/Shared/BubbaBag.SharedKernel/BubbaBag.SharedKernel.csproj" />
+  </Folder>
+</Solution>

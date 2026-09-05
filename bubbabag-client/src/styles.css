@@ -1,0 +1,220 @@
+@import url('https://fonts.googleapis.com/css2?family=Karla:ital,wght@0,200..800;1,200..800&display=swap');
+@import "tailwindcss";
+@import 'ng-zorro-antd/ng-zorro-antd.variable.min.css';
+
+:root {
+  --ant-primary-color: #B2E160;
+  --ant-primary-color-hover: #98c948;
+  --ant-primary-color-active: #84b434;
+  --ant-primary-color-outline: rgba(178, 225, 96, 0.25);
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: 'Karla', sans-serif;
+  background-color: #f8fafc;
+}
+
+@custom-variant dark (&:is(.dark, .dark *));
+
+@theme {
+  --color-primary: #B2E160;
+  --color-primary-hover: #98c948;
+  --color-primary-dark: #84b434;
+}
+
+/* ==========================================================================
+   Ant Design Default Overrides (Remove default navy header and fix sizing)
+   ========================================================================== */
+
+.ant-layout-header {
+  background: transparent !important;
+  padding: 0 !important;
+  height: auto !important;
+  line-height: normal !important;
+}
+
+.ant-layout-sider,
+.ant-layout-sider-children {
+  overflow-x: hidden !important;
+}
+
+/* Primary Button Styling */
+.ant-btn-primary {
+  background-color: #B2E160 !important;
+  border-color: #B2E160 !important;
+  color: #111827 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+.ant-btn-primary:hover,
+.ant-btn-primary:focus {
+  background-color: #98c948 !important;
+  border-color: #98c948 !important;
+  color: #111827 !important;
+}
+
+/* Input & Select Focus Rings */
+.ant-input:focus,
+.ant-input-focused,
+.ant-input-affix-wrapper-focused,
+.ant-select-focused:not(.ant-select-disabled).ant-select-single:not(.ant-select-customize-input) .ant-select-selector {
+  border-color: #B2E160 !important;
+  box-shadow: 0 0 0 2px rgba(178, 225, 96, 0.25) !important;
+}
+
+/* Pagination Active State */
+.ant-pagination-item-active {
+  border-color: #B2E160 !important;
+  background-color: rgba(178, 225, 96, 0.15) !important;
+}
+
+.ant-pagination-item-active a {
+  color: #111827 !important;
+  font-weight: 700 !important;
+}
+
+/* Menu Item Light Theme Selected */
+.ant-menu-light .ant-menu-item-selected {
+  background-color: rgba(178, 225, 96, 0.25) !important;
+  color: #111827 !important;
+  font-weight: 700 !important;
+}
+
+.ant-menu-light .ant-menu-item-selected .anticon {
+  color: #111827 !important;
+}
+
+.ant-menu-vertical .ant-menu-item::after, 
+.ant-menu-vertical-left .ant-menu-item::after, 
+.ant-menu-vertical-right .ant-menu-item::after, 
+.ant-menu-inline .ant-menu-item::after {
+  border-right: 4px solid #B2E160 !important;
+}
+
+.ant-menu-light .ant-menu-item:hover {
+  color: #111827 !important;
+}
+
+/* ==========================================================================
+   Dark Mode System Overrides (Aligned strictly with Dashboard #111827 / #1f2939)
+   ========================================================================== */
+
+html.dark, html.dark body {
+  background-color: #111827;
+  color: #f9fafb;
+}
+
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark h5,
+html.dark h6 {
+  color: #f9fafb !important;
+}
+
+html.dark .ant-layout {
+  background-color: #111827 !important;
+}
+
+/* Sidebar & Menus in Dark Mode (#1f2939) */
+html.dark .ant-layout-sider-light,
+html.dark .ant-menu-light,
+html.dark .ant-menu-light .ant-menu-sub {
+  background-color: #1f2939 !important;
+  color: #d1d5db !important;
+}
+
+html.dark .ant-menu-light:not(.ant-menu-horizontal) .ant-menu-item-selected {
+  background-color: rgba(178, 225, 96, 0.2) !important;
+  color: #B2E160 !important;
+}
+
+html.dark .ant-menu-light .ant-menu-item-selected .anticon {
+  color: #B2E160 !important;
+}
+
+html.dark .ant-menu-light .ant-menu-item {
+  color: #d1d5db !important;
+}
+
+html.dark .ant-menu-light .ant-menu-item:hover {
+  color: #B2E160 !important;
+}
+
+/* Tables in Dark Mode (#1f2939) */
+html.dark .ant-table,
+html.dark .ant-table-thead > tr > th,
+html.dark .ant-table-tbody > tr > td,
+html.dark .ant-table-placeholder {
+  background-color: #1f2939 !important;
+  color: #d1d5db !important;
+  border-bottom: 1px solid #374151 !important;
+}
+
+html.dark .ant-table-thead > tr > th {
+  background-color: #283548 !important;
+  color: #f9fafb !important;
+  border-bottom: 1px solid #374151 !important;
+}
+
+html.dark .ant-table-tbody > tr.ant-table-row:hover > td {
+  background-color: #283548 !important;
+}
+
+html.dark .ant-form-item-label > label {
+  color: #e2e8f0 !important;
+  font-weight: 600;
+}
+
+html.dark .ant-form-item-label > label.ant-form-item-required:not(.ant-form-item-required-mark-optional)::before {
+  color: #f87171 !important;
+}
+
+/* Inputs in Dark Mode (#1f2939) */
+html.dark .ant-input,
+html.dark .ant-input-affix-wrapper,
+html.dark .ant-select-selector,
+html.dark .ant-select-dropdown,
+html.dark .ant-select-item {
+  background-color: #1f2939 !important;
+  color: #f9fafb !important;
+  border-color: #374151 !important;
+}
+
+html.dark .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+  background-color: #374151 !important;
+}
+
+html.dark .ant-input::placeholder,
+html.dark .ant-select-selection-placeholder {
+  color: #9ca3af !important;
+}
+
+html.dark .ant-btn-default {
+  background-color: #1f2939 !important;
+  color: #f9fafb !important;
+  border-color: #374151 !important;
+}
+
+html.dark .ant-btn-default:hover {
+  border-color: #B2E160 !important;
+  color: #B2E160 !important;
+}
+
+html.dark .ant-breadcrumb,
+html.dark .ant-breadcrumb-separator {
+  color: #9ca3af !important;
+}
+
+html.dark .ant-pagination-item-active a {
+  color: #B2E160 !important;
+}
+
+html.dark .ant-tag {
+  background-color: rgba(31, 41, 57, 0.8) !important;
+  border-color: currentColor;
+}

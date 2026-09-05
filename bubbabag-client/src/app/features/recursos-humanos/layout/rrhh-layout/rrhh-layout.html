@@ -1,0 +1,149 @@
+<nz-layout class="h-screen overflow-hidden">
+  <!-- Sidebar -->
+  <nz-sider
+    nzCollapsible
+    [(nzCollapsed)]="isCollapsed"
+    [nzTrigger]="null"
+    nzTheme="light"
+    nzWidth="260px"
+    [nzCollapsedWidth]="72"
+    class="shadow-md z-20 border-r border-gray-200 dark:border-[#374151] transition-all duration-300 select-none overflow-x-hidden"
+  >
+    <!-- Sider Brand Header -->
+    <div
+      class="h-16 px-3 flex items-center border-b border-gray-100 dark:border-[#374151] bg-gray-50/50 dark:bg-[#1f2939] transition-all duration-300"
+    >
+      <div 
+        routerLink="/dashboard" 
+        class="flex items-center gap-2.5 cursor-pointer group min-w-0"
+        nz-tooltip
+        [nzTooltipTitle]="isCollapsed ? 'Volver al Dashboard' : ''"
+        nzTooltipPlacement="right"
+      >
+        <div class="w-9 h-9 min-w-9 bg-gray-900 dark:bg-[#111827] border border-transparent dark:border-gray-700 rounded-lg flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform shrink-0">
+          <nz-icon nzType="appstore" nzTheme="outline" class="text-lg leading-none" style="color: #B2E160;" />
+        </div>
+        @if (!isCollapsed) {
+          <div class="flex flex-col min-w-0">
+            <span class="font-extrabold text-gray-900 dark:text-white text-sm tracking-tight leading-tight truncate">BubbaBag ERP</span>
+            <span class="text-[11px] text-gray-500 dark:text-gray-400 font-medium truncate">Recursos Humanos</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Navigation Menu Items -->
+    <ul nz-menu nzTheme="light" nzMode="inline" class="mt-2 grow overflow-y-auto overflow-x-hidden">
+      @for (item of menuItems; track item.path) {
+        <li 
+          nz-menu-item 
+          [nzSelected]="isActive(item)" 
+          [routerLink]="item.path"
+          nz-tooltip
+          [nzTooltipTitle]="isCollapsed ? item.title : ''"
+          nzTooltipPlacement="right"
+        >
+          <nz-icon [nzType]="item.icon" class="text-base" />
+          <span>{{ item.title }}</span>
+        </li>
+      }
+    </ul>
+
+    <!-- Bottom Sider: Return to Dashboard button with crisp dividing border in dark mode -->
+    <div class="p-3 border-t border-gray-200 dark:border-[#374151] overflow-hidden">
+      <button 
+        type="button"
+        (click)="goToDashboard()"
+        class="w-full h-9 flex items-center justify-center gap-2 rounded-lg bg-gray-100 dark:bg-[#283548] text-gray-700 dark:text-gray-200 hover:bg-primary hover:text-gray-900 dark:hover:bg-primary dark:hover:text-gray-900 font-semibold text-xs transition-all duration-200 cursor-pointer border-none"
+        nz-tooltip
+        [nzTooltipTitle]="isCollapsed ? 'Volver al Dashboard' : ''"
+        nzTooltipPlacement="right"
+      >
+        <nz-icon nzType="home" nzTheme="outline" class="text-sm" />
+        @if (!isCollapsed) {
+          <span class="whitespace-nowrap">Menú Principal</span>
+        }
+      </button>
+    </div>
+  </nz-sider>
+
+  <!-- Main Container -->
+  <nz-layout class="bg-gray-50 dark:bg-[#111827] transition-colors duration-300">
+    <!-- Header with Crisp Dividing Border in Dark Mode (#374151) -->
+    <header class="h-16 px-4 bg-white dark:bg-[#1f2939] text-gray-900 dark:text-white shadow-xs border-b border-gray-200 dark:border-[#374151] flex items-center justify-between shrink-0 z-10 transition-colors">
+      <!-- Left Header: Sidebar Toggle Button + Breadcrumb -->
+      <div class="flex items-center gap-2">
+        <!-- Sleek Collapse/Expand Button -->
+        <button 
+          type="button"
+          (click)="isCollapsed = !isCollapsed"
+          class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#283548] transition-colors cursor-pointer border-none bg-transparent"
+          nz-tooltip
+          [nzTooltipTitle]="isCollapsed ? 'Expandir Menú' : 'Colapsar Menú'"
+        >
+          <nz-icon [nzType]="isCollapsed ? 'menu-unfold' : 'menu-fold'" class="text-base" />
+        </button>
+
+        <!-- Breadcrumbs Navigation -->
+        <div class="flex items-center gap-2 text-sm font-semibold ml-1">
+          <span 
+            class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-primary transition-colors cursor-pointer flex items-center gap-1.5"
+            (click)="goToDashboard()"
+          >
+            <nz-icon nzType="home" nzTheme="outline" class="text-sm" />
+            Dashboard
+          </span>
+          <span class="text-gray-400 dark:text-gray-600">/</span>
+          <span class="text-gray-900 dark:text-white font-bold text-sm flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-primary inline-block"></span>
+            Recursos Humanos
+          </span>
+        </div>
+      </div>
+
+      <!-- Right Header: User Info + High Contrast Avatar Badge + Theme Toggle + Logout -->
+      <div class="flex items-center gap-2">
+        <!-- User Info Badge with visible circular container in Dark Mode -->
+        <div class="flex items-center gap-2 pr-2 border-r border-gray-200 dark:border-[#374151]">
+          <div class="w-8 h-8 rounded-full bg-gray-900 dark:bg-[#111827] border border-transparent dark:border-[#374151] text-primary flex items-center justify-center font-bold text-xs shadow-xs">
+            A
+          </div>
+          <span class="font-semibold text-xs text-gray-800 dark:text-gray-200 hidden sm:inline">Hola, Admin</span>
+        </div>
+
+        <!-- Sleek Theme Toggle Button -->
+        <button 
+          type="button"
+          class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-amber-500 dark:hover:text-yellow-300 hover:bg-gray-100 dark:hover:bg-[#283548] transition-all cursor-pointer border-none bg-transparent"
+          nz-tooltip 
+          [nzTooltipTitle]="themeService.isDarkMode() ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'" 
+          (click)="themeService.toggleTheme()"
+        >
+          @if (themeService.isDarkMode()) {
+            <nz-icon nzType="sun" nzTheme="outline" class="text-base text-yellow-300" />
+          } @else {
+            <nz-icon nzType="moon" nzTheme="outline" class="text-base text-indigo-600" />
+          }
+        </button>
+
+        <!-- Sleek Logout Button -->
+        <button 
+          type="button"
+          class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all cursor-pointer border-none bg-transparent"
+          nz-tooltip 
+          nzTooltipTitle="Cerrar Sesión" 
+          (click)="logout()"
+        >
+          <nz-icon nzType="logout" nzTheme="outline" class="text-base" />
+        </button>
+      </div>
+    </header>
+
+    <!-- Content View Wrapper -->
+    <nz-content class="p-6 overflow-y-auto grow">
+      <div class="max-w-7xl mx-auto w-full h-full">
+        <router-outlet></router-outlet>
+      </div>
+    </nz-content>
+  </nz-layout>
+</nz-layout>

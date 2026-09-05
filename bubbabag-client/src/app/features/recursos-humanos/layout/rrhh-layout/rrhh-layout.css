@@ -1,0 +1,81 @@
+:host {
+  display: block;
+  height: 100vh;
+  width: 100%;
+}
+
+nz-layout {
+  min-height: 100vh;
+}
+
+nz-sider {
+  min-height: 100vh;
+  overflow-x: hidden !important;
+}
+
+/* Custom Sidebar Menu Pill Styling */
+::ng-deep .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-x: hidden !important;
+}
+
+::ng-deep .ant-menu-inline,
+::ng-deep .ant-menu-vertical {
+  border-right: none !important;
+  padding: 8px 10px;
+  overflow-x: hidden !important;
+}
+
+::ng-deep .ant-menu-inline .ant-menu-item,
+::ng-deep .ant-menu-vertical .ant-menu-item {
+  border-radius: 8px !important;
+  margin-top: 4px !important;
+  margin-bottom: 4px !important;
+  height: 42px !important;
+  line-height: 42px !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+::ng-deep .ant-menu-inline .ant-menu-item::after,
+::ng-deep .ant-menu-vertical .ant-menu-item::after {
+  display: none !important;
+}
+
+/* Selected item styling in light mode */
+::ng-deep .ant-menu-light .ant-menu-item-selected {
+  background-color: #B2E160 !important;
+  color: #111827 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 6px rgba(178, 225, 96, 0.35) !important;
+}
+
+::ng-deep .ant-menu-light .ant-menu-item-selected .anticon {
+  color: #111827 !important;
+}
+
+/* Selected item styling in dark mode */
+::ng-deep html.dark .ant-menu-light .ant-menu-item-selected,
+::ng-deep html.dark .ant-menu-dark .ant-menu-item-selected {
+  background-color: rgba(178, 225, 96, 0.2) !important;
+  color: #B2E160 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+::ng-deep html.dark .ant-menu-light .ant-menu-item-selected .anticon,
+::ng-deep html.dark .ant-menu-dark .ant-menu-item-selected .anticon {
+  color: #B2E160 !important;
+}
+
+/* Hover effects */
+::ng-deep .ant-menu-light .ant-menu-item:hover:not(.ant-menu-item-selected) {
+  background-color: rgba(178, 225, 96, 0.15) !important;
+  color: #111827 !important;
+}
+
+::ng-deep html.dark .ant-menu-light .ant-menu-item:hover:not(.ant-menu-item-selected) {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #B2E160 !important;
+}

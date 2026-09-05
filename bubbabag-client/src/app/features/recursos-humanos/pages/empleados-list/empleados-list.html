@@ -1,0 +1,95 @@
+<div>
+  <!-- Page Title & Actions -->
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white! mb-1">Empleados</h1>
+      <p class="text-gray-500 dark:text-gray-400! text-sm">Gestiona el personal de la empresa</p>
+    </div>
+    <button nz-button nzType="primary" routerLink="/rrhh/empleados/nuevo" class="bg-primary hover:bg-primary-hover text-black border-none font-bold rounded-lg shadow-xs flex items-center gap-1.5">
+      <nz-icon nzType="plus" /> Nuevo Empleado
+    </button>
+  </div>
+
+  <!-- Unified Card: Search Toolbar + Table -->
+  <div class="bg-white dark:bg-[#1f2939] rounded-xl border border-gray-200 dark:border-[#374151] shadow-xs overflow-hidden">
+    <!-- Toolbar Area -->
+    <div class="p-4 border-b border-gray-100 dark:border-[#374151] flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3 w-full sm:max-w-md">
+        <nz-input-wrapper class="grow">
+          <input 
+            type="text" 
+            nz-input 
+            placeholder="Buscar por nombre o documento..." 
+            [(ngModel)]="searchTerm" 
+            (keyup.enter)="buscar()" 
+            class="rounded-lg"
+          />
+          <span nzInputSuffix>
+            <nz-icon nzType="search" class="text-gray-400" />
+          </span>
+        </nz-input-wrapper>
+        <button nz-button nzType="default" (click)="buscar()" class="rounded-lg shrink-0">Buscar</button>
+      </div>
+    </div>
+
+    <!-- Table Area -->
+    <nz-table 
+      #basicTable 
+      [nzData]="empleados" 
+      [nzLoading]="loading" 
+      [nzFrontPagination]="false" 
+      nzSize="middle"
+      [nzNoResult]="customEmpty"
+    >
+      <thead>
+        <tr>
+          <th>Documento</th>
+          <th>Nombres y Apellidos</th>
+          <th>Cargo</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (data of basicTable.nzData; track data.id) {
+          <tr>
+            <td class="dark:text-gray-300">{{ data.tipoDocumento }} {{ data.numeroDocumento }}</td>
+            <td class="dark:text-gray-300">
+              <div class="font-medium text-gray-900 dark:text-white">{{ data.nombres }} {{ data.apellidos }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">{{ data.email }}</div>
+            </td>
+            <td class="dark:text-gray-300">
+              <div>{{ data.cargo || 'No asignado' }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">{{ data.departamento }}</div>
+            </td>
+            <td>
+              <nz-tag [nzColor]="data.estado === 'Activo' ? 'success' : 'error'">{{ data.estado }}</nz-tag>
+            </td>
+            <td>
+              <div class="flex gap-2">
+                <button nz-button nzType="text" nzSize="small" (click)="editar(data.id)" class="text-blue-500 hover:text-blue-700">
+                  <nz-icon nzType="edit" />
+                </button>
+                <button nz-button nzType="text" nzSize="small" nzDanger
+                  nz-popconfirm nzPopconfirmTitle="¿Está seguro de eliminar este empleado?"
+                  (nzOnConfirm)="eliminar(data.id)">
+                  <nz-icon nzType="delete" />
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </nz-table>
+
+    <!-- Simple Empty State: Just Icon and Visible "No hay datos" -->
+    <ng-template #customEmpty>
+      <div class="py-10 flex flex-col items-center justify-center text-center">
+        <div class="w-11 h-11 rounded-xl bg-gray-100 dark:bg-[#111827] flex items-center justify-center mb-2 border border-gray-200 dark:border-[#374151]">
+          <nz-icon nzType="team" nzTheme="outline" class="text-xl text-gray-400 dark:text-gray-400" />
+        </div>
+        <span class="text-sm font-medium text-gray-500 dark:text-gray-300">No hay datos</span>
+      </div>
+    </ng-template>
+  </div>
+</div>
