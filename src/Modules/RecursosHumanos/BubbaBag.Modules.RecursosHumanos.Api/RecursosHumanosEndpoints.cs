@@ -41,7 +41,7 @@ public static class RecursosHumanosEndpoints
         var result = await dispatcher.QueryAsync(new ObtenerEmpleadoQuery(id));
         if (result.IsFailure)
         {
-            return Results.NotFound(new { Error = result.Error });
+            return Results.NotFound(new BubbaBag.SharedKernel.Http.ErrorResponse(404, "Colaborador no encontrado", result.Error));
         }
         return Results.Ok(result.Value);
     }
@@ -53,7 +53,7 @@ public static class RecursosHumanosEndpoints
         var result = await dispatcher.SendAsync(command);
         if (result.IsFailure)
         {
-            return Results.BadRequest(new { Error = result.Error });
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Inconsistencia de negocio", result.Error));
         }
         return Results.Created($"/api/rrhh/empleados/{result.Value}", result.Value);
     }
@@ -65,13 +65,13 @@ public static class RecursosHumanosEndpoints
     {
         if (id != command.Id)
         {
-            return Results.BadRequest(new { Error = "El ID de la ruta no coincide con el del body." });
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Identificador inválido", "El ID de la ruta no coincide con el del cuerpo de la solicitud."));
         }
 
         var result = await dispatcher.SendAsync(command);
         if (result.IsFailure)
         {
-            return Results.BadRequest(new { Error = result.Error });
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Inconsistencia de negocio", result.Error));
         }
         return Results.NoContent();
     }
@@ -83,7 +83,7 @@ public static class RecursosHumanosEndpoints
         var result = await dispatcher.SendAsync(new EliminarEmpleadoCommand(id));
         if (result.IsFailure)
         {
-            return Results.BadRequest(new { Error = result.Error });
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Operación no permitida", result.Error));
         }
         return Results.NoContent();
     }

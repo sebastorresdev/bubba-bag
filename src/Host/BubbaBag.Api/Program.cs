@@ -9,6 +9,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.Services.AddOpenApi();
+builder.Services.AddExceptionHandler<BubbaBag.Api.Middlewares.GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 builder.AddNpgsqlDbContext<BubbaBag.Modules.Seguridad.Infrastructure.Persistence.SeguridadDbContext>("sqldb");
 builder.AddNpgsqlDbContext<BubbaBag.Modules.RecursosHumanos.Infrastructure.Database.RecursosHumanosDbContext>("sqldb");
 builder.Services.AddBubbaBagServices(builder.Configuration);
@@ -17,6 +20,7 @@ BubbaBag.Modules.RecursosHumanos.Api.RecursosHumanosModule.AddRecursosHumanosMod
 
 var app = builder.Build();
 
+app.UseExceptionHandler();
 app.MapDefaultEndpoints();
 await app.ApplyMigrationsAndSeedAsync();
 

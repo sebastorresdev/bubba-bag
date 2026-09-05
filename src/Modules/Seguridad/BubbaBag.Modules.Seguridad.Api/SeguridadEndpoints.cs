@@ -36,7 +36,7 @@ public static class SeguridadEndpoints
         var result = await authService.LoginAsync(request.Email, request.Password);
         if (result.IsFailure)
         {
-            return Results.BadRequest(new { Error = result.Error });
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Error de autenticación", result.Error));
         }
         return Results.Ok(new { Token = result.Value });
     }
@@ -52,7 +52,7 @@ public static class SeguridadEndpoints
         var result = await authService.RegisterAsync(request.Email, request.Password, request.NombreCompleto, request.Roles);
         if (result.IsFailure)
         {
-            return Results.BadRequest(new { Error = result.Error });
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Inconsistencia de registro", result.Error));
         }
         return Results.Ok(new { UsuarioId = result.Value });
     }
@@ -62,7 +62,7 @@ public static class SeguridadEndpoints
         var result = await authService.ObtenerRolesUsuarioAsync(id);
         if (result.IsFailure)
         {
-            return Results.NotFound(new { Error = result.Error });
+            return Results.NotFound(new BubbaBag.SharedKernel.Http.ErrorResponse(404, "Usuario no encontrado", result.Error));
         }
         return Results.Ok(new { Roles = result.Value });
     }
@@ -72,7 +72,7 @@ public static class SeguridadEndpoints
         var result = await authService.AsignarRolesAsync(id, request.Roles);
         if (result.IsFailure)
         {
-            return Results.BadRequest(new { Error = result.Error });
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Error al asignar roles", result.Error));
         }
         return Results.NoContent();
     }

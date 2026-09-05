@@ -4,6 +4,7 @@ using BubbaBag.Modules.RecursosHumanos.Application.Empleados.Features;
 using BubbaBag.Modules.RecursosHumanos.Infrastructure.Database;
 using BubbaBag.SharedKernel;
 using BubbaBag.SharedKernel.CQRS;
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BubbaBag.Modules.RecursosHumanos.Api;
@@ -14,6 +15,9 @@ public static class RecursosHumanosModule
     {
         // Infrastructure
         services.AddScoped<IRecursosHumanosDbContext>(provider => provider.GetRequiredService<RecursosHumanosDbContext>());
+
+        // FluentValidation
+        services.AddValidatorsFromAssembly(typeof(BubbaBag.Modules.RecursosHumanos.Application.IRecursosHumanosDbContext).Assembly);
 
         // Application (CQRS)
         // Commands
