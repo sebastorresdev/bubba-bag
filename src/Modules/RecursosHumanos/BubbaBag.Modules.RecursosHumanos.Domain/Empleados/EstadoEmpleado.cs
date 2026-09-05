@@ -1,5 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace BubbaBag.Modules.RecursosHumanos.Domain.Empleados;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum EstadoEmpleado
 {
     /// <summary>

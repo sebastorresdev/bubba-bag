@@ -79,7 +79,6 @@ public class ActualizarEmpleadoHandler : ICommandHandler<ActualizarEmpleadoComma
         {
             empleado.ActualizarPlanilla(request.SalarioBase, request.MonedaSalario, request.TieneAsignacionFamiliar, request.RegimenPensionario, request.Cuspp);
             empleado.ActualizarDatosBancarios(request.EntidadFinanciera, request.CuentaBancaria, request.CuentaInterbancaria);
-            empleado.CambiarEstado(request.Estado);
         }
         else
         {
@@ -87,6 +86,8 @@ public class ActualizarEmpleadoHandler : ICommandHandler<ActualizarEmpleadoComma
             empleado.ActualizarPlanilla(empleado.SalarioBase, empleado.MonedaSalario, request.TieneAsignacionFamiliar, empleado.RegimenPensionario, empleado.Cuspp);
             empleado.ActualizarDatosBancarios(empleado.EntidadFinanciera, empleado.CuentaBancaria, empleado.CuentaInterbancaria);
         }
+
+        empleado.CambiarEstado(request.Estado);
 
         await _context.SaveChangesAsync(cancellationToken);
 

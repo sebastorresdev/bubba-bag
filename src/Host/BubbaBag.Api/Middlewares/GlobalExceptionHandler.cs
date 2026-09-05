@@ -7,6 +7,7 @@ using BubbaBag.SharedKernel.Http;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace BubbaBag.Api.Middlewares;
@@ -14,10 +15,12 @@ namespace BubbaBag.Api.Middlewares;
 public class GlobalExceptionHandler : IExceptionHandler
 {
     private readonly ILogger<GlobalExceptionHandler> _logger;
+    private readonly IHostEnvironment _env;
 
-    public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger)
+    public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger, IHostEnvironment env)
     {
         _logger = logger;
+        _env = env;
     }
 
     public async ValueTask<bool> TryHandleAsync(
@@ -34,6 +37,13 @@ public class GlobalExceptionHandler : IExceptionHandler
                 "Error de validación",
                 "Uno o más campos enviados no cumplen con las reglas requeridas.",
                 valEx.Errors
+            ),
+
+            BadHttpRequestException badHttpEx => (
+                StatusCodes.Status400BadRequest,
+                "Formato de solicitud inválido",
+                badHttpEx.InnerException?.Message ?? badHttpEx.Message,
+                null
             ),
 
             DbUpdateException dbEx when dbEx.InnerException is Npgsql.PostgresException pgEx && pgEx.SqlState == "23505" =>
@@ -63,7 +73,9 @@ public class GlobalExceptionHandler : IExceptionHandler
             _ => (
                 StatusCodes.Status500InternalServerError,
                 "Error interno del servidor",
-                "Ocurrió un error inesperado al procesar la solicitud. Si el problema persiste, contacte con soporte técnico.",
+                _env.IsDevelopment() 
+                    ? $"{exception.Message}{(exception.InnerException != null ? " --> " + exception.InnerException.Message : "")}" 
+                    : "Ocurrió un error inesperado al procesar la solicitud. Si el problema persiste, contacte con soporte técnico.",
                 null
             )
         };
