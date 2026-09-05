@@ -11,5 +11,5 @@ public interface IAuthService
     Task<Result<Guid>> RegisterAsync(string email, string password, string nombreCompleto, IEnumerable<string> roles);
     Task<Result<bool>> AsignarRolesAsync(Guid usuarioId, IEnumerable<string> roles);
     Task<Result<List<string>>> ObtenerRolesUsuarioAsync(Guid usuarioId);
-    Task<Result<List<string>>> ObtenerTodosLosRolesAsync();
+    Task<Result<List<RolDto>>> ObtenerTodosLosRolesAsync();
 }

@@ -129,9 +129,12 @@ public class AuthService : IAuthService
         return Result<List<string>>.Success(roles.ToList());
     }
 
-    public async Task<Result<List<string>>> ObtenerTodosLosRolesAsync()
+    public async Task<Result<List<RolDto>>> ObtenerTodosLosRolesAsync()
     {
-        var roles = await _roleManager.Roles.Select(r => r.Name!).ToListAsync();
-        return Result<List<string>>.Success(roles);
+        var roles = await _roleManager.Roles
+            .OrderBy(r => r.Name)
+            .Select(r => new RolDto(r.Id, r.Name!, r.Descripcion))
+            .ToListAsync();
+        return Result<List<RolDto>>.Success(roles);
     }
 }

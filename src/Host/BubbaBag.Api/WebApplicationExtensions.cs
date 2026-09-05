@@ -24,12 +24,26 @@ public static class WebApplicationExtensions
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<Rol>>();
 
-        // Asegurar la existencia de los 4 roles fijos del sistema
-        foreach (var rol in BubbaBag.SharedKernel.Authorization.Roles.Fijos)
+        // Asegurar la existencia de los 4 roles fijos del sistema con su descripción oficial
+        var rolesFijos = new (string Nombre, string Descripcion)[]
         {
-            if (!await roleManager.RoleExistsAsync(rol))
+            (BubbaBag.SharedKernel.Authorization.Roles.SuperAdmin, "Desarrollador y administrador técnico global con control total sobre todos los módulos del sistema."),
+            (BubbaBag.SharedKernel.Authorization.Roles.Gerencia, "Dirección y jefatura general. Visualización de métricas e información financiera y confidencial."),
+            (BubbaBag.SharedKernel.Authorization.Roles.RrhhAdmin, "Administrador de Recursos Humanos. Control total: altas, ceses, contratos, salarios y cuentas bancarias."),
+            (BubbaBag.SharedKernel.Authorization.Roles.RrhhAsistente, "Asistente operativo de Recursos Humanos. Gestión de colaboradores y contacto. Sin acceso a salarios ni cuentas bancarias.")
+        };
+
+        foreach (var (nombre, descripcion) in rolesFijos)
+        {
+            var rol = await roleManager.FindByNameAsync(nombre);
+            if (rol == null)
             {
-                await roleManager.CreateAsync(new Rol { Name = rol });
+                await roleManager.CreateAsync(new Rol { Name = nombre, Descripcion = descripcion });
+            }
+            else if (string.IsNullOrEmpty(rol.Descripcion) || rol.Descripcion != descripcion)
+            {
+                rol.Descripcion = descripcion;
+                await roleManager.UpdateAsync(rol);
             }
         }
 
