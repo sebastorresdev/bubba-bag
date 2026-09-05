@@ -24,21 +24,40 @@ public static class WebApplicationExtensions
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<Rol>>();
 
-        if (!await roleManager.RoleExistsAsync("Admin"))
+        // Asegurar la existencia de los 4 roles fijos del sistema
+        foreach (var rol in BubbaBag.SharedKernel.Authorization.Roles.Fijos)
         {
-            await roleManager.CreateAsync(new Rol { Name = "Admin" });
+            if (!await roleManager.RoleExistsAsync(rol))
+            {
+                await roleManager.CreateAsync(new Rol { Name = rol });
+            }
         }
 
-        if (await userManager.FindByEmailAsync("admin@bubbabag.com") == null)
+        // Si existía el rol viejo "Admin" de pruebas anteriores, eliminarlo
+        var rolViejoAdmin = await roleManager.FindByNameAsync("Admin");
+        if (rolViejoAdmin != null)
         {
-            var admin = new Usuario 
+            await roleManager.DeleteAsync(rolViejoAdmin);
+        }
+
+        var admin = await userManager.FindByEmailAsync("admin@bubbabag.com");
+        if (admin == null)
+        {
+            admin = new Usuario 
             { 
                 UserName = "admin@bubbabag.com", 
                 Email = "admin@bubbabag.com", 
-                NombreCompleto = "Administrador del Sistema" 
+                NombreCompleto = "Desarrollador / SuperAdmin" 
             };
             await userManager.CreateAsync(admin, "Admin123!");
-            await userManager.AddToRoleAsync(admin, "Admin");
+            await userManager.AddToRoleAsync(admin, BubbaBag.SharedKernel.Authorization.Roles.SuperAdmin);
+        }
+        else
+        {
+            if (!await userManager.IsInRoleAsync(admin, BubbaBag.SharedKernel.Authorization.Roles.SuperAdmin))
+            {
+                await userManager.AddToRoleAsync(admin, BubbaBag.SharedKernel.Authorization.Roles.SuperAdmin);
+            }
         }
     }
 }

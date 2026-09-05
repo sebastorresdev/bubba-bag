@@ -9,4 +9,6 @@ public interface ICurrentUser
     string Email { get; }
     IReadOnlyList<string> Roles { get; }
     bool IsAuthenticated { get; }
+    bool IsInRole(string role);
+    bool HasAnyRole(params string[] roles);
 }

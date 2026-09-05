@@ -10,10 +10,12 @@ public record ObtenerEmpleadoQuery(Guid Id) : IQuery<Result<EmpleadoDto>>;
 public class ObtenerEmpleadoHandler : IQueryHandler<ObtenerEmpleadoQuery, Result<EmpleadoDto>>
 {
     private readonly IRecursosHumanosDbContext _context;
+    private readonly ICurrentUser _currentUser;
 
-    public ObtenerEmpleadoHandler(IRecursosHumanosDbContext context)
+    public ObtenerEmpleadoHandler(IRecursosHumanosDbContext context, ICurrentUser currentUser)
     {
         _context = context;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<EmpleadoDto>> HandleAsync(ObtenerEmpleadoQuery request, CancellationToken cancellationToken)
@@ -26,6 +28,8 @@ public class ObtenerEmpleadoHandler : IQueryHandler<ObtenerEmpleadoQuery, Result
         {
             return Result<EmpleadoDto>.Failure("El empleado no existe.");
         }
+
+        var tieneAccesoConfidencial = _currentUser.HasAnyRole(BubbaBag.SharedKernel.Authorization.Roles.AccesoRrhhConfidencial);
 
         return Result<EmpleadoDto>.Success(new EmpleadoDto(
             empleado.Id,
@@ -42,14 +46,14 @@ public class ObtenerEmpleadoHandler : IQueryHandler<ObtenerEmpleadoQuery, Result
             empleado.Cargo,
             empleado.Departamento,
             empleado.TipoContrato,
-            empleado.SalarioBase,
-            empleado.MonedaSalario,
+            tieneAccesoConfidencial ? empleado.SalarioBase : null,
+            tieneAccesoConfidencial ? empleado.MonedaSalario : null,
             empleado.TieneAsignacionFamiliar,
-            empleado.RegimenPensionario,
-            empleado.Cuspp,
-            empleado.EntidadFinanciera,
-            empleado.CuentaBancaria,
-            empleado.CuentaInterbancaria
+            tieneAccesoConfidencial ? empleado.RegimenPensionario : null,
+            tieneAccesoConfidencial ? empleado.Cuspp : null,
+            tieneAccesoConfidencial ? empleado.EntidadFinanciera : null,
+            tieneAccesoConfidencial ? empleado.CuentaBancaria : null,
+            tieneAccesoConfidencial ? empleado.CuentaInterbancaria : null
         ));
     }
 }

@@ -31,10 +31,12 @@ public record CrearEmpleadoCommand(
 public class CrearEmpleadoHandler : ICommandHandler<CrearEmpleadoCommand, Result<Guid>>
 {
     private readonly IRecursosHumanosDbContext _context;
+    private readonly ICurrentUser _currentUser;
 
-    public CrearEmpleadoHandler(IRecursosHumanosDbContext context)
+    public CrearEmpleadoHandler(IRecursosHumanosDbContext context, ICurrentUser currentUser)
     {
         _context = context;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<Guid>> HandleAsync(CrearEmpleadoCommand request, CancellationToken cancellationToken)
@@ -49,8 +51,18 @@ public class CrearEmpleadoHandler : ICommandHandler<CrearEmpleadoCommand, Result
         
         empleado.ActualizarDatosContacto(request.Email, request.Telefono, request.Direccion);
         empleado.ActualizarDatosLaborales(request.FechaIngreso, request.Cargo, request.Departamento, request.TipoContrato);
-        empleado.ActualizarPlanilla(request.SalarioBase, request.MonedaSalario, request.TieneAsignacionFamiliar, request.RegimenPensionario, request.Cuspp);
-        empleado.ActualizarDatosBancarios(request.EntidadFinanciera, request.CuentaBancaria, request.CuentaInterbancaria);
+
+        var tieneAccesoConfidencial = _currentUser.HasAnyRole(BubbaBag.SharedKernel.Authorization.Roles.AccesoRrhhConfidencial);
+        if (tieneAccesoConfidencial)
+        {
+            empleado.ActualizarPlanilla(request.SalarioBase, request.MonedaSalario, request.TieneAsignacionFamiliar, request.RegimenPensionario, request.Cuspp);
+            empleado.ActualizarDatosBancarios(request.EntidadFinanciera, request.CuentaBancaria, request.CuentaInterbancaria);
+        }
+        else
+        {
+            // El rol operativo/asistente no tiene permiso de registrar salarios ni bancos confidenciales
+            empleado.ActualizarPlanilla(null, null, request.TieneAsignacionFamiliar, null, null);
+        }
 
         _context.Empleados.Add(empleado);
         await _context.SaveChangesAsync(cancellationToken);

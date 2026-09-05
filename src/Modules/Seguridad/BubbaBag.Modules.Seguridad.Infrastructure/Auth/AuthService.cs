@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using BubbaBag.Modules.Seguridad.Application.Auth;
 using BubbaBag.Modules.Seguridad.Domain.Entities;
 using BubbaBag.SharedKernel;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace BubbaBag.Modules.Seguridad.Infrastructure.Auth;
 
@@ -40,7 +43,7 @@ public class AuthService : IAuthService
         return Result<string>.Success(token);
     }
 
-    public async Task<Result<Guid>> RegisterAsync(string email, string password, string nombreCompleto, string rol)
+    public async Task<Result<Guid>> RegisterAsync(string email, string password, string nombreCompleto, IEnumerable<string> roles)
     {
         var existingUser = await _userManager.FindByEmailAsync(email);
         if (existingUser != null)
@@ -48,9 +51,13 @@ public class AuthService : IAuthService
             return Result<Guid>.Failure("El correo ya está registrado.");
         }
 
-        if (!await _roleManager.RoleExistsAsync(rol))
+        var rolesList = roles?.ToList() ?? new List<string>();
+        foreach (var rol in rolesList)
         {
-            await _roleManager.CreateAsync(new Rol { Name = rol });
+            if (!await _roleManager.RoleExistsAsync(rol))
+            {
+                await _roleManager.CreateAsync(new Rol { Name = rol });
+            }
         }
 
         var user = new Usuario
@@ -66,8 +73,65 @@ public class AuthService : IAuthService
             return Result<Guid>.Failure(string.Join(", ", result.Errors.Select(e => e.Description)));
         }
 
-        await _userManager.AddToRoleAsync(user, rol);
+        if (rolesList.Count > 0)
+        {
+            await _userManager.AddToRolesAsync(user, rolesList);
+        }
 
         return Result<Guid>.Success(user.Id);
+    }
+
+    public async Task<Result<bool>> AsignarRolesAsync(Guid usuarioId, IEnumerable<string> roles)
+    {
+        var user = await _userManager.FindByIdAsync(usuarioId.ToString());
+        if (user == null)
+        {
+            return Result<bool>.Failure("Usuario no encontrado.");
+        }
+
+        var rolesList = roles?.ToList() ?? new List<string>();
+        foreach (var rol in rolesList)
+        {
+            if (!await _roleManager.RoleExistsAsync(rol))
+            {
+                await _roleManager.CreateAsync(new Rol { Name = rol });
+            }
+        }
+
+        var rolesActuales = await _userManager.GetRolesAsync(user);
+        var removeResult = await _userManager.RemoveFromRolesAsync(user, rolesActuales);
+        if (!removeResult.Succeeded)
+        {
+            return Result<bool>.Failure("Error al remover roles anteriores.");
+        }
+
+        if (rolesList.Count > 0)
+        {
+            var addResult = await _userManager.AddToRolesAsync(user, rolesList);
+            if (!addResult.Succeeded)
+            {
+                return Result<bool>.Failure("Error al asignar los nuevos roles.");
+            }
+        }
+
+        return Result<bool>.Success(true);
+    }
+
+    public async Task<Result<List<string>>> ObtenerRolesUsuarioAsync(Guid usuarioId)
+    {
+        var user = await _userManager.FindByIdAsync(usuarioId.ToString());
+        if (user == null)
+        {
+            return Result<List<string>>.Failure("Usuario no encontrado.");
+        }
+
+        var roles = await _userManager.GetRolesAsync(user);
+        return Result<List<string>>.Success(roles.ToList());
+    }
+
+    public async Task<Result<List<string>>> ObtenerTodosLosRolesAsync()
+    {
+        var roles = await _roleManager.Roles.Select(r => r.Name!).ToListAsync();
+        return Result<List<string>>.Success(roles);
     }
 }

@@ -12,14 +12,21 @@ public record EliminarEmpleadoCommand(Guid Id) : ICommand<Result<bool>>;
 public class EliminarEmpleadoHandler : ICommandHandler<EliminarEmpleadoCommand, Result<bool>>
 {
     private readonly IRecursosHumanosDbContext _context;
+    private readonly ICurrentUser _currentUser;
 
-    public EliminarEmpleadoHandler(IRecursosHumanosDbContext context)
+    public EliminarEmpleadoHandler(IRecursosHumanosDbContext context, ICurrentUser currentUser)
     {
         _context = context;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<bool>> HandleAsync(EliminarEmpleadoCommand request, CancellationToken cancellationToken)
     {
+        if (!_currentUser.HasAnyRole(BubbaBag.SharedKernel.Authorization.Roles.AccesoRrhhConfidencial))
+        {
+            return Result<bool>.Failure("No tiene permisos para dar de baja o eliminar colaboradores.");
+        }
+
         var empleado = await _context.Empleados.FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
 
         if (empleado is null)

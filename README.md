@@ -19,6 +19,12 @@ Sistema ERP a medida para BubbaBag.
 
 Cada módulo se divide en Domain, Application, Infrastructure y Api.
 
+## Documentación Técnica
+
+- [Convención de Nombres (Spanglish)](file:///d:/PROYECTOS/bubba-bag/docs/naming-conventions.md)
+- [Patrón de Endpoints de API (Minimal APIs)](file:///d:/PROYECTOS/bubba-bag/docs/api-endpoints-pattern.md)
+- [Arquitectura de Seguridad: Roles Fijos y Multi-Rol](file:///d:/PROYECTOS/bubba-bag/docs/security-roles-architecture.md)
+
 ## Estructura Frontend
 
-Ubicado en la carpeta ubbabag-client (Angular workspace).
+Ubicado en la carpeta `bubbabag-client` (Angular workspace).

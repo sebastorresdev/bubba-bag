@@ -10,10 +10,12 @@ public record ObtenerEmpleadosQuery(string? SearchTerm, int Page = 1, int PageSi
 public class ObtenerEmpleadosHandler : IQueryHandler<ObtenerEmpleadosQuery, Result<List<EmpleadoDto>>>
 {
     private readonly IRecursosHumanosDbContext _context;
+    private readonly ICurrentUser _currentUser;
 
-    public ObtenerEmpleadosHandler(IRecursosHumanosDbContext context)
+    public ObtenerEmpleadosHandler(IRecursosHumanosDbContext context, ICurrentUser currentUser)
     {
         _context = context;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<List<EmpleadoDto>>> HandleAsync(ObtenerEmpleadosQuery request, CancellationToken cancellationToken)
@@ -29,6 +31,8 @@ public class ObtenerEmpleadosHandler : IQueryHandler<ObtenerEmpleadosQuery, Resu
                 (e.Nombres + " " + e.Apellidos).ToLower().Contains(term) ||
                 e.NumeroDocumento.ToLower().Contains(term));
         }
+
+        var tieneAccesoConfidencial = _currentUser.HasAnyRole(BubbaBag.SharedKernel.Authorization.Roles.AccesoRrhhConfidencial);
 
         var empleados = await query
             .OrderBy(e => e.Apellidos)
@@ -49,14 +53,14 @@ public class ObtenerEmpleadosHandler : IQueryHandler<ObtenerEmpleadosQuery, Resu
                 e.Cargo,
                 e.Departamento,
                 e.TipoContrato,
-                e.SalarioBase,
-                e.MonedaSalario,
+                tieneAccesoConfidencial ? e.SalarioBase : null,
+                tieneAccesoConfidencial ? e.MonedaSalario : null,
                 e.TieneAsignacionFamiliar,
-                e.RegimenPensionario,
-                e.Cuspp,
-                e.EntidadFinanciera,
-                e.CuentaBancaria,
-                e.CuentaInterbancaria
+                tieneAccesoConfidencial ? e.RegimenPensionario : null,
+                tieneAccesoConfidencial ? e.Cuspp : null,
+                tieneAccesoConfidencial ? e.EntidadFinanciera : null,
+                tieneAccesoConfidencial ? e.CuentaBancaria : null,
+                tieneAccesoConfidencial ? e.CuentaInterbancaria : null
             ))
             .ToListAsync(cancellationToken);
 

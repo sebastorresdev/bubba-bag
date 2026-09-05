@@ -23,4 +23,10 @@ public class CurrentUser : ICurrentUser
     public IReadOnlyList<string> Roles => _httpContextAccessor.HttpContext?.User?.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList() ?? new List<string>();
 
     public bool IsAuthenticated => _httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
+
+    public bool IsInRole(string role) => 
+        Roles.Any(r => string.Equals(r, role, StringComparison.OrdinalIgnoreCase));
+
+    public bool HasAnyRole(params string[] roles) => 
+        roles.Any(IsInRole);
 }

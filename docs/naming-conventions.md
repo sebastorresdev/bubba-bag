@@ -1,8 +1,6 @@
 # Convención de nombres: "Spanglish"
 
-Regla explícita del proyecto (ver también memoria de repositorio): **la arquitectura técnica se
-nombra en inglés, pero el dominio de negocio de cada módulo se nombra en español**. No se traduce
-la terminología de patrones de arquitectura.
+Regla del proyecto: **la arquitectura técnica se nombra en inglés, pero el dominio de negocio de cada módulo se nombra en español**. No se traduce la terminología de patrones de arquitectura.
 
 ## Regla
 
@@ -40,7 +38,7 @@ la terminología de patrones de arquitectura.
 
 ## NO aplica a (queda en inglés)
 
-- `SkviaErp.SharedKernel`, `SkviaErp.Multitenancy`, `SkviaErp.Catalog.*` — son infraestructura
+- `BubbaBag.SharedKernel`, librerías transversales, etc. — son infraestructura
   técnica transversal, no dominio de negocio de un módulo específico.
 - Sufijos/patrones de arquitectura: `Command`, `Query`, `Handler`, `Dto`, `Repository`, `Entity`,
   `Validator`, `DbContext`.

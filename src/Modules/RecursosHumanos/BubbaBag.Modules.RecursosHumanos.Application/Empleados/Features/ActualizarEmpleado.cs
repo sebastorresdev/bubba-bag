@@ -36,10 +36,12 @@ public record ActualizarEmpleadoCommand(
 public class ActualizarEmpleadoHandler : ICommandHandler<ActualizarEmpleadoCommand, Result<Guid>>
 {
     private readonly IRecursosHumanosDbContext _context;
+    private readonly ICurrentUser _currentUser;
 
-    public ActualizarEmpleadoHandler(IRecursosHumanosDbContext context)
+    public ActualizarEmpleadoHandler(IRecursosHumanosDbContext context, ICurrentUser currentUser)
     {
         _context = context;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<Guid>> HandleAsync(ActualizarEmpleadoCommand request, CancellationToken cancellationToken)
@@ -60,9 +62,20 @@ public class ActualizarEmpleadoHandler : ICommandHandler<ActualizarEmpleadoComma
         empleado.ActualizarDatosBasicos(request.Nombres, request.Apellidos, request.TipoDocumento, request.NumeroDocumento);
         empleado.ActualizarDatosContacto(request.Email, request.Telefono, request.Direccion);
         empleado.ActualizarDatosLaborales(request.FechaIngreso, request.Cargo, request.Departamento, request.TipoContrato);
-        empleado.ActualizarPlanilla(request.SalarioBase, request.MonedaSalario, request.TieneAsignacionFamiliar, request.RegimenPensionario, request.Cuspp);
-        empleado.ActualizarDatosBancarios(request.EntidadFinanciera, request.CuentaBancaria, request.CuentaInterbancaria);
-        empleado.CambiarEstado(request.Estado);
+
+        var tieneAccesoConfidencial = _currentUser.HasAnyRole(BubbaBag.SharedKernel.Authorization.Roles.AccesoRrhhConfidencial);
+        if (tieneAccesoConfidencial)
+        {
+            empleado.ActualizarPlanilla(request.SalarioBase, request.MonedaSalario, request.TieneAsignacionFamiliar, request.RegimenPensionario, request.Cuspp);
+            empleado.ActualizarDatosBancarios(request.EntidadFinanciera, request.CuentaBancaria, request.CuentaInterbancaria);
+            empleado.CambiarEstado(request.Estado);
+        }
+        else
+        {
+            // Conservar los datos confidenciales existentes
+            empleado.ActualizarPlanilla(empleado.SalarioBase, empleado.MonedaSalario, request.TieneAsignacionFamiliar, empleado.RegimenPensionario, empleado.Cuspp);
+            empleado.ActualizarDatosBancarios(empleado.EntidadFinanciera, empleado.CuentaBancaria, empleado.CuentaInterbancaria);
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
 
