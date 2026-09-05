@@ -119,23 +119,16 @@
               <nz-tag [nzColor]="getEstadoColor(data.estado)" class="font-semibold text-xs px-2.5 py-0.5 rounded-full">
                 {{ data.estado }}
               </nz-tag>
-              @if (data.estado === 'Cesado' && data.fechaCese) {
-                <div class="text-[11px] text-red-500 font-medium mt-1">
-                  Baja: {{ data.fechaCese }}
-                </div>
-              }
             </td>
             <td class="text-right">
-              <div class="flex items-center justify-end gap-1.5">
+              <div class="flex items-center justify-end gap-1">
                 <!-- Editar -->
                 <button 
-                  nz-button 
-                  nzType="text" 
-                  nzSize="small" 
+                  type="button"
                   (click)="editar(data.id)" 
                   nz-tooltip
-                  nzTooltipTitle="Editar información del colaborador"
-                  class="text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                  nzTooltipTitle="Editar información"
+                  class="w-8 h-8 rounded-[2px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                 >
                   <nz-icon nzType="edit" class="text-base" />
                 </button>
@@ -143,13 +136,11 @@
                 <!-- Dar de Baja (solo si no está Cesado) -->
                 @if (data.estado !== 'Cesado') {
                   <button 
-                    nz-button 
-                    nzType="text" 
-                    nzSize="small" 
+                    type="button"
                     (click)="abrirModalBaja(data)" 
                     nz-tooltip
-                    nzTooltipTitle="Dar de baja / Cesar relación laboral"
-                    class="text-amber-600 hover:text-amber-800 dark:text-amber-400"
+                    nzTooltipTitle="Dar de baja"
+                    class="w-8 h-8 rounded-[2px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                   >
                     <nz-icon nzType="user-delete" class="text-base" />
                   </button>
@@ -158,15 +149,13 @@
                 <!-- Reactivar (solo si está Cesado) -->
                 @if (data.estado === 'Cesado') {
                   <button 
-                    nz-button 
-                    nzType="text" 
-                    nzSize="small" 
+                    type="button"
                     nz-tooltip
                     nzTooltipTitle="Reactivar colaborador"
                     nz-popconfirm
                     nzPopconfirmTitle="¿Deseas reactivar a este colaborador al estado Activo?"
                     (nzOnConfirm)="reactivar(data.id)"
-                    class="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400"
+                    class="w-8 h-8 rounded-[2px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                   >
                     <nz-icon nzType="reload" class="text-base" />
                   </button>
@@ -174,15 +163,13 @@
 
                 <!-- Eliminar -->
                 <button 
-                  nz-button 
-                  nzType="text" 
-                  nzSize="small" 
-                  nzDanger
+                  type="button"
                   nz-tooltip
-                  nzTooltipTitle="Eliminar registro permanentemente"
+                  nzTooltipTitle="Eliminar colaborador"
                   nz-popconfirm 
-                  nzPopconfirmTitle="¿Está seguro de eliminar definitivamente a este empleado?"
+                  nzPopconfirmTitle="¿Está seguro de eliminar definitivamente a este colaborador?"
                   (nzOnConfirm)="eliminar(data.id)"
+                  class="w-8 h-8 rounded-[2px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                 >
                   <nz-icon nzType="delete" class="text-base" />
                 </button>
@@ -196,7 +183,7 @@
     <!-- Empty State -->
     <ng-template #customEmpty>
       <div class="py-12 flex flex-col items-center justify-center text-center">
-        <div class="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-[#111827] flex items-center justify-center mb-3 border border-gray-200 dark:border-[#374151]">
+        <div class="w-12 h-12 rounded-[2px] bg-gray-100 dark:bg-[#111827] flex items-center justify-center mb-3 border border-gray-200 dark:border-[#374151]">
           <nz-icon nzType="team" nzTheme="outline" class="text-2xl text-gray-400 dark:text-gray-400" />
         </div>
         <span class="text-sm font-semibold text-gray-700 dark:text-gray-200">No se encontraron colaboradores</span>
@@ -211,26 +198,24 @@
   [(nzVisible)]="modalBajaVisible"
   nzTitle="Dar de Baja a Colaborador"
   (nzOnCancel)="cerrarModalBaja()"
-  (nzOnOk)="confirmarBaja()"
-  [nzOkLoading]="guardandoBaja"
-  nzOkText="Confirmar Baja"
-  nzOkDanger="true"
-  nzCancelText="Cancelar"
+  [nzFooter]="modalBajaFooter"
+  [nzMaskClosable]="false"
+  nzWidth="500px"
 >
   <ng-container *nzModalContent>
     <div class="py-1">
-      <div class="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 mb-5 flex items-start gap-3">
-        <nz-icon nzType="exclamation-circle" class="text-amber-500 text-lg mt-0.5 shrink-0" />
-        <div>
-          <div class="font-bold text-sm text-gray-900 dark:text-amber-200">
+      <!-- Resumen del Colaborador -->
+      <div class="p-3.5 rounded-[2px] bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-[#374151] mb-5 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-[2px] bg-gray-200/80 dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex items-center justify-center shrink-0">
+          <nz-icon nzType="user" class="text-base" />
+        </div>
+        <div class="grow min-w-0">
+          <div class="font-bold text-sm text-gray-900 dark:text-white">
             {{ empleadoParaBaja?.nombres }} {{ empleadoParaBaja?.apellidos }}
           </div>
-          <div class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-            {{ empleadoParaBaja?.tipoDocumento }}: {{ empleadoParaBaja?.numeroDocumento }} • {{ empleadoParaBaja?.cargoNombre || 'Sin cargo' }}
+          <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            {{ empleadoParaBaja?.tipoDocumento }}: <span class="font-mono font-medium">{{ empleadoParaBaja?.numeroDocumento }}</span> • {{ empleadoParaBaja?.cargoNombre || 'Sin cargo asignado' }}
           </div>
-          <p class="text-xs text-amber-700 dark:text-amber-300/80 mb-0 mt-2">
-            Al dar de baja, el estado del colaborador cambiará a <strong>Cesado</strong> y se registrará formalmente la salida de la empresa.
-          </p>
         </div>
       </div>
 
@@ -240,7 +225,11 @@
           <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
             Fecha de Cese / Salida <span class="text-red-500">*</span>
           </label>
-          <nz-date-picker [(ngModel)]="fechaCese" nzFormat="yyyy-MM-dd" class="w-full rounded-lg" />
+          <nz-date-picker 
+            [(ngModel)]="fechaCese" 
+            nzFormat="yyyy-MM-dd" 
+            class="w-full h-9" 
+          />
         </div>
 
         <!-- Motivo de Cese -->
@@ -248,7 +237,10 @@
           <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
             Motivo de Cese <span class="text-red-500">*</span>
           </label>
-          <nz-select [(ngModel)]="motivoCeseSeleccionado" class="w-full rounded-lg">
+          <nz-select 
+            [(ngModel)]="motivoCeseSeleccionado" 
+            class="w-full"
+          >
             @for (m of motivosCese; track m) {
               <nz-option [nzValue]="m" [nzLabel]="m"></nz-option>
             }
@@ -265,10 +257,34 @@
             [(ngModel)]="observacionesCese" 
             rows="3" 
             placeholder="Detalles sobre entrega de cargo, devoluciones de equipos o motivos específicos..."
-            class="rounded-lg"
+            class="w-full resize-none"
           ></textarea>
         </div>
       </div>
     </div>
   </ng-container>
+
+  <ng-template #modalBajaFooter>
+    <div class="flex items-center justify-end gap-2.5">
+      <button 
+        type="button"
+        nz-button
+        nzType="default"
+        (click)="cerrarModalBaja()" 
+        class="h-9 px-4 font-medium cursor-pointer"
+      >
+        Cancelar
+      </button>
+      <button 
+        type="button"
+        nz-button
+        nzType="primary"
+        [nzLoading]="guardandoBaja"
+        (click)="confirmarBaja()" 
+        class="h-9 px-5 font-bold cursor-pointer"
+      >
+        Confirmar Baja
+      </button>
+    </div>
+  </ng-template>
 </nz-modal>

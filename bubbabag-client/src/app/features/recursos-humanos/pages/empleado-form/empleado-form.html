@@ -2,9 +2,9 @@
   <!-- Page Header & Actions -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
     <div class="flex items-center gap-3">
-      <button 
-        nz-button 
-        nzType="default" 
+      <button
+        nz-button
+        nzType="default"
         routerLink="/rrhh/empleados"
         class="w-10 h-10 rounded-lg flex items-center justify-center border border-gray-200 dark:border-[#374151] bg-white dark:bg-[#1f2939] text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors cursor-pointer shadow-xs"
         nz-tooltip
@@ -32,20 +32,20 @@
 
     <!-- Quick Action Buttons at Header -->
     <div class="flex items-center gap-3">
-      <button 
+      <button
         type="button"
-        nz-button 
-        nzType="default" 
+        nz-button
+        nzType="default"
         routerLink="/rrhh/empleados"
         class="rounded-lg h-9 px-4 font-medium border border-gray-200 dark:border-[#374151] bg-white dark:bg-[#1f2939] text-gray-700 dark:text-gray-300 hover:border-gray-300 cursor-pointer"
       >
         Cancelar
       </button>
-      <button 
+      <button
         type="button"
-        nz-button 
-        nzType="primary" 
-        [nzLoading]="loading" 
+        nz-button
+        nzType="primary"
+        [nzLoading]="loading"
         (click)="guardar()"
         class="rounded-lg h-9 px-5 bg-primary hover:bg-primary-hover text-black font-bold border-none shadow-xs flex items-center gap-1.5 cursor-pointer"
       >
@@ -70,7 +70,7 @@
 
   <!-- Form Container -->
   <form nz-form [formGroup]="form" nzLayout="vertical" (ngSubmit)="guardar()">
-    
+
     <!-- 1. Sección: Datos Personales e Identificación -->
     <div class="bg-white dark:bg-[#1f2939] rounded-xl border border-gray-200 dark:border-[#374151] shadow-xs p-6 mb-6">
       <div class="flex items-center gap-3 mb-5 pb-3 border-b border-gray-100 dark:border-[#374151]">
@@ -194,12 +194,12 @@
         <nz-form-item class="mb-2">
           <nz-form-label nzFor="departamentoId">Área o Departamento</nz-form-label>
           <nz-form-control>
-            <nz-select 
-              formControlName="departamentoId" 
-              id="departamentoId" 
+            <nz-select
+              formControlName="departamentoId"
+              id="departamentoId"
               (ngModelChange)="onDepartamentoChange($event)"
-              nzPlaceHolder="Seleccionar departamento / área" 
-              nzAllowClear 
+              nzPlaceHolder="Seleccionar departamento / área"
+              nzAllowClear
               class="rounded-lg"
             >
               @for (d of departamentos; track d.id) {
@@ -213,17 +213,17 @@
         <nz-form-item class="mb-2">
           <nz-form-label nzFor="cargoId">Cargo o Puesto</nz-form-label>
           <nz-form-control>
-            <nz-select 
-              formControlName="cargoId" 
-              id="cargoId" 
+            <nz-select
+              formControlName="cargoId"
+              id="cargoId"
               [nzDisabled]="cargosFiltrados.length === 0"
-              [nzPlaceHolder]="cargosFiltrados.length === 0 ? 'Primero selecciona un departamento' : 'Seleccionar cargo'" 
-              nzAllowClear 
+              [nzPlaceHolder]="cargosFiltrados.length === 0 ? 'Primero selecciona un departamento' : 'Seleccionar cargo'"
+              nzAllowClear
               class="rounded-lg"
             >
               @for (c of cargosFiltrados; track c.id) {
-                <nz-option 
-                  [nzValue]="c.id" 
+                <nz-option
+                  [nzValue]="c.id"
                   [nzLabel]="c.nombre + (c.salarioReferencial ? ' (Ref: S/ ' + c.salarioReferencial + ')' : '')"
                 ></nz-option>
               }
@@ -336,19 +336,19 @@
 
     <!-- Bottom Actions Bar -->
     <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-[#374151]">
-      <button 
+      <button
         type="button"
-        nz-button 
-        nzType="default" 
+        nz-button
+        nzType="default"
         routerLink="/rrhh/empleados"
         class="rounded-lg h-10 px-5 font-medium border border-gray-200 dark:border-[#374151] bg-white dark:bg-[#1f2939] text-gray-700 dark:text-gray-300 hover:border-gray-300 cursor-pointer"
       >
         Cancelar
       </button>
-      <button 
-        nz-button 
-        nzType="primary" 
-        [nzLoading]="loading" 
+      <button
+        nz-button
+        nzType="primary"
+        [nzLoading]="loading"
         class="rounded-lg h-10 px-6 bg-primary hover:bg-primary-hover text-black font-bold border-none shadow-xs flex items-center gap-1.5 cursor-pointer"
       >
         <nz-icon nzType="check" class="text-sm font-bold" />
