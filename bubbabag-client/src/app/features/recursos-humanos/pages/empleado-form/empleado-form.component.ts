@@ -135,9 +135,8 @@ export class EmpleadoFormComponent implements OnInit {
           this.message.success('Empleado actualizado correctamente');
           this.router.navigate(['/rrhh/empleados']);
         },
-        error: (err) => {
+        error: () => {
           this.loading = false;
-          this.message.error(err.error?.error || 'Error al actualizar empleado');
         }
       });
     } else {
@@ -148,9 +147,8 @@ export class EmpleadoFormComponent implements OnInit {
           this.message.success('Empleado registrado correctamente');
           this.router.navigate(['/rrhh/empleados']);
         },
-        error: (err) => {
+        error: () => {
           this.loading = false;
-          this.message.error(err.error?.error || 'Error al crear empleado');
         }
       });
     }

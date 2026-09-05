@@ -44,7 +44,6 @@ export class LoginComponent {
         },
         error: (err: any) => {
           console.error('Error de login', err);
-          alert('Credenciales inválidas o error en el servidor');
         }
       });
     } else {

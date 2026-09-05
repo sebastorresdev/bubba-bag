@@ -72,10 +72,8 @@ export class EmpleadosListComponent implements OnInit {
         this.message.success('Empleado eliminado correctamente');
         this.cargarEmpleados();
       },
-      error: (err) => {
-        // Here we handle the business error message (FK constraint)
-        const errorMsg = err.error?.error || 'No se pudo eliminar el empleado';
-        this.message.error(errorMsg, { nzDuration: 5000 });
+      error: () => {
+        // Manejado por el interceptor global
       }
     });
   }
