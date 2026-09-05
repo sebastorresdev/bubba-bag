@@ -70,11 +70,16 @@ public class Empleado : Entity<Guid>
         NumeroDocumento = numeroDocumento.Trim();
     }
 
+    private static string? NormalizeOptional(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
     public void ActualizarDatosContacto(string? email, string? telefono, string? direccion)
     {
-        Email = email?.Trim();
-        Telefono = telefono?.Trim();
-        Direccion = direccion?.Trim();
+        Email = NormalizeOptional(email);
+        Telefono = NormalizeOptional(telefono);
+        Direccion = NormalizeOptional(direccion);
     }
 
     public void ActualizarDatosLaborales(DateOnly? fechaIngreso, Guid? departamentoId, Guid? cargoId, string? tipoContrato)
@@ -82,23 +87,23 @@ public class Empleado : Entity<Guid>
         FechaIngreso = fechaIngreso;
         DepartamentoId = departamentoId;
         CargoId = cargoId;
-        TipoContrato = tipoContrato?.Trim();
+        TipoContrato = NormalizeOptional(tipoContrato);
     }
 
     public void ActualizarPlanilla(decimal? salarioBase, string? monedaSalario, bool tieneAsignacionFamiliar, string? regimenPensionario, string? cuspp)
     {
         SalarioBase = salarioBase;
-        MonedaSalario = monedaSalario?.Trim();
+        MonedaSalario = NormalizeOptional(monedaSalario) ?? "PEN";
         TieneAsignacionFamiliar = tieneAsignacionFamiliar;
-        RegimenPensionario = regimenPensionario?.Trim();
-        Cuspp = cuspp?.Trim();
+        RegimenPensionario = NormalizeOptional(regimenPensionario);
+        Cuspp = NormalizeOptional(cuspp);
     }
 
     public void ActualizarDatosBancarios(string? entidadFinanciera, string? cuentaBancaria, string? cuentaInterbancaria)
     {
-        EntidadFinanciera = entidadFinanciera?.Trim();
-        CuentaBancaria = cuentaBancaria?.Trim();
-        CuentaInterbancaria = cuentaInterbancaria?.Trim();
+        EntidadFinanciera = NormalizeOptional(entidadFinanciera);
+        CuentaBancaria = NormalizeOptional(cuentaBancaria);
+        CuentaInterbancaria = NormalizeOptional(cuentaInterbancaria);
     }
 
     public void CambiarEstado(EstadoEmpleado nuevoEstado)

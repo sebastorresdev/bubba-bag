@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using BubbaBag.SharedKernel.Exceptions;
@@ -35,6 +36,9 @@ public class GlobalExceptionHandler : IExceptionHandler
                 valEx.Errors
             ),
 
+            DbUpdateException dbEx when dbEx.InnerException is Npgsql.PostgresException pgEx && pgEx.SqlState == "23505" =>
+                ResolverErrorDuplicado(pgEx),
+
             DbUpdateException dbEx when dbEx.InnerException != null && dbEx.InnerException.Message.Contains("22001") => (
                 StatusCodes.Status400BadRequest,
                 "Longitud de datos excedida",
@@ -45,7 +49,7 @@ public class GlobalExceptionHandler : IExceptionHandler
             DbUpdateException dbEx when dbEx.InnerException != null && dbEx.InnerException.Message.Contains("23505") => (
                 StatusCodes.Status409Conflict,
                 "Registro duplicado",
-                "Ya existe un registro con los mismos datos únicos (por ejemplo documento o correo electrónico).",
+                "Ya existe un registro con los mismos datos únicos en el sistema.",
                 null
             ),
 
@@ -78,5 +82,44 @@ public class GlobalExceptionHandler : IExceptionHandler
         await httpContext.Response.WriteAsJsonAsync(response, cancellationToken);
 
         return true;
+    }
+
+    private static (int StatusCode, string Title, string Detail, IDictionary<string, string[]>? Errors) ResolverErrorDuplicado(Npgsql.PostgresException pgEx)
+    {
+        var constraint = (pgEx.ConstraintName ?? string.Empty).ToLowerInvariant();
+        var detail = (pgEx.Detail ?? string.Empty).ToLowerInvariant();
+
+        if (constraint.Contains("email") || detail.Contains("email"))
+        {
+            return (
+                StatusCodes.Status409Conflict,
+                "Correo duplicado",
+                "Ya existe un colaborador registrado con este correo electrónico.",
+                new Dictionary<string, string[]>
+                {
+                    ["email"] = new[] { "Este correo electrónico ya se encuentra registrado." }
+                }
+            );
+        }
+
+        if (constraint.Contains("documento") || detail.Contains("documento"))
+        {
+            return (
+                StatusCodes.Status409Conflict,
+                "Documento duplicado",
+                "Ya existe un colaborador registrado con este tipo y número de documento.",
+                new Dictionary<string, string[]>
+                {
+                    ["numeroDocumento"] = new[] { "Este documento de identidad ya se encuentra registrado." }
+                }
+            );
+        }
+
+        return (
+            StatusCodes.Status409Conflict,
+            "Registro duplicado",
+            $"Ya existe un registro con los mismos datos únicos ({pgEx.ConstraintName ?? "Restricción única"}).",
+            null
+        );
     }
 }

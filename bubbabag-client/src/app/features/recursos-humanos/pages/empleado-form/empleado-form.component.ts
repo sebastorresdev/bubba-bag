@@ -190,7 +190,13 @@ export class EmpleadoFormComponent implements OnInit {
     }
 
     this.loading = true;
-    const formValue = this.form.value;
+    const formValue = { ...this.form.value };
+    // Normalizar campos opcionales vacíos a null
+    Object.keys(formValue).forEach(key => {
+      if (typeof formValue[key] === 'string' && formValue[key].trim() === '') {
+        formValue[key] = null;
+      }
+    });
 
     if (this.isEdit) {
       const command: ActualizarEmpleadoCommand = {
