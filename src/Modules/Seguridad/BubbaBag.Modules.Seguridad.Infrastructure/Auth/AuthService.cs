@@ -132,8 +132,14 @@ public class AuthService : IAuthService
     public async Task<Result<List<RolDto>>> ObtenerTodosLosRolesAsync()
     {
         var roles = await _roleManager.Roles
-            .OrderBy(r => r.Name)
-            .Select(r => new RolDto(r.Id, r.Name!, r.Descripcion))
+            .OrderBy(r => r.Modulo)
+            .ThenBy(r => r.Name)
+            .Select(r => new RolDto(
+                r.Id,
+                r.Name!,
+                r.Modulo,
+                r.NombreVisible,
+                r.Descripcion))
             .ToListAsync();
         return Result<List<RolDto>>.Success(roles);
     }

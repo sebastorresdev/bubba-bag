@@ -14,6 +14,9 @@
    - Los usuarios pueden tener múltiples roles. Usar `currentUser.HasAnyRole(...)` o `currentUser.IsInRole(...)`.
    - Al registrar o asignar roles a un usuario, soportar colecciones de roles (`IEnumerable<string> roles`).
 
-4. **Confidencialidad en Recursos Humanos**:
+4. **Metadatos de Roles (Estilo Odoo)**:
+   - La entidad `Rol` posee `Modulo`, `NombreVisible` y `Descripcion` para renderizar interfaces agrupadas por módulo con selectores de nivel.
+
+5. **Confidencialidad en Recursos Humanos**:
    - Los queries (`ObtenerEmpleado`, `ObtenerEmpleados`) deben verificar `currentUser.HasAnyRole(Roles.AccesoRrhhConfidencial)`. Si no lo tiene (ej. `RrhhAsistente`), campos como `SalarioBase`, `MonedaSalario`, `CuentaBancaria`, etc., deben retornar `null`.
    - Las operaciones destructivas o de baja (eliminación, cese) solo están autorizadas para `Roles.AccesoRrhhConfidencial`.

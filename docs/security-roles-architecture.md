@@ -68,28 +68,36 @@ Un usuario con roles `["Gerencia", "RrhhAdmin"]`:
 
 ## 4. Endpoints de Gestión de Roles en Seguridad
 
-* `GET /api/seguridad/roles` -> Retorna la lista de roles del sistema con su `id`, `nombre` y `descripcion` almacenada en base de datos:
+* `GET /api/seguridad/roles` -> Retorna la lista de roles del sistema estructurados por módulo para construir interfaces tipo Odoo con selects de permisos:
   ```json
   [
     {
       "id": "11111111-1111-1111-1111-111111111111",
-      "nombre": "SuperAdmin",
-      "descripcion": "Desarrollador y administrador técnico global con control total sobre todos los módulos del sistema."
+      "codigo": "RrhhAdmin",
+      "modulo": "Recursos Humanos",
+      "nombreVisible": "Administrador",
+      "descripcion": "Control total sobre el personal: altas, ceses, contratos, salarios y cuentas bancarias."
     },
     {
       "id": "22222222-2222-2222-2222-222222222222",
-      "nombre": "Gerencia",
-      "descripcion": "Dirección y jefatura general. Visualización de métricas e información financiera y confidencial."
+      "codigo": "RrhhAsistente",
+      "modulo": "Recursos Humanos",
+      "nombreVisible": "Asistente",
+      "descripcion": "Gestión operativa de colaboradores y contacto. Sin acceso a salarios ni cuentas bancarias."
     },
     {
       "id": "33333333-3333-3333-3333-333333333333",
-      "nombre": "RrhhAdmin",
-      "descripcion": "Administrador de Recursos Humanos. Control total: altas, ceses, contratos, salarios y cuentas bancarias."
+      "codigo": "Gerencia",
+      "modulo": "Sistema",
+      "nombreVisible": "Gerencia General",
+      "descripcion": "Dirección y jefatura general. Visualización de métricas e información financiera y confidencial."
     },
     {
       "id": "44444444-4444-4444-4444-444444444444",
-      "nombre": "RrhhAsistente",
-      "descripcion": "Asistente operativo de Recursos Humanos. Gestión de colaboradores y contacto. Sin acceso a salarios ni cuentas bancarias."
+      "codigo": "SuperAdmin",
+      "modulo": "Sistema",
+      "nombreVisible": "Super Administrador",
+      "descripcion": "Desarrollador y administrador técnico global con control total sobre todos los módulos del sistema."
     }
   ]
   ```
