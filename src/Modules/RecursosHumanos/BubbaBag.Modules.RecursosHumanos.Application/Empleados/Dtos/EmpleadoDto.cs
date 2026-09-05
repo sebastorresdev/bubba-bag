@@ -14,9 +14,14 @@ public record EmpleadoDto(
     DateOnly? FechaNacimiento,
     string? Direccion,
     DateOnly? FechaIngreso,
-    string? Cargo,
-    string? Departamento,
+    Guid? DepartamentoId,
+    string? DepartamentoNombre,
+    Guid? CargoId,
+    string? CargoNombre,
     string? TipoContrato,
+    DateOnly? FechaCese,
+    string? MotivoCese,
+    string? ObservacionesCese,
     decimal? SalarioBase,
     string? MonedaSalario,
     bool TieneAsignacionFamiliar,
@@ -26,4 +31,3 @@ public record EmpleadoDto(
     string? CuentaBancaria,
     string? CuentaInterbancaria
 );
-

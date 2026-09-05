@@ -1,4 +1,5 @@
 using System;
+using BubbaBag.Modules.RecursosHumanos.Domain.Organizacion;
 using BubbaBag.SharedKernel;
 
 namespace BubbaBag.Modules.RecursosHumanos.Domain.Empleados;
@@ -10,7 +11,7 @@ public class Empleado : Entity<Guid>
     public string Apellidos { get; private set; } = default!;
     public string TipoDocumento { get; private set; } = default!;
     public string NumeroDocumento { get; private set; } = default!;
-    public string Estado { get; private set; } = default!;
+    public EstadoEmpleado Estado { get; private set; } = EstadoEmpleado.Activo;
 
     // Datos Personales y Contacto (Opcionales)
     public string? Email { get; private set; }
@@ -18,12 +19,19 @@ public class Empleado : Entity<Guid>
     public DateOnly? FechaNacimiento { get; private set; }
     public string? Direccion { get; private set; }
 
-    // Datos Laborales / Contractuales (Opcionales)
+    // Datos Laborales y Organizacionales (Opcionales)
     public DateOnly? FechaIngreso { get; private set; }
-    public string? Cargo { get; private set; }
-    public string? Departamento { get; private set; }
+    public Guid? DepartamentoId { get; private set; }
+    public Departamento? Departamento { get; private set; }
+    public Guid? CargoId { get; private set; }
+    public Cargo? Cargo { get; private set; }
     public string? TipoContrato { get; private set; }
     
+    // Datos de Cese / Baja (Solo cuando Estado == Cesado)
+    public DateOnly? FechaCese { get; private set; }
+    public string? MotivoCese { get; private set; }
+    public string? ObservacionesCese { get; private set; }
+
     // Datos de Planilla y Remuneración (Opcionales)
     public decimal? SalarioBase { get; private set; }
     public string? MonedaSalario { get; private set; } // Ej: "PEN", "USD"
@@ -42,11 +50,11 @@ public class Empleado : Entity<Guid>
     private Empleado(Guid id, string nombres, string apellidos, string tipoDocumento, string numeroDocumento)
     {
         Id = id;
-        Nombres = nombres;
-        Apellidos = apellidos;
-        TipoDocumento = tipoDocumento;
-        NumeroDocumento = numeroDocumento;
-        Estado = "Activo"; // Estado por defecto al registrar
+        Nombres = nombres.Trim();
+        Apellidos = apellidos.Trim();
+        TipoDocumento = tipoDocumento.Trim();
+        NumeroDocumento = numeroDocumento.Trim();
+        Estado = EstadoEmpleado.Activo;
     }
 
     public static Empleado Registrar(string nombres, string apellidos, string tipoDocumento, string numeroDocumento)
@@ -56,45 +64,67 @@ public class Empleado : Entity<Guid>
 
     public void ActualizarDatosBasicos(string nombres, string apellidos, string tipoDocumento, string numeroDocumento)
     {
-        Nombres = nombres;
-        Apellidos = apellidos;
-        TipoDocumento = tipoDocumento;
-        NumeroDocumento = numeroDocumento;
+        Nombres = nombres.Trim();
+        Apellidos = apellidos.Trim();
+        TipoDocumento = tipoDocumento.Trim();
+        NumeroDocumento = numeroDocumento.Trim();
     }
 
     public void ActualizarDatosContacto(string? email, string? telefono, string? direccion)
     {
-        Email = email;
-        Telefono = telefono;
-        Direccion = direccion;
+        Email = email?.Trim();
+        Telefono = telefono?.Trim();
+        Direccion = direccion?.Trim();
     }
 
-    public void ActualizarDatosLaborales(DateOnly? fechaIngreso, string? cargo, string? departamento, string? tipoContrato)
+    public void ActualizarDatosLaborales(DateOnly? fechaIngreso, Guid? departamentoId, Guid? cargoId, string? tipoContrato)
     {
         FechaIngreso = fechaIngreso;
-        Cargo = cargo;
-        Departamento = departamento;
-        TipoContrato = tipoContrato;
+        DepartamentoId = departamentoId;
+        CargoId = cargoId;
+        TipoContrato = tipoContrato?.Trim();
     }
 
     public void ActualizarPlanilla(decimal? salarioBase, string? monedaSalario, bool tieneAsignacionFamiliar, string? regimenPensionario, string? cuspp)
     {
         SalarioBase = salarioBase;
-        MonedaSalario = monedaSalario;
+        MonedaSalario = monedaSalario?.Trim();
         TieneAsignacionFamiliar = tieneAsignacionFamiliar;
-        RegimenPensionario = regimenPensionario;
-        Cuspp = cuspp;
+        RegimenPensionario = regimenPensionario?.Trim();
+        Cuspp = cuspp?.Trim();
     }
 
     public void ActualizarDatosBancarios(string? entidadFinanciera, string? cuentaBancaria, string? cuentaInterbancaria)
     {
-        EntidadFinanciera = entidadFinanciera;
-        CuentaBancaria = cuentaBancaria;
-        CuentaInterbancaria = cuentaInterbancaria;
+        EntidadFinanciera = entidadFinanciera?.Trim();
+        CuentaBancaria = cuentaBancaria?.Trim();
+        CuentaInterbancaria = cuentaInterbancaria?.Trim();
     }
 
-    public void CambiarEstado(string nuevoEstado)
+    public void CambiarEstado(EstadoEmpleado nuevoEstado)
     {
         Estado = nuevoEstado;
+        if (nuevoEstado != EstadoEmpleado.Cesado)
+        {
+            FechaCese = null;
+            MotivoCese = null;
+            ObservacionesCese = null;
+        }
+    }
+
+    public void DarDeBaja(DateOnly fechaCese, string motivoCese, string? observaciones = null)
+    {
+        Estado = EstadoEmpleado.Cesado;
+        FechaCese = fechaCese;
+        MotivoCese = motivoCese.Trim();
+        ObservacionesCese = observaciones?.Trim();
+    }
+
+    public void Reactivar()
+    {
+        Estado = EstadoEmpleado.Activo;
+        FechaCese = null;
+        MotivoCese = null;
+        ObservacionesCese = null;
     }
 }

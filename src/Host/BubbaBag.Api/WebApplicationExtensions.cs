@@ -24,5 +24,8 @@ public static class WebApplicationExtensions
 
         // 2. Ejecutar sembradores modulares
         await SeguridadSeeder.SeedAsync(scope.ServiceProvider);
+
+        var rrhhLogger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RecursosHumanosDbContext>>();
+        await BubbaBag.Modules.RecursosHumanos.Infrastructure.Database.Seeders.RecursosHumanosSeeder.SeedAsync(rrhhDbContext, rrhhLogger);
     }
 }

@@ -1,7 +1,8 @@
+using System.Reflection;
 using BubbaBag.Modules.RecursosHumanos.Application;
 using BubbaBag.Modules.RecursosHumanos.Domain.Empleados;
+using BubbaBag.Modules.RecursosHumanos.Domain.Organizacion;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection;
 
 namespace BubbaBag.Modules.RecursosHumanos.Infrastructure.Database;
 
@@ -12,6 +13,8 @@ public class RecursosHumanosDbContext : DbContext, IRecursosHumanosDbContext
     }
 
     public DbSet<Empleado> Empleados => Set<Empleado>();
+    public DbSet<Departamento> Departamentos => Set<Departamento>();
+    public DbSet<Cargo> Cargos => Set<Cargo>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

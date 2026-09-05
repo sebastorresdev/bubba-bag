@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using BubbaBag.Modules.RecursosHumanos.Application.Empleados.Dtos;
 using BubbaBag.SharedKernel;
 using BubbaBag.SharedKernel.CQRS;
@@ -22,11 +25,13 @@ public class ObtenerEmpleadoHandler : IQueryHandler<ObtenerEmpleadoQuery, Result
     {
         var empleado = await _context.Empleados
             .AsNoTracking()
+            .Include(e => e.Departamento)
+            .Include(e => e.Cargo)
             .FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
 
         if (empleado is null)
         {
-            return Result<EmpleadoDto>.Failure("El empleado no existe.");
+            return Result<EmpleadoDto>.Failure("El colaborador no existe.");
         }
 
         var tieneAccesoConfidencial = _currentUser.HasAnyRole(BubbaBag.SharedKernel.Authorization.Roles.AccesoRrhhConfidencial);
@@ -37,15 +42,20 @@ public class ObtenerEmpleadoHandler : IQueryHandler<ObtenerEmpleadoQuery, Result
             empleado.Apellidos,
             empleado.TipoDocumento,
             empleado.NumeroDocumento,
-            empleado.Estado,
+            empleado.Estado.ToString(),
             empleado.Email,
             empleado.Telefono,
             empleado.FechaNacimiento,
             empleado.Direccion,
             empleado.FechaIngreso,
-            empleado.Cargo,
-            empleado.Departamento,
+            empleado.DepartamentoId,
+            empleado.Departamento?.Nombre,
+            empleado.CargoId,
+            empleado.Cargo?.Nombre,
             empleado.TipoContrato,
+            empleado.FechaCese,
+            empleado.MotivoCese,
+            empleado.ObservacionesCese,
             tieneAccesoConfidencial ? empleado.SalarioBase : null,
             tieneAccesoConfidencial ? empleado.MonedaSalario : null,
             empleado.TieneAsignacionFamiliar,
@@ -57,4 +67,3 @@ public class ObtenerEmpleadoHandler : IQueryHandler<ObtenerEmpleadoQuery, Result
         ));
     }
 }
-

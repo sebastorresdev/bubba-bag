@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using BubbaBag.Modules.RecursosHumanos.Domain.Empleados;
 using BubbaBag.SharedKernel;
 using BubbaBag.SharedKernel.CQRS;
@@ -15,8 +18,8 @@ public record CrearEmpleadoCommand(
     DateOnly? FechaNacimiento,
     string? Direccion,
     DateOnly? FechaIngreso,
-    string? Cargo,
-    string? Departamento,
+    Guid? DepartamentoId,
+    Guid? CargoId,
     string? TipoContrato,
     decimal? SalarioBase,
     string? MonedaSalario,
@@ -41,16 +44,27 @@ public class CrearEmpleadoHandler : ICommandHandler<CrearEmpleadoCommand, Result
 
     public async Task<Result<Guid>> HandleAsync(CrearEmpleadoCommand request, CancellationToken cancellationToken)
     {
-        // Validación básica
+        // Validación de duplicidad de documento
         if (await _context.Empleados.AnyAsync(e => e.TipoDocumento == request.TipoDocumento && e.NumeroDocumento == request.NumeroDocumento, cancellationToken))
         {
-            return Result<Guid>.Failure("Ya existe un empleado con el mismo documento.");
+            return Result<Guid>.Failure("Ya existe un colaborador con el mismo tipo y número de documento.");
+        }
+
+        // Validación de existencia de Departamento y Cargo si fueron enviados
+        if (request.DepartamentoId.HasValue && !await _context.Departamentos.AnyAsync(d => d.Id == request.DepartamentoId.Value, cancellationToken))
+        {
+            return Result<Guid>.Failure($"El departamento seleccionado no existe.");
+        }
+
+        if (request.CargoId.HasValue && !await _context.Cargos.AnyAsync(c => c.Id == request.CargoId.Value, cancellationToken))
+        {
+            return Result<Guid>.Failure($"El cargo seleccionado no existe.");
         }
 
         var empleado = Empleado.Registrar(request.Nombres, request.Apellidos, request.TipoDocumento, request.NumeroDocumento);
         
         empleado.ActualizarDatosContacto(request.Email, request.Telefono, request.Direccion);
-        empleado.ActualizarDatosLaborales(request.FechaIngreso, request.Cargo, request.Departamento, request.TipoContrato);
+        empleado.ActualizarDatosLaborales(request.FechaIngreso, request.DepartamentoId, request.CargoId, request.TipoContrato);
 
         var tieneAccesoConfidencial = _currentUser.HasAnyRole(BubbaBag.SharedKernel.Authorization.Roles.AccesoRrhhConfidencial);
         if (tieneAccesoConfidencial)
@@ -70,4 +84,3 @@ public class CrearEmpleadoHandler : ICommandHandler<CrearEmpleadoCommand, Result
         return Result<Guid>.Success(empleado.Id);
     }
 }
-

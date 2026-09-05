@@ -9,7 +9,7 @@ public class ActualizarEmpleadoValidator : AbstractValidator<ActualizarEmpleadoC
     public ActualizarEmpleadoValidator()
     {
         RuleFor(x => x.Id)
-            .NotEmpty().WithMessage("El identificador del empleado es obligatorio.");
+            .NotEmpty().WithMessage("El identificador del colaborador es obligatorio.");
 
         RuleFor(x => x.Nombres)
             .NotEmpty().WithMessage("Los nombres son obligatorios.")
@@ -28,8 +28,7 @@ public class ActualizarEmpleadoValidator : AbstractValidator<ActualizarEmpleadoC
             .MaximumLength(30).WithMessage("El número de documento no puede exceder los 30 caracteres.");
 
         RuleFor(x => x.Estado)
-            .NotEmpty().WithMessage("El estado del empleado es obligatorio.")
-            .MaximumLength(50).WithMessage("El estado no puede exceder los 50 caracteres.");
+            .IsInEnum().WithMessage("El estado especificado no es válido.");
 
         RuleFor(x => x.Email)
             .EmailAddress().When(x => !string.IsNullOrWhiteSpace(x.Email)).WithMessage("El correo electrónico no tiene un formato válido.")
@@ -41,11 +40,11 @@ public class ActualizarEmpleadoValidator : AbstractValidator<ActualizarEmpleadoC
         RuleFor(x => x.Direccion)
             .MaximumLength(250).WithMessage("La dirección no puede exceder los 250 caracteres.");
 
-        RuleFor(x => x.Cargo)
-            .MaximumLength(100).WithMessage("El cargo no puede exceder los 100 caracteres.");
+        RuleFor(x => x.DepartamentoId)
+            .NotEqual(Guid.Empty).When(x => x.DepartamentoId.HasValue).WithMessage("El identificador del departamento es inválido.");
 
-        RuleFor(x => x.Departamento)
-            .MaximumLength(100).WithMessage("El departamento no puede exceder los 100 caracteres.");
+        RuleFor(x => x.CargoId)
+            .NotEqual(Guid.Empty).When(x => x.CargoId.HasValue).WithMessage("El identificador del cargo es inválido.");
 
         RuleFor(x => x.TipoContrato)
             .MaximumLength(50).WithMessage("El tipo de contrato no puede exceder los 50 caracteres.");
@@ -60,7 +59,7 @@ public class ActualizarEmpleadoValidator : AbstractValidator<ActualizarEmpleadoC
             .MaximumLength(50).WithMessage("El régimen pensionario no puede exceder los 50 caracteres.");
 
         RuleFor(x => x.Cuspp)
-            .MaximumLength(20).WithMessage("El CUSPP no puede exceder los 20 caracteres.");
+            .MaximumLength(30).WithMessage("El CUSPP no puede exceder los 30 caracteres.");
 
         RuleFor(x => x.EntidadFinanciera)
             .MaximumLength(100).WithMessage("La entidad financiera no puede exceder los 100 caracteres.");
