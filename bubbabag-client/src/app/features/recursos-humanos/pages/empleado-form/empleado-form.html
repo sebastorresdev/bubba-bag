@@ -55,6 +55,19 @@
     </div>
   </div>
 
+  <!-- Alerta de Estado Cesado (si aplica) -->
+  @if (isEdit && empleadoActual?.estado === 'Cesado') {
+    <div class="mb-6">
+      <nz-alert
+        nzType="error"
+        nzShowIcon
+        nzMessage="Colaborador en Estado Cesado / Baja"
+        [nzDescription]="'Este colaborador fue dado de baja el ' + (empleadoActual?.fechaCese || 'sin fecha') + '. Motivo: ' + (empleadoActual?.motivoCese || 'No especificado') + (empleadoActual?.observacionesCese ? ' (' + empleadoActual?.observacionesCese + ')' : '')"
+        class="rounded-xl border-red-200 dark:border-red-900/50"
+      />
+    </div>
+  }
+
   <!-- Form Container -->
   <form nz-form [formGroup]="form" nzLayout="vertical" (ngSubmit)="guardar()">
     
@@ -108,8 +121,8 @@
             <nz-form-label nzFor="estado">Estado del Colaborador</nz-form-label>
             <nz-form-control>
               <nz-select formControlName="estado" id="estado" class="rounded-lg">
-                @for (e of estados; track e) {
-                  <nz-option [nzValue]="e" [nzLabel]="e"></nz-option>
+                @for (e of estados; track e.id) {
+                  <nz-option [nzValue]="e.id" [nzLabel]="e.label"></nz-option>
                 }
               </nz-select>
             </nz-form-control>
@@ -164,33 +177,73 @@
       </div>
     </div>
 
-    <!-- 3. Sección: Información Laboral y Previsional -->
+    <!-- 3. Sección: Información Laboral y Organizacional -->
     <div class="bg-white dark:bg-[#1f2939] rounded-xl border border-gray-200 dark:border-[#374151] shadow-xs p-6 mb-6">
       <div class="flex items-center gap-3 mb-5 pb-3 border-b border-gray-100 dark:border-[#374151]">
         <div class="w-9 h-9 rounded-lg bg-primary/15 dark:bg-primary/20 flex items-center justify-center text-gray-900 dark:text-primary">
           <nz-icon nzType="dollar" class="text-lg" />
         </div>
         <div>
-          <h2 class="text-base font-bold text-gray-900 dark:text-white! mb-0">Laboral y Compensación</h2>
-          <p class="text-xs text-gray-500 dark:text-gray-400! mb-0">Detalles del puesto, sueldo pactado y fondo de pensiones</p>
+          <h2 class="text-base font-bold text-gray-900 dark:text-white! mb-0">Laboral y Estructura Organizativa</h2>
+          <p class="text-xs text-gray-500 dark:text-gray-400! mb-0">Departamento, puesto, contrato y sueldo pactado</p>
         </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        <!-- Departamento (Select) -->
         <nz-form-item class="mb-2">
-          <nz-form-label nzFor="cargo">Cargo o Posición</nz-form-label>
+          <nz-form-label nzFor="departamentoId">Área o Departamento</nz-form-label>
           <nz-form-control>
-            <input nz-input formControlName="cargo" id="cargo" placeholder="Ej: Analista de Finanzas" class="rounded-lg" />
+            <nz-select 
+              formControlName="departamentoId" 
+              id="departamentoId" 
+              (ngModelChange)="onDepartamentoChange($event)"
+              nzPlaceHolder="Seleccionar departamento / área" 
+              nzAllowClear 
+              class="rounded-lg"
+            >
+              @for (d of departamentos; track d.id) {
+                <nz-option [nzValue]="d.id" [nzLabel]="d.nombre"></nz-option>
+              }
+            </nz-select>
           </nz-form-control>
         </nz-form-item>
 
+        <!-- Cargo (Select en cascada) -->
         <nz-form-item class="mb-2">
-          <nz-form-label nzFor="departamento">Área o Departamento</nz-form-label>
+          <nz-form-label nzFor="cargoId">Cargo o Puesto</nz-form-label>
           <nz-form-control>
-            <input nz-input formControlName="departamento" id="departamento" placeholder="Ej: Administración y Finanzas" class="rounded-lg" />
+            <nz-select 
+              formControlName="cargoId" 
+              id="cargoId" 
+              [nzDisabled]="cargosFiltrados.length === 0"
+              [nzPlaceHolder]="cargosFiltrados.length === 0 ? 'Primero selecciona un departamento' : 'Seleccionar cargo'" 
+              nzAllowClear 
+              class="rounded-lg"
+            >
+              @for (c of cargosFiltrados; track c.id) {
+                <nz-option 
+                  [nzValue]="c.id" 
+                  [nzLabel]="c.nombre + (c.salarioReferencial ? ' (Ref: S/ ' + c.salarioReferencial + ')' : '')"
+                ></nz-option>
+              }
+            </nz-select>
           </nz-form-control>
         </nz-form-item>
 
+        <!-- Tipo de Contrato -->
+        <nz-form-item class="mb-2">
+          <nz-form-label nzFor="tipoContrato">Tipo de Contrato</nz-form-label>
+          <nz-form-control>
+            <nz-select formControlName="tipoContrato" id="tipoContrato" nzPlaceHolder="Seleccionar tipo de contrato" nzAllowClear class="rounded-lg">
+              @for (tc of tiposContrato; track tc) {
+                <nz-option [nzValue]="tc" [nzLabel]="tc"></nz-option>
+              }
+            </nz-select>
+          </nz-form-control>
+        </nz-form-item>
+
+        <!-- Salario Base -->
         <nz-form-item class="mb-2">
           <nz-form-label nzFor="salarioBase">Salario Base</nz-form-label>
           <nz-form-control>
@@ -198,6 +251,7 @@
           </nz-form-control>
         </nz-form-item>
 
+        <!-- Moneda -->
         <nz-form-item class="mb-2">
           <nz-form-label nzFor="monedaSalario">Moneda</nz-form-label>
           <nz-form-control>
@@ -208,23 +262,23 @@
           </nz-form-control>
         </nz-form-item>
 
+        <!-- Régimen Pensionario (Select dinámico) -->
         <nz-form-item class="mb-2">
           <nz-form-label nzFor="regimenPensionario">Régimen Pensionario (AFP / ONP)</nz-form-label>
           <nz-form-control>
             <nz-select formControlName="regimenPensionario" id="regimenPensionario" nzAllowClear nzPlaceHolder="Seleccionar régimen" class="rounded-lg">
-              <nz-option nzValue="ONP" nzLabel="ONP (Sistema Nacional)"></nz-option>
-              <nz-option nzValue="AFP Integra" nzLabel="AFP Integra"></nz-option>
-              <nz-option nzValue="AFP Prima" nzLabel="AFP Prima"></nz-option>
-              <nz-option nzValue="AFP Profuturo" nzLabel="AFP Profuturo"></nz-option>
-              <nz-option nzValue="AFP Habitat" nzLabel="AFP Habitat"></nz-option>
+              @for (rp of regimenesPensionarios; track rp) {
+                <nz-option [nzValue]="rp" [nzLabel]="rp"></nz-option>
+              }
             </nz-select>
           </nz-form-control>
         </nz-form-item>
 
-        <nz-form-item class="mb-2">
+        <!-- CUSPP -->
+        <nz-form-item class="mb-2 md:col-span-2">
           <nz-form-label nzFor="cuspp">Código CUSPP</nz-form-label>
           <nz-form-control>
-            <input nz-input formControlName="cuspp" id="cuspp" placeholder="Código Único de Identificación AFP" class="rounded-lg" />
+            <input nz-input formControlName="cuspp" id="cuspp" placeholder="Código Único de Identificación AFP (ej: 123456ABCDE0)" class="rounded-lg" />
           </nz-form-control>
         </nz-form-item>
 
@@ -252,24 +306,29 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+        <!-- Entidad Financiera (Select dinámico) -->
         <nz-form-item class="mb-2">
           <nz-form-label nzFor="entidadFinanciera">Entidad Financiera</nz-form-label>
           <nz-form-control>
-            <input nz-input formControlName="entidadFinanciera" id="entidadFinanciera" placeholder="Ej: BCP, BBVA, Interbank" class="rounded-lg" />
+            <nz-select formControlName="entidadFinanciera" id="entidadFinanciera" nzPlaceHolder="Seleccionar banco" nzAllowClear class="rounded-lg">
+              @for (ef of entidadesFinancieras; track ef) {
+                <nz-option [nzValue]="ef" [nzLabel]="ef"></nz-option>
+              }
+            </nz-select>
           </nz-form-control>
         </nz-form-item>
 
         <nz-form-item class="mb-2">
-          <nz-form-label nzFor="cuentaBancaria">Número de Cuenta</nz-form-label>
+          <nz-form-label nzFor="cuentaBancaria">Cuenta Bancaria</nz-form-label>
           <nz-form-control>
-            <input nz-input formControlName="cuentaBancaria" id="cuentaBancaria" placeholder="Ej: 191-12345678-0-12" class="rounded-lg" />
+            <input nz-input formControlName="cuentaBancaria" id="cuentaBancaria" placeholder="Número de cuenta de haberes" class="rounded-lg" />
           </nz-form-control>
         </nz-form-item>
 
         <nz-form-item class="mb-2">
           <nz-form-label nzFor="cuentaInterbancaria">Código Interbancario (CCI)</nz-form-label>
           <nz-form-control>
-            <input nz-input formControlName="cuentaInterbancaria" id="cuentaInterbancaria" placeholder="Ej: 002-191-123456780012-55" class="rounded-lg" />
+            <input nz-input formControlName="cuentaInterbancaria" id="cuentaInterbancaria" placeholder="20 dígitos de CCI" class="rounded-lg" />
           </nz-form-control>
         </nz-form-item>
       </div>
@@ -289,11 +348,11 @@
       <button 
         nz-button 
         nzType="primary" 
-        [nzLoading]="loading"
+        [nzLoading]="loading" 
         class="rounded-lg h-10 px-6 bg-primary hover:bg-primary-hover text-black font-bold border-none shadow-xs flex items-center gap-1.5 cursor-pointer"
       >
         <nz-icon nzType="check" class="text-sm font-bold" />
-        {{ isEdit ? 'Actualizar Colaborador' : 'Guardar Colaborador' }}
+        {{ isEdit ? 'Actualizar Colaborador' : 'Registrar Colaborador' }}
       </button>
     </div>
   </form>

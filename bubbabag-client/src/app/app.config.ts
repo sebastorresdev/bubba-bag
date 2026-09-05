@@ -18,7 +18,8 @@ import {
   UserAddOutline, SolutionOutline, LineChartOutline, PieChartOutline,
   HomeOutline, MenuFoldOutline, MenuUnfoldOutline, PlusOutline,
   EditOutline, DeleteOutline, SearchOutline, LockOutline,
-  DashboardOutline, ArrowLeftOutline, CheckOutline, MailOutline, PhoneOutline
+  DashboardOutline, ArrowLeftOutline, CheckOutline, MailOutline, PhoneOutline,
+  UserDeleteOutline, ReloadOutline, FilterOutline, ExclamationCircleOutline
 } from '@ant-design/icons-angular/icons';
 
 registerLocaleData(es);
@@ -31,7 +32,8 @@ const icons = [
   UserAddOutline, SolutionOutline, LineChartOutline, PieChartOutline,
   HomeOutline, MenuFoldOutline, MenuUnfoldOutline, PlusOutline,
   EditOutline, DeleteOutline, SearchOutline, LockOutline,
-  DashboardOutline, ArrowLeftOutline, CheckOutline, MailOutline, PhoneOutline
+  DashboardOutline, ArrowLeftOutline, CheckOutline, MailOutline, PhoneOutline,
+  UserDeleteOutline, ReloadOutline, FilterOutline, ExclamationCircleOutline
 ];
 
 const ngZorroConfig: NzConfig = {

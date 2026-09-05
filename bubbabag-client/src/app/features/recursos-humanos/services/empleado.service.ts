@@ -1,7 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { EmpleadoDto, CrearEmpleadoCommand, ActualizarEmpleadoCommand } from '../models/empleado.model';
+import { Observable, shareReplay } from 'rxjs';
+import { 
+  EmpleadoDto, 
+  CrearEmpleadoCommand, 
+  ActualizarEmpleadoCommand, 
+  CatalogosRrhhDto, 
+  DarDeBajaRequest 
+} from '../models/empleado.model';
 
 @Injectable({
   providedIn: 'root'
@@ -9,14 +15,44 @@ import { EmpleadoDto, CrearEmpleadoCommand, ActualizarEmpleadoCommand } from '..
 export class EmpleadoService {
   private http = inject(HttpClient);
   private apiUrl = '/api/rrhh/empleados';
+  private catalogosUrl = '/api/rrhh/catalogos';
+  private catalogos$?: Observable<CatalogosRrhhDto>;
 
-  getEmpleados(searchTerm?: string, page: number = 1, pageSize: number = 20): Observable<EmpleadoDto[]> {
+  getCatalogos(): Observable<CatalogosRrhhDto> {
+    if (!this.catalogos$) {
+      this.catalogos$ = this.http.get<CatalogosRrhhDto>(this.catalogosUrl).pipe(
+        shareReplay(1)
+      );
+    }
+    return this.catalogos$;
+  }
+
+  getEmpleados(
+    searchTerm?: string, 
+    estado?: string, 
+    departamentoId?: string, 
+    cargoId?: string, 
+    page: number = 1, 
+    pageSize: number = 20
+  ): Observable<EmpleadoDto[]> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('pageSize', pageSize.toString());
 
-    if (searchTerm) {
-      params = params.set('searchTerm', searchTerm);
+    if (searchTerm && searchTerm.trim() !== '') {
+      params = params.set('searchTerm', searchTerm.trim());
+    }
+
+    if (estado && estado !== 'Todos') {
+      params = params.set('estado', estado);
+    }
+
+    if (departamentoId) {
+      params = params.set('departamentoId', departamentoId);
+    }
+
+    if (cargoId) {
+      params = params.set('cargoId', cargoId);
     }
 
     return this.http.get<EmpleadoDto[]>(this.apiUrl, { params });
@@ -34,8 +70,15 @@ export class EmpleadoService {
     return this.http.put<void>(`${this.apiUrl}/${id}`, command);
   }
 
+  darDeBaja(id: string, request: DarDeBajaRequest): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/${id}/baja`, request);
+  }
+
+  reactivar(id: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/${id}/reactivar`, {});
+  }
+
   eliminarEmpleado(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 }
-

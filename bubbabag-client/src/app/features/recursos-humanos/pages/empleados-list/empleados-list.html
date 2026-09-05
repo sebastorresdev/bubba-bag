@@ -1,25 +1,26 @@
-<div>
-  <!-- Page Title & Actions -->
-  <div class="flex justify-between items-center mb-6">
+<div class="max-w-7xl mx-auto pb-12">
+  <!-- Page Title & Header Actions -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-white! mb-1">Empleados</h1>
-      <p class="text-gray-500 dark:text-gray-400! text-sm">Gestiona el personal de la empresa</p>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white! mb-1">Colaboradores</h1>
+      <p class="text-gray-500 dark:text-gray-400! text-sm mb-0">Gestión de personal, estructura organizacional y ciclo laboral</p>
     </div>
-    <button nz-button nzType="primary" routerLink="/rrhh/empleados/nuevo" class="bg-primary hover:bg-primary-hover text-black border-none font-bold rounded-lg shadow-xs flex items-center gap-1.5">
-      <nz-icon nzType="plus" /> Nuevo Empleado
+    <button nz-button nzType="primary" routerLink="/rrhh/empleados/nuevo" class="bg-primary hover:bg-primary-hover text-black border-none font-bold rounded-lg shadow-xs flex items-center gap-1.5 h-10 px-5 cursor-pointer">
+      <nz-icon nzType="plus" class="font-bold" /> Nuevo Colaborador
     </button>
   </div>
 
-  <!-- Unified Card: Search Toolbar + Table -->
+  <!-- Unified Card: Filter Toolbar + Table -->
   <div class="bg-white dark:bg-[#1f2939] rounded-xl border border-gray-200 dark:border-[#374151] shadow-xs overflow-hidden">
-    <!-- Toolbar Area -->
-    <div class="p-4 border-b border-gray-100 dark:border-[#374151] flex items-center justify-between gap-4">
-      <div class="flex items-center gap-3 w-full sm:max-w-md">
-        <nz-input-wrapper class="grow">
+    <!-- Toolbar Area with Multi-Filter -->
+    <div class="p-4 border-b border-gray-100 dark:border-[#374151] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      <!-- Search Input -->
+      <div class="flex items-center gap-2 grow max-w-md">
+        <nz-input-wrapper class="w-full">
           <input 
             type="text" 
             nz-input 
-            placeholder="Buscar por nombre o documento..." 
+            placeholder="Buscar por nombres, apellidos o documento..." 
             [(ngModel)]="searchTerm" 
             (keyup.enter)="buscar()" 
             class="rounded-lg"
@@ -28,7 +29,42 @@
             <nz-icon nzType="search" class="text-gray-400" />
           </span>
         </nz-input-wrapper>
-        <button nz-button nzType="default" (click)="buscar()" class="rounded-lg shrink-0">Buscar</button>
+        <button nz-button nzType="default" (click)="buscar()" class="rounded-lg shrink-0 h-9">
+          Buscar
+        </button>
+      </div>
+
+      <!-- Filters: Estado & Departamento -->
+      <div class="flex items-center gap-3 flex-wrap">
+        <!-- Filtro Estado -->
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">Estado:</span>
+          <nz-select [(ngModel)]="filtroEstado" (ngModelChange)="cargarEmpleados()" class="w-36 rounded-lg">
+            <nz-option nzValue="Todos" nzLabel="Todos"></nz-option>
+            <nz-option nzValue="Activo" nzLabel="Activo"></nz-option>
+            <nz-option nzValue="Vacaciones" nzLabel="Vacaciones"></nz-option>
+            <nz-option nzValue="Licencia" nzLabel="Licencia"></nz-option>
+            <nz-option nzValue="Suspendido" nzLabel="Suspendido"></nz-option>
+            <nz-option nzValue="Cesado" nzLabel="Cesado / Baja"></nz-option>
+          </nz-select>
+        </div>
+
+        <!-- Filtro Departamento -->
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">Área:</span>
+          <nz-select [(ngModel)]="filtroDepartamento" (ngModelChange)="cargarEmpleados()" nzAllowClear nzPlaceHolder="Todas las áreas" class="w-48 rounded-lg">
+            @for (d of departamentos; track d.id) {
+              <nz-option [nzValue]="d.id" [nzLabel]="d.nombre"></nz-option>
+            }
+          </nz-select>
+        </div>
+
+        <!-- Botón Reset -->
+        @if (searchTerm || filtroEstado !== 'Todos' || filtroDepartamento) {
+          <button nz-button nzType="text" nzSize="small" (click)="limpiarFiltros()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 flex items-center gap-1">
+            <nz-icon nzType="reload" /> Limpiar
+          </button>
+        }
       </div>
     </div>
 
@@ -44,36 +80,111 @@
       <thead>
         <tr>
           <th>Documento</th>
-          <th>Nombres y Apellidos</th>
-          <th>Cargo</th>
+          <th>Colaborador</th>
+          <th>Puesto y Área</th>
+          <th>Tipo Contrato</th>
           <th>Estado</th>
-          <th>Acciones</th>
+          <th class="text-right">Acciones</th>
         </tr>
       </thead>
       <tbody>
         @for (data of basicTable.nzData; track data.id) {
-          <tr>
-            <td class="dark:text-gray-300">{{ data.tipoDocumento }} {{ data.numeroDocumento }}</td>
-            <td class="dark:text-gray-300">
-              <div class="font-medium text-gray-900 dark:text-white">{{ data.nombres }} {{ data.apellidos }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">{{ data.email }}</div>
+          <tr class="hover:bg-gray-50/50 dark:hover:bg-[#111827]/30 transition-colors">
+            <td class="dark:text-gray-300 font-mono text-xs font-semibold">
+              <span class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                {{ data.tipoDocumento }}: {{ data.numeroDocumento }}
+              </span>
             </td>
             <td class="dark:text-gray-300">
-              <div>{{ data.cargo || 'No asignado' }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">{{ data.departamento }}</div>
+              <div class="font-bold text-gray-900 dark:text-white">{{ data.nombres }} {{ data.apellidos }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                {{ data.email || 'Sin correo registrado' }}
+                @if (data.telefono) {
+                  <span class="mx-1">•</span> {{ data.telefono }}
+                }
+              </div>
+            </td>
+            <td class="dark:text-gray-300">
+              <div class="font-medium text-gray-800 dark:text-gray-200">
+                {{ data.cargoNombre || 'Sin cargo asignado' }}
+              </div>
+              <div class="text-xs text-primary font-semibold mt-0.5">
+                {{ data.departamentoNombre || 'Sin área asignada' }}
+              </div>
+            </td>
+            <td class="dark:text-gray-300 text-sm">
+              {{ data.tipoContrato || 'No especificado' }}
             </td>
             <td>
-              <nz-tag [nzColor]="data.estado === 'Activo' ? 'success' : 'error'">{{ data.estado }}</nz-tag>
+              <nz-tag [nzColor]="getEstadoColor(data.estado)" class="font-semibold text-xs px-2.5 py-0.5 rounded-full">
+                {{ data.estado }}
+              </nz-tag>
+              @if (data.estado === 'Cesado' && data.fechaCese) {
+                <div class="text-[11px] text-red-500 font-medium mt-1">
+                  Baja: {{ data.fechaCese }}
+                </div>
+              }
             </td>
-            <td>
-              <div class="flex gap-2">
-                <button nz-button nzType="text" nzSize="small" (click)="editar(data.id)" class="text-blue-500 hover:text-blue-700">
-                  <nz-icon nzType="edit" />
+            <td class="text-right">
+              <div class="flex items-center justify-end gap-1.5">
+                <!-- Editar -->
+                <button 
+                  nz-button 
+                  nzType="text" 
+                  nzSize="small" 
+                  (click)="editar(data.id)" 
+                  nz-tooltip
+                  nzTooltipTitle="Editar información del colaborador"
+                  class="text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                >
+                  <nz-icon nzType="edit" class="text-base" />
                 </button>
-                <button nz-button nzType="text" nzSize="small" nzDanger
-                  nz-popconfirm nzPopconfirmTitle="¿Está seguro de eliminar este empleado?"
-                  (nzOnConfirm)="eliminar(data.id)">
-                  <nz-icon nzType="delete" />
+
+                <!-- Dar de Baja (solo si no está Cesado) -->
+                @if (data.estado !== 'Cesado') {
+                  <button 
+                    nz-button 
+                    nzType="text" 
+                    nzSize="small" 
+                    (click)="abrirModalBaja(data)" 
+                    nz-tooltip
+                    nzTooltipTitle="Dar de baja / Cesar relación laboral"
+                    class="text-amber-600 hover:text-amber-800 dark:text-amber-400"
+                  >
+                    <nz-icon nzType="user-delete" class="text-base" />
+                  </button>
+                }
+
+                <!-- Reactivar (solo si está Cesado) -->
+                @if (data.estado === 'Cesado') {
+                  <button 
+                    nz-button 
+                    nzType="text" 
+                    nzSize="small" 
+                    nz-tooltip
+                    nzTooltipTitle="Reactivar colaborador"
+                    nz-popconfirm
+                    nzPopconfirmTitle="¿Deseas reactivar a este colaborador al estado Activo?"
+                    (nzOnConfirm)="reactivar(data.id)"
+                    class="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400"
+                  >
+                    <nz-icon nzType="reload" class="text-base" />
+                  </button>
+                }
+
+                <!-- Eliminar -->
+                <button 
+                  nz-button 
+                  nzType="text" 
+                  nzSize="small" 
+                  nzDanger
+                  nz-tooltip
+                  nzTooltipTitle="Eliminar registro permanentemente"
+                  nz-popconfirm 
+                  nzPopconfirmTitle="¿Está seguro de eliminar definitivamente a este empleado?"
+                  (nzOnConfirm)="eliminar(data.id)"
+                >
+                  <nz-icon nzType="delete" class="text-base" />
                 </button>
               </div>
             </td>
@@ -82,14 +193,82 @@
       </tbody>
     </nz-table>
 
-    <!-- Simple Empty State: Just Icon and Visible "No hay datos" -->
+    <!-- Empty State -->
     <ng-template #customEmpty>
-      <div class="py-10 flex flex-col items-center justify-center text-center">
-        <div class="w-11 h-11 rounded-xl bg-gray-100 dark:bg-[#111827] flex items-center justify-center mb-2 border border-gray-200 dark:border-[#374151]">
-          <nz-icon nzType="team" nzTheme="outline" class="text-xl text-gray-400 dark:text-gray-400" />
+      <div class="py-12 flex flex-col items-center justify-center text-center">
+        <div class="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-[#111827] flex items-center justify-center mb-3 border border-gray-200 dark:border-[#374151]">
+          <nz-icon nzType="team" nzTheme="outline" class="text-2xl text-gray-400 dark:text-gray-400" />
         </div>
-        <span class="text-sm font-medium text-gray-500 dark:text-gray-300">No hay datos</span>
+        <span class="text-sm font-semibold text-gray-700 dark:text-gray-200">No se encontraron colaboradores</span>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-sm">Prueba ajustando los filtros de búsqueda o registra un nuevo colaborador en la empresa.</p>
       </div>
     </ng-template>
   </div>
 </div>
+
+<!-- Modal Dedicado para Dar de Baja / Cese -->
+<nz-modal
+  [(nzVisible)]="modalBajaVisible"
+  nzTitle="Dar de Baja a Colaborador"
+  (nzOnCancel)="cerrarModalBaja()"
+  (nzOnOk)="confirmarBaja()"
+  [nzOkLoading]="guardandoBaja"
+  nzOkText="Confirmar Baja"
+  nzOkDanger="true"
+  nzCancelText="Cancelar"
+>
+  <ng-container *nzModalContent>
+    <div class="py-1">
+      <div class="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 mb-5 flex items-start gap-3">
+        <nz-icon nzType="exclamation-circle" class="text-amber-500 text-lg mt-0.5 shrink-0" />
+        <div>
+          <div class="font-bold text-sm text-gray-900 dark:text-amber-200">
+            {{ empleadoParaBaja?.nombres }} {{ empleadoParaBaja?.apellidos }}
+          </div>
+          <div class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+            {{ empleadoParaBaja?.tipoDocumento }}: {{ empleadoParaBaja?.numeroDocumento }} • {{ empleadoParaBaja?.cargoNombre || 'Sin cargo' }}
+          </div>
+          <p class="text-xs text-amber-700 dark:text-amber-300/80 mb-0 mt-2">
+            Al dar de baja, el estado del colaborador cambiará a <strong>Cesado</strong> y se registrará formalmente la salida de la empresa.
+          </p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Fecha de Cese -->
+        <div>
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+            Fecha de Cese / Salida <span class="text-red-500">*</span>
+          </label>
+          <nz-date-picker [(ngModel)]="fechaCese" nzFormat="yyyy-MM-dd" class="w-full rounded-lg" />
+        </div>
+
+        <!-- Motivo de Cese -->
+        <div>
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+            Motivo de Cese <span class="text-red-500">*</span>
+          </label>
+          <nz-select [(ngModel)]="motivoCeseSeleccionado" class="w-full rounded-lg">
+            @for (m of motivosCese; track m) {
+              <nz-option [nzValue]="m" [nzLabel]="m"></nz-option>
+            }
+          </nz-select>
+        </div>
+
+        <!-- Observaciones Adicionales -->
+        <div>
+          <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+            Observaciones o Comentarios Adicionales
+          </label>
+          <textarea 
+            nz-input 
+            [(ngModel)]="observacionesCese" 
+            rows="3" 
+            placeholder="Detalles sobre entrega de cargo, devoluciones de equipos o motivos específicos..."
+            class="rounded-lg"
+          ></textarea>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</nz-modal>

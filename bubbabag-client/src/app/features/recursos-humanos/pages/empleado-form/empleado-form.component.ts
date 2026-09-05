@@ -3,7 +3,15 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { EmpleadoService } from '../../services/empleado.service';
-import { ActualizarEmpleadoCommand, CrearEmpleadoCommand } from '../../models/empleado.model';
+import { 
+  ActualizarEmpleadoCommand, 
+  CrearEmpleadoCommand, 
+  CatalogosRrhhDto, 
+  DepartamentoCatalogoDto, 
+  CargoCatalogoDto, 
+  EstadoEmpleadoCatalogoDto,
+  EmpleadoDto
+} from '../../models/empleado.model';
 
 import { NzFormModule } from 'ng-zorro-antd/form';
 import { NzInputModule } from 'ng-zorro-antd/input';
@@ -13,7 +21,8 @@ import { NzDatePickerModule } from 'ng-zorro-antd/date-picker';
 import { NzSwitchModule } from 'ng-zorro-antd/switch';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { NzIconModule } from 'ng-zorro-antd/icon';
-
+import { NzTagModule } from 'ng-zorro-antd/tag';
+import { NzAlertModule } from 'ng-zorro-antd/alert';
 
 @Component({
   selector: 'app-empleado-form',
@@ -29,7 +38,8 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
     NzDatePickerModule,
     NzSwitchModule,
     NzIconModule,
-
+    NzTagModule,
+    NzAlertModule
   ],
   templateUrl: './empleado-form.html'
 })
@@ -42,14 +52,24 @@ export class EmpleadoFormComponent implements OnInit {
 
   form!: FormGroup;
   empleadoId: string | null = null;
+  empleadoActual?: EmpleadoDto;
   isEdit = false;
   loading = false;
+  loadingCatalogos = true;
 
-  tiposDocumento = ['DNI', 'CE', 'Pasaporte'];
-  estados = ['Activo', 'Inactivo', 'Suspendido'];
+  // Listas de catálogos dinámicos
+  catalogos?: CatalogosRrhhDto;
+  tiposDocumento: string[] = ['DNI', 'Carnet de Extranjería', 'Pasaporte'];
+  departamentos: DepartamentoCatalogoDto[] = [];
+  cargosFiltrados: CargoCatalogoDto[] = [];
+  tiposContrato: string[] = [];
+  regimenesPensionarios: string[] = [];
+  entidadesFinancieras: string[] = [];
+  estados: EstadoEmpleadoCatalogoDto[] = [];
 
   ngOnInit(): void {
     this.initForm();
+    this.cargarCatalogos();
 
     this.empleadoId = this.route.snapshot.paramMap.get('id');
     if (this.empleadoId) {
@@ -65,7 +85,7 @@ export class EmpleadoFormComponent implements OnInit {
       apellidos: ['', [Validators.required]],
       tipoDocumento: ['DNI', [Validators.required]],
       numeroDocumento: ['', [Validators.required]],
-      estado: ['Activo'], // Solo se usará en edición
+      estado: ['Activo'],
 
       // Contacto
       email: ['', [Validators.email]],
@@ -73,10 +93,10 @@ export class EmpleadoFormComponent implements OnInit {
       fechaNacimiento: [null],
       direccion: [''],
 
-      // Laborales
+      // Laborales y Organizacionales
       fechaIngreso: [null],
-      cargo: [''],
-      departamento: [''],
+      departamentoId: [null],
+      cargoId: [null],
       tipoContrato: [''],
 
       // Planilla
@@ -93,18 +113,66 @@ export class EmpleadoFormComponent implements OnInit {
     });
   }
 
+  cargarCatalogos(): void {
+    this.loadingCatalogos = true;
+    this.empleadoService.getCatalogos().subscribe({
+      next: (cat) => {
+        this.catalogos = cat;
+        this.tiposDocumento = cat.tiposDocumento;
+        this.departamentos = cat.departamentos;
+        this.tiposContrato = cat.tiposContrato;
+        this.regimenesPensionarios = cat.regimenesPensionarios;
+        this.entidadesFinancieras = cat.entidadesFinancieras;
+        this.estados = cat.estados;
+        this.loadingCatalogos = false;
+
+        // Si ya hay un departamentoId en el formulario (por carga en edición), poblar cargos
+        const currentDeptoId = this.form.get('departamentoId')?.value;
+        if (currentDeptoId) {
+          this.onDepartamentoChange(currentDeptoId, false);
+        }
+      },
+      error: () => {
+        this.loadingCatalogos = false;
+      }
+    });
+  }
+
+  onDepartamentoChange(departamentoId: string | null, resetCargo: boolean = true): void {
+    if (!departamentoId) {
+      this.cargosFiltrados = [];
+      if (resetCargo) {
+        this.form.get('cargoId')?.setValue(null);
+      }
+      return;
+    }
+
+    const depto = this.departamentos.find(d => d.id === departamentoId);
+    this.cargosFiltrados = depto ? depto.cargos : [];
+
+    if (resetCargo) {
+      const currentCargoId = this.form.get('cargoId')?.value;
+      if (currentCargoId && !this.cargosFiltrados.some(c => c.id === currentCargoId)) {
+        this.form.get('cargoId')?.setValue(null);
+      }
+    }
+  }
+
   cargarEmpleado(): void {
     this.loading = true;
     this.empleadoService.getEmpleado(this.empleadoId!).subscribe({
       next: (empleado) => {
+        this.empleadoActual = empleado;
         this.form.patchValue({
-          ...empleado,
-          // Convert string dates to Date objects if needed for nz-date-picker, though strings might work depending on format
+          ...empleado
         });
+        if (empleado.departamentoId) {
+          this.onDepartamentoChange(empleado.departamentoId, false);
+        }
         this.loading = false;
       },
       error: () => {
-        this.message.error('No se pudo cargar la información del empleado');
+        this.loading = false;
         this.router.navigate(['/rrhh/empleados']);
       }
     });
