@@ -84,18 +84,18 @@
 
 /* Botón Primario (Acción destacada tipo Dynamics: + Nuevo, Guardar) */
 .fluent-cmd-btn-primary {
-  background-color: #0078d4 !important;
+  background-color: var(--ant-primary-color, #0078d4) !important;
   color: #ffffff !important;
   font-weight: 600;
 }
 
 .fluent-cmd-btn-primary:hover:not(:disabled) {
-  background-color: #106ebe !important;
+  background-color: var(--ant-primary-color-hover, #106ebe) !important;
   color: #ffffff !important;
 }
 
 .fluent-cmd-btn-primary:active:not(:disabled) {
-  background-color: #005a9e !important;
+  background-color: var(--ant-primary-color-active, #005a9e) !important;
 }
 
 .fluent-cmd-btn-primary:disabled {

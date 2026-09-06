@@ -44,3 +44,59 @@ app-empleado-form {
   display: block;
   height: 100%;
 }
+
+/* ==========================================================================
+   Sincronización Dinámica de Primary Color para Modo Oscuro en NG-ZORRO
+   (Permite que al cambiar primaryColor en ngZorroConfig también cambie en oscuro)
+   ========================================================================== */
+[data-theme='dark'] .ant-menu.ant-menu-dark .ant-menu-item-selected,
+.dark-theme .ant-menu.ant-menu-dark .ant-menu-item-selected,
+.ant-menu.ant-menu-dark .ant-menu-item-selected,
+.ant-menu-submenu-popup.ant-menu-dark .ant-menu-item-selected,
+[data-theme='dark'] .ant-menu-submenu-popup .ant-menu .ant-menu-item-selected {
+  background-color: var(--ant-primary-color) !important;
+  color: #ffffff !important;
+}
+
+[data-theme='dark'] .ant-btn-primary,
+.dark-theme .ant-btn-primary {
+  background-color: var(--ant-primary-color) !important;
+  border-color: var(--ant-primary-color) !important;
+}
+
+[data-theme='dark'] .ant-btn-primary:hover,
+.dark-theme .ant-btn-primary:hover,
+[data-theme='dark'] .ant-btn-primary:focus,
+.dark-theme .ant-btn-primary:focus {
+  background-color: var(--ant-primary-color-hover, var(--ant-primary-color)) !important;
+  border-color: var(--ant-primary-color-hover, var(--ant-primary-color)) !important;
+}
+
+[data-theme='dark'] .ant-btn-primary:active,
+.dark-theme .ant-btn-primary:active {
+  background-color: var(--ant-primary-color-active, var(--ant-primary-color)) !important;
+  border-color: var(--ant-primary-color-active, var(--ant-primary-color)) !important;
+}
+
+[data-theme='dark'] .ant-checkbox-checked .ant-checkbox-inner,
+.dark-theme .ant-checkbox-checked .ant-checkbox-inner,
+[data-theme='dark'] .ant-radio-checked .ant-radio-inner,
+.dark-theme .ant-radio-checked .ant-radio-inner {
+  background-color: var(--ant-primary-color) !important;
+  border-color: var(--ant-primary-color) !important;
+}
+
+[data-theme='dark'] .ant-switch-checked,
+.dark-theme .ant-switch-checked {
+  background-color: var(--ant-primary-color) !important;
+}
+
+[data-theme='dark'] .ant-tabs-ink-bar,
+.dark-theme .ant-tabs-ink-bar {
+  background-color: var(--ant-primary-color) !important;
+}
+
+[data-theme='dark'] .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn,
+.dark-theme .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--ant-primary-color) !important;
+}

@@ -191,7 +191,6 @@ export class EmpleadosListComponent implements OnInit {
         key: 'new',
         label: 'Nuevo',
         icon: 'plus',
-        primary: true,
         tooltip: 'Registrar un nuevo colaborador',
         execute: () => this.irANuevoColaborador(),
       },

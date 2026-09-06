@@ -25,6 +25,8 @@ import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzAlertModule } from 'ng-zorro-antd/alert';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
+import { NzAvatarModule } from 'ng-zorro-antd/avatar';
+import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
 @Component({
   selector: 'app-empleado-form',
@@ -44,9 +46,12 @@ import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
     NzAlertModule,
     NzCardModule,
     NzTooltipModule,
+    NzAvatarModule,
+    CommandBarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './empleado-form.html',
+  styleUrl: './empleado-form.component.css',
 })
 export class EmpleadoFormComponent implements OnInit {
   private fb = inject(FormBuilder);
@@ -183,7 +188,107 @@ export class EmpleadoFormComponent implements OnInit {
     });
   }
 
-  guardar(): void {
+  get departamentoSeleccionadoNombre(): string {
+    const id = this.form?.get('departamentoId')?.value;
+    if (!id) return '';
+    return this.departamentos.find((d) => d.id === id)?.nombre || '';
+  }
+
+  get cargoSeleccionadoNombre(): string {
+    const id = this.form?.get('cargoId')?.value;
+    if (!id) return '';
+    return this.cargosFiltrados.find((c) => c.id === id)?.nombre || '';
+  }
+
+  getEstadoDotClass(estado?: string): string {
+    switch (estado) {
+      case 'Activo':
+        return 'd365-dot-active';
+      case 'Vacaciones':
+        return 'd365-dot-warning';
+      case 'Licencia':
+        return 'd365-dot-info';
+      case 'Suspendido':
+        return 'd365-dot-purple';
+      case 'Cesado':
+        return 'd365-dot-danger';
+      default:
+        return 'd365-dot-default';
+    }
+  }
+
+  volver(): void {
+    this.router.navigate(['/rrhh/empleados']);
+  }
+
+  recargar(): void {
+    if (this.empleadoId) {
+      this.cargarEmpleado();
+    } else {
+      this.initForm();
+    }
+  }
+
+  get commandBarItems(): CommandBarItem[] {
+    const items: CommandBarItem[] = [
+      {
+        key: 'save',
+        label: 'Guardar',
+        icon: 'save',
+        tooltip: 'Guardar cambios del colaborador',
+        disabled: this.loading,
+        execute: () => this.guardar(false),
+      },
+      {
+        key: 'saveAndClose',
+        label: 'Guardar y cerrar',
+        icon: 'check',
+        tooltip: 'Guardar cambios y volver a la lista',
+        disabled: this.loading,
+        execute: () => this.guardar(true),
+      },
+      {
+        key: 'discard',
+        label: 'Descartar',
+        icon: 'close',
+        tooltip: 'Descartar cambios y volver',
+        execute: () => this.volver(),
+      },
+    ];
+
+    if (this.isEdit) {
+      items.push({
+        key: 'sep-1',
+        label: '',
+        isDivider: true,
+      });
+
+      items.push({
+        key: 'new',
+        label: 'Crear nuevo',
+        icon: 'plus',
+        tooltip: 'Registrar un nuevo colaborador',
+        execute: () => this.router.navigate(['/rrhh/empleados/nuevo']),
+      });
+    }
+
+    return items;
+  }
+
+  get farItems(): CommandBarItem[] {
+    return [
+      {
+        key: 'refresh',
+        label: 'Actualizar',
+        icon: 'reload',
+        tooltip: 'Recargar datos del colaborador',
+        disabled: this.loading,
+        execute: () => this.recargar(),
+      },
+    ];
+  }
+
+  guardar(cerrar: boolean = false): void {
     if (this.form.invalid) {
       Object.values(this.form.controls).forEach((control) => {
         if (control.invalid) {
@@ -191,6 +296,7 @@ export class EmpleadoFormComponent implements OnInit {
           control.updateValueAndValidity({ onlySelf: true });
         }
       });
+      this.message.warning('Por favor completa los campos obligatorios requeridos');
       return;
     }
 
@@ -211,8 +317,13 @@ export class EmpleadoFormComponent implements OnInit {
 
       this.empleadoService.actualizarEmpleado(this.empleadoId!, command).subscribe({
         next: () => {
+          this.loading = false;
           this.message.success('Empleado actualizado correctamente');
-          this.router.navigate(['/rrhh/empleados']);
+          if (cerrar) {
+            this.volver();
+          } else {
+            this.cargarEmpleado();
+          }
         },
         error: () => {
           this.loading = false;
@@ -222,9 +333,16 @@ export class EmpleadoFormComponent implements OnInit {
       const command: CrearEmpleadoCommand = formValue;
 
       this.empleadoService.crearEmpleado(command).subscribe({
-        next: () => {
+        next: (res) => {
+          this.loading = false;
           this.message.success('Empleado registrado correctamente');
-          this.router.navigate(['/rrhh/empleados']);
+          if (cerrar) {
+            this.volver();
+          } else if (res) {
+            this.router.navigate(['/rrhh/empleados', res, 'editar']);
+          } else {
+            this.volver();
+          }
         },
         error: () => {
           this.loading = false;

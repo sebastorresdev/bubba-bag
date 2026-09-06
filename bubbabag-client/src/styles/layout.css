@@ -344,8 +344,8 @@
 }
 
 [data-theme='dark'] .ant-menu-submenu-popup .ant-menu .ant-menu-item.ant-menu-item-selected {
-  background-color: rgba(0, 120, 212, 0.25) !important;
-  color: #2899f5 !important;
+  background-color: var(--ant-primary-color) !important;
+  color: #ffffff !important;
 }
 
 [data-theme='dark'] .ant-menu-submenu-popup .ant-menu .ant-menu-item-group-title {
@@ -517,19 +517,19 @@
   color: #ffffff;
 }
 
-/* Estado Activo: Borde Azul vertical Microsoft Dynamics 365 (#0078d4) */
+/* Estado Activo: Borde vertical dinámico */
 .d365-item.d365-item-active {
-  background-color: rgba(0, 120, 212, 0.08);
-  border-left-color: #0078d4 !important;
-  color: #0078d4 !important;
+  background-color: var(--ant-primary-1, rgba(0, 120, 212, 0.08));
+  border-left-color: var(--ant-primary-color) !important;
+  color: var(--ant-primary-color) !important;
   font-weight: 600;
 }
 
 [data-theme='dark'] .d365-item.d365-item-active,
 .dark-theme .d365-item.d365-item-active {
-  background-color: rgba(0, 120, 212, 0.18);
-  border-left-color: #2899f5 !important;
-  color: #2899f5 !important;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-left-color: var(--ant-primary-color) !important;
+  color: var(--ant-primary-color) !important;
 }
 
 .d365-item-icon {
@@ -619,7 +619,7 @@
 .d365-area-badge {
   width: 24px;
   height: 24px;
-  background-color: #0078d4;
+  background-color: var(--ant-primary-color);
   color: #ffffff;
   font-weight: 700;
   font-size: 11px;
@@ -655,7 +655,7 @@
 .d365-dropdown-badge {
   width: 22px;
   height: 22px;
-  background-color: #0078d4;
+  background-color: var(--ant-primary-color);
   color: #ffffff;
   font-weight: 700;
   font-size: 10px;
@@ -786,7 +786,7 @@
   border: none !important;
   background: transparent !important;
   font-size: 16px !important;
-  color: #0078d4 !important;
+  color: var(--ant-primary-color) !important;
   cursor: pointer !important;
   flex-shrink: 0 !important;
   padding: 0 !important;
@@ -900,21 +900,21 @@
 }
 
 .d365-launcher-item.d365-launcher-item-active {
-  background-color: rgba(0, 120, 212, 0.08) !important;
-  border-color: rgba(0, 120, 212, 0.25) !important;
+  background-color: var(--ant-primary-1, rgba(0, 120, 212, 0.08)) !important;
+  border-color: var(--ant-primary-color) !important;
 }
 
 [data-theme='dark'] .d365-launcher-item.d365-launcher-item-active,
 .dark-theme .d365-launcher-item.d365-launcher-item-active {
-  background-color: rgba(0, 120, 212, 0.18) !important;
-  border-color: rgba(0, 120, 212, 0.4) !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--ant-primary-color) !important;
 }
 
 .d365-launcher-badge {
   width: 36px;
   height: 36px;
   border-radius: 6px;
-  background-color: #0078d4;
+  background-color: var(--ant-primary-color);
   color: #ffffff;
   font-weight: 700;
   font-size: 13px;
@@ -975,7 +975,7 @@
 .d365-launcher-tag {
   font-size: 10px;
   font-weight: 700;
-  background-color: #0078d4;
+  background-color: var(--ant-primary-color);
   color: #ffffff;
   padding: 1px 6px;
   border-radius: 10px;

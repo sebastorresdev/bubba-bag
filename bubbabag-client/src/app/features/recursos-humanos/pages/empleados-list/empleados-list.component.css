@@ -101,12 +101,12 @@
 }
 
 .filter-btn.active {
-  border-color: #0078d4 !important;
-  color: #0078d4 !important;
+  border-color: var(--ant-primary-color, #0078d4) !important;
+  color: var(--ant-primary-color, #0078d4) !important;
 }
 
 .filter-badge {
-  background-color: #0078d4;
+  background-color: var(--ant-primary-color, #0078d4);
   color: #ffffff;
   font-size: 10px;
   font-weight: 700;
@@ -134,8 +134,8 @@
 }
 
 .d365-search-box:focus-within {
-  border-color: #0078d4 !important;
-  box-shadow: 0 0 0 1px #0078d4;
+  border-color: var(--ant-primary-color, #0078d4) !important;
+  box-shadow: 0 0 0 1px var(--ant-primary-color, #0078d4);
 }
 
 .search-input {
@@ -168,7 +168,7 @@
    Cuadrícula de la Tabla
    -------------------------------------------------------------------------- */
 .cell-link {
-  color: #0078d4 !important;
+  color: var(--ant-primary-color, #0078d4) !important;
   font-weight: 600;
   cursor: pointer;
   display: block;
@@ -176,7 +176,7 @@
 
 .cell-link:hover {
   text-decoration: underline;
-  color: #106ebe !important;
+  color: var(--ant-primary-color-hover, #106ebe) !important;
 }
 
 .cell-subtext {
@@ -231,7 +231,7 @@
 }
 
 .d365-dot-info {
-  background-color: #0078d4;
+  background-color: var(--ant-primary-color, #0078d4);
 }
 
 .d365-dot-purple {
@@ -278,7 +278,7 @@
 
 .selected-indicator {
   font-weight: 600;
-  color: #0078d4;
+  color: var(--ant-primary-color, #0078d4);
 }
 
 /* Drawer de Filtros */

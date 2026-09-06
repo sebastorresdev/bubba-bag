@@ -1,428 +1,360 @@
-<div class="page-container-narrow">
-  <!-- Encabezado de Página y Acciones -->
-  <div class="page-header">
-    <div class="page-header-left">
-      <button
-        nz-button
-        nzType="default"
-        routerLink="/rrhh/empleados"
-        nz-tooltip
-        nzTooltipTitle="Volver a la lista"
-      >
-        <nz-icon nzType="arrow-left" />
-      </button>
+<!-- Barra de Comandos Superior (Estilo Microsoft Dynamics 365 con botón atrás) -->
+<app-command-bar
+  [items]="commandBarItems"
+  [farItems]="farItems"
+  [showBack]="true"
+  (back)="volver()"
+></app-command-bar>
 
-      <div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <h1 class="page-header-title">
-            {{ isEdit ? 'Editar Colaborador' : 'Nuevo Colaborador' }}
+<div class="empleado-form-view">
+  <!-- Cabecera de Registro (Dynamics 365 Record Header) -->
+  <div class="d365-record-header">
+    <div class="record-header-main">
+      <nz-avatar
+        [nzSize]="56"
+        nzIcon="user"
+        class="record-avatar"
+      />
+      <div class="record-title-block">
+        <div class="record-title-row">
+          <h1 class="record-title">
+            {{
+              isEdit
+                ? ((form.get('nombres')?.value || '') + ' ' + (form.get('apellidos')?.value || ''))
+                : 'Nuevo Colaborador'
+            }}
           </h1>
-          @if (isEdit) {
-            <nz-tag nzColor="blue">Modo Edición</nz-tag>
+          @if (isEdit && form.get('numeroDocumento')?.value) {
+            <span class="record-id-badge">
+              {{ form.get('tipoDocumento')?.value }}: {{ form.get('numeroDocumento')?.value }}
+            </span>
+          } @else if (!isEdit) {
+            <span class="record-draft-badge">Borrador</span>
           }
         </div>
-        <p class="page-header-subtitle">
-          {{
-            isEdit
-              ? 'Actualiza la información del colaborador en el sistema.'
-              : 'Completa la información para registrar al colaborador en la empresa.'
-          }}
-        </p>
+        <div class="record-subtitle">
+          <span>{{ cargoSeleccionadoNombre || 'Puesto no asignado' }}</span>
+          <span class="sep">•</span>
+          <span>{{ departamentoSeleccionadoNombre || 'Área no asignada' }}</span>
+          @if (isEdit && empleadoActual?.email) {
+            <span class="sep">•</span>
+            <span>{{ empleadoActual?.email }}</span>
+          }
+        </div>
       </div>
     </div>
 
-    <!-- Botones Rápidos en el Encabezado -->
-    <div class="page-header-actions">
-      <button
-        type="button"
-        nz-button
-        nzType="default"
-        routerLink="/rrhh/empleados"
-      >
-        Cancelar
-      </button>
-      <button
-        type="button"
-        nz-button
-        nzType="primary"
-        [nzLoading]="loading"
-        (click)="guardar()"
-      >
-        <nz-icon nzType="check" />
-        {{ isEdit ? 'Actualizar' : 'Guardar' }}
-      </button>
+    <!-- Indicadores Métricos del Encabezado (KPIs superiores) -->
+    <div class="record-header-metrics">
+      <div class="metric-item">
+        <span class="metric-label">Estado</span>
+        <div class="metric-value">
+          <span class="status-dot" [ngClass]="getEstadoDotClass(form.get('estado')?.value || 'Activo')"></span>
+          <span>{{ form.get('estado')?.value || 'Activo' }}</span>
+        </div>
+      </div>
+
+      <div class="metric-divider"></div>
+
+      <div class="metric-item">
+        <span class="metric-label">Tipo Contrato</span>
+        <span class="metric-value">{{ form.get('tipoContrato')?.value || 'Por definir' }}</span>
+      </div>
+
+      <div class="metric-divider"></div>
+
+      <div class="metric-item">
+        <span class="metric-label">Fecha Ingreso</span>
+        <span class="metric-value">
+          {{ form.get('fechaIngreso')?.value ? (form.get('fechaIngreso')?.value | date:'dd/MM/yyyy') : 'No asignada' }}
+        </span>
+      </div>
     </div>
   </div>
 
   <!-- Alerta de Estado Cesado (si aplica) -->
   @if (isEdit && empleadoActual?.estado === 'Cesado') {
-    <div style="margin-bottom: 24px;">
+    <div class="record-alert-banner">
       <nz-alert
         nzType="error"
         nzShowIcon
         nzMessage="Colaborador en Estado Cesado / Baja"
         [nzDescription]="
-          'Este colaborador fue dado de baja el ' +
-          (empleadoActual?.fechaCese || 'sin fecha') +
-          '. Motivo: ' +
+          'Fecha de cese: ' +
+          (empleadoActual?.fechaCese || '-') +
+          ' • Motivo: ' +
           (empleadoActual?.motivoCese || 'No especificado') +
-          (empleadoActual?.observacionesCese
-            ? ' (' + $safeNavigationMigration(empleadoActual?.observacionesCese) + ')'
-            : '')
+          (empleadoActual?.observacionesCese ? ' (' + empleadoActual?.observacionesCese + ')' : '')
         "
       />
     </div>
   }
 
-  <!-- Formulario -->
-  <form nz-form [formGroup]="form" nzLayout="vertical" (ngSubmit)="guardar()">
-    <!-- 1. Sección: Datos Personales e Identificación -->
-    <nz-card [nzBordered]="true" class="card-section" [nzTitle]="personalTitle">
-      <ng-template #personalTitle>
-        <div class="card-title-header">
-          <nz-icon nzType="user" />
-          <span>Información Personal</span>
-        </div>
-      </ng-template>
-
-      <div class="form-grid-2">
-        <nz-form-item style="margin-bottom: 8px;">
-          <nz-form-label nzRequired nzFor="nombres">Nombres</nz-form-label>
-          <nz-form-control nzErrorTip="Por favor ingresa los nombres">
-            <input
-              nz-input
-              formControlName="nombres"
-              id="nombres"
-              placeholder="Ej: Juan Carlos"
-            />
-          </nz-form-control>
-        </nz-form-item>
-
-        <nz-form-item style="margin-bottom: 8px;">
-          <nz-form-label nzRequired nzFor="apellidos">Apellidos</nz-form-label>
-          <nz-form-control nzErrorTip="Por favor ingresa los apellidos">
-            <input
-              nz-input
-              formControlName="apellidos"
-              id="apellidos"
-              placeholder="Ej: Pérez García"
-            />
-          </nz-form-control>
-        </nz-form-item>
-
-        <nz-form-item style="margin-bottom: 8px;">
-          <nz-form-label nzRequired nzFor="tipoDocumento">Tipo de Documento</nz-form-label>
-          <nz-form-control nzErrorTip="Selecciona el tipo de documento">
-            <nz-select formControlName="tipoDocumento" id="tipoDocumento">
-              @for (t of tiposDocumento; track t) {
-                <nz-option [nzValue]="t" [nzLabel]="t"></nz-option>
-              }
-            </nz-select>
-          </nz-form-control>
-        </nz-form-item>
-
-        <nz-form-item style="margin-bottom: 8px;">
-          <nz-form-label nzRequired nzFor="numeroDocumento">Número de Documento</nz-form-label>
-          <nz-form-control nzErrorTip="Ingresa el número de documento">
-            <input
-              nz-input
-              formControlName="numeroDocumento"
-              id="numeroDocumento"
-              placeholder="Número de documento"
-            />
-          </nz-form-control>
-        </nz-form-item>
-
-        @if (isEdit) {
-          <nz-form-item class="col-span-full" style="margin-bottom: 8px;">
-            <nz-form-label nzFor="estado">Estado del Colaborador</nz-form-label>
-            <nz-form-control>
-              <nz-select formControlName="estado" id="estado">
-                @for (e of estados; track e.id) {
-                  <nz-option [nzValue]="e.id" [nzLabel]="e.label"></nz-option>
-                }
-              </nz-select>
-            </nz-form-control>
-          </nz-form-item>
-        }
-      </div>
-    </nz-card>
-
-    <!-- 2. Sección: Contacto y Domicilio -->
-    <nz-card [nzBordered]="true" class="card-section" [nzTitle]="contactoTitle">
-      <ng-template #contactoTitle>
-        <div class="card-title-header">
-          <nz-icon nzType="mail" />
-          <span>Contacto y Residencia</span>
-        </div>
-      </ng-template>
-
-      <div class="form-grid-2">
-        <nz-form-item style="margin-bottom: 8px;">
-          <nz-form-label nzFor="email">Correo Electrónico</nz-form-label>
-          <nz-form-control nzErrorTip="Ingresa un correo electrónico válido">
-            <nz-input-wrapper class="full-width">
-              <input
-                nz-input
-                formControlName="email"
-                id="email"
-                type="email"
-                placeholder="colaborador@bubbabag.com"
-              />
-              <span nzInputSuffix>
-                <nz-icon nzType="mail" style="opacity: 0.5;" />
-              </span>
-            </nz-input-wrapper>
-          </nz-form-control>
-        </nz-form-item>
-
-        <nz-form-item style="margin-bottom: 8px;">
-          <nz-form-label nzFor="telefono">Teléfono / Celular</nz-form-label>
-          <nz-form-control>
-            <nz-input-wrapper class="full-width">
-              <input
-                nz-input
-                formControlName="telefono"
-                id="telefono"
-                placeholder="+51 987 654 321"
-              />
-              <span nzInputSuffix>
-                <nz-icon nzType="phone" style="opacity: 0.5;" />
-              </span>
-            </nz-input-wrapper>
-          </nz-form-control>
-        </nz-form-item>
-
-        <nz-form-item class="col-span-full" style="margin-bottom: 8px;">
-          <nz-form-label nzFor="direccion">Dirección de Domicilio</nz-form-label>
-          <nz-form-control>
-            <input
-              nz-input
-              formControlName="direccion"
-              id="direccion"
-              placeholder="Av. Principal 123, Dpto. 401, Lima"
-            />
-          </nz-form-control>
-        </nz-form-item>
-      </div>
-    </nz-card>
-
-    <!-- 3. Sección: Información Laboral y Organizacional -->
-    <nz-card [nzBordered]="true" class="card-section" [nzTitle]="laboralTitle">
-      <ng-template #laboralTitle>
-        <div class="card-title-header">
-          <nz-icon nzType="dollar" />
-          <span>Laboral y Estructura Organizativa</span>
-        </div>
-      </ng-template>
-
-      <div class="form-grid-2">
-        <!-- Departamento (Select) -->
-        <nz-form-item style="margin-bottom: 8px;">
-          <nz-form-label nzFor="departamentoId">Área o Departamento</nz-form-label>
-          <nz-form-control>
-            <nz-select
-              formControlName="departamentoId"
-              id="departamentoId"
-              (ngModelChange)="onDepartamentoChange($event)"
-              nzPlaceHolder="Seleccionar departamento / área"
-              nzAllowClear
-            >
-              @for (d of departamentos; track d.id) {
-                <nz-option [nzValue]="d.id" [nzLabel]="d.nombre"></nz-option>
-              }
-            </nz-select>
-          </nz-form-control>
-        </nz-form-item>
-
-        <!-- Cargo (Select en cascada) -->
-        <nz-form-item style="margin-bottom: 8px;">
-          <nz-form-label nzFor="cargoId">Cargo o Puesto</nz-form-label>
-          <nz-form-control>
-            <nz-select
-              formControlName="cargoId"
-              id="cargoId"
-              [nzDisabled]="cargosFiltrados.length === 0"
-              [nzPlaceHolder]="
-                cargosFiltrados.length === 0
-                  ? 'Primero selecciona un departamento'
-                  : 'Seleccionar cargo'
-              "
-              nzAllowClear
-            >
-              @for (c of cargosFiltrados; track c.id) {
-                <nz-option
-                  [nzValue]="c.id"
-                  [nzLabel]="
-                    c.nombre +
-                    (c.salarioReferencial ? ' (Ref: S/ ' + c.salarioReferencial + ')' : '')
-                  "
-                ></nz-option>
-              }
-            </nz-select>
-          </nz-form-control>
-        </nz-form-item>
-
-        <!-- Tipo de Contrato -->
-        <nz-form-item style="margin-bottom: 8px;">
-          <nz-form-label nzFor="tipoContrato">Tipo de Contrato</nz-form-label>
-          <nz-form-control>
-            <nz-select
-              formControlName="tipoContrato"
-              id="tipoContrato"
-              nzPlaceHolder="Seleccionar tipo de contrato"
-              nzAllowClear
-            >
-              @for (tc of tiposContrato; track tc) {
-                <nz-option [nzValue]="tc" [nzLabel]="tc"></nz-option>
-              }
-            </nz-select>
-          </nz-form-control>
-        </nz-form-item>
-
-        <!-- Salario Base -->
-        <nz-form-item style="margin-bottom: 8px;">
-          <nz-form-label nzFor="salarioBase">Salario Base</nz-form-label>
-          <nz-form-control>
-            <input
-              nz-input
-              type="number"
-              formControlName="salarioBase"
-              id="salarioBase"
-              placeholder="0.00"
-            />
-          </nz-form-control>
-        </nz-form-item>
-
-        <!-- Moneda -->
-        <nz-form-item style="margin-bottom: 8px;">
-          <nz-form-label nzFor="monedaSalario">Moneda</nz-form-label>
-          <nz-form-control>
-            <nz-select formControlName="monedaSalario" id="monedaSalario">
-              <nz-option nzValue="PEN" nzLabel="Soles Peruanos (PEN)"></nz-option>
-              <nz-option nzValue="USD" nzLabel="Dólares Americanos (USD)"></nz-option>
-            </nz-select>
-          </nz-form-control>
-        </nz-form-item>
-
-        <!-- Régimen Pensionario (Select dinámico) -->
-        <nz-form-item style="margin-bottom: 8px;">
-          <nz-form-label nzFor="regimenPensionario">Régimen Pensionario (AFP / ONP)</nz-form-label>
-          <nz-form-control>
-            <nz-select
-              formControlName="regimenPensionario"
-              id="regimenPensionario"
-              nzAllowClear
-              nzPlaceHolder="Seleccionar régimen"
-            >
-              @for (rp of regimenesPensionarios; track rp) {
-                <nz-option [nzValue]="rp" [nzLabel]="rp"></nz-option>
-              }
-            </nz-select>
-          </nz-form-control>
-        </nz-form-item>
-
-        <!-- CUSPP -->
-        <nz-form-item class="col-span-full" style="margin-bottom: 8px;">
-          <nz-form-label nzFor="cuspp">Código CUSPP</nz-form-label>
-          <nz-form-control>
-            <input
-              nz-input
-              formControlName="cuspp"
-              id="cuspp"
-              placeholder="Código Único de Identificación AFP (ej: 123456ABCDE0)"
-            />
-          </nz-form-control>
-        </nz-form-item>
-
-        <!-- Switch Asignación Familiar con tarjeta descriptiva -->
-        <nz-card nzSize="small" class="col-span-full" style="margin-top: 8px;">
-          <div class="switch-card">
-            <div>
-              <div style="font-weight: 600; font-size: 14px;">
-                Asignación Familiar
-              </div>
-              <div style="font-size: 12px; opacity: 0.75;">
-                Marca esta opción si el colaborador tiene hijos menores o dependientes acreditados
-              </div>
+  <!-- Formulario en Cuadrícula de Cards Estilo Dynamics 365 -->
+  <form nz-form [formGroup]="form" nzLayout="vertical" class="d365-form-container">
+    <div class="d365-form-grid">
+      <!-- Columna Izquierda: Información Personal y Contacto -->
+      <div class="form-column">
+        <!-- Card 1: Identificación y Datos Personales -->
+        <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="personalTitle">
+          <ng-template #personalTitle>
+            <div class="card-header-content">
+              <nz-icon nzType="user" class="card-header-icon" />
+              <span>Información Personal e Identificación</span>
             </div>
-            <nz-switch formControlName="asignacionFamiliar" id="asignacionFamiliar" />
+          </ng-template>
+
+          <div class="card-form-grid">
+            <nz-form-item>
+              <nz-form-label nzRequired nzFor="nombres">Nombres</nz-form-label>
+              <nz-form-control nzErrorTip="Por favor ingresa los nombres">
+                <input nz-input formControlName="nombres" id="nombres" placeholder="Ej: Juan Carlos" />
+              </nz-form-control>
+            </nz-form-item>
+
+            <nz-form-item>
+              <nz-form-label nzRequired nzFor="apellidos">Apellidos</nz-form-label>
+              <nz-form-control nzErrorTip="Por favor ingresa los apellidos">
+                <input nz-input formControlName="apellidos" id="apellidos" placeholder="Ej: Pérez García" />
+              </nz-form-control>
+            </nz-form-item>
+
+            <nz-form-item>
+              <nz-form-label nzRequired nzFor="tipoDocumento">Tipo de Documento</nz-form-label>
+              <nz-form-control nzErrorTip="Selecciona el tipo de documento">
+                <nz-select formControlName="tipoDocumento" id="tipoDocumento">
+                  @for (t of tiposDocumento; track t) {
+                    <nz-option [nzValue]="t" [nzLabel]="t"></nz-option>
+                  }
+                </nz-select>
+              </nz-form-control>
+            </nz-form-item>
+
+            <nz-form-item>
+              <nz-form-label nzRequired nzFor="numeroDocumento">Número de Documento</nz-form-label>
+              <nz-form-control nzErrorTip="Ingresa el número de documento">
+                <input nz-input formControlName="numeroDocumento" id="numeroDocumento" placeholder="Número de documento" />
+              </nz-form-control>
+            </nz-form-item>
+
+            <nz-form-item>
+              <nz-form-label nzFor="fechaNacimiento">Fecha de Nacimiento</nz-form-label>
+              <nz-form-control>
+                <nz-date-picker formControlName="fechaNacimiento" id="fechaNacimiento" nzFormat="yyyy-MM-dd" class="full-width" />
+              </nz-form-control>
+            </nz-form-item>
+
+            @if (isEdit) {
+              <nz-form-item>
+                <nz-form-label nzFor="estado">Estado del Colaborador</nz-form-label>
+                <nz-form-control>
+                  <nz-select formControlName="estado" id="estado">
+                    @for (e of estados; track e.id) {
+                      <nz-option [nzValue]="e.id" [nzLabel]="e.label"></nz-option>
+                    }
+                  </nz-select>
+                </nz-form-control>
+              </nz-form-item>
+            }
+          </div>
+        </nz-card>
+
+        <!-- Card 2: Contacto y Residencia -->
+        <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="contactoTitle">
+          <ng-template #contactoTitle>
+            <div class="card-header-content">
+              <nz-icon nzType="mail" class="card-header-icon" />
+              <span>Contacto y Residencia</span>
+            </div>
+          </ng-template>
+
+          <div class="card-form-grid">
+            <nz-form-item class="col-span-full">
+              <nz-form-label nzFor="email">Correo Electrónico</nz-form-label>
+              <nz-form-control nzErrorTip="Ingresa un correo electrónico válido">
+                <input nz-input formControlName="email" id="email" type="email" placeholder="colaborador@bubbabag.com" />
+              </nz-form-control>
+            </nz-form-item>
+
+            <nz-form-item class="col-span-full">
+              <nz-form-label nzFor="telefono">Teléfono / Celular</nz-form-label>
+              <nz-form-control>
+                <input nz-input formControlName="telefono" id="telefono" placeholder="+51 987 654 321" />
+              </nz-form-control>
+            </nz-form-item>
+
+            <nz-form-item class="col-span-full">
+              <nz-form-label nzFor="direccion">Dirección de Domicilio</nz-form-label>
+              <nz-form-control>
+                <input nz-input formControlName="direccion" id="direccion" placeholder="Av. Principal 123, Dpto. 401, Lima" />
+              </nz-form-control>
+            </nz-form-item>
           </div>
         </nz-card>
       </div>
-    </nz-card>
 
-    <!-- 4. Sección: Datos Bancarios -->
-    <nz-card [nzBordered]="true" class="card-section" [nzTitle]="bancoTitle">
-      <ng-template #bancoTitle>
-        <div class="card-title-header">
-          <nz-icon nzType="shop" />
-          <span>Información Bancaria</span>
-        </div>
-      </ng-template>
+      <!-- Columna Derecha: Laboral, Compensación y Bancarios -->
+      <div class="form-column">
+        <!-- Card 3: Laboral y Estructura Organizativa -->
+        <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="laboralTitle">
+          <ng-template #laboralTitle>
+            <div class="card-header-content">
+              <nz-icon nzType="solution" class="card-header-icon" />
+              <span>Estructura Laboral y Puesto</span>
+            </div>
+          </ng-template>
 
-      <div class="form-grid-3">
-        <!-- Entidad Financiera (Select dinámico) -->
-        <nz-form-item style="margin-bottom: 8px;">
-          <nz-form-label nzFor="entidadFinanciera">Entidad Financiera</nz-form-label>
-          <nz-form-control>
-            <nz-select
-              formControlName="entidadFinanciera"
-              id="entidadFinanciera"
-              nzPlaceHolder="Seleccionar banco"
-              nzAllowClear
-            >
-              @for (ef of entidadesFinancieras; track ef) {
-                <nz-option [nzValue]="ef" [nzLabel]="ef"></nz-option>
-              }
-            </nz-select>
-          </nz-form-control>
-        </nz-form-item>
+          <div class="card-form-grid">
+            <nz-form-item>
+              <nz-form-label nzFor="departamentoId">Área o Departamento</nz-form-label>
+              <nz-form-control>
+                <nz-select
+                  formControlName="departamentoId"
+                  id="departamentoId"
+                  (ngModelChange)="onDepartamentoChange($event)"
+                  nzPlaceHolder="Seleccionar área"
+                  nzAllowClear
+                >
+                  @for (d of departamentos; track d.id) {
+                    <nz-option [nzValue]="d.id" [nzLabel]="d.nombre"></nz-option>
+                  }
+                </nz-select>
+              </nz-form-control>
+            </nz-form-item>
 
-        <nz-form-item style="margin-bottom: 8px;">
-          <nz-form-label nzFor="cuentaBancaria">Cuenta Bancaria</nz-form-label>
-          <nz-form-control>
-            <input
-              nz-input
-              formControlName="cuentaBancaria"
-              id="cuentaBancaria"
-              placeholder="Número de cuenta de haberes"
-            />
-          </nz-form-control>
-        </nz-form-item>
+            <nz-form-item>
+              <nz-form-label nzFor="cargoId">Cargo o Puesto</nz-form-label>
+              <nz-form-control>
+                <nz-select
+                  formControlName="cargoId"
+                  id="cargoId"
+                  [nzDisabled]="cargosFiltrados.length === 0"
+                  [nzPlaceHolder]="cargosFiltrados.length === 0 ? 'Selecciona un área primero' : 'Seleccionar cargo'"
+                  nzAllowClear
+                >
+                  @for (c of cargosFiltrados; track c.id) {
+                    <nz-option
+                      [nzValue]="c.id"
+                      [nzLabel]="c.nombre + (c.salarioReferencial ? ' (Ref: S/ ' + c.salarioReferencial + ')' : '')"
+                    ></nz-option>
+                  }
+                </nz-select>
+              </nz-form-control>
+            </nz-form-item>
 
-        <nz-form-item style="margin-bottom: 8px;">
-          <nz-form-label nzFor="cuentaInterbancaria">Código Interbancario (CCI)</nz-form-label>
-          <nz-form-control>
-            <input
-              nz-input
-              formControlName="cuentaInterbancaria"
-              id="cuentaInterbancaria"
-              placeholder="20 dígitos de CCI"
-            />
-          </nz-form-control>
-        </nz-form-item>
+            <nz-form-item>
+              <nz-form-label nzFor="tipoContrato">Tipo de Contrato</nz-form-label>
+              <nz-form-control>
+                <nz-select formControlName="tipoContrato" id="tipoContrato" nzPlaceHolder="Seleccionar tipo" nzAllowClear>
+                  @for (tc of tiposContrato; track tc) {
+                    <nz-option [nzValue]="tc" [nzLabel]="tc"></nz-option>
+                  }
+                </nz-select>
+              </nz-form-control>
+            </nz-form-item>
+
+            <nz-form-item>
+              <nz-form-label nzFor="fechaIngreso">Fecha de Ingreso</nz-form-label>
+              <nz-form-control>
+                <nz-date-picker formControlName="fechaIngreso" id="fechaIngreso" nzFormat="yyyy-MM-dd" class="full-width" />
+              </nz-form-control>
+            </nz-form-item>
+          </div>
+        </nz-card>
+
+        <!-- Card 4: Compensación y Planilla -->
+        <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="compensacionTitle">
+          <ng-template #compensacionTitle>
+            <div class="card-header-content">
+              <nz-icon nzType="dollar" class="card-header-icon" />
+              <span>Compensación y Planilla</span>
+            </div>
+          </ng-template>
+
+          <div class="card-form-grid">
+            <nz-form-item>
+              <nz-form-label nzFor="salarioBase">Salario Base</nz-form-label>
+              <nz-form-control>
+                <input nz-input type="number" formControlName="salarioBase" id="salarioBase" placeholder="0.00" />
+              </nz-form-control>
+            </nz-form-item>
+
+            <nz-form-item>
+              <nz-form-label nzFor="monedaSalario">Moneda</nz-form-label>
+              <nz-form-control>
+                <nz-select formControlName="monedaSalario" id="monedaSalario">
+                  <nz-option nzValue="PEN" nzLabel="Soles Peruanos (PEN)"></nz-option>
+                  <nz-option nzValue="USD" nzLabel="Dólares (USD)"></nz-option>
+                </nz-select>
+              </nz-form-control>
+            </nz-form-item>
+
+            <nz-form-item>
+              <nz-form-label nzFor="regimenPensionario">Régimen Pensionario (AFP / ONP)</nz-form-label>
+              <nz-form-control>
+                <nz-select formControlName="regimenPensionario" id="regimenPensionario" nzAllowClear nzPlaceHolder="Seleccionar régimen">
+                  @for (rp of regimenesPensionarios; track rp) {
+                    <nz-option [nzValue]="rp" [nzLabel]="rp"></nz-option>
+                  }
+                </nz-select>
+              </nz-form-control>
+            </nz-form-item>
+
+            <nz-form-item>
+              <nz-form-label nzFor="cuspp">Código CUSPP</nz-form-label>
+              <nz-form-control>
+                <input nz-input formControlName="cuspp" id="cuspp" placeholder="Identificador CUSPP" />
+              </nz-form-control>
+            </nz-form-item>
+
+            <!-- Switch Asignación Familiar en Card integrada -->
+            <div class="col-span-full switch-box">
+              <div class="switch-info">
+                <div class="switch-title">Asignación Familiar</div>
+                <div class="switch-subtitle">Activar si el colaborador tiene hijos menores o dependientes acreditados</div>
+              </div>
+              <nz-switch formControlName="tieneAsignacionFamiliar" id="tieneAsignacionFamiliar" />
+            </div>
+          </div>
+        </nz-card>
+
+        <!-- Card 5: Datos Bancarios -->
+        <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="bancoTitle">
+          <ng-template #bancoTitle>
+            <div class="card-header-content">
+              <nz-icon nzType="shop" class="card-header-icon" />
+              <span>Información Bancaria</span>
+            </div>
+          </ng-template>
+
+          <div class="card-form-grid">
+            <nz-form-item class="col-span-full">
+              <nz-form-label nzFor="entidadFinanciera">Entidad Financiera</nz-form-label>
+              <nz-form-control>
+                <nz-select formControlName="entidadFinanciera" id="entidadFinanciera" nzPlaceHolder="Seleccionar banco" nzAllowClear>
+                  @for (ef of entidadesFinancieras; track ef) {
+                    <nz-option [nzValue]="ef" [nzLabel]="ef"></nz-option>
+                  }
+                </nz-select>
+              </nz-form-control>
+            </nz-form-item>
+
+            <nz-form-item>
+              <nz-form-label nzFor="cuentaBancaria">Cuenta Bancaria</nz-form-label>
+              <nz-form-control>
+                <input nz-input formControlName="cuentaBancaria" id="cuentaBancaria" placeholder="Número de cuenta" />
+              </nz-form-control>
+            </nz-form-item>
+
+            <nz-form-item>
+              <nz-form-label nzFor="cuentaInterbancaria">Código Interbancario (CCI)</nz-form-label>
+              <nz-form-control>
+                <input nz-input formControlName="cuentaInterbancaria" id="cuentaInterbancaria" placeholder="20 dígitos de CCI" />
+              </nz-form-control>
+            </nz-form-item>
+          </div>
+        </nz-card>
       </div>
-    </nz-card>
-
-    <!-- Barra Inferior de Acciones -->
-    <div class="form-actions-bar">
-      <button
-        type="button"
-        nz-button
-        nzType="default"
-        routerLink="/rrhh/empleados"
-      >
-        Cancelar
-      </button>
-      <button
-        nz-button
-        nzType="primary"
-        [nzLoading]="loading"
-      >
-        <nz-icon nzType="check" />
-        {{ isEdit ? 'Actualizar Colaborador' : 'Registrar Colaborador' }}
-      </button>
     </div>
   </form>
 </div>
