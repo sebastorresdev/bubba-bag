@@ -25,7 +25,8 @@
   max-height: 48px !important;
   line-height: 48px !important;
   padding: 0 12px 0 0 !important;
-  background-color: #021936 !important;
+  /* background-color: #021936 !important; */
+  background-color: #001435 !important;
   color: #ffffff !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
   box-sizing: border-box !important;
@@ -149,7 +150,7 @@
 .erp-suite-bar-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 16px;
 }
 
 .erp-tool-btn {
@@ -703,10 +704,12 @@
 
 /* Contenido Principal */
 .erp-content-area {
-  padding: 16px;
+  padding: 0;
   overflow-y: auto;
   flex-grow: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* --------------------------------------------------------------------------
@@ -979,4 +982,62 @@
   border-radius: 10px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+/* --------------------------------------------------------------------------
+   6. Estabilización de Menús Desplegables (Dropdowns de CommandBar y Header)
+   -------------------------------------------------------------------------- */
+/* Eliminar animación de salto / escalado vertical de Ant Design para apertura firme e instantánea */
+.ant-dropdown-slide-up-enter,
+.ant-dropdown-slide-up-appear,
+.ant-dropdown-slide-down-enter,
+.ant-dropdown-slide-down-appear,
+.ant-dropdown-slide-up-leave,
+.ant-dropdown-slide-down-leave {
+  animation: none !important;
+}
+
+.ant-dropdown {
+  animation: none !important;
+  animation-duration: 0s !important;
+}
+
+/* El contenedor interno de los items de menú de NG-ZORRO */
+.ant-dropdown-menu-item {
+  padding: 8px 12px !important;
+  line-height: 20px !important;
+  cursor: pointer !important;
+}
+
+.ant-dropdown-menu-item > span,
+.ant-dropdown-menu-title-content {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  line-height: 20px !important;
+  width: 100% !important;
+}
+
+.ant-dropdown-menu-item nz-icon,
+.ant-dropdown-menu-item .anticon,
+.ant-dropdown-menu-title-content nz-icon,
+.ant-dropdown-menu-title-content .anticon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex-shrink: 0 !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+.ant-dropdown-menu-item > span > span:not(.anticon) {
+  display: inline-block !important;
+  line-height: 20px !important;
 }

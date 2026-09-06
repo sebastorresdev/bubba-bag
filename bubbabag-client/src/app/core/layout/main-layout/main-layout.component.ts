@@ -4,7 +4,6 @@ import { RouterModule, Router } from '@angular/router';
 import { NzLayoutModule } from 'ng-zorro-antd/layout';
 import { NzMenuModule } from 'ng-zorro-antd/menu';
 import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzBreadCrumbModule } from 'ng-zorro-antd/breadcrumb';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
@@ -26,7 +25,6 @@ import { NavigationService, ErpModule, ModuleMenuItem } from '../../services/nav
     NzLayoutModule,
     NzMenuModule,
     NzIconModule,
-    NzBreadCrumbModule,
     NzButtonModule,
     NzTooltipModule,
     NzAvatarModule,

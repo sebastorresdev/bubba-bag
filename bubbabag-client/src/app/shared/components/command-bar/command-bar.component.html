@@ -1,0 +1,126 @@
+<nav class="fluent-command-bar" aria-label="Barra de Comandos">
+  <!-- Grupo Izquierdo: Acciones Principales -->
+  <div class="fluent-command-bar-group fluent-command-bar-left">
+    @if (showBack) {
+    <button nz-button nzType="text" class="fluent-cmd-btn fluent-cmd-back-btn" (click)="onBackClick()" title="Volver">
+      <nz-icon nzType="arrow-left" />
+    </button>
+    <div class="fluent-cmd-divider"></div>
+    }
+
+    @if (title) {
+    <span class="fluent-cmd-title">{{ title }}</span>
+    <div class="fluent-cmd-divider"></div>
+    }
+
+    @for (item of items; track item.key) {
+    @if (!item.hidden) {
+    @if (item.isDivider) {
+    <div class="fluent-cmd-divider"></div>
+    } @else if (item.children && item.children.length > 0) {
+    <!-- Botón con Menú Desplegable (Dropdown / Split) -->
+    <button nz-button nzType="text" class="fluent-cmd-btn" [class.fluent-cmd-btn-primary]="item.primary"
+      [class.fluent-cmd-btn-danger]="item.danger" [disabled]="item.disabled" nz-dropdown [nzDropdownMenu]="itemMenu"
+      nzPlacement="bottomLeft" nzTrigger="click" [title]="item.tooltip || ''">
+      @if (item.icon) {
+      <nz-icon [nzType]="item.icon" class="fluent-cmd-icon" />
+      }
+      @if (!item.iconOnly && item.label) {
+      <span class="fluent-cmd-label">{{ item.label }}</span>
+      }
+      <nz-icon nzType="down" class="fluent-dropdown-arrow" />
+    </button>
+
+    <nz-dropdown-menu #itemMenu="nzDropdownMenu">
+      <ul nz-menu class="fluent-sub-menu">
+        @for (sub of item.children; track sub.key) {
+        @if (!sub.hidden) {
+        @if (sub.isDivider) {
+        <li nz-menu-divider></li>
+        } @else {
+        <li nz-menu-item [nzDisabled]="sub.disabled" (click)="onItemClick(sub)"
+          [class.fluent-menu-item-danger]="sub.danger" [title]="sub.tooltip || ''">
+          @if (sub.icon) {
+          <nz-icon [nzType]="sub.icon" />
+          }
+          <span>{{ sub.label }}</span>
+        </li>
+        }
+        }
+        }
+      </ul>
+    </nz-dropdown-menu>
+    } @else {
+    <!-- Botón de Comando Normal -->
+    <button nz-button nzType="text" class="fluent-cmd-btn" [class.fluent-cmd-btn-primary]="item.primary"
+      [class.fluent-cmd-btn-danger]="item.danger" [disabled]="item.disabled" (click)="onItemClick(item)"
+      [title]="item.tooltip || ''">
+      @if (item.icon) {
+      <nz-icon [nzType]="item.icon" class="fluent-cmd-icon" />
+      }
+      @if (!item.iconOnly && item.label) {
+      <span class="fluent-cmd-label">{{ item.label }}</span>
+      }
+    </button>
+    }
+    }
+    }
+  </div>
+
+  <!-- Grupo Derecho: Acciones Secundarias / Vista (farItems) -->
+  <div class="fluent-command-bar-group fluent-command-bar-right">
+    @for (item of farItems; track item.key) {
+    @if (!item.hidden) {
+    @if (item.isDivider) {
+    <div class="fluent-cmd-divider"></div>
+    } @else if (item.children && item.children.length > 0) {
+    <button nz-button nzType="text" class="fluent-cmd-btn" [class.fluent-cmd-btn-primary]="item.primary"
+      [class.fluent-cmd-btn-danger]="item.danger" [disabled]="item.disabled" nz-dropdown [nzDropdownMenu]="farMenu"
+      nzPlacement="bottomRight" nzTrigger="click" [title]="item.tooltip || ''">
+      @if (item.icon) {
+      <nz-icon [nzType]="item.icon" class="fluent-cmd-icon" />
+      }
+      @if (!item.iconOnly && item.label) {
+      <span class="fluent-cmd-label">{{ item.label }}</span>
+      }
+      <nz-icon nzType="down" class="fluent-dropdown-arrow" />
+    </button>
+
+    <nz-dropdown-menu #farMenu="nzDropdownMenu">
+      <ul nz-menu class="fluent-sub-menu">
+        @for (sub of item.children; track sub.key) {
+        @if (!sub.hidden) {
+        @if (sub.isDivider) {
+        <li nz-menu-divider></li>
+        } @else {
+        <li nz-menu-item [nzDisabled]="sub.disabled" (click)="onItemClick(sub)"
+          [class.fluent-menu-item-danger]="sub.danger" [title]="sub.tooltip || ''">
+          @if (sub.icon) {
+          <nz-icon [nzType]="sub.icon" />
+          }
+          <span>{{ sub.label }}</span>
+        </li>
+        }
+        }
+        }
+      </ul>
+    </nz-dropdown-menu>
+    } @else {
+    <button nz-button nzType="text" class="fluent-cmd-btn" [class.fluent-cmd-btn-primary]="item.primary"
+      [class.fluent-cmd-btn-danger]="item.danger" [disabled]="item.disabled" (click)="onItemClick(item)"
+      [title]="item.tooltip || ''">
+      @if (item.icon) {
+      <nz-icon [nzType]="item.icon" class="fluent-cmd-icon" />
+      }
+      @if (!item.iconOnly && item.label) {
+      <span class="fluent-cmd-label">{{ item.label }}</span>
+      }
+    </button>
+    }
+    }
+    }
+
+    <!-- Proyección opcional de contenido custom (ej. slots personalizados) -->
+    <ng-content></ng-content>
+  </div>
+</nav>

@@ -30,6 +30,8 @@ import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
+import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
+import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
 @Component({
   selector: 'app-empleados-list',
@@ -51,6 +53,8 @@ import { NzAvatarModule } from 'ng-zorro-antd/avatar';
     NzCardModule,
     NzEmptyModule,
     NzAvatarModule,
+    NzCheckboxModule,
+    CommandBarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './empleados-list.html',
@@ -81,6 +85,120 @@ export class EmpleadosListComponent implements OnInit {
   fechaCese: Date = new Date();
   motivoCeseSeleccionado = '';
   observacionesCese = '';
+
+  // Selección de Colaborador (estilo Fluent / Dynamics)
+  selectedEmpleado: EmpleadoDto | null = null;
+
+  get commandBarItems(): CommandBarItem[] {
+    return [
+      {
+        key: 'new',
+        label: 'Nuevo',
+        icon: 'plus',
+        primary: true,
+        tooltip: 'Registrar un nuevo colaborador',
+        execute: () => this.irANuevoColaborador(),
+      },
+      {
+        key: 'edit',
+        label: 'Editar',
+        icon: 'edit',
+        disabled: !this.selectedEmpleado,
+        tooltip: !this.selectedEmpleado
+          ? 'Selecciona un colaborador para editar'
+          : `Editar a ${this.selectedEmpleado.nombres}`,
+        execute: () => {
+          if (this.selectedEmpleado) this.editar(this.selectedEmpleado.id);
+        },
+      },
+      {
+        key: 'delete',
+        label: 'Dar de Baja',
+        icon: 'user-delete',
+        danger: true,
+        disabled: !this.selectedEmpleado || this.selectedEmpleado.estado === 'Cesado',
+        tooltip: !this.selectedEmpleado
+          ? 'Selecciona un colaborador para dar de baja'
+          : `Dar de baja a ${this.selectedEmpleado.nombres}`,
+        execute: () => {
+          if (this.selectedEmpleado) this.abrirModalBaja(this.selectedEmpleado);
+        },
+      },
+      { key: 'd1', isDivider: true },
+      {
+        key: 'export',
+        label: 'Exportar a Excel',
+        icon: 'file-excel',
+        children: [
+          {
+            key: 'csv',
+            label: 'Exportar a CSV (.csv)',
+            icon: 'file-text',
+            execute: () => this.exportarDatos('csv'),
+          },
+        ],
+      },
+      {
+        key: 'import',
+        label: 'Importar desde Excel',
+        icon: 'upload',
+        tooltip: 'Importar colaboradores desde archivo externo',
+        execute: () => this.message.info('La importación masiva estará disponible próximamente.'),
+      },
+    ];
+  }
+
+  farItems: CommandBarItem[] = [
+    {
+      key: 'refresh',
+      label: 'Actualizar',
+      icon: 'reload',
+      tooltip: 'Recargar lista de colaboradores',
+      execute: () => this.cargarEmpleados(),
+    },
+  ];
+
+  seleccionarEmpleado(emp: EmpleadoDto) {
+    if (this.selectedEmpleado?.id === emp.id) {
+      this.selectedEmpleado = null;
+    } else {
+      this.selectedEmpleado = emp;
+    }
+  }
+
+  irANuevoColaborador() {
+    this.router.navigate(['/rrhh/empleados/nuevo']);
+  }
+
+  exportarDatos(formato: 'csv' | 'xlsx') {
+    if (this.empleados.length === 0) {
+      this.message.info('No hay registros para exportar');
+      return;
+    }
+    const headers = ['Documento', 'Nombres', 'Apellidos', 'Email', 'Telefono', 'Cargo', 'Area', 'TipoContrato', 'Estado'];
+    const rows = this.empleados.map((e) => [
+      `"${e.tipoDocumento}: ${e.numeroDocumento}"`,
+      `"${e.nombres}"`,
+      `"${e.apellidos}"`,
+      `"${e.email || ''}"`,
+      `"${e.telefono || ''}"`,
+      `"${e.cargoNombre || ''}"`,
+      `"${e.departamentoNombre || ''}"`,
+      `"${e.tipoContrato || ''}"`,
+      `"${e.estado}"`,
+    ]);
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `colaboradores_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    this.message.success(`Exportados ${this.empleados.length} colaboradores correctamente`);
+  }
+
 
   ngOnInit() {
     this.cargarCatalogos();

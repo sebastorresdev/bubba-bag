@@ -251,3 +251,12 @@
   opacity: 0.75;
 }
 
+/* Fila seleccionada estilo Fluent UI / Dynamics 365 */
+.fluent-row-selected td {
+  background-color: #edf5fd !important;
+}
+
+[data-theme='dark'] .fluent-row-selected td,
+.dark-theme .fluent-row-selected td {
+  background-color: rgba(0, 120, 212, 0.22) !important;
+}

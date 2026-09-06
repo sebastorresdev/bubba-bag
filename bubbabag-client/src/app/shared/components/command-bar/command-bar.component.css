@@ -1,0 +1,189 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+/* Contenedor Principal de la Barra de Comandos */
+.fluent-command-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 12px;
+  background-color: #ffffff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+  user-select: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Grupos Izquierdo y Derecho */
+.fluent-command-bar-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+}
+
+/* Título de contexto opcional */
+.fluent-cmd-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #323130;
+  padding: 0 8px;
+}
+
+/* Divisor vertical entre grupos de comandos */
+.fluent-cmd-divider {
+  width: 1px;
+  height: 20px;
+  background-color: rgba(0, 0, 0, 0.1);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* Botón base de Comando (Fluent UI Command Button) */
+.fluent-cmd-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: #323130;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  box-shadow: none;
+}
+
+.fluent-cmd-btn:hover:not(:disabled) {
+  background-color: #f3f2f1;
+  color: #201f1e;
+}
+
+.fluent-cmd-btn:active:not(:disabled) {
+  background-color: #edebe9;
+}
+
+.fluent-cmd-btn:disabled {
+  color: #a19f9d !important;
+  cursor: not-allowed;
+  background: transparent !important;
+  opacity: 0.6;
+}
+
+/* Botón de Atrás */
+.fluent-cmd-back-btn {
+  padding: 0 8px;
+}
+
+/* Botón Primario (Acción destacada tipo Dynamics: + Nuevo, Guardar) */
+.fluent-cmd-btn-primary {
+  background-color: #0078d4 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.fluent-cmd-btn-primary:hover:not(:disabled) {
+  background-color: #106ebe !important;
+  color: #ffffff !important;
+}
+
+.fluent-cmd-btn-primary:active:not(:disabled) {
+  background-color: #005a9e !important;
+}
+
+.fluent-cmd-btn-primary:disabled {
+  background-color: #f3f2f1 !important;
+  color: #a19f9d !important;
+}
+
+/* Botón Peligroso / Destructivo (Eliminar) */
+.fluent-cmd-btn-danger:hover:not(:disabled) {
+  background-color: #fde7e9 !important;
+  color: #a80000 !important;
+}
+
+/* Íconos dentro del botón */
+.fluent-cmd-icon {
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.fluent-cmd-label {
+  line-height: 1;
+}
+
+.fluent-dropdown-arrow {
+  font-size: 10px;
+  margin-left: 2px;
+  opacity: 0.7;
+}
+
+/* Elementos del menú desplegable */
+.fluent-sub-menu {
+  min-width: 180px;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.fluent-menu-item-danger {
+  color: #d13438 !important;
+}
+
+.fluent-menu-item-danger:hover {
+  background-color: #fde7e9 !important;
+  color: #a80000 !important;
+}
+
+/* -------------------------------------------------------------
+   Tema Oscuro (Dark Theme)
+   ------------------------------------------------------------- */
+:host-context([data-theme='dark']) .fluent-command-bar,
+:host-context(.dark-theme) .fluent-command-bar {
+  background-color: #1f1f1f;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context([data-theme='dark']) .fluent-cmd-title,
+:host-context(.dark-theme) .fluent-cmd-title {
+  color: #f3f2f1;
+}
+
+:host-context([data-theme='dark']) .fluent-cmd-divider,
+:host-context(.dark-theme) .fluent-cmd-divider {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+:host-context([data-theme='dark']) .fluent-cmd-btn,
+:host-context(.dark-theme) .fluent-cmd-btn {
+  color: #e1dfdd;
+}
+
+:host-context([data-theme='dark']) .fluent-cmd-btn:hover:not(:disabled),
+:host-context(.dark-theme) .fluent-cmd-btn:hover:not(:disabled) {
+  background-color: #2d2d2d;
+  color: #ffffff;
+}
+
+:host-context([data-theme='dark']) .fluent-cmd-btn:active:not(:disabled),
+:host-context(.dark-theme) .fluent-cmd-btn:active:not(:disabled) {
+  background-color: #383838;
+}
+
+:host-context([data-theme='dark']) .fluent-cmd-btn:disabled,
+:host-context(.dark-theme) .fluent-cmd-btn:disabled {
+  color: #797775 !important;
+}
+
+:host-context([data-theme='dark']) .fluent-cmd-btn-danger:hover:not(:disabled),
+:host-context(.dark-theme) .fluent-cmd-btn-danger:hover:not(:disabled) {
+  background-color: rgba(209, 52, 56, 0.2) !important;
+  color: #f1707b !important;
+}

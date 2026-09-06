@@ -59,6 +59,11 @@ import {
   AccountBookOutline,
   PayCircleOutline,
   FundOutline,
+  BulbOutline,
+  DownloadOutline,
+  UploadOutline,
+  FileExcelOutline,
+  EllipsisOutline,
 } from '@ant-design/icons-angular/icons';
 import { provideNzDateFnsAdapter } from 'ng-zorro-antd/core/time';
 
@@ -114,6 +119,11 @@ const icons = [
   AccountBookOutline,
   PayCircleOutline,
   FundOutline,
+  BulbOutline,
+  DownloadOutline,
+  UploadOutline,
+  FileExcelOutline,
+  EllipsisOutline,
 ];
 
 const ngZorroConfig: NzConfig = {};
