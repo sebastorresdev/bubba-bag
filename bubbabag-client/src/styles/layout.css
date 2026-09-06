@@ -60,7 +60,7 @@
 }
 
 .erp-brand-title {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif !important;
   font-weight: 700 !important;
   font-size: 14px !important;
   letter-spacing: -0.01em !important;
@@ -71,7 +71,7 @@
 }
 
 .erp-brand-sep {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif !important;
   color: rgba(255, 255, 255, 0.35) !important;
   font-weight: 300 !important;
   font-size: 14px !important;
@@ -81,7 +81,7 @@
 }
 
 .erp-module-title {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif !important;
   font-size: 13px !important;
   font-weight: 600 !important;
   color: rgba(255, 255, 255, 0.9) !important;

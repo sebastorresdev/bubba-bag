@@ -17,6 +17,7 @@ public record CrearEmpleadoCommand(
     string? Telefono,
     DateOnly? FechaNacimiento,
     string? Direccion,
+    string? FotoUrl,
     DateOnly? FechaIngreso,
     Guid? DepartamentoId,
     Guid? CargoId,
@@ -64,6 +65,10 @@ public class CrearEmpleadoHandler : ICommandHandler<CrearEmpleadoCommand, Result
         var empleado = Empleado.Registrar(request.Nombres, request.Apellidos, request.TipoDocumento, request.NumeroDocumento);
         
         empleado.ActualizarDatosContacto(request.Email, request.Telefono, request.Direccion);
+        if (!string.IsNullOrWhiteSpace(request.FotoUrl))
+        {
+            empleado.ActualizarFoto(request.FotoUrl);
+        }
         empleado.ActualizarDatosLaborales(request.FechaIngreso, request.DepartamentoId, request.CargoId, request.TipoContrato);
 
         var tieneAccesoConfidencial = _currentUser.HasAnyRole(BubbaBag.SharedKernel.Authorization.Roles.AccesoRrhhConfidencial);

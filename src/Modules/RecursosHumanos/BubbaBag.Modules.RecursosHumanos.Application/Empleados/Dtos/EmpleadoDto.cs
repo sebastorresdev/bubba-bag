@@ -13,6 +13,7 @@ public record EmpleadoDto(
     string? Telefono,
     DateOnly? FechaNacimiento,
     string? Direccion,
+    string? FotoUrl,
     DateOnly? FechaIngreso,
     Guid? DepartamentoId,
     string? DepartamentoNombre,

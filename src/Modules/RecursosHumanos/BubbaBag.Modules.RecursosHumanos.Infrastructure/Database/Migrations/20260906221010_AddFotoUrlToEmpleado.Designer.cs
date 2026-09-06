@@ -3,6 +3,7 @@ using System;
 using BubbaBag.Modules.RecursosHumanos.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BubbaBag.Modules.RecursosHumanos.Infrastructure.Database.Migrations
 {
     [DbContext(typeof(RecursosHumanosDbContext))]
-    partial class RecursosHumanosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260906221010_AddFotoUrlToEmpleado")]
+    partial class AddFotoUrlToEmpleado
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

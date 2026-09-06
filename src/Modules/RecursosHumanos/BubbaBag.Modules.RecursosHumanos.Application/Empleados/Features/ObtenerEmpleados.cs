@@ -81,6 +81,7 @@ public class ObtenerEmpleadosHandler : IQueryHandler<ObtenerEmpleadosQuery, Resu
                 e.Telefono,
                 e.FechaNacimiento,
                 e.Direccion,
+                e.FotoUrl,
                 e.FechaIngreso,
                 e.DepartamentoId,
                 e.Departamento != null ? e.Departamento.Nombre : null,

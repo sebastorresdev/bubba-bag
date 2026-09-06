@@ -82,10 +82,10 @@ export class EmpleadosListComponent implements OnInit {
   columnas = [
     { key: 'colaborador', label: 'Colaborador', visible: true, required: true },
     { key: 'documento', label: 'Documento de Identidad', visible: true, required: false },
-    { key: 'puestoArea', label: 'Puesto y Área', visible: true, required: false },
+    { key: 'cargo', label: 'Cargo', visible: true, required: false },
+    { key: 'departamento', label: 'Área', visible: true, required: false },
     { key: 'tipoContrato', label: 'Tipo de Contrato', visible: true, required: false },
     { key: 'estado', label: 'Estado (KPI)', visible: true, required: false },
-    { key: 'acciones', label: 'Acciones', visible: true, required: false },
   ];
 
   toggleColumnasDrawer(): void {

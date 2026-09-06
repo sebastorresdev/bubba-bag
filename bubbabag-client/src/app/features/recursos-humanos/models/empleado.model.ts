@@ -38,6 +38,7 @@ export interface EmpleadoDto {
   telefono?: string;
   fechaNacimiento?: string;
   direccion?: string;
+  fotoUrl?: string | null;
   fechaIngreso?: string;
   departamentoId?: string | null;
   departamentoNombre?: string | null;
@@ -66,6 +67,7 @@ export interface CrearEmpleadoCommand {
   telefono?: string;
   fechaNacimiento?: string;
   direccion?: string;
+  fotoUrl?: string | null;
   fechaIngreso?: string;
   departamentoId?: string | null;
   cargoId?: string | null;

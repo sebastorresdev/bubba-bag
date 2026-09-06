@@ -18,6 +18,7 @@ public class Empleado : Entity<Guid>
     public string? Telefono { get; private set; }
     public DateOnly? FechaNacimiento { get; private set; }
     public string? Direccion { get; private set; }
+    public string? FotoUrl { get; private set; }
 
     // Datos Laborales y Organizacionales (Opcionales)
     public DateOnly? FechaIngreso { get; private set; }
@@ -80,6 +81,11 @@ public class Empleado : Entity<Guid>
         Email = NormalizeOptional(email);
         Telefono = NormalizeOptional(telefono);
         Direccion = NormalizeOptional(direccion);
+    }
+
+    public void ActualizarFoto(string? fotoUrl)
+    {
+        FotoUrl = NormalizeOptional(fotoUrl);
     }
 
     public void ActualizarDatosLaborales(DateOnly? fechaIngreso, Guid? departamentoId, Guid? cargoId, string? tipoContrato)

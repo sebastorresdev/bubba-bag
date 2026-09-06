@@ -167,6 +167,26 @@
 /* --------------------------------------------------------------------------
    Cuadrícula de la Tabla
    -------------------------------------------------------------------------- */
+.colaborador-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.colaborador-avatar {
+  background-color: var(--ant-primary-color, #0f6cbd) !important;
+  color: #ffffff !important;
+  flex-shrink: 0;
+  font-size: 16px;
+  object-fit: cover;
+}
+
+.colaborador-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .cell-link {
   color: var(--ant-primary-color, #0078d4) !important;
   font-weight: 600;
@@ -185,8 +205,10 @@
   margin-top: 2px;
 }
 
-.cell-maintext {
-  font-weight: 500;
+.cell-singleline {
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 450;
 }
 
 .cell-contract {

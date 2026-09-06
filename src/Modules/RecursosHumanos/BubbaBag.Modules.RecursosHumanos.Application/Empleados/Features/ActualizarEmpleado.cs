@@ -18,6 +18,7 @@ public record ActualizarEmpleadoCommand(
     string? Telefono,
     DateOnly? FechaNacimiento,
     string? Direccion,
+    string? FotoUrl,
     DateOnly? FechaIngreso,
     Guid? DepartamentoId,
     Guid? CargoId,
@@ -53,6 +54,11 @@ public class ActualizarEmpleadoHandler : ICommandHandler<ActualizarEmpleadoComma
             return Result<Guid>.Failure("El colaborador no existe.");
         }
 
+        if (empleado.Estado == EstadoEmpleado.Cesado)
+        {
+            return Result<Guid>.Failure("No se puede modificar la información de un colaborador en estado Cesado. Debe reactivarlo primero.");
+        }
+
         // Validación de documento duplicado con otro empleado
         if (await _context.Empleados.AnyAsync(e => e.Id != request.Id && e.TipoDocumento == request.TipoDocumento && e.NumeroDocumento == request.NumeroDocumento, cancellationToken))
         {
@@ -72,6 +78,7 @@ public class ActualizarEmpleadoHandler : ICommandHandler<ActualizarEmpleadoComma
 
         empleado.ActualizarDatosBasicos(request.Nombres, request.Apellidos, request.TipoDocumento, request.NumeroDocumento);
         empleado.ActualizarDatosContacto(request.Email, request.Telefono, request.Direccion);
+        empleado.ActualizarFoto(request.FotoUrl);
         empleado.ActualizarDatosLaborales(request.FechaIngreso, request.DepartamentoId, request.CargoId, request.TipoContrato);
 
         var tieneAccesoConfidencial = _currentUser.HasAnyRole(BubbaBag.SharedKernel.Authorization.Roles.AccesoRrhhConfidencial);

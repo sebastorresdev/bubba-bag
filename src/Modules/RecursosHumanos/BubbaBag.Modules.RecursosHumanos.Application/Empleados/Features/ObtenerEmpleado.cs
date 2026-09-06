@@ -47,6 +47,7 @@ public class ObtenerEmpleadoHandler : IQueryHandler<ObtenerEmpleadoQuery, Result
             empleado.Telefono,
             empleado.FechaNacimiento,
             empleado.Direccion,
+            empleado.FotoUrl,
             empleado.FechaIngreso,
             empleado.DepartamentoId,
             empleado.Departamento?.Nombre,

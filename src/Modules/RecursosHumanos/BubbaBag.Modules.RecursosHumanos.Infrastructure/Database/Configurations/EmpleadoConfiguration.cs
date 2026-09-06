@@ -28,6 +28,7 @@ public class EmpleadoConfiguration : IEntityTypeConfiguration<Empleado>
         builder.Property(e => e.Email).HasMaxLength(150);
         builder.Property(e => e.Telefono).HasMaxLength(30);
         builder.Property(e => e.Direccion).HasMaxLength(250);
+        builder.Property(e => e.FotoUrl).HasColumnType("text");
 
         // Datos Laborales y Organizacionales
         builder.Property(e => e.TipoContrato).HasMaxLength(50);

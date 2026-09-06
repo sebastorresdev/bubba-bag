@@ -117,17 +117,17 @@
           @if (isColVisible('documento')) {
             <th>Documento</th>
           }
-          @if (isColVisible('puestoArea')) {
-            <th>Puesto y Área</th>
+          @if (isColVisible('cargo')) {
+            <th>Cargo</th>
+          }
+          @if (isColVisible('departamento')) {
+            <th>Área</th>
           }
           @if (isColVisible('tipoContrato')) {
             <th>Tipo Contrato</th>
           }
           @if (isColVisible('estado')) {
             <th>Estado (KPI)</th>
-          }
-          @if (isColVisible('acciones')) {
-            <th [nzAlign]="'right'" [nzWidth]="'120px'">Acciones</th>
           }
         </tr>
       </thead>
@@ -146,12 +146,22 @@
             ></td>
             @if (isColVisible('colaborador')) {
               <td>
-                <a class="cell-link" (click)="editar(data.id); $event.stopPropagation()">
-                  {{ data.nombres }} {{ data.apellidos }}
-                </a>
-                @if (data.email) {
-                  <div class="cell-subtext">{{ data.email }}</div>
-                }
+                <div class="colaborador-cell">
+                  <nz-avatar
+                    [nzSize]="34"
+                    [nzSrc]="data.fotoUrl || ''"
+                    nzIcon="user"
+                    class="colaborador-avatar"
+                  />
+                  <div class="colaborador-info">
+                    <a class="cell-link" (click)="editar(data.id); $event.stopPropagation()">
+                      {{ data.nombres }} {{ data.apellidos }}
+                    </a>
+                    @if (data.email) {
+                      <div class="cell-subtext">{{ data.email }}</div>
+                    }
+                  </div>
+                </div>
               </td>
             }
             @if (isColVisible('documento')) {
@@ -159,10 +169,14 @@
                 <span class="doc-tag">{{ data.tipoDocumento }}: {{ data.numeroDocumento }}</span>
               </td>
             }
-            @if (isColVisible('puestoArea')) {
+            @if (isColVisible('cargo')) {
               <td>
-                <div class="cell-maintext">{{ data.cargoNombre || 'Sin cargo asignado' }}</div>
-                <div class="cell-subtext">{{ data.departamentoNombre || 'Sin área asignada' }}</div>
+                <span class="cell-singleline">{{ data.cargoNombre || '-' }}</span>
+              </td>
+            }
+            @if (isColVisible('departamento')) {
+              <td>
+                <span class="cell-singleline">{{ data.departamentoNombre || '-' }}</span>
               </td>
             }
             @if (isColVisible('tipoContrato')) {
@@ -175,64 +189,6 @@
                 <div class="kpi-status">
                   <span class="status-dot" [ngClass]="getEstadoDotClass(data.estado)"></span>
                   <span class="status-text">{{ data.estado }}</span>
-                </div>
-              </td>
-            }
-            @if (isColVisible('acciones')) {
-              <td [nzAlign]="'right'" (click)="$event.stopPropagation()">
-                <div class="row-actions">
-                  <!-- Editar -->
-                  <button
-                    nz-button
-                    nzType="text"
-                    nzShape="circle"
-                    (click)="editar(data.id)"
-                    title="Editar información"
-                  >
-                    <nz-icon nzType="edit" />
-                  </button>
-
-                  <!-- Dar de Baja (solo si no está Cesado) -->
-                  @if (data.estado !== 'Cesado') {
-                    <button
-                      nz-button
-                      nzType="text"
-                      nzShape="circle"
-                      (click)="abrirModalBaja(data)"
-                      title="Dar de baja"
-                    >
-                      <nz-icon nzType="user-delete" />
-                    </button>
-                  }
-
-                  <!-- Reactivar (solo si está Cesado) -->
-                  @if (data.estado === 'Cesado') {
-                    <button
-                      nz-button
-                      nzType="text"
-                      nzShape="circle"
-                      title="Reactivar colaborador"
-                      nz-popconfirm
-                      nzPopconfirmTitle="¿Deseas reactivar a este colaborador al estado Activo?"
-                      (nzOnConfirm)="reactivar(data.id)"
-                    >
-                      <nz-icon nzType="reload" />
-                    </button>
-                  }
-
-                  <!-- Eliminar -->
-                  <button
-                    nz-button
-                    nzType="text"
-                    nzShape="circle"
-                    nzDanger
-                    title="Eliminar colaborador"
-                    nz-popconfirm
-                    nzPopconfirmTitle="¿Está seguro de eliminar definitivamente a este colaborador?"
-                    (nzOnConfirm)="eliminar(data.id)"
-                  >
-                    <nz-icon nzType="delete" />
-                  </button>
                 </div>
               </td>
             }

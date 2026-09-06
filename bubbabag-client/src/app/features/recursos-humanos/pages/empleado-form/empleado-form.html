@@ -10,11 +10,48 @@
   <!-- Cabecera de Registro (Dynamics 365 Record Header) -->
   <div class="d365-record-header">
     <div class="record-header-main">
-      <nz-avatar
-        [nzSize]="56"
-        nzIcon="user"
-        class="record-avatar"
-      />
+      <div class="record-avatar-container">
+        <div
+          class="record-avatar-wrapper"
+          [title]="isCesado ? 'Colaborador cesado (solo lectura)' : 'Clic para subir o cambiar foto de perfil'"
+          (click)="!isCesado && headerFileInput.click()"
+        >
+          <nz-avatar
+            [nzSize]="60"
+            [nzSrc]="fotoPreview || form.get('fotoUrl')?.value || ''"
+            nzIcon="user"
+            class="record-avatar"
+          />
+          @if (!isCesado) {
+            <div class="avatar-camera-overlay">
+              <nz-icon nzType="camera" />
+            </div>
+          }
+        </div>
+
+        @if (!isCesado && (fotoPreview || form.get('fotoUrl')?.value)) {
+          <button
+            nz-button
+            nzType="text"
+            nzSize="small"
+            nzDanger
+            class="avatar-remove-btn"
+            title="Eliminar foto de perfil"
+            (click)="eliminarFoto(); $event.stopPropagation()"
+          >
+            <nz-icon nzType="delete" />
+          </button>
+        }
+
+        <input
+          #headerFileInput
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          (change)="onFotoSeleccionada($event)"
+          style="display: none;"
+        />
+      </div>
+
       <div class="record-title-block">
         <div class="record-title-row">
           <h1 class="record-title">
@@ -28,8 +65,6 @@
             <span class="record-id-badge">
               {{ form.get('tipoDocumento')?.value }}: {{ form.get('numeroDocumento')?.value }}
             </span>
-          } @else if (!isEdit) {
-            <span class="record-draft-badge">Borrador</span>
           }
         </div>
         <div class="record-subtitle">
@@ -79,282 +114,495 @@
         nzType="error"
         nzShowIcon
         nzMessage="Colaborador en Estado Cesado / Baja"
-        [nzDescription]="
-          'Fecha de cese: ' +
-          (empleadoActual?.fechaCese || '-') +
-          ' • Motivo: ' +
-          (empleadoActual?.motivoCese || 'No especificado') +
-          (empleadoActual?.observacionesCese ? ' (' + empleadoActual?.observacionesCese + ')' : '')
-        "
+        [nzDescription]="alertaCeseDesc"
+        [nzAction]="reactivarAction"
       />
+      <ng-template #alertaCeseDesc>
+        <div>
+          <strong>Fecha de cese:</strong> {{ empleadoActual?.fechaCese || '-' }}
+          <span class="sep">•</span>
+          <strong>Motivo:</strong> {{ empleadoActual?.motivoCese || 'No especificado' }}
+          @if (empleadoActual?.observacionesCese) {
+            <div class="cese-obs"><em>Observaciones: {{ empleadoActual?.observacionesCese }}</em></div>
+          }
+          <div style="margin-top: 4px; font-weight: 500;">
+            Información en modo solo lectura. Para modificar los datos del colaborador, primero debe ser reactivado.
+          </div>
+        </div>
+      </ng-template>
+      <ng-template #reactivarAction>
+        <button
+          nz-button
+          nzType="default"
+          nzSize="small"
+          (click)="reactivarColaborador()"
+          [nzLoading]="loadingReactivar"
+        >
+          <nz-icon nzType="check-circle" /> Reactivar
+        </button>
+      </ng-template>
     </div>
   }
 
-  <!-- Formulario en Cuadrícula de Cards Estilo Dynamics 365 -->
+  <!-- Navegación por Tabs Estilo Microsoft Dynamics 365 / Odoo -->
   <form nz-form [formGroup]="form" nzLayout="vertical" class="d365-form-container">
-    <div class="d365-form-grid">
-      <!-- Columna Izquierda: Información Personal y Contacto -->
-      <div class="form-column">
-        <!-- Card 1: Identificación y Datos Personales -->
-        <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="personalTitle">
-          <ng-template #personalTitle>
-            <div class="card-header-content">
-              <nz-icon nzType="user" class="card-header-icon" />
-              <span>Información Personal e Identificación</span>
-            </div>
-          </ng-template>
+    <nz-tabs
+      [(nzSelectedIndex)]="selectedTabIndex"
+      [nzAnimated]="false"
+      class="d365-form-tabs"
+    >
+      <!-- TAB 1: INFORMACIÓN GENERAL Y CONTACTO -->
+      <nz-tab [nzTitle]="tabGeneralTitle">
+        <ng-template #tabGeneralTitle>
+          <span class="tab-label">
+            <nz-icon nzType="user" />
+            <span>General</span>
+          </span>
+        </ng-template>
 
-          <div class="card-form-grid">
-            <nz-form-item>
-              <nz-form-label nzRequired nzFor="nombres">Nombres</nz-form-label>
-              <nz-form-control nzErrorTip="Por favor ingresa los nombres">
-                <input nz-input formControlName="nombres" id="nombres" placeholder="Ej: Juan Carlos" />
-              </nz-form-control>
-            </nz-form-item>
+        <div class="d365-tab-grid">
+          <!-- Card 1: Identificación y Datos Personales -->
+          <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="personalTitle">
+            <ng-template #personalTitle>
+              <div class="card-header-content">
+                <nz-icon nzType="user" class="card-header-icon" />
+                <span>Información Personal e Identificación</span>
+              </div>
+            </ng-template>
 
-            <nz-form-item>
-              <nz-form-label nzRequired nzFor="apellidos">Apellidos</nz-form-label>
-              <nz-form-control nzErrorTip="Por favor ingresa los apellidos">
-                <input nz-input formControlName="apellidos" id="apellidos" placeholder="Ej: Pérez García" />
-              </nz-form-control>
-            </nz-form-item>
-
-            <nz-form-item>
-              <nz-form-label nzRequired nzFor="tipoDocumento">Tipo de Documento</nz-form-label>
-              <nz-form-control nzErrorTip="Selecciona el tipo de documento">
-                <nz-select formControlName="tipoDocumento" id="tipoDocumento">
-                  @for (t of tiposDocumento; track t) {
-                    <nz-option [nzValue]="t" [nzLabel]="t"></nz-option>
-                  }
-                </nz-select>
-              </nz-form-control>
-            </nz-form-item>
-
-            <nz-form-item>
-              <nz-form-label nzRequired nzFor="numeroDocumento">Número de Documento</nz-form-label>
-              <nz-form-control nzErrorTip="Ingresa el número de documento">
-                <input nz-input formControlName="numeroDocumento" id="numeroDocumento" placeholder="Número de documento" />
-              </nz-form-control>
-            </nz-form-item>
-
-            <nz-form-item>
-              <nz-form-label nzFor="fechaNacimiento">Fecha de Nacimiento</nz-form-label>
-              <nz-form-control>
-                <nz-date-picker formControlName="fechaNacimiento" id="fechaNacimiento" nzFormat="yyyy-MM-dd" class="full-width" />
-              </nz-form-control>
-            </nz-form-item>
-
-            @if (isEdit) {
+            <div class="card-form-grid">
               <nz-form-item>
-                <nz-form-label nzFor="estado">Estado del Colaborador</nz-form-label>
-                <nz-form-control>
-                  <nz-select formControlName="estado" id="estado">
-                    @for (e of estados; track e.id) {
-                      <nz-option [nzValue]="e.id" [nzLabel]="e.label"></nz-option>
+                <nz-form-label nzRequired nzFor="nombres">Nombres</nz-form-label>
+                <nz-form-control nzErrorTip="Por favor ingresa los nombres">
+                  <input nz-input formControlName="nombres" id="nombres" placeholder="Ej: Juan Carlos" />
+                </nz-form-control>
+              </nz-form-item>
+
+              <nz-form-item>
+                <nz-form-label nzRequired nzFor="apellidos">Apellidos</nz-form-label>
+                <nz-form-control nzErrorTip="Por favor ingresa los apellidos">
+                  <input nz-input formControlName="apellidos" id="apellidos" placeholder="Ej: Pérez García" />
+                </nz-form-control>
+              </nz-form-item>
+
+              <nz-form-item>
+                <nz-form-label nzRequired nzFor="tipoDocumento">Tipo de Documento</nz-form-label>
+                <nz-form-control nzErrorTip="Selecciona el tipo de documento">
+                  <nz-select formControlName="tipoDocumento" id="tipoDocumento">
+                    @for (t of tiposDocumento; track t) {
+                      <nz-option [nzValue]="t" [nzLabel]="t"></nz-option>
                     }
                   </nz-select>
                 </nz-form-control>
               </nz-form-item>
+
+              <nz-form-item>
+                <nz-form-label nzRequired nzFor="numeroDocumento">Número de Documento</nz-form-label>
+                <nz-form-control nzErrorTip="Ingresa el número de documento">
+                  <input nz-input formControlName="numeroDocumento" id="numeroDocumento" placeholder="Número de documento" />
+                </nz-form-control>
+              </nz-form-item>
+
+              <nz-form-item>
+                <nz-form-label nzFor="fechaNacimiento">Fecha de Nacimiento</nz-form-label>
+                <nz-form-control>
+                  <nz-date-picker formControlName="fechaNacimiento" id="fechaNacimiento" nzFormat="yyyy-MM-dd" class="full-width" />
+                </nz-form-control>
+              </nz-form-item>
+
+              @if (isEdit) {
+                <nz-form-item>
+                  <nz-form-label nzFor="estado">Estado del Colaborador</nz-form-label>
+                  <nz-form-control>
+                    <nz-select formControlName="estado" id="estado">
+                      @for (e of estados; track e.id) {
+                        <nz-option [nzValue]="e.id" [nzLabel]="e.label"></nz-option>
+                      }
+                    </nz-select>
+                  </nz-form-control>
+                </nz-form-item>
+              }
+            </div>
+          </nz-card>
+
+          <!-- Card 2: Contacto y Residencia -->
+          <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="contactoTitle">
+            <ng-template #contactoTitle>
+              <div class="card-header-content">
+                <nz-icon nzType="mail" class="card-header-icon" />
+                <span>Contacto y Residencia</span>
+              </div>
+            </ng-template>
+
+            <div class="card-form-grid">
+              <nz-form-item class="col-span-full">
+                <nz-form-label nzFor="email">Correo Electrónico</nz-form-label>
+                <nz-form-control nzErrorTip="Ingresa un correo electrónico válido">
+                  <input nz-input formControlName="email" id="email" type="email" placeholder="colaborador@bubbabag.com" />
+                </nz-form-control>
+              </nz-form-item>
+
+              <nz-form-item class="col-span-full">
+                <nz-form-label nzFor="telefono">Teléfono / Celular</nz-form-label>
+                <nz-form-control>
+                  <input nz-input formControlName="telefono" id="telefono" placeholder="+51 987 654 321" />
+                </nz-form-control>
+              </nz-form-item>
+
+              <nz-form-item class="col-span-full">
+                <nz-form-label nzFor="direccion">Dirección de Domicilio</nz-form-label>
+                <nz-form-control>
+                  <input nz-input formControlName="direccion" id="direccion" placeholder="Av. Principal 123, Dpto. 401, Lima" />
+                </nz-form-control>
+              </nz-form-item>
+            </div>
+          </nz-card>
+        </div>
+      </nz-tab>
+
+      <!-- TAB 2: ESTRUCTURA LABORAL Y PUESTO -->
+      <nz-tab [nzTitle]="tabLaboralTitle">
+        <ng-template #tabLaboralTitle>
+          <span class="tab-label">
+            <nz-icon nzType="solution" />
+            <span>Estructura Laboral</span>
+          </span>
+        </ng-template>
+
+        <div class="d365-tab-grid">
+          <!-- Card: Estructura Organizativa -->
+          <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="organizativaTitle">
+            <ng-template #organizativaTitle>
+              <div class="card-header-content">
+                <nz-icon nzType="team" class="card-header-icon" />
+                <span>Estructura Organizativa y Puesto</span>
+              </div>
+            </ng-template>
+
+            <div class="card-form-grid">
+              <nz-form-item class="col-span-full">
+                <nz-form-label nzFor="departamentoId">Área o Departamento</nz-form-label>
+                <nz-form-control>
+                  <nz-select
+                    formControlName="departamentoId"
+                    id="departamentoId"
+                    (ngModelChange)="onDepartamentoChange($event)"
+                    nzPlaceHolder="Seleccionar área"
+                    nzAllowClear
+                  >
+                    @for (d of departamentos; track d.id) {
+                      <nz-option [nzValue]="d.id" [nzLabel]="d.nombre"></nz-option>
+                    }
+                  </nz-select>
+                </nz-form-control>
+              </nz-form-item>
+
+              <nz-form-item class="col-span-full">
+                <nz-form-label nzFor="cargoId">Cargo o Puesto</nz-form-label>
+                <nz-form-control>
+                  <nz-select
+                    formControlName="cargoId"
+                    id="cargoId"
+                    [nzDisabled]="cargosFiltrados.length === 0"
+                    [nzPlaceHolder]="cargosFiltrados.length === 0 ? 'Selecciona un área primero' : 'Seleccionar cargo'"
+                    nzAllowClear
+                  >
+                    @for (c of cargosFiltrados; track c.id) {
+                      <nz-option
+                        [nzValue]="c.id"
+                        [nzLabel]="c.nombre + (c.salarioReferencial ? ' (Ref: S/ ' + c.salarioReferencial + ')' : '')"
+                      ></nz-option>
+                    }
+                  </nz-select>
+                </nz-form-control>
+              </nz-form-item>
+            </div>
+          </nz-card>
+
+          <!-- Card: Contratación -->
+          <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="condicionesTitle">
+            <ng-template #condicionesTitle>
+              <div class="card-header-content">
+                <nz-icon nzType="solution" class="card-header-icon" />
+                <span>Condiciones de Contratación</span>
+              </div>
+            </ng-template>
+
+            <div class="card-form-grid">
+              <nz-form-item class="col-span-full">
+                <nz-form-label nzFor="tipoContrato">Tipo de Contrato</nz-form-label>
+                <nz-form-control>
+                  <nz-select formControlName="tipoContrato" id="tipoContrato" nzPlaceHolder="Seleccionar tipo" nzAllowClear>
+                    @for (tc of tiposContrato; track tc) {
+                      <nz-option [nzValue]="tc" [nzLabel]="tc"></nz-option>
+                    }
+                  </nz-select>
+                </nz-form-control>
+              </nz-form-item>
+
+              <nz-form-item class="col-span-full">
+                <nz-form-label nzFor="fechaIngreso">Fecha de Ingreso</nz-form-label>
+                <nz-form-control>
+                  <nz-date-picker formControlName="fechaIngreso" id="fechaIngreso" nzFormat="yyyy-MM-dd" class="full-width" />
+                </nz-form-control>
+              </nz-form-item>
+            </div>
+          </nz-card>
+        </div>
+      </nz-tab>
+
+      <!-- TAB 3: COMPENSACIÓN Y PLANILLA -->
+      <nz-tab [nzTitle]="tabCompensacionTitle">
+        <ng-template #tabCompensacionTitle>
+          <span class="tab-label">
+            <nz-icon nzType="dollar" />
+            <span>Compensación y Nómina</span>
+          </span>
+        </ng-template>
+
+        <div class="d365-tab-grid">
+          <!-- Card: Remuneración y Planilla -->
+          <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="compensacionTitle">
+            <ng-template #compensacionTitle>
+              <div class="card-header-content">
+                <nz-icon nzType="dollar" class="card-header-icon" />
+                <span>Remuneración y Beneficios</span>
+              </div>
+            </ng-template>
+
+            <div class="card-form-grid">
+              <nz-form-item>
+                <nz-form-label nzFor="salarioBase">Salario Base</nz-form-label>
+                <nz-form-control>
+                  <input nz-input type="number" formControlName="salarioBase" id="salarioBase" placeholder="0.00" />
+                </nz-form-control>
+              </nz-form-item>
+
+              <nz-form-item>
+                <nz-form-label nzFor="monedaSalario">Moneda</nz-form-label>
+                <nz-form-control>
+                  <nz-select formControlName="monedaSalario" id="monedaSalario">
+                    <nz-option nzValue="PEN" nzLabel="Soles Peruanos (PEN)"></nz-option>
+                    <nz-option nzValue="USD" nzLabel="Dólares (USD)"></nz-option>
+                  </nz-select>
+                </nz-form-control>
+              </nz-form-item>
+
+              <!-- Switch Asignación Familiar -->
+              <div class="col-span-full switch-box">
+                <div class="switch-info">
+                  <div class="switch-title">Asignación Familiar</div>
+                  <div class="switch-subtitle">Activar si el colaborador tiene hijos menores o dependientes acreditados</div>
+                </div>
+                <nz-switch formControlName="tieneAsignacionFamiliar" id="tieneAsignacionFamiliar" />
+              </div>
+            </div>
+          </nz-card>
+
+          <!-- Card: Régimen Pensionario y Banco -->
+          <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="socialBancoTitle">
+            <ng-template #socialBancoTitle>
+              <div class="card-header-content">
+                <nz-icon nzType="shop" class="card-header-icon" />
+                <span>Seguridad Social y Cuentas Bancarias</span>
+              </div>
+            </ng-template>
+
+            <div class="card-form-grid">
+              <nz-form-item>
+                <nz-form-label nzFor="regimenPensionario">Régimen Pensionario (AFP / ONP)</nz-form-label>
+                <nz-form-control>
+                  <nz-select formControlName="regimenPensionario" id="regimenPensionario" nzAllowClear nzPlaceHolder="Seleccionar régimen">
+                    @for (rp of regimenesPensionarios; track rp) {
+                      <nz-option [nzValue]="rp" [nzLabel]="rp"></nz-option>
+                    }
+                  </nz-select>
+                </nz-form-control>
+              </nz-form-item>
+
+              <nz-form-item>
+                <nz-form-label nzFor="cuspp">Código CUSPP</nz-form-label>
+                <nz-form-control>
+                  <input nz-input formControlName="cuspp" id="cuspp" placeholder="Identificador CUSPP" />
+                </nz-form-control>
+              </nz-form-item>
+
+              <nz-form-item class="col-span-full">
+                <nz-form-label nzFor="entidadFinanciera">Entidad Financiera (Banco)</nz-form-label>
+                <nz-form-control>
+                  <nz-select formControlName="entidadFinanciera" id="entidadFinanciera" nzPlaceHolder="Seleccionar banco" nzAllowClear>
+                    @for (ef of entidadesFinancieras; track ef) {
+                      <nz-option [nzValue]="ef" [nzLabel]="ef"></nz-option>
+                    }
+                  </nz-select>
+                </nz-form-control>
+              </nz-form-item>
+
+              <nz-form-item>
+                <nz-form-label nzFor="cuentaBancaria">Cuenta Bancaria</nz-form-label>
+                <nz-form-control>
+                  <input nz-input formControlName="cuentaBancaria" id="cuentaBancaria" placeholder="Número de cuenta" />
+                </nz-form-control>
+              </nz-form-item>
+
+              <nz-form-item>
+                <nz-form-label nzFor="cuentaInterbancaria">Código Interbancario (CCI)</nz-form-label>
+                <nz-form-control>
+                  <input nz-input formControlName="cuentaInterbancaria" id="cuentaInterbancaria" placeholder="20 dígitos de CCI" />
+                </nz-form-control>
+              </nz-form-item>
+            </div>
+          </nz-card>
+        </div>
+      </nz-tab>
+
+      <!-- TAB 4: HISTORIAL Y BAJAS (Solo disponible en modo edición) -->
+      @if (isEdit) {
+        <nz-tab [nzTitle]="tabBajaTitle">
+          <ng-template #tabBajaTitle>
+            <span class="tab-label">
+              <nz-icon nzType="audit" />
+              <span>Bajas y Cese</span>
+            </span>
+          </ng-template>
+
+          <div class="d365-tab-grid">
+            <!-- Card de Estado de Cese -->
+            @if (empleadoActual?.estado === 'Cesado') {
+              <nz-card [nzBordered]="true" class="d365-card cese-card col-span-full" [nzTitle]="cesadoCardTitle">
+                <ng-template #cesadoCardTitle>
+                  <div class="card-header-content text-danger">
+                    <nz-icon nzType="close-circle" class="card-header-icon" />
+                    <span>Registro de Cese Laboral</span>
+                  </div>
+                </ng-template>
+
+                <div class="cese-summary-grid">
+                  <div class="cese-summary-item">
+                    <span class="cese-label">Fecha de Cese:</span>
+                    <span class="cese-value font-bold">{{ empleadoActual?.fechaCese || 'No registrada' }}</span>
+                  </div>
+                  <div class="cese-summary-item">
+                    <span class="cese-label">Motivo del Cese:</span>
+                    <span class="cese-value font-bold">{{ empleadoActual?.motivoCese || 'No especificado' }}</span>
+                  </div>
+                  <div class="cese-summary-item col-span-full">
+                    <span class="cese-label">Observaciones:</span>
+                    <span class="cese-value">{{ empleadoActual?.observacionesCese || 'Sin observaciones adicionales' }}</span>
+                  </div>
+                </div>
+
+                <div class="cese-card-actions">
+                  <button
+                    nz-button
+                    nzType="primary"
+                    (click)="reactivarColaborador()"
+                    [nzLoading]="loadingReactivar"
+                  >
+                    <nz-icon nzType="check-circle" /> Reactivar Colaborador a Activo
+                  </button>
+                </div>
+              </nz-card>
+            } @else {
+              <!-- Estado Activo: Colaborador en regla -->
+              <nz-card [nzBordered]="true" class="d365-card col-span-full" [nzTitle]="activoCardTitle">
+                <ng-template #activoCardTitle>
+                  <div class="card-header-content">
+                    <nz-icon nzType="check-circle" class="card-header-icon text-success" />
+                    <span>Estado Laboral Actual</span>
+                  </div>
+                </ng-template>
+
+                <div class="activo-state-box">
+                  <div class="activo-state-info">
+                    <div class="activo-state-title">El colaborador se encuentra actualmente en estado {{ empleadoActual?.estado || 'Activo' }}</div>
+                    <div class="activo-state-desc">
+                      No registra cese laboral ni solicitud de baja. Si el colaborador deja de pertenecer a la organización, puedes registrar el cese formal mediante el botón a continuación.
+                    </div>
+                  </div>
+
+                  <button
+                    nz-button
+                    nzDanger
+                    (click)="abrirModalBaja()"
+                    [disabled]="loading || loadingBaja"
+                    class="btn-tramitar-baja"
+                  >
+                    <nz-icon nzType="user-delete" /> Tramitar Baja de Colaborador
+                  </button>
+                </div>
+              </nz-card>
             }
           </div>
-        </nz-card>
-
-        <!-- Card 2: Contacto y Residencia -->
-        <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="contactoTitle">
-          <ng-template #contactoTitle>
-            <div class="card-header-content">
-              <nz-icon nzType="mail" class="card-header-icon" />
-              <span>Contacto y Residencia</span>
-            </div>
-          </ng-template>
-
-          <div class="card-form-grid">
-            <nz-form-item class="col-span-full">
-              <nz-form-label nzFor="email">Correo Electrónico</nz-form-label>
-              <nz-form-control nzErrorTip="Ingresa un correo electrónico válido">
-                <input nz-input formControlName="email" id="email" type="email" placeholder="colaborador@bubbabag.com" />
-              </nz-form-control>
-            </nz-form-item>
-
-            <nz-form-item class="col-span-full">
-              <nz-form-label nzFor="telefono">Teléfono / Celular</nz-form-label>
-              <nz-form-control>
-                <input nz-input formControlName="telefono" id="telefono" placeholder="+51 987 654 321" />
-              </nz-form-control>
-            </nz-form-item>
-
-            <nz-form-item class="col-span-full">
-              <nz-form-label nzFor="direccion">Dirección de Domicilio</nz-form-label>
-              <nz-form-control>
-                <input nz-input formControlName="direccion" id="direccion" placeholder="Av. Principal 123, Dpto. 401, Lima" />
-              </nz-form-control>
-            </nz-form-item>
-          </div>
-        </nz-card>
-      </div>
-
-      <!-- Columna Derecha: Laboral, Compensación y Bancarios -->
-      <div class="form-column">
-        <!-- Card 3: Laboral y Estructura Organizativa -->
-        <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="laboralTitle">
-          <ng-template #laboralTitle>
-            <div class="card-header-content">
-              <nz-icon nzType="solution" class="card-header-icon" />
-              <span>Estructura Laboral y Puesto</span>
-            </div>
-          </ng-template>
-
-          <div class="card-form-grid">
-            <nz-form-item>
-              <nz-form-label nzFor="departamentoId">Área o Departamento</nz-form-label>
-              <nz-form-control>
-                <nz-select
-                  formControlName="departamentoId"
-                  id="departamentoId"
-                  (ngModelChange)="onDepartamentoChange($event)"
-                  nzPlaceHolder="Seleccionar área"
-                  nzAllowClear
-                >
-                  @for (d of departamentos; track d.id) {
-                    <nz-option [nzValue]="d.id" [nzLabel]="d.nombre"></nz-option>
-                  }
-                </nz-select>
-              </nz-form-control>
-            </nz-form-item>
-
-            <nz-form-item>
-              <nz-form-label nzFor="cargoId">Cargo o Puesto</nz-form-label>
-              <nz-form-control>
-                <nz-select
-                  formControlName="cargoId"
-                  id="cargoId"
-                  [nzDisabled]="cargosFiltrados.length === 0"
-                  [nzPlaceHolder]="cargosFiltrados.length === 0 ? 'Selecciona un área primero' : 'Seleccionar cargo'"
-                  nzAllowClear
-                >
-                  @for (c of cargosFiltrados; track c.id) {
-                    <nz-option
-                      [nzValue]="c.id"
-                      [nzLabel]="c.nombre + (c.salarioReferencial ? ' (Ref: S/ ' + c.salarioReferencial + ')' : '')"
-                    ></nz-option>
-                  }
-                </nz-select>
-              </nz-form-control>
-            </nz-form-item>
-
-            <nz-form-item>
-              <nz-form-label nzFor="tipoContrato">Tipo de Contrato</nz-form-label>
-              <nz-form-control>
-                <nz-select formControlName="tipoContrato" id="tipoContrato" nzPlaceHolder="Seleccionar tipo" nzAllowClear>
-                  @for (tc of tiposContrato; track tc) {
-                    <nz-option [nzValue]="tc" [nzLabel]="tc"></nz-option>
-                  }
-                </nz-select>
-              </nz-form-control>
-            </nz-form-item>
-
-            <nz-form-item>
-              <nz-form-label nzFor="fechaIngreso">Fecha de Ingreso</nz-form-label>
-              <nz-form-control>
-                <nz-date-picker formControlName="fechaIngreso" id="fechaIngreso" nzFormat="yyyy-MM-dd" class="full-width" />
-              </nz-form-control>
-            </nz-form-item>
-          </div>
-        </nz-card>
-
-        <!-- Card 4: Compensación y Planilla -->
-        <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="compensacionTitle">
-          <ng-template #compensacionTitle>
-            <div class="card-header-content">
-              <nz-icon nzType="dollar" class="card-header-icon" />
-              <span>Compensación y Planilla</span>
-            </div>
-          </ng-template>
-
-          <div class="card-form-grid">
-            <nz-form-item>
-              <nz-form-label nzFor="salarioBase">Salario Base</nz-form-label>
-              <nz-form-control>
-                <input nz-input type="number" formControlName="salarioBase" id="salarioBase" placeholder="0.00" />
-              </nz-form-control>
-            </nz-form-item>
-
-            <nz-form-item>
-              <nz-form-label nzFor="monedaSalario">Moneda</nz-form-label>
-              <nz-form-control>
-                <nz-select formControlName="monedaSalario" id="monedaSalario">
-                  <nz-option nzValue="PEN" nzLabel="Soles Peruanos (PEN)"></nz-option>
-                  <nz-option nzValue="USD" nzLabel="Dólares (USD)"></nz-option>
-                </nz-select>
-              </nz-form-control>
-            </nz-form-item>
-
-            <nz-form-item>
-              <nz-form-label nzFor="regimenPensionario">Régimen Pensionario (AFP / ONP)</nz-form-label>
-              <nz-form-control>
-                <nz-select formControlName="regimenPensionario" id="regimenPensionario" nzAllowClear nzPlaceHolder="Seleccionar régimen">
-                  @for (rp of regimenesPensionarios; track rp) {
-                    <nz-option [nzValue]="rp" [nzLabel]="rp"></nz-option>
-                  }
-                </nz-select>
-              </nz-form-control>
-            </nz-form-item>
-
-            <nz-form-item>
-              <nz-form-label nzFor="cuspp">Código CUSPP</nz-form-label>
-              <nz-form-control>
-                <input nz-input formControlName="cuspp" id="cuspp" placeholder="Identificador CUSPP" />
-              </nz-form-control>
-            </nz-form-item>
-
-            <!-- Switch Asignación Familiar en Card integrada -->
-            <div class="col-span-full switch-box">
-              <div class="switch-info">
-                <div class="switch-title">Asignación Familiar</div>
-                <div class="switch-subtitle">Activar si el colaborador tiene hijos menores o dependientes acreditados</div>
-              </div>
-              <nz-switch formControlName="tieneAsignacionFamiliar" id="tieneAsignacionFamiliar" />
-            </div>
-          </div>
-        </nz-card>
-
-        <!-- Card 5: Datos Bancarios -->
-        <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="bancoTitle">
-          <ng-template #bancoTitle>
-            <div class="card-header-content">
-              <nz-icon nzType="shop" class="card-header-icon" />
-              <span>Información Bancaria</span>
-            </div>
-          </ng-template>
-
-          <div class="card-form-grid">
-            <nz-form-item class="col-span-full">
-              <nz-form-label nzFor="entidadFinanciera">Entidad Financiera</nz-form-label>
-              <nz-form-control>
-                <nz-select formControlName="entidadFinanciera" id="entidadFinanciera" nzPlaceHolder="Seleccionar banco" nzAllowClear>
-                  @for (ef of entidadesFinancieras; track ef) {
-                    <nz-option [nzValue]="ef" [nzLabel]="ef"></nz-option>
-                  }
-                </nz-select>
-              </nz-form-control>
-            </nz-form-item>
-
-            <nz-form-item>
-              <nz-form-label nzFor="cuentaBancaria">Cuenta Bancaria</nz-form-label>
-              <nz-form-control>
-                <input nz-input formControlName="cuentaBancaria" id="cuentaBancaria" placeholder="Número de cuenta" />
-              </nz-form-control>
-            </nz-form-item>
-
-            <nz-form-item>
-              <nz-form-label nzFor="cuentaInterbancaria">Código Interbancario (CCI)</nz-form-label>
-              <nz-form-control>
-                <input nz-input formControlName="cuentaInterbancaria" id="cuentaInterbancaria" placeholder="20 dígitos de CCI" />
-              </nz-form-control>
-            </nz-form-item>
-          </div>
-        </nz-card>
-      </div>
-    </div>
+        </nz-tab>
+      }
+    </nz-tabs>
   </form>
 </div>
+
+<!-- Modal para Dar de Baja a Colaborador -->
+<nz-modal
+  [(nzVisible)]="isModalBajaVisible"
+  nzTitle="Dar de Baja a Colaborador"
+  (nzOnCancel)="cerrarModalBaja()"
+  (nzOnOk)="confirmarBaja()"
+  [nzOkLoading]="loadingBaja"
+  nzOkText="Confirmar Baja"
+  [nzOkDanger]="true"
+  nzCancelText="Cancelar"
+  [nzWidth]="520"
+>
+  <ng-container *nzModalContent>
+    <div class="baja-modal-container">
+      <nz-alert
+        nzType="warning"
+        nzShowIcon
+        nzMessage="Confirmación de Cese Laboral"
+        [nzDescription]="
+          'Estás a punto de registrar la baja de ' +
+          ((form.get('nombres')?.value || '') + ' ' + (form.get('apellidos')?.value || '')) +
+          '. Esta acción pasará el estado a Cesado.'
+        "
+        class="baja-alert"
+      />
+
+      <form nz-form [formGroup]="bajaForm" nzLayout="vertical">
+        <nz-form-item>
+          <nz-form-label nzRequired nzFor="modalFechaCese">Fecha de Cese / Fin de Labores</nz-form-label>
+          <nz-form-control nzErrorTip="Selecciona la fecha de cese">
+            <nz-date-picker
+              formControlName="fechaCese"
+              id="modalFechaCese"
+              nzFormat="yyyy-MM-dd"
+              class="full-width"
+            />
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item>
+          <nz-form-label nzRequired nzFor="modalMotivoCese">Motivo del Cese</nz-form-label>
+          <nz-form-control nzErrorTip="Por favor selecciona el motivo de cese">
+            <nz-select formControlName="motivoCese" id="modalMotivoCese" nzPlaceHolder="Seleccionar motivo">
+              @for (m of motivosCese; track m) {
+                <nz-option [nzValue]="m" [nzLabel]="m"></nz-option>
+              }
+            </nz-select>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item>
+          <nz-form-label nzFor="modalObservacionesCese">Observaciones Adicionales</nz-form-label>
+          <nz-form-control>
+            <textarea
+              nz-input
+              formControlName="observacionesCese"
+              id="modalObservacionesCese"
+              rows="3"
+              placeholder="Detalles adicionales, entrega de liquidación, constancia de trabajo, etc."
+            ></textarea>
+          </nz-form-control>
+        </nz-form-item>
+      </form>
+    </div>
+  </ng-container>
+</nz-modal>
