@@ -64,6 +64,8 @@ import {
   UploadOutline,
   FileExcelOutline,
   EllipsisOutline,
+  TableOutline,
+  ColumnWidthOutline,
 } from '@ant-design/icons-angular/icons';
 import { provideNzDateFnsAdapter } from 'ng-zorro-antd/core/time';
 
@@ -124,6 +126,8 @@ const icons = [
   UploadOutline,
   FileExcelOutline,
   EllipsisOutline,
+  TableOutline,
+  ColumnWidthOutline,
 ];
 
 const ngZorroConfig: NzConfig = {};

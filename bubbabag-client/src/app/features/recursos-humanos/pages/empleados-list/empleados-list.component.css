@@ -1,0 +1,336 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+/* Contenedor principal de la página (Ocupa todo el contenido sin márgenes ni padding) */
+.empleados-view-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Tarjeta Contenedora de NG-ZORRO (con borde pero SIN redondeo) */
+.d365-table-card,
+:host ::ng-deep .ant-card.d365-table-card {
+  width: 100%;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+:host ::ng-deep .ant-card.d365-table-card .ant-card-body {
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+/* --------------------------------------------------------------------------
+   Sub-Header: Selector de Vista & Herramientas de Filtro
+   -------------------------------------------------------------------------- */
+.d365-toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+:host-context([data-theme='dark']) .d365-toolbar-row,
+:host-context(.dark-theme) .d365-toolbar-row {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Selector de Vistas (Dropdown de Título a la izquierda) */
+.view-title-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  height: auto;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.view-title-btn:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+:host-context([data-theme='dark']) .view-title-btn:hover,
+:host-context(.dark-theme) .view-title-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.view-title-text {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.view-title-icon {
+  font-size: 12px;
+  opacity: 0.6;
+  margin-top: 2px;
+}
+
+/* Herramientas de la Vista a la Derecha */
+.view-tools-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.filter-btn.active {
+  border-color: #0078d4 !important;
+  color: #0078d4 !important;
+}
+
+.filter-badge {
+  background-color: #0078d4;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 10px;
+  line-height: 1;
+}
+
+/* Cuadro de Búsqueda Rápida Fluent UI */
+.d365-search-box {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  height: 32px;
+  padding: 0 8px;
+  width: 240px;
+  background-color: transparent;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+:host-context([data-theme='dark']) .d365-search-box,
+:host-context(.dark-theme) .d365-search-box {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.d365-search-box:focus-within {
+  border-color: #0078d4 !important;
+  box-shadow: 0 0 0 1px #0078d4;
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 13px;
+  padding: 0;
+  color: inherit;
+}
+
+.search-icon-btn,
+.search-clear-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0 2px;
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+}
+
+.search-icon-btn:hover,
+.search-clear-btn:hover {
+  opacity: 1;
+}
+
+/* --------------------------------------------------------------------------
+   Cuadrícula de la Tabla
+   -------------------------------------------------------------------------- */
+.cell-link {
+  color: #0078d4 !important;
+  font-weight: 600;
+  cursor: pointer;
+  display: block;
+}
+
+.cell-link:hover {
+  text-decoration: underline;
+  color: #106ebe !important;
+}
+
+.cell-subtext {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+.cell-maintext {
+  font-weight: 500;
+}
+
+.cell-contract {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.doc-tag {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+:host-context([data-theme='dark']) .doc-tag,
+:host-context(.dark-theme) .doc-tag {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Indicador de Estado KPI con punto */
+.kpi-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.d365-dot-active {
+  background-color: #107c41; /* Verde Good */
+}
+
+.d365-dot-warning {
+  background-color: #ffaa00; /* Ámbar Fair */
+}
+
+.d365-dot-info {
+  background-color: #0078d4;
+}
+
+.d365-dot-purple {
+  background-color: #8764b8;
+}
+
+.d365-dot-danger {
+  background-color: #d13438; /* Rojo Poor */
+}
+
+.d365-dot-default {
+  background-color: #8a8886;
+}
+
+.status-text {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Acciones en fila */
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+/* Barra de Estado inferior (Footer de conteo) */
+.table-statusbar {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  font-size: 12px;
+  opacity: 0.8;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+:host-context([data-theme='dark']) .table-statusbar,
+:host-context(.dark-theme) .table-statusbar {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.selected-indicator {
+  font-weight: 600;
+  color: #0078d4;
+}
+
+/* Drawer de Filtros */
+.drawer-filter-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: 100%;
+}
+
+.drawer-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.drawer-field-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.drawer-actions {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Drawer de Editar Columnas */
+.columns-drawer-desc {
+  font-size: 13px;
+  opacity: 0.8;
+  margin-bottom: 8px;
+}
+
+.columns-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.column-checkbox-item {
+  display: flex !important;
+  align-items: center;
+  margin-left: 0 !important;
+  font-size: 13px;
+}
+
+.required-badge {
+  font-size: 11px;
+  opacity: 0.5;
+  margin-left: 6px;
+}

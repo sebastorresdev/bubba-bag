@@ -1,173 +1,357 @@
 <app-command-bar [items]="commandBarItems" [farItems]="farItems"></app-command-bar>
 
-<div class="page-container" style="padding: 16px 20px;">
-  <!-- Encabezado de Página -->
-  <div class="page-header">
-    <div>
-      <h1 class="page-header-title">Colaboradores</h1>
-      <p class="page-header-subtitle">Gestión de personal, estructura organizacional y ciclo laboral</p>
-    </div>
-  </div>
-
-  <!-- Card Unificada de NG-ZORRO: Filtros + Tabla -->
-  <nz-card [nzBordered]="true" [nzBodyStyle]="{ padding: '0' }">
-    <!-- Barra de Herramientas y Filtros -->
-    <div class="table-toolbar">
-      <!-- Campo de Búsqueda -->
-      <div class="table-toolbar-search">
-        <nz-input-wrapper class="full-width">
-          <input type="text" nz-input placeholder="Buscar por nombres, apellidos o documento..."
-            [(ngModel)]="searchTerm" (keyup.enter)="buscar()" />
-          <span nzInputSuffix>
-            <nz-icon nzType="search" style="opacity: 0.5;" />
-          </span>
-        </nz-input-wrapper>
-        <button nz-button nzType="default" (click)="buscar()">
-          Buscar
+<div class="empleados-view-wrapper">
+  <!-- Tarjeta Contenedora de NG-ZORRO (con bordes y fondo nativo, sin redondeo) -->
+  <nz-card [nzBordered]="true" [nzBodyStyle]="{ padding: '0' }" class="d365-table-card">
+    <!-- Sub-Header / Selector de Vista & Herramientas -->
+    <div class="d365-toolbar-row">
+      <!-- Izquierda: Selector de Vista de Sistema (Dropdown interactivo) -->
+      <div>
+        <button
+          nz-button
+          nzType="text"
+          nz-dropdown
+          [nzDropdownMenu]="viewsMenu"
+          nzTrigger="click"
+          class="view-title-btn"
+        >
+          <h1 class="view-title-text">{{ vistaActualTitulo }}</h1>
+          <nz-icon nzType="down" class="view-title-icon" />
         </button>
+
+        <nz-dropdown-menu #viewsMenu="nzDropdownMenu">
+          <ul nz-menu>
+            <li nz-menu-item (click)="cambiarVista('Activos')" [nzSelected]="vistaActual === 'Activos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Activos' ? 'visible' : 'hidden'" />
+              <span>Colaboradores Activos</span>
+            </li>
+            <li nz-menu-item (click)="cambiarVista('Todos')" [nzSelected]="vistaActual === 'Todos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Todos' ? 'visible' : 'hidden'" />
+              <span>Todos los Colaboradores</span>
+            </li>
+            <li nz-menu-item (click)="cambiarVista('Vacaciones')" [nzSelected]="vistaActual === 'Vacaciones'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Vacaciones' ? 'visible' : 'hidden'" />
+              <span>En Vacaciones / Licencia</span>
+            </li>
+            <li nz-menu-item (click)="cambiarVista('Cesados')" [nzSelected]="vistaActual === 'Cesados'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Cesados' ? 'visible' : 'hidden'" />
+              <span>Colaboradores Cesados</span>
+            </li>
+          </ul>
+        </nz-dropdown-menu>
       </div>
 
-      <!-- Filtros: Estado y Área -->
-      <div class="table-toolbar-filters">
-        <!-- Filtro Estado -->
-        <div class="filter-item">
-          <span class="filter-label">Estado:</span>
-          <nz-select [(ngModel)]="filtroEstado" (ngModelChange)="cargarEmpleados()" style="width: 140px;">
-            <nz-option nzValue="Todos" nzLabel="Todos"></nz-option>
-            <nz-option nzValue="Activo" nzLabel="Activo"></nz-option>
-            <nz-option nzValue="Vacaciones" nzLabel="Vacaciones"></nz-option>
-            <nz-option nzValue="Licencia" nzLabel="Licencia"></nz-option>
-            <nz-option nzValue="Suspendido" nzLabel="Suspendido"></nz-option>
-            <nz-option nzValue="Cesado" nzLabel="Cesado / Baja"></nz-option>
-          </nz-select>
-        </div>
-
-        <!-- Filtro Departamento -->
-        <div class="filter-item">
-          <span class="filter-label">Área:</span>
-          <nz-select [(ngModel)]="filtroDepartamento" (ngModelChange)="cargarEmpleados()" nzAllowClear
-            nzPlaceHolder="Todas las áreas" style="width: 180px;">
-            @for (d of departamentos; track d.id) {
-            <nz-option [nzValue]="d.id" [nzLabel]="d.nombre"></nz-option>
-            }
-          </nz-select>
-        </div>
-
-        <!-- Botón Reset -->
-        @if (searchTerm || filtroEstado !== 'Todos' || filtroDepartamento) {
-        <button nz-button nzType="text" nzSize="small" (click)="limpiarFiltros()">
-          <nz-icon nzType="reload" /> Limpiar
+      <!-- Derecha: Herramientas de la Vista (Editar Columnas, Editar Filtros y Buscador) -->
+      <div class="view-tools-group">
+        <!-- Botón Editar Columnas -->
+        <button
+          nz-button
+          nzType="default"
+          class="filter-btn"
+          (click)="toggleColumnasDrawer()"
+          title="Editar columnas de la tabla"
+        >
+          <nz-icon nzType="table" />
+          <span>Editar columnas</span>
         </button>
-        }
+
+        <!-- Botón Editar Filtros -->
+        <button
+          nz-button
+          nzType="default"
+          class="filter-btn"
+          [class.active]="filtrosActivosCount > 0"
+          (click)="toggleFiltrosDrawer()"
+          title="Editar filtros de la vista"
+        >
+          <nz-icon nzType="filter" />
+          <span>Editar filtros</span>
+          @if (filtrosActivosCount > 0) {
+            <span class="filter-badge">{{ filtrosActivosCount }}</span>
+          }
+        </button>
+
+        <!-- Cuadro de Búsqueda Rápida Fluent UI -->
+        <div class="d365-search-box">
+          <input
+            type="text"
+            placeholder="Filtrar por palabra clave"
+            [(ngModel)]="searchTerm"
+            (keyup.enter)="buscar()"
+            class="search-input"
+          />
+          @if (searchTerm) {
+            <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
+              <nz-icon nzType="close" />
+            </button>
+          }
+          <button class="search-icon-btn" (click)="buscar()" title="Buscar">
+            <nz-icon nzType="search" />
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Tabla NG-ZORRO -->
-    <nz-table #basicTable [nzData]="empleados" [nzLoading]="loading" [nzFrontPagination]="false" nzSize="middle"
-      [nzNoResult]="customEmpty">
+    <!-- Cuadrícula NG-ZORRO con estilo nativo por defecto y selección por checkbox -->
+    <nz-table
+      #basicTable
+      [nzData]="empleados"
+      [nzLoading]="loading"
+      [nzFrontPagination]="false"
+      [nzShowPagination]="false"
+      nzSize="middle"
+      (nzCurrentPageDataChange)="onCurrentPageDataChange($event)"
+    >
       <thead>
         <tr>
-          <th [nzWidth]="'44px'" [nzAlign]="'center'"></th>
-          <th>Documento</th>
-          <th>Colaborador</th>
-          <th>Puesto y Área</th>
-          <th>Tipo Contrato</th>
-          <th>Estado</th>
-          <th [nzAlign]="'right'">Acciones</th>
+          <th
+            [nzWidth]="'48px'"
+            [nzChecked]="checked"
+            [nzIndeterminate]="indeterminate"
+            nzLabel="Seleccionar todos"
+            (nzCheckedChange)="onAllChecked($event)"
+          ></th>
+          @if (isColVisible('colaborador')) {
+            <th>Colaborador</th>
+          }
+          @if (isColVisible('documento')) {
+            <th>Documento</th>
+          }
+          @if (isColVisible('puestoArea')) {
+            <th>Puesto y Área</th>
+          }
+          @if (isColVisible('tipoContrato')) {
+            <th>Tipo Contrato</th>
+          }
+          @if (isColVisible('estado')) {
+            <th>Estado (KPI)</th>
+          }
+          @if (isColVisible('acciones')) {
+            <th [nzAlign]="'right'" [nzWidth]="'120px'">Acciones</th>
+          }
         </tr>
       </thead>
       <tbody>
-        @for (data of basicTable.nzData; track data.id) {
-        <tr [class.fluent-row-selected]="selectedEmpleado?.id === data.id" (click)="seleccionarEmpleado(data)"
-          style="cursor: pointer;">
-          <td [nzAlign]="'center'" (click)="$event.stopPropagation()">
-            <label nz-checkbox [ngModel]="selectedEmpleado?.id === data.id"
-              (ngModelChange)="seleccionarEmpleado(data)"></label>
-          </td>
-          <td>
-            <nz-tag>{{ data.tipoDocumento }}: {{ data.numeroDocumento }}</nz-tag>
-          </td>
-          <td>
-            <div style="font-weight: 700;">{{ data.nombres }} {{ data.apellidos }}</div>
-            <div style="font-size: 12px; opacity: 0.75; margin-top: 2px;">
-              {{ data.email || 'Sin correo registrado' }}
-              @if (data.telefono) {
-              <span style="margin: 0 4px;">•</span> {{ data.telefono }}
-              }
-            </div>
-          </td>
-          <td>
-            <div style="font-weight: 500;">
-              {{ data.cargoNombre || 'Sin cargo asignado' }}
-            </div>
-            <div style="font-size: 12px; opacity: 0.75; margin-top: 2px;">
-              {{ data.departamentoNombre || 'Sin área asignada' }}
-            </div>
-          </td>
-          <td style="font-size: 13px;">
-            {{ data.tipoContrato || 'No especificado' }}
-          </td>
-          <td>
-            <nz-tag [nzColor]="getEstadoColor(data.estado)">
-              {{ data.estado }}
-            </nz-tag>
-          </td>
-          <td [nzAlign]="'right'">
-            <div class="table-actions">
-              <!-- Editar -->
-              <button nz-button nzType="text" nzShape="circle" (click)="editar(data.id)" nz-tooltip
-                nzTooltipTitle="Editar información">
-                <nz-icon nzType="edit" />
-              </button>
+        @for (data of basicTable.data; track data.id) {
+          <tr
+            [class.fluent-row-selected]="setOfCheckedId.has(data.id)"
+            (click)="onItemChecked(data.id, !setOfCheckedId.has(data.id))"
+            style="cursor: pointer;"
+          >
+            <td
+              [nzChecked]="setOfCheckedId.has(data.id)"
+              [nzLabel]="data.nombres + ' ' + data.apellidos"
+              (nzCheckedChange)="onItemChecked(data.id, $event)"
+              (click)="$event.stopPropagation()"
+            ></td>
+            @if (isColVisible('colaborador')) {
+              <td>
+                <a class="cell-link" (click)="editar(data.id); $event.stopPropagation()">
+                  {{ data.nombres }} {{ data.apellidos }}
+                </a>
+                @if (data.email) {
+                  <div class="cell-subtext">{{ data.email }}</div>
+                }
+              </td>
+            }
+            @if (isColVisible('documento')) {
+              <td>
+                <span class="doc-tag">{{ data.tipoDocumento }}: {{ data.numeroDocumento }}</span>
+              </td>
+            }
+            @if (isColVisible('puestoArea')) {
+              <td>
+                <div class="cell-maintext">{{ data.cargoNombre || 'Sin cargo asignado' }}</div>
+                <div class="cell-subtext">{{ data.departamentoNombre || 'Sin área asignada' }}</div>
+              </td>
+            }
+            @if (isColVisible('tipoContrato')) {
+              <td>
+                <span class="cell-contract">{{ data.tipoContrato || 'No especificado' }}</span>
+              </td>
+            }
+            @if (isColVisible('estado')) {
+              <td>
+                <div class="kpi-status">
+                  <span class="status-dot" [ngClass]="getEstadoDotClass(data.estado)"></span>
+                  <span class="status-text">{{ data.estado }}</span>
+                </div>
+              </td>
+            }
+            @if (isColVisible('acciones')) {
+              <td [nzAlign]="'right'" (click)="$event.stopPropagation()">
+                <div class="row-actions">
+                  <!-- Editar -->
+                  <button
+                    nz-button
+                    nzType="text"
+                    nzShape="circle"
+                    (click)="editar(data.id)"
+                    title="Editar información"
+                  >
+                    <nz-icon nzType="edit" />
+                  </button>
 
-              <!-- Dar de Baja (solo si no está Cesado) -->
-              @if (data.estado !== 'Cesado') {
-              <button nz-button nzType="text" nzShape="circle" (click)="abrirModalBaja(data)" nz-tooltip
-                nzTooltipTitle="Dar de baja">
-                <nz-icon nzType="user-delete" />
-              </button>
-              }
+                  <!-- Dar de Baja (solo si no está Cesado) -->
+                  @if (data.estado !== 'Cesado') {
+                    <button
+                      nz-button
+                      nzType="text"
+                      nzShape="circle"
+                      (click)="abrirModalBaja(data)"
+                      title="Dar de baja"
+                    >
+                      <nz-icon nzType="user-delete" />
+                    </button>
+                  }
 
-              <!-- Reactivar (solo si está Cesado) -->
-              @if (data.estado === 'Cesado') {
-              <button nz-button nzType="text" nzShape="circle" nz-tooltip nzTooltipTitle="Reactivar colaborador"
-                nz-popconfirm nzPopconfirmTitle="¿Deseas reactivar a este colaborador al estado Activo?"
-                (nzOnConfirm)="reactivar(data.id)">
-                <nz-icon nzType="reload" />
-              </button>
-              }
+                  <!-- Reactivar (solo si está Cesado) -->
+                  @if (data.estado === 'Cesado') {
+                    <button
+                      nz-button
+                      nzType="text"
+                      nzShape="circle"
+                      title="Reactivar colaborador"
+                      nz-popconfirm
+                      nzPopconfirmTitle="¿Deseas reactivar a este colaborador al estado Activo?"
+                      (nzOnConfirm)="reactivar(data.id)"
+                    >
+                      <nz-icon nzType="reload" />
+                    </button>
+                  }
 
-              <!-- Eliminar -->
-              <button nz-button nzType="text" nzShape="circle" nzDanger nz-tooltip nzTooltipTitle="Eliminar colaborador"
-                nz-popconfirm nzPopconfirmTitle="¿Está seguro de eliminar definitivamente a este colaborador?"
-                (nzOnConfirm)="eliminar(data.id)">
-                <nz-icon nzType="delete" />
-              </button>
-            </div>
-          </td>
-        </tr>
+                  <!-- Eliminar -->
+                  <button
+                    nz-button
+                    nzType="text"
+                    nzShape="circle"
+                    nzDanger
+                    title="Eliminar colaborador"
+                    nz-popconfirm
+                    nzPopconfirmTitle="¿Está seguro de eliminar definitivamente a este colaborador?"
+                    (nzOnConfirm)="eliminar(data.id)"
+                  >
+                    <nz-icon nzType="delete" />
+                  </button>
+                </div>
+              </td>
+            }
+          </tr>
         }
       </tbody>
     </nz-table>
 
-    <!-- Empty State NG-ZORRO -->
-    <ng-template #customEmpty>
-      <div class="empty-table-state">
-        <nz-empty nzNotFoundImage="simple" [nzNotFoundContent]="contentTpl">
-          <ng-template #contentTpl>
-            <span class="empty-table-title">No se encontraron colaboradores</span>
-            <p class="empty-table-desc">Prueba ajustando los filtros de búsqueda o registra un nuevo colaborador en la
-              empresa.</p>
-          </ng-template>
-        </nz-empty>
+    <!-- Barra de Estado inferior (Footer de conteo) -->
+    <div class="table-statusbar">
+      <div>
+        @if (setOfCheckedId.size > 0) {
+          <span class="selected-indicator">{{ setOfCheckedId.size }} seleccionados • </span>
+        }
+        <span>Total: {{ empleados.length }} colaboradores</span>
       </div>
-    </ng-template>
+    </div>
   </nz-card>
 </div>
 
+<!-- Drawer Lateral para "Editar Columnas" -->
+<nz-drawer
+  [nzVisible]="drawerColumnasVisible"
+  nzPlacement="right"
+  nzTitle="Editar columnas"
+  [nzWidth]="340"
+  (nzOnClose)="drawerColumnasVisible = false"
+>
+  <ng-container *nzDrawerContent>
+    <div class="drawer-filter-body">
+      <div class="columns-drawer-desc">
+        Selecciona las columnas que deseas mostrar u ocultar en la tabla:
+      </div>
+      <div class="columns-checklist">
+        @for (col of columnas; track col.key) {
+          <label
+            nz-checkbox
+            [(ngModel)]="col.visible"
+            [nzDisabled]="col.required"
+            class="column-checkbox-item"
+          >
+            <span>{{ col.label }}</span>
+            @if (col.required) {
+              <span class="required-badge">(Obligatoria)</span>
+            }
+          </label>
+        }
+      </div>
+
+      <div class="drawer-actions">
+        <button nz-button nzType="default" (click)="restablecerColumnas()">
+          Restablecer
+        </button>
+        <button nz-button nzType="primary" (click)="drawerColumnasVisible = false">
+          Listo
+        </button>
+      </div>
+    </div>
+  </ng-container>
+</nz-drawer>
+
+<!-- Drawer Lateral para "Editar Filtros" -->
+<nz-drawer
+  [nzVisible]="drawerFiltrosVisible"
+  nzPlacement="right"
+  nzTitle="Filtros de la Vista"
+  [nzWidth]="340"
+  (nzOnClose)="drawerFiltrosVisible = false"
+>
+  <ng-container *nzDrawerContent>
+    <div class="drawer-filter-body">
+      <div class="drawer-field-group">
+        <label class="drawer-field-label">Departamento / Área</label>
+        <nz-select
+          [(ngModel)]="filtroDepartamento"
+          (ngModelChange)="cargarEmpleados()"
+          nzAllowClear
+          nzPlaceHolder="Todas las áreas"
+          class="full-width"
+        >
+          @for (d of departamentos; track d.id) {
+            <nz-option [nzValue]="d.id" [nzLabel]="d.nombre"></nz-option>
+          }
+        </nz-select>
+      </div>
+
+      <div class="drawer-field-group">
+        <label class="drawer-field-label">Estado de Colaborador</label>
+        <nz-select [(ngModel)]="filtroEstado" (ngModelChange)="cargarEmpleados()" class="full-width">
+          <nz-option nzValue="Todos" nzLabel="Todos"></nz-option>
+          <nz-option nzValue="Activo" nzLabel="Activo"></nz-option>
+          <nz-option nzValue="Vacaciones" nzLabel="Vacaciones"></nz-option>
+          <nz-option nzValue="Licencia" nzLabel="Licencia"></nz-option>
+          <nz-option nzValue="Suspendido" nzLabel="Suspendido"></nz-option>
+          <nz-option nzValue="Cesado" nzLabel="Cesado / Baja"></nz-option>
+        </nz-select>
+      </div>
+
+      <div class="drawer-actions">
+        <button nz-button nzType="default" (click)="limpiarFiltros(); drawerFiltrosVisible = false">
+          Restablecer
+        </button>
+        <button nz-button nzType="primary" (click)="cargarEmpleados(); drawerFiltrosVisible = false">
+          Aplicar Filtros
+        </button>
+      </div>
+    </div>
+  </ng-container>
+</nz-drawer>
+
 <!-- Modal Dedicado para Dar de Baja / Cese -->
-<nz-modal [(nzVisible)]="modalBajaVisible" nzTitle="Dar de Baja a Colaborador" (nzOnCancel)="cerrarModalBaja()"
-  [nzFooter]="modalBajaFooter" [nzMaskClosable]="false" nzWidth="500px">
+<nz-modal
+  [(nzVisible)]="modalBajaVisible"
+  nzTitle="Dar de Baja a Colaborador"
+  (nzOnCancel)="cerrarModalBaja()"
+  [nzFooter]="modalBajaFooter"
+  [nzMaskClosable]="false"
+  nzWidth="500px"
+>
   <ng-container *nzModalContent>
     <div>
       <!-- Resumen del Colaborador en Card NG-ZORRO -->
@@ -179,9 +363,9 @@
               {{ empleadoParaBaja?.nombres }} {{ empleadoParaBaja?.apellidos }}
             </div>
             <div class="modal-employee-meta">
-              {{ empleadoParaBaja?.tipoDocumento }}: <span style="font-family: monospace; font-weight: 500;">{{
-                empleadoParaBaja?.numeroDocumento }}</span> • {{ empleadoParaBaja?.cargoNombre || 'Sin cargo asignado'
-              }}
+              {{ empleadoParaBaja?.tipoDocumento }}:
+              <span style="font-family: monospace; font-weight: 500;">{{ empleadoParaBaja?.numeroDocumento }}</span>
+              • {{ empleadoParaBaja?.cargoNombre || 'Sin cargo asignado' }}
             </div>
           </div>
         </div>
@@ -203,7 +387,7 @@
           </label>
           <nz-select [(ngModel)]="motivoCeseSeleccionado" class="full-width">
             @for (m of motivosCese; track m) {
-            <nz-option [nzValue]="m" [nzLabel]="m"></nz-option>
+              <nz-option [nzValue]="m" [nzLabel]="m"></nz-option>
             }
           </nz-select>
         </div>
@@ -213,9 +397,14 @@
           <label class="modal-form-label">
             Observaciones o Comentarios Adicionales
           </label>
-          <textarea nz-input [(ngModel)]="observacionesCese" rows="3"
+          <textarea
+            nz-input
+            [(ngModel)]="observacionesCese"
+            rows="3"
             placeholder="Detalles sobre entrega de cargo, devoluciones de equipos o motivos específicos..."
-            class="full-width" style="resize: none;"></textarea>
+            class="full-width"
+            style="resize: none;"
+          ></textarea>
         </div>
       </div>
     </div>

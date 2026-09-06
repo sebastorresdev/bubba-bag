@@ -31,6 +31,8 @@ import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
+import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
+import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
 @Component({
@@ -54,10 +56,13 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzEmptyModule,
     NzAvatarModule,
     NzCheckboxModule,
+    NzDropdownModule,
+    NzDrawerModule,
     CommandBarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './empleados-list.html',
+  styleUrl: './empleados-list.component.css',
 })
 export class EmpleadosListComponent implements OnInit {
   private empleadoService = inject(EmpleadoService);
@@ -68,15 +73,63 @@ export class EmpleadosListComponent implements OnInit {
   empleados: EmpleadoDto[] = [];
   loading = false;
 
+  // Vistas de Sistema (Dynamics 365 View Selector)
+  vistaActual: 'Activos' | 'Todos' | 'Vacaciones' | 'Cesados' = 'Activos';
+  drawerFiltrosVisible = false;
+  drawerColumnasVisible = false;
+
+  // Definición de Columnas Visibles (Dynamics 365 Edit Columns)
+  columnas = [
+    { key: 'colaborador', label: 'Colaborador', visible: true, required: true },
+    { key: 'documento', label: 'Documento de Identidad', visible: true, required: false },
+    { key: 'puestoArea', label: 'Puesto y Área', visible: true, required: false },
+    { key: 'tipoContrato', label: 'Tipo de Contrato', visible: true, required: false },
+    { key: 'estado', label: 'Estado (KPI)', visible: true, required: false },
+    { key: 'acciones', label: 'Acciones', visible: true, required: false },
+  ];
+
+  toggleColumnasDrawer(): void {
+    this.drawerColumnasVisible = !this.drawerColumnasVisible;
+  }
+
+  isColVisible(key: string): boolean {
+    const col = this.columnas.find((c) => c.key === key);
+    return col ? col.visible : true;
+  }
+
+  restablecerColumnas(): void {
+    this.columnas.forEach((c) => (c.visible = true));
+  }
+
   // Filtros
   searchTerm = '';
-  filtroEstado = 'Todos';
+  filtroEstado = 'Activo';
   filtroDepartamento: string | null = null;
 
   // Catálogos
   catalogos?: CatalogosRrhhDto;
   departamentos: DepartamentoCatalogoDto[] = [];
   motivosCese: string[] = [];
+
+  get vistaActualTitulo(): string {
+    switch (this.vistaActual) {
+      case 'Activos':
+        return 'Colaboradores Activos';
+      case 'Todos':
+        return 'Todos los Colaboradores';
+      case 'Vacaciones':
+        return 'En Vacaciones / Licencia';
+      case 'Cesados':
+        return 'Colaboradores Cesados';
+    }
+  }
+
+  get filtrosActivosCount(): number {
+    let count = 0;
+    if (this.filtroDepartamento) count++;
+    if (this.searchTerm) count++;
+    return count;
+  }
 
   // Modal de Cese / Baja
   modalBajaVisible = false;
@@ -86,8 +139,51 @@ export class EmpleadosListComponent implements OnInit {
   motivoCeseSeleccionado = '';
   observacionesCese = '';
 
-  // Selección de Colaborador (estilo Fluent / Dynamics)
+  // Selección de Filas (NG-ZORRO Native Table Selection)
+  checked = false;
+  indeterminate = false;
+  setOfCheckedId = new Set<string>();
+  listOfCurrentPageData: readonly EmpleadoDto[] = [];
   selectedEmpleado: EmpleadoDto | null = null;
+
+  updateCheckedSet(id: string, checked: boolean): void {
+    if (checked) {
+      this.setOfCheckedId.add(id);
+    } else {
+      this.setOfCheckedId.delete(id);
+    }
+  }
+
+  onCurrentPageDataChange(listOfCurrentPageData: readonly EmpleadoDto[]): void {
+    this.listOfCurrentPageData = listOfCurrentPageData;
+    this.refreshCheckedStatus();
+  }
+
+  refreshCheckedStatus(): void {
+    const checked =
+      this.listOfCurrentPageData.length > 0 &&
+      this.listOfCurrentPageData.every(({ id }) => this.setOfCheckedId.has(id));
+    this.checked = checked;
+    this.indeterminate =
+      this.listOfCurrentPageData.some(({ id }) => this.setOfCheckedId.has(id)) && !checked;
+
+    if (this.setOfCheckedId.size === 1) {
+      const selectedId = Array.from(this.setOfCheckedId)[0];
+      this.selectedEmpleado = this.empleados.find((e) => e.id === selectedId) || null;
+    } else {
+      this.selectedEmpleado = null;
+    }
+  }
+
+  onItemChecked(id: string, checked: boolean): void {
+    this.updateCheckedSet(id, checked);
+    this.refreshCheckedStatus();
+  }
+
+  onAllChecked(checked: boolean): void {
+    this.listOfCurrentPageData.forEach(({ id }) => this.updateCheckedSet(id, checked));
+    this.refreshCheckedStatus();
+  }
 
   get commandBarItems(): CommandBarItem[] {
     return [
@@ -103,10 +199,11 @@ export class EmpleadosListComponent implements OnInit {
         key: 'edit',
         label: 'Editar',
         icon: 'edit',
-        disabled: !this.selectedEmpleado,
-        tooltip: !this.selectedEmpleado
-          ? 'Selecciona un colaborador para editar'
-          : `Editar a ${this.selectedEmpleado.nombres}`,
+        disabled: this.setOfCheckedId.size !== 1,
+        tooltip:
+          this.setOfCheckedId.size !== 1
+            ? 'Selecciona exactamente un colaborador para editar'
+            : `Editar a ${this.selectedEmpleado?.nombres}`,
         execute: () => {
           if (this.selectedEmpleado) this.editar(this.selectedEmpleado.id);
         },
@@ -116,10 +213,11 @@ export class EmpleadosListComponent implements OnInit {
         label: 'Dar de Baja',
         icon: 'user-delete',
         danger: true,
-        disabled: !this.selectedEmpleado || this.selectedEmpleado.estado === 'Cesado',
-        tooltip: !this.selectedEmpleado
-          ? 'Selecciona un colaborador para dar de baja'
-          : `Dar de baja a ${this.selectedEmpleado.nombres}`,
+        disabled: this.setOfCheckedId.size === 0 || this.selectedEmpleado?.estado === 'Cesado',
+        tooltip:
+          this.setOfCheckedId.size === 0
+            ? 'Selecciona un colaborador para dar de baja'
+            : `Dar de baja colaborador`,
         execute: () => {
           if (this.selectedEmpleado) this.abrirModalBaja(this.selectedEmpleado);
         },
@@ -227,6 +325,8 @@ export class EmpleadosListComponent implements OnInit {
         next: (data) => {
           this.empleados = data;
           this.loading = false;
+          this.setOfCheckedId.clear();
+          this.refreshCheckedStatus();
           this.cdr.detectChanges();
         },
         error: () => {
@@ -236,15 +336,60 @@ export class EmpleadosListComponent implements OnInit {
       });
   }
 
+  cambiarVista(vista: 'Activos' | 'Todos' | 'Vacaciones' | 'Cesados') {
+    this.vistaActual = vista;
+    switch (vista) {
+      case 'Activos':
+        this.filtroEstado = 'Activo';
+        break;
+      case 'Todos':
+        this.filtroEstado = 'Todos';
+        break;
+      case 'Vacaciones':
+        this.filtroEstado = 'Vacaciones';
+        break;
+      case 'Cesados':
+        this.filtroEstado = 'Cesado';
+        break;
+    }
+    this.selectedEmpleado = null;
+    this.cargarEmpleados();
+  }
+
+  toggleFiltrosDrawer() {
+    this.drawerFiltrosVisible = !this.drawerFiltrosVisible;
+  }
+
+  limpiarBusqueda() {
+    this.searchTerm = '';
+    this.cargarEmpleados();
+  }
+
   buscar() {
     this.cargarEmpleados();
   }
 
   limpiarFiltros() {
     this.searchTerm = '';
-    this.filtroEstado = 'Todos';
     this.filtroDepartamento = null;
-    this.cargarEmpleados();
+    this.cambiarVista('Activos');
+  }
+
+  getEstadoDotClass(estado: string): string {
+    switch (estado) {
+      case 'Activo':
+        return 'd365-dot-active';
+      case 'Vacaciones':
+        return 'd365-dot-warning';
+      case 'Licencia':
+        return 'd365-dot-info';
+      case 'Suspendido':
+        return 'd365-dot-purple';
+      case 'Cesado':
+        return 'd365-dot-danger';
+      default:
+        return 'd365-dot-default';
+    }
   }
 
   editar(id: string) {
