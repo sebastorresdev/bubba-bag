@@ -23,16 +23,36 @@ export class ThemeService {
 
   toggleTheme() {
     this.setDarkMode(!this.isDarkMode());
+    console.log(this.isDarkMode());
   }
 
   setDarkMode(isDark: boolean) {
     this.isDarkMode.set(isDark);
+    const darkThemeId = 'ng-zorro-theme-dark';
+    let link = document.getElementById(darkThemeId) as HTMLLinkElement | null;
+
     if (isDark) {
-      document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.body.classList.add('dark-theme');
+
+      if (!link) {
+        link = document.createElement('link');
+        link.id = darkThemeId;
+        link.rel = 'stylesheet';
+        link.href = '/themes/ng-zorro-antd.dark.min.css';
+        document.head.appendChild(link);
+      } else {
+        link.disabled = false;
+      }
     } else {
-      document.documentElement.classList.remove('dark');
       localStorage.setItem('theme', 'light');
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.body.classList.remove('dark-theme');
+
+      if (link) {
+        link.disabled = true;
+      }
     }
   }
 }

@@ -1,0 +1,982 @@
+/* ==========================================================================
+   BubbaBag ERP - Microsoft Dynamics 365 Enterprise Layout Styles
+   ========================================================================== */
+
+/* Contenedor Raíz del Layout */
+.erp-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------------------
+   1. Suite Bar Superior (Top Bar Global - Microsoft Dynamics 365)
+   -------------------------------------------------------------------------- */
+.erp-suite-bar {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  line-height: 48px !important;
+  padding: 0 12px 0 0 !important;
+  background-color: #021936 !important;
+  color: #ffffff !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+  z-index: 100 !important;
+}
+
+/* Sección izquierda: Waffle launcher + Brand + Módulo Activo */
+.erp-suite-bar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.erp-waffle-btn {
+  color: #ffffff !important;
+  width: 48px !important;
+  height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  font-size: 16px !important;
+}
+
+.erp-waffle-btn:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.erp-brand-title {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  letter-spacing: -0.01em !important;
+  user-select: none !important;
+  color: #ffffff !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+}
+
+.erp-brand-sep {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  color: rgba(255, 255, 255, 0.35) !important;
+  font-weight: 300 !important;
+  font-size: 14px !important;
+  margin: 0 4px !important;
+  user-select: none !important;
+  white-space: nowrap !important;
+}
+
+.erp-module-title {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  user-select: none !important;
+  white-space: nowrap !important;
+}
+
+/* Sección central: Búsqueda Centrada Dynamics 365 */
+.erp-suite-bar-search {
+  position: absolute !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 380px !important;
+  z-index: 10 !important;
+}
+
+.erp-suite-bar-search nz-input-wrapper,
+.erp-suite-bar-search .ant-input-affix-wrapper {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border-radius: 4px !important;
+  height: 32px !important;
+  padding: 0 8px !important;
+  width: 100% !important;
+  transition: all 0.2s ease !important;
+}
+
+.erp-suite-bar-search input.ant-input {
+  background-color: transparent !important;
+  color: #ffffff !important;
+  font-size: 12px !important;
+}
+
+.erp-suite-bar-search input.ant-input::placeholder {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+.erp-suite-bar-search .anticon {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+.erp-suite-bar-search nz-input-wrapper:focus-within,
+.erp-suite-bar-search .ant-input-affix-wrapper-focused {
+  background-color: #ffffff !important;
+  border-color: #ffffff !important;
+}
+
+.erp-suite-bar-search nz-input-wrapper:focus-within input.ant-input,
+.erp-suite-bar-search .ant-input-affix-wrapper-focused input.ant-input {
+  color: #1a1a1a !important;
+}
+
+.erp-suite-bar-search nz-input-wrapper:focus-within input.ant-input::placeholder,
+.erp-suite-bar-search .ant-input-affix-wrapper-focused input.ant-input::placeholder {
+  color: #8c8c8c !important;
+}
+
+.erp-suite-bar-search nz-input-wrapper:focus-within .anticon,
+.erp-suite-bar-search .ant-input-affix-wrapper-focused .anticon {
+  color: #595959 !important;
+}
+
+/* Sección derecha: Herramientas y Usuario Dynamics 365 */
+.erp-suite-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.erp-tool-btn {
+  color: rgba(255, 255, 255, 0.85) !important;
+  height: 32px !important;
+  width: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  font-size: 14px !important;
+}
+
+.erp-tool-btn:hover {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.erp-suite-bar .ant-divider-vertical,
+[data-theme='dark'] .erp-suite-bar .ant-divider-vertical,
+.dark-theme .erp-suite-bar .ant-divider-vertical {
+  border-left-color: rgba(255, 255, 255, 0.25) !important;
+  margin: 0 4px !important;
+  height: 16px !important;
+  top: 0 !important;
+}
+
+.erp-user-dropdown-btn {
+  color: #ffffff !important;
+  height: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 0 8px !important;
+  border-radius: 4px !important;
+  cursor: pointer;
+  user-select: none;
+}
+
+.erp-user-dropdown-btn:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.erp-user-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   2. Sub-Layout Principal (Site Map + Work Area)
+   -------------------------------------------------------------------------- */
+.erp-main-body {
+  display: flex !important;
+  flex-direction: row !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+/* --------------------------------------------------------------------------
+   3. Site Map Lateral (nz-sider con bordes y transiciones por tema)
+   -------------------------------------------------------------------------- */
+.d365-sider.ant-layout-sider,
+.d365-sitemap {
+  height: 100% !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.d365-sider .ant-layout-sider-children {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Bordes específicos de Dark Mode en el Sitemap / Sider */
+[data-theme='dark'] .d365-sider.ant-layout-sider,
+.dark-theme .d365-sider.ant-layout-sider,
+.d365-sider.d365-dark.ant-layout-sider,
+[data-theme='dark'] .d365-sitemap,
+.dark-theme .d365-sitemap,
+.d365-sitemap.d365-dark {
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Menú nativo NG-ZORRO dentro del Sider (se preserva 100% el estilo por defecto de NG-ZORRO) */
+.d365-sider ul.ant-menu.d365-menu {
+  border-right: none !important;
+}
+
+/* Estado Colapsado Suave */
+.d365-sider.ant-layout-sider-collapsed ul.ant-menu.d365-menu,
+.d365-sider.d365-collapsed ul.ant-menu.d365-menu {
+  width: 48px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.d365-sider.ant-layout-sider-collapsed ul.ant-menu.d365-menu .ant-menu-item,
+.d365-sider.d365-collapsed ul.ant-menu.d365-menu .ant-menu-item,
+.d365-sider.ant-layout-sider-collapsed ul.ant-menu.d365-menu .ant-menu-submenu-title,
+.d365-sider.d365-collapsed ul.ant-menu.d365-menu .ant-menu-submenu-title {
+  width: 48px !important;
+  height: 40px !important;
+  line-height: 40px !important;
+  padding: 0 !important;
+  margin: 2px 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
+.d365-sider.ant-layout-sider-collapsed ul.ant-menu.d365-menu .ant-menu-item .anticon,
+.d365-sider.d365-collapsed ul.ant-menu.d365-menu .ant-menu-item .anticon,
+.d365-sider.ant-layout-sider-collapsed ul.ant-menu.d365-menu .ant-menu-submenu-title .anticon,
+.d365-sider.d365-collapsed ul.ant-menu.d365-menu .ant-menu-submenu-title .anticon {
+  margin: 0 !important;
+  min-width: unset !important;
+  font-size: 16px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: inherit !important;
+}
+
+.d365-sider.ant-layout-sider-collapsed ul.ant-menu.d365-menu .d365-menu-title,
+.d365-sider.d365-collapsed ul.ant-menu.d365-menu .d365-menu-title,
+.d365-sider.ant-layout-sider-collapsed ul.ant-menu.d365-menu .ant-menu-submenu-title .ant-menu-title-content,
+.d365-sider.d365-collapsed ul.ant-menu.d365-menu .ant-menu-submenu-title .ant-menu-title-content {
+  opacity: 0 !important;
+  max-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.d365-sider.ant-layout-sider-collapsed ul.ant-menu.d365-menu .ant-menu-submenu-title .ant-menu-submenu-arrow,
+.d365-sider.d365-collapsed ul.ant-menu.d365-menu .ant-menu-submenu-title .ant-menu-submenu-arrow {
+  opacity: 0 !important;
+  display: none !important;
+}
+
+.d365-sider.ant-layout-sider-collapsed .ant-menu-item-group-title,
+.d365-sider.d365-collapsed .ant-menu-item-group-title {
+  opacity: 0 !important;
+  max-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  pointer-events: none !important;
+}
+
+.d365-sider.ant-layout-sider-collapsed .ant-menu-item-group-list,
+.d365-sider.d365-collapsed .ant-menu-item-group-list {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* NG-ZORRO Submenu Popup (Flyout cuando está colapsado) */
+.ant-menu-submenu-popup .ant-menu {
+  border-radius: 4px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme='dark'] .ant-menu-submenu-popup .ant-menu,
+.dark-theme .ant-menu-submenu-popup .ant-menu {
+  background-color: #1f1f1f !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+}
+
+[data-theme='dark'] .ant-menu-submenu-popup .ant-menu .ant-menu-item,
+[data-theme='dark'] .ant-menu-submenu-popup .ant-menu .ant-menu-submenu-title {
+  color: #e0e0e0 !important;
+}
+
+[data-theme='dark'] .ant-menu-submenu-popup .ant-menu .ant-menu-item:hover,
+[data-theme='dark'] .ant-menu-submenu-popup .ant-menu .ant-menu-submenu-title:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+[data-theme='dark'] .ant-menu-submenu-popup .ant-menu .ant-menu-item.ant-menu-item-selected {
+  background-color: rgba(0, 120, 212, 0.25) !important;
+  color: #2899f5 !important;
+}
+
+[data-theme='dark'] .ant-menu-submenu-popup .ant-menu .ant-menu-item-group-title {
+  color: #8c8c8c !important;
+}
+
+.d365-sider.ant-layout-sider-collapsed .d365-sitemap-footer,
+.d365-sider.d365-collapsed .d365-sitemap-footer {
+  padding: 0 !important;
+  justify-content: center !important;
+}
+
+.d365-sider.ant-layout-sider-collapsed .d365-area-switcher,
+.d365-sider.d365-collapsed .d365-area-switcher {
+  padding: 0 !important;
+  justify-content: center !important;
+  width: 36px !important;
+  min-width: 36px !important;
+  margin: 0 auto !important;
+}
+
+.d365-area-name,
+.d365-area-arrow {
+  display: inline-block;
+  opacity: 1;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: opacity 0.15s ease, max-width 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.d365-area-text-collapsed,
+.d365-sider.ant-layout-sider-collapsed .d365-area-name,
+.d365-sider.d365-collapsed .d365-area-name,
+.d365-sider.ant-layout-sider-collapsed .d365-area-arrow,
+.d365-sider.d365-collapsed .d365-area-arrow {
+  opacity: 0 !important;
+  max-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Cabecera del Sitemap: Botón Hamburguesa */
+.d365-sitemap-top {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 7px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.d365-hamburger-btn {
+  width: 34px !important;
+  height: 34px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 16px !important;
+  border: none !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  color: #323130 !important;
+  background: transparent !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+[data-theme='dark'] .d365-hamburger-btn,
+.dark-theme .d365-hamburger-btn,
+.d365-sider.d365-dark .d365-hamburger-btn {
+  color: #ffffff !important;
+}
+
+.d365-hamburger-btn:hover {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-theme='dark'] .d365-hamburger-btn:hover,
+.dark-theme .d365-hamburger-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Cuerpo con Scroll del Sitemap */
+.d365-sitemap-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0 12px;
+}
+
+/* Grupo Rápido (Inicio, Recientes, Anclado) */
+.d365-quick-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.d365-divider {
+  height: 1px;
+  background-color: rgba(0, 0, 0, 0.06);
+  margin: 6px 12px;
+}
+
+[data-theme='dark'] .d365-divider,
+.dark-theme .d365-divider {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.d365-collapsed .d365-divider {
+  margin: 6px 8px;
+}
+
+/* Grupos y Secciones de Dynamics 365 */
+.d365-group {
+  margin-top: 10px;
+}
+
+.d365-group-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #605e5c;
+  padding: 8px 16px 4px;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-theme='dark'] .d365-group-header,
+.dark-theme .d365-group-header {
+  color: #8a8886;
+}
+
+/* Elemento de Enlace del Sitemap */
+.d365-item {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  cursor: pointer;
+  text-decoration: none;
+  color: #323130;
+  border-left: 3px solid transparent;
+  font-size: 13px;
+  user-select: none;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+  box-sizing: border-box;
+}
+
+[data-theme='dark'] .d365-item,
+.dark-theme .d365-item {
+  color: #d0d0d0;
+}
+
+.d365-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #201f1e;
+}
+
+[data-theme='dark'] .d365-item:hover,
+.dark-theme .d365-item:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+/* Estado Activo: Borde Azul vertical Microsoft Dynamics 365 (#0078d4) */
+.d365-item.d365-item-active {
+  background-color: rgba(0, 120, 212, 0.08);
+  border-left-color: #0078d4 !important;
+  color: #0078d4 !important;
+  font-weight: 600;
+}
+
+[data-theme='dark'] .d365-item.d365-item-active,
+.dark-theme .d365-item.d365-item-active {
+  background-color: rgba(0, 120, 212, 0.18);
+  border-left-color: #2899f5 !important;
+  color: #2899f5 !important;
+}
+
+.d365-item-icon {
+  width: 22px;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.d365-item-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.d365-item-arrow {
+  font-size: 10px;
+  opacity: 0.5;
+  margin-left: 4px;
+}
+
+/* Adaptación del Sitemap Colapsado */
+.d365-collapsed .d365-item {
+  padding: 0;
+  justify-content: center;
+  width: 48px;
+}
+
+.d365-collapsed .d365-item-icon {
+  margin-right: 0;
+}
+
+/* Pie de Página del Sitemap: Selector de Área ([V] Ventas ^) */
+.d365-sitemap-footer {
+  height: 48px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+[data-theme='dark'] .d365-sitemap-footer,
+.dark-theme .d365-sitemap-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.d365-collapsed .d365-sitemap-footer {
+  padding: 0;
+  justify-content: center;
+}
+
+.d365-area-switcher {
+  width: 100% !important;
+  height: 38px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 0 8px !important;
+  border-radius: 4px !important;
+  border: none !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  color: inherit !important;
+  text-align: left !important;
+}
+
+.d365-collapsed .d365-area-switcher {
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+.d365-area-switcher:hover {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-theme='dark'] .d365-area-switcher:hover,
+.dark-theme .d365-area-switcher:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.d365-area-badge {
+  width: 24px;
+  height: 24px;
+  background-color: #0078d4;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  flex-shrink: 0;
+  letter-spacing: -0.5px;
+}
+
+.d365-area-name {
+  font-size: 13px;
+  font-weight: 600;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.d365-area-arrow {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+/* Estilos del Dropdown del Selector de Área */
+.d365-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.d365-dropdown-badge {
+  width: 22px;
+  height: 22px;
+  background-color: #0078d4;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* --------------------------------------------------------------------------
+   4. Área de Trabajo (Work Area) & Command Bar
+   -------------------------------------------------------------------------- */
+.erp-work-layout {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Command Bar de Dynamics 365 */
+.erp-command-bar {
+  height: 44px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+  background-color: #ffffff;
+}
+
+[data-theme='dark'] .erp-command-bar,
+.dark-theme .erp-command-bar {
+  background-color: #1f1f1f;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.erp-command-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Contenido Principal */
+.erp-content-area {
+  padding: 16px;
+  overflow-y: auto;
+  flex-grow: 1;
+  min-height: 0;
+}
+
+/* --------------------------------------------------------------------------
+   5. Selector de Aplicaciones (App Launcher Drawer - Dynamics 365)
+   -------------------------------------------------------------------------- */
+.d365-launcher-drawer .ant-drawer-header,
+.ant-drawer-content-wrapper.d365-launcher-drawer .ant-drawer-header {
+  padding: 0 4px 0 0 !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  line-height: 48px !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  display: flex !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+}
+
+[data-theme='dark'] .d365-launcher-drawer .ant-drawer-header,
+.dark-theme .d365-launcher-drawer .ant-drawer-header,
+[data-theme='dark'] .ant-drawer-content-wrapper.d365-launcher-drawer .ant-drawer-header,
+.dark-theme .ant-drawer-content-wrapper.d365-launcher-drawer .ant-drawer-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background-color: #1f1f1f !important;
+}
+
+.d365-launcher-drawer .ant-drawer-header-title,
+.ant-drawer-content-wrapper.d365-launcher-drawer .ant-drawer-header-title {
+  display: flex !important;
+  align-items: center !important;
+  flex: 1 !important;
+  height: 48px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.d365-launcher-drawer .ant-drawer-title,
+.ant-drawer-content-wrapper.d365-launcher-drawer .ant-drawer-title {
+  flex: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  line-height: 1 !important;
+}
+
+.d365-launcher-drawer .ant-drawer-extra,
+.ant-drawer-content-wrapper.d365-launcher-drawer .ant-drawer-extra {
+  padding: 0 4px 0 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  height: 48px !important;
+}
+
+.d365-launcher-drawer .ant-drawer-body,
+.ant-drawer-content-wrapper.d365-launcher-drawer .ant-drawer-body {
+  padding: 8px 16px 16px !important;
+}
+
+.d365-launcher-header {
+  display: flex;
+  align-items: center;
+  height: 48px;
+  width: 100%;
+}
+
+.d365-launcher-header-waffle {
+  width: 48px !important;
+  height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  font-size: 16px !important;
+  color: #0078d4 !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  transition: background-color 0.15s ease !important;
+}
+
+.d365-launcher-header-waffle:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme='dark'] .d365-launcher-header-waffle:hover,
+.dark-theme .d365-launcher-header-waffle:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.d365-launcher-header-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #201f1e;
+  margin-left: 4px;
+}
+
+[data-theme='dark'] .d365-launcher-header-title,
+.dark-theme .d365-launcher-header-title {
+  color: #ffffff;
+}
+
+.d365-launcher-close-btn {
+  width: 40px !important;
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #605e5c !important;
+  font-size: 14px !important;
+  border: none !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  transition: background-color 0.15s ease, color 0.15s ease !important;
+}
+
+.d365-launcher-close-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  color: #201f1e !important;
+}
+
+[data-theme='dark'] .d365-launcher-close-btn,
+.dark-theme .d365-launcher-close-btn {
+  color: #a19f9d !important;
+}
+
+[data-theme='dark'] .d365-launcher-close-btn:hover,
+.dark-theme .d365-launcher-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+.d365-launcher-body {
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.d365-launcher-section {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #605e5c;
+  padding: 16px 8px 8px;
+  user-select: none;
+}
+
+[data-theme='dark'] .d365-launcher-section,
+.dark-theme .d365-launcher-section {
+  color: #8a8886;
+}
+
+.d365-launcher-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.d365-launcher-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+
+.d365-launcher-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme='dark'] .d365-launcher-item:hover,
+.dark-theme .d365-launcher-item:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.d365-launcher-item.d365-launcher-item-active {
+  background-color: rgba(0, 120, 212, 0.08) !important;
+  border-color: rgba(0, 120, 212, 0.25) !important;
+}
+
+[data-theme='dark'] .d365-launcher-item.d365-launcher-item-active,
+.dark-theme .d365-launcher-item.d365-launcher-item-active {
+  background-color: rgba(0, 120, 212, 0.18) !important;
+  border-color: rgba(0, 120, 212, 0.4) !important;
+}
+
+.d365-launcher-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background-color: #0078d4;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: -0.5px;
+}
+
+.d365-badge-home {
+  background-color: #2b579a !important;
+  font-size: 17px;
+}
+
+.d365-launcher-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.d365-launcher-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.d365-launcher-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #201f1e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-theme='dark'] .d365-launcher-name,
+.dark-theme .d365-launcher-name {
+  color: #e0e0e0;
+}
+
+.d365-launcher-desc {
+  font-size: 11px;
+  color: #605e5c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+[data-theme='dark'] .d365-launcher-desc,
+.dark-theme .d365-launcher-desc {
+  color: #8a8886;
+}
+
+.d365-launcher-tag {
+  font-size: 10px;
+  font-weight: 700;
+  background-color: #0078d4;
+  color: #ffffff;
+  padding: 1px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

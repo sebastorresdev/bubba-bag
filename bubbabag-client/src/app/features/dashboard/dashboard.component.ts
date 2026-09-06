@@ -6,123 +6,190 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 
+import { NzCardModule } from 'ng-zorro-antd/card';
+import { NzAvatarModule } from 'ng-zorro-antd/avatar';
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [NzIconModule, NzButtonModule, NzTooltipModule],
+  imports: [NzIconModule, NzButtonModule, NzTooltipModule, NzCardModule, NzAvatarModule],
   changeDetection: ChangeDetectionStrategy.Eager,
   template: `
-    <div
-      class="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col transition-colors duration-300"
-    >
-      <header
-        class="bg-primary text-gray-900 p-4 shadow-sm flex justify-between items-center border-b border-primary/20 dark:border-primary/10"
-      >
-        <div class="flex items-center gap-3">
-          <div
-            class="w-10 h-10 bg-gray-900 dark:bg-gray-800 rounded-lg flex items-center justify-center shadow-inner"
-          >
-            <nz-icon
-              nzType="appstore"
-              nzTheme="outline"
-              class="text-xl leading-none"
-              style="color: #B2E160;"
-            />
+    <div class="dashboard-layout">
+      <!-- Top Navigation Header -->
+      <header class="dashboard-header">
+        <div class="dashboard-brand">
+          <div class="dashboard-brand-icon">
+            <nz-icon nzType="appstore" nzTheme="outline" />
           </div>
-          <span
-            class="text-2xl font-extrabold tracking-tight leading-none text-gray-900 flex items-center h-10"
-            >BubbaBag ERP</span
-          >
+          <span class="dashboard-brand-title">BubbaBag ERP</span>
         </div>
 
-        <div class="flex items-center gap-6">
-          <div class="flex items-center gap-2">
-            <div
-              class="w-8 h-8 rounded-full bg-gray-900 dark:bg-gray-800 text-primary flex items-center justify-center font-bold"
-            >
-              A
-            </div>
-            <span class="font-semibold hidden sm:inline text-gray-900">Hola, Admin</span>
+        <div class="dashboard-actions">
+          <div class="dashboard-user">
+            <nz-avatar nzIcon="user" nzSize="small" />
+            <span class="dashboard-user-name">Admin</span>
           </div>
 
           <button
             nz-button
             nzType="text"
             nzShape="circle"
-            class="hover:bg-primary-hover flex items-center justify-center"
             nz-tooltip
-            nzTooltipTitle="Cambiar Tema"
+            [nzTooltipTitle]="themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro'"
             (click)="themeService.toggleTheme()"
           >
-            <nz-icon
-              [nzType]="themeService.isDarkMode() ? 'sun' : 'moon'"
-              nzTheme="outline"
-              class="text-xl text-gray-900"
-            />
+            <nz-icon [nzType]="themeService.isDarkMode() ? 'sun' : 'moon'" />
           </button>
 
           <button
             nz-button
             nzType="text"
             nzShape="circle"
-            class="hover:bg-primary-hover flex items-center justify-center"
             nz-tooltip
             nzTooltipTitle="Cerrar Sesión"
             (click)="logout()"
           >
-            <nz-icon nzType="logout" nzTheme="outline" class="text-xl text-gray-900" />
+            <nz-icon nzType="logout" />
           </button>
         </div>
       </header>
 
-      <main class="grow p-6 lg:p-10 max-w-7xl mx-auto w-full">
-        <div class="mb-8">
-          <h2 class="text-3xl font-bold text-gray-900 dark:text-white! mb-2">
-            Bienvenido al Panel de Control
-          </h2>
-          <p class="text-gray-500 dark:text-gray-300! mt-2 text-lg">
-            Selecciona un módulo para comenzar a trabajar.
-          </p>
+      <!-- Main Content -->
+      <main class="dashboard-content">
+        <div class="dashboard-intro">
+          <h1 class="dashboard-title">Bienvenido al Panel de Control</h1>
+          <p class="dashboard-subtitle">Selecciona un módulo para comenzar a trabajar.</p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div class="dashboard-grid">
           @for (module of modules; track module.id) {
-            <div
-              class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer border border-gray-100 dark:border-gray-700 hover:border-primary dark:hover:border-primary group flex flex-col h-full"
+            <nz-card
+              nzHoverable
+              [nzBordered]="true"
+              class="dashboard-card"
               (click)="goToModule(module.name)"
             >
-              <div
-                class="w-12 h-12 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center mb-4 group-hover:bg-primary dark:group-hover:bg-gray-700/80 transition-colors"
-              >
-                <nz-icon
-                  [nzType]="module.icon"
-                  nzTheme="outline"
-                  class="text-2xl text-gray-700 dark:text-gray-300! group-hover:text-gray-900! dark:group-hover:text-primary! transition-colors"
-                />
-              </div>
-              <h3
-                class="text-lg font-bold text-gray-900 dark:text-white! mb-2 dark:group-hover:text-primary! transition-colors"
-              >
-                {{ module.name }}
-              </h3>
-              <p class="text-gray-500 dark:text-gray-400! text-sm grow leading-relaxed">
-                {{ module.description }}
-              </p>
+              <div class="dashboard-card-inner">
+                <div class="dashboard-card-icon">
+                  <nz-icon [nzType]="module.icon" nzTheme="outline" />
+                </div>
+                <h2 class="dashboard-card-name">{{ module.name }}</h2>
+                <p class="dashboard-card-desc">{{ module.description }}</p>
 
-              <div
-                class="mt-4 flex items-center text-sm font-semibold text-gray-900 dark:text-primary! opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                Entrar al módulo
-                <nz-icon
-                  nzType="arrow-right"
-                  class="ml-1 group-hover:translate-x-1 transition-transform"
-                />
+                <div class="dashboard-card-action">
+                  <span>Entrar al módulo</span>
+                  <nz-icon nzType="arrow-right" />
+                </div>
               </div>
-            </div>
+            </nz-card>
           }
         </div>
       </main>
     </div>
+  `,
+  styles: `
+    .dashboard-layout {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .dashboard-header {
+      height: 56px;
+      padding: 0 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(140, 140, 140, 0.2);
+    }
+    .dashboard-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .dashboard-brand-icon {
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+    }
+    .dashboard-brand-title {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+    .dashboard-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .dashboard-user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    .dashboard-content {
+      flex: 1;
+      padding: 32px 24px;
+      max-width: 1280px;
+      margin: 0 auto;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .dashboard-intro {
+      margin-bottom: 32px;
+    }
+    .dashboard-title {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .dashboard-subtitle {
+      font-size: 15px;
+      opacity: 0.75;
+      margin: 0;
+    }
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+    }
+    .dashboard-card {
+      cursor: pointer;
+      height: 100%;
+    }
+    .dashboard-card-inner {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .dashboard-card-icon {
+      font-size: 28px;
+      margin-bottom: 12px;
+      display: flex;
+    }
+    .dashboard-card-name {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .dashboard-card-desc {
+      font-size: 13px;
+      opacity: 0.75;
+      flex: 1;
+      line-height: 1.5;
+      margin: 0;
+    }
+    .dashboard-card-action {
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 600;
+      gap: 6px;
+    }
   `,
 })
 export class DashboardComponent {

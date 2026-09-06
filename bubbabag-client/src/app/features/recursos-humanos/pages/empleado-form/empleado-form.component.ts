@@ -23,6 +23,8 @@ import { NzMessageService } from 'ng-zorro-antd/message';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzAlertModule } from 'ng-zorro-antd/alert';
+import { NzCardModule } from 'ng-zorro-antd/card';
+import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 
 @Component({
   selector: 'app-empleado-form',
@@ -40,6 +42,8 @@ import { NzAlertModule } from 'ng-zorro-antd/alert';
     NzIconModule,
     NzTagModule,
     NzAlertModule,
+    NzCardModule,
+    NzTooltipModule,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './empleado-form.html',

@@ -1,17 +1,17 @@
-<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-  <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
-    <div>
-      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">BubbaBag ERP</h2>
-      <p class="mt-2 text-center text-sm text-gray-600">
+<div class="login-wrapper">
+  <nz-card class="login-card" [nzBordered]="true">
+    <div class="login-header">
+      <h1 class="login-title">BubbaBag ERP</h1>
+      <p class="login-subtitle">
         Ingresa con tu cuenta de administrador
       </p>
     </div>
 
-    <form nz-form [formGroup]="loginForm" class="login-form mt-8 space-y-6" (ngSubmit)="submitForm()">
+    <form nz-form [formGroup]="loginForm" nzLayout="vertical" (ngSubmit)="submitForm()">
       <nz-form-item>
         <nz-form-control nzErrorTip="Por favor ingresa un correo válido!">
           <nz-input-group nzPrefixIcon="user" nzSize="large">
-            <input type="email" nz-input formControlName="email" placeholder="Correo electrónico" class="rounded-md" />
+            <input type="email" nz-input formControlName="email" placeholder="Correo electrónico" />
           </nz-input-group>
         </nz-form-control>
       </nz-form-item>
@@ -19,25 +19,21 @@
       <nz-form-item>
         <nz-form-control nzErrorTip="Por favor ingresa tu contraseña!">
           <nz-input-group nzPrefixIcon="lock" nzSize="large">
-            <input type="password" nz-input formControlName="password" placeholder="Contraseña" class="rounded-md" />
+            <input type="password" nz-input formControlName="password" placeholder="Contraseña" />
           </nz-input-group>
         </nz-form-control>
       </nz-form-item>
 
-      <div class="flex items-center justify-between">
-        <nz-form-item class="mb-0">
-          <nz-form-control>
-            <label nz-checkbox formControlName="remember">
-              <span class="text-sm text-gray-700">Recordarme</span>
-            </label>
-          </nz-form-control>
-        </nz-form-item>
-        <a class="login-form-forgot text-sm font-medium text-primary hover:text-primary-hover">Olvidé mi contraseña</a>
+      <div class="login-options">
+        <label nz-checkbox formControlName="remember">
+          <span>Recordarme</span>
+        </label>
+        <a class="login-forgot-link">Olvidé mi contraseña</a>
       </div>
 
-      <button nz-button class="login-form-button w-full" [nzType]="'primary'" nzSize="large">
+      <button nz-button nzType="primary" nzSize="large" nzBlock>
         Iniciar Sesión
       </button>
     </form>
-  </div>
+  </nz-card>
 </div>

@@ -27,6 +27,9 @@ import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzModalModule } from 'ng-zorro-antd/modal';
 import { NzDatePickerModule } from 'ng-zorro-antd/date-picker';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
+import { NzCardModule } from 'ng-zorro-antd/card';
+import { NzEmptyModule } from 'ng-zorro-antd/empty';
+import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 
 @Component({
   selector: 'app-empleados-list',
@@ -45,6 +48,9 @@ import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
     NzModalModule,
     NzDatePickerModule,
     NzTooltipModule,
+    NzCardModule,
+    NzEmptyModule,
+    NzAvatarModule,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './empleados-list.html',

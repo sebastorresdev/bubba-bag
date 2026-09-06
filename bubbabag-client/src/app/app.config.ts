@@ -4,7 +4,6 @@ import { routes } from './app.routes';
 import { provideHttpClient, withInterceptors, withXhr } from '@angular/common/http';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { NzConfig, provideNzConfig } from 'ng-zorro-antd/core/config';
 import { provideNzIcons } from 'ng-zorro-antd/icon';
 import { NZ_I18N, es_ES } from 'ng-zorro-antd/i18n';
@@ -33,6 +32,11 @@ import {
   HomeOutline,
   MenuFoldOutline,
   MenuUnfoldOutline,
+  MenuOutline,
+  BarsOutline,
+  CloseOutline,
+  UpOutline,
+  DownOutline,
   PlusOutline,
   EditOutline,
   DeleteOutline,
@@ -47,6 +51,14 @@ import {
   ReloadOutline,
   FilterOutline,
   ExclamationCircleOutline,
+  FileTextOutline,
+  AuditOutline,
+  TagsOutline,
+  SwapOutline,
+  CarOutline,
+  AccountBookOutline,
+  PayCircleOutline,
+  FundOutline,
 } from '@ant-design/icons-angular/icons';
 import { provideNzDateFnsAdapter } from 'ng-zorro-antd/core/time';
 
@@ -75,6 +87,11 @@ const icons = [
   HomeOutline,
   MenuFoldOutline,
   MenuUnfoldOutline,
+  MenuOutline,
+  BarsOutline,
+  CloseOutline,
+  UpOutline,
+  DownOutline,
   PlusOutline,
   EditOutline,
   DeleteOutline,
@@ -89,20 +106,23 @@ const icons = [
   ReloadOutline,
   FilterOutline,
   ExclamationCircleOutline,
+  FileTextOutline,
+  AuditOutline,
+  TagsOutline,
+  SwapOutline,
+  CarOutline,
+  AccountBookOutline,
+  PayCircleOutline,
+  FundOutline,
 ];
 
-const ngZorroConfig: NzConfig = {
-  theme: {
-    primaryColor: '#B2E160',
-  },
-};
+const ngZorroConfig: NzConfig = {};
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideHttpClient(withXhr(), withInterceptors([authInterceptor, errorInterceptor])),
-    provideAnimationsAsync(),
     provideNzConfig(ngZorroConfig),
     provideNzIcons(icons),
     { provide: NZ_I18N, useValue: es_ES },

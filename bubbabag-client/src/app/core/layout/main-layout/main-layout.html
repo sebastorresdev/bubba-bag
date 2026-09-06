@@ -1,0 +1,243 @@
+<nz-layout class="erp-layout">
+  <!-- Top Suite Bar (Estilo Microsoft Dynamics 365) -->
+  <nz-header class="erp-suite-bar">
+    <!-- Izquierda: Waffle launcher + Brand + Módulo Activo -->
+    <div class="erp-suite-bar-brand">
+      <button nz-button nzType="text" (click)="openAppLauncher()" title="Aplicaciones" class="erp-waffle-btn">
+        <nz-icon nzType="appstore" />
+      </button>
+
+      <span class="erp-brand-title" (click)="goToDashboard()">BubbaBag ERP</span>
+      <span class="erp-brand-sep">|</span>
+      <span class="erp-module-title">{{ navService.currentModule().title }}</span>
+    </div>
+
+    <!-- Centro: Búsqueda Global de Registros (Dynamics 365 Centered Search) -->
+    <div class="erp-suite-bar-search">
+      <nz-input-wrapper>
+        <span nzInputPrefix>
+          <nz-icon nzType="search" />
+        </span>
+        <input type="text" nz-input nzSize="small" [placeholder]="navService.currentModule().searchPlaceholder" />
+      </nz-input-wrapper>
+    </div>
+
+    <!-- Derecha: Utilidades globales y Perfil (Estilo Dynamics 365) -->
+    <div class="erp-suite-bar-actions">
+      <!-- Bombilla / Insights -->
+      <button nz-button nzType="text" title="Ideas e Insights" class="erp-tool-btn">
+        <nz-icon nzType="bulb" />
+      </button>
+
+      <!-- Creación Rápida (+) -->
+      <button nz-button nzType="text" title="Creación Rápida" class="erp-tool-btn">
+        <nz-icon nzType="plus" />
+      </button>
+
+      <!-- Selector de Tema Nativo NG-ZORRO -->
+      <button nz-button nzType="text" (click)="themeService.toggleTheme()"
+        [title]="themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro'" class="erp-tool-btn">
+        <nz-icon [nzType]="themeService.isDarkMode() ? 'sun' : 'moon'" />
+      </button>
+
+      <!-- Configuración -->
+      <button nz-button nzType="text" title="Configuración" class="erp-tool-btn">
+        <nz-icon nzType="setting" />
+      </button>
+
+      <!-- Centro de Ayuda -->
+      <button nz-button nzType="text" title="Centro de Ayuda" class="erp-tool-btn">
+        <nz-icon nzType="question-circle" />
+      </button>
+
+      <nz-divider nzType="vertical"></nz-divider>
+
+      <!-- Menú de Usuario con Avatar y Nombre -->
+      <a nz-dropdown [nzDropdownMenu]="userMenu" class="erp-user-dropdown-btn">
+        <nz-avatar nzIcon="user" nzSize="small" />
+        <span class="erp-user-name">Admin</span>
+        <nz-icon nzType="down" />
+      </a>
+      <nz-dropdown-menu #userMenu="nzDropdownMenu">
+        <ul nz-menu>
+          <li nz-menu-item (click)="goToDashboard()">
+            <nz-icon nzType="dashboard" />
+            <span>Dashboard Principal</span>
+          </li>
+          <li nz-menu-divider></li>
+          <li nz-menu-item (click)="logout()">
+            <nz-icon nzType="logout" />
+            <span>Cerrar Sesión</span>
+          </li>
+        </ul>
+      </nz-dropdown-menu>
+    </div>
+  </nz-header>
+
+  <!-- Contenedor debajo del Suite Bar (Site Map Lateral + Work Area) -->
+  <nz-layout class="erp-main-body">
+    <!-- Barra Lateral Site Map de Dynamics 365 con nz-sider -->
+    <nz-sider nzCollapsible [(nzCollapsed)]="isCollapsed" [nzTrigger]="null" [nzWidth]="250" [nzCollapsedWidth]="48"
+      [nzTheme]="themeService.isDarkMode() ? 'dark' : 'light'" class="d365-sider" [class.d365-collapsed]="isCollapsed"
+      [class.d365-dark]="themeService.isDarkMode()">
+      <!-- Top Trigger Bar: Botón Hamburguesa -->
+      <div class="d365-sitemap-top">
+        <button nz-button nzType="text" nzSize="small" class="d365-hamburger-btn" (click)="isCollapsed = !isCollapsed"
+          [title]="isCollapsed ? 'Expandir mapa del sitio' : 'Contraer mapa del sitio'">
+          <nz-icon class="trigger" [nzType]="isCollapsed ? 'menu-unfold' : 'menu-fold'" />
+        </button>
+      </div>
+
+      <!-- Scrollable Sitemap Body con ul nz-menu (Máximo 2 niveles: ítems o submenús) -->
+      <div class="d365-sitemap-scroll">
+        <ul nz-menu nzMode="inline" [nzInlineIndent]="16" [nzTheme]="themeService.isDarkMode() ? 'dark' : 'light'"
+          [nzInlineCollapsed]="isCollapsed" class="d365-menu">
+          @for (item of navService.currentModule().items; track item.title) {
+          <!-- Nivel 1 - Opción A: Ítem directo en raíz -->
+          @if (!item.children || item.children.length === 0) {
+          <li nz-menu-item nz-tooltip nzTooltipPlacement="right" [nzTooltipTitle]="isCollapsed ? item.title : ''"
+            [nzSelected]="isActive(item)" [routerLink]="item.path">
+            @if (item.icon) {
+            <nz-icon [nzType]="item.icon" />
+            }
+            <span class="d365-menu-title">{{ item.title }}</span>
+          </li>
+          }
+          <!-- Nivel 1 - Opción B: Submenú (el padre tiene icono, los hijos no) -->
+          @else {
+          <li nz-submenu [nzTitle]="item.title" [nzIcon]="item.icon || ''" [(nzOpen)]="item.open">
+            <ul>
+              @for (sub of item.children; track sub.title) {
+              <li nz-menu-item [nzSelected]="isActive(sub)" [routerLink]="sub.path">
+                <span class="d365-menu-title">{{ sub.title }}</span>
+              </li>
+              }
+            </ul>
+          </li>
+          }
+          }
+        </ul>
+      </div>
+
+      <!-- Bottom: Selector de Área -->
+      <div class="d365-sitemap-footer">
+        <button nz-button nzType="text" nz-dropdown [nzDropdownMenu]="areaMenu" nzPlacement="topLeft" nzTrigger="click"
+          class="d365-area-switcher"
+          [title]="isCollapsed ? 'Cambiar de área (' + navService.currentModule().title + ')' : ''">
+          <div class="d365-area-badge">
+            {{ navService.currentModule().shortCode }}
+          </div>
+          <span class="d365-area-name" [class.d365-area-text-collapsed]="isCollapsed">{{
+            navService.currentModule().title }}</span>
+          <nz-icon nzType="up" class="d365-area-arrow" [class.d365-area-text-collapsed]="isCollapsed" />
+        </button>
+
+        <nz-dropdown-menu #areaMenu="nzDropdownMenu">
+          <ul nz-menu class="d365-area-dropdown">
+            <li nz-menu-group nzTitle="Áreas de Trabajo">
+              <ul>
+                @for (mod of navService.modules; track mod.id) {
+                <li nz-menu-item (click)="selectModule(mod)" [nzSelected]="navService.currentModule().id === mod.id">
+                  <div class="d365-dropdown-item">
+                    <div class="d365-dropdown-badge">{{ mod.shortCode }}</div>
+                    <span>{{ mod.title }}</span>
+                  </div>
+                </li>
+                }
+              </ul>
+            </li>
+          </ul>
+        </nz-dropdown-menu>
+      </div>
+    </nz-sider>
+
+    <!-- Área de Trabajo y Comandos -->
+    <nz-layout class="erp-work-layout">
+      <!-- Barra de Comandos Contextual -->
+      <div class="erp-command-bar" [ngClass]="themeService.isDarkMode() ? '' : 'light-bg'">
+        <nz-breadcrumb>
+          <nz-breadcrumb-item>
+            <a (click)="goToDashboard()">
+              <nz-icon nzType="home" />
+              <span>Inicio</span>
+            </a>
+          </nz-breadcrumb-item>
+          <nz-breadcrumb-item>{{ navService.currentModule().title }}</nz-breadcrumb-item>
+        </nz-breadcrumb>
+
+        <div class="erp-command-actions">
+          <button nz-button nzType="primary" nzSize="small" routerLink="/rrhh/empleados/nuevo">
+            <nz-icon nzType="plus" />
+            <span>Nuevo Colaborador</span>
+          </button>
+          <button nz-button nzSize="small">
+            <nz-icon nzType="sync" />
+            <span>Actualizar</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Contenido Principal de la Página -->
+      <nz-content class="erp-content-area">
+        <router-outlet></router-outlet>
+      </nz-content>
+    </nz-layout>
+  </nz-layout>
+</nz-layout>
+
+<!-- Drawer Selector de Aplicaciones -->
+<nz-drawer [nzClosable]="false" [nzVisible]="isAppLauncherVisible" nzPlacement="left" nzWidth="340px"
+  [nzTitle]="launcherTitle" [nzExtra]="launcherCloseTpl" (nzOnClose)="closeAppLauncher()"
+  nzWrapClassName="d365-launcher-drawer" class="d365-launcher-drawer">
+  <ng-template #launcherTitle>
+    <div class="d365-launcher-header">
+      <button nz-button nzType="text" (click)="closeAppLauncher()" title="Cerrar Selector"
+        class="d365-launcher-header-waffle">
+        <nz-icon nzType="appstore" />
+      </button>
+      <span class="d365-launcher-header-title">Aplicaciones ERP</span>
+    </div>
+  </ng-template>
+
+  <ng-template #launcherCloseTpl>
+    <button nz-button nzType="text" (click)="closeAppLauncher()" class="d365-launcher-close-btn" title="Cerrar">
+      <nz-icon nzType="close" />
+    </button>
+  </ng-template>
+
+  <ng-container *nzDrawerContent>
+    <div class="d365-launcher-body">
+      <!-- Acceso a Panel General -->
+      <a class="d365-launcher-item d365-launcher-dashboard" (click)="goToDashboardAndClose()">
+        <div class="d365-launcher-badge d365-badge-home">
+          <nz-icon nzType="home" />
+        </div>
+        <div class="d365-launcher-info">
+          <span class="d365-launcher-name">Panel General</span>
+          <span class="d365-launcher-desc">Vista global del negocio y accesos rápidos</span>
+        </div>
+      </a>
+
+      <div class="d365-launcher-section">MÓDULOS DE NEGOCIO</div>
+
+      <!-- Lista Amplia de Módulos -->
+      <div class="d365-launcher-list">
+        @for (mod of navService.modules; track mod.id) {
+        <a class="d365-launcher-item" [class.d365-launcher-item-active]="navService.currentModule().id === mod.id"
+          (click)="selectModuleAndClose(mod)">
+          <div class="d365-launcher-badge">{{ mod.shortCode }}</div>
+          <div class="d365-launcher-info">
+            <div class="d365-launcher-row">
+              <span class="d365-launcher-name">{{ mod.title }}</span>
+              @if (navService.currentModule().id === mod.id) {
+              <span class="d365-launcher-tag">Activo</span>
+              }
+            </div>
+            <span class="d365-launcher-desc">{{ mod.searchPlaceholder }}</span>
+          </div>
+        </a>
+        }
+      </div>
+    </div>
+  </ng-container>
+</nz-drawer>
