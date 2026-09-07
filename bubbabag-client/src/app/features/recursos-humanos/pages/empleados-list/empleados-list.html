@@ -75,8 +75,9 @@
         <div class="d365-search-box">
           <input
             type="text"
-            placeholder="Filtrar por palabra clave"
+            placeholder="Filtrar por palabra clave..."
             [(ngModel)]="searchTerm"
+            (ngModelChange)="onSearchTermChange()"
             (keyup.enter)="buscar()"
             class="search-input"
           />
@@ -114,6 +115,9 @@
           @if (isColVisible('colaborador')) {
             <th>Colaborador</th>
           }
+          @if (isColVisible('email')) {
+            <th>Correo Electrónico</th>
+          }
           @if (isColVisible('documento')) {
             <th>Documento</th>
           }
@@ -146,42 +150,36 @@
             ></td>
             @if (isColVisible('colaborador')) {
               <td>
-                <div class="colaborador-cell">
-                  <nz-avatar
-                    [nzSize]="34"
-                    [nzSrc]="data.fotoUrl || ''"
-                    nzIcon="user"
-                    class="colaborador-avatar"
-                  />
-                  <div class="colaborador-info">
-                    <a class="cell-link" (click)="editar(data.id); $event.stopPropagation()">
-                      {{ data.nombres }} {{ data.apellidos }}
-                    </a>
-                    @if (data.email) {
-                      <div class="cell-subtext">{{ data.email }}</div>
-                    }
-                  </div>
-                </div>
+                <a class="cell-link" (click)="editar(data.id); $event.stopPropagation()">
+                  {{ data.nombres }} {{ data.apellidos }}
+                </a>
+              </td>
+            }
+            @if (isColVisible('email')) {
+              <td>
+                <span>{{ data.email || '' }}</span>
               </td>
             }
             @if (isColVisible('documento')) {
               <td>
-                <span class="doc-tag">{{ data.tipoDocumento }}: {{ data.numeroDocumento }}</span>
+                @if (data.numeroDocumento) {
+                  <span class="doc-tag">{{ data.tipoDocumento }}: {{ data.numeroDocumento }}</span>
+                }
               </td>
             }
             @if (isColVisible('cargo')) {
               <td>
-                <span class="cell-singleline">{{ data.cargoNombre || '-' }}</span>
+                <span class="cell-singleline">{{ data.cargoNombre || '' }}</span>
               </td>
             }
             @if (isColVisible('departamento')) {
               <td>
-                <span class="cell-singleline">{{ data.departamentoNombre || '-' }}</span>
+                <span class="cell-singleline">{{ data.departamentoNombre || '' }}</span>
               </td>
             }
             @if (isColVisible('tipoContrato')) {
               <td>
-                <span class="cell-contract">{{ data.tipoContrato || 'No especificado' }}</span>
+                <span class="cell-contract">{{ data.tipoContrato || '' }}</span>
               </td>
             }
             @if (isColVisible('estado')) {

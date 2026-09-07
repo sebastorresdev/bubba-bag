@@ -1,0 +1,358 @@
+:host {
+  display: block;
+  width: 100%;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
+}
+
+.catalogo-view-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Tarjeta D365 sin redondeo */
+.d365-table-card,
+:host ::ng-deep .ant-card.d365-table-card {
+  width: 100%;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+:host ::ng-deep .ant-card.d365-table-card .ant-card-body {
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+/* Sub-Header: Toolbar */
+.d365-toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+:host-context([data-theme='dark']) .d365-toolbar-row,
+:host-context(.dark-theme) .d365-toolbar-row {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.view-title-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  height: auto;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.view-title-btn:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+:host-context([data-theme='dark']) .view-title-btn:hover,
+:host-context(.dark-theme) .view-title-btn:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.view-title-text {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: inherit;
+  letter-spacing: -0.2px;
+}
+
+.view-title-icon {
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+:host-context([data-theme='dark']) .view-title-icon,
+:host-context(.dark-theme) .view-title-icon {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.view-tools-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.d365-search-box {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  height: 32px;
+  padding: 0 8px;
+  width: 260px;
+  background-color: transparent;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+:host-context([data-theme='dark']) .d365-search-box,
+:host-context(.dark-theme) .d365-search-box {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.d365-search-box:focus-within {
+  border-color: var(--ant-primary-color, #0078d4) !important;
+  box-shadow: 0 0 0 1px var(--ant-primary-color, #0078d4);
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 13px;
+  padding: 0;
+  color: inherit;
+}
+
+.search-clear-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0 2px;
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+}
+
+.search-clear-btn:hover {
+  opacity: 1;
+}
+
+.search-icon {
+  display: flex;
+  align-items: center;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+/* Grilla */
+.d365-grid-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.col-checkbox {
+  width: 44px;
+  text-align: center;
+  padding-left: 12px !important;
+}
+
+.col-hierarchy {
+  width: 44px;
+  text-align: center;
+  padding: 0 4px !important;
+  vertical-align: middle;
+}
+
+.col-hierarchy .hierarchy-btn {
+  margin: 0 auto;
+}
+
+.col-primary-text {
+  font-weight: 600;
+}
+
+.hierarchy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 3px;
+  color: #0078d4;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.hierarchy-btn:hover {
+  background-color: rgba(0, 120, 212, 0.08);
+  color: #106ebe;
+}
+
+:host-context([data-theme='dark']) .hierarchy-btn,
+:host-context(.dark-theme) .hierarchy-btn {
+  color: #2899f5;
+}
+
+:host-context([data-theme='dark']) .hierarchy-btn:hover,
+:host-context(.dark-theme) .hierarchy-btn:hover {
+  background-color: rgba(40, 153, 245, 0.15);
+  color: #60b2f8;
+}
+
+.nombre-link {
+  color: #0078d4;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.nombre-link:hover {
+  text-decoration: underline;
+  color: #106ebe;
+}
+
+:host-context([data-theme='dark']) .nombre-link,
+:host-context(.dark-theme) .nombre-link {
+  color: #2899f5;
+}
+
+.col-desc {
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 13px;
+}
+
+:host-context([data-theme='dark']) .col-desc,
+:host-context(.dark-theme) .col-desc {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.link-drilldown {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #0078d4;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  padding: 2px 6px;
+  border-radius: 3px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+  user-select: none;
+}
+
+.link-drilldown:hover {
+  text-decoration: underline;
+  color: #106ebe;
+  background-color: rgba(0, 120, 212, 0.05);
+}
+
+.drilldown-icon {
+  font-size: 13px;
+  color: inherit;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+:host-context([data-theme='dark']) .link-drilldown,
+:host-context(.dark-theme) .link-drilldown {
+  color: #2899f5;
+}
+
+:host-context([data-theme='dark']) .link-drilldown:hover,
+:host-context(.dark-theme) .link-drilldown:hover {
+  color: #60b2f8;
+  background-color: rgba(40, 153, 245, 0.1);
+}
+
+.text-muted {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+:host-context([data-theme='dark']) .text-muted,
+:host-context(.dark-theme) .text-muted {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* Indicador de Estado D365 (Dot + Texto) */
+.status-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.dot-active {
+  background-color: #107c41;
+  box-shadow: 0 0 0 2px rgba(16, 124, 65, 0.2);
+}
+
+.dot-inactive {
+  background-color: #8a8886;
+  box-shadow: 0 0 0 2px rgba(138, 136, 134, 0.2);
+}
+
+.status-text {
+  color: inherit;
+  font-weight: 500;
+}
+
+/* Fila seleccionada estilo Dynamics 365 */
+.row-selected {
+  background-color: #f3f9fd !important;
+}
+
+:host-context([data-theme='dark']) .row-selected,
+:host-context(.dark-theme) .row-selected {
+  background-color: rgba(40, 153, 245, 0.12) !important;
+}
+
+/* Modal Estilo D365 */
+.modal-d365-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.modal-header-icon {
+  color: #0078d4;
+  font-size: 18px;
+}
+
+.d365-modal-form {
+  padding-top: 8px;
+}
+
+.switch-item {
+  margin-top: 16px;
+  margin-bottom: 0;
+}
+
+.switch-label {
+  margin-left: 10px;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.btn-d365-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #0078d4;
+  border-color: #0078d4;
+}
+
+.btn-d365-primary:hover {
+  background-color: #106ebe;
+  border-color: #106ebe;
+}

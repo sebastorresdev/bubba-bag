@@ -1,0 +1,233 @@
+<nz-modal
+  [(nzVisible)]="visible"
+  [nzTitle]="modalTitleTpl"
+  [nzContent]="modalContentTpl"
+  [nzFooter]="null"
+  (nzOnCancel)="cerrar()"
+  [nzWidth]="1080"
+  [nzCentered]="true"
+  [nzMaskClosable]="true"
+  nzWrapClassName="d365-hierarchy-modal-wrap"
+>
+  <!-- Cabecera estilo Dynamics 365 Tile Form -->
+  <ng-template #modalTitleTpl>
+    <div class="d365-hierarchy-header">
+      <div
+        class="header-avatar"
+        [style.backgroundColor]="getAvatarBg(departamento?.nombre)"
+      >
+        {{ getInitials(departamento?.nombre) }}
+      </div>
+      <div class="header-info">
+        <span class="header-subtitle">Departamento: Organigrama Jerárquico</span>
+        <h2 class="header-title">{{ departamento?.nombre || 'Cargando estructura...' }}</h2>
+      </div>
+
+      <div class="header-actions">
+        <button
+          nz-button
+          nzType="default"
+          nzSize="small"
+          (click)="irACargosFiltrados()"
+          class="btn-d365-subtle"
+          title="Ver todos los cargos en la tabla"
+        >
+          <nz-icon nzType="solution" />
+          <span>Ver Cargos</span>
+        </button>
+      </div>
+    </div>
+  </ng-template>
+
+  <!-- Contenido Split-View (Árbol a la izquierda + Canvas de Tarjetas al centro) -->
+  <ng-template #modalContentTpl>
+    <div class="hierarchy-container" [class.is-loading]="loading">
+      @if (loading) {
+      <div class="loading-overlay">
+        <nz-spin nzTip="Cargando organigrama..."></nz-spin>
+      </div>
+      }
+
+      @if (!loading && departamento) {
+      <!-- Panel Lateral Izquierdo: Árbol Jerárquico D365 -->
+      <aside class="hierarchy-sidebar">
+        <div class="sidebar-header">
+          <nz-icon nzType="apartment" class="sidebar-icon" />
+          <span>Estructura Jerárquica</span>
+        </div>
+
+        <div class="tree-list">
+          <!-- Nodo Raíz: Departamento -->
+          <div class="tree-node root-node active">
+            <div class="tree-node-line"></div>
+            <div class="node-icon">
+              <nz-icon nzType="apartment" />
+            </div>
+            <div class="node-label" title="{{ departamento.nombre }}">
+              <span class="node-title">{{ departamento.nombre }}</span>
+              <span class="node-badge">{{ cargos.length }} cargos</span>
+            </div>
+          </div>
+
+          <!-- Nodos Hijos: Cargos -->
+          <div class="tree-children">
+            @for (cargo of cargos; track cargo.id) {
+            <div
+              class="tree-node child-node"
+              [class.selected]="selectedCargoId === cargo.id"
+              (click)="seleccionarCargo(cargo.id)"
+              title="{{ cargo.nombre }}"
+            >
+              <div class="tree-branch-line"></div>
+              <div class="node-icon child-icon">
+                <nz-icon nzType="solution" />
+              </div>
+              <div class="node-label">
+                <span class="node-title">{{ cargo.nombre }}</span>
+                <span class="node-badge" [class.muted]="!cargo.totalEmpleados">
+                  {{ cargo.totalEmpleados }} colaboradores
+                </span>
+              </div>
+            </div>
+            }
+          </div>
+        </div>
+      </aside>
+
+      <!-- Canvas Central: Diagrama Jerárquico Visual (Tile Form) -->
+      <main class="hierarchy-canvas">
+        <div class="diagram-wrapper">
+          <!-- Nivel 1: Tarjeta Raíz (Departamento) -->
+          <div class="level-root">
+            <div class="d365-tile root-tile">
+              <div class="tile-header">
+                <div
+                  class="tile-avatar"
+                  [style.backgroundColor]="getAvatarBg(departamento.nombre)"
+                >
+                  {{ getInitials(departamento.nombre) }}
+                </div>
+                <div class="tile-heading">
+                  <span class="tile-category">DEPARTAMENTO</span>
+                  <h3 class="tile-title">{{ departamento.nombre }}</h3>
+                </div>
+              </div>
+
+              <div class="tile-divider"></div>
+
+              <div class="tile-fields">
+                <div class="tile-field">
+                  <nz-icon nzType="team" class="field-icon" />
+                  <span class="field-text">
+                    <strong>{{ departamento.totalEmpleados }}</strong> colaboradores en total
+                  </span>
+                </div>
+
+                <div class="tile-field">
+                  <nz-icon nzType="solution" class="field-icon" />
+                  <span class="field-text">
+                    <strong>{{ cargos.length }}</strong> puestos / cargos asignados
+                  </span>
+                </div>
+
+                <div class="tile-field">
+                  <span
+                    class="status-dot"
+                    [class.dot-active]="departamento.activo"
+                    [class.dot-inactive]="!departamento.activo"
+                  ></span>
+                  <span class="field-text">
+                    {{ departamento.activo ? 'Departamento Activo' : 'Departamento Inactivo' }}
+                  </span>
+                </div>
+
+                @if (departamento.descripcion) {
+                <div class="tile-desc" title="{{ departamento.descripcion }}">
+                  {{ departamento.descripcion }}
+                </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Conectores visuales estilo organigrama -->
+          @if (cargos.length > 0) {
+          <div class="connector-stem"></div>
+          <div class="connector-crossbar-wrapper">
+            <div class="connector-crossbar"></div>
+          </div>
+
+          <!-- Nivel 2: Tarjetas Hijas (Cargos del Departamento) -->
+          <div class="level-children">
+            @for (cargo of cargos; track cargo.id) {
+            <div class="child-column">
+              <div class="connector-drop"></div>
+
+              <div
+                class="d365-tile child-tile"
+                [class.selected]="selectedCargoId === cargo.id"
+                (click)="seleccionarCargo(cargo.id)"
+              >
+                <div class="tile-header">
+                  <div
+                    class="tile-avatar cargo-avatar"
+                    [style.backgroundColor]="getAvatarBg(cargo.nombre)"
+                  >
+                    {{ getInitials(cargo.nombre) }}
+                  </div>
+                  <div class="tile-heading">
+                    <span class="tile-category">CARGO / PUESTO</span>
+                    <h4 class="tile-title" title="{{ cargo.nombre }}">{{ cargo.nombre }}</h4>
+                  </div>
+                </div>
+
+                <div class="tile-divider"></div>
+
+                <div class="tile-fields">
+                  <div class="tile-field">
+                    <nz-icon nzType="team" class="field-icon" />
+                    <span class="field-text" [class.text-muted]="!cargo.totalEmpleados">
+                      {{ cargo.totalEmpleados }} colaboradores
+                    </span>
+                  </div>
+
+                  <div class="tile-field">
+                    <nz-icon nzType="dollar" class="field-icon" />
+                    <span class="field-text salario-text">
+                      @if (cargo.salarioReferencial) {
+                      S/ {{ cargo.salarioReferencial | number : '1.2-2' }}
+                      } @else {
+                      <span class="text-muted">Sin salario ref.</span>
+                      }
+                    </span>
+                  </div>
+
+                  <div class="tile-field">
+                    <span
+                      class="status-dot"
+                      [class.dot-active]="cargo.activo"
+                      [class.dot-inactive]="!cargo.activo"
+                    ></span>
+                    <span class="field-text">
+                      {{ cargo.activo ? 'Activo' : 'Inactivo' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            }
+          </div>
+          } @else {
+          <!-- Estado vacío si el departamento no tiene cargos -->
+          <div class="no-cargos-box">
+            <nz-empty
+              [nzNotFoundContent]="'Este departamento aún no tiene cargos registrados.'"
+            ></nz-empty>
+          </div>
+          }
+        </div>
+      </main>
+      }
+    </div>
+  </ng-template>
+</nz-modal>

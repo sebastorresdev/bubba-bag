@@ -59,9 +59,13 @@ import {
   ColumnWidthOutline,
   SaveOutline,
   CameraOutline,
+  ApartmentOutline,
+  ExportOutline,
 } from '@ant-design/icons-angular/icons';
 
 export const ICONS: IconDefinition[] = [
+  ApartmentOutline,
+  ExportOutline,
   AppstoreOutline,
   LogoutOutline,
   TeamOutline,

@@ -54,6 +54,15 @@ export class NavigationService {
           icon: 'solution',
           path: '/rrhh/reclutamiento',
         },
+        {
+          title: 'Estructura Organizacional',
+          icon: 'apartment',
+          open: true,
+          children: [
+            { title: 'Departamentos', path: '/rrhh/departamentos' },
+            { title: 'Cargos y Puestos', path: '/rrhh/cargos' },
+          ],
+        },
 
         // 2. Submenús (el padre tiene icono, los hijos no)
         {

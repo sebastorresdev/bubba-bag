@@ -1,0 +1,191 @@
+<app-command-bar [items]="commandBarItems" [farItems]="farItems"></app-command-bar>
+
+<div class="catalogo-view-wrapper">
+  <nz-card [nzBordered]="true" [nzBodyStyle]="{ padding: '0' }" class="d365-table-card">
+    <!-- Sub-Header / Selector de Vista & Herramientas -->
+    <div class="d365-toolbar-row">
+      <!-- Izquierda: Selector de Vista de Sistema (Dropdown interactivo) -->
+      <div>
+        <button nz-button nzType="text" nz-dropdown [nzDropdownMenu]="viewsMenu" nzTrigger="click"
+          class="view-title-btn">
+          <h1 class="view-title-text">{{ vistaActualTitulo }}</h1>
+          <nz-icon nzType="down" class="view-title-icon" />
+        </button>
+
+        <nz-dropdown-menu #viewsMenu="nzDropdownMenu">
+          <ul nz-menu>
+            <li nz-menu-item (click)="cambiarVista('Activos')" [nzSelected]="vistaActual === 'Activos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Activos' ? 'visible' : 'hidden'" />
+              <span>Departamentos Activos</span>
+            </li>
+            <li nz-menu-item (click)="cambiarVista('Todos')" [nzSelected]="vistaActual === 'Todos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Todos' ? 'visible' : 'hidden'" />
+              <span>Todos los Departamentos</span>
+            </li>
+            <li nz-menu-item (click)="cambiarVista('Inactivos')" [nzSelected]="vistaActual === 'Inactivos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Inactivos' ? 'visible' : 'hidden'" />
+              <span>Departamentos Inactivos</span>
+            </li>
+          </ul>
+        </nz-dropdown-menu>
+      </div>
+
+      <!-- Derecha: Buscador Rápido Fluent UI -->
+      <div class="view-tools-group">
+        <div class="d365-search-box">
+          <input type="text" placeholder="Filtrar por nombre o descripción..." [(ngModel)]="searchTerm"
+            (ngModelChange)="onSearchChange()" class="search-input" />
+          @if (searchTerm) {
+          <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
+            <nz-icon nzType="close" />
+          </button>
+          } @else {
+          <span class="search-icon">
+            <nz-icon nzType="search" />
+          </span>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Grilla / Tabla Estilo Dynamics 365 -->
+    <div class="d365-grid-container">
+      <nz-table #deptosTable [nzData]="departamentos" [nzLoading]="loading" [nzShowPagination]="true"
+        [nzPageSize]="15" [nzSize]="'small'" [nzBordered]="false" class="d365-table">
+        <thead>
+          <tr>
+            <th [nzWidth]="'44px'" [nzChecked]="isAllSelected" [nzIndeterminate]="isIndeterminate"
+              (nzCheckedChange)="toggleSelectAll($event)" class="col-checkbox"></th>
+            <th [nzWidth]="'44px'" nzAlign="center" class="col-hierarchy" title="Jerarquía / Organigrama">
+              <nz-icon nzType="apartment" />
+            </th>
+            <th [nzWidth]="'280px'">Nombre del Departamento</th>
+            <th>Descripción</th>
+            <th [nzWidth]="'140px'" nzAlign="center">Cargos</th>
+            <th [nzWidth]="'160px'" nzAlign="center">Colaboradores</th>
+            <th [nzWidth]="'120px'" nzAlign="center">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (depto of deptosTable.data; track depto.id) {
+          <tr [class.row-selected]="selectedIds.has(depto.id)" (click)="toggleSelect(depto.id)"
+            (dblclick)="abrirModalEditar(depto)">
+            <td class="col-checkbox" [nzChecked]="selectedIds.has(depto.id)" (click)="$event.stopPropagation()"
+              (nzCheckedChange)="toggleSelect(depto.id)"></td>
+
+            <!-- Columna Organigrama / Jerarquía -->
+            <td nzAlign="center" class="col-hierarchy">
+              <button
+                type="button"
+                class="hierarchy-btn"
+                (click)="abrirOrganigrama(depto, $event)"
+                title="Ver organigrama de {{ depto.nombre }}"
+              >
+                <nz-icon nzType="apartment" />
+              </button>
+            </td>
+
+            <!-- Nombre -->
+            <td class="col-primary-text">
+              <span class="nombre-link" (click)="$event.stopPropagation(); abrirModalEditar(depto)">
+                {{ depto.nombre }}
+              </span>
+            </td>
+
+            <!-- Descripción -->
+            <td class="col-desc">
+              {{ depto.descripcion || '' }}
+            </td>
+
+            <!-- Cantidad de Cargos -->
+            <td nzAlign="center">
+              @if (depto.totalCargos > 0) {
+              <span
+                class="link-drilldown"
+                (click)="irACargos(depto.id, $event)"
+                title="Ver {{ depto.totalCargos }} cargo(s) de {{ depto.nombre }} en pantalla completa"
+              >
+                <nz-icon nzType="export" class="drilldown-icon" />
+                <span>{{ depto.totalCargos }}</span>
+              </span>
+              } @else {
+              <span class="text-muted">0</span>
+              }
+            </td>
+
+            <!-- Cantidad de Colaboradores -->
+            <td nzAlign="center">
+              <span [class.text-muted]="!depto.totalEmpleados">
+                {{ depto.totalEmpleados }}
+              </span>
+            </td>
+
+            <!-- Estado (Status Dot + Texto Plano) -->
+            <td>
+              <div class="status-cell">
+                <span class="status-dot" [class.dot-active]="depto.activo" [class.dot-inactive]="!depto.activo"></span>
+                <span class="status-text">{{ depto.activo ? 'Activo' : 'Inactivo' }}</span>
+              </div>
+            </td>
+          </tr>
+          }
+        </tbody>
+      </nz-table>
+    </div>
+  </nz-card>
+</div>
+
+<!-- Modal Crear / Editar Departamento (Estilo Dynamics 365) -->
+<nz-modal [(nzVisible)]="modalVisible" [nzTitle]="modalTitleTpl" [nzContent]="modalContentTpl"
+  [nzFooter]="modalFooterTpl" (nzOnCancel)="cerrarModal()" [nzWidth]="520" [nzMaskClosable]="false" [nzCentered]="true">
+  <ng-template #modalTitleTpl>
+    <div class="modal-d365-header">
+      <nz-icon nzType="apartment" class="modal-header-icon" />
+      <span>{{ modalModo === 'crear' ? 'Nuevo Departamento' : 'Editar Departamento' }}</span>
+    </div>
+  </ng-template>
+
+  <ng-template #modalContentTpl>
+    <form nz-form [formGroup]="deptoForm" nzLayout="vertical" class="d365-modal-form">
+      <nz-form-item>
+        <nz-form-label nzRequired nzFor="nombre">Nombre del Departamento</nz-form-label>
+        <nz-form-control nzErrorTip="Por favor ingrese el nombre del departamento (máx. 100 caracteres).">
+          <input nz-input id="nombre" formControlName="nombre" placeholder="Ej: Finanzas, Tecnología, Logística..."
+            maxlength="100" autocomplete="off" />
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label nzFor="descripcion">Descripción (Opcional)</nz-form-label>
+        <nz-form-control nzErrorTip="La descripción no puede exceder los 250 caracteres.">
+          <textarea nz-input id="descripcion" formControlName="descripcion"
+            placeholder="Breve descripción del área o funciones principales..." rows="3" maxlength="250"></textarea>
+        </nz-form-control>
+      </nz-form-item>
+
+      @if (modalModo === 'editar') {
+      <nz-form-item class="switch-item">
+        <nz-form-label>Estado del Departamento</nz-form-label>
+        <nz-form-control>
+          <nz-switch formControlName="activo"></nz-switch>
+          <span class="switch-label">{{ deptoForm.get('activo')?.value ? 'Activo' : 'Inactivo' }}</span>
+        </nz-form-control>
+      </nz-form-item>
+      }
+    </form>
+  </ng-template>
+
+  <ng-template #modalFooterTpl>
+    <button nz-button nzType="default" (click)="cerrarModal()" [disabled]="saving">Cancelar</button>
+    <button nz-button nzType="primary" (click)="guardar()" [nzLoading]="saving" class="btn-d365-primary">
+      <nz-icon nzType="save" />
+      <span>Guardar</span>
+    </button>
+  </ng-template>
+</nz-modal>
+
+<!-- Modal Organigrama Dinámico Estilo Dynamics 365 -->
+<app-organigrama-modal
+  [(visible)]="organigramaVisible"
+  [departamentoId]="organigramaDepartamentoId"
+></app-organigrama-modal>

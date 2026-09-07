@@ -2,12 +2,15 @@ import {
   Component,
   inject,
   OnInit,
+  OnDestroy,
   ChangeDetectorRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { EmpleadoService } from '../../services/empleado.service';
 import {
   EmpleadoDto,
@@ -81,7 +84,8 @@ export class EmpleadosListComponent implements OnInit {
   // Definición de Columnas Visibles (Dynamics 365 Edit Columns)
   columnas = [
     { key: 'colaborador', label: 'Colaborador', visible: true, required: true },
-    { key: 'documento', label: 'Documento de Identidad', visible: true, required: false },
+    { key: 'email', label: 'Correo Electrónico', visible: true, required: false },
+    { key: 'documento', label: 'Documento', visible: true, required: false },
     { key: 'cargo', label: 'Cargo', visible: true, required: false },
     { key: 'departamento', label: 'Área', visible: true, required: false },
     { key: 'tipoContrato', label: 'Tipo de Contrato', visible: true, required: false },
@@ -103,6 +107,7 @@ export class EmpleadosListComponent implements OnInit {
 
   // Filtros
   searchTerm = '';
+  searchSubject = new Subject<string>();
   filtroEstado = 'Activo';
   filtroDepartamento: string | null = null;
 
@@ -298,8 +303,22 @@ export class EmpleadosListComponent implements OnInit {
 
 
   ngOnInit() {
+    this.searchSubject
+      .pipe(debounceTime(350), distinctUntilChanged())
+      .subscribe(() => {
+        this.cargarEmpleados();
+      });
+
     this.cargarCatalogos();
     this.cargarEmpleados();
+  }
+
+  ngOnDestroy(): void {
+    this.searchSubject.complete();
+  }
+
+  onSearchTermChange(): void {
+    this.searchSubject.next(this.searchTerm);
   }
 
   cargarCatalogos() {

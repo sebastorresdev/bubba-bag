@@ -1,0 +1,583 @@
+/* ==========================================================================
+   Dynamics 365 Hierarchy Tile View (Organigrama)
+   Compatible con Modo Claro y Modo Oscuro
+   ========================================================================== */
+
+/* Estilos de Contenedor Modal */
+.d365-hierarchy-modal-wrap .ant-modal-body {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.d365-hierarchy-modal-wrap .ant-modal-header {
+  padding: 14px 24px;
+}
+
+/* Cabecera */
+.d365-hierarchy-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.d365-hierarchy-header .header-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.d365-hierarchy-header .header-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.d365-hierarchy-header .header-subtitle {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(0, 0, 0, 0.55);
+  font-weight: 600;
+}
+
+.d365-hierarchy-header .header-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: #242424;
+  line-height: 1.2;
+}
+
+.d365-hierarchy-header .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 24px;
+}
+
+.d365-hierarchy-header .btn-d365-subtle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+/* Split View Container */
+.hierarchy-container {
+  display: flex;
+  min-height: 480px;
+  max-height: 70vh;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+  background-color: #ffffff;
+}
+
+.hierarchy-container.is-loading {
+  opacity: 0.6;
+}
+
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.6);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Sidebar Izquierdo (Árbol) */
+.hierarchy-sidebar {
+  width: 260px;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: #faf9f8;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.sidebar-header {
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.6);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-icon {
+  color: #0078d4;
+}
+
+.tree-list {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tree-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  user-select: none;
+}
+
+.tree-node:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.root-node {
+  font-weight: 600;
+  color: inherit;
+  background-color: rgba(0, 120, 212, 0.06);
+}
+
+.tree-children {
+  display: flex;
+  flex-direction: column;
+  padding-left: 20px;
+  position: relative;
+  gap: 2px;
+}
+
+.tree-children::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 0;
+  bottom: 16px;
+  width: 1px;
+  background-color: rgba(0, 0, 0, 0.15);
+}
+
+.child-node.selected {
+  background-color: #e5f1fb;
+  color: #0078d4;
+  font-weight: 600;
+}
+
+.node-icon {
+  font-size: 14px;
+  color: #0078d4;
+  display: flex;
+  align-items: center;
+}
+
+.child-icon {
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.node-label {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  line-height: 1.25;
+}
+
+.node-title {
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.node-badge {
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.node-badge.muted {
+  opacity: 0.7;
+}
+
+/* Canvas Central Diagrama */
+.hierarchy-canvas {
+  flex: 1;
+  background-color: #f3f2f1;
+  overflow: auto;
+  padding: 32px 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.diagram-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 100%;
+}
+
+/* Tarjetas D365 (Tiles) */
+.d365-tile {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1.6px 3.6px 0 rgba(0, 0, 0, 0.13), 0 0.3px 0.9px 0 rgba(0, 0, 0, 0.11);
+  border-radius: 2px;
+  padding: 14px 16px;
+  transition: all 0.15s ease;
+  user-select: none;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.root-tile {
+  width: 320px;
+  border-top: 3px solid #0078d4;
+}
+
+.child-tile {
+  width: 250px;
+  cursor: pointer;
+  border-top: 2px solid #5c2d91;
+}
+
+.child-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.child-tile.selected {
+  outline: 2px solid #0078d4;
+  border-color: #0078d4;
+  box-shadow: 0 4px 14px rgba(0, 120, 212, 0.25);
+}
+
+.tile-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tile-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cargo-avatar {
+  width: 30px;
+  height: 30px;
+  font-size: 11px;
+}
+
+.tile-heading {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tile-category {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.tile-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #242424;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.tile-divider {
+  height: 1px;
+  background-color: rgba(0, 0, 0, 0.08);
+  margin: 10px 0;
+}
+
+.tile-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.tile-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.field-icon {
+  font-size: 13px;
+  color: #0078d4;
+  flex-shrink: 0;
+}
+
+.field-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.salario-text {
+  color: #107c41;
+  font-weight: 600;
+}
+
+.tile-desc {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.08);
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.55);
+  font-style: italic;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Indicador Dot */
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.dot-active {
+  background-color: #107c41;
+}
+
+.dot-inactive {
+  background-color: #8a8886;
+}
+
+/* Conectores Visuales Jerárquicos */
+.connector-stem {
+  width: 2px;
+  height: 24px;
+  background-color: #a19f9d;
+}
+
+.connector-crossbar-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.connector-crossbar {
+  height: 2px;
+  background-color: #a19f9d;
+  width: 80%;
+  max-width: 900px;
+}
+
+.level-children {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 20px;
+  padding-top: 0;
+  justify-content: center;
+  overflow-x: auto;
+  max-width: 100%;
+  padding-bottom: 12px;
+}
+
+.child-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.connector-drop {
+  width: 2px;
+  height: 20px;
+  background-color: #a19f9d;
+}
+
+.no-cargos-box {
+  margin-top: 24px;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px dashed rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   MODO OSCURO PARA EL MODAL DE ORGANIGRAMA
+   (Se aplica directamente a través de body.dark-theme y [data-theme='dark'])
+   ========================================================================== */
+body.dark-theme .d365-hierarchy-modal-wrap .hierarchy-container,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .hierarchy-container {
+  background-color: #1a1a1a;
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .header-subtitle,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .header-subtitle {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .header-title,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .header-title {
+  color: #ffffff;
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .loading-overlay,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .loading-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* Sidebar en Modo Oscuro */
+body.dark-theme .d365-hierarchy-modal-wrap .hierarchy-sidebar,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .hierarchy-sidebar {
+  background-color: #202020;
+  border-right-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .sidebar-header,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .sidebar-header {
+  color: rgba(255, 255, 255, 0.7);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .tree-node:hover,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .tree-node:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .root-node,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .root-node {
+  background-color: rgba(40, 153, 245, 0.15);
+  color: #60b2f8;
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .tree-children::before,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .tree-children::before {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .child-node.selected,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .child-node.selected {
+  background-color: rgba(40, 153, 245, 0.22);
+  color: #60b2f8;
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .child-icon,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .child-icon {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .node-title,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .node-title {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .node-badge,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .node-badge {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* Canvas y Tarjetas en Modo Oscuro */
+body.dark-theme .d365-hierarchy-modal-wrap .hierarchy-canvas,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .hierarchy-canvas {
+  background-color: #121212;
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .d365-tile,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .d365-tile {
+  background-color: #252526;
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .child-tile.selected,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .child-tile.selected {
+  outline: 2px solid #2899f5;
+  border-color: #2899f5;
+  box-shadow: 0 4px 16px rgba(40, 153, 245, 0.35);
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .tile-category,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .tile-category {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .tile-title,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .tile-title {
+  color: #ffffff;
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .tile-divider,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .tile-divider {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .tile-field,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .tile-field {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .tile-field strong,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .tile-field strong {
+  color: #ffffff;
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .field-icon,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .field-icon {
+  color: #2899f5;
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .salario-text,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .salario-text {
+  color: #38c172;
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .tile-desc,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .tile-desc {
+  border-top-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .connector-stem,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .connector-stem,
+body.dark-theme .d365-hierarchy-modal-wrap .connector-crossbar,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .connector-crossbar,
+body.dark-theme .d365-hierarchy-modal-wrap .connector-drop,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .connector-drop {
+  background-color: #605e5c;
+}
+
+body.dark-theme .d365-hierarchy-modal-wrap .no-cargos-box,
+[data-theme='dark'] .d365-hierarchy-modal-wrap .no-cargos-box {
+  background-color: #252526;
+  border-color: rgba(255, 255, 255, 0.15);
+}

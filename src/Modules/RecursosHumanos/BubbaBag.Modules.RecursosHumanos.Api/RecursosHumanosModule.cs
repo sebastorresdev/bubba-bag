@@ -1,12 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using BubbaBag.Modules.RecursosHumanos.Application;
-using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Dtos;
-using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Features;
-using BubbaBag.Modules.RecursosHumanos.Application.Empleados.Dtos;
-using BubbaBag.Modules.RecursosHumanos.Application.Empleados.Features;
 using BubbaBag.Modules.RecursosHumanos.Infrastructure.Database;
-using BubbaBag.SharedKernel;
 using BubbaBag.SharedKernel.CQRS;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,21 +16,25 @@ public static class RecursosHumanosModule
         // Infrastructure
         services.AddScoped<IRecursosHumanosDbContext>(provider => provider.GetRequiredService<RecursosHumanosDbContext>());
 
+        // Application Assembly
+        var applicationAssembly = typeof(BubbaBag.Modules.RecursosHumanos.Application.IRecursosHumanosDbContext).Assembly;
+
         // FluentValidation
-        services.AddValidatorsFromAssembly(typeof(BubbaBag.Modules.RecursosHumanos.Application.IRecursosHumanosDbContext).Assembly);
+        services.AddValidatorsFromAssembly(applicationAssembly);
 
-        // Application (CQRS)
-        // Commands
-        services.AddScoped<ICommandHandler<CrearEmpleadoCommand, Result<Guid>>, CrearEmpleadoHandler>();
-        services.AddScoped<ICommandHandler<ActualizarEmpleadoCommand, Result<Guid>>, ActualizarEmpleadoHandler>();
-        services.AddScoped<ICommandHandler<EliminarEmpleadoCommand, Result<bool>>, EliminarEmpleadoHandler>();
-        services.AddScoped<ICommandHandler<DarDeBajaEmpleadoCommand, Result<Guid>>, DarDeBajaEmpleadoHandler>();
-        services.AddScoped<ICommandHandler<ReactivarEmpleadoCommand, Result<Guid>>, ReactivarEmpleadoHandler>();
-
-        // Queries
-        services.AddScoped<IQueryHandler<ObtenerEmpleadoQuery, Result<EmpleadoDto>>, ObtenerEmpleadoHandler>();
-        services.AddScoped<IQueryHandler<ObtenerEmpleadosQuery, Result<List<EmpleadoDto>>>, ObtenerEmpleadosHandler>();
-        services.AddScoped<IQueryHandler<ObtenerCatalogosRrhhQuery, Result<CatalogosRrhhDto>>, ObtenerCatalogosRrhhHandler>();
+        // Registrar dinámicamente todos los ICommandHandler<,> y IQueryHandler<,>
+        foreach (var type in applicationAssembly.GetTypes().Where(t => !t.IsAbstract && !t.IsInterface))
+        {
+            foreach (var iface in type.GetInterfaces())
+            {
+                if (iface.IsGenericType &&
+                    (iface.GetGenericTypeDefinition() == typeof(ICommandHandler<,>) ||
+                     iface.GetGenericTypeDefinition() == typeof(IQueryHandler<,>)))
+                {
+                    services.AddScoped(iface, type);
+                }
+            }
+        }
 
         return services;
     }

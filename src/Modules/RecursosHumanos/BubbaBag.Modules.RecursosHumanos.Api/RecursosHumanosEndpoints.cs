@@ -1,6 +1,8 @@
 using System;
 using System.Threading.Tasks;
 using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Features;
+using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Features.Cargos;
+using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Features.Departamentos;
 using BubbaBag.Modules.RecursosHumanos.Application.Empleados.Features;
 using BubbaBag.Modules.RecursosHumanos.Domain.Empleados;
 using BubbaBag.SharedKernel.CQRS;
@@ -20,6 +22,24 @@ public static class RecursosHumanosEndpoints
 
         // Catálogos
         rootGroup.MapGet("/catalogos", ObtenerCatalogos);
+
+        // Departamentos
+        var departamentosGroup = rootGroup.MapGroup("/departamentos");
+        departamentosGroup.MapGet("/", ObtenerDepartamentos);
+        departamentosGroup.MapGet("/{id:guid}", ObtenerDepartamentoPorId);
+        departamentosGroup.MapPost("/", CrearDepartamento);
+        departamentosGroup.MapPut("/{id:guid}", ActualizarDepartamento);
+        departamentosGroup.MapDelete("/{id:guid}", EliminarDepartamento);
+        departamentosGroup.MapPatch("/{id:guid}/estado", CambiarEstadoDepartamento);
+
+        // Cargos
+        var cargosGroup = rootGroup.MapGroup("/cargos");
+        cargosGroup.MapGet("/", ObtenerCargos);
+        cargosGroup.MapGet("/{id:guid}", ObtenerCargoPorId);
+        cargosGroup.MapPost("/", CrearCargo);
+        cargosGroup.MapPut("/{id:guid}", ActualizarCargo);
+        cargosGroup.MapDelete("/{id:guid}", EliminarCargo);
+        cargosGroup.MapPatch("/{id:guid}/estado", CambiarEstadoCargo);
 
         // Empleados
         var empleadosGroup = rootGroup.MapGroup("/empleados");
@@ -133,6 +153,157 @@ public static class RecursosHumanosEndpoints
         }
         return Results.NoContent();
     }
+
+    // Departamentos
+    private static async Task<IResult> ObtenerDepartamentos(
+        IDispatcher dispatcher,
+        string? searchTerm,
+        bool? activo)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerDepartamentosQuery(activo, searchTerm));
+        return Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> ObtenerDepartamentoPorId(
+        IDispatcher dispatcher,
+        Guid id)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerDepartamentoPorIdQuery(id));
+        if (result.IsFailure)
+        {
+            return Results.NotFound(new BubbaBag.SharedKernel.Http.ErrorResponse(404, "Departamento no encontrado", result.Error));
+        }
+        return Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> CrearDepartamento(
+        IDispatcher dispatcher,
+        CrearDepartamentoCommand command)
+    {
+        var result = await dispatcher.SendAsync(command);
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Inconsistencia de negocio", result.Error));
+        }
+        return Results.Created($"/api/rrhh/departamentos/{result.Value}", result.Value);
+    }
+
+    private static async Task<IResult> ActualizarDepartamento(
+        IDispatcher dispatcher,
+        Guid id,
+        ActualizarDepartamentoRequest request)
+    {
+        var command = new ActualizarDepartamentoCommand(id, request.Nombre, request.Descripcion, request.Activo);
+        var result = await dispatcher.SendAsync(command);
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Inconsistencia de negocio", result.Error));
+        }
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> EliminarDepartamento(
+        IDispatcher dispatcher,
+        Guid id)
+    {
+        var result = await dispatcher.SendAsync(new EliminarDepartamentoCommand(id));
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Operación no permitida", result.Error));
+        }
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> CambiarEstadoDepartamento(
+        IDispatcher dispatcher,
+        Guid id,
+        CambiarEstadoCatalogoRequest request)
+    {
+        var result = await dispatcher.SendAsync(new CambiarEstadoDepartamentoCommand(id, request.Activo));
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Error al cambiar estado", result.Error));
+        }
+        return Results.Ok(new { Id = result.Value, Mensaje = "Estado del departamento actualizado exitosamente." });
+    }
+
+    // Cargos
+    private static async Task<IResult> ObtenerCargos(
+        IDispatcher dispatcher,
+        Guid? departamentoId,
+        string? searchTerm,
+        bool? activo)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerCargosQuery(departamentoId, activo, searchTerm));
+        return Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> ObtenerCargoPorId(
+        IDispatcher dispatcher,
+        Guid id)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerCargoPorIdQuery(id));
+        if (result.IsFailure)
+        {
+            return Results.NotFound(new BubbaBag.SharedKernel.Http.ErrorResponse(404, "Cargo no encontrado", result.Error));
+        }
+        return Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> CrearCargo(
+        IDispatcher dispatcher,
+        CrearCargoCommand command)
+    {
+        var result = await dispatcher.SendAsync(command);
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Inconsistencia de negocio", result.Error));
+        }
+        return Results.Created($"/api/rrhh/cargos/{result.Value}", result.Value);
+    }
+
+    private static async Task<IResult> ActualizarCargo(
+        IDispatcher dispatcher,
+        Guid id,
+        ActualizarCargoRequest request)
+    {
+        var command = new ActualizarCargoCommand(id, request.Nombre, request.DepartamentoId, request.SalarioReferencial, request.Activo);
+        var result = await dispatcher.SendAsync(command);
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Inconsistencia de negocio", result.Error));
+        }
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> EliminarCargo(
+        IDispatcher dispatcher,
+        Guid id)
+    {
+        var result = await dispatcher.SendAsync(new EliminarCargoCommand(id));
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Operación no permitida", result.Error));
+        }
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> CambiarEstadoCargo(
+        IDispatcher dispatcher,
+        Guid id,
+        CambiarEstadoCatalogoRequest request)
+    {
+        var result = await dispatcher.SendAsync(new CambiarEstadoCargoCommand(id, request.Activo));
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Error al cambiar estado", result.Error));
+        }
+        return Results.Ok(new { Id = result.Value, Mensaje = "Estado del cargo actualizado exitosamente." });
+    }
 }
 
 public record DarDeBajaRequest(DateOnly FechaCese, string MotivoCese, string? ObservacionesCese);
+public record ActualizarDepartamentoRequest(string Nombre, string? Descripcion, bool Activo = true);
+public record ActualizarCargoRequest(string Nombre, Guid DepartamentoId, decimal? SalarioReferencial, bool Activo = true);
+public record CambiarEstadoCatalogoRequest(bool Activo);
+
