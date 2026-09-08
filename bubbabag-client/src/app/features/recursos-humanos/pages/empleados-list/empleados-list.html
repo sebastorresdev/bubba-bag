@@ -125,7 +125,7 @@
             <th>Cargo</th>
           }
           @if (isColVisible('departamento')) {
-            <th>Área</th>
+            <th>Departamento</th>
           }
           @if (isColVisible('tipoContrato')) {
             <th>Tipo Contrato</th>
@@ -249,12 +249,12 @@
   <ng-container *nzDrawerContent>
     <div class="drawer-filter-body">
       <div class="drawer-field-group">
-        <label class="drawer-field-label">Departamento / Área</label>
+        <label class="drawer-field-label">Departamento</label>
         <nz-select
           [(ngModel)]="filtroDepartamento"
           (ngModelChange)="cargarEmpleados()"
           nzAllowClear
-          nzPlaceHolder="Todas las áreas"
+          nzPlaceHolder="Todos los departamentos"
           class="full-width"
         >
           @for (d of departamentos; track d.id) {

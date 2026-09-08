@@ -68,7 +68,7 @@
           </span>
           <nz-divider nzType="vertical" />
           <span [class.meta-muted]="!departamentoSeleccionadoNombre">
-            {{ departamentoSeleccionadoNombre || 'Área sin asignar' }}
+            {{ departamentoSeleccionadoNombre || 'Departamento sin asignar' }}
           </span>
           @if (form.get('tipoContrato')?.value) {
             <nz-divider nzType="vertical" />
@@ -317,13 +317,13 @@
 
             <div class="card-form-grid">
               <nz-form-item class="col-span-full">
-                <nz-form-label nzFor="departamentoId">Área</nz-form-label>
+                <nz-form-label nzFor="departamentoId">Departamento</nz-form-label>
                 <nz-form-control>
                   <nz-select
                     formControlName="departamentoId"
                     id="departamentoId"
                     (ngModelChange)="onDepartamentoChange($event)"
-                    nzPlaceHolder="Seleccionar área"
+                    nzPlaceHolder="Seleccionar departamento"
                     nzAllowClear
                   >
                     @for (d of departamentos; track d.id) {
@@ -340,7 +340,7 @@
                     formControlName="cargoId"
                     id="cargoId"
                     [nzDisabled]="cargosFiltrados.length === 0"
-                    [nzPlaceHolder]="cargosFiltrados.length === 0 ? 'Selecciona un área primero' : 'Seleccionar cargo'"
+                    [nzPlaceHolder]="cargosFiltrados.length === 0 ? 'Selecciona un departamento primero' : 'Seleccionar cargo'"
                     nzAllowClear
                   >
                     @for (c of cargosFiltrados; track c.id) {
