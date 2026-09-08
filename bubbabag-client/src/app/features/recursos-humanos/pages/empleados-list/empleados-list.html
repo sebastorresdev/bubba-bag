@@ -98,9 +98,9 @@
       #basicTable
       [nzData]="empleados"
       [nzLoading]="loading"
-      [nzFrontPagination]="false"
-      [nzShowPagination]="false"
-      nzSize="middle"
+      [nzShowPagination]="true"
+      [nzPageSize]="15"
+      nzSize="small"
       (nzCurrentPageDataChange)="onCurrentPageDataChange($event)"
     >
       <thead>
@@ -194,16 +194,6 @@
         }
       </tbody>
     </nz-table>
-
-    <!-- Barra de Estado inferior (Footer de conteo) -->
-    <div class="table-statusbar">
-      <div>
-        @if (setOfCheckedId.size > 0) {
-          <span class="selected-indicator">{{ setOfCheckedId.size }} seleccionados • </span>
-        }
-        <span>Total: {{ empleados.length }} colaboradores</span>
-      </div>
-    </div>
   </nz-card>
 </div>
 

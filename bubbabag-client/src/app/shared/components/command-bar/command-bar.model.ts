@@ -5,11 +5,13 @@ export interface CommandBarItem {
   label?: string;
   /** Nombre del icono de NG-ZORRO (ej. 'plus', 'delete', 'reload', etc.) */
   icon?: string;
+  /** Color específico del icono (ej. '#0078d4', '#107c41', '#d13438') */
+  iconColor?: string;
   /** Si es true, solo muestra el icono sin texto */
   iconOnly?: boolean;
-  /** Si es true, se renderiza con el estilo de acción primaria (fondo azul D365) */
+  /** Si es true, se renderiza con el estilo de acción primaria */
   primary?: boolean;
-  /** Si es true, se renderiza con estilo destructivo (rojo tenue) */
+  /** Si es true, marca una acción destructiva */
   danger?: boolean;
   /** Si está deshabilitado */
   disabled?: boolean;

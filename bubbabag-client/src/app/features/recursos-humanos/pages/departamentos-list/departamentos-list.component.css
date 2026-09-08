@@ -343,16 +343,3 @@
   font-weight: 500;
   font-size: 13px;
 }
-
-.btn-d365-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background-color: #0078d4;
-  border-color: #0078d4;
-}
-
-.btn-d365-primary:hover {
-  background-color: #106ebe;
-  border-color: #106ebe;
-}

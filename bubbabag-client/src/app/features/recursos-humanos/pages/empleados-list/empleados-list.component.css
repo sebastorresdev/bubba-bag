@@ -91,7 +91,6 @@
 .filter-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
   height: 32px;
   padding: 0 10px;
   font-size: 13px;

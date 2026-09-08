@@ -50,4 +50,32 @@ export class CommandBarComponent {
   onBackClick(): void {
     this.back.emit();
   }
+
+  getIconColor(item: CommandBarItem): string | null {
+    if (item.disabled) return null;
+    if (item.iconColor) return item.iconColor;
+    if (item.danger) return '#d13438';
+    if (item.primary) return '#0078d4';
+
+    switch (item.icon) {
+      case 'plus':
+      case 'save':
+      case 'edit':
+      case 'reload':
+      case 'filter':
+      case 'search':
+        return '#0078d4';
+      case 'check':
+      case 'check-circle':
+      case 'file-excel':
+        return '#107c41';
+      case 'delete':
+      case 'user-delete':
+        return '#d13438';
+      case 'close':
+        return '#605e5c';
+      default:
+        return null;
+    }
+  }
 }

@@ -158,7 +158,6 @@ export class CargosListComponent implements OnInit {
         key: 'nuevo',
         label: 'Nuevo',
         icon: 'plus',
-        primary: true,
         execute: () => this.abrirModalCrear(),
       },
       {
@@ -217,14 +216,7 @@ export class CargosListComponent implements OnInit {
   }
 
   get farItems(): CommandBarItem[] {
-    return [
-      {
-        key: 'conteo',
-        label: `${this.cargos.length} cargos`,
-        icon: 'solution',
-        disabled: true,
-      },
-    ];
+    return [];
   }
 
   cargarDepartamentos(): void {

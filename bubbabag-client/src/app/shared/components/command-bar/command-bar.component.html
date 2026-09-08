@@ -23,7 +23,7 @@
       [class.fluent-cmd-btn-danger]="item.danger" [disabled]="item.disabled" nz-dropdown [nzDropdownMenu]="itemMenu"
       nzPlacement="bottomLeft" nzTrigger="click" [title]="item.tooltip || ''">
       @if (item.icon) {
-      <nz-icon [nzType]="item.icon" class="fluent-cmd-icon" />
+      <nz-icon [nzType]="item.icon" class="fluent-cmd-icon" [style.color]="getIconColor(item)" />
       }
       @if (!item.iconOnly && item.label) {
       <span class="fluent-cmd-label">{{ item.label }}</span>
@@ -41,7 +41,7 @@
         <li nz-menu-item [nzDisabled]="sub.disabled" (click)="onItemClick(sub)"
           [class.fluent-menu-item-danger]="sub.danger" [title]="sub.tooltip || ''">
           @if (sub.icon) {
-          <nz-icon [nzType]="sub.icon" />
+          <nz-icon [nzType]="sub.icon" [style.color]="getIconColor(sub)" />
           }
           <span>{{ sub.label }}</span>
         </li>
@@ -56,7 +56,7 @@
       [class.fluent-cmd-btn-danger]="item.danger" [disabled]="item.disabled" (click)="onItemClick(item)"
       [title]="item.tooltip || ''">
       @if (item.icon) {
-      <nz-icon [nzType]="item.icon" class="fluent-cmd-icon" />
+      <nz-icon [nzType]="item.icon" class="fluent-cmd-icon" [style.color]="getIconColor(item)" />
       }
       @if (!item.iconOnly && item.label) {
       <span class="fluent-cmd-label">{{ item.label }}</span>
@@ -78,7 +78,7 @@
       [class.fluent-cmd-btn-danger]="item.danger" [disabled]="item.disabled" nz-dropdown [nzDropdownMenu]="farMenu"
       nzPlacement="bottomRight" nzTrigger="click" [title]="item.tooltip || ''">
       @if (item.icon) {
-      <nz-icon [nzType]="item.icon" class="fluent-cmd-icon" />
+      <nz-icon [nzType]="item.icon" class="fluent-cmd-icon" [style.color]="getIconColor(item)" />
       }
       @if (!item.iconOnly && item.label) {
       <span class="fluent-cmd-label">{{ item.label }}</span>
@@ -96,7 +96,7 @@
         <li nz-menu-item [nzDisabled]="sub.disabled" (click)="onItemClick(sub)"
           [class.fluent-menu-item-danger]="sub.danger" [title]="sub.tooltip || ''">
           @if (sub.icon) {
-          <nz-icon [nzType]="sub.icon" />
+          <nz-icon [nzType]="sub.icon" [style.color]="getIconColor(sub)" />
           }
           <span>{{ sub.label }}</span>
         </li>
@@ -110,7 +110,7 @@
       [class.fluent-cmd-btn-danger]="item.danger" [disabled]="item.disabled" (click)="onItemClick(item)"
       [title]="item.tooltip || ''">
       @if (item.icon) {
-      <nz-icon [nzType]="item.icon" class="fluent-cmd-icon" />
+      <nz-icon [nzType]="item.icon" class="fluent-cmd-icon" [style.color]="getIconColor(item)" />
       }
       @if (!item.iconOnly && item.label) {
       <span class="fluent-cmd-label">{{ item.label }}</span>

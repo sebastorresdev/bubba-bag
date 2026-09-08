@@ -53,27 +53,63 @@
       </div>
 
       <div class="record-title-block">
-        <div class="record-title-row">
-          <h1 class="record-title">
-            {{
-              isEdit
-                ? ((form.get('nombres')?.value || '') + ' ' + (form.get('apellidos')?.value || ''))
-                : 'Nuevo Colaborador'
-            }}
-          </h1>
-          @if (isEdit && form.get('numeroDocumento')?.value) {
-            <span class="record-id-badge">
-              {{ form.get('tipoDocumento')?.value }}: {{ form.get('numeroDocumento')?.value }}
-            </span>
+        <h1 class="record-title">
+          {{
+            isEdit
+              ? ((form.get('nombres')?.value || '') + ' ' + (form.get('apellidos')?.value || ''))
+              : 'Nuevo Colaborador'
+          }}
+        </h1>
+
+        <!-- Información Laboral (Estilo Microsoft Dynamics 365 con separadores verticales sin iconos) -->
+        <div class="record-metadata-row">
+          <span [class.meta-muted]="!cargoSeleccionadoNombre">
+            {{ cargoSeleccionadoNombre || 'Cargo sin asignar' }}
+          </span>
+          <nz-divider nzType="vertical" />
+          <span [class.meta-muted]="!departamentoSeleccionadoNombre">
+            {{ departamentoSeleccionadoNombre || 'Área sin asignar' }}
+          </span>
+          @if (form.get('tipoContrato')?.value) {
+            <nz-divider nzType="vertical" />
+            <span>{{ form.get('tipoContrato')?.value }}</span>
           }
         </div>
-        <div class="record-subtitle">
-          <span>{{ cargoSeleccionadoNombre || 'Puesto no asignado' }}</span>
-          <span class="sep">•</span>
-          <span>{{ departamentoSeleccionadoNombre || 'Área no asignada' }}</span>
-          @if (isEdit && empleadoActual?.email) {
-            <span class="sep">•</span>
-            <span>{{ empleadoActual?.email }}</span>
+
+        <!-- Acciones rápidas de Contacto (Iconos discretos Dynamics 365 con redirección y title nativo) -->
+        <div class="record-quick-actions">
+          @if (emailEmpleado) {
+            <a
+              [href]="'mailto:' + emailEmpleado"
+              class="quick-action-icon"
+              [title]="emailEmpleado + ' (Clic para enviar correo)'"
+            >
+              <nz-icon nzType="mail" />
+            </a>
+          } @else {
+            <span
+              class="quick-action-icon disabled"
+              title="Sin correo electrónico registrado"
+            >
+              <nz-icon nzType="mail" />
+            </span>
+          }
+
+          @if (telefonoEmpleado) {
+            <a
+              [href]="'tel:' + telefonoEmpleado"
+              class="quick-action-icon"
+              [title]="telefonoEmpleado + ' (Clic para llamar)'"
+            >
+              <nz-icon nzType="phone" />
+            </a>
+          } @else {
+            <span
+              class="quick-action-icon disabled"
+              title="Sin teléfono registrado"
+            >
+              <nz-icon nzType="phone" />
+            </span>
           }
         </div>
       </div>
@@ -275,13 +311,13 @@
             <ng-template #organizativaTitle>
               <div class="card-header-content">
                 <nz-icon nzType="team" class="card-header-icon" />
-                <span>Estructura Organizativa y Puesto</span>
+                <span>Estructura Organizativa</span>
               </div>
             </ng-template>
 
             <div class="card-form-grid">
               <nz-form-item class="col-span-full">
-                <nz-form-label nzFor="departamentoId">Área o Departamento</nz-form-label>
+                <nz-form-label nzFor="departamentoId">Área</nz-form-label>
                 <nz-form-control>
                   <nz-select
                     formControlName="departamentoId"
@@ -298,7 +334,7 @@
               </nz-form-item>
 
               <nz-form-item class="col-span-full">
-                <nz-form-label nzFor="cargoId">Cargo o Puesto</nz-form-label>
+                <nz-form-label nzFor="cargoId">Cargo</nz-form-label>
                 <nz-form-control>
                   <nz-select
                     formControlName="cargoId"

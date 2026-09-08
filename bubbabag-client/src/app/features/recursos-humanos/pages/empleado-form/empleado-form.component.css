@@ -136,47 +136,102 @@
 .record-title-block {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-}
-
-.record-title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 5px;
 }
 
 .record-title {
   font-size: 20px;
   font-weight: 600;
+  color: #201f1e;
   margin: 0;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
-.record-id-badge {
-  font-size: 12px;
-  font-weight: 600;
-  font-family: monospace;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background-color: rgba(0, 0, 0, 0.06);
+:host-context([data-theme='dark']) .record-title,
+:host-context(.dark-theme) .record-title {
+  color: #f3f2f1;
 }
 
-:host-context([data-theme='dark']) .record-id-badge,
-:host-context(.dark-theme) .record-id-badge {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.record-subtitle {
-  font-size: 13px;
-  opacity: 0.7;
+.record-metadata-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  font-size: 13px;
+  color: #605e5c;
+  line-height: 1.4;
+  flex-wrap: wrap;
 }
 
-.record-subtitle .sep {
-  opacity: 0.4;
+.record-metadata-row nz-divider {
+  margin: 0 8px;
+  height: 12px;
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+:host-context([data-theme='dark']) .record-metadata-row nz-divider,
+:host-context(.dark-theme) .record-metadata-row nz-divider {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.record-metadata-row .meta-muted {
+  color: #a19f9d;
+}
+
+:host-context([data-theme='dark']) .record-metadata-row,
+:host-context(.dark-theme) .record-metadata-row {
+  color: #c8c6c4;
+}
+
+:host-context([data-theme='dark']) .record-metadata-row .meta-muted,
+:host-context(.dark-theme) .record-metadata-row .meta-muted {
+  color: #797775;
+}
+
+/* Acciones rápidas de Contacto (Dynamics 365 Icon Actions con alineación perfecta) */
+.record-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.quick-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  color: #605e5c;
+  text-decoration: none;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 0;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.quick-action-icon:hover {
+  color: #0078d4;
+  transform: scale(1.15);
+}
+
+.quick-action-icon.disabled {
+  color: #c8c6c4;
+  cursor: default;
+  opacity: 0.6;
+  transform: none;
+}
+
+:host-context([data-theme='dark']) .quick-action-icon,
+:host-context(.dark-theme) .quick-action-icon {
+  color: #a19f9d;
+}
+
+:host-context([data-theme='dark']) .quick-action-icon:hover,
+:host-context(.dark-theme) .quick-action-icon:hover {
+  color: #2886de;
+}
+
+:host-context([data-theme='dark']) .quick-action-icon.disabled,
+:host-context(.dark-theme) .quick-action-icon.disabled {
+  color: #484644;
 }
 
 /* Indicadores Métricos del Encabezado (KPIs superiores) */

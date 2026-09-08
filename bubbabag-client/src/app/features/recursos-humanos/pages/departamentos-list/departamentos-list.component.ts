@@ -145,7 +145,6 @@ export class DepartamentosListComponent implements OnInit {
         key: 'nuevo',
         label: 'Nuevo',
         icon: 'plus',
-        primary: true,
         execute: () => this.abrirModalCrear(),
       },
       {
@@ -215,14 +214,7 @@ export class DepartamentosListComponent implements OnInit {
   }
 
   get farItems(): CommandBarItem[] {
-    return [
-      {
-        key: 'conteo',
-        label: `${this.departamentos.length} departamentos`,
-        icon: 'apartment',
-        disabled: true,
-      },
-    ];
+    return [];
   }
 
   cargarDepartamentos(targetId?: string): void {

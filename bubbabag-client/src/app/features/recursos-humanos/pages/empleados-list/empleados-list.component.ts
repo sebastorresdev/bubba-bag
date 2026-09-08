@@ -247,18 +247,18 @@ export class EmpleadosListComponent implements OnInit {
         tooltip: 'Importar colaboradores desde archivo externo',
         execute: () => this.message.info('La importación masiva estará disponible próximamente.'),
       },
+      { key: 'd2', isDivider: true },
+      {
+        key: 'refresh',
+        label: 'Actualizar',
+        icon: 'reload',
+        tooltip: 'Recargar lista de colaboradores',
+        execute: () => this.cargarEmpleados(),
+      },
     ];
   }
 
-  farItems: CommandBarItem[] = [
-    {
-      key: 'refresh',
-      label: 'Actualizar',
-      icon: 'reload',
-      tooltip: 'Recargar lista de colaboradores',
-      execute: () => this.cargarEmpleados(),
-    },
-  ];
+  farItems: CommandBarItem[] = [];
 
   seleccionarEmpleado(emp: EmpleadoDto) {
     if (this.selectedEmpleado?.id === emp.id) {

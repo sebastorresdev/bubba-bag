@@ -47,7 +47,6 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   height: 32px;
   padding: 0 10px;
   border-radius: 4px;
@@ -82,31 +81,23 @@
   padding: 0 8px;
 }
 
-/* Botón Primario (Acción destacada tipo Dynamics: + Nuevo, Guardar) */
-.fluent-cmd-btn-primary {
-  background-color: var(--ant-primary-color, #0078d4) !important;
-  color: #ffffff !important;
-  font-weight: 600;
+/* Botón Primario y Destructivo: en la barra de comandos nunca cambian el fondo ni el texto */
+.fluent-cmd-btn-primary,
+.fluent-cmd-btn-danger {
+  background: transparent !important;
+  color: #323130 !important;
+  font-weight: 500;
 }
 
-.fluent-cmd-btn-primary:hover:not(:disabled) {
-  background-color: var(--ant-primary-color-hover, #106ebe) !important;
-  color: #ffffff !important;
-}
-
-.fluent-cmd-btn-primary:active:not(:disabled) {
-  background-color: var(--ant-primary-color-active, #005a9e) !important;
-}
-
-.fluent-cmd-btn-primary:disabled {
-  background-color: #f3f2f1 !important;
-  color: #a19f9d !important;
-}
-
-/* Botón Peligroso / Destructivo (Eliminar) */
+.fluent-cmd-btn-primary:hover:not(:disabled),
 .fluent-cmd-btn-danger:hover:not(:disabled) {
-  background-color: #fde7e9 !important;
-  color: #a80000 !important;
+  background-color: #f3f2f1 !important;
+  color: #201f1e !important;
+}
+
+.fluent-cmd-btn-primary:active:not(:disabled),
+.fluent-cmd-btn-danger:active:not(:disabled) {
+  background-color: #edebe9 !important;
 }
 
 /* Íconos dentro del botón */
@@ -177,13 +168,11 @@
   background-color: #383838;
 }
 
-:host-context([data-theme='dark']) .fluent-cmd-btn:disabled,
-:host-context(.dark-theme) .fluent-cmd-btn:disabled {
-  color: #797775 !important;
+.fluent-cmd-btn:disabled .fluent-cmd-icon {
+  color: #a19f9d !important;
 }
 
-:host-context([data-theme='dark']) .fluent-cmd-btn-danger:hover:not(:disabled),
-:host-context(.dark-theme) .fluent-cmd-btn-danger:hover:not(:disabled) {
-  background-color: rgba(209, 52, 56, 0.2) !important;
-  color: #f1707b !important;
+:host-context([data-theme='dark']) .fluent-cmd-btn:disabled .fluent-cmd-icon,
+:host-context(.dark-theme) .fluent-cmd-btn:disabled .fluent-cmd-icon {
+  color: #797775 !important;
 }

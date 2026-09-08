@@ -29,6 +29,7 @@ import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzTabsModule } from 'ng-zorro-antd/tabs';
 import { NzModalModule } from 'ng-zorro-antd/modal';
+import { NzDividerModule } from 'ng-zorro-antd/divider';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
 @Component({
@@ -52,6 +53,7 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzAvatarModule,
     NzTabsModule,
     NzModalModule,
+    NzDividerModule,
     CommandBarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Default,
@@ -233,14 +235,28 @@ export class EmpleadoFormComponent implements OnInit {
 
   get departamentoSeleccionadoNombre(): string {
     const id = this.form?.get('departamentoId')?.value;
-    if (!id) return '';
-    return this.departamentos.find((d) => d.id === id)?.nombre || '';
+    if (!id) return this.empleadoActual?.departamentoNombre || '';
+    return this.departamentos.find((d) => d.id === id)?.nombre || this.empleadoActual?.departamentoNombre || '';
   }
 
   get cargoSeleccionadoNombre(): string {
     const id = this.form?.get('cargoId')?.value;
-    if (!id) return '';
-    return this.cargosFiltrados.find((c) => c.id === id)?.nombre || '';
+    if (!id) return this.empleadoActual?.cargoNombre || '';
+    const fromList = this.cargosFiltrados.find((c) => c.id === id)?.nombre;
+    if (fromList) return fromList;
+    for (const d of this.departamentos) {
+      const c = d.cargos?.find((x) => x.id === id);
+      if (c) return c.nombre;
+    }
+    return this.empleadoActual?.cargoNombre || '';
+  }
+
+  get emailEmpleado(): string {
+    return this.form?.get('email')?.value || this.empleadoActual?.email || '';
+  }
+
+  get telefonoEmpleado(): string {
+    return this.form?.get('telefono')?.value || this.empleadoActual?.telefono || '';
   }
 
   getEstadoDotClass(estado?: string): string {
