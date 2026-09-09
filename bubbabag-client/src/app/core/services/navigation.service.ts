@@ -2,6 +2,7 @@ import { Injectable, inject, computed } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs/operators';
+import { AuthService } from './auth.service';
 
 export interface NavItem {
   title: string;
@@ -9,6 +10,7 @@ export interface NavItem {
   path?: string;
   matchPrefix?: boolean;
   open?: boolean;
+  requiredRoles?: string[];
   children?: NavItem[];
 }
 
@@ -21,6 +23,7 @@ export interface ErpModule {
   icon: string;
   basePath: string;
   searchPlaceholder: string;
+  requiredRoles?: string[];
   items: NavItem[];
 }
 
@@ -29,6 +32,7 @@ export interface ErpModule {
 })
 export class NavigationService {
   private router = inject(Router);
+  private authService = inject(AuthService);
 
   // Catálogo de módulos empresariales:
   // - Ítem solo (nivel 1): Tiene icono propio.
@@ -41,6 +45,7 @@ export class NavigationService {
       icon: 'team',
       basePath: '/rrhh',
       searchPlaceholder: 'Buscar colaboradores, contratos, legajos...',
+      requiredRoles: ['SuperAdmin', 'Gerencia', 'RrhhAdmin', 'RrhhAsistente'],
       items: [
         // 1. Ítems solos (con icono)
         {
@@ -79,6 +84,7 @@ export class NavigationService {
           title: 'Nómina y Pagos',
           icon: 'dollar',
           open: false,
+          requiredRoles: ['SuperAdmin', 'Gerencia', 'RrhhAdmin'],
           children: [
             { title: 'Planilla Mensual', path: '/rrhh/planilla' },
             { title: 'Boletas de Pago', path: '/rrhh/boletas' },
@@ -104,6 +110,7 @@ export class NavigationService {
       icon: 'shopping-cart',
       basePath: '/ventas',
       searchPlaceholder: 'Buscar productos, clientes, pedidos...',
+      requiredRoles: ['SuperAdmin', 'Gerencia', 'VentasAdmin'],
       items: [
         { title: 'Punto de Venta (POS)', icon: 'shop', path: '/ventas/pos' },
         { title: 'Pedidos y Cotizaciones', icon: 'file-text', path: '/ventas/pedidos' },
@@ -134,6 +141,7 @@ export class NavigationService {
       icon: 'database',
       basePath: '/inventario',
       searchPlaceholder: 'Buscar en Inventario...',
+      requiredRoles: ['SuperAdmin', 'Gerencia', 'InventarioAdmin'],
       items: [
         { title: 'Control de Stock', icon: 'database', path: '/inventario/stock' },
         {
@@ -164,6 +172,7 @@ export class NavigationService {
       icon: 'dollar',
       basePath: '/finanzas',
       searchPlaceholder: 'Buscar cuentas, movimientos...',
+      requiredRoles: ['SuperAdmin', 'Gerencia', 'FinanzasAdmin'],
       items: [
         { title: 'Flujo de Caja', icon: 'fund', path: '/finanzas/flujo' },
         {
@@ -177,7 +186,39 @@ export class NavigationService {
         },
       ],
     },
+    {
+      id: 'configuracion',
+      title: 'Configuración y Seguridad',
+      shortCode: 'CF',
+      icon: 'setting',
+      basePath: '/configuracion',
+      searchPlaceholder: 'Buscar usuarios, roles del sistema...',
+      requiredRoles: ['SuperAdmin', 'Gerencia'],
+      items: [
+        {
+          title: 'Gestión de Accesos',
+          icon: 'lock',
+          open: true,
+          children: [
+            { title: 'Usuarios del Sistema', path: '/configuracion/usuarios' },
+          ],
+        },
+      ],
+    },
   ];
+
+  // Módulos visibles filtrados según los roles del usuario autenticado
+  readonly visibleModules = computed(() => {
+    const user = this.authService.currentUser();
+    if (!user) return [];
+    if (this.authService.isSuperAdmin()) {
+      return this.modules;
+    }
+    return this.modules.filter((m) => {
+      if (!m.requiredRoles || m.requiredRoles.length === 0) return true;
+      return m.requiredRoles.some((r) => user.roles.includes(r));
+    });
+  });
 
   // Señal reactiva sincronizada con los cambios de URL
   private currentUrlSignal = toSignal(
@@ -192,11 +233,33 @@ export class NavigationService {
   readonly currentModule = computed(() => {
     const url = this.currentUrlSignal() || '';
     const found = this.modules.find((m) => url.startsWith(m.basePath));
-    return found || this.modules[0];
+    return found || this.visibleModules()[0] || this.modules[0];
   });
 
   // Navegar a un módulo
   switchToModule(module: ErpModule) {
     this.router.navigate([module.basePath]);
+  }
+
+  // Filtrar ítems de la barra lateral del módulo según los roles del usuario
+  getVisibleItems(module: ErpModule): NavItem[] {
+    const user = this.authService.currentUser();
+    if (!user) return [];
+    if (this.authService.isSuperAdmin()) return module.items;
+
+    return module.items
+      .filter((item) => {
+        if (!item.requiredRoles || item.requiredRoles.length === 0) return true;
+        return item.requiredRoles.some((r) => user.roles.includes(r));
+      })
+      .map((item) => {
+        if (!item.children || item.children.length === 0) return item;
+        const visibleChildren = item.children.filter((child) => {
+          if (!child.requiredRoles || child.requiredRoles.length === 0) return true;
+          return child.requiredRoles.some((r) => user.roles.includes(r));
+        });
+        return { ...item, children: visibleChildren };
+      })
+      .filter((item) => !item.children || item.children.length > 0);
   }
 }

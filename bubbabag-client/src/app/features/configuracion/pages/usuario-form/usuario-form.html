@@ -1,0 +1,191 @@
+<!-- Barra de Comandos Superior (Estilo Dynamics 365) -->
+<app-command-bar
+  [items]="commandBarItems"
+  [farItems]="farItems"
+  [showBack]="true"
+  (back)="volver()"
+></app-command-bar>
+
+<div class="usuario-form-view">
+  <!-- Cabecera de Registro Dynamics 365 -->
+  <div class="d365-record-header">
+    <div class="record-header-main">
+      <div class="record-avatar-container">
+        <nz-avatar [nzSize]="56" [nzText]="getIniciales()" class="record-avatar"></nz-avatar>
+      </div>
+
+      <div class="record-title-block">
+        <h1 class="record-title">
+          @if (isEdit) {
+            {{ usuarioActual?.nombreCompleto || (loading ? 'Cargando información...' : '') }}
+          } @else {
+            Nuevo Usuario
+          }
+        </h1>
+        <div class="record-subtitle">
+          <span>{{ isEdit ? (usuarioActual?.email || (loading ? 'Obteniendo datos del servidor...' : '')) : 'Gestión de Credenciales y Accesos' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Indicador de Estado del Registro -->
+    <div class="record-header-kpis">
+      <div class="kpi-item">
+        <span class="kpi-label">Estado</span>
+        <div class="status-cell">
+          <span
+            class="status-dot"
+            [class.dot-active]="form.get('esActivo')?.value"
+            [class.dot-inactive]="!form.get('esActivo')?.value"
+          ></span>
+          <span class="status-text">
+            {{ form.get('esActivo')?.value ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenido del Formulario -->
+  <nz-spin [nzSpinning]="isEdit && loading && !usuarioActual" nzTip="Cargando datos del usuario..." [nzDelay]="150">
+    <div class="form-content-wrapper">
+    <form nz-form [formGroup]="form" nzLayout="vertical">
+      <div class="form-grid-layout">
+        
+        <!-- Tarjeta 1: Información General del Usuario -->
+        <nz-card [nzBordered]="true" class="d365-card">
+          <div class="card-section-header">
+            <nz-icon nzType="user" class="section-icon" />
+            <span class="section-title">Información de la Cuenta</span>
+          </div>
+
+          <div nz-row [nzGutter]="24">
+            <div nz-col [nzSpan]="24">
+              <nz-form-item>
+                <nz-form-label nzRequired>Nombre Completo</nz-form-label>
+                <nz-form-control nzErrorTip="Ingrese el nombre completo del usuario.">
+                  <input
+                    nz-input
+                    formControlName="nombreCompleto"
+                    placeholder="Ej. Juan Carlos Pérez Ramos"
+                  />
+                </nz-form-control>
+              </nz-form-item>
+            </div>
+
+            <div nz-col [nzSpan]="24">
+              <nz-form-item>
+                <nz-form-label nzRequired>Correo Electrónico (Login)</nz-form-label>
+                <nz-form-control nzErrorTip="Ingrese un correo electrónico corporativo válido.">
+                  <input
+                    nz-input
+                    type="email"
+                    formControlName="email"
+                    placeholder="usuario@empresa.com"
+                  />
+                </nz-form-control>
+              </nz-form-item>
+            </div>
+
+            @if (!isEdit) {
+              <div nz-col [nzSpan]="24">
+                <nz-form-item>
+                  <nz-form-label nzRequired>Contraseña Inicial</nz-form-label>
+                  <nz-form-control nzErrorTip="La contraseña debe tener mínimo 6 caracteres.">
+                    <input
+                      nz-input
+                      type="password"
+                      formControlName="password"
+                      placeholder="Mínimo 6 caracteres"
+                    />
+                  </nz-form-control>
+                </nz-form-item>
+              </div>
+            }
+          </div>
+        </nz-card>
+
+        <!-- Tarjeta 2: Asignación de Roles del Sistema (Exclusión mutua: 1 rol por módulo) -->
+        <nz-card [nzBordered]="true" class="d365-card">
+          <div class="card-section-header">
+            <nz-icon nzType="lock" class="section-icon" />
+            <div class="section-header-text">
+              <span class="section-title">Nivel de Acceso por Módulo</span>
+              <span class="section-subtitle">
+                Seleccione el rol correspondiente para cada módulo (máximo 1 rol por módulo; haga clic para seleccionar o desmarcar):
+              </span>
+            </div>
+          </div>
+
+          <div class="modules-roles-container">
+            @for (grupo of modulosRoles; track grupo.modulo) {
+              <div class="modulo-block">
+                <div class="modulo-header-row">
+                  <div class="modulo-title">
+                    <nz-icon nzType="appstore" />
+                    <span>{{ grupo.modulo }}</span>
+                  </div>
+                  <span class="modulo-status-hint">
+                    {{ rolesPorModulo.get(grupo.modulo) ? '1 rol asignado' : 'Sin acceso asignado' }}
+                  </span>
+                </div>
+
+                <div class="roles-grid">
+                  @for (rol of grupo.roles; track rol.codigo) {
+                    <div
+                      class="role-card"
+                      [class.role-card-selected]="isRolSelected(grupo.modulo, rol.codigo)"
+                      (click)="seleccionarRol(grupo.modulo, rol.codigo)"
+                    >
+                      <div class="role-card-radio">
+                        <span
+                          class="d365-radio-indicator"
+                          [class.d365-radio-checked]="isRolSelected(grupo.modulo, rol.codigo)"
+                        >
+                          <span class="d365-radio-inner"></span>
+                        </span>
+                      </div>
+                      <div class="role-card-content">
+                        <span class="role-name">{{ rol.nombreVisible }}</span>
+                        <span class="role-desc">{{ rol.descripcion }}</span>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </nz-card>
+      </div>
+    </form>
+  </div>
+  </nz-spin>
+</div>
+
+<!-- Modal Restablecer Contraseña (en modo edición) -->
+<nz-modal
+  [(nzVisible)]="passwordModalVisible"
+  [nzTitle]="'Restablecer Contraseña'"
+  [nzOkText]="'Actualizar'"
+  [nzCancelText]="'Cancelar'"
+  [nzOkLoading]="passwordSaving"
+  (nzOnOk)="guardarPassword()"
+  (nzOnCancel)="passwordModalVisible = false"
+  [nzWidth]="420"
+>
+  <ng-container *nzModalContent>
+    <form nz-form [formGroup]="passwordModalForm" nzLayout="vertical">
+      <nz-form-item>
+        <nz-form-label nzRequired>Nueva Contraseña</nz-form-label>
+        <nz-form-control nzErrorTip="La contraseña debe tener al menos 6 caracteres.">
+          <input
+            nz-input
+            type="password"
+            formControlName="nuevaPassword"
+            placeholder="Ingrese la nueva contraseña"
+          />
+        </nz-form-control>
+      </nz-form-item>
+    </form>
+  </ng-container>
+</nz-modal>

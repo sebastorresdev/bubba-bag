@@ -41,7 +41,7 @@
       </button>
 
       <!-- Configuración -->
-      <button nz-button nzType="text" title="Configuración" class="erp-tool-btn">
+      <button nz-button nzType="text" title="Configuración" class="erp-tool-btn" (click)="goToConfiguracion()">
         <nz-icon nzType="setting" />
       </button>
 
@@ -52,24 +52,39 @@
 
       <nz-divider nzType="vertical"></nz-divider>
 
-      <!-- Menú de Usuario con Avatar y Nombre -->
-      <a nz-dropdown [nzDropdownMenu]="userMenu" class="erp-user-dropdown-btn">
-        <nz-avatar nzIcon="user" nzSize="small" />
-        <span class="erp-user-name">Admin</span>
+      <!-- Menú de Usuario con Avatar y Nombre Dinámico -->
+      <a nz-dropdown [nzDropdownMenu]="userMenu" nzTrigger="click" nzPlacement="bottomRight" class="erp-user-dropdown-btn">
+        <nz-avatar [nzText]="userInitials()" nzSize="small" class="erp-user-avatar"></nz-avatar>
+        <span class="erp-user-name">{{ currentUser()?.nombreCompleto || 'Usuario' }}</span>
         <nz-icon nzType="down" />
       </a>
       <nz-dropdown-menu #userMenu="nzDropdownMenu">
-        <ul nz-menu>
-          <li nz-menu-item (click)="goToDashboard()">
-            <nz-icon nzType="dashboard" />
-            <span>Dashboard Principal</span>
-          </li>
-          <li nz-menu-divider></li>
-          <li nz-menu-item (click)="logout()">
-            <nz-icon nzType="logout" />
-            <span>Cerrar Sesión</span>
-          </li>
-        </ul>
+        <div class="fluent-user-dropdown-card">
+          <div class="fluent-user-header">
+            <nz-avatar [nzText]="userInitials()" [nzSize]="42" class="fluent-user-avatar-lg"></nz-avatar>
+            <div class="fluent-user-meta">
+              <span class="fluent-user-fullname">{{ currentUser()?.nombreCompleto || 'Usuario' }}</span>
+              <span class="fluent-user-email">{{ currentUser()?.email }}</span>
+              <div class="fluent-user-roles">
+                @for (role of currentUser()?.roles; track role) {
+                  <nz-tag nzColor="blue" class="fluent-role-tag">{{ role }}</nz-tag>
+                }
+              </div>
+            </div>
+          </div>
+          <nz-divider class="fluent-user-divider"></nz-divider>
+          <ul nz-menu class="fluent-user-actions">
+            <li nz-menu-item (click)="goToDashboard()">
+              <nz-icon nzType="dashboard" />
+              <span>Dashboard Principal</span>
+            </li>
+            <li nz-menu-divider></li>
+            <li nz-menu-item (click)="logout()">
+              <nz-icon nzType="logout" />
+              <span>Cerrar Sesión</span>
+            </li>
+          </ul>
+        </div>
       </nz-dropdown-menu>
     </div>
   </nz-header>
@@ -92,7 +107,7 @@
       <div class="d365-sitemap-scroll">
         <ul nz-menu nzMode="inline" [nzInlineIndent]="16" [nzTheme]="themeService.isDarkMode() ? 'dark' : 'light'"
           [nzInlineCollapsed]="isCollapsed" class="d365-menu">
-          @for (item of navService.currentModule().items; track item.title) {
+          @for (item of navService.getVisibleItems(navService.currentModule()); track item.title) {
           <!-- Nivel 1 - Opción A: Ítem directo en raíz -->
           @if (!item.children || item.children.length === 0) {
           <li nz-menu-item nz-tooltip nzTooltipPlacement="right" [nzTooltipTitle]="isCollapsed ? item.title : ''"
@@ -136,7 +151,7 @@
           <ul nz-menu class="d365-area-dropdown">
             <li nz-menu-group nzTitle="Áreas de Trabajo">
               <ul>
-                @for (mod of navService.modules; track mod.id) {
+                @for (mod of navService.visibleModules(); track mod.id) {
                 <li nz-menu-item (click)="selectModule(mod)" [nzSelected]="navService.currentModule().id === mod.id">
                   <div class="d365-dropdown-item">
                     <div class="d365-dropdown-badge">{{ mod.shortCode }}</div>
@@ -197,9 +212,9 @@
 
       <div class="d365-launcher-section">MÓDULOS DE NEGOCIO</div>
 
-      <!-- Lista Amplia de Módulos -->
+      <!-- Lista Amplia de Módulos (Filtrados por Permisos) -->
       <div class="d365-launcher-list">
-        @for (mod of navService.modules; track mod.id) {
+        @for (mod of navService.visibleModules(); track mod.id) {
         <a class="d365-launcher-item" [class.d365-launcher-item-active]="navService.currentModule().id === mod.id"
           (click)="selectModuleAndClose(mod)">
           <div class="d365-launcher-badge">{{ mod.shortCode }}</div>

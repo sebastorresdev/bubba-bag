@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { NzLayoutModule } from 'ng-zorro-antd/layout';
@@ -12,6 +12,7 @@ import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzBadgeModule } from 'ng-zorro-antd/badge';
 import { NzDividerModule } from 'ng-zorro-antd/divider';
 import { NzDrawerModule } from 'ng-zorro-antd/drawer';
+import { NzTagModule } from 'ng-zorro-antd/tag';
 import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
 import { NavigationService, ErpModule, ModuleMenuItem } from '../../services/navigation.service';
@@ -33,6 +34,7 @@ import { NavigationService, ErpModule, ModuleMenuItem } from '../../services/nav
     NzBadgeModule,
     NzDividerModule,
     NzDrawerModule,
+    NzTagModule,
   ],
   templateUrl: './main-layout.html',
   styles: [
@@ -48,9 +50,12 @@ export class MainLayoutComponent {
   isCollapsed = false;
   isAppLauncherVisible = false;
   private router = inject(Router);
-  private authService = inject(AuthService);
+  authService = inject(AuthService);
   themeService = inject(ThemeService);
   navService = inject(NavigationService);
+
+  readonly currentUser = this.authService.currentUser;
+  readonly userInitials = computed(() => this.authService.getUserInitials());
 
   openAppLauncher(): void {
     this.isAppLauncherVisible = true;
@@ -85,6 +90,10 @@ export class MainLayoutComponent {
 
   goToDashboard() {
     this.router.navigate(['/dashboard']);
+  }
+
+  goToConfiguracion() {
+    this.router.navigate(['/configuracion/usuarios']);
   }
 
   selectModule(module: ErpModule) {

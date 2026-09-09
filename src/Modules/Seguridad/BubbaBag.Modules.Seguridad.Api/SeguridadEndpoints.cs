@@ -21,7 +21,22 @@ public static class SeguridadEndpoints
         group.MapGet("/roles", ObtenerRoles)
             .RequireAuthorization(p => p.RequireRole(Roles.SuperAdmin, Roles.Gerencia));
 
+        group.MapGet("/usuarios", ObtenerUsuarios)
+            .RequireAuthorization(p => p.RequireRole(Roles.SuperAdmin, Roles.Gerencia));
+
+        group.MapGet("/usuarios/{id:guid}", ObtenerUsuarioPorId)
+            .RequireAuthorization(p => p.RequireRole(Roles.SuperAdmin, Roles.Gerencia));
+
         group.MapPost("/usuarios", RegistrarUsuario)
+            .RequireAuthorization(p => p.RequireRole(Roles.SuperAdmin));
+
+        group.MapPut("/usuarios/{id:guid}", ActualizarUsuario)
+            .RequireAuthorization(p => p.RequireRole(Roles.SuperAdmin));
+
+        group.MapPatch("/usuarios/{id:guid}/estado", CambiarEstadoUsuario)
+            .RequireAuthorization(p => p.RequireRole(Roles.SuperAdmin));
+
+        group.MapPut("/usuarios/{id:guid}/password", CambiarPasswordUsuario)
             .RequireAuthorization(p => p.RequireRole(Roles.SuperAdmin));
 
         group.MapGet("/usuarios/{id:guid}/roles", ObtenerRolesUsuario)
@@ -47,6 +62,22 @@ public static class SeguridadEndpoints
         return Results.Ok(result.Value);
     }
 
+    private static async Task<IResult> ObtenerUsuarios(string? busqueda, bool? soloActivos, IAuthService authService)
+    {
+        var result = await authService.ObtenerUsuariosAsync(busqueda, soloActivos);
+        return Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> ObtenerUsuarioPorId(Guid id, IAuthService authService)
+    {
+        var result = await authService.ObtenerUsuarioPorIdAsync(id);
+        if (result.IsFailure)
+        {
+            return Results.NotFound(new BubbaBag.SharedKernel.Http.ErrorResponse(404, "Usuario no encontrado", result.Error));
+        }
+        return Results.Ok(result.Value);
+    }
+
     private static async Task<IResult> RegistrarUsuario(RegisterRequest request, IAuthService authService)
     {
         var result = await authService.RegisterAsync(request.Email, request.Password, request.NombreCompleto, request.Roles);
@@ -55,6 +86,36 @@ public static class SeguridadEndpoints
             return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Inconsistencia de registro", result.Error));
         }
         return Results.Ok(new { UsuarioId = result.Value });
+    }
+
+    private static async Task<IResult> ActualizarUsuario(Guid id, ActualizarUsuarioRequest request, IAuthService authService)
+    {
+        var result = await authService.ActualizarUsuarioAsync(id, request.NombreCompleto, request.Email);
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Error al actualizar usuario", result.Error));
+        }
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> CambiarEstadoUsuario(Guid id, CambiarEstadoUsuarioRequest request, IAuthService authService)
+    {
+        var result = await authService.CambiarEstadoAsync(id, request.EsActivo);
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Error al cambiar estado", result.Error));
+        }
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> CambiarPasswordUsuario(Guid id, CambiarPasswordRequest request, IAuthService authService)
+    {
+        var result = await authService.CambiarPasswordAsync(id, request.NuevaPassword);
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Error al restablecer contraseña", result.Error));
+        }
+        return Results.NoContent();
     }
 
     private static async Task<IResult> ObtenerRolesUsuario(Guid id, IAuthService authService)

@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ThemeService } from '../../core/services/theme.service';
@@ -27,8 +27,8 @@ import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 
         <div class="dashboard-actions">
           <div class="dashboard-user">
-            <nz-avatar nzIcon="user" nzSize="small" />
-            <span class="dashboard-user-name">Admin</span>
+            <nz-avatar [nzText]="userInitials()" nzSize="small" />
+            <span class="dashboard-user-name">{{ currentUser()?.nombreCompleto || 'Usuario' }}</span>
           </div>
 
           <button
@@ -58,12 +58,12 @@ import { NzAvatarModule } from 'ng-zorro-antd/avatar';
       <!-- Main Content -->
       <main class="dashboard-content">
         <div class="dashboard-intro">
-          <h1 class="dashboard-title">Bienvenido al Panel de Control</h1>
-          <p class="dashboard-subtitle">Selecciona un módulo para comenzar a trabajar.</p>
+          <h1 class="dashboard-title">Bienvenido, {{ currentUser()?.nombreCompleto || 'Usuario' }}</h1>
+          <p class="dashboard-subtitle">Selecciona un módulo asignado a tu perfil para comenzar a trabajar.</p>
         </div>
 
         <div class="dashboard-grid">
-          @for (module of modules; track module.id) {
+          @for (module of visibleModules(); track module.id) {
             <nz-card
               nzHoverable
               [nzBordered]="true"
@@ -197,56 +197,79 @@ export class DashboardComponent {
   private router = inject(Router);
   themeService = inject(ThemeService);
 
+  readonly currentUser = this.authService.currentUser;
+  readonly userInitials = computed(() => this.authService.getUserInitials());
+
   modules = [
     {
       id: 1,
       name: 'Recursos Humanos',
       icon: 'team',
       description: 'Gestión de empleados, control de asistencia, nómina y permisos.',
+      requiredRoles: ['SuperAdmin', 'Gerencia', 'RrhhAdmin', 'RrhhAsistente'],
     },
     {
       id: 2,
       name: 'Ventas POS',
       icon: 'shopping-cart',
       description: 'Caja rápida, facturación electrónica y control de turnos.',
+      requiredRoles: ['SuperAdmin', 'Gerencia'],
     },
     {
       id: 3,
       name: 'Inventario',
       icon: 'database',
       description: 'Control de stock de productos, ingresos, salidas y mermas.',
+      requiredRoles: ['SuperAdmin', 'Gerencia'],
     },
     {
       id: 4,
       name: 'CRM y Clientes',
       icon: 'user',
       description: 'Base de datos de clientes, historial de compras y fidelización.',
+      requiredRoles: ['SuperAdmin', 'Gerencia'],
     },
     {
       id: 5,
       name: 'Finanzas',
       icon: 'dollar',
       description: 'Cuentas por cobrar, cuentas por pagar y flujo de caja.',
+      requiredRoles: ['SuperAdmin', 'Gerencia'],
     },
     {
       id: 6,
       name: 'Compras',
       icon: 'shop',
       description: 'Gestión de proveedores, órdenes de compra y recepción.',
+      requiredRoles: ['SuperAdmin', 'Gerencia'],
     },
     {
       id: 7,
       name: 'Reportes',
       icon: 'bar-chart',
       description: 'Analíticas del negocio, rentabilidad y ventas por período.',
+      requiredRoles: ['SuperAdmin', 'Gerencia'],
     },
     {
       id: 8,
       name: 'Configuración',
       icon: 'setting',
       description: 'Ajustes del sistema, usuarios, roles y preferencias.',
+      requiredRoles: ['SuperAdmin', 'Gerencia'],
     },
   ];
+
+  readonly visibleModules = computed(() => {
+    const user = this.currentUser();
+    if (!user) return [];
+    if (this.authService.isSuperAdmin()) {
+      return this.modules;
+    }
+    return this.modules.filter((m) => {
+      if (!m.requiredRoles || m.requiredRoles.length === 0) return true;
+      return m.requiredRoles.some((r) => user.roles.includes(r));
+    });
+  });
 
   logout() {
     this.authService.logout();
@@ -256,6 +279,8 @@ export class DashboardComponent {
   goToModule(moduleName: string) {
     if (moduleName === 'Recursos Humanos') {
       this.router.navigate(['/rrhh/empleados']);
+    } else if (moduleName === 'Configuración') {
+      this.router.navigate(['/configuracion/usuarios']);
     }
   }
 }

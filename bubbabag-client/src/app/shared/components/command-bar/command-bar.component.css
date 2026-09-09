@@ -153,19 +153,31 @@
 }
 
 :host-context([data-theme='dark']) .fluent-cmd-btn,
-:host-context(.dark-theme) .fluent-cmd-btn {
-  color: #e1dfdd;
+:host-context(.dark-theme) .fluent-cmd-btn,
+:host-context([data-theme='dark']) .fluent-cmd-btn-danger,
+:host-context(.dark-theme) .fluent-cmd-btn-danger,
+:host-context([data-theme='dark']) .fluent-cmd-btn-primary,
+:host-context(.dark-theme) .fluent-cmd-btn-primary {
+  color: #e1dfdd !important;
 }
 
 :host-context([data-theme='dark']) .fluent-cmd-btn:hover:not(:disabled),
-:host-context(.dark-theme) .fluent-cmd-btn:hover:not(:disabled) {
-  background-color: #2d2d2d;
-  color: #ffffff;
+:host-context(.dark-theme) .fluent-cmd-btn:hover:not(:disabled),
+:host-context([data-theme='dark']) .fluent-cmd-btn-primary:hover:not(:disabled),
+:host-context(.dark-theme) .fluent-cmd-btn-primary:hover:not(:disabled),
+:host-context([data-theme='dark']) .fluent-cmd-btn-danger:hover:not(:disabled),
+:host-context(.dark-theme) .fluent-cmd-btn-danger:hover:not(:disabled) {
+  background-color: #2d2d2d !important;
+  color: #ffffff !important;
 }
 
 :host-context([data-theme='dark']) .fluent-cmd-btn:active:not(:disabled),
-:host-context(.dark-theme) .fluent-cmd-btn:active:not(:disabled) {
-  background-color: #383838;
+:host-context(.dark-theme) .fluent-cmd-btn:active:not(:disabled),
+:host-context([data-theme='dark']) .fluent-cmd-btn-primary:active:not(:disabled),
+:host-context(.dark-theme) .fluent-cmd-btn-primary:active:not(:disabled),
+:host-context([data-theme='dark']) .fluent-cmd-btn-danger:active:not(:disabled),
+:host-context(.dark-theme) .fluent-cmd-btn-danger:active:not(:disabled) {
+  background-color: #383838 !important;
 }
 
 .fluent-cmd-btn:disabled .fluent-cmd-icon {

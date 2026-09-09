@@ -1,0 +1,183 @@
+<app-command-bar [items]="commandBarItems" [farItems]="farItems"></app-command-bar>
+
+<div class="catalogo-view-wrapper">
+  <!-- Tarjeta Contenedora Dynamics 365 -->
+  <nz-card [nzBordered]="true" [nzBodyStyle]="{ padding: '0' }" class="d365-table-card">
+    
+    <!-- Sub-Header / Selector de Vista & Herramientas -->
+    <div class="d365-toolbar-row">
+      <!-- Selector de Vista del Sistema -->
+      <div>
+        <button
+          nz-button
+          nzType="text"
+          nz-dropdown
+          [nzDropdownMenu]="viewsMenu"
+          nzTrigger="click"
+          class="view-title-btn"
+        >
+          <h1 class="view-title-text">{{ vistaActualTitulo }}</h1>
+          <nz-icon nzType="down" class="view-title-icon" />
+        </button>
+
+        <nz-dropdown-menu #viewsMenu="nzDropdownMenu">
+          <ul nz-menu>
+            <li nz-menu-item (click)="cambiarVista('Activos')" [nzSelected]="vistaActual === 'Activos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Activos' ? 'visible' : 'hidden'" />
+              <span>Usuarios Activos</span>
+            </li>
+            <li nz-menu-item (click)="cambiarVista('Todos')" [nzSelected]="vistaActual === 'Todos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Todos' ? 'visible' : 'hidden'" />
+              <span>Todos los Usuarios</span>
+            </li>
+            <li nz-menu-item (click)="cambiarVista('Inactivos')" [nzSelected]="vistaActual === 'Inactivos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Inactivos' ? 'visible' : 'hidden'" />
+              <span>Usuarios Inactivos</span>
+            </li>
+          </ul>
+        </nz-dropdown-menu>
+      </div>
+
+      <!-- Buscador Fluent UI -->
+      <div class="view-tools-group">
+        <div class="d365-search-box">
+          <input
+            type="text"
+            placeholder="Filtrar por nombre o correo..."
+            [(ngModel)]="searchTerm"
+            (ngModelChange)="onSearchTermChange()"
+            (keyup.enter)="buscar()"
+            class="search-input"
+          />
+          @if (searchTerm) {
+            <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
+              <nz-icon nzType="close" />
+            </button>
+          }
+          <button class="search-icon-btn" (click)="buscar()" title="Buscar">
+            <nz-icon nzType="search" />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla Dynamics 365 con Selección por Checkbox y filas en una sola línea -->
+    <nz-table
+      #basicTable
+      [nzData]="usuarios"
+      [nzLoading]="loading"
+      [nzShowPagination]="true"
+      [nzPageSize]="15"
+      nzSize="small"
+      class="d365-grid"
+    >
+      <thead>
+        <tr>
+          <th
+            [nzWidth]="'48px'"
+            [nzChecked]="checked"
+            [nzIndeterminate]="indeterminate"
+            nzLabel="Seleccionar todos"
+            (nzCheckedChange)="onAllChecked($event)"
+          ></th>
+          <th [nzWidth]="'280px'">Nombre Completo</th>
+          <th [nzWidth]="'280px'">Correo Electrónico</th>
+          <th>Roles Asignados</th>
+          <th [nzWidth]="'140px'">Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (data of basicTable.data; track data.id) {
+          <tr
+            [class.fluent-row-selected]="selectedIds.has(data.id)"
+            (click)="onItemChecked(data.id, !selectedIds.has(data.id))"
+            style="cursor: pointer;"
+          >
+            <td
+              [nzChecked]="selectedIds.has(data.id)"
+              (nzCheckedChange)="onItemChecked(data.id, $event)"
+              (click)="$event.stopPropagation()"
+            ></td>
+            
+            <!-- Nombre Completo Clickeable estilo D365 -->
+            <td class="col-primary-text">
+              <span class="nombre-link" (click)="$event.stopPropagation(); irAEditar(data.id)">
+                <nz-icon nzType="user" class="row-user-icon" />
+                {{ data.nombreCompleto }}
+              </span>
+            </td>
+
+            <!-- Correo Electrónico en línea independiente -->
+            <td class="col-desc">
+              {{ data.email }}
+            </td>
+
+            <!-- Roles Asignados -->
+            <td>
+              <div class="roles-tags-wrapper">
+                @if (data.roles.length === 0) {
+                  <span class="text-muted">Sin roles</span>
+                }
+                @for (rol of data.roles; track rol) {
+                  <nz-tag [nzColor]="getRolTagColor(rol)" class="d365-rol-tag">
+                    {{ getNombreRolVisible(rol) }}
+                  </nz-tag>
+                }
+              </div>
+            </td>
+
+            <!-- Estado con Dot + Texto Plano idéntico a Departamentos -->
+            <td>
+              <div class="status-cell">
+                <span
+                  class="status-dot"
+                  [class.dot-active]="data.esActivo"
+                  [class.dot-inactive]="!data.esActivo"
+                ></span>
+                <span class="status-text">{{ data.esActivo ? 'Activo' : 'Inactivo' }}</span>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </nz-table>
+  </nz-card>
+</div>
+
+<!-- Modal Rápido: Restablecer Contraseña desde Command Bar -->
+<nz-modal
+  [(nzVisible)]="passwordModalVisible"
+  [nzTitle]="'Restablecer Contraseña'"
+  [nzOkText]="'Actualizar'"
+  [nzCancelText]="'Cancelar'"
+  [nzOkLoading]="passwordSaving"
+  (nzOnOk)="guardarPassword()"
+  (nzOnCancel)="passwordModalVisible = false"
+  [nzWidth]="420"
+>
+  <ng-container *nzModalContent>
+    @if (usuarioSeleccionado) {
+      <div class="password-modal-user-info">
+        <nz-icon nzType="user" style="font-size: 24px; color: #0078d4;" />
+        <div>
+          <strong>{{ usuarioSeleccionado.nombreCompleto }}</strong>
+          <div class="text-muted">{{ usuarioSeleccionado.email }}</div>
+        </div>
+      </div>
+    }
+
+    <form nz-form [formGroup]="passwordForm" nzLayout="vertical" style="margin-top: 16px;">
+      <nz-form-item>
+        <nz-form-label nzRequired>Nueva Contraseña</nz-form-label>
+        <nz-form-control nzErrorTip="La contraseña debe tener al menos 6 caracteres.">
+          <input
+            nz-input
+            type="password"
+            formControlName="nuevaPassword"
+            placeholder="Mínimo 6 caracteres"
+          />
+        </nz-form-control>
+      </nz-form-item>
+    </form>
+  </ng-container>
+</nz-modal>

@@ -203,6 +203,92 @@
   color: #ffffff;
 }
 
+/* User Profile Menu Dropdown Card */
+.fluent-user-dropdown-card {
+  width: 270px;
+  padding: 16px 12px 8px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+
+[data-theme='dark'] .fluent-user-dropdown-card,
+.dark-theme .fluent-user-dropdown-card {
+  background-color: #242424;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+.fluent-user-header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.fluent-user-avatar-lg {
+  background-color: #0078d4 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.fluent-user-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.fluent-user-fullname {
+  font-size: 14px;
+  font-weight: 600;
+  color: #201f1e;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+[data-theme='dark'] .fluent-user-fullname,
+.dark-theme .fluent-user-fullname {
+  color: #ffffff;
+}
+
+.fluent-user-email {
+  font-size: 12px;
+  color: #605e5c;
+  margin-top: 2px;
+  line-height: 1.2;
+  word-break: break-all;
+}
+
+[data-theme='dark'] .fluent-user-email,
+.dark-theme .fluent-user-email {
+  color: #a19f9d;
+}
+
+.fluent-user-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.fluent-role-tag {
+  font-size: 10px !important;
+  line-height: 18px !important;
+  padding: 0 6px !important;
+  margin: 0 !important;
+  border-radius: 3px !important;
+}
+
+.fluent-user-divider {
+  margin: 12px 0 6px !important;
+}
+
+.fluent-user-actions {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 /* --------------------------------------------------------------------------
    2. Sub-Layout Principal (Site Map + Work Area)
    -------------------------------------------------------------------------- */
