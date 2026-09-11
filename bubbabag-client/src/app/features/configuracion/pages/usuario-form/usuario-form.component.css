@@ -1,23 +1,43 @@
 :host {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
   width: 100%;
   font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
 }
 
+:host-context([data-theme='dark']),
+:host-context(.dark-theme) {
+  background-color: #141414 !important;
+  color: #f3f2f1 !important;
+}
+
 .usuario-form-view {
   width: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+:host-context([data-theme='dark']) .usuario-form-view,
+:host-context(.dark-theme) .usuario-form-view {
+  background-color: #141414 !important;
 }
 
 /* Cabecera de Registro Dynamics 365 */
 .d365-record-header {
+  flex-shrink: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 16px 24px;
   background-color: #ffffff;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   gap: 16px;
   flex-wrap: wrap;
 }
@@ -123,35 +143,65 @@
 }
 
 /* Cuerpo del Formulario */
+:host ::ng-deep .usuario-form-view > nz-spin,
+:host ::ng-deep .usuario-form-view > nz-spin > .ant-spin-nested-loading,
+:host ::ng-deep .usuario-form-view > nz-spin > .ant-spin-nested-loading > .ant-spin-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .form-content-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   padding: 24px;
-  max-width: 1200px;
+  max-width: 1240px;
   width: 100%;
+  margin: 0 auto;
   box-sizing: border-box;
 }
 
-.form-grid-layout {
-  display: grid;
-  grid-template-columns: 420px 1fr;
-  gap: 24px;
-  align-items: start;
-}
-
-@media (max-width: 900px) {
-  .form-grid-layout {
-    grid-template-columns: 1fr;
-  }
+.form-vertical-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .d365-card {
-  border-radius: 2px !important;
-  box-shadow: none !important;
+  border-radius: 4px !important;
+  background-color: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.2s ease;
+}
+
+:host-context([data-theme='dark']) .d365-card,
+:host-context(.dark-theme) .d365-card {
+  background-color: #1f1f1f !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+:host-context([data-theme='dark']) input[nz-input],
+:host-context(.dark-theme) input[nz-input] {
+  background-color: #141414 !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
+}
+
+:host-context([data-theme='dark']) input[nz-input]:focus,
+:host-context(.dark-theme) input[nz-input]:focus {
+  border-color: #2899f5 !important;
+  box-shadow: 0 0 0 2px rgba(40, 153, 245, 0.2) !important;
 }
 
 .card-section-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   margin-bottom: 20px;
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
@@ -163,7 +213,7 @@
 }
 
 .section-icon {
-  font-size: 16px;
+  font-size: 18px;
   color: #0078d4;
 }
 
@@ -188,140 +238,250 @@
   color: #a19f9d;
 }
 
-/* Lista de Roles */
-.modules-roles-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.form-field-item {
+  margin-bottom: 16px;
 }
 
-.modulo-block {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.modulo-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #0078d4;
-}
-
-.roles-grid {
+/* ==========================================================================
+   Tarjeta Inferior: Roles de Seguridad del Sistema (Estilo Dynamics 365 con Checkboxes)
+   ========================================================================== */
+.d365-modules-roles-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
 }
 
-.role-card {
+@media (max-width: 860px) {
+  .d365-modules-roles-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+.d365-module-roles-group {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   gap: 12px;
-  padding: 10px 14px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 16px;
   border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  background-color: transparent;
+  background-color: #faf9f8;
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-:host-context([data-theme='dark']) .role-card,
-:host-context(.dark-theme) .role-card {
-  border-color: rgba(255, 255, 255, 0.15);
+:host-context([data-theme='dark']) .d365-module-roles-group,
+:host-context(.dark-theme) .d365-module-roles-group {
+  background-color: #141414 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
-.role-card:hover {
-  border-color: #0078d4;
-  background-color: rgba(0, 120, 212, 0.04);
-}
-
-.role-card-selected {
-  border-color: #0078d4 !important;
-  background-color: rgba(0, 120, 212, 0.08) !important;
-}
-
-.modulo-header-row {
+.module-group-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 2px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-.modulo-status-hint {
-  font-size: 11px;
-  color: #605e5c;
-  font-style: italic;
+:host-context([data-theme='dark']) .module-group-header,
+:host-context(.dark-theme) .module-group-header {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
-:host-context([data-theme='dark']) .modulo-status-hint,
-:host-context(.dark-theme) .modulo-status-hint {
-  color: #a19f9d;
-}
-
-.role-card-radio {
-  padding-top: 3px;
+.module-group-title {
   display: flex;
   align-items: center;
+  gap: 10px;
 }
 
-.d365-radio-indicator {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(0, 0, 0, 0.4);
+.module-icon-box {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background-color: rgba(0, 120, 212, 0.08);
+  color: #0078d4;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
-  flex-shrink: 0;
+  font-size: 14px;
 }
 
-:host-context([data-theme='dark']) .d365-radio-indicator,
-:host-context(.dark-theme) .d365-radio-indicator {
-  border-color: rgba(255, 255, 255, 0.4);
+:host-context([data-theme='dark']) .module-icon-box,
+:host-context(.dark-theme) .module-icon-box {
+  background-color: rgba(0, 120, 212, 0.25);
+  color: #2899f5;
 }
 
-.d365-radio-checked {
-  border-color: #0078d4 !important;
+.module-title-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: inherit;
 }
 
-.d365-radio-inner {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: transparent;
-  transition: background-color 0.15s ease;
+.module-count-badge {
+  border-radius: 2px;
+  font-size: 11.5px;
+  margin: 0;
 }
 
-.d365-radio-checked .d365-radio-inner {
+.module-roles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.d365-role-checkbox-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 4px;
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+:host-context([data-theme='dark']) .d365-role-checkbox-card,
+:host-context(.dark-theme) .d365-role-checkbox-card {
+  background-color: #1f1f1f !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.d365-role-checkbox-card:hover {
+  border-color: #0078d4;
+  box-shadow: 0 1px 4px rgba(0, 120, 212, 0.15);
+}
+
+:host-context([data-theme='dark']) .d365-role-checkbox-card:hover,
+:host-context(.dark-theme) .d365-role-checkbox-card:hover {
+  border-color: #2899f5;
+  background-color: #262626 !important;
+}
+
+.d365-role-checkbox-card.is-selected {
+  background-color: #f0f6ff;
+  border-color: #0078d4;
+  box-shadow: 0 0 0 1px #0078d4;
+}
+
+:host-context([data-theme='dark']) .d365-role-checkbox-card.is-selected,
+:host-context(.dark-theme) .d365-role-checkbox-card.is-selected {
+  background-color: rgba(0, 120, 212, 0.15) !important;
+  border-color: #2899f5 !important;
+  box-shadow: 0 0 0 1px #2899f5;
+}
+
+.role-checkbox-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.role-name-text {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: inherit;
+  margin-left: 4px;
+}
+
+.role-desc-text {
+  font-size: 12px;
+  color: #605e5c;
+  line-height: 1.35;
+  padding-left: 24px;
+}
+
+:host-context([data-theme='dark']) .role-desc-text,
+:host-context(.dark-theme) .role-desc-text {
+  color: #a19f9d;
+}
+
+.role-active-tag {
+  border-radius: 2px;
+  font-size: 11px;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ==========================================================================
+   Drawer Lateral Derecho: Restablecer Contraseña (Estilo M365 Admin & Dynamics)
+   ========================================================================== */
+.drawer-user-summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+:host-context([data-theme='dark']) .drawer-user-summary {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.drawer-avatar {
   background-color: #0078d4;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 15px;
 }
 
-.role-card-content {
+.drawer-user-meta {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-.role-name {
-  font-size: 13px;
+.drawer-user-name {
+  font-size: 15px;
   font-weight: 600;
   color: inherit;
 }
 
-.role-desc {
-  font-size: 11px;
+.drawer-user-email {
+  font-size: 12.5px;
   color: #605e5c;
-  line-height: 1.3;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
-:host-context([data-theme='dark']) .role-desc,
-:host-context(.dark-theme) .role-desc {
+:host-context([data-theme='dark']) .drawer-user-email {
   color: #a19f9d;
+}
+
+.drawer-instructions {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background-color: #f0f6ff;
+  border-left: 3px solid #0078d4;
+  border-radius: 2px;
+  margin-bottom: 20px;
+  font-size: 12.5px;
+  color: #004578;
+  line-height: 1.4;
+}
+
+:host-context([data-theme='dark']) .drawer-instructions {
+  background-color: rgba(0, 120, 212, 0.15);
+  border-left-color: #2899f5;
+  color: #c7e0f4;
+}
+
+.drawer-instructions .info-icon {
+  margin-top: 2px;
+  font-size: 14px;
+}
+
+.drawer-form {
+  margin-top: 10px;
+}
+
+.drawer-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
 }

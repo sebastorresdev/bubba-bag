@@ -1,42 +1,63 @@
 :host {
-  display: block;
-  width: 100%;
-}
-
-/* Contenedor principal de la página (Ocupa todo el contenido sin márgenes ni padding) */
-.empleados-view-wrapper {
-  width: 100%;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
+}
+
+/* Contenedor principal de la página (Full-Height Dynamics 365) */
+.empleados-view-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
   gap: 0;
   padding: 0;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
-/* Tarjeta Contenedora de NG-ZORRO (con borde pero SIN redondeo) */
+/* Tarjeta Contenedora de NG-ZORRO (con borde pero SIN redondeo y Full-Height) */
 .d365-table-card,
 :host ::ng-deep .ant-card.d365-table-card {
   width: 100%;
+  height: 100%;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+  border: none !important;
 }
 
 :host ::ng-deep .ant-card.d365-table-card .ant-card-body {
   padding: 0 !important;
   border-radius: 0 !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
 }
 
 /* --------------------------------------------------------------------------
-   Sub-Header: Selector de Vista & Herramientas de Filtro
+   Sub-Header: Selector de Vista & Herramientas de Filtro Fijo
    -------------------------------------------------------------------------- */
 .d365-toolbar-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 10px 16px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   gap: 16px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 :host-context([data-theme='dark']) .d365-toolbar-row,
@@ -354,4 +375,83 @@
   font-size: 11px;
   opacity: 0.5;
   margin-left: 6px;
+}
+
+/* Grilla Full-Height Dynamics 365 */
+.d365-table {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
+:host ::ng-deep .d365-table .ant-table-wrapper,
+:host ::ng-deep .d365-table .ant-spin-nested-loading,
+:host ::ng-deep .d365-table .ant-spin-container {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
+:host ::ng-deep .d365-table .ant-table {
+  flex: 1 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background-color: transparent !important;
+}
+
+:host ::ng-deep .d365-table .ant-table-container {
+  flex: 1 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+}
+
+:host ::ng-deep .d365-table .ant-table-content {
+  flex: 1 !important;
+  min-height: 0 !important;
+}
+
+:host ::ng-deep .d365-table thead.ant-table-thead > tr > th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 2 !important;
+}
+
+/* Pie de Página Paginador Estilo Microsoft Dynamics 365 (Total a la izquierda, botones a la derecha) */
+:host ::ng-deep .d365-table .ant-table-pagination.ant-pagination {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 8px 16px !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+  background-color: #ffffff !important;
+  flex-shrink: 0 !important;
+}
+
+:host-context([data-theme='dark']) :host ::ng-deep .d365-table .ant-table-pagination.ant-pagination,
+:host-context(.dark-theme) :host ::ng-deep .d365-table .ant-table-pagination.ant-pagination {
+  border-top-color: rgba(255, 255, 255, 0.08) !important;
+  background-color: #1f1f1f !important;
+}
+
+:host ::ng-deep .d365-table .ant-pagination-total-text {
+  order: -1 !important;
+  margin-right: auto !important;
+  font-size: 12px !important;
+  color: #605e5c !important;
+  font-weight: 500 !important;
+}
+
+:host-context([data-theme='dark']) :host ::ng-deep .d365-table .ant-pagination-total-text,
+:host-context(.dark-theme) :host ::ng-deep .d365-table .ant-pagination-total-text {
+  color: #a19f9d !important;
 }

@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { provideNzNativeDateAdapter } from 'ng-zorro-antd/core/time';
 import { MainLayoutComponent } from '../../core/layout/main-layout/main-layout.component';
 import { EmpleadosListComponent } from './pages/empleados-list/empleados-list.component';
 import { EmpleadoFormComponent } from './pages/empleado-form/empleado-form.component';
@@ -9,6 +10,7 @@ export const RECURSOS_HUMANOS_ROUTES: Routes = [
   {
     path: '',
     component: MainLayoutComponent,
+    providers: [provideNzNativeDateAdapter()],
     children: [
       {
         path: 'empleados',

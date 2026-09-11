@@ -6,7 +6,7 @@ import {
   ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { UsuarioService } from '../../services/usuario.service';
 import { UsuarioDto, RolDto } from '../../models/usuario.model';
@@ -19,9 +19,12 @@ import { NzMessageService } from 'ng-zorro-antd/message';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
-import { NzRadioModule } from 'ng-zorro-antd/radio';
-import { NzModalModule, NzModalService } from 'ng-zorro-antd/modal';
+import { NzSelectModule } from 'ng-zorro-antd/select';
+import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzTagModule } from 'ng-zorro-antd/tag';
+import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
+import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
 @Component({
@@ -29,6 +32,7 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     ReactiveFormsModule,
     RouterModule,
     NzFormModule,
@@ -38,9 +42,12 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzIconModule,
     NzCardModule,
     NzAvatarModule,
-    NzRadioModule,
-    NzModalModule,
+    NzSelectModule,
+    NzDrawerModule,
     NzSpinModule,
+    NzTagModule,
+    NzCheckboxModule,
+    NzTooltipModule,
     CommandBarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Default,
@@ -53,25 +60,24 @@ export class UsuarioFormComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private message = inject(NzMessageService);
-  private modal = inject(NzModalService);
   private cdr = inject(ChangeDetectorRef);
 
   form!: FormGroup;
-  passwordModalForm!: FormGroup;
+  passwordForm!: FormGroup;
 
   usuarioId: string | null = null;
   usuarioActual?: UsuarioDto;
   isEdit = false;
   loading = false;
   saving = false;
-  passwordModalVisible = false;
+  passwordDrawerVisible = false;
   passwordSaving = false;
 
   rolesDisponibles: RolDto[] = [];
   modulosRoles: { modulo: string; roles: RolDto[] }[] = [];
   
-  // Regla de Negocio: Máximo 1 rol por módulo (modulo -> codigoRol)
-  rolesPorModulo = new Map<string, string>();
+  // Selección flexible de roles vía Checkboxes (Estilo Microsoft Dynamics 365)
+  rolesSeleccionados = new Set<string>();
 
   get commandBarItems(): CommandBarItem[] {
     const isWaitingData = this.isEdit && this.loading && !this.usuarioActual;
@@ -80,6 +86,7 @@ export class UsuarioFormComponent implements OnInit {
         key: 'guardar',
         label: 'Guardar',
         icon: 'save',
+        iconColor: 'purple',
         disabled: this.saving || isWaitingData,
         execute: () => this.guardar(false),
       },
@@ -87,6 +94,7 @@ export class UsuarioFormComponent implements OnInit {
         key: 'guardar-cerrar',
         label: 'Guardar y Cerrar',
         icon: 'save',
+        iconColor: 'purple',
         disabled: this.saving || isWaitingData,
         execute: () => this.guardar(true),
       },
@@ -94,11 +102,28 @@ export class UsuarioFormComponent implements OnInit {
 
     if (this.isEdit) {
       items.push({
+        key: 'div-edit-actions',
+        label: '',
+        isDivider: true,
+      });
+
+      items.push({
+        key: 'nuevo',
+        label: 'Nuevo',
+        icon: 'plus',
+        iconColor: 'success',
+        tooltip: 'Crear un nuevo usuario del sistema',
+        execute: () => this.irANuevo(),
+      });
+
+      items.push({
         key: 'password',
         label: 'Restablecer Contraseña',
         icon: 'lock',
+        iconColor: 'primary',
+        tooltip: 'Abrir panel para asignar nueva contraseña',
         disabled: this.saving || isWaitingData,
-        execute: () => this.abrirModalPassword(),
+        execute: () => this.abrirDrawerPassword(),
       });
 
       const isActivo = this.usuarioActual?.esActivo ?? true;
@@ -107,23 +132,76 @@ export class UsuarioFormComponent implements OnInit {
         label: isActivo ? 'Desactivar' : 'Activar',
         icon: isActivo ? 'close' : 'check',
         danger: isActivo,
+        iconColor: isActivo ? 'danger' : 'success',
         disabled: this.saving || isWaitingData,
-        execute: () => this.toggleEstado(),
+        popconfirm: {
+          title: isActivo
+            ? `¿Está seguro de desactivar a ${this.usuarioActual?.nombreCompleto || 'este usuario'}? Ya no podrá iniciar sesión.`
+            : `¿Desea activar y restablecer el acceso al sistema para ${this.usuarioActual?.nombreCompleto || 'este usuario'}?`,
+          okText: isActivo ? 'Desactivar' : 'Activar',
+          cancelText: 'Cancelar',
+          okDanger: isActivo,
+          onConfirm: () => this.ejecutarCambioEstado(!isActivo),
+        },
       });
     }
+
+    items.push({
+      key: 'div-common-actions',
+      label: '',
+      isDivider: true,
+    });
 
     items.push({
       key: 'descartar',
       label: 'Descartar',
       icon: 'close',
+      iconColor: 'neutral',
       execute: () => this.volver(),
+    });
+
+    items.push({
+      key: 'refresh',
+      label: 'Actualizar',
+      icon: 'reload',
+      iconColor: 'neutral',
+      tooltip: 'Recargar datos del formulario',
+      disabled: this.saving,
+      execute: () => {
+        if (this.usuarioId) {
+          this.cargarUsuario(this.usuarioId);
+        } else {
+          this.initForms();
+        }
+      },
     });
 
     return items;
   }
 
   get farItems(): CommandBarItem[] {
-    return [];
+    return [
+      {
+        key: 'share',
+        label: 'Compartir',
+        icon: 'export',
+        appearance: 'primary',
+        tooltip: 'Compartir ficha de usuario',
+        children: [
+          {
+            key: 'copy-link',
+            label: 'Copiar vínculo',
+            icon: 'link',
+            execute: () => {
+              if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                navigator.clipboard.writeText(window.location.href);
+                this.message.success('Vínculo copiado al portapapeles');
+              }
+            },
+          },
+        ],
+      },
+    ];
   }
 
   ngOnInit(): void {
@@ -149,7 +227,7 @@ export class UsuarioFormComponent implements OnInit {
         this.isEdit = false;
         this.loading = false;
         this.usuarioActual = undefined;
-        this.rolesPorModulo.clear();
+        this.rolesSeleccionados.clear();
         this.form.get('password')?.setValidators([Validators.required, Validators.minLength(6)]);
         this.form.get('password')?.updateValueAndValidity();
       }
@@ -164,8 +242,9 @@ export class UsuarioFormComponent implements OnInit {
       esActivo: [true],
     });
 
-    this.passwordModalForm = this.fb.group({
+    this.passwordForm = this.fb.group({
       nuevaPassword: ['', [Validators.required, Validators.minLength(6)]],
+      confirmarPassword: ['', [Validators.required]],
     });
   }
 
@@ -175,7 +254,7 @@ export class UsuarioFormComponent implements OnInit {
         this.rolesDisponibles = roles;
         this.agruparRoles(roles);
         if (this.usuarioActual) {
-          this.sincronizarRolesConModulos(this.usuarioActual.roles);
+          this.rolesSeleccionados = new Set(this.usuarioActual.roles || []);
         }
         this.cdr.markForCheck();
       },
@@ -200,23 +279,9 @@ export class UsuarioFormComponent implements OnInit {
     }));
   }
 
-  private sincronizarRolesConModulos(userRoles: string[]): void {
-    this.rolesPorModulo.clear();
-    for (const codigo of userRoles) {
-      const r = this.rolesDisponibles.find((x) => x.codigo === codigo);
-      if (r) {
-        this.rolesPorModulo.set(r.modulo, codigo);
-      } else {
-        this.rolesPorModulo.set('General', codigo);
-      }
-    }
-  }
-
   private setUsuario(user: UsuarioDto): void {
     this.usuarioActual = user;
-    if (this.rolesDisponibles.length > 0) {
-      this.sincronizarRolesConModulos(user.roles);
-    }
+    this.rolesSeleccionados = new Set(user.roles || []);
     this.form.patchValue({
       nombreCompleto: user.nombreCompleto,
       email: user.email,
@@ -245,19 +310,31 @@ export class UsuarioFormComponent implements OnInit {
     });
   }
 
-  seleccionarRol(modulo: string, codigoRol: string): void {
-    // Si ya estaba seleccionado, lo desmarca (permite "Sin Acceso" a ese módulo)
-    if (this.rolesPorModulo.get(modulo) === codigoRol) {
-      this.rolesPorModulo.delete(modulo);
+  /** Selección flexible de roles vía Checkboxes (Estilo Dynamics 365) */
+  isRolSeleccionado(codigo: string): boolean {
+    return this.rolesSeleccionados.has(codigo);
+  }
+
+  onRolCheckboxToggle(codigo: string, checked: boolean): void {
+    if (checked) {
+      this.rolesSeleccionados.add(codigo);
     } else {
-      // Reemplaza cualquier rol anterior en este módulo (1 solo rol por módulo)
-      this.rolesPorModulo.set(modulo, codigoRol);
+      this.rolesSeleccionados.delete(codigo);
     }
     this.cdr.markForCheck();
   }
 
-  isRolSelected(modulo: string, codigoRol: string): boolean {
-    return this.rolesPorModulo.get(modulo) === codigoRol;
+  toggleRol(codigo: string): void {
+    if (this.rolesSeleccionados.has(codigo)) {
+      this.rolesSeleccionados.delete(codigo);
+    } else {
+      this.rolesSeleccionados.add(codigo);
+    }
+    this.cdr.markForCheck();
+  }
+
+  rolesSeleccionadosEnModulo(grupo: { modulo: string; roles: RolDto[] }): RolDto[] {
+    return grupo.roles.filter((r) => this.rolesSeleccionados.has(r.codigo));
   }
 
   guardar(cerrarAlGuardar = false): void {
@@ -274,7 +351,7 @@ export class UsuarioFormComponent implements OnInit {
 
     this.saving = true;
     const formVal = this.form.value;
-    const rolesArray = Array.from(this.rolesPorModulo.values());
+    const rolesArray = Array.from(this.rolesSeleccionados);
 
     if (!this.isEdit) {
       this.usuarioService
@@ -335,53 +412,53 @@ export class UsuarioFormComponent implements OnInit {
     }
   }
 
-  toggleEstado(): void {
+  /** Activación / Desactivación Inmediata vía Popconfirm (Sin modales invasivos) */
+  ejecutarCambioEstado(nuevoEstado: boolean): void {
     if (!this.usuarioActual) return;
     const target = this.usuarioActual;
-    const accion = target.esActivo ? 'desactivar' : 'activar';
+    const accion = nuevoEstado ? 'activar' : 'desactivar';
 
-    this.modal.confirm({
-      nzTitle: `¿Está seguro de ${accion} a este usuario?`,
-      nzContent: `El usuario <b>${target.nombreCompleto}</b> ${
-        target.esActivo ? 'ya no podrá iniciar sesión en el sistema.' : 'recuperará el acceso al sistema.'
-      }`,
-      nzOkText: target.esActivo ? 'Desactivar' : 'Activar',
-      nzOkDanger: target.esActivo,
-      nzOnOk: () => {
-        this.usuarioService.cambiarEstado(target.id, !target.esActivo).subscribe({
-          next: () => {
-            this.message.success(`Usuario ${target.esActivo ? 'desactivado' : 'activado'} correctamente.`);
-            this.cargarUsuario(target.id);
-          },
-          error: (err) => {
-            this.message.error(err.error?.message || `No se pudo ${accion} al usuario.`);
-          },
-        });
+    this.usuarioService.cambiarEstado(target.id, nuevoEstado).subscribe({
+      next: () => {
+        this.message.success(`Usuario ${nuevoEstado ? 'activado' : 'desactivado'} correctamente.`);
+        this.cargarUsuario(target.id);
+      },
+      error: (err) => {
+        this.message.error(err.error?.message || `No se pudo ${accion} al usuario.`);
       },
     });
   }
 
-  abrirModalPassword(): void {
-    this.passwordModalForm.reset();
-    this.passwordModalVisible = true;
+  /** Drawer Lateral Derecho para Restablecer Contraseña (Estilo Microsoft 365 Admin & D365) */
+  abrirDrawerPassword(): void {
+    this.passwordForm.reset();
+    this.passwordDrawerVisible = true;
+  }
+
+  cerrarDrawerPassword(): void {
+    this.passwordDrawerVisible = false;
   }
 
   guardarPassword(): void {
-    if (this.passwordModalForm.invalid || !this.usuarioId) {
-      Object.values(this.passwordModalForm.controls).forEach((c) => {
+    if (this.passwordForm.invalid || !this.usuarioId) {
+      Object.values(this.passwordForm.controls).forEach((c) => {
         c.markAsDirty();
         c.updateValueAndValidity({ onlySelf: true });
       });
       return;
     }
 
-    this.passwordSaving = true;
-    const nuevaPassword = this.passwordModalForm.value.nuevaPassword!;
+    const { nuevaPassword, confirmarPassword } = this.passwordForm.value;
+    if (nuevaPassword !== confirmarPassword) {
+      this.message.error('Las contraseñas no coinciden. Verifíquelas e intente nuevamente.');
+      return;
+    }
 
+    this.passwordSaving = true;
     this.usuarioService.cambiarPassword(this.usuarioId, nuevaPassword).subscribe({
       next: () => {
         this.passwordSaving = false;
-        this.passwordModalVisible = false;
+        this.passwordDrawerVisible = false;
         this.message.success('Contraseña restablecida exitosamente.');
       },
       error: (err) => {
@@ -396,11 +473,32 @@ export class UsuarioFormComponent implements OnInit {
     this.router.navigate(['/configuracion/usuarios']);
   }
 
+  irANuevo(): void {
+    if (this.isEdit) {
+      this.router.navigate(['/configuracion/usuarios/nuevo']);
+    } else {
+      this.initForms();
+      this.rolesSeleccionados.clear();
+      this.message.info('Formulario preparado para registrar un nuevo usuario.');
+      this.cdr.markForCheck();
+    }
+  }
+
   getIniciales(): string {
     const nombre = this.usuarioActual?.nombreCompleto || this.form?.get('nombreCompleto')?.value || '';
     if (!nombre) return this.isEdit ? '' : 'NU';
     const partes = nombre.trim().split(' ');
     if (partes.length === 1) return partes[0].substring(0, 2).toUpperCase();
     return (partes[0][0] + partes[1][0]).toUpperCase();
+  }
+
+  getModuloIcon(modulo: string): string {
+    const m = (modulo || '').toLowerCase();
+    if (m.includes('venta') || m.includes('factura') || m.includes('caja')) return 'shopping-cart';
+    if (m.includes('recurso') || m.includes('empleado') || m.includes('rrhh') || m.includes('personal')) return 'team';
+    if (m.includes('inventario') || m.includes('producto') || m.includes('almacen')) return 'inbox';
+    if (m.includes('config') || m.includes('ajuste') || m.includes('sistema')) return 'setting';
+    if (m.includes('seguridad') || m.includes('usuario') || m.includes('rol')) return 'safety';
+    return 'appstore';
   }
 }

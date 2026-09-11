@@ -7,6 +7,7 @@ import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { NzConfig, NzConfigService, provideNzConfig } from 'ng-zorro-antd/core/config';
 import { provideNzIcons } from 'ng-zorro-antd/icon';
 import { NZ_I18N, es_ES } from 'ng-zorro-antd/i18n';
+import { provideNzNativeDateAdapter } from 'ng-zorro-antd/core/time';
 import { registerLocaleData } from '@angular/common';
 import es from '@angular/common/locales/es';
 import { ICONS } from './app.icons';
@@ -32,5 +33,7 @@ export const appConfig: ApplicationConfig = {
     provideEnvironmentInitializer(() => inject(NzConfigService)),
     provideNzIcons(ICONS),
     { provide: NZ_I18N, useValue: es_ES },
+    provideNzNativeDateAdapter(),
   ],
 };
+

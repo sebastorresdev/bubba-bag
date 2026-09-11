@@ -67,10 +67,14 @@
       [nzData]="usuarios"
       [nzLoading]="loading"
       [nzShowPagination]="true"
+      [nzShowTotal]="totalRangeTpl"
       [nzPageSize]="15"
       nzSize="small"
-      class="d365-grid"
+      class="d365-grid d365-table"
     >
+      <ng-template #totalRangeTpl let-range="range" let-total="total">
+        {{ range[0] }} - {{ range[1] }} de {{ total }}
+      </ng-template>
       <thead>
         <tr>
           <th

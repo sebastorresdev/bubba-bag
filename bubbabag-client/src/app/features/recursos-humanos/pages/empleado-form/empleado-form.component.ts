@@ -30,11 +30,13 @@ import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzTabsModule } from 'ng-zorro-antd/tabs';
 import { NzModalModule } from 'ng-zorro-antd/modal';
 import { NzDividerModule } from 'ng-zorro-antd/divider';
+import { NzDateAdapter, NativeDateAdapter } from 'ng-zorro-antd/core/time';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
 @Component({
   selector: 'app-empleado-form',
   standalone: true,
+  providers: [{ provide: NzDateAdapter, useClass: NativeDateAdapter }],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -96,6 +98,10 @@ export class EmpleadoFormComponent implements OnInit {
     this.initForm();
     this.cargarCatalogos();
 
+    this.form.get('departamentoId')?.valueChanges.subscribe((departamentoId) => {
+    this.onDepartamentoChange(departamentoId, true);
+  });
+
     this.route.paramMap.subscribe((params) => {
       const id = params.get('id');
       if (id) {
@@ -156,78 +162,89 @@ export class EmpleadoFormComponent implements OnInit {
   }
 
   cargarCatalogos(): void {
-    this.loadingCatalogos = true;
-    this.empleadoService.getCatalogos().subscribe({
-      next: (cat) => {
-        this.catalogos = cat;
-        this.tiposDocumento = cat.tiposDocumento;
-        this.departamentos = cat.departamentos;
-        this.tiposContrato = cat.tiposContrato;
-        this.regimenesPensionarios = cat.regimenesPensionarios;
-        this.entidadesFinancieras = cat.entidadesFinancieras;
-        this.estados = cat.estados;
-        this.motivosCese = cat.motivosCese || [];
-        this.loadingCatalogos = false;
+  this.loadingCatalogos = true;
+  this.empleadoService.getCatalogos().subscribe({
+    next: (cat) => {
+      this.catalogos = cat;
+      this.tiposDocumento = cat.tiposDocumento;
+      this.departamentos = cat.departamentos;
+      this.tiposContrato = cat.tiposContrato;
+      this.regimenesPensionarios = cat.regimenesPensionarios;
+      this.entidadesFinancieras = cat.entidadesFinancieras;
+      this.estados = cat.estados;
+      this.motivosCese = cat.motivosCese || [];
+      this.loadingCatalogos = false;
 
-        // Si ya hay un departamentoId en el formulario (por carga en edición), poblar cargos
-        const currentDeptoId = this.form.get('departamentoId')?.value;
-        if (currentDeptoId) {
-          this.onDepartamentoChange(currentDeptoId, false);
-        }
-      },
-      error: () => {
-        this.loadingCatalogos = false;
-      },
-    });
-  }
+      // Si el empleado ya se cargó primero y ya hay un departamentoId en el formulario,
+      // poblamos la lista de cargos sin borrar el cargoId existente
+      const currentDeptoId = this.form.get('departamentoId')?.value;
+      if (currentDeptoId) {
+        this.onDepartamentoChange(currentDeptoId, false);
+      }
+
+      this.cdr.markForCheck();
+    },
+    error: () => {
+      this.loadingCatalogos = false;
+      this.cdr.markForCheck();
+    },
+  });
+}
 
   onDepartamentoChange(departamentoId: string | null, resetCargo: boolean = true): void {
-    if (!departamentoId) {
-      this.cargosFiltrados = [];
-      if (resetCargo) {
-        this.form.get('cargoId')?.setValue(null);
-      }
-      return;
-    }
-
-    const depto = this.departamentos.find((d) => d.id === departamentoId);
-    this.cargosFiltrados = depto ? depto.cargos : [];
-
+  if (!departamentoId) {
+    this.cargosFiltrados = [];
     if (resetCargo) {
-      const currentCargoId = this.form.get('cargoId')?.value;
-      if (currentCargoId && !this.cargosFiltrados.some((c) => c.id === currentCargoId)) {
-        this.form.get('cargoId')?.setValue(null);
-      }
+      this.form.get('cargoId')?.setValue(null, { emitEvent: false });
+    }
+    return;
+  }
+
+  const depto = (this.departamentos || []).find((d) => d.id === departamentoId);
+  this.cargosFiltrados = depto ? depto.cargos : [];
+
+  if (resetCargo) {
+    const currentCargoId = this.form.get('cargoId')?.value;
+    if (currentCargoId && !this.cargosFiltrados.some((c) => c.id === currentCargoId)) {
+      this.form.get('cargoId')?.setValue(null, { emitEvent: false });
     }
   }
+}
 
   cargarEmpleado(): void {
-    this.loading = true;
-    this.empleadoService.getEmpleado(this.empleadoId!).subscribe({
-      next: (empleado) => {
-        this.empleadoActual = empleado;
-        this.fotoPreview = empleado.fotoUrl || null;
-        this.form.patchValue({
-          ...empleado,
-        });
-        if (empleado.estado === 'Cesado') {
-          this.form.disable();
-        } else {
-          this.form.enable();
-        }
-        if (empleado.departamentoId) {
-          this.onDepartamentoChange(empleado.departamentoId, false);
-        }
-        this.loading = false;
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.loading = false;
-        this.cdr.markForCheck();
-        this.router.navigate(['/rrhh/empleados']);
-      },
-    });
-  }
+  this.loading = true;
+  this.empleadoService.getEmpleado(this.empleadoId!).subscribe({
+    next: (empleado) => {
+      this.empleadoActual = empleado;
+      this.fotoPreview = empleado.fotoUrl || null;
+
+      // 1. Cargar la lista de cargos del departamento antes de parchar el valor
+      if (empleado.departamentoId) {
+        this.onDepartamentoChange(empleado.departamentoId, false);
+      }
+
+      // 2. Aplicar valores evitando que se dispare valueChanges (emitEvent: false)
+      this.form.patchValue({
+        ...empleado,
+      }, { emitEvent: false });
+
+      // 3. Manejar estado cesado
+      if (empleado.estado === 'Cesado') {
+        this.form.disable();
+      } else {
+        this.form.enable();
+      }
+
+      this.loading = false;
+      this.cdr.markForCheck();
+    },
+    error: () => {
+      this.loading = false;
+      this.cdr.markForCheck();
+      this.router.navigate(['/rrhh/empleados']);
+    },
+  });
+}
 
   get isCesado(): boolean {
     return this.empleadoActual?.estado === 'Cesado';
@@ -294,6 +311,7 @@ export class EmpleadoFormComponent implements OnInit {
         key: 'save',
         label: 'Guardar',
         icon: 'save',
+        iconColor: 'purple',
         tooltip: this.isCesado ? 'Colaborador cesado (solo lectura)' : 'Guardar cambios del colaborador',
         disabled: this.loading || this.isCesado,
         execute: () => this.guardar(false),
@@ -301,7 +319,8 @@ export class EmpleadoFormComponent implements OnInit {
       {
         key: 'saveAndClose',
         label: 'Guardar y cerrar',
-        icon: 'check',
+        icon: 'save',
+        iconColor: 'purple',
         tooltip: this.isCesado ? 'Colaborador cesado (solo lectura)' : 'Guardar cambios y volver a la lista',
         disabled: this.loading || this.isCesado,
         execute: () => this.guardar(true),
@@ -310,6 +329,7 @@ export class EmpleadoFormComponent implements OnInit {
         key: 'discard',
         label: 'Descartar',
         icon: 'close',
+        iconColor: 'neutral',
         tooltip: 'Descartar cambios y volver',
         execute: () => this.volver(),
       },
@@ -328,7 +348,7 @@ export class EmpleadoFormComponent implements OnInit {
           label: 'Dar de baja',
           icon: 'user-delete',
           tooltip: 'Registrar la baja o cese del colaborador',
-          danger: true,
+          iconColor: 'danger',
           disabled: this.loading || this.loadingBaja,
           execute: () => this.abrirModalBaja(),
         });
@@ -338,6 +358,7 @@ export class EmpleadoFormComponent implements OnInit {
           label: 'Reactivar colaborador',
           icon: 'check-circle',
           tooltip: 'Reactivar colaborador a estado Activo',
+          iconColor: 'success',
           disabled: this.loading || this.loadingReactivar,
           execute: () => this.reactivarColaborador(),
         });
@@ -353,10 +374,21 @@ export class EmpleadoFormComponent implements OnInit {
         key: 'new',
         label: 'Crear nuevo',
         icon: 'plus',
+        iconColor: 'success',
         tooltip: 'Registrar un nuevo colaborador',
         execute: () => this.router.navigate(['/rrhh/empleados/nuevo']),
       });
     }
+
+    items.push({
+      key: 'refresh',
+      label: 'Actualizar',
+      icon: 'reload',
+      iconColor: 'neutral',
+      tooltip: 'Recargar datos del formulario',
+      disabled: this.loading,
+      execute: () => this.recargar(),
+    });
 
     return items;
   }
@@ -364,12 +396,32 @@ export class EmpleadoFormComponent implements OnInit {
   get farItems(): CommandBarItem[] {
     return [
       {
-        key: 'refresh',
-        label: 'Actualizar',
-        icon: 'reload',
-        tooltip: 'Recargar datos del colaborador',
-        disabled: this.loading,
-        execute: () => this.recargar(),
+        key: 'share',
+        label: 'Compartir',
+        icon: 'export',
+        appearance: 'primary',
+        tooltip: 'Compartir ficha de colaborador',
+        children: [
+          {
+            key: 'copy-link',
+            label: 'Copiar vínculo',
+            icon: 'link',
+            execute: () => {
+              if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                navigator.clipboard.writeText(window.location.href);
+                this.message.success('Vínculo copiado al portapapeles');
+              }
+            },
+          },
+          {
+            key: 'send-email',
+            label: 'Enviar por correo',
+            icon: 'mail',
+            execute: () => {
+              window.open(`mailto:?subject=Ficha de Colaborador&body=${encodeURIComponent(window.location.href)}`);
+            },
+          },
+        ],
       },
     ];
   }

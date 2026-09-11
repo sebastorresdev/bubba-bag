@@ -50,8 +50,20 @@
 
     <!-- Grilla / Tabla Estilo Dynamics 365 -->
     <div class="d365-grid-container">
-      <nz-table #deptosTable [nzData]="departamentos" [nzLoading]="loading" [nzShowPagination]="true"
-        [nzPageSize]="15" [nzSize]="'small'" [nzBordered]="false" class="d365-table">
+      <nz-table
+        #deptosTable
+        [nzData]="departamentos"
+        [nzLoading]="loading"
+        [nzShowPagination]="true"
+        [nzShowTotal]="totalRangeTpl"
+        [nzPageSize]="15"
+        [nzSize]="'small'"
+        [nzBordered]="false"
+        class="d365-table"
+      >
+        <ng-template #totalRangeTpl let-range="range" let-total="total">
+          {{ range[0] }} - {{ range[1] }} de {{ total }}
+        </ng-template>
         <thead>
           <tr>
             <th [nzWidth]="'44px'" [nzChecked]="isAllSelected" [nzIndeterminate]="isIndeterminate"

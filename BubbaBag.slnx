@@ -24,6 +24,10 @@
     <Project Path="src/Modules/Ventas/BubbaBag.Modules.Ventas.Domain/BubbaBag.Modules.Ventas.Domain.csproj" />
     <Project Path="src/Modules/Ventas/BubbaBag.Modules.Ventas.Infrastructure/BubbaBag.Modules.Ventas.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/FieldService/">
+    <Project Path="src/Modules/FieldService/BubbaBag.Modules.FieldService.Domain/BubbaBag.Modules.FieldService.Domain.csproj" />
+    <Project Path="src/Modules/FieldService/BubbaBag.Modules.FieldService.Infrastructure/BubbaBag.Modules.FieldService.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Shared/">
     <Project Path="src/Shared/BubbaBag.SharedKernel/BubbaBag.SharedKernel.csproj" />
   </Folder>

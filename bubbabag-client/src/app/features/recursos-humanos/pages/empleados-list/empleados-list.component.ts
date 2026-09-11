@@ -36,11 +36,13 @@ import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
 import { NzDrawerModule } from 'ng-zorro-antd/drawer';
+import { NzDateAdapter, NativeDateAdapter } from 'ng-zorro-antd/core/time';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
 @Component({
   selector: 'app-empleados-list',
   standalone: true,
+  providers: [{ provide: NzDateAdapter, useClass: NativeDateAdapter }],
   imports: [
     CommonModule,
     RouterModule,
@@ -196,6 +198,7 @@ export class EmpleadosListComponent implements OnInit {
         key: 'new',
         label: 'Nuevo',
         icon: 'plus',
+        iconColor: 'success',
         tooltip: 'Registrar un nuevo colaborador',
         execute: () => this.irANuevoColaborador(),
       },
@@ -203,6 +206,7 @@ export class EmpleadosListComponent implements OnInit {
         key: 'edit',
         label: 'Editar',
         icon: 'edit',
+        iconColor: 'primary',
         disabled: this.setOfCheckedId.size !== 1,
         tooltip:
           this.setOfCheckedId.size !== 1
@@ -217,6 +221,7 @@ export class EmpleadosListComponent implements OnInit {
         label: 'Dar de Baja',
         icon: 'user-delete',
         danger: true,
+        iconColor: 'danger',
         disabled: this.setOfCheckedId.size === 0 || this.selectedEmpleado?.estado === 'Cesado',
         tooltip:
           this.setOfCheckedId.size === 0
@@ -231,11 +236,23 @@ export class EmpleadosListComponent implements OnInit {
         key: 'export',
         label: 'Exportar a Excel',
         icon: 'file-excel',
+        iconColor: 'success',
+        split: true,
+        tooltip: 'Exportar colaboradores directamente a Excel (.xlsx)',
+        execute: () => this.exportarDatos('xlsx'),
         children: [
           {
+            key: 'xlsx',
+            label: 'Descargar Excel (.xlsx)',
+            icon: 'file-excel',
+            iconColor: 'success',
+            execute: () => this.exportarDatos('xlsx'),
+          },
+          {
             key: 'csv',
-            label: 'Exportar a CSV (.csv)',
-            icon: 'file-text',
+            label: 'Descargar CSV (.csv)',
+            icon: 'file-excel',
+            iconColor: 'success',
             execute: () => this.exportarDatos('csv'),
           },
         ],
@@ -252,6 +269,7 @@ export class EmpleadosListComponent implements OnInit {
         key: 'refresh',
         label: 'Actualizar',
         icon: 'reload',
+        iconColor: 'neutral',
         tooltip: 'Recargar lista de colaboradores',
         execute: () => this.cargarEmpleados(),
       },

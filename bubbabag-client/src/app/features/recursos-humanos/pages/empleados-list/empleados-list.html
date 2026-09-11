@@ -99,10 +99,15 @@
       [nzData]="empleados"
       [nzLoading]="loading"
       [nzShowPagination]="true"
+      [nzShowTotal]="totalRangeTpl"
       [nzPageSize]="15"
       nzSize="small"
       (nzCurrentPageDataChange)="onCurrentPageDataChange($event)"
+      class="d365-table"
     >
+      <ng-template #totalRangeTpl let-range="range" let-total="total">
+        {{ range[0] }} - {{ range[1] }} de {{ total }}
+      </ng-template>
       <thead>
         <tr>
           <th

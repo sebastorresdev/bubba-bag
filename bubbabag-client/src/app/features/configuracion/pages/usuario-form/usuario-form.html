@@ -50,18 +50,21 @@
   <nz-spin [nzSpinning]="isEdit && loading && !usuarioActual" nzTip="Cargando datos del usuario..." [nzDelay]="150">
     <div class="form-content-wrapper">
     <form nz-form [formGroup]="form" nzLayout="vertical">
-      <div class="form-grid-layout">
-        
-        <!-- Tarjeta 1: Información General del Usuario -->
-        <nz-card [nzBordered]="true" class="d365-card">
+      <div class="form-vertical-layout">
+
+        <!-- Bloque Superior: Información de la Cuenta (Ancho completo, estilo ERP moderno) -->
+        <nz-card [nzBordered]="true" class="d365-card account-info-card">
           <div class="card-section-header">
             <nz-icon nzType="user" class="section-icon" />
-            <span class="section-title">Información de la Cuenta</span>
+            <div class="section-header-text">
+              <span class="section-title">Información de la Cuenta</span>
+              <span class="section-subtitle">Datos principales de identificación y credenciales de acceso</span>
+            </div>
           </div>
 
           <div nz-row [nzGutter]="24">
-            <div nz-col [nzSpan]="24">
-              <nz-form-item>
+            <div nz-col [nzXs]="24" [nzSm]="24" [nzMd]="12">
+              <nz-form-item class="form-field-item">
                 <nz-form-label nzRequired>Nombre Completo</nz-form-label>
                 <nz-form-control nzErrorTip="Ingrese el nombre completo del usuario.">
                   <input
@@ -73,8 +76,8 @@
               </nz-form-item>
             </div>
 
-            <div nz-col [nzSpan]="24">
-              <nz-form-item>
+            <div nz-col [nzXs]="24" [nzSm]="24" [nzMd]="12">
+              <nz-form-item class="form-field-item">
                 <nz-form-label nzRequired>Correo Electrónico (Login)</nz-form-label>
                 <nz-form-control nzErrorTip="Ingrese un correo electrónico corporativo válido.">
                   <input
@@ -88,8 +91,8 @@
             </div>
 
             @if (!isEdit) {
-              <div nz-col [nzSpan]="24">
-                <nz-form-item>
+              <div nz-col [nzXs]="24" [nzSm]="24" [nzMd]="12">
+                <nz-form-item class="form-field-item">
                   <nz-form-label nzRequired>Contraseña Inicial</nz-form-label>
                   <nz-form-control nzErrorTip="La contraseña debe tener mínimo 6 caracteres.">
                     <input
@@ -105,50 +108,62 @@
           </div>
         </nz-card>
 
-        <!-- Tarjeta 2: Asignación de Roles del Sistema (Exclusión mutua: 1 rol por módulo) -->
-        <nz-card [nzBordered]="true" class="d365-card">
+        <!-- Tarjeta 2: Roles de Seguridad del Sistema (Estilo Microsoft Dynamics 365 con Checkboxes) -->
+        <nz-card [nzBordered]="true" class="d365-card security-roles-card">
           <div class="card-section-header">
-            <nz-icon nzType="lock" class="section-icon" />
+            <nz-icon nzType="safety" class="section-icon" />
             <div class="section-header-text">
-              <span class="section-title">Nivel de Acceso por Módulo</span>
+              <span class="section-title">Roles de Seguridad Asignados</span>
               <span class="section-subtitle">
-                Seleccione el rol correspondiente para cada módulo (máximo 1 rol por módulo; haga clic para seleccionar o desmarcar):
+                Seleccione los roles de acceso que tendrá este usuario en cada módulo de la organización.
               </span>
             </div>
           </div>
 
-          <div class="modules-roles-container">
+          <div class="d365-modules-roles-grid">
             @for (grupo of modulosRoles; track grupo.modulo) {
-              <div class="modulo-block">
-                <div class="modulo-header-row">
-                  <div class="modulo-title">
-                    <nz-icon nzType="appstore" />
-                    <span>{{ grupo.modulo }}</span>
+              <div class="d365-module-roles-group">
+                <!-- Encabezado de Módulo con Icono y Contador -->
+                <div class="module-group-header">
+                  <div class="module-group-title">
+                    <div class="module-icon-box">
+                      <nz-icon [nzType]="getModuloIcon(grupo.modulo)" />
+                    </div>
+                    <span class="module-title-text">{{ grupo.modulo }}</span>
                   </div>
-                  <span class="modulo-status-hint">
-                    {{ rolesPorModulo.get(grupo.modulo) ? '1 rol asignado' : 'Sin acceso asignado' }}
-                  </span>
+                  <nz-tag
+                    [nzColor]="rolesSeleccionadosEnModulo(grupo).length > 0 ? 'processing' : 'default'"
+                    class="module-count-badge"
+                  >
+                    {{ rolesSeleccionadosEnModulo(grupo).length }} de {{ grupo.roles.length }} asignado(s)
+                  </nz-tag>
                 </div>
 
-                <div class="roles-grid">
+                <!-- Lista de Roles del Módulo vía Checkboxes -->
+                <div class="module-roles-list">
                   @for (rol of grupo.roles; track rol.codigo) {
                     <div
-                      class="role-card"
-                      [class.role-card-selected]="isRolSelected(grupo.modulo, rol.codigo)"
-                      (click)="seleccionarRol(grupo.modulo, rol.codigo)"
+                      class="d365-role-checkbox-card"
+                      [class.is-selected]="isRolSeleccionado(rol.codigo)"
+                      (click)="toggleRol(rol.codigo)"
                     >
-                      <div class="role-card-radio">
-                        <span
-                          class="d365-radio-indicator"
-                          [class.d365-radio-checked]="isRolSelected(grupo.modulo, rol.codigo)"
+                      <div class="role-checkbox-header">
+                        <label
+                          nz-checkbox
+                          [ngModel]="isRolSeleccionado(rol.codigo)"
+                          [ngModelOptions]="{ standalone: true }"
+                          (ngModelChange)="onRolCheckboxToggle(rol.codigo, $event)"
+                          (click)="$event.stopPropagation()"
                         >
-                          <span class="d365-radio-inner"></span>
-                        </span>
+                          <span class="role-name-text">{{ rol.nombreVisible }}</span>
+                        </label>
+                        @if (isRolSeleccionado(rol.codigo)) {
+                          <nz-tag nzColor="success" class="role-active-tag">
+                            <nz-icon nzType="check" /> Asignado
+                          </nz-tag>
+                        }
                       </div>
-                      <div class="role-card-content">
-                        <span class="role-name">{{ rol.nombreVisible }}</span>
-                        <span class="role-desc">{{ rol.descripcion }}</span>
-                      </div>
+                      <span class="role-desc-text">{{ rol.descripcion }}</span>
                     </div>
                   }
                 </div>
@@ -156,25 +171,37 @@
             }
           </div>
         </nz-card>
+
       </div>
     </form>
   </div>
   </nz-spin>
 </div>
 
-<!-- Modal Restablecer Contraseña (en modo edición) -->
-<nz-modal
-  [(nzVisible)]="passwordModalVisible"
-  [nzTitle]="'Restablecer Contraseña'"
-  [nzOkText]="'Actualizar'"
-  [nzCancelText]="'Cancelar'"
-  [nzOkLoading]="passwordSaving"
-  (nzOnOk)="guardarPassword()"
-  (nzOnCancel)="passwordModalVisible = false"
-  [nzWidth]="420"
+<!-- Drawer Lateral Derecho: Restablecer / Cambiar Contraseña (Estilo Microsoft 365 Admin & Dynamics) -->
+<nz-drawer
+  [nzVisible]="passwordDrawerVisible"
+  (nzOnClose)="cerrarDrawerPassword()"
+  [nzWidth]="440"
+  nzTitle="Restablecer Contraseña"
+  [nzFooter]="drawerFooter"
+  [nzClosable]="true"
 >
-  <ng-container *nzModalContent>
-    <form nz-form [formGroup]="passwordModalForm" nzLayout="vertical">
+  <ng-container *nzDrawerContent>
+    <div class="drawer-user-summary">
+      <nz-avatar [nzSize]="44" [nzText]="getIniciales()" class="drawer-avatar"></nz-avatar>
+      <div class="drawer-user-meta">
+        <span class="drawer-user-name">{{ usuarioActual?.nombreCompleto }}</span>
+        <span class="drawer-user-email">{{ usuarioActual?.email }}</span>
+      </div>
+    </div>
+
+    <div class="drawer-instructions">
+      <nz-icon nzType="info-circle" class="info-icon" />
+      <span>Especifique una nueva contraseña segura para el usuario. Esta acción actualizará sus credenciales de inmediato.</span>
+    </div>
+
+    <form nz-form [formGroup]="passwordForm" nzLayout="vertical" class="drawer-form">
       <nz-form-item>
         <nz-form-label nzRequired>Nueva Contraseña</nz-form-label>
         <nz-form-control nzErrorTip="La contraseña debe tener al menos 6 caracteres.">
@@ -182,10 +209,41 @@
             nz-input
             type="password"
             formControlName="nuevaPassword"
-            placeholder="Ingrese la nueva contraseña"
+            placeholder="Mínimo 6 caracteres"
+            autocomplete="new-password"
+          />
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label nzRequired>Confirmar Nueva Contraseña</nz-form-label>
+        <nz-form-control nzErrorTip="Confirme la contraseña.">
+          <input
+            nz-input
+            type="password"
+            formControlName="confirmarPassword"
+            placeholder="Repita la nueva contraseña"
+            autocomplete="new-password"
           />
         </nz-form-control>
       </nz-form-item>
     </form>
   </ng-container>
-</nz-modal>
+
+  <ng-template #drawerFooter>
+    <div class="drawer-footer-actions">
+      <button nz-button nzType="default" (click)="cerrarDrawerPassword()">
+        Cancelar
+      </button>
+      <button
+        nz-button
+        nzType="primary"
+        [nzLoading]="passwordSaving"
+        (click)="guardarPassword()"
+      >
+        <nz-icon nzType="check" />
+        Actualizar Contraseña
+      </button>
+    </div>
+  </ng-template>
+</nz-drawer>

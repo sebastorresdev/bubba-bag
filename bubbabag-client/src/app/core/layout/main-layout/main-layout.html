@@ -1,8 +1,12 @@
 <nz-layout class="erp-layout">
   <!-- Top Suite Bar (Estilo Microsoft Dynamics 365) -->
   <nz-header class="erp-suite-bar">
-    <!-- Izquierda: Waffle launcher + Brand + Módulo Activo -->
+    <!-- Izquierda: Menú móvil + Waffle launcher + Brand + Módulo Activo -->
     <div class="erp-suite-bar-brand">
+      <button nz-button nzType="text" class="erp-mobile-menu-btn" (click)="toggleMobileSider()" title="Menú del Sistema">
+        <nz-icon [nzType]="isMobileSiderVisible ? 'close' : 'menu'" />
+      </button>
+
       <button nz-button nzType="text" (click)="openAppLauncher()" title="Aplicaciones" class="erp-waffle-btn">
         <nz-icon nzType="appstore" />
       </button>
@@ -18,8 +22,41 @@
         <span nzInputPrefix>
           <nz-icon nzType="search" />
         </span>
-        <input type="text" nz-input nzSize="small" [placeholder]="navService.currentModule().searchPlaceholder" />
+        <input
+          type="text"
+          nz-input
+          nzSize="small"
+          [placeholder]="navService.currentModule().searchPlaceholder"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="onSearchChange($event)"
+          [nzAutocomplete]="autoGlobalSearch"
+        />
       </nz-input-wrapper>
+
+      <nz-autocomplete
+        #autoGlobalSearch
+        nzMenuClassName="erp-search-autocomplete-panel"
+        [nzDefaultActiveFirstOption]="true"
+        [nzWidth]="520"
+        nzBackfill
+      >
+        @for (group of groupedSearchResults(); track group.category) {
+          <nz-auto-optgroup [nzLabel]="group.category">
+            @for (item of group.items; track item.path) {
+              <nz-auto-option [nzValue]="item.title" (click)="onSelectSearchResult(item)">
+                <div class="erp-search-row">
+                  <span class="erp-search-cat-col">{{ group.category }}</span>
+                  <div class="erp-search-divider-col"></div>
+                  <span class="erp-search-title-col">
+                    <nz-icon [nzType]="item.icon || 'file-text'" class="erp-search-item-icon" />
+                    {{ item.title }}
+                  </span>
+                </div>
+              </nz-auto-option>
+            }
+          </nz-auto-optgroup>
+        }
+      </nz-autocomplete>
     </div>
 
     <!-- Derecha: Utilidades globales y Perfil (Estilo Dynamics 365) -->
@@ -91,9 +128,15 @@
 
   <!-- Contenedor debajo del Suite Bar (Site Map Lateral + Work Area) -->
   <nz-layout class="erp-main-body">
+    <!-- Backdrop oscuro cuando el sidebar móvil está abierto por encima -->
+    @if (isMobileSiderVisible) {
+      <div class="d365-mobile-backdrop" (click)="closeMobileSider()"></div>
+    }
+
     <!-- Barra Lateral Site Map de Dynamics 365 con nz-sider -->
     <nz-sider nzCollapsible [(nzCollapsed)]="isCollapsed" [nzTrigger]="null" [nzWidth]="250" [nzCollapsedWidth]="48"
       [nzTheme]="themeService.isDarkMode() ? 'dark' : 'light'" class="d365-sider" [class.d365-collapsed]="isCollapsed"
+      [class.d365-sider-mobile-open]="isMobileSiderVisible"
       [class.d365-dark]="themeService.isDarkMode()">
       <!-- Top Trigger Bar: Botón Hamburguesa -->
       <div class="d365-sitemap-top">
@@ -111,7 +154,7 @@
           <!-- Nivel 1 - Opción A: Ítem directo en raíz -->
           @if (!item.children || item.children.length === 0) {
           <li nz-menu-item nz-tooltip nzTooltipPlacement="right" [nzTooltipTitle]="isCollapsed ? item.title : ''"
-            [nzSelected]="isActive(item)" [routerLink]="item.path">
+            [nzSelected]="isActive(item)" [routerLink]="item.path" (click)="closeMobileSider()">
             @if (item.icon) {
             <nz-icon [nzType]="item.icon" />
             }
@@ -123,7 +166,7 @@
           <li nz-submenu [nzTitle]="item.title" [nzIcon]="item.icon || ''" [(nzOpen)]="item.open">
             <ul>
               @for (sub of item.children; track sub.title) {
-              <li nz-menu-item [nzSelected]="isActive(sub)" [routerLink]="sub.path">
+              <li nz-menu-item [nzSelected]="isActive(sub)" [routerLink]="sub.path" (click)="closeMobileSider()">
                 <span class="d365-menu-title">{{ sub.title }}</span>
               </li>
               }
@@ -142,9 +185,10 @@
           <div class="d365-area-badge">
             {{ navService.currentModule().shortCode }}
           </div>
-          <span class="d365-area-name" [class.d365-area-text-collapsed]="isCollapsed">{{
-            navService.currentModule().title }}</span>
-          <nz-icon nzType="up" class="d365-area-arrow" [class.d365-area-text-collapsed]="isCollapsed" />
+          @if (!isCollapsed) {
+            <span class="d365-area-name">{{ navService.currentModule().title }}</span>
+            <nz-icon nzType="up" class="d365-area-arrow" />
+          }
         </button>
 
         <nz-dropdown-menu #areaMenu="nzDropdownMenu">

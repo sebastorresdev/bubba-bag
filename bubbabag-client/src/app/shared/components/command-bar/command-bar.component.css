@@ -1,20 +1,73 @@
 :host {
   display: block;
   width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+
+  /* Variables del Sistema (Modo Claro) */
+  --cmd-bg: #ffffff;
+  --cmd-border: rgba(0, 0, 0, 0.08);
+  --cmd-text: #323130;
+  --cmd-text-hover: #201f1e;
+  --cmd-btn-hover-bg: #f3f2f1;
+  --cmd-btn-active-bg: #edebe9;
+  --cmd-disabled-color: #a19f9d;
+  --cmd-divider: rgba(0, 0, 0, 0.1);
+  --cmd-split-separator: #8a8886;
+
+  /* Colores Semánticos */
+  --cmd-color-primary: #0f6cbd;
+  --cmd-color-success: #107c41;
+  --cmd-color-danger: #d13438;
+  --cmd-color-warning: #ffaa00;
+  --cmd-color-purple: #873999;
+  --cmd-color-neutral: #605e5c;
 }
 
-/* Contenedor Principal de la Barra de Comandos */
+/* Modo Oscuro Unificado */
+:host-context([data-theme='dark']),
+:host-context(.dark-theme) {
+  --cmd-bg: #1f1f1f;
+  --cmd-border: rgba(255, 255, 255, 0.08);
+  --cmd-text: #f3f2f1;
+  --cmd-text-hover: #ffffff;
+  --cmd-btn-hover-bg: #2d2d2d;
+  --cmd-btn-active-bg: #383838;
+  --cmd-disabled-color: #797775;
+  --cmd-divider: rgba(255, 255, 255, 0.12);
+  --cmd-split-separator: rgba(255, 255, 255, 0.35);
+
+  --cmd-color-primary: #2886de;
+  --cmd-color-success: #359b56;
+  --cmd-color-danger: #f1707b;
+  --cmd-color-warning: #ffd33d;
+  --cmd-color-purple: #c38ae4;
+  --cmd-color-neutral: #a19f9d;
+}
+
+/* Contenedor Principal de la Barra de Comandos (Responsive con scroll táctil limpio) */
 .fluent-command-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 44px;
+  min-height: 44px;
   padding: 0 12px;
-  background-color: #ffffff;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: var(--cmd-bg);
+  border-bottom: 1px solid var(--cmd-border);
   box-sizing: border-box;
   user-select: none;
   transition: background-color 0.2s ease, border-color 0.2s ease;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.fluent-command-bar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Grupos Izquierdo y Derecho */
@@ -23,21 +76,26 @@
   align-items: center;
   gap: 4px;
   height: 100%;
+  flex-shrink: 0;
 }
 
 /* Título de contexto opcional */
 .fluent-cmd-title {
   font-size: 14px;
   font-weight: 600;
-  color: #323130;
+  color: var(--cmd-text);
   padding: 0 8px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 260px;
 }
 
-/* Divisor vertical entre grupos de comandos */
+/* Divisor vertical entre comandos */
 .fluent-cmd-divider {
   width: 1px;
   height: 20px;
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: var(--cmd-divider);
   margin: 0 4px;
   flex-shrink: 0;
 }
@@ -47,60 +105,108 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   height: 32px;
   padding: 0 10px;
   border-radius: 4px;
   border: none;
   background: transparent;
-  color: #323130;
+  color: var(--cmd-text);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease-in-out;
+  transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
   box-shadow: none;
+  white-space: nowrap;
 }
 
 .fluent-cmd-btn:hover:not(:disabled) {
-  background-color: #f3f2f1;
-  color: #201f1e;
+  background-color: var(--cmd-btn-hover-bg);
+  color: var(--cmd-text-hover);
 }
 
 .fluent-cmd-btn:active:not(:disabled) {
-  background-color: #edebe9;
+  background-color: var(--cmd-btn-active-bg);
 }
 
 .fluent-cmd-btn:disabled {
-  color: #a19f9d !important;
+  color: var(--cmd-disabled-color) !important;
   cursor: not-allowed;
   background: transparent !important;
   opacity: 0.6;
 }
 
-/* Botón de Atrás */
-.fluent-cmd-back-btn {
-  padding: 0 8px;
+.fluent-cmd-btn:disabled .fluent-cmd-icon {
+  color: var(--cmd-disabled-color) !important;
 }
 
-/* Botón Primario y Destructivo: en la barra de comandos nunca cambian el fondo ni el texto */
+/* Botón de Atrás con acento primario (Estilo Dynamics 365) */
+.fluent-cmd-back-btn {
+  padding: 0 8px;
+  color: var(--cmd-color-primary) !important;
+}
+
+.fluent-cmd-back-btn .anticon {
+  color: var(--cmd-color-primary) !important;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.fluent-cmd-back-btn:hover:not(:disabled) {
+  background-color: var(--cmd-btn-hover-bg) !important;
+  color: var(--cmd-color-primary) !important;
+}
+
+/* Botones con énfasis primario o peligro */
 .fluent-cmd-btn-primary,
 .fluent-cmd-btn-danger {
   background: transparent !important;
-  color: #323130 !important;
+  color: var(--cmd-text) !important;
   font-weight: 500;
 }
 
 .fluent-cmd-btn-primary:hover:not(:disabled),
 .fluent-cmd-btn-danger:hover:not(:disabled) {
-  background-color: #f3f2f1 !important;
-  color: #201f1e !important;
+  background-color: var(--cmd-btn-hover-bg) !important;
+  color: var(--cmd-text-hover) !important;
 }
 
-.fluent-cmd-btn-primary:active:not(:disabled),
-.fluent-cmd-btn-danger:active:not(:disabled) {
-  background-color: #edebe9 !important;
+/* Botón destacado con fondo sólido (estilo Share en D365) */
+.fluent-cmd-btn-solid {
+  background-color: var(--cmd-color-primary) !important;
+  color: #ffffff !important;
+  font-weight: 500 !important;
 }
 
-/* Íconos dentro del botón */
+.fluent-cmd-btn-solid:hover:not(:disabled) {
+  background-color: #0b5a9e !important;
+  color: #ffffff !important;
+}
+
+.fluent-cmd-btn-solid:active:not(:disabled) {
+  background-color: #094c85 !important;
+}
+
+.fluent-cmd-btn-solid .fluent-cmd-icon,
+.fluent-cmd-btn-solid .fluent-dropdown-arrow {
+  color: #ffffff !important;
+}
+
+.fluent-cmd-split-solid {
+  background-color: var(--cmd-color-primary);
+  border-radius: 4px;
+}
+
+.fluent-cmd-split-solid .fluent-cmd-split-divider {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+.fluent-cmd-split-solid .fluent-cmd-split-main:hover:not(:disabled),
+.fluent-cmd-split-solid .fluent-cmd-split-trigger:hover:not(:disabled) {
+  background-color: #0b5a9e !important;
+}
+
+/* Iconos y Etiquetas */
 .fluent-cmd-icon {
   font-size: 14px;
   display: inline-flex;
@@ -113,78 +219,200 @@
 
 .fluent-dropdown-arrow {
   font-size: 10px;
-  margin-left: 2px;
-  opacity: 0.7;
+  opacity: 0.75;
+  transition: transform 0.2s ease;
+}
+
+/* =============================================================
+   Split Button Pattern (Microsoft Dynamics 365)
+   ============================================================= */
+.fluent-cmd-split {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 4px;
+  position: relative;
+  background: transparent;
+  vertical-align: middle;
+}
+
+.fluent-cmd-split .fluent-cmd-split-main {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  padding-left: 8px;
+  padding-right: 8px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.fluent-cmd-split .fluent-cmd-split-main:hover:not(:disabled) {
+  background-color: var(--cmd-btn-hover-bg) !important;
+  color: var(--cmd-text-hover) !important;
+}
+
+.fluent-cmd-split .fluent-cmd-split-main:active:not(:disabled) {
+  background-color: var(--cmd-btn-active-bg) !important;
+}
+
+/* Divisor vertical explícito y nítido */
+.fluent-cmd-split-divider {
+  width: 1px;
+  height: 16px;
+  background-color: var(--cmd-split-separator);
+  margin: 0 1px;
+  flex-shrink: 0;
+  display: inline-block;
+  align-self: center;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.fluent-cmd-split .fluent-cmd-split-trigger {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  padding: 0 8px;
+  min-width: 26px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.fluent-cmd-split .fluent-cmd-split-trigger:hover:not(:disabled),
+.fluent-cmd-split .fluent-cmd-split-trigger.ant-dropdown-open {
+  background-color: var(--cmd-btn-hover-bg) !important;
+  color: var(--cmd-text-hover) !important;
+}
+
+.fluent-cmd-split .fluent-cmd-split-trigger:active:not(:disabled) {
+  background-color: var(--cmd-btn-active-bg) !important;
+}
+
+.fluent-cmd-split .fluent-cmd-split-trigger .fluent-dropdown-arrow {
+  font-size: 11px;
+  color: var(--cmd-text);
+  opacity: 0.85;
+}
+
+.fluent-cmd-split:hover:not(.fluent-cmd-split-disabled) {
+  background-color: transparent;
 }
 
 /* Elementos del menú desplegable */
 .fluent-sub-menu {
-  min-width: 180px;
+  min-width: 190px;
   border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  padding: 4px 0;
+}
+
+.fluent-sub-menu ::ng-deep .ant-dropdown-menu-item,
+.fluent-sub-menu [nz-menu-item] {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 8px 14px !important;
+  font-size: 13px !important;
+}
+
+.fluent-sub-menu ::ng-deep .ant-dropdown-menu-item nz-icon,
+.fluent-sub-menu [nz-menu-item] nz-icon {
+  font-size: 15px !important;
+  display: inline-flex;
+  align-items: center;
 }
 
 .fluent-menu-item-danger {
-  color: #d13438 !important;
+  color: var(--cmd-color-danger) !important;
 }
 
 .fluent-menu-item-danger:hover {
-  background-color: #fde7e9 !important;
-  color: #a80000 !important;
+  background-color: rgba(209, 52, 56, 0.08) !important;
+  color: var(--cmd-color-danger) !important;
 }
 
-/* -------------------------------------------------------------
-   Tema Oscuro (Dark Theme)
-   ------------------------------------------------------------- */
-:host-context([data-theme='dark']) .fluent-command-bar,
-:host-context(.dark-theme) .fluent-command-bar {
-  background-color: #1f1f1f;
-  border-bottom-color: rgba(255, 255, 255, 0.08);
+/* =============================================================
+   Comportamiento Responsive Multi-Pantalla (Desktop, Tablet, Mobile)
+   ============================================================= */
+
+/* Pantallas medianas / Laptops pequeñas (<= 1024px) */
+@media (max-width: 1024px) {
+  .fluent-command-bar {
+    padding: 0 10px;
+  }
+
+  .fluent-cmd-btn {
+    padding: 0 8px;
+    font-size: 12.5px;
+    gap: 5px;
+  }
 }
 
-:host-context([data-theme='dark']) .fluent-cmd-title,
-:host-context(.dark-theme) .fluent-cmd-title {
-  color: #f3f2f1;
+/* Tablets y pantallas estrechas (<= 850px) */
+@media (max-width: 850px) {
+  .fluent-command-bar {
+    padding: 0 8px;
+    min-height: 40px;
+  }
+
+  .fluent-cmd-title {
+    max-width: 130px;
+    font-size: 12.5px;
+    padding: 0 4px;
+  }
+
+  /* Compactar botones secundarios con icono: dejan visible el icono con tooltip */
+  .fluent-cmd-btn:not(.fluent-cmd-btn-solid):not(:first-child) .fluent-cmd-label {
+    display: none;
+  }
+
+  .fluent-cmd-btn {
+    height: 32px;
+    padding: 0 7px;
+  }
+
+  .fluent-cmd-divider {
+    height: 16px;
+    margin: 0 2px;
+  }
 }
 
-:host-context([data-theme='dark']) .fluent-cmd-divider,
-:host-context(.dark-theme) .fluent-cmd-divider {
-  background-color: rgba(255, 255, 255, 0.12);
-}
+/* Pantallas Móviles (<= 576px) */
+@media (max-width: 576px) {
+  .fluent-command-bar {
+    padding: 0 6px;
+    min-height: 38px;
+    gap: 2px;
+  }
 
-:host-context([data-theme='dark']) .fluent-cmd-btn,
-:host-context(.dark-theme) .fluent-cmd-btn,
-:host-context([data-theme='dark']) .fluent-cmd-btn-danger,
-:host-context(.dark-theme) .fluent-cmd-btn-danger,
-:host-context([data-theme='dark']) .fluent-cmd-btn-primary,
-:host-context(.dark-theme) .fluent-cmd-btn-primary {
-  color: #e1dfdd !important;
-}
+  .fluent-command-bar-group {
+    gap: 2px;
+  }
 
-:host-context([data-theme='dark']) .fluent-cmd-btn:hover:not(:disabled),
-:host-context(.dark-theme) .fluent-cmd-btn:hover:not(:disabled),
-:host-context([data-theme='dark']) .fluent-cmd-btn-primary:hover:not(:disabled),
-:host-context(.dark-theme) .fluent-cmd-btn-primary:hover:not(:disabled),
-:host-context([data-theme='dark']) .fluent-cmd-btn-danger:hover:not(:disabled),
-:host-context(.dark-theme) .fluent-cmd-btn-danger:hover:not(:disabled) {
-  background-color: #2d2d2d !important;
-  color: #ffffff !important;
-}
+  .fluent-cmd-title {
+    display: none; /* En móviles el título contextual se oculta para dar prioridad a las acciones */
+  }
 
-:host-context([data-theme='dark']) .fluent-cmd-btn:active:not(:disabled),
-:host-context(.dark-theme) .fluent-cmd-btn:active:not(:disabled),
-:host-context([data-theme='dark']) .fluent-cmd-btn-primary:active:not(:disabled),
-:host-context(.dark-theme) .fluent-cmd-btn-primary:active:not(:disabled),
-:host-context([data-theme='dark']) .fluent-cmd-btn-danger:active:not(:disabled),
-:host-context(.dark-theme) .fluent-cmd-btn-danger:active:not(:disabled) {
-  background-color: #383838 !important;
-}
+  .fluent-cmd-btn {
+    height: 30px;
+    padding: 0 6px;
+    font-size: 12px;
+    gap: 4px;
+  }
 
-.fluent-cmd-btn:disabled .fluent-cmd-icon {
-  color: #a19f9d !important;
-}
+  /* En móvil, todos los botones con icono muestran solo el icono para máxima densidad */
+  .fluent-cmd-btn .fluent-cmd-icon + .fluent-cmd-label {
+    display: none;
+  }
 
-:host-context([data-theme='dark']) .fluent-cmd-btn:disabled .fluent-cmd-icon,
-:host-context(.dark-theme) .fluent-cmd-btn:disabled .fluent-cmd-icon {
-  color: #797775 !important;
+  /* En el botón sólido (Compartir), se compacta para mostrar solo icono y flecha */
+  .fluent-cmd-btn-solid .fluent-cmd-label {
+    display: none;
+  }
+
+  .fluent-cmd-divider {
+    height: 14px;
+    margin: 0 2px;
+  }
 }

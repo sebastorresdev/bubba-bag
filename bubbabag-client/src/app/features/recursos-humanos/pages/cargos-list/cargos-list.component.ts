@@ -158,12 +158,14 @@ export class CargosListComponent implements OnInit {
         key: 'nuevo',
         label: 'Nuevo',
         icon: 'plus',
+        iconColor: 'success',
         execute: () => this.abrirModalCrear(),
       },
       {
         key: 'editar',
         label: 'Editar',
         icon: 'edit',
+        iconColor: 'primary',
         disabled: !singleSelection,
         execute: () => {
           if (selectedItem) {
@@ -186,6 +188,8 @@ export class CargosListComponent implements OnInit {
         key: 'eliminar',
         label: 'Eliminar',
         icon: 'delete',
+        iconColor: 'danger',
+        danger: true,
         disabled: !singleSelection,
         execute: () => {
           if (selectedItem) {
@@ -195,13 +199,18 @@ export class CargosListComponent implements OnInit {
       },
       {
         key: 'exportar',
-        label: 'Exportar',
-        icon: 'download',
+        label: 'Exportar a Excel',
+        icon: 'file-excel',
+        iconColor: 'success',
+        split: true,
+        tooltip: 'Exportar cargos a formato Excel',
+        execute: () => this.exportarCsv(),
         children: [
           {
-            key: 'export-excel',
-            label: 'Exportar a Excel (CSV)',
+            key: 'export-csv',
+            label: 'Exportar a CSV (.csv)',
             icon: 'file-excel',
+            iconColor: 'success',
             execute: () => this.exportarCsv(),
           },
         ],
@@ -210,6 +219,7 @@ export class CargosListComponent implements OnInit {
         key: 'actualizar',
         label: 'Actualizar',
         icon: 'reload',
+        iconColor: 'neutral',
         execute: () => this.cargarCargos(),
       },
     ];

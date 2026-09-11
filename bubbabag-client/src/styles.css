@@ -29,6 +29,23 @@ body {
   height: 100%;
   margin: 0;
   padding: 0;
+  background-color: #f8f9fa;
+  color: #201f1e;
+}
+
+[data-theme='dark'] html,
+[data-theme='dark'] body,
+body.dark-theme,
+[data-theme='dark'] {
+  background-color: #141414 !important;
+  color: #f3f2f1 !important;
+}
+
+[data-theme='dark'] .ant-layout,
+.dark-theme .ant-layout,
+[data-theme='dark'] .ant-layout-content,
+.dark-theme .ant-layout-content {
+  background-color: #141414 !important;
 }
 
 app-root {
@@ -103,4 +120,21 @@ app-empleado-form {
 [data-theme='dark'] .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn,
 .dark-theme .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
   color: var(--ant-primary-color) !important;
+}
+
+/* ==========================================================================
+   Eliminación definitiva del Flash Azul en el Sider al inicializar la app
+   ========================================================================== */
+.ant-layout-sider,
+.d365-sider.ant-layout-sider {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.2s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+[data-theme='dark'] .ant-layout-sider,
+.dark-theme .ant-layout-sider,
+.d365-sider.d365-dark.ant-layout-sider {
+  background: #1f1f1f !important;
+  background-color: #1f1f1f !important;
 }

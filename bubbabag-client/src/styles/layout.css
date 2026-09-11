@@ -89,14 +89,16 @@
   white-space: nowrap !important;
 }
 
-/* Sección central: Búsqueda Centrada Dynamics 365 */
+/* Sección central: Búsqueda Fluida Dynamics 365 (Nunca colisiona con acciones a los lados) */
 .erp-suite-bar-search {
-  position: absolute !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
+  position: static !important;
+  transform: none !important;
   display: flex !important;
   align-items: center !important;
-  width: 380px !important;
+  flex: 0 1 400px !important;
+  max-width: 400px !important;
+  min-width: 140px !important;
+  margin: 0 16px !important;
   z-index: 10 !important;
 }
 
@@ -146,6 +148,109 @@
   color: #595959 !important;
 }
 
+/* ==========================================================================
+   Panel de Búsqueda Global Autocompletada (Estilo NG-ZORRO / Algolia D365)
+   ========================================================================== */
+.erp-search-autocomplete-panel {
+  min-width: 480px !important;
+  max-width: 600px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid #e8e8e8 !important;
+  overflow: hidden !important;
+}
+
+.erp-search-autocomplete-panel .ant-select-item-group {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  color: #8c8c8c !important;
+  background-color: #fafafa !important;
+  padding: 6px 16px !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+
+.erp-search-autocomplete-panel .ant-select-item-option {
+  padding: 8px 16px !important;
+  transition: background-color 0.15s ease !important;
+}
+
+.erp-search-autocomplete-panel .ant-select-item-option-active {
+  background-color: #f0f7ff !important;
+}
+
+.erp-search-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100% !important;
+}
+
+.erp-search-cat-col {
+  width: 130px !important;
+  font-size: 12px !important;
+  color: #8c8c8c !important;
+  text-align: right !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  flex-shrink: 0 !important;
+}
+
+.erp-search-divider-col {
+  width: 1px !important;
+  height: 18px !important;
+  background-color: #e8e8e8 !important;
+  flex-shrink: 0 !important;
+}
+
+.erp-search-title-col {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #262626 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex: 1 !important;
+}
+
+.erp-search-item-icon {
+  color: #0f6cbd !important;
+  font-size: 14px !important;
+}
+
+/* Modo Oscuro para el Panel de Búsqueda */
+[data-theme='dark'] .erp-search-autocomplete-panel,
+.dark-theme .erp-search-autocomplete-panel {
+  background-color: #1f1f1f !important;
+  border-color: #303030 !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme='dark'] .erp-search-autocomplete-panel .ant-select-item-group,
+.dark-theme .erp-search-autocomplete-panel .ant-select-item-group {
+  background-color: #141414 !important;
+  color: #737373 !important;
+  border-bottom-color: #262626 !important;
+}
+
+[data-theme='dark'] .erp-search-autocomplete-panel .ant-select-item-option-active,
+.dark-theme .erp-search-autocomplete-panel .ant-select-item-option-active {
+  background-color: #112a45 !important;
+}
+
+[data-theme='dark'] .erp-search-divider-col,
+.dark-theme .erp-search-divider-col {
+  background-color: #333333 !important;
+}
+
+[data-theme='dark'] .erp-search-title-col,
+.dark-theme .erp-search-title-col {
+  color: #e6e6e6 !important;
+}
+
+
 /* Sección derecha: Herramientas y Usuario Dynamics 365 */
 .erp-suite-bar-actions {
   display: flex;
@@ -191,6 +296,7 @@
   border-radius: 4px !important;
   cursor: pointer;
   user-select: none;
+  max-width: 200px;
 }
 
 .erp-user-dropdown-btn:hover {
@@ -201,6 +307,11 @@
   font-size: 13px;
   font-weight: 500;
   color: #ffffff;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 140px;
+  line-height: 1;
 }
 
 /* User Profile Menu Dropdown Card */
@@ -307,8 +418,10 @@
 .d365-sider.ant-layout-sider,
 .d365-sitemap {
   height: 100% !important;
+  background-color: #ffffff !important;
+  background: #ffffff !important;
   border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.2s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
   box-sizing: border-box !important;
   overflow: hidden !important;
 }
@@ -317,6 +430,7 @@
   display: flex !important;
   flex-direction: column !important;
   height: 100% !important;
+  background-color: transparent !important;
   overflow: hidden !important;
 }
 
@@ -327,6 +441,8 @@
 [data-theme='dark'] .d365-sitemap,
 .dark-theme .d365-sitemap,
 .d365-sitemap.d365-dark {
+  background-color: #1f1f1f !important;
+  background: #1f1f1f !important;
   border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
@@ -439,17 +555,36 @@
 }
 
 .d365-sider.ant-layout-sider-collapsed .d365-sitemap-footer,
-.d365-sider.d365-collapsed .d365-sitemap-footer {
+.d365-sider.d365-collapsed .d365-sitemap-footer,
+.d365-collapsed .d365-sitemap-footer {
   padding: 0 !important;
+  display: flex !important;
   justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
 }
 
 .d365-sider.ant-layout-sider-collapsed .d365-area-switcher,
-.d365-sider.d365-collapsed .d365-area-switcher {
+.d365-sider.d365-collapsed .d365-area-switcher,
+.d365-collapsed .d365-area-switcher {
   padding: 0 !important;
+  margin: 0 auto !important;
+  width: 34px !important;
+  min-width: 34px !important;
+  max-width: 34px !important;
+  height: 34px !important;
+  display: flex !important;
   justify-content: center !important;
-  width: 36px !important;
-  min-width: 36px !important;
+  align-items: center !important;
+  gap: 0 !important;
+  border-radius: 4px !important;
+}
+
+.d365-sider.ant-layout-sider-collapsed .d365-area-badge,
+.d365-sider.d365-collapsed .d365-area-badge,
+.d365-collapsed .d365-area-badge {
+  width: 24px !important;
+  height: 24px !important;
   margin: 0 auto !important;
 }
 
@@ -668,11 +803,6 @@
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.d365-collapsed .d365-sitemap-footer {
-  padding: 0;
-  justify-content: center;
-}
-
 .d365-area-switcher {
   width: 100% !important;
   height: 38px !important;
@@ -686,11 +816,6 @@
   cursor: pointer !important;
   color: inherit !important;
   text-align: left !important;
-}
-
-.d365-collapsed .d365-area-switcher {
-  justify-content: center !important;
-  padding: 0 !important;
 }
 
 .d365-area-switcher:hover {
@@ -792,9 +917,12 @@
 .erp-content-area {
   padding: 0 !important;
   margin: 0 !important;
-  overflow-y: auto;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
   flex-grow: 1;
   min-height: 0;
+  height: 100% !important;
 }
 
 /* --------------------------------------------------------------------------
@@ -1125,4 +1253,207 @@
 .ant-dropdown-menu-item>span>span:not(.anticon) {
   display: inline-block !important;
   line-height: 20px !important;
+}
+
+/* ==========================================================================
+   5. Sistema Responsive Global del Layout (Header Adaptativo + Sidebar Off-Canvas)
+   ========================================================================== */
+
+/* Botón Hamburguesa móvil en el Suite Bar */
+.erp-mobile-menu-btn {
+  display: none !important;
+  color: #ffffff !important;
+  font-size: 18px !important;
+  width: 40px !important;
+  height: 48px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+}
+
+.erp-mobile-menu-btn:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Backdrop semitransparente del menú móvil */
+.d365-mobile-backdrop {
+  display: none;
+}
+
+/* Pantallas Medianas (<= 1150px) */
+@media (max-width: 1150px) {
+  .erp-suite-bar-search {
+    max-width: 240px !important;
+  }
+}
+
+/* Tablets y Móviles (<= 820px) */
+@media (max-width: 820px) {
+  .erp-suite-bar-search {
+    display: none !important;
+  }
+}
+
+/* Tablets y Móviles (<= 768px) */
+@media (max-width: 768px) {
+  /* 1. Header Suite Bar Responsive */
+  .erp-mobile-menu-btn {
+    display: inline-flex !important;
+  }
+
+  .erp-waffle-btn {
+    width: 40px !important;
+  }
+
+  /* Ocultar el buscador central fijo para evitar que tape el contenido */
+  .erp-suite-bar-search {
+    display: none !important;
+  }
+
+  .erp-suite-bar-brand {
+    max-width: 240px;
+    overflow: hidden;
+  }
+
+  .erp-brand-title {
+    font-size: 13px !important;
+    white-space: nowrap !important;
+  }
+
+  .erp-brand-sep,
+  .erp-module-title {
+    display: none !important; /* Ocultar para dejar aire a la marca y botones */
+  }
+
+  .erp-suite-bar-actions {
+    gap: 4px !important;
+  }
+
+  /* Ocultar utilidades secundarias en móvil */
+  .erp-tool-btn[title*="Insights"],
+  .erp-tool-btn[title*="Ayuda"],
+  .erp-tool-btn[title*="Rápida"],
+  .erp-suite-bar .ant-divider-vertical {
+    display: none !important;
+  }
+
+  /* Ocultar nombre textual del usuario, dejando solo el avatar compacto */
+  .erp-user-name,
+  .erp-user-dropdown-btn nz-icon {
+    display: none !important;
+  }
+
+  .erp-user-dropdown-btn {
+    padding: 0 4px !important;
+  }
+
+  /* 2. Backdrop móvil */
+  .d365-mobile-backdrop {
+    display: block;
+    position: fixed;
+    top: 48px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.48);
+    backdrop-filter: blur(2px);
+    z-index: 998;
+    animation: fadeInBackdrop 0.2s ease;
+  }
+
+  @keyframes fadeInBackdrop {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* 3. Sidebar Off-Canvas (Se muestra por encima, nunca empuja el layout) */
+  .d365-sider.ant-layout-sider {
+    position: fixed !important;
+    top: 48px !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: calc(100vh - 48px) !important;
+    width: 260px !important;
+    max-width: 260px !important;
+    min-width: 260px !important;
+    flex: 0 0 260px !important;
+    z-index: 999 !important;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.35) !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .d365-sider.d365-sider-mobile-open {
+    transform: translateX(0) !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  /* En móvil, forzar que el menú dentro del sidebar móvil muestre títulos de texto */
+  .d365-sider.ant-layout-sider ul.ant-menu.d365-menu {
+    width: 100% !important;
+  }
+
+  .d365-sider.ant-layout-sider ul.ant-menu.d365-menu .d365-menu-title {
+    opacity: 1 !important;
+    max-width: unset !important;
+    display: inline-block !important;
+    pointer-events: auto !important;
+  }
+
+  .d365-sider.ant-layout-sider ul.ant-menu.d365-menu .ant-menu-item {
+    width: 100% !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+    padding: 0 16px !important;
+  }
+
+  .d365-sider.ant-layout-sider ul.ant-menu.d365-menu .ant-menu-item .anticon {
+    margin-right: 12px !important;
+  }
+
+  .d365-sider .d365-sitemap-top {
+    display: none !important; /* Ocultar hamburguesa interna en móvil */
+  }
+
+  /* 4. Área de Trabajo 100% fluida en móvil */
+  .erp-main-body {
+    position: relative !important;
+  }
+
+  .erp-work-layout {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  .erp-content-area {
+    padding: 8px !important;
+  }
+}
+
+/* Pantallas Extra Pequeñas (<= 576px) */
+@media (max-width: 576px) {
+  .erp-suite-bar {
+    padding: 0 6px !important;
+  }
+
+  .erp-suite-bar-brand {
+    max-width: 180px;
+  }
+
+  .erp-content-area {
+    padding: 4px !important;
+  }
 }
