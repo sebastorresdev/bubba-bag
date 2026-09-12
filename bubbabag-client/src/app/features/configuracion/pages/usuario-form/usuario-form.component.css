@@ -22,6 +22,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   position: relative;
+  background-color: #f0f2f5;
 }
 
 :host-context([data-theme='dark']) .usuario-form-view,

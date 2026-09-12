@@ -22,7 +22,7 @@
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  background-color: #f8f9fa;
+  background-color: #f0f2f5;
 }
 
 :host-context([data-theme='dark']) .cliente-form-view,
@@ -245,7 +245,7 @@
   position: sticky;
   top: 0;
   z-index: 5;
-  background-color: #f8f9fa;
+  background-color: #f0f2f5;
   padding-top: 8px;
   margin-bottom: 16px !important;
 }

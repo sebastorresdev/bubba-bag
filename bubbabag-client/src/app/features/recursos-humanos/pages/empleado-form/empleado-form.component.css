@@ -15,6 +15,7 @@
   overflow: hidden;
   gap: 0;
   box-sizing: border-box;
+  background-color: #f0f2f5;
 }
 
 /* --------------------------------------------------------------------------
@@ -341,7 +342,7 @@
   position: sticky;
   top: 0;
   z-index: 5;
-  background-color: #f8f9fa;
+  background-color: #f0f2f5;
   padding-top: 8px;
   margin-bottom: 16px !important;
 }
