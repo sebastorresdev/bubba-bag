@@ -29,4 +29,22 @@ public class CurrentUser : ICurrentUser
 
     public bool HasAnyRole(params string[] roles) => 
         roles.Any(IsInRole);
+
+    public bool HasPermission(string permission)
+    {
+        if (IsInRole(BubbaBag.SharedKernel.Authorization.Roles.SuperAdmin))
+        {
+            return true;
+        }
+
+        // 1. Revisar claims explícitos de permisos en el token
+        var claims = _httpContextAccessor.HttpContext?.User?.FindAll("permission");
+        if (claims != null && claims.Any(c => string.Equals(c.Value, permission, StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
+        // 2. Revisar si alguno de los roles asignados otorga el permiso
+        return BubbaBag.SharedKernel.Authorization.RolePermissions.GetPermissionsForRoles(Roles).Contains(permission);
+    }
 }

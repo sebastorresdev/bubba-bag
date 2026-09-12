@@ -491,6 +491,11 @@ export class UsuariosListComponent implements OnInit, OnDestroy {
 
   getNombreRolVisible(codigo: string): string {
     const r = this.rolesDisponibles.find((x) => x.codigo === codigo);
-    return r ? r.nombreVisible : codigo;
+    if (!r) return codigo;
+    if (r.modulo && r.modulo !== 'Sistema' && r.modulo !== 'General') {
+      const prefijo = r.modulo === 'Recursos Humanos' ? 'RRHH' : r.modulo;
+      return `${prefijo}: ${r.nombreVisible}`;
+    }
+    return r.nombreVisible;
   }
 }

@@ -36,13 +36,11 @@ import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
 import { NzDrawerModule } from 'ng-zorro-antd/drawer';
-import { NzDateAdapter, NativeDateAdapter } from 'ng-zorro-antd/core/time';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
 @Component({
   selector: 'app-empleados-list',
   standalone: true,
-  providers: [{ provide: NzDateAdapter, useClass: NativeDateAdapter }],
   imports: [
     CommonModule,
     RouterModule,

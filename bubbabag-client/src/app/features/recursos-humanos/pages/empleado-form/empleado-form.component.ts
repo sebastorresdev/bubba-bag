@@ -30,13 +30,11 @@ import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzTabsModule } from 'ng-zorro-antd/tabs';
 import { NzModalModule } from 'ng-zorro-antd/modal';
 import { NzDividerModule } from 'ng-zorro-antd/divider';
-import { NzDateAdapter, NativeDateAdapter } from 'ng-zorro-antd/core/time';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
 @Component({
   selector: 'app-empleado-form',
   standalone: true,
-  providers: [{ provide: NzDateAdapter, useClass: NativeDateAdapter }],
   imports: [
     CommonModule,
     ReactiveFormsModule,

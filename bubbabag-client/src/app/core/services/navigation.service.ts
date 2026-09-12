@@ -187,6 +187,98 @@ export class NavigationService {
       ],
     },
     {
+      id: 'serviciocampo',
+      title: 'Servicio de Campo',
+      shortCode: 'SC',
+      icon: 'car',
+      basePath: '/servicio-campo',
+      searchPlaceholder: 'Buscar órdenes de trabajo, técnicos, clientes...',
+      requiredRoles: [
+        'SuperAdmin',
+        'Gerencia',
+        'ServicioCampoAdmin',
+        'ServicioCampoBackoffice',
+        'ServicioCampoTecnico',
+      ],
+      items: [
+        {
+          title: 'Órdenes de Trabajo',
+          icon: 'solution',
+          open: true,
+          children: [
+            {
+              title: 'Todas las Órdenes',
+              path: '/servicio-campo/ordenes',
+              requiredRoles: [
+                'SuperAdmin',
+                'Gerencia',
+                'ServicioCampoAdmin',
+                'ServicioCampoBackoffice',
+              ],
+            },
+            {
+              title: 'Mis Órdenes del Día',
+              path: '/servicio-campo/mis-ordenes',
+              requiredRoles: [
+                'SuperAdmin',
+                'Gerencia',
+                'ServicioCampoAdmin',
+                'ServicioCampoBackoffice',
+                'ServicioCampoTecnico',
+              ],
+            },
+          ],
+        },
+        {
+          title: 'Tarifarios y Precios',
+          icon: 'dollar',
+          open: false,
+          requiredRoles: ['SuperAdmin', 'Gerencia', 'ServicioCampoAdmin'],
+          children: [
+            { title: 'Listas de Precios', path: '/servicio-campo/tarifarios' },
+            { title: 'Reglas y Criterios', path: '/servicio-campo/reglas' },
+          ],
+        },
+        {
+          title: 'Catálogos Operativos',
+          icon: 'setting',
+          open: false,
+          requiredRoles: ['SuperAdmin', 'Gerencia', 'ServicioCampoAdmin'],
+          children: [
+            { title: 'Tipos de Orden', path: '/servicio-campo/tipos-orden' },
+            { title: 'Orígenes (Siebel, SGA)', path: '/servicio-campo/origenes' },
+            { title: 'Tipos de Tarea', path: '/servicio-campo/tipos-tarea' },
+          ],
+        },
+      ],
+    },
+    {
+      id: 'crm',
+      title: 'CRM y Clientes',
+      shortCode: 'CR',
+      icon: 'user',
+      basePath: '/crm',
+      searchPlaceholder: 'Buscar clientes, RUC/DNI, contactos...',
+      requiredRoles: [
+        'SuperAdmin',
+        'Gerencia',
+        'CrmAdmin',
+        'CrmOperador',
+        'ServicioCampoAdmin',
+        'ServicioCampoBackoffice',
+      ],
+      items: [
+        {
+          title: 'Cartera de Clientes',
+          icon: 'user',
+          open: true,
+          children: [
+            { title: 'Directorio de Clientes', path: '/crm/clientes' },
+          ],
+        },
+      ],
+    },
+    {
       id: 'configuracion',
       title: 'Configuración y Seguridad',
       shortCode: 'CF',

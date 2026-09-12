@@ -53,7 +53,17 @@ public static class ServiceCollectionExtensions
             };
         });
 
-        services.AddAuthorization();
+        services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, BubbaBag.Api.Authorization.PermissionAuthorizationHandler>();
+
+        services.AddAuthorization(options =>
+        {
+            // Registrar dinámicamente cada permiso atómico como una política en ASP.NET Core
+            foreach (var permission in BubbaBag.SharedKernel.Authorization.Permissions.GetAll())
+            {
+                options.AddPolicy(permission, policy =>
+                    policy.Requirements.Add(new BubbaBag.Api.Authorization.PermissionRequirement(permission)));
+            }
+        });
 
         return services;
     }

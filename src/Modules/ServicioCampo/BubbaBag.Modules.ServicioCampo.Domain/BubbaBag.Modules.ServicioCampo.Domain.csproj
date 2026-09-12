@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\BubbaBag.SharedKernel\BubbaBag.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\Crm\BubbaBag.Modules.Crm.Domain\BubbaBag.Modules.Crm.Domain.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

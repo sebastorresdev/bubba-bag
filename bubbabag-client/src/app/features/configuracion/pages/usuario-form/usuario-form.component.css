@@ -19,7 +19,9 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
 }
 
 :host-context([data-theme='dark']) .usuario-form-view,
@@ -29,6 +31,8 @@
 
 /* Cabecera de Registro Dynamics 365 */
 .d365-record-header {
+  position: sticky;
+  top: 0;
   flex-shrink: 0;
   z-index: 10;
   display: flex;
@@ -143,21 +147,13 @@
 }
 
 /* Cuerpo del Formulario */
-:host ::ng-deep .usuario-form-view > nz-spin,
-:host ::ng-deep .usuario-form-view > nz-spin > .ant-spin-nested-loading,
-:host ::ng-deep .usuario-form-view > nz-spin > .ant-spin-nested-loading > .ant-spin-container {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+:host ::ng-deep .usuario-form-view > nz-spin {
+  display: block;
+  width: 100%;
 }
 
 .form-content-wrapper {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 24px;
+  padding: 24px 24px 60px 24px;
   max-width: 1240px;
   width: 100%;
   margin: 0 auto;

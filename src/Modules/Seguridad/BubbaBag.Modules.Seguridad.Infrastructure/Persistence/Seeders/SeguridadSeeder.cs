@@ -14,7 +14,7 @@ public static class SeguridadSeeder
         var roleManager = serviceProvider.GetRequiredService<RoleManager<Rol>>();
         var userManager = serviceProvider.GetRequiredService<UserManager<Usuario>>();
 
-        // 1. Sembrar o actualizar los 4 roles fijos del sistema con metadatos para UI estilo Odoo
+        // 1. Sembrar o actualizar los roles del sistema con metadatos para UI estilo Odoo
         var rolesFijos = new (string Nombre, string Modulo, string NombreVisible, string Descripcion)[]
         {
             (
@@ -40,6 +40,36 @@ public static class SeguridadSeeder
                 "Recursos Humanos",
                 "Asistente",
                 "Gestión operativa de colaboradores y contacto. Sin acceso a salarios ni cuentas bancarias."
+            ),
+            (
+                Roles.ServicioCampoAdmin,
+                "Servicio de Campo",
+                "Administrador",
+                "Control total de operaciones técnicas, despacho, tarifarios y liquidaciones de órdenes de trabajo."
+            ),
+            (
+                Roles.ServicioCampoBackoffice,
+                "Servicio de Campo",
+                "Backoffice / Despacho",
+                "Mesa de ayuda, importación de órdenes externas, agendamiento y asignación a cuadrillas."
+            ),
+            (
+                Roles.ServicioCampoTecnico,
+                "Servicio de Campo",
+                "Técnico de Campo",
+                "Visitas en sitio, registro de evidencias fotográficas, firma de cliente y cierre de órdenes."
+            ),
+            (
+                Roles.CrmAdmin,
+                "CRM y Clientes",
+                "Administrador",
+                "Gestión total del directorio maestro de clientes, segmentación comercial y parametrización."
+            ),
+            (
+                Roles.CrmOperador,
+                "CRM y Clientes",
+                "Operador",
+                "Consulta, registro y actualización básica de clientes en el directorio comercial."
             )
         };
 

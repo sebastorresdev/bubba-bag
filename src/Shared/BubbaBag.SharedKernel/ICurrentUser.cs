@@ -11,4 +11,5 @@ public interface ICurrentUser
     bool IsAuthenticated { get; }
     bool IsInRole(string role);
     bool HasAnyRole(params string[] roles);
+    bool HasPermission(string permission);
 }

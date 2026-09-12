@@ -805,7 +805,13 @@ export class DashboardComponent {
     const roles = this.currentUser()?.roles || [];
     if (roles.includes('SuperAdmin')) return 'Super Administrador';
     if (roles.includes('Gerencia')) return 'Gerencia General';
+    if (roles.includes('ServicioCampoAdmin')) return 'Supervisor Campo';
+    if (roles.includes('ServicioCampoBackoffice')) return 'Backoffice Despacho';
+    if (roles.includes('ServicioCampoTecnico')) return 'Técnico de Campo';
     if (roles.includes('RrhhAdmin')) return 'Administrador RRHH';
+    if (roles.includes('RrhhAsistente')) return 'Asistente RRHH';
+    if (roles.includes('CrmAdmin')) return 'Administrador CRM';
+    if (roles.includes('CrmOperador')) return 'Operador CRM';
     return roles[0] || 'Colaborador';
   });
 
@@ -815,6 +821,31 @@ export class DashboardComponent {
 
   // Catálogo completo de aplicaciones de negocio con estilo Dynamics 365
   readonly allApps: DashboardAppCard[] = [
+    {
+      id: 'serviciocampo',
+      name: 'Servicio de Campo',
+      shortCode: 'SC',
+      category: 'operaciones',
+      categoryLabel: 'Operaciones & Terreno',
+      description: 'Gestión de órdenes de trabajo (WOs), despacho de cuadrillas técnicas, tarifarios y evidencias en sitio.',
+      icon: 'car',
+      color: '#e3008c',
+      bgColor: 'rgba(227, 0, 140, 0.1)',
+      route: '/servicio-campo',
+      isReady: true,
+      requiredRoles: [
+        'SuperAdmin',
+        'Gerencia',
+        'ServicioCampoAdmin',
+        'ServicioCampoBackoffice',
+        'ServicioCampoTecnico',
+      ],
+      quickLinks: [
+        { label: 'Órdenes de Trabajo', route: '/servicio-campo/ordenes' },
+        { label: 'Mi Agenda / Mis Órdenes', route: '/servicio-campo/mis-ordenes' },
+        { label: 'Tarifarios', route: '/servicio-campo/tarifarios' },
+      ],
+    },
     {
       id: 'rrhh',
       name: 'Recursos Humanos',
@@ -893,14 +924,21 @@ export class DashboardComponent {
       name: 'CRM y Clientes',
       shortCode: 'CR',
       category: 'gestion',
-      categoryLabel: 'Fidelización',
-      description: 'Directorio 360° de clientes, segmentación comercial, historial de compras y puntos BubbaBag.',
+      categoryLabel: 'Fidelización & Clientes',
+      description: 'Directorio 360° de clientes, RUC/DNI, contactos, historial y cuentas para ventas y servicios de campo.',
       icon: 'user',
       color: '#008272',
       bgColor: 'rgba(0, 130, 114, 0.1)',
       route: '/crm',
-      isReady: false,
-      requiredRoles: ['SuperAdmin', 'Gerencia'],
+      isReady: true,
+      requiredRoles: [
+        'SuperAdmin',
+        'Gerencia',
+        'CrmAdmin',
+        'CrmOperador',
+        'ServicioCampoAdmin',
+        'ServicioCampoBackoffice',
+      ],
       quickLinks: [{ label: 'Directorio Clientes', route: '/crm/clientes' }],
     },
     {

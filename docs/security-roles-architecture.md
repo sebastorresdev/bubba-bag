@@ -4,30 +4,47 @@ Este documento define la estructura de roles del sistema BubbaBag ERP, su jerarq
 
 ---
 
-## 1. Los 4 Roles Fijos del Sistema
+## 1. Catálogo de Roles Fijos del Sistema
 
-El sistema establece una escala corporativa realista con 4 roles fijos (definidos en [Roles.cs](file:///d:/PROYECTOS/bubba-bag/src/Shared/BubbaBag.SharedKernel/Authorization/Roles.cs)):
+El sistema establece una escala corporativa modular con roles organizados por departamento (definidos en [Roles.cs](file:///c:/DEV_HOME/PROYECTOS/BUBBA_BAG/src/Shared/BubbaBag.SharedKernel/Authorization/Roles.cs)):
 
 ```csharp
 namespace BubbaBag.SharedKernel.Authorization;
 
 public static class Roles
 {
-    public const string SuperAdmin    = "SuperAdmin";
-    public const string Gerencia      = "Gerencia";
-    public const string RrhhAdmin     = "RrhhAdmin";
-    public const string RrhhAsistente = "RrhhAsistente";
+    // Sistema / Globales
+    public const string SuperAdmin             = "SuperAdmin";
+    public const string Gerencia               = "Gerencia";
+
+    // Recursos Humanos
+    public const string RrhhAdmin              = "RrhhAdmin";
+    public const string RrhhAsistente          = "RrhhAsistente";
+
+    // Servicio de Campo (Field Service)
+    public const string ServicioCampoAdmin     = "ServicioCampoAdmin";
+    public const string ServicioCampoBackoffice = "ServicioCampoBackoffice";
+    public const string ServicioCampoTecnico   = "ServicioCampoTecnico";
+
+    // CRM y Clientes
+    public const string CrmAdmin               = "CrmAdmin";
+    public const string CrmOperador            = "CrmOperador";
 }
 ```
 
 ### Descripción y Alcance de Cada Rol
 
-| Rol | Nivel | Responsabilidades y Alcance |
-|---|---|---|
-| **`SuperAdmin`** | Global / Técnico | Desarrollador y administrador global del sistema. Acceso irrestricto a todos los módulos, migraciones, auditoría y administración de usuarios y roles. |
-| **`Gerencia`** | Directivo / Jefatura | Jefatura o gerencia general. Puede ver información sensible y confidencial (reportes financieros, métricas, salarios de empleados) de los módulos a los que tenga acceso sin ser superadmin técnico. |
-| **`RrhhAdmin`** | Módulo RRHH (Nivel 1) | Administrador / Jefatura de Recursos Humanos. Acceso **total** sobre personal: altas, bajas/ceses, contratos, salarios, régimen pensionario y cuentas bancarias. |
-| **`RrhhAsistente`** | Módulo RRHH (Nivel 2) | Asistente / Operador de Recursos Humanos. Gestión operativa: registro y consulta de colaboradores, datos de contacto y laborales, pero **SIN VISIBILIDAD NI CAPACIDAD DE EDICIÓN sobre salarios base, monedas ni cuentas bancarias**. Tampoco puede eliminar ni dar de baja colaboradores. |
+| Rol | Módulo | Nombre Visible | Responsabilidades y Alcance |
+|---|---|---|---|
+| **`SuperAdmin`** | Sistema | Super Administrador | Desarrollador y administrador técnico global. Bypass total y configuración del ERP. |
+| **`Gerencia`** | Sistema | Gerencia General | Directivo con acceso a auditorías, métricas globales e información financiera confidencial. |
+| **`RrhhAdmin`** | Recursos Humanos | Administrador | Control total sobre personal: altas, ceses, contratos, salarios y cuentas bancarias. |
+| **`RrhhAsistente`** | Recursos Humanos | Asistente | Gestión de colaboradores sin acceso a salarios, cuentas bancarias ni ceses. |
+| **`ServicioCampoAdmin`** | Servicio de Campo | Administrador / Supervisor | Control total operativo: gestión de tarifarios y precios, creación de tipos de orden y supervisión de cuadrillas. |
+| **`ServicioCampoBackoffice`** | Servicio de Campo | Backoffice / Despacho | Mesa de ayuda, importación de órdenes masivas, agendamiento y despacho de cuadrillas. Sin alteración de tarifarios. |
+| **`ServicioCampoTecnico`** | Servicio de Campo | Técnico de Campo | Acceso exclusivo a "Mis Órdenes del Día". Inicia traslados, marca llegada en sitio, checklist de tareas, fotos y firma de cliente. |
+| **`CrmAdmin`** | CRM y Clientes | Administrador CRM | Control total de la cartera de clientes, contactos, condiciones comerciales y segmentación. |
+| **`CrmOperador`** | CRM y Clientes | Operador CRM | Registro y consulta operativa de clientes y contactos. |
 
 ---
 

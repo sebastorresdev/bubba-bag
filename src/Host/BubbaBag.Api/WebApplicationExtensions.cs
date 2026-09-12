@@ -22,6 +22,18 @@ public static class WebApplicationExtensions
         var rrhhDbContext = scope.ServiceProvider.GetRequiredService<RecursosHumanosDbContext>();
         await rrhhDbContext.Database.MigrateAsync();
 
+        var crmDbContext = scope.ServiceProvider.GetService<BubbaBag.Modules.Crm.Infrastructure.Database.CrmDbContext>();
+        if (crmDbContext != null)
+        {
+            await crmDbContext.Database.EnsureCreatedAsync();
+        }
+
+        var servicioCampoDbContext = scope.ServiceProvider.GetService<BubbaBag.Modules.ServicioCampo.Infrastructure.Database.ServicioCampoDbContext>();
+        if (servicioCampoDbContext != null)
+        {
+            await servicioCampoDbContext.Database.EnsureCreatedAsync();
+        }
+
         // 2. Ejecutar sembradores modulares
         await SeguridadSeeder.SeedAsync(scope.ServiceProvider);
 

@@ -1,6 +1,7 @@
 using BubbaBag.Api;
 using BubbaBag.Modules.Seguridad.Api;
 using BubbaBag.Modules.RecursosHumanos.Api;
+using BubbaBag.Modules.Crm.Api;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 
@@ -18,9 +19,12 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.AddNpgsqlDbContext<BubbaBag.Modules.Seguridad.Infrastructure.Persistence.SeguridadDbContext>("sqldb");
 builder.AddNpgsqlDbContext<BubbaBag.Modules.RecursosHumanos.Infrastructure.Database.RecursosHumanosDbContext>("sqldb");
+builder.AddNpgsqlDbContext<BubbaBag.Modules.Crm.Infrastructure.Database.CrmDbContext>("sqldb");
+builder.AddNpgsqlDbContext<BubbaBag.Modules.ServicioCampo.Infrastructure.Database.ServicioCampoDbContext>("sqldb");
 builder.Services.AddBubbaBagServices(builder.Configuration);
 
 BubbaBag.Modules.RecursosHumanos.Api.RecursosHumanosModule.AddRecursosHumanosModule(builder.Services);
+builder.Services.AddCrmModule();
 
 var app = builder.Build();
 
@@ -40,6 +44,7 @@ app.UseAuthorization();
 
 app.MapSeguridadEndpoints();
 app.MapRecursosHumanosEndpoints();
+app.MapCrmEndpoints();
 
 
 app.Run();
