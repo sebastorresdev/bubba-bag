@@ -241,20 +241,27 @@
   width: 100%;
 }
 
-:host ::ng-deep .d365-form-tabs > .ant-tabs-nav {
+:host ::ng-deep .d365-form-tabs .ant-tabs-nav {
   position: sticky;
   top: 0;
   z-index: 5;
   background-color: #f8f9fa;
   padding-top: 8px;
   margin-bottom: 16px !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
 }
 
-:host-context([data-theme='dark']) ::ng-deep .d365-form-tabs > .ant-tabs-nav,
-:host-context(.dark-theme) ::ng-deep .d365-form-tabs > .ant-tabs-nav {
+:host ::ng-deep .d365-form-tabs .ant-tabs-nav::before {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+:host-context([data-theme='dark']) ::ng-deep .d365-form-tabs .ant-tabs-nav,
+:host-context(.dark-theme) ::ng-deep .d365-form-tabs .ant-tabs-nav {
   background-color: #141414 !important;
-  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+:host-context([data-theme='dark']) ::ng-deep .d365-form-tabs .ant-tabs-nav::before,
+:host-context(.dark-theme) ::ng-deep .d365-form-tabs .ant-tabs-nav::before {
+  border-bottom-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 :host ::ng-deep .d365-form-tabs .ant-tabs-tab {

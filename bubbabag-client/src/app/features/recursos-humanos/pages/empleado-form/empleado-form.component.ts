@@ -152,6 +152,10 @@ export class EmpleadoFormComponent implements OnInit {
       cuentaInterbancaria: [''],
     });
 
+    this.form.valueChanges.subscribe(() => {
+      this.cdr.markForCheck();
+    });
+
     this.bajaForm = this.fb.group({
       fechaCese: [new Date(), [Validators.required]],
       motivoCese: [null, [Validators.required]],
@@ -272,6 +276,13 @@ export class EmpleadoFormComponent implements OnInit {
 
   get telefonoEmpleado(): string {
     return this.form?.get('telefono')?.value || this.empleadoActual?.telefono || '';
+  }
+
+  get nombreEmpleadoEnFormulario(): string {
+    const nombres = this.form?.get('nombres')?.value?.trim() || '';
+    const apellidos = this.form?.get('apellidos')?.value?.trim() || '';
+    const completo = `${nombres} ${apellidos}`.trim();
+    return completo || (this.isEdit ? 'Colaborador' : 'Nuevo Colaborador');
   }
 
   getEstadoDotClass(estado?: string): string {

@@ -97,6 +97,20 @@ export class ClienteFormComponent implements OnInit {
     return this.form?.get('telefonoPrincipal')?.value || '';
   }
 
+  get nombreClienteEnFormulario(): string {
+    const tipo = this.form?.get('tipoPersona')?.value;
+    if (tipo === 'JURIDICA') {
+      const razonSocial = this.form?.get('razonSocial')?.value?.trim();
+      if (razonSocial) return razonSocial;
+    } else {
+      const nombres = this.form?.get('nombres')?.value?.trim() || '';
+      const apellidos = this.form?.get('apellidos')?.value?.trim() || '';
+      const completo = `${nombres} ${apellidos}`.trim();
+      if (completo) return completo;
+    }
+    return this.isEdit ? 'Cliente' : 'Nuevo Cliente';
+  }
+
   commandBarItems: CommandBarItem[] = [];
   commandBarFarItems: CommandBarItem[] = [];
 
@@ -145,6 +159,10 @@ export class ClienteFormComponent implements OnInit {
       esClienteFacturacion: [false],
       esClienteServicio: [true],
       activo: [true],
+    });
+
+    this.form.valueChanges.subscribe(() => {
+      this.cdr.markForCheck();
     });
   }
 

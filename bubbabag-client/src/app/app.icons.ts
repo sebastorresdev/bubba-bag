@@ -63,9 +63,13 @@ import {
   ExportOutline,
   ShareAltOutline,
   LinkOutline,
+  EnvironmentOutline,
+  IdcardOutline,
 } from '@ant-design/icons-angular/icons';
 
 export const ICONS: IconDefinition[] = [
+  EnvironmentOutline,
+  IdcardOutline,
   ApartmentOutline,
   ExportOutline,
   AppstoreOutline,

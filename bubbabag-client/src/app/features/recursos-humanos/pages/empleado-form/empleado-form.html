@@ -54,11 +54,7 @@
 
       <div class="record-title-block">
         <h1 class="record-title">
-          {{
-            isEdit
-              ? ((form.get('nombres')?.value || '') + ' ' + (form.get('apellidos')?.value || ''))
-              : 'Nuevo Colaborador'
-          }}
+          {{ nombreEmpleadoEnFormulario }}
         </h1>
 
         <!-- Información Laboral (Estilo Microsoft Dynamics 365 con separadores verticales sin iconos) -->
@@ -115,29 +111,34 @@
       </div>
     </div>
 
-    <!-- Indicadores Métricos del Encabezado (KPIs superiores) -->
+    <!-- Indicadores Métricos del Encabezado (KPIs superiores con barras separadoras) -->
     <div class="record-header-metrics">
       <div class="metric-item">
-        <span class="metric-label">Estado</span>
-        <div class="metric-value">
-          <span class="status-dot" [ngClass]="getEstadoDotClass(form.get('estado')?.value || 'Activo')"></span>
-          <span>{{ form.get('estado')?.value || 'Activo' }}</span>
-        </div>
+        <span class="metric-label">ESTADO</span>
+        <span
+          class="kpi-value-pill"
+          [class.pill-active]="form.get('estado')?.value !== 'Cesado'"
+          [class.pill-inactive]="form.get('estado')?.value === 'Cesado'"
+        >
+          {{ (form.get('estado')?.value || 'Activo') | uppercase }}
+        </span>
       </div>
 
       <div class="metric-divider"></div>
 
       <div class="metric-item">
-        <span class="metric-label">Tipo Contrato</span>
-        <span class="metric-value">{{ form.get('tipoContrato')?.value || 'Por definir' }}</span>
+        <span class="metric-label">TIPO CONTRATO</span>
+        <span class="kpi-value-badge">
+          {{ (form.get('tipoContrato')?.value || 'Por definir') | uppercase }}
+        </span>
       </div>
 
       <div class="metric-divider"></div>
 
       <div class="metric-item">
-        <span class="metric-label">Fecha Ingreso</span>
-        <span class="metric-value">
-          {{ form.get('fechaIngreso')?.value ? (form.get('fechaIngreso')?.value | date:'dd/MM/yyyy') : 'No asignada' }}
+        <span class="metric-label">FECHA INGRESO</span>
+        <span class="kpi-value-badge">
+          {{ form.get('fechaIngreso')?.value ? (form.get('fechaIngreso')?.value | date:'dd/MM/yyyy') : 'NO ASIGNADA' }}
         </span>
       </div>
     </div>

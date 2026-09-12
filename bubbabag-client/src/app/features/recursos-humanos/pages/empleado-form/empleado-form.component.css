@@ -243,7 +243,7 @@
   color: #484644;
 }
 
-/* Indicadores Métricos del Encabezado (KPIs superiores) */
+/* Indicadores Métricos del Encabezado (KPIs superiores con barras separadoras) */
 .record-header-metrics {
   display: flex;
   align-items: center;
@@ -254,24 +254,16 @@
 .metric-item {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  align-items: flex-end;
+  gap: 4px;
 }
 
 .metric-label {
-  font-size: 11px;
-  opacity: 0.6;
+  font-size: 10px;
+  font-weight: 600;
+  color: #8a8886;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
-  font-weight: 600;
-}
-
-.metric-value {
-  font-size: 13px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  letter-spacing: 0.5px;
 }
 
 .metric-divider {
@@ -285,37 +277,36 @@
   background-color: rgba(255, 255, 255, 0.08);
 }
 
-/* Puntos de Estado KPI */
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-  flex-shrink: 0;
+.kpi-value-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 12px;
 }
 
-.d365-dot-active {
-  background-color: #107c41;
+.pill-active {
+  background-color: rgba(16, 124, 65, 0.12);
+  color: #107c41;
 }
 
-.d365-dot-warning {
-  background-color: #ffaa00;
+.pill-inactive {
+  background-color: rgba(138, 136, 134, 0.15);
+  color: #8a8886;
 }
 
-.d365-dot-info {
-  background-color: var(--ant-primary-color, #0f6cbd);
+.kpi-value-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #8a8886;
 }
 
-.d365-dot-purple {
-  background-color: #8764b8;
-}
-
-.d365-dot-danger {
-  background-color: #d13438;
-}
-
-.d365-dot-default {
-  background-color: #8a8886;
+:host-context([data-theme='dark']) .kpi-value-badge,
+:host-context(.dark-theme) .kpi-value-badge {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #d1d1d1;
 }
 
 /* Alerta de Colaborador Cesado */
@@ -346,20 +337,27 @@
   width: 100%;
 }
 
-:host ::ng-deep .d365-form-tabs > .ant-tabs-nav {
+:host ::ng-deep .d365-form-tabs .ant-tabs-nav {
   position: sticky;
   top: 0;
   z-index: 5;
   background-color: #f8f9fa;
   padding-top: 8px;
   margin-bottom: 16px !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
 }
 
-:host-context([data-theme='dark']) ::ng-deep .d365-form-tabs > .ant-tabs-nav,
-:host-context(.dark-theme) ::ng-deep .d365-form-tabs > .ant-tabs-nav {
+:host ::ng-deep .d365-form-tabs .ant-tabs-nav::before {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+:host-context([data-theme='dark']) ::ng-deep .d365-form-tabs .ant-tabs-nav,
+:host-context(.dark-theme) ::ng-deep .d365-form-tabs .ant-tabs-nav {
   background-color: #141414 !important;
-  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+:host-context([data-theme='dark']) ::ng-deep .d365-form-tabs .ant-tabs-nav::before,
+:host-context(.dark-theme) ::ng-deep .d365-form-tabs .ant-tabs-nav::before {
+  border-bottom-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 :host ::ng-deep .d365-form-tabs .ant-tabs-tab {

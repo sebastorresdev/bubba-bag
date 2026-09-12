@@ -12,7 +12,7 @@
     <div class="record-header-main">
       <div class="record-avatar-container">
         <nz-avatar
-          [nzText]="getIniciales(form.get('razonSocial')?.value || form.get('nombres')?.value)"
+          [nzText]="getIniciales(nombreClienteEnFormulario)"
           [nzSize]="56"
           class="record-avatar"
         ></nz-avatar>
@@ -20,12 +20,7 @@
 
       <div class="record-title-block">
         <h1 class="record-title">
-          {{
-            isEdit
-              ? form.get('razonSocial')?.value ||
-                form.get('nombres')?.value + ' ' + (form.get('apellidos')?.value || '')
-              : 'Nuevo Cliente'
-          }}
+          {{ nombreClienteEnFormulario }}
         </h1>
 
         <div class="record-metadata-row">
