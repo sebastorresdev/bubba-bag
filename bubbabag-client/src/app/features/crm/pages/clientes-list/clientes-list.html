@@ -1,229 +1,343 @@
-<div class="clientes-view-wrapper">
-  <!-- Barra de Comandos Dynamics 365 -->
-  <app-command-bar
-    [items]="commandBarItems"
-    [farItems]="commandBarFarItems"
-  ></app-command-bar>
+<app-command-bar [items]="commandBarItems" [farItems]="farItems"></app-command-bar>
 
-  <nz-card class="d365-table-card" [nzBordered]="false">
-    <!-- Sub-Header: Selector de Vistas de Negocio y Búsqueda -->
+<div class="clientes-view-wrapper">
+  <!-- Tarjeta Contenedora de NG-ZORRO (con bordes y fondo nativo, sin redondeo) -->
+  <nz-card [nzBordered]="true" [nzBodyStyle]="{ padding: '0' }" class="d365-table-card">
+    <!-- Sub-Header / Selector de Vista & Herramientas -->
     <div class="d365-toolbar-row">
-      <div class="d365-view-selector-group">
-        <span class="d365-view-label">Vista:</span>
+      <!-- Izquierda: Selector de Vista de Sistema (Dropdown interactivo, sin prefijo 'Vista:') -->
+      <div>
         <button
           nz-button
           nzType="text"
-          class="d365-view-selector-btn"
           nz-dropdown
-          [nzDropdownMenu]="viewMenu"
+          [nzDropdownMenu]="viewsMenu"
           nzTrigger="click"
+          class="view-title-btn"
         >
-          <span class="d365-current-view-name">
-            @switch (vistaActual) {
-              @case ('Activos') { Clientes Activos }
-              @case ('Facturacion') { Clientes de Facturación }
-              @case ('Servicio') { Clientes de Servicio (Sedes) }
-              @case ('Inactivos') { Clientes Inactivos }
-              @default { Todos los Clientes }
-            }
-          </span>
-          <nz-icon nzType="down" class="d365-dropdown-chevron" />
+          <h1 class="view-title-text">{{ vistaActualTitulo }}</h1>
+          <nz-icon nzType="down" class="view-title-icon" />
         </button>
 
-        <nz-dropdown-menu #viewMenu="nzDropdownMenu">
-          <ul nz-menu class="d365-dropdown-menu">
-            <li nz-menu-item (click)="onVistaChange('Activos')" [nzSelected]="vistaActual === 'Activos'">
-              <nz-icon nzType="check-circle" class="d365-menu-icon" />
+        <nz-dropdown-menu #viewsMenu="nzDropdownMenu">
+          <ul nz-menu>
+            <li nz-menu-item (click)="cambiarVista('Activos')" [nzSelected]="vistaActual === 'Activos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Activos' ? 'visible' : 'hidden'" />
               <span>Clientes Activos</span>
             </li>
-            <li nz-menu-item (click)="onVistaChange('Facturacion')" [nzSelected]="vistaActual === 'Facturacion'">
-              <nz-icon nzType="dollar" class="d365-menu-icon" />
+            <li nz-menu-item (click)="cambiarVista('Facturacion')" [nzSelected]="vistaActual === 'Facturacion'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Facturacion' ? 'visible' : 'hidden'" />
               <span>Clientes de Facturación</span>
             </li>
-            <li nz-menu-item (click)="onVistaChange('Servicio')" [nzSelected]="vistaActual === 'Servicio'">
-              <nz-icon nzType="car" class="d365-menu-icon" />
-              <span>Clientes de Servicio (Sedes/Abonados)</span>
+            <li nz-menu-item (click)="cambiarVista('Servicio')" [nzSelected]="vistaActual === 'Servicio'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Servicio' ? 'visible' : 'hidden'" />
+              <span>Clientes de Servicio (Sedes)</span>
             </li>
-            <li nz-menu-item (click)="onVistaChange('Inactivos')" [nzSelected]="vistaActual === 'Inactivos'">
-              <nz-icon nzType="close-circle" class="d365-menu-icon" />
+            <li nz-menu-item (click)="cambiarVista('Inactivos')" [nzSelected]="vistaActual === 'Inactivos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Inactivos' ? 'visible' : 'hidden'" />
               <span>Clientes Inactivos</span>
             </li>
             <li nz-menu-divider></li>
-            <li nz-menu-item (click)="onVistaChange('Todos')" [nzSelected]="vistaActual === 'Todos'">
-              <nz-icon nzType="appstore" class="d365-menu-icon" />
+            <li nz-menu-item (click)="cambiarVista('Todos')" [nzSelected]="vistaActual === 'Todos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Todos' ? 'visible' : 'hidden'" />
               <span>Todos los Clientes</span>
             </li>
           </ul>
         </nz-dropdown-menu>
-
-        <span class="d365-record-count">({{ clientesFiltrados.length }} registros)</span>
       </div>
 
-      <!-- Búsqueda Rápida Instantánea -->
-      <div class="d365-search-container">
-        <nz-input-group [nzPrefix]="searchPrefix" class="d365-search-box">
+      <!-- Derecha: Herramientas de la Vista (Editar Columnas, Editar Filtros y Buscador) -->
+      <div class="view-tools-group">
+        <!-- Botón Editar Columnas -->
+        <button
+          nz-button
+          nzType="default"
+          class="filter-btn"
+          (click)="toggleColumnasDrawer()"
+          title="Editar columnas de la tabla"
+        >
+          <nz-icon nzType="table" />
+          <span>Editar columnas</span>
+        </button>
+
+        <!-- Botón Editar Filtros -->
+        <button
+          nz-button
+          nzType="default"
+          class="filter-btn"
+          [class.active]="filtrosActivosCount > 0"
+          (click)="toggleFiltrosDrawer()"
+          title="Editar filtros de la vista"
+        >
+          <nz-icon nzType="filter" />
+          <span>Editar filtros</span>
+          @if (filtrosActivosCount > 0) {
+            <span class="filter-badge">{{ filtrosActivosCount }}</span>
+          }
+        </button>
+
+        <!-- Cuadro de Búsqueda Rápida Fluent UI -->
+        <div class="d365-search-box">
           <input
             type="text"
-            nz-input
-            placeholder="Buscar por código, RUC/DNI, nombres, razón social..."
+            placeholder="Filtrar por palabra clave..."
             [(ngModel)]="searchTerm"
-            (ngModelChange)="onSearchChange($event)"
+            (ngModelChange)="onSearchTermChange()"
+            (keyup.enter)="aplicarFiltros()"
+            class="search-input"
           />
-        </nz-input-group>
-        <ng-template #searchPrefix>
-          <nz-icon nzType="search" class="d365-search-icon" />
-        </ng-template>
+          @if (searchTerm) {
+            <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
+              <nz-icon nzType="close" />
+            </button>
+          }
+          <button class="search-icon-btn" (click)="aplicarFiltros()" title="Buscar">
+            <nz-icon nzType="search" />
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Grilla / DataGrid Dynamics 365 -->
-    <div class="d365-table-container">
-      <nz-table
-        #clientesTable
-        [nzData]="clientesFiltrados"
-        [nzLoading]="loading"
-        [nzPageSize]="15"
-        [nzShowSizeChanger]="true"
-        [nzPageSizeOptions]="[10, 15, 25, 50]"
-        nzSize="middle"
-        [nzScroll]="{ x: '1100px', y: 'calc(100vh - 230px)' }"
-        class="d365-fluent-grid"
-      >
-        <thead>
-          <tr>
-            <th nzWidth="120px">Código</th>
-            <th nzWidth="260px">Cliente / Razón Social</th>
-            <th nzWidth="140px">Documento</th>
-            <th nzWidth="140px">Contacto</th>
-            <th nzWidth="180px">Ubicación</th>
-            <th nzWidth="150px">Clasificación</th>
-            <th nzWidth="100px" nzAlign="center">Estado</th>
-            <th nzWidth="90px" nzAlign="center">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (c of clientesTable.data; track c.id) {
-            <tr class="d365-clickable-row" (click)="editarCliente(c.id)">
-              <!-- Código -->
-              <td>
-                <span class="d365-cell-code">{{ c.codigoCliente }}</span>
-              </td>
+    <!-- Cuadrícula NG-ZORRO con estilo nativo por defecto, selección por checkbox y conteo abajo -->
+    <nz-table
+      #clientesTable
+      [nzData]="clientesFiltrados"
+      [nzLoading]="loading"
+      [nzShowPagination]="true"
+      [nzShowTotal]="totalRangeTpl"
+      [nzPageSize]="15"
+      [nzPageSizeOptions]="[10, 15, 25, 50]"
+      [nzShowSizeChanger]="true"
+      nzSize="small"
+      (nzCurrentPageDataChange)="onCurrentPageDataChange($event)"
+      class="d365-table"
+    >
+      <ng-template #totalRangeTpl let-range="range" let-total="total">
+        {{ range[0] }} - {{ range[1] }} de {{ total }}
+      </ng-template>
 
-              <!-- Nombre / Razón Social con Avatar -->
+      <thead>
+        <tr>
+          <th
+            [nzWidth]="'48px'"
+            [nzChecked]="checked"
+            [nzIndeterminate]="indeterminate"
+            nzLabel="Seleccionar todos"
+            (nzCheckedChange)="onAllChecked($event)"
+          ></th>
+          @if (isColVisible('codigo')) {
+            <th nzWidth="120px">Código</th>
+          }
+          @if (isColVisible('cliente')) {
+            <th nzWidth="280px">Cliente / Razón Social</th>
+          }
+          @if (isColVisible('documento')) {
+            <th nzWidth="150px">Documento</th>
+          }
+          @if (isColVisible('contacto')) {
+            <th nzWidth="160px">Contacto</th>
+          }
+          @if (isColVisible('ubicacion')) {
+            <th nzWidth="190px">Ubicación</th>
+          }
+          @if (isColVisible('clasificacion')) {
+            <th nzWidth="160px">Clasificación</th>
+          }
+          @if (isColVisible('estado')) {
+            <th nzWidth="110px" nzAlign="center">Estado</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of clientesTable.data; track c.id) {
+          <tr
+            [class.row-selected]="setOfCheckedId.has(c.id)"
+            (click)="onRowClick(c, $event)"
+            class="d365-data-row"
+          >
+            <td
+              [nzChecked]="setOfCheckedId.has(c.id)"
+              (nzCheckedChange)="onItemChecked(c.id, $event)"
+              (click)="$event.stopPropagation()"
+            ></td>
+
+            @if (isColVisible('codigo')) {
               <td>
-                <div class="d365-avatar-cell">
+                <span class="cell-code">{{ c.codigoCliente }}</span>
+              </td>
+            }
+
+            @if (isColVisible('cliente')) {
+              <td>
+                <div class="cliente-cell">
                   <nz-avatar
                     [nzText]="getIniciales(c.nombreCompletoODenominacion)"
-                    [nzSize]="32"
-                    [class.avatar-juridica]="c.tipoPersona === 'JURIDICA'"
-                    [class.avatar-natural]="c.tipoPersona === 'NATURAL'"
+                    nzSize="small"
+                    class="cliente-avatar"
                   ></nz-avatar>
-                  <div class="d365-avatar-text">
-                    <span class="d365-name-primary" [title]="c.nombreCompletoODenominacion">
+                  <div class="cliente-info">
+                    <a
+                      (click)="editarCliente(c.id); $event.stopPropagation()"
+                      class="cell-link"
+                    >
                       {{ c.nombreCompletoODenominacion }}
-                    </span>
-                    <span class="d365-sub-secondary">
-                      {{ c.tipoPersona === 'JURIDICA' ? 'Persona Jurídica' : 'Persona Natural' }}
-                    </span>
+                    </a>
+                    <span class="cell-subtext">{{ c.tipoPersona }}</span>
                   </div>
                 </div>
               </td>
+            }
 
-              <!-- Documento Identidad -->
+            @if (isColVisible('documento')) {
               <td>
-                <div class="d365-doc-cell">
-                  <span class="d365-doc-type">{{ c.tipoDocumento }}:</span>
-                  <span class="d365-doc-num">{{ c.documentoIdentidad }}</span>
+                <div class="cell-doc">
+                  <span class="doc-tag">{{ c.tipoDocumento }}</span>
+                  <span class="doc-num">{{ c.documentoIdentidad }}</span>
                 </div>
               </td>
+            }
 
-              <!-- Contacto -->
+            @if (isColVisible('contacto')) {
               <td>
-                <div class="d365-contact-cell">
-                  <span class="d365-contact-phone">
-                    <nz-icon nzType="phone" class="d365-icon-inline" />
-                    {{ c.telefonoPrincipal }}
-                  </span>
+                <div class="contact-info">
+                  <div class="contact-line">
+                    <nz-icon nzType="phone" class="contact-icon" />
+                    <span>{{ c.telefonoPrincipal }}</span>
+                  </div>
                   @if (c.email) {
-                    <span class="d365-contact-email" [title]="c.email">
-                      <nz-icon nzType="mail" class="d365-icon-inline" />
-                      {{ c.email }}
-                    </span>
+                    <div class="contact-line contact-email">
+                      <nz-icon nzType="mail" class="contact-icon" />
+                      <span>{{ c.email }}</span>
+                    </div>
                   }
                 </div>
               </td>
+            }
 
-              <!-- Ubicación -->
+            @if (isColVisible('ubicacion')) {
               <td>
-                <div class="d365-location-cell">
-                  <span class="d365-loc-main" [title]="c.direccion">{{ c.direccion }}</span>
-                  <span class="d365-loc-sub">{{ c.distrito }}, {{ c.provincia }}</span>
+                <div class="cell-address">
+                  <span class="address-text" [title]="c.direccion">{{ c.direccion }}</span>
+                  <span class="cell-subtext">{{ c.distrito }}, {{ c.provincia }}</span>
                 </div>
               </td>
+            }
 
-              <!-- Clasificación -->
+            @if (isColVisible('clasificacion')) {
               <td>
-                <div class="d365-badges-cell">
+                <div class="class-tags">
                   @if (c.esClienteFacturacion) {
-                    <span class="d365-tag-chip chip-billing" title="Cliente Contratante / Factura">
-                      Facturación
-                    </span>
+                    <nz-tag nzColor="blue">Facturación</nz-tag>
                   }
                   @if (c.esClienteServicio) {
-                    <span class="d365-tag-chip chip-service" title="Abonado / Sede de Atención Técnica">
-                      Servicio
-                    </span>
+                    <nz-tag nzColor="cyan">Servicio</nz-tag>
                   }
                 </div>
               </td>
+            }
 
-              <!-- Estado -->
+            @if (isColVisible('estado')) {
               <td nzAlign="center">
-                @if (c.activo) {
-                  <span class="d365-status-pill status-active">Activo</span>
-                } @else {
-                  <span class="d365-status-pill status-inactive">Inactivo</span>
-                }
+                <nz-tag [nzColor]="c.activo ? 'success' : 'default'">
+                  {{ c.activo ? 'Activo' : 'Inactivo' }}
+                </nz-tag>
               </td>
-
-              <!-- Acciones -->
-              <td nzAlign="center" (click)="$event.stopPropagation()">
-                <div class="d365-row-actions">
-                  <button
-                    nz-button
-                    nzType="text"
-                    nzSize="small"
-                    nz-tooltip
-                    nzTooltipTitle="Editar Cliente"
-                    (click)="editarCliente(c.id)"
-                    class="d365-action-btn"
-                  >
-                    <nz-icon nzType="edit" />
-                  </button>
-
-                  <button
-                    nz-button
-                    nzType="text"
-                    nzSize="small"
-                    nz-tooltip
-                    [nzTooltipTitle]="c.activo ? 'Desactivar Cliente' : 'Activar Cliente'"
-                    nz-popconfirm
-                    [nzPopconfirmTitle]="c.activo ? '¿Deseas desactivar este cliente?' : '¿Deseas activar este cliente?'"
-                    nzOkText="Sí"
-                    nzCancelText="No"
-                    (nzOnConfirm)="toggleEstado(c)"
-                    class="d365-action-btn"
-                    [class.action-danger]="c.activo"
-                    [class.action-success]="!c.activo"
-                  >
-                    <nz-icon [nzType]="c.activo ? 'stop' : 'check-circle'" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </nz-table>
-    </div>
+            }
+          </tr>
+        }
+      </tbody>
+    </nz-table>
   </nz-card>
 </div>
+
+<!-- Drawer Lateral para "Editar Columnas" -->
+<nz-drawer
+  [nzVisible]="drawerColumnasVisible"
+  nzPlacement="right"
+  nzTitle="Editar Columnas"
+  [nzWidth]="320"
+  (nzOnClose)="drawerColumnasVisible = false"
+>
+  <ng-container *nzDrawerContent>
+    <div class="drawer-columns-body">
+      <p class="columns-drawer-desc">
+        Selecciona las columnas que deseas visualizar en la vista activa de clientes:
+      </p>
+
+      <div class="columns-checklist">
+        @for (col of columnas; track col.key) {
+          <label
+            nz-checkbox
+            [(ngModel)]="col.visible"
+            [nzDisabled]="col.required"
+            class="column-checkbox-item"
+          >
+            <span>{{ col.label }}</span>
+            @if (col.required) {
+              <span class="required-badge">(Obligatoria)</span>
+            }
+          </label>
+        }
+      </div>
+
+      <div class="drawer-actions">
+        <button nz-button nzType="default" (click)="restablecerColumnas()">
+          Restablecer
+        </button>
+        <button nz-button nzType="primary" (click)="drawerColumnasVisible = false">
+          Listo
+        </button>
+      </div>
+    </div>
+  </ng-container>
+</nz-drawer>
+
+<!-- Drawer Lateral para "Editar Filtros" -->
+<nz-drawer
+  [nzVisible]="drawerFiltrosVisible"
+  nzPlacement="right"
+  nzTitle="Filtros de la Vista"
+  [nzWidth]="340"
+  (nzOnClose)="drawerFiltrosVisible = false"
+>
+  <ng-container *nzDrawerContent>
+    <div class="drawer-filter-body">
+      <div class="drawer-field-group">
+        <label class="drawer-field-label">Tipo de Persona</label>
+        <nz-select
+          [(ngModel)]="filtroTipoPersona"
+          (ngModelChange)="aplicarFiltros()"
+          nzAllowClear
+          nzPlaceHolder="Todas las personas"
+          class="full-width"
+        >
+          <nz-option nzValue="NATURAL" nzLabel="Persona Natural"></nz-option>
+          <nz-option nzValue="JURIDICA" nzLabel="Persona Jurídica"></nz-option>
+        </nz-select>
+      </div>
+
+      <div class="drawer-field-group">
+        <label class="drawer-field-label">Clasificación de Cliente</label>
+        <nz-select
+          [(ngModel)]="filtroClasificacion"
+          (ngModelChange)="aplicarFiltros()"
+          nzAllowClear
+          nzPlaceHolder="Todas las clasificaciones"
+          class="full-width"
+        >
+          <nz-option nzValue="Facturacion" nzLabel="Facturación"></nz-option>
+          <nz-option nzValue="Servicio" nzLabel="Servicio"></nz-option>
+        </nz-select>
+      </div>
+
+      <div class="drawer-actions">
+        <button nz-button nzType="default" (click)="limpiarFiltros(); drawerFiltrosVisible = false">
+          Restablecer
+        </button>
+        <button nz-button nzType="primary" (click)="aplicarFiltros(); drawerFiltrosVisible = false">
+          Aplicar Filtros
+        </button>
+      </div>
+    </div>
+  </ng-container>
+</nz-drawer>

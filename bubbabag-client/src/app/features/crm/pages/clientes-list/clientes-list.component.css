@@ -7,6 +7,7 @@
   font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
 }
 
+/* Contenedor principal de la página (Full-Height Dynamics 365) */
 .clientes-view-wrapper {
   width: 100%;
   height: 100%;
@@ -20,6 +21,7 @@
   overflow: hidden;
 }
 
+/* Tarjeta Contenedora de NG-ZORRO (con borde pero SIN redondeo y Full-Height) */
 .d365-table-card,
 :host ::ng-deep .ant-card.d365-table-card {
   width: 100%;
@@ -36,6 +38,7 @@
 
 :host ::ng-deep .ant-card.d365-table-card .ant-card-body {
   padding: 0 !important;
+  border-radius: 0 !important;
   height: 100% !important;
   display: flex !important;
   flex-direction: column !important;
@@ -44,7 +47,9 @@
   overflow: hidden !important;
 }
 
-/* Toolbar Row */
+/* --------------------------------------------------------------------------
+   Sub-Header: Selector de Vista & Herramientas de Filtro Fijo
+   -------------------------------------------------------------------------- */
 .d365-toolbar-row {
   display: flex;
   align-items: center;
@@ -63,294 +68,400 @@
   border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
-.d365-view-selector-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.d365-view-label {
-  font-size: 13px;
-  color: #605e5c;
-  font-weight: 500;
-}
-
-:host-context([data-theme='dark']) .d365-view-label,
-:host-context(.dark-theme) .d365-view-label {
-  color: #a6a6a6;
-}
-
-.d365-view-selector-btn {
-  font-size: 16px;
-  font-weight: 600;
-  color: #242424;
-  padding: 0 4px;
-  height: 32px;
+/* Selector de Vistas (Dropdown de Título a la izquierda) */
+.view-title-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-}
-
-:host-context([data-theme='dark']) .d365-view-selector-btn,
-:host-context(.dark-theme) .d365-view-selector-btn {
-  color: #f3f2f1;
-}
-
-.d365-dropdown-chevron {
-  font-size: 11px;
-  color: #8a8886;
-}
-
-.d365-record-count {
-  font-size: 12px;
-  color: #8a8886;
-  margin-left: 4px;
-}
-
-/* Search Box */
-.d365-search-container {
-  width: 320px;
-  max-width: 100%;
-}
-
-.d365-search-box input {
+  gap: 8px;
+  padding: 4px 8px;
+  height: auto;
+  border: none;
+  background: transparent;
   border-radius: 4px;
-  font-size: 13px;
-  border-color: #edebe9;
-  transition: all 0.2s;
-}
-
-.d365-search-box input:focus {
-  border-color: #008272;
-  box-shadow: 0 0 0 2px rgba(0, 130, 114, 0.2);
-}
-
-.d365-search-icon {
-  color: #8a8886;
-}
-
-/* Table Container */
-.d365-table-container {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  background-color: #ffffff;
-}
-
-:host-context([data-theme='dark']) .d365-table-container,
-:host-context(.dark-theme) .d365-table-container {
-  background-color: #141414;
-}
-
-.d365-clickable-row {
   cursor: pointer;
   transition: background-color 0.15s ease;
 }
 
-.d365-clickable-row:hover {
-  background-color: rgba(0, 130, 114, 0.04) !important;
+.view-title-btn:hover {
+  background-color: rgba(0, 0, 0, 0.04);
 }
 
-:host-context([data-theme='dark']) .d365-clickable-row:hover,
-:host-context(.dark-theme) .d365-clickable-row:hover {
-  background-color: rgba(0, 130, 114, 0.15) !important;
+:host-context([data-theme='dark']) .view-title-btn:hover,
+:host-context(.dark-theme) .view-title-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
-/* Cell Elements */
-.d365-cell-code {
-  font-family: Consolas, monospace;
+.view-title-text {
+  font-size: 18px;
   font-weight: 600;
-  font-size: 12px;
-  color: #008272;
-  background-color: rgba(0, 130, 114, 0.08);
-  padding: 2px 6px;
-  border-radius: 4px;
+  margin: 0;
+  line-height: 1.2;
 }
 
-.d365-avatar-cell {
+.view-title-icon {
+  font-size: 12px;
+  opacity: 0.6;
+  margin-top: 2px;
+}
+
+/* Herramientas de la Vista a la Derecha */
+.view-tools-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.filter-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.filter-btn.active {
+  border-color: var(--ant-primary-color, #0078d4) !important;
+  color: var(--ant-primary-color, #0078d4) !important;
+}
+
+.filter-badge {
+  background-color: var(--ant-primary-color, #0078d4);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 10px;
+  line-height: 1;
+}
+
+/* Cuadro de Búsqueda Rápida Fluent UI */
+.d365-search-box {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  height: 32px;
+  padding: 0 8px;
+  width: 240px;
+  background-color: transparent;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+:host-context([data-theme='dark']) .d365-search-box,
+:host-context(.dark-theme) .d365-search-box {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.d365-search-box:focus-within {
+  border-color: var(--ant-primary-color, #0078d4) !important;
+  box-shadow: 0 0 0 1px var(--ant-primary-color, #0078d4);
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 13px;
+  padding: 0;
+  color: inherit;
+}
+
+.search-icon-btn,
+.search-clear-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0 2px;
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+}
+
+.search-icon-btn:hover,
+.search-clear-btn:hover {
+  opacity: 1;
+}
+
+/* --------------------------------------------------------------------------
+   Cuadrícula de la Tabla
+   -------------------------------------------------------------------------- */
+.d365-data-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.d365-data-row:hover {
+  background-color: rgba(0, 120, 212, 0.04) !important;
+}
+
+.row-selected {
+  background-color: rgba(0, 120, 212, 0.08) !important;
+}
+
+.cell-code {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #0078d4;
+}
+
+.cliente-cell {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.avatar-juridica {
-  background-color: #008272 !important;
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 11px;
-}
-
-.avatar-natural {
+.cliente-avatar {
   background-color: #0f6cbd !important;
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 11px;
+  color: #ffffff !important;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
 }
 
-.d365-avatar-text {
+.cliente-info {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-.d365-name-primary {
+.cell-link {
+  color: #0078d4 !important;
   font-weight: 600;
-  font-size: 13px;
-  color: #242424;
+  cursor: pointer;
+  display: block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 220px;
 }
 
-:host-context([data-theme='dark']) .d365-name-primary,
-:host-context(.dark-theme) .d365-name-primary {
-  color: #f3f2f1;
+.cell-link:hover {
+  text-decoration: underline;
+  color: #106ebe !important;
 }
 
-.d365-sub-secondary {
+.cell-subtext {
   font-size: 11px;
-  color: #8a8886;
+  opacity: 0.7;
+  margin-top: 2px;
 }
 
-.d365-doc-cell {
+.cell-doc {
   display: flex;
-  gap: 4px;
-  align-items: baseline;
-  font-size: 12px;
+  align-items: center;
+  gap: 6px;
 }
 
-.d365-doc-type {
+.doc-tag {
+  font-size: 11px;
   font-weight: 600;
-  color: #605e5c;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
-.d365-doc-num {
-  color: #242424;
-  font-family: Consolas, monospace;
+:host-context([data-theme='dark']) .doc-tag,
+:host-context(.dark-theme) .doc-tag {
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
-:host-context([data-theme='dark']) .d365-doc-num,
-:host-context(.dark-theme) .d365-doc-num {
-  color: #f3f2f1;
+.doc-num {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 12.5px;
+  font-weight: 500;
 }
 
-.d365-contact-cell,
-.d365-location-cell {
+.contact-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  font-size: 12.5px;
+}
+
+.contact-line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.contact-icon {
   font-size: 12px;
+  opacity: 0.6;
 }
 
-.d365-icon-inline {
-  font-size: 11px;
-  color: #8a8886;
-  margin-right: 4px;
+.contact-email {
+  font-size: 11.5px;
+  opacity: 0.8;
 }
 
-.d365-contact-phone {
-  font-weight: 500;
-  color: #323130;
+.cell-address {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
-:host-context([data-theme='dark']) .d365-contact-phone,
-:host-context(.dark-theme) .d365-contact-phone {
-  color: #e1dfdd;
-}
-
-.d365-contact-email {
-  color: #605e5c;
+.address-text {
+  font-size: 12.5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 140px;
+  max-width: 170px;
 }
 
-.d365-loc-main {
-  font-weight: 500;
-  color: #323130;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 180px;
-}
-
-:host-context([data-theme='dark']) .d365-loc-main,
-:host-context(.dark-theme) .d365-loc-main {
-  color: #e1dfdd;
-}
-
-.d365-loc-sub {
-  font-size: 11px;
-  color: #8a8886;
-}
-
-/* Badges / Clasificación */
-.d365-badges-cell {
+.class-tags {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
 }
 
-.d365-tag-chip {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 1px 7px;
-  border-radius: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+/* Drawer de Editar Columnas */
+.columns-drawer-desc {
+  font-size: 13px;
+  opacity: 0.8;
+  margin-bottom: 8px;
 }
 
-.chip-billing {
-  background-color: rgba(16, 124, 65, 0.12);
-  color: #107c41;
-}
-
-.chip-service {
-  background-color: rgba(227, 0, 140, 0.12);
-  color: #e3008c;
-}
-
-/* Status Pill */
-.d365-status-pill {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 10px;
-  border-radius: 12px;
-  display: inline-block;
-}
-
-.status-active {
-  background-color: rgba(16, 124, 65, 0.12);
-  color: #107c41;
-}
-
-.status-inactive {
-  background-color: rgba(138, 136, 134, 0.15);
-  color: #8a8886;
-}
-
-/* Row Actions */
-.d365-row-actions {
+.columns-checklist {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.d365-action-btn {
+.column-checkbox-item {
+  display: flex !important;
+  align-items: center;
+  margin-left: 0 !important;
+  font-size: 13px;
+}
+
+.required-badge {
+  font-size: 11px;
+  opacity: 0.5;
+  margin-left: 6px;
+}
+
+.drawer-columns-body,
+.drawer-filter-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.drawer-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.drawer-field-label {
+  font-size: 12px;
+  font-weight: 600;
   color: #605e5c;
 }
 
-.d365-action-btn:hover {
-  color: #008272;
+:host-context([data-theme='dark']) .drawer-field-label,
+:host-context(.dark-theme) .drawer-field-label {
+  color: #a19f9d;
 }
 
-.action-danger:hover {
-  color: #d13438 !important;
+.drawer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-.action-success:hover {
-  color: #107c41 !important;
+:host-context([data-theme='dark']) .drawer-actions,
+:host-context(.dark-theme) .drawer-actions {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* Grilla Full-Height Dynamics 365 */
+.d365-table {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
+:host ::ng-deep .d365-table .ant-table-wrapper,
+:host ::ng-deep .d365-table .ant-spin-nested-loading,
+:host ::ng-deep .d365-table .ant-spin-container {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
+:host ::ng-deep .d365-table .ant-table {
+  flex: 1 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background-color: transparent !important;
+}
+
+:host ::ng-deep .d365-table .ant-table-container {
+  flex: 1 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+}
+
+:host ::ng-deep .d365-table .ant-table-content {
+  flex: 1 !important;
+  min-height: 0 !important;
+}
+
+:host ::ng-deep .d365-table thead.ant-table-thead > tr > th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 2 !important;
+}
+
+/* Pie de Página Paginador Estilo Microsoft Dynamics 365 (Total a la izquierda, botones a la derecha) */
+:host ::ng-deep .d365-table .ant-table-pagination.ant-pagination {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 8px 16px !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+  background-color: #ffffff !important;
+  flex-shrink: 0 !important;
+}
+
+:host-context([data-theme='dark']) :host ::ng-deep .d365-table .ant-table-pagination.ant-pagination,
+:host-context(.dark-theme) :host ::ng-deep .d365-table .ant-table-pagination.ant-pagination {
+  border-top-color: rgba(255, 255, 255, 0.08) !important;
+  background-color: #1f1f1f !important;
+}
+
+:host ::ng-deep .d365-table .ant-pagination-total-text {
+  order: -1 !important;
+  margin-right: auto !important;
+  font-size: 12px !important;
+  color: #605e5c !important;
+  font-weight: 500 !important;
+}
+
+:host-context([data-theme='dark']) :host ::ng-deep .d365-table .ant-pagination-total-text,
+:host-context(.dark-theme) :host ::ng-deep .d365-table .ant-pagination-total-text {
+  color: #a19f9d !important;
 }

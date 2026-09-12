@@ -26,7 +26,9 @@ import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
+import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
+import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
 @Component({
@@ -47,7 +49,9 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzCardModule,
     NzEmptyModule,
     NzAvatarModule,
+    NzCheckboxModule,
     NzDropdownModule,
+    NzDrawerModule,
     CommandBarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Default,
@@ -64,36 +68,217 @@ export class ClientesListComponent implements OnInit, OnDestroy {
   clientesFiltrados: ClienteListadoItemDto[] = [];
   loading = false;
 
-  // Filtros y Vistas Dynamics 365
-  vistaActual: 'Todos' | 'Activos' | 'Facturacion' | 'Servicio' | 'Inactivos' = 'Activos';
-  searchTerm = '';
-  private searchSubject = new Subject<string>();
-  private searchSubscription?: Subscription;
+  // Vistas de Sistema (Dynamics 365 View Selector)
+  vistaActual: 'Activos' | 'Todos' | 'Facturacion' | 'Servicio' | 'Inactivos' = 'Activos';
+  drawerFiltrosVisible = false;
+  drawerColumnasVisible = false;
 
-  // Barra de Comandos Dynamics 365
-  commandBarItems: CommandBarItem[] = [
-    {
-      key: 'nuevo',
-      label: 'Nuevo Cliente',
-      icon: 'plus',
-      primary: true,
-      action: () => this.crearNuevo(),
-    },
-    {
-      key: 'actualizar',
-      label: 'Actualizar',
-      icon: 'reload',
-      action: () => this.cargarClientes(),
-    },
-    {
-      key: 'exportar',
-      label: 'Exportar a CSV',
-      icon: 'file-excel',
-      action: () => this.exportarCsv(),
-    },
+  // Definición de Columnas Visibles (Dynamics 365 Edit Columns)
+  columnas = [
+    { key: 'codigo', label: 'Código', visible: true, required: false },
+    { key: 'cliente', label: 'Cliente / Razón Social', visible: true, required: true },
+    { key: 'documento', label: 'Documento', visible: true, required: false },
+    { key: 'contacto', label: 'Contacto', visible: true, required: false },
+    { key: 'ubicacion', label: 'Ubicación', visible: true, required: false },
+    { key: 'clasificacion', label: 'Clasificación', visible: true, required: false },
+    { key: 'estado', label: 'Estado', visible: true, required: false },
   ];
 
-  commandBarFarItems: CommandBarItem[] = [];
+  toggleColumnasDrawer(): void {
+    this.drawerColumnasVisible = !this.drawerColumnasVisible;
+  }
+
+  toggleFiltrosDrawer(): void {
+    this.drawerFiltrosVisible = !this.drawerFiltrosVisible;
+  }
+
+  isColVisible(key: string): boolean {
+    const col = this.columnas.find((c) => c.key === key);
+    return col ? col.visible : true;
+  }
+
+  restablecerColumnas(): void {
+    this.columnas.forEach((c) => (c.visible = true));
+  }
+
+  // Filtros
+  searchTerm = '';
+  searchSubject = new Subject<string>();
+  private searchSubscription?: Subscription;
+  filtroTipoPersona: string | null = null;
+  filtroClasificacion: string | null = null;
+
+  get vistaActualTitulo(): string {
+    switch (this.vistaActual) {
+      case 'Activos':
+        return 'Clientes Activos';
+      case 'Todos':
+        return 'Todos los Clientes';
+      case 'Facturacion':
+        return 'Clientes de Facturación';
+      case 'Servicio':
+        return 'Clientes de Servicio (Sedes)';
+      case 'Inactivos':
+        return 'Clientes Inactivos';
+      default:
+        return 'Clientes Activos';
+    }
+  }
+
+  get filtrosActivosCount(): number {
+    let count = 0;
+    if (this.filtroTipoPersona) count++;
+    if (this.filtroClasificacion) count++;
+    if (this.searchTerm) count++;
+    return count;
+  }
+
+  // Selección de Filas (NG-ZORRO Native Table Selection)
+  checked = false;
+  indeterminate = false;
+  setOfCheckedId = new Set<string>();
+  listOfCurrentPageData: readonly ClienteListadoItemDto[] = [];
+  selectedCliente: ClienteListadoItemDto | null = null;
+
+  updateCheckedSet(id: string, checked: boolean): void {
+    if (checked) {
+      this.setOfCheckedId.add(id);
+    } else {
+      this.setOfCheckedId.delete(id);
+    }
+  }
+
+  onCurrentPageDataChange(listOfCurrentPageData: readonly ClienteListadoItemDto[]): void {
+    this.listOfCurrentPageData = listOfCurrentPageData;
+    this.refreshCheckedStatus();
+  }
+
+  refreshCheckedStatus(): void {
+    const checked =
+      this.listOfCurrentPageData.length > 0 &&
+      this.listOfCurrentPageData.every(({ id }) => this.setOfCheckedId.has(id));
+    this.checked = checked;
+    this.indeterminate =
+      this.listOfCurrentPageData.some(({ id }) => this.setOfCheckedId.has(id)) && !checked;
+
+    if (this.setOfCheckedId.size === 1) {
+      const selectedId = Array.from(this.setOfCheckedId)[0];
+      this.selectedCliente = this.clientes.find((c) => c.id === selectedId) || null;
+    } else {
+      this.selectedCliente = null;
+    }
+  }
+
+  onItemChecked(id: string, checked: boolean): void {
+    this.updateCheckedSet(id, checked);
+    this.refreshCheckedStatus();
+  }
+
+  onAllChecked(checked: boolean): void {
+    this.listOfCurrentPageData.forEach(({ id }) => this.updateCheckedSet(id, checked));
+    this.refreshCheckedStatus();
+  }
+
+  onRowClick(cliente: ClienteListadoItemDto, event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (
+      target.tagName === 'INPUT' ||
+      target.closest('.ant-checkbox-wrapper') ||
+      target.closest('.ant-btn') ||
+      target.closest('a')
+    ) {
+      return;
+    }
+
+    const isChecked = this.setOfCheckedId.has(cliente.id);
+    this.updateCheckedSet(cliente.id, !isChecked);
+    this.refreshCheckedStatus();
+  }
+
+  // Barra de Comandos Dynamics 365 con diseño idéntico al estándar institucional
+  get commandBarItems(): CommandBarItem[] {
+    return [
+      {
+        key: 'new',
+        label: 'Nuevo',
+        icon: 'plus',
+        iconColor: 'success',
+        tooltip: 'Registrar un nuevo cliente',
+        execute: () => this.crearNuevo(),
+      },
+      {
+        key: 'edit',
+        label: 'Editar',
+        icon: 'edit',
+        iconColor: 'primary',
+        disabled: this.setOfCheckedId.size !== 1,
+        tooltip:
+          this.setOfCheckedId.size !== 1
+            ? 'Selecciona exactamente un cliente para editar'
+            : `Editar a ${this.selectedCliente?.nombreCompletoODenominacion}`,
+        execute: () => {
+          if (this.selectedCliente) {
+            this.editarCliente(this.selectedCliente.id);
+          }
+        },
+      },
+      {
+        key: 'delete',
+        label: this.selectedCliente?.activo === false ? 'Activar' : 'Dar de Baja',
+        icon: 'user-delete',
+        danger: true,
+        iconColor: 'danger',
+        disabled: this.setOfCheckedId.size !== 1,
+        tooltip:
+          this.setOfCheckedId.size !== 1
+            ? 'Selecciona un cliente para cambiar su estado'
+            : this.selectedCliente?.activo
+              ? 'Dar de baja al cliente seleccionado'
+              : 'Reactivar al cliente seleccionado',
+        execute: () => {
+          if (this.selectedCliente) {
+            this.toggleEstado(this.selectedCliente);
+          }
+        },
+      },
+      { key: 'd1', isDivider: true },
+      {
+        key: 'export',
+        label: 'Exportar a Excel',
+        icon: 'file-excel',
+        iconColor: 'success',
+        split: true,
+        tooltip: 'Exportar clientes directamente a Excel (.xlsx)',
+        execute: () => this.exportarCsv(),
+        children: [
+          {
+            key: 'xlsx',
+            label: 'Descargar Excel (.xlsx)',
+            icon: 'file-excel',
+            iconColor: 'success',
+            execute: () => this.exportarCsv(),
+          },
+          {
+            key: 'csv',
+            label: 'Descargar CSV (.csv)',
+            icon: 'file-excel',
+            iconColor: 'success',
+            execute: () => this.exportarCsv(),
+          },
+        ],
+      },
+      { key: 'd2', isDivider: true },
+      {
+        key: 'refresh',
+        label: 'Actualizar',
+        icon: 'reload',
+        tooltip: 'Recargar lista de clientes',
+        execute: () => this.cargarClientes(),
+      },
+    ];
+  }
+
+  farItems: CommandBarItem[] = [];
 
   ngOnInit(): void {
     this.searchSubscription = this.searchSubject
@@ -120,7 +305,7 @@ export class ClientesListComponent implements OnInit, OnDestroy {
         this.loading = false;
         this.cdr.markForCheck();
       },
-      error: (err) => {
+      error: () => {
         this.loading = false;
         this.message.error('No se pudo cargar la lista de clientes.');
         this.cdr.markForCheck();
@@ -128,11 +313,22 @@ export class ClientesListComponent implements OnInit, OnDestroy {
     });
   }
 
-  onSearchChange(val: string): void {
-    this.searchSubject.next(val);
+  onSearchTermChange(): void {
+    this.searchSubject.next(this.searchTerm);
   }
 
-  onVistaChange(vista: 'Todos' | 'Activos' | 'Facturacion' | 'Servicio' | 'Inactivos'): void {
+  limpiarBusqueda(): void {
+    this.searchTerm = '';
+    this.aplicarFiltros();
+  }
+
+  limpiarFiltros(): void {
+    this.filtroTipoPersona = null;
+    this.filtroClasificacion = null;
+    this.aplicarFiltros();
+  }
+
+  cambiarVista(vista: 'Activos' | 'Todos' | 'Facturacion' | 'Servicio' | 'Inactivos'): void {
     this.vistaActual = vista;
     this.aplicarFiltros();
   }
@@ -159,6 +355,18 @@ export class ClientesListComponent implements OnInit, OnDestroy {
         break;
     }
 
+    // Filtro adicional por Tipo Persona
+    if (this.filtroTipoPersona) {
+      list = list.filter((c) => c.tipoPersona === this.filtroTipoPersona);
+    }
+
+    // Filtro adicional por Clasificación
+    if (this.filtroClasificacion === 'Facturacion') {
+      list = list.filter((c) => c.esClienteFacturacion);
+    } else if (this.filtroClasificacion === 'Servicio') {
+      list = list.filter((c) => c.esClienteServicio);
+    }
+
     // Filtro por búsqueda de texto
     const term = this.searchTerm?.trim().toLowerCase();
     if (term) {
@@ -169,11 +377,13 @@ export class ClientesListComponent implements OnInit, OnDestroy {
           c.nombreCompletoODenominacion.toLowerCase().includes(term) ||
           c.telefonoPrincipal.toLowerCase().includes(term) ||
           (c.email && c.email.toLowerCase().includes(term)) ||
-          (c.distrito && c.distrito.toLowerCase().includes(term))
+          (c.distrito && c.distrito.toLowerCase().includes(term)) ||
+          (c.provincia && c.provincia.toLowerCase().includes(term))
       );
     }
 
     this.clientesFiltrados = list;
+    this.refreshCheckedStatus();
     this.cdr.markForCheck();
   }
 
@@ -194,7 +404,7 @@ export class ClientesListComponent implements OnInit, OnDestroy {
     this.clienteService.cambiarEstado(cliente.id, nuevoEstado).subscribe({
       next: (res) => {
         cliente.activo = nuevoEstado;
-        this.message.success(res.message || 'Estado actualizado.');
+        this.message.success(res.message || 'Estado actualizado con éxito.');
         this.aplicarFiltros();
       },
       error: () => {
@@ -253,7 +463,7 @@ export class ClientesListComponent implements OnInit, OnDestroy {
     link.click();
     document.body.removeChild(link);
 
-    this.message.success('Archivo CSV exportado exitosamente.');
+    this.message.success('Archivo exportado exitosamente.');
   }
 
   getIniciales(nombre: string): string {
