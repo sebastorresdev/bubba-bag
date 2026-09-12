@@ -25,13 +25,13 @@ public static class WebApplicationExtensions
         var crmDbContext = scope.ServiceProvider.GetService<BubbaBag.Modules.Crm.Infrastructure.Database.CrmDbContext>();
         if (crmDbContext != null)
         {
-            await crmDbContext.Database.EnsureCreatedAsync();
+            await crmDbContext.Database.MigrateAsync();
         }
 
         var servicioCampoDbContext = scope.ServiceProvider.GetService<BubbaBag.Modules.ServicioCampo.Infrastructure.Database.ServicioCampoDbContext>();
         if (servicioCampoDbContext != null)
         {
-            await servicioCampoDbContext.Database.EnsureCreatedAsync();
+            await servicioCampoDbContext.Database.MigrateAsync();
         }
 
         // 2. Ejecutar sembradores modulares
