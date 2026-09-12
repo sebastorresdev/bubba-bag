@@ -34,6 +34,7 @@ import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzTabsModule } from 'ng-zorro-antd/tabs';
 import { NzRadioModule } from 'ng-zorro-antd/radio';
 import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
+import { NzDividerModule } from 'ng-zorro-antd/divider';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
 @Component({
@@ -56,6 +57,7 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzTabsModule,
     NzRadioModule,
     NzInputNumberModule,
+    NzDividerModule,
     CommandBarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Default,
@@ -86,6 +88,14 @@ export class ClienteFormComponent implements OnInit {
   ];
 
   departamentosSugeridos = ['Lima', 'Arequipa', 'Cusco', 'La Libertad', 'Piura', 'Junín', 'Lambayeque', 'Áncash', 'Ica', 'San Martín'];
+
+  get emailCliente(): string {
+    return this.form?.get('email')?.value || '';
+  }
+
+  get telefonoCliente(): string {
+    return this.form?.get('telefonoPrincipal')?.value || '';
+  }
 
   commandBarItems: CommandBarItem[] = [];
   commandBarFarItems: CommandBarItem[] = [];
