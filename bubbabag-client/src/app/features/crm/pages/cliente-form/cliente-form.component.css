@@ -13,14 +13,14 @@
   color: #f3f2f1 !important;
 }
 
+/* Vista del Formulario (Contenedor rígido sin scroll global) */
 .cliente-form-view {
   width: 100%;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   position: relative;
   background-color: #f5f5f5;
 }
@@ -30,16 +30,14 @@
   background-color: #141414 !important;
 }
 
-/* Cabecera de Registro Dynamics 365 */
+/* Cabecera de Registro Dynamics 365 (Fija sin desplazamiento) */
 .d365-record-header {
-  position: sticky;
-  top: 0;
   flex-shrink: 0;
   z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
+  padding: 14px 24px;
   background-color: #ffffff;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
@@ -98,24 +96,33 @@
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #605e5c;
   margin-top: 2px;
 }
 
 .record-code-tag {
-  font-family: Consolas, monospace;
+  font-family: 'Consolas', 'Courier New', monospace;
   font-weight: 600;
-  background-color: rgba(0, 130, 114, 0.08);
-  color: #008272;
+  color: #0078d4;
+  background-color: rgba(0, 120, 212, 0.08);
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 .record-meta-sep {
-  color: #c7c6c4;
+  color: #8a8886;
 }
 
-/* Indicadores KPIs en Header */
+.record-type-label {
+  color: #605e5c;
+  font-weight: 500;
+}
+
+:host-context([data-theme='dark']) .record-type-label,
+:host-context(.dark-theme) .record-type-label {
+  color: #a19f9d;
+}
+
+/* Indicadores KPI a la Derecha */
 .record-header-kpis {
   display: flex;
   align-items: center;
@@ -173,20 +180,61 @@
   color: #e3008c;
 }
 
-/* Contenedor del Formulario */
+/* --------------------------------------------------------------------------
+   Contenedor del Formulario (SCROLL EXCLUSIVO PARA EL CONTENIDO)
+   -------------------------------------------------------------------------- */
 .form-content-wrapper {
-  padding: 20px 24px 80px 24px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 24px 80px 24px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.d365-form {
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
 }
 
+.d365-tabs {
+  width: 100%;
+}
+
+:host ::ng-deep .d365-tabs > .ant-tabs-nav {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background-color: #f5f5f5;
+  padding-top: 4px;
+  margin-bottom: 20px !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+:host-context([data-theme='dark']) ::ng-deep .d365-tabs > .ant-tabs-nav,
+:host-context(.dark-theme) ::ng-deep .d365-tabs > .ant-tabs-nav {
+  background-color: #141414 !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+:host ::ng-deep .d365-tabs .ant-tabs-tab {
+  padding: 10px 16px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+:host ::ng-deep .d365-tabs .ant-tabs-tab-active {
+  font-weight: 600 !important;
+}
+
 .tab-body-container {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding-top: 16px;
+  padding-top: 4px;
 }
 
 /* Secciones del Formulario */
@@ -319,6 +367,6 @@
   }
 
   .form-content-wrapper {
-    padding: 16px 16px 80px 16px;
+    padding: 12px 16px 80px 16px;
   }
 }
