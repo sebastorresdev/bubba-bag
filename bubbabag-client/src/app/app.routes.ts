@@ -23,6 +23,22 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'crm',
+    canActivate: [authGuard, roleGuard],
+    data: {
+      roles: [
+        'SuperAdmin',
+        'Gerencia',
+        'CrmAdmin',
+        'CrmOperador',
+        'ServicioCampoAdmin',
+        'ServicioCampoBackoffice',
+      ],
+    },
+    loadChildren: () =>
+      import('./features/crm/crm.routes').then((m) => m.CRM_ROUTES),
+  },
+  {
     path: 'login',
     canActivate: [publicGuard],
     loadComponent: () =>

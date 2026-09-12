@@ -1,0 +1,356 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
+}
+
+.clientes-view-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+  padding: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.d365-table-card,
+:host ::ng-deep .ant-card.d365-table-card {
+  width: 100%;
+  height: 100%;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+  background-color: transparent !important;
+}
+
+:host ::ng-deep .ant-card.d365-table-card .ant-card-body {
+  padding: 0 !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Toolbar Row */
+.d365-toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  gap: 16px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  background-color: #ffffff;
+}
+
+:host-context([data-theme='dark']) .d365-toolbar-row,
+:host-context(.dark-theme) .d365-toolbar-row {
+  background-color: #1f1f1f;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.d365-view-selector-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.d365-view-label {
+  font-size: 13px;
+  color: #605e5c;
+  font-weight: 500;
+}
+
+:host-context([data-theme='dark']) .d365-view-label,
+:host-context(.dark-theme) .d365-view-label {
+  color: #a6a6a6;
+}
+
+.d365-view-selector-btn {
+  font-size: 16px;
+  font-weight: 600;
+  color: #242424;
+  padding: 0 4px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+:host-context([data-theme='dark']) .d365-view-selector-btn,
+:host-context(.dark-theme) .d365-view-selector-btn {
+  color: #f3f2f1;
+}
+
+.d365-dropdown-chevron {
+  font-size: 11px;
+  color: #8a8886;
+}
+
+.d365-record-count {
+  font-size: 12px;
+  color: #8a8886;
+  margin-left: 4px;
+}
+
+/* Search Box */
+.d365-search-container {
+  width: 320px;
+  max-width: 100%;
+}
+
+.d365-search-box input {
+  border-radius: 4px;
+  font-size: 13px;
+  border-color: #edebe9;
+  transition: all 0.2s;
+}
+
+.d365-search-box input:focus {
+  border-color: #008272;
+  box-shadow: 0 0 0 2px rgba(0, 130, 114, 0.2);
+}
+
+.d365-search-icon {
+  color: #8a8886;
+}
+
+/* Table Container */
+.d365-table-container {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background-color: #ffffff;
+}
+
+:host-context([data-theme='dark']) .d365-table-container,
+:host-context(.dark-theme) .d365-table-container {
+  background-color: #141414;
+}
+
+.d365-clickable-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.d365-clickable-row:hover {
+  background-color: rgba(0, 130, 114, 0.04) !important;
+}
+
+:host-context([data-theme='dark']) .d365-clickable-row:hover,
+:host-context(.dark-theme) .d365-clickable-row:hover {
+  background-color: rgba(0, 130, 114, 0.15) !important;
+}
+
+/* Cell Elements */
+.d365-cell-code {
+  font-family: Consolas, monospace;
+  font-weight: 600;
+  font-size: 12px;
+  color: #008272;
+  background-color: rgba(0, 130, 114, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.d365-avatar-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar-juridica {
+  background-color: #008272 !important;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.avatar-natural {
+  background-color: #0f6cbd !important;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.d365-avatar-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.d365-name-primary {
+  font-weight: 600;
+  font-size: 13px;
+  color: #242424;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+:host-context([data-theme='dark']) .d365-name-primary,
+:host-context(.dark-theme) .d365-name-primary {
+  color: #f3f2f1;
+}
+
+.d365-sub-secondary {
+  font-size: 11px;
+  color: #8a8886;
+}
+
+.d365-doc-cell {
+  display: flex;
+  gap: 4px;
+  align-items: baseline;
+  font-size: 12px;
+}
+
+.d365-doc-type {
+  font-weight: 600;
+  color: #605e5c;
+}
+
+.d365-doc-num {
+  color: #242424;
+  font-family: Consolas, monospace;
+}
+
+:host-context([data-theme='dark']) .d365-doc-num,
+:host-context(.dark-theme) .d365-doc-num {
+  color: #f3f2f1;
+}
+
+.d365-contact-cell,
+.d365-location-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.d365-icon-inline {
+  font-size: 11px;
+  color: #8a8886;
+  margin-right: 4px;
+}
+
+.d365-contact-phone {
+  font-weight: 500;
+  color: #323130;
+}
+
+:host-context([data-theme='dark']) .d365-contact-phone,
+:host-context(.dark-theme) .d365-contact-phone {
+  color: #e1dfdd;
+}
+
+.d365-contact-email {
+  color: #605e5c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.d365-loc-main {
+  font-weight: 500;
+  color: #323130;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+:host-context([data-theme='dark']) .d365-loc-main,
+:host-context(.dark-theme) .d365-loc-main {
+  color: #e1dfdd;
+}
+
+.d365-loc-sub {
+  font-size: 11px;
+  color: #8a8886;
+}
+
+/* Badges / Clasificación */
+.d365-badges-cell {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.d365-tag-chip {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.chip-billing {
+  background-color: rgba(16, 124, 65, 0.12);
+  color: #107c41;
+}
+
+.chip-service {
+  background-color: rgba(227, 0, 140, 0.12);
+  color: #e3008c;
+}
+
+/* Status Pill */
+.d365-status-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 12px;
+  display: inline-block;
+}
+
+.status-active {
+  background-color: rgba(16, 124, 65, 0.12);
+  color: #107c41;
+}
+
+.status-inactive {
+  background-color: rgba(138, 136, 134, 0.15);
+  color: #8a8886;
+}
+
+/* Row Actions */
+.d365-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.d365-action-btn {
+  color: #605e5c;
+}
+
+.d365-action-btn:hover {
+  color: #008272;
+}
+
+.action-danger:hover {
+  color: #d13438 !important;
+}
+
+.action-success:hover {
+  color: #107c41 !important;
+}

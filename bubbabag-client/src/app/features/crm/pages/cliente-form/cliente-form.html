@@ -1,0 +1,323 @@
+<div class="cliente-form-view">
+  <!-- Command Bar Dynamics 365 -->
+  <app-command-bar
+    [items]="commandBarItems"
+    [farItems]="commandBarFarItems"
+    [showBack]="true"
+    (back)="volver()"
+  ></app-command-bar>
+
+  <!-- Cabecera de Registro Dynamics 365 (Sticky Header) -->
+  <header class="d365-record-header">
+    <div class="record-header-main">
+      <nz-avatar
+        [nzText]="getIniciales(form.get('razonSocial')?.value || form.get('nombres')?.value)"
+        [nzSize]="48"
+        class="record-avatar"
+      ></nz-avatar>
+
+      <div class="record-titles">
+        <div class="record-entity-type">CUENTA DE CLIENTE CRM</div>
+        <h1 class="record-title">
+          {{
+            isEdit
+              ? form.get('razonSocial')?.value ||
+                form.get('nombres')?.value + ' ' + (form.get('apellidos')?.value || '')
+              : 'Nuevo Cliente'
+          }}
+        </h1>
+        <div class="record-subtitle">
+          <span class="record-code-tag">{{ form.get('codigoCliente')?.value || 'CLI-NUEVO' }}</span>
+          <span class="record-meta-sep">&bull;</span>
+          <span class="record-type-label">
+            {{ form.get('tipoPersona')?.value === 'JURIDICA' ? 'Persona Jurídica' : 'Persona Natural' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Indicadores Clave del Encabezado -->
+    <div class="record-header-kpis">
+      <div class="kpi-item">
+        <span class="kpi-label">ESTADO</span>
+        <span
+          class="kpi-value-pill"
+          [class.pill-active]="form.get('activo')?.value"
+          [class.pill-inactive]="!form.get('activo')?.value"
+        >
+          {{ form.get('activo')?.value ? 'ACTIVO' : 'INACTIVO' }}
+        </span>
+      </div>
+
+      <div class="kpi-item">
+        <span class="kpi-label">FACTURACIÓN</span>
+        <span class="kpi-value-badge" [class.badge-enabled]="form.get('esClienteFacturacion')?.value">
+          {{ form.get('esClienteFacturacion')?.value ? 'HABILITADO' : 'NO' }}
+        </span>
+      </div>
+
+      <div class="kpi-item">
+        <span class="kpi-label">CAMPO / SERVICIO</span>
+        <span class="kpi-value-badge" [class.badge-service]="form.get('esClienteServicio')?.value">
+          {{ form.get('esClienteServicio')?.value ? 'SEDE VÁLIDA' : 'NO' }}
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenedor del Formulario con Scroll -->
+  <div class="form-content-wrapper">
+    <form nz-form [formGroup]="form" nzLayout="vertical" class="d365-form">
+      <nz-tabs [(nzSelectedIndex)]="selectedTabIndex" [nzAnimated]="false" class="d365-tabs">
+        <!-- PESTAÑA 1: DATOS GENERALES E IDENTIFICACIÓN -->
+        <nz-tab nzTitle="General e Identificación">
+          <div class="tab-body-container">
+            <!-- Sección: Identificación Fiscal -->
+            <div class="d365-form-section">
+              <div class="section-header">
+                <nz-icon nzType="idcard" class="section-icon" />
+                <h3 class="section-title">Identificación y Régimen</h3>
+              </div>
+
+              <div class="form-grid-3">
+                <nz-form-item>
+                  <nz-form-label nzRequired>Código de Cliente</nz-form-label>
+                  <nz-form-control nzErrorTip="El código es obligatorio">
+                    <input
+                      nz-input
+                      formControlName="codigoCliente"
+                      placeholder="Ej. CLI-2026-001"
+                    />
+                  </nz-form-control>
+                </nz-form-item>
+
+                <nz-form-item>
+                  <nz-form-label nzRequired>Tipo de Persona</nz-form-label>
+                  <nz-form-control>
+                    <nz-radio-group formControlName="tipoPersona" nzButtonStyle="solid">
+                      <label nz-radio-button nzValue="NATURAL">Natural</label>
+                      <label nz-radio-button nzValue="JURIDICA">Jurídica (Empresa)</label>
+                    </nz-radio-group>
+                  </nz-form-control>
+                </nz-form-item>
+
+                <nz-form-item>
+                  <nz-form-label nzRequired>Tipo de Documento</nz-form-label>
+                  <nz-form-control>
+                    <nz-select formControlName="tipoDocumento">
+                      @for (t of tiposDocumento; track t.value) {
+                        <nz-option [nzLabel]="t.label" [nzValue]="t.value"></nz-option>
+                      }
+                    </nz-select>
+                  </nz-form-control>
+                </nz-form-item>
+              </div>
+
+              <div class="form-grid-3">
+                <nz-form-item>
+                  <nz-form-label nzRequired>
+                    {{ form.get('tipoPersona')?.value === 'JURIDICA' ? 'Número de RUC' : 'N° Documento Identidad' }}
+                  </nz-form-label>
+                  <nz-form-control nzErrorTip="Documento obligatorio">
+                    <input
+                      nz-input
+                      formControlName="documentoIdentidad"
+                      [placeholder]="form.get('tipoPersona')?.value === 'JURIDICA' ? '11 dígitos' : '8 dígitos'"
+                    />
+                  </nz-form-control>
+                </nz-form-item>
+
+                @if (form.get('tipoPersona')?.value === 'JURIDICA') {
+                  <nz-form-item class="grid-span-2">
+                    <nz-form-label nzRequired>Razón Social</nz-form-label>
+                    <nz-form-control nzErrorTip="La razón social es obligatoria">
+                      <input
+                        nz-input
+                        formControlName="razonSocial"
+                        placeholder="Nombre oficial de la empresa o contratista"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+                } @else {
+                  <nz-form-item>
+                    <nz-form-label nzRequired>Nombres</nz-form-label>
+                    <nz-form-control nzErrorTip="Nombres obligatorios">
+                      <input nz-input formControlName="nombres" placeholder="Nombres" />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <nz-form-item>
+                    <nz-form-label>Apellidos</nz-form-label>
+                    <nz-form-control>
+                      <input nz-input formControlName="apellidos" placeholder="Apellidos" />
+                    </nz-form-control>
+                  </nz-form-item>
+                }
+              </div>
+            </div>
+
+            <!-- Sección: Clasificación Operativa ERP -->
+            <div class="d365-form-section">
+              <div class="section-header">
+                <nz-icon nzType="apartment" class="section-icon" />
+                <h3 class="section-title">Clasificación y Roles de Negocio</h3>
+              </div>
+
+              <div class="form-grid-2">
+                <div class="classification-box">
+                  <div class="classification-info">
+                    <div class="classification-title">Cliente de Facturación</div>
+                    <div class="classification-desc">
+                      Habilita al cliente para contratación corporativa, emisión de facturas y asociación a tarifarios de servicio.
+                    </div>
+                  </div>
+                  <nz-switch formControlName="esClienteFacturacion"></nz-switch>
+                </div>
+
+                <div class="classification-box">
+                  <div class="classification-info">
+                    <div class="classification-title">Cliente de Servicio de Campo</div>
+                    <div class="classification-desc">
+                      Habilita al cliente como punto de visita, domicilio o abonado receptor de órdenes de trabajo (WOs).
+                    </div>
+                  </div>
+                  <nz-switch formControlName="esClienteServicio"></nz-switch>
+                </div>
+              </div>
+            </div>
+          </div>
+        </nz-tab>
+
+        <!-- PESTAÑA 2: CONTACTO Y UBICACIÓN GEOGRÁFICA -->
+        <nz-tab nzTitle="Contacto y Ubicación">
+          <div class="tab-body-container">
+            <!-- Sección: Canales de Contacto -->
+            <div class="d365-form-section">
+              <div class="section-header">
+                <nz-icon nzType="phone" class="section-icon" />
+                <h3 class="section-title">Medios de Comunicación</h3>
+              </div>
+
+              <div class="form-grid-3">
+                <nz-form-item>
+                  <nz-form-label nzRequired>Teléfono Principal</nz-form-label>
+                  <nz-form-control nzErrorTip="El teléfono principal es obligatorio">
+                    <input
+                      nz-input
+                      formControlName="telefonoPrincipal"
+                      placeholder="Ej. 987654321 o (01) 456-7890"
+                    />
+                  </nz-form-control>
+                </nz-form-item>
+
+                <nz-form-item>
+                  <nz-form-label>Teléfono Secundario / Adicional</nz-form-label>
+                  <nz-form-control>
+                    <input
+                      nz-input
+                      formControlName="telefonoSecundario"
+                      placeholder="Opcional"
+                    />
+                  </nz-form-control>
+                </nz-form-item>
+
+                <nz-form-item>
+                  <nz-form-label>Correo Electrónico</nz-form-label>
+                  <nz-form-control nzErrorTip="Correo no válido">
+                    <input
+                      nz-input
+                      formControlName="email"
+                      placeholder="contacto@empresa.com"
+                    />
+                  </nz-form-control>
+                </nz-form-item>
+              </div>
+            </div>
+
+            <!-- Sección: Ubicación Física y Despacho -->
+            <div class="d365-form-section">
+              <div class="section-header">
+                <nz-icon nzType="environment" class="section-icon" />
+                <h3 class="section-title">Ubicación y Despacho de Campo</h3>
+              </div>
+
+              <div class="form-grid-3">
+                <nz-form-item>
+                  <nz-form-label nzRequired>Departamento</nz-form-label>
+                  <nz-form-control nzErrorTip="Obligatorio">
+                    <input nz-input formControlName="departamento" placeholder="Ej. Lima" />
+                  </nz-form-control>
+                </nz-form-item>
+
+                <nz-form-item>
+                  <nz-form-label nzRequired>Provincia</nz-form-label>
+                  <nz-form-control nzErrorTip="Obligatorio">
+                    <input nz-input formControlName="provincia" placeholder="Ej. Lima" />
+                  </nz-form-control>
+                </nz-form-item>
+
+                <nz-form-item>
+                  <nz-form-label nzRequired>Distrito</nz-form-label>
+                  <nz-form-control nzErrorTip="Obligatorio">
+                    <input nz-input formControlName="distrito" placeholder="Ej. Santiago de Surco" />
+                  </nz-form-control>
+                </nz-form-item>
+              </div>
+
+              <div class="form-grid-2">
+                <nz-form-item class="grid-span-full">
+                  <nz-form-label nzRequired>Dirección Principal (Calle, Av., N° y Mz.)</nz-form-label>
+                  <nz-form-control nzErrorTip="La dirección es obligatoria">
+                    <input
+                      nz-input
+                      formControlName="direccion"
+                      placeholder="Av. Primavera 1234, Dpto. 502"
+                    />
+                  </nz-form-control>
+                </nz-form-item>
+
+                <nz-form-item class="grid-span-full">
+                  <nz-form-label>Referencia de Ubicación</nz-form-label>
+                  <nz-form-control>
+                    <input
+                      nz-input
+                      formControlName="referenciaUbicacion"
+                      placeholder="Frente al parque, al lado de la farmacia..."
+                    />
+                  </nz-form-control>
+                </nz-form-item>
+              </div>
+
+              <!-- Coordenadas Geográficas -->
+              <div class="form-grid-2">
+                <nz-form-item>
+                  <nz-form-label>Latitud GPS (Para cuadrillas)</nz-form-label>
+                  <nz-form-control>
+                    <nz-input-number
+                      formControlName="coordenadaLat"
+                      [nzStep]="0.000001"
+                      placeholder="-12.046374"
+                      style="width: 100%"
+                    ></nz-input-number>
+                  </nz-form-control>
+                </nz-form-item>
+
+                <nz-form-item>
+                  <nz-form-label>Longitud GPS (Para cuadrillas)</nz-form-label>
+                  <nz-form-control>
+                    <nz-input-number
+                      formControlName="coordenadaLng"
+                      [nzStep]="0.000001"
+                      placeholder="-77.042793"
+                      style="width: 100%"
+                    ></nz-input-number>
+                  </nz-form-control>
+                </nz-form-item>
+              </div>
+            </div>
+          </div>
+        </nz-tab>
+      </nz-tabs>
+    </form>
+  </div>
+</div>

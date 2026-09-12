@@ -1,0 +1,229 @@
+<div class="clientes-view-wrapper">
+  <!-- Barra de Comandos Dynamics 365 -->
+  <app-command-bar
+    [items]="commandBarItems"
+    [farItems]="commandBarFarItems"
+  ></app-command-bar>
+
+  <nz-card class="d365-table-card" [nzBordered]="false">
+    <!-- Sub-Header: Selector de Vistas de Negocio y Búsqueda -->
+    <div class="d365-toolbar-row">
+      <div class="d365-view-selector-group">
+        <span class="d365-view-label">Vista:</span>
+        <button
+          nz-button
+          nzType="text"
+          class="d365-view-selector-btn"
+          nz-dropdown
+          [nzDropdownMenu]="viewMenu"
+          nzTrigger="click"
+        >
+          <span class="d365-current-view-name">
+            @switch (vistaActual) {
+              @case ('Activos') { Clientes Activos }
+              @case ('Facturacion') { Clientes de Facturación }
+              @case ('Servicio') { Clientes de Servicio (Sedes) }
+              @case ('Inactivos') { Clientes Inactivos }
+              @default { Todos los Clientes }
+            }
+          </span>
+          <nz-icon nzType="down" class="d365-dropdown-chevron" />
+        </button>
+
+        <nz-dropdown-menu #viewMenu="nzDropdownMenu">
+          <ul nz-menu class="d365-dropdown-menu">
+            <li nz-menu-item (click)="onVistaChange('Activos')" [nzSelected]="vistaActual === 'Activos'">
+              <nz-icon nzType="check-circle" class="d365-menu-icon" />
+              <span>Clientes Activos</span>
+            </li>
+            <li nz-menu-item (click)="onVistaChange('Facturacion')" [nzSelected]="vistaActual === 'Facturacion'">
+              <nz-icon nzType="dollar" class="d365-menu-icon" />
+              <span>Clientes de Facturación</span>
+            </li>
+            <li nz-menu-item (click)="onVistaChange('Servicio')" [nzSelected]="vistaActual === 'Servicio'">
+              <nz-icon nzType="car" class="d365-menu-icon" />
+              <span>Clientes de Servicio (Sedes/Abonados)</span>
+            </li>
+            <li nz-menu-item (click)="onVistaChange('Inactivos')" [nzSelected]="vistaActual === 'Inactivos'">
+              <nz-icon nzType="close-circle" class="d365-menu-icon" />
+              <span>Clientes Inactivos</span>
+            </li>
+            <li nz-menu-divider></li>
+            <li nz-menu-item (click)="onVistaChange('Todos')" [nzSelected]="vistaActual === 'Todos'">
+              <nz-icon nzType="appstore" class="d365-menu-icon" />
+              <span>Todos los Clientes</span>
+            </li>
+          </ul>
+        </nz-dropdown-menu>
+
+        <span class="d365-record-count">({{ clientesFiltrados.length }} registros)</span>
+      </div>
+
+      <!-- Búsqueda Rápida Instantánea -->
+      <div class="d365-search-container">
+        <nz-input-group [nzPrefix]="searchPrefix" class="d365-search-box">
+          <input
+            type="text"
+            nz-input
+            placeholder="Buscar por código, RUC/DNI, nombres, razón social..."
+            [(ngModel)]="searchTerm"
+            (ngModelChange)="onSearchChange($event)"
+          />
+        </nz-input-group>
+        <ng-template #searchPrefix>
+          <nz-icon nzType="search" class="d365-search-icon" />
+        </ng-template>
+      </div>
+    </div>
+
+    <!-- Grilla / DataGrid Dynamics 365 -->
+    <div class="d365-table-container">
+      <nz-table
+        #clientesTable
+        [nzData]="clientesFiltrados"
+        [nzLoading]="loading"
+        [nzPageSize]="15"
+        [nzShowSizeChanger]="true"
+        [nzPageSizeOptions]="[10, 15, 25, 50]"
+        nzSize="middle"
+        [nzScroll]="{ x: '1100px', y: 'calc(100vh - 230px)' }"
+        class="d365-fluent-grid"
+      >
+        <thead>
+          <tr>
+            <th nzWidth="120px">Código</th>
+            <th nzWidth="260px">Cliente / Razón Social</th>
+            <th nzWidth="140px">Documento</th>
+            <th nzWidth="140px">Contacto</th>
+            <th nzWidth="180px">Ubicación</th>
+            <th nzWidth="150px">Clasificación</th>
+            <th nzWidth="100px" nzAlign="center">Estado</th>
+            <th nzWidth="90px" nzAlign="center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of clientesTable.data; track c.id) {
+            <tr class="d365-clickable-row" (click)="editarCliente(c.id)">
+              <!-- Código -->
+              <td>
+                <span class="d365-cell-code">{{ c.codigoCliente }}</span>
+              </td>
+
+              <!-- Nombre / Razón Social con Avatar -->
+              <td>
+                <div class="d365-avatar-cell">
+                  <nz-avatar
+                    [nzText]="getIniciales(c.nombreCompletoODenominacion)"
+                    [nzSize]="32"
+                    [class.avatar-juridica]="c.tipoPersona === 'JURIDICA'"
+                    [class.avatar-natural]="c.tipoPersona === 'NATURAL'"
+                  ></nz-avatar>
+                  <div class="d365-avatar-text">
+                    <span class="d365-name-primary" [title]="c.nombreCompletoODenominacion">
+                      {{ c.nombreCompletoODenominacion }}
+                    </span>
+                    <span class="d365-sub-secondary">
+                      {{ c.tipoPersona === 'JURIDICA' ? 'Persona Jurídica' : 'Persona Natural' }}
+                    </span>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Documento Identidad -->
+              <td>
+                <div class="d365-doc-cell">
+                  <span class="d365-doc-type">{{ c.tipoDocumento }}:</span>
+                  <span class="d365-doc-num">{{ c.documentoIdentidad }}</span>
+                </div>
+              </td>
+
+              <!-- Contacto -->
+              <td>
+                <div class="d365-contact-cell">
+                  <span class="d365-contact-phone">
+                    <nz-icon nzType="phone" class="d365-icon-inline" />
+                    {{ c.telefonoPrincipal }}
+                  </span>
+                  @if (c.email) {
+                    <span class="d365-contact-email" [title]="c.email">
+                      <nz-icon nzType="mail" class="d365-icon-inline" />
+                      {{ c.email }}
+                    </span>
+                  }
+                </div>
+              </td>
+
+              <!-- Ubicación -->
+              <td>
+                <div class="d365-location-cell">
+                  <span class="d365-loc-main" [title]="c.direccion">{{ c.direccion }}</span>
+                  <span class="d365-loc-sub">{{ c.distrito }}, {{ c.provincia }}</span>
+                </div>
+              </td>
+
+              <!-- Clasificación -->
+              <td>
+                <div class="d365-badges-cell">
+                  @if (c.esClienteFacturacion) {
+                    <span class="d365-tag-chip chip-billing" title="Cliente Contratante / Factura">
+                      Facturación
+                    </span>
+                  }
+                  @if (c.esClienteServicio) {
+                    <span class="d365-tag-chip chip-service" title="Abonado / Sede de Atención Técnica">
+                      Servicio
+                    </span>
+                  }
+                </div>
+              </td>
+
+              <!-- Estado -->
+              <td nzAlign="center">
+                @if (c.activo) {
+                  <span class="d365-status-pill status-active">Activo</span>
+                } @else {
+                  <span class="d365-status-pill status-inactive">Inactivo</span>
+                }
+              </td>
+
+              <!-- Acciones -->
+              <td nzAlign="center" (click)="$event.stopPropagation()">
+                <div class="d365-row-actions">
+                  <button
+                    nz-button
+                    nzType="text"
+                    nzSize="small"
+                    nz-tooltip
+                    nzTooltipTitle="Editar Cliente"
+                    (click)="editarCliente(c.id)"
+                    class="d365-action-btn"
+                  >
+                    <nz-icon nzType="edit" />
+                  </button>
+
+                  <button
+                    nz-button
+                    nzType="text"
+                    nzSize="small"
+                    nz-tooltip
+                    [nzTooltipTitle]="c.activo ? 'Desactivar Cliente' : 'Activar Cliente'"
+                    nz-popconfirm
+                    [nzPopconfirmTitle]="c.activo ? '¿Deseas desactivar este cliente?' : '¿Deseas activar este cliente?'"
+                    nzOkText="Sí"
+                    nzCancelText="No"
+                    (nzOnConfirm)="toggleEstado(c)"
+                    class="d365-action-btn"
+                    [class.action-danger]="c.activo"
+                    [class.action-success]="!c.activo"
+                  >
+                    <nz-icon [nzType]="c.activo ? 'stop' : 'check-circle'" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </nz-table>
+    </div>
+  </nz-card>
+</div>
