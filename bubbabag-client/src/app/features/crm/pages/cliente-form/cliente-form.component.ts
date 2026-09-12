@@ -161,39 +161,82 @@ export class ClienteFormComponent implements OnInit {
     razonSocialCtrl?.updateValueAndValidity();
   }
 
+  recargar(): void {
+    if (this.clienteId) {
+      this.cargarCliente(this.clienteId);
+    } else {
+      this.initForm();
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      this.form.patchValue({
+        codigoCliente: `CLI-${new Date().getFullYear()}-${randomSuffix}`,
+      });
+    }
+  }
+
   private updateCommandBar(): void {
     this.commandBarItems = [
       {
-        key: 'guardar',
-        label: 'Guardar y Cerrar',
-        icon: 'save',
-        primary: true,
-        disabled: this.saving,
-        action: () => this.guardar(true),
-      },
-      {
-        key: 'guardar-continuar',
+        key: 'save',
         label: 'Guardar',
         icon: 'save',
+        iconColor: 'purple',
+        tooltip: 'Guardar cambios del cliente',
         disabled: this.saving,
-        action: () => this.guardar(false),
+        execute: () => this.guardar(false),
       },
       {
-        key: 'cancelar',
+        key: 'saveAndClose',
+        label: 'Guardar y cerrar',
+        icon: 'save',
+        iconColor: 'purple',
+        tooltip: 'Guardar cambios y volver a la lista',
+        disabled: this.saving,
+        execute: () => this.guardar(true),
+      },
+      {
+        key: 'discard',
         label: 'Descartar',
         icon: 'close',
-        action: () => this.volver(),
+        iconColor: 'neutral',
+        tooltip: 'Descartar cambios y volver',
+        execute: () => this.volver(),
+      },
+      {
+        key: 'refresh',
+        label: 'Actualizar',
+        icon: 'reload',
+        iconColor: 'neutral',
+        tooltip: 'Recargar datos del formulario',
+        disabled: this.loading,
+        execute: () => this.recargar(),
       },
     ];
 
-    this.commandBarFarItems = [];
+    this.commandBarFarItems = [
+      {
+        key: 'share',
+        label: 'Compartir',
+        icon: 'export',
+        appearance: 'primary',
+        tooltip: 'Compartir ficha del cliente',
+        execute: () => {
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(window.location.href);
+            this.message.success('Enlace del cliente copiado al portapapeles');
+          }
+        },
+      },
+    ];
+
     if (this.isEdit && this.clienteActual) {
-      this.commandBarFarItems.push({
+      this.commandBarFarItems.unshift({
         key: 'toggle-estado',
-        label: this.clienteActual.activo ? 'Desactivar Cliente' : 'Activar Cliente',
-        icon: this.clienteActual.activo ? 'stop' : 'check-circle',
+        label: this.clienteActual.activo ? 'Dar de baja' : 'Activar cliente',
+        icon: this.clienteActual.activo ? 'user-delete' : 'check-circle',
         danger: this.clienteActual.activo,
-        action: () => this.toggleEstado(),
+        iconColor: this.clienteActual.activo ? 'danger' : 'success',
+        tooltip: this.clienteActual.activo ? 'Desactivar cliente' : 'Reactivar cliente',
+        execute: () => this.toggleEstado(),
       });
     }
   }

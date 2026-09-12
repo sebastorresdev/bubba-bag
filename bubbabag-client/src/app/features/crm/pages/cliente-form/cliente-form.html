@@ -70,7 +70,13 @@
     <form nz-form [formGroup]="form" nzLayout="vertical" class="d365-form">
       <nz-tabs [(nzSelectedIndex)]="selectedTabIndex" [nzAnimated]="false" class="d365-tabs">
         <!-- PESTAÑA 1: DATOS GENERALES E IDENTIFICACIÓN -->
-        <nz-tab nzTitle="General e Identificación">
+        <nz-tab [nzTitle]="tabGeneralTitle">
+          <ng-template #tabGeneralTitle>
+            <span class="tab-label">
+              <nz-icon nzType="idcard" />
+              <span>General e Identificación</span>
+            </span>
+          </ng-template>
           <div class="tab-body-container">
             <!-- Sección: Identificación Fiscal -->
             <div class="d365-form-section">
@@ -189,7 +195,13 @@
         </nz-tab>
 
         <!-- PESTAÑA 2: CONTACTO Y UBICACIÓN GEOGRÁFICA -->
-        <nz-tab nzTitle="Contacto y Ubicación">
+        <nz-tab [nzTitle]="tabContactoTitle">
+          <ng-template #tabContactoTitle>
+            <span class="tab-label">
+              <nz-icon nzType="environment" />
+              <span>Contacto y Ubicación</span>
+            </span>
+          </ng-template>
           <div class="tab-body-container">
             <!-- Sección: Canales de Contacto -->
             <div class="d365-form-section">
