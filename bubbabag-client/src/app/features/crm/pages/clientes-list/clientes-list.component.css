@@ -33,7 +33,6 @@
   border-radius: 0 !important;
   box-shadow: none !important;
   border: none !important;
-  background-color: transparent !important;
 }
 
 :host ::ng-deep .ant-card.d365-table-card .ant-card-body {
@@ -49,6 +48,7 @@
 
 /* --------------------------------------------------------------------------
    Sub-Header: Selector de Vista & Herramientas de Filtro Fijo
+   (Hereda el fondo nativo de la tarjeta para consistencia absoluta en temas)
    -------------------------------------------------------------------------- */
 .d365-toolbar-row {
   display: flex;
@@ -59,12 +59,10 @@
   gap: 16px;
   flex-wrap: wrap;
   flex-shrink: 0;
-  background-color: #ffffff;
 }
 
 :host-context([data-theme='dark']) .d365-toolbar-row,
 :host-context(.dark-theme) .d365-toolbar-row {
-  background-color: #1f1f1f;
   border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
@@ -319,6 +317,34 @@
   flex-wrap: wrap;
 }
 
+/* Indicador de Estado KPI con punto estilo D365 / RRHH */
+.kpi-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.d365-dot-active {
+  background-color: #107c41; /* Verde Good */
+}
+
+.d365-dot-default {
+  background-color: #8a8886;
+}
+
+.status-text {
+  font-size: 13px;
+  font-weight: 500;
+}
+
 /* Drawer de Editar Columnas */
 .columns-drawer-desc {
   font-size: 13px;
@@ -350,6 +376,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  height: 100%;
 }
 
 .drawer-field-group {
@@ -361,20 +388,14 @@
 .drawer-field-label {
   font-size: 12px;
   font-weight: 600;
-  color: #605e5c;
-}
-
-:host-context([data-theme='dark']) .drawer-field-label,
-:host-context(.dark-theme) .drawer-field-label {
-  color: #a19f9d;
 }
 
 .drawer-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 10px;
-  padding-top: 12px;
+  margin-top: auto;
+  padding-top: 16px;
   border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
