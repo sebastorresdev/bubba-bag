@@ -23,8 +23,8 @@
 
 [data-theme='dark'],
 .dark-theme {
-  --d365-page-bg: #141414;
-  --d365-tabs-bg: #141414;
+  --d365-page-bg: #000000;
+  --d365-tabs-bg: #000000;
   --d365-header-bg: #141414;
   --d365-card-bg: #1f1f1f;
   --d365-border-subtle: rgba(255, 255, 255, 0.08);

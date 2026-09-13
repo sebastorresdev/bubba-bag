@@ -15,9 +15,9 @@ Todos los estilos de estructura, cabecera, KPIs, pestañas y tarjetas están cen
 
 | Elemento | Tema Claro | Tema Oscuro | Variable CSS / Token |
 | :--- | :--- | :--- | :--- |
-| **Fondo de la Vista / Página** | `#f0f2f5` | `#141414` | `--d365-page-bg` |
+| **Fondo de la Vista / Página** | `#f0f2f5` | `#000000` | `--d365-page-bg` |
 | **Cabecera de Registro (`.d365-record-header`)** | `#ffffff` | `#141414` | `--d365-header-bg` |
-| **Barra Adhesiva de Pestañas (`.ant-tabs-nav`)** | `#f8f9fa` | `#141414` | `--d365-tabs-bg` |
+| **Barra Adhesiva de Pestañas (`.ant-tabs-nav`)** | `#f8f9fa` | `#000000` | `--d365-tabs-bg` |
 | **Línea Divisoria Inferior de Pestañas** | `rgba(0, 0, 0, 0.1)` | `rgba(255, 255, 255, 0.12)` | `--d365-border-tab-line` |
 | **Fondo de Tarjetas (`.d365-card`)** | `#ffffff` | `#1f1f1f` | `--d365-card-bg` |
 | **Píldora Activa (Estado)** | `rgba(16, 124, 65, 0.12)` texto `#107c41` | `rgba(16, 124, 65, 0.25)` texto `#6ccb5f` | `--d365-pill-active-*` |

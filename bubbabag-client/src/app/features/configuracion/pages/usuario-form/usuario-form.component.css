@@ -27,7 +27,7 @@
 
 :host-context([data-theme='dark']) .usuario-form-view,
 :host-context(.dark-theme) .usuario-form-view {
-  background-color: #141414 !important;
+  background-color: #000000 !important;
 }
 
 /* Cabecera de Registro Dynamics 365 */

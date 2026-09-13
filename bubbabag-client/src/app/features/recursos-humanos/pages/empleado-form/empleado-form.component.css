@@ -18,6 +18,11 @@
   background-color: #f0f2f5;
 }
 
+:host-context([data-theme='dark']) .empleado-form-view,
+:host-context(.dark-theme) .empleado-form-view {
+  background-color: #000000 !important;
+}
+
 /* --------------------------------------------------------------------------
    Cabecera de Registro (Dynamics 365 Record Header)
    -------------------------------------------------------------------------- */
@@ -353,7 +358,7 @@
 
 :host-context([data-theme='dark']) ::ng-deep .d365-form-tabs .ant-tabs-nav,
 :host-context(.dark-theme) ::ng-deep .d365-form-tabs .ant-tabs-nav {
-  background-color: #141414 !important;
+  background-color: #000000 !important;
 }
 
 :host-context([data-theme='dark']) ::ng-deep .d365-form-tabs .ant-tabs-nav::before,
