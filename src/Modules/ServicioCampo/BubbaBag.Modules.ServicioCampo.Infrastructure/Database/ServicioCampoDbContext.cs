@@ -33,6 +33,7 @@ public class ServicioCampoDbContext : DbContext
         {
             b.ToTable("clientes", "crm", t => t.ExcludeFromMigrations());
             b.HasKey(c => c.Id);
+            b.Ignore(c => c.Ubigeo);
         });
 
         base.OnModelCreating(modelBuilder);

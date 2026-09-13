@@ -6,9 +6,9 @@
   (back)="volver()"
 ></app-command-bar>
 
-<div class="usuario-form-view">
+<div class="usuario-form-view d365-form-view">
   <!-- Cabecera de Registro Dynamics 365 -->
-  <div class="d365-record-header">
+  <div class="d365-record-header no-tabs">
     <div class="record-header-main">
       <div class="record-avatar-container">
         <nz-avatar [nzSize]="56" [nzText]="getIniciales()" class="record-avatar"></nz-avatar>
@@ -46,22 +46,13 @@
     </div>
   </div>
 
-  <!-- Contenido del Formulario -->
-  <nz-spin [nzSpinning]="isEdit && loading && !usuarioActual" nzTip="Cargando datos del usuario..." [nzDelay]="150">
-    <div class="form-content-wrapper">
-    <form nz-form [formGroup]="form" nzLayout="vertical">
-      <div class="form-vertical-layout">
+  <!-- Contenedor con Scroll sólo para el contenido del formulario (alineado a la izquierda sin centrado artificial) -->
+  <div class="user-form-scroll-body">
+    <nz-spin [nzSpinning]="isEdit && loading && !usuarioActual" nzTip="Cargando datos del usuario..." [nzDelay]="150">
+      <form nz-form [formGroup]="form" nzLayout="vertical" class="d365-tab-grid">
 
-        <!-- Bloque Superior: Información de la Cuenta (Ancho completo, estilo ERP moderno) -->
-        <nz-card [nzBordered]="true" class="d365-card account-info-card">
-          <div class="card-section-header">
-            <nz-icon nzType="user" class="section-icon" />
-            <div class="section-header-text">
-              <span class="section-title">Información de la Cuenta</span>
-              <span class="section-subtitle">Datos principales de identificación y credenciales de acceso</span>
-            </div>
-          </div>
-
+        <!-- Bloque Superior: Información de la Cuenta -->
+        <nz-card [nzBordered]="true" class="d365-card account-info-card" nzTitle="Información de la Cuenta">
           <div nz-row [nzGutter]="24">
             <div nz-col [nzXs]="24" [nzSm]="24" [nzMd]="12">
               <nz-form-item class="form-field-item">
@@ -108,27 +99,14 @@
           </div>
         </nz-card>
 
-        <!-- Tarjeta 2: Roles de Seguridad del Sistema (Estilo Microsoft Dynamics 365 con Checkboxes) -->
-        <nz-card [nzBordered]="true" class="d365-card security-roles-card">
-          <div class="card-section-header">
-            <nz-icon nzType="safety" class="section-icon" />
-            <div class="section-header-text">
-              <span class="section-title">Roles de Seguridad Asignados</span>
-              <span class="section-subtitle">
-                Seleccione los roles de acceso que tendrá este usuario en cada módulo de la organización.
-              </span>
-            </div>
-          </div>
-
+        <!-- Tarjeta 2: Roles de Seguridad del Sistema -->
+        <nz-card [nzBordered]="true" class="d365-card security-roles-card" nzTitle="Roles de Seguridad Asignados">
           <div class="d365-modules-roles-grid">
             @for (grupo of modulosRoles; track grupo.modulo) {
               <div class="d365-module-roles-group">
-                <!-- Encabezado de Módulo con Icono y Contador -->
+                <!-- Encabezado de Módulo con Contador (sin iconos) -->
                 <div class="module-group-header">
                   <div class="module-group-title">
-                    <div class="module-icon-box">
-                      <nz-icon [nzType]="getModuloIcon(grupo.modulo)" />
-                    </div>
                     <span class="module-title-text">{{ grupo.modulo }}</span>
                   </div>
                   <nz-tag
@@ -158,7 +136,7 @@
                           <span class="role-name-text">{{ rol.nombreVisible }}</span>
                         </label>
                         @if (isRolSeleccionado(rol.codigo)) {
-                          <nz-tag nzColor="success" class="role-active-tag">
+                          <nz-tag nzColor="blue" class="role-active-tag">
                             <nz-icon nzType="check" /> Asignado
                           </nz-tag>
                         }
@@ -172,10 +150,9 @@
           </div>
         </nz-card>
 
-      </div>
-    </form>
+      </form>
+    </nz-spin>
   </div>
-  </nz-spin>
 </div>
 
 <!-- Drawer Lateral Derecho: Restablecer / Cambiar Contraseña (Estilo Microsoft 365 Admin & Dynamics) -->

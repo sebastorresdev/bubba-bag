@@ -10,6 +10,7 @@ import { NZ_I18N, es_ES } from 'ng-zorro-antd/i18n';
 import { registerLocaleData } from '@angular/common';
 import es from '@angular/common/locales/es';
 import { ICONS } from './app.icons';
+import { provideNzNativeDateAdapter } from 'ng-zorro-antd/core/time';
 
 registerLocaleData(es);
 
@@ -32,6 +33,7 @@ export const appConfig: ApplicationConfig = {
     provideEnvironmentInitializer(() => inject(NzConfigService)),
     provideNzIcons(ICONS),
     { provide: NZ_I18N, useValue: es_ES },
+    provideNzNativeDateAdapter(),
   ],
 };
 

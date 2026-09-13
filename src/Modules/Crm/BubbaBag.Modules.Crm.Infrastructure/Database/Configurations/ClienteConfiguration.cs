@@ -59,17 +59,14 @@ public class ClienteConfiguration : IEntityTypeConfiguration<Cliente>
             .IsRequired()
             .HasMaxLength(250);
 
-        builder.Property(c => c.Distrito)
+        builder.Property(c => c.UbigeoCodigo)
             .IsRequired()
-            .HasMaxLength(100);
+            .HasMaxLength(10);
 
-        builder.Property(c => c.Provincia)
-            .IsRequired()
-            .HasMaxLength(100);
-
-        builder.Property(c => c.Departamento)
-            .IsRequired()
-            .HasMaxLength(100);
+        builder.HasOne(c => c.Ubigeo)
+            .WithMany()
+            .HasForeignKey(c => c.UbigeoCodigo)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(c => c.ReferenciaUbicacion)
             .HasMaxLength(250);

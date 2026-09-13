@@ -1,3 +1,4 @@
+using BubbaBag.Modules.Crm.Domain.Ubigeos;
 using BubbaBag.SharedKernel;
 
 namespace BubbaBag.Modules.Crm.Domain.Clientes;
@@ -22,11 +23,10 @@ public class Cliente : Entity<Guid>
     public string? TelefonoSecundario { get; private set; }
     public string? Email { get; private set; }
 
-    // Ubicación física
+    // Ubicación física y Ubigeo
     public string Direccion { get; private set; } = default!;
-    public string Distrito { get; private set; } = default!;
-    public string Provincia { get; private set; } = default!;
-    public string Departamento { get; private set; } = default!;
+    public string UbigeoCodigo { get; private set; } = default!;
+    public Ubigeo? Ubigeo { get; private set; }
     public string? ReferenciaUbicacion { get; private set; }
     public decimal? CoordenadaLat { get; private set; }
     public decimal? CoordenadaLng { get; private set; }
@@ -48,9 +48,7 @@ public class Cliente : Entity<Guid>
         string? apellidos,
         string telefonoPrincipal,
         string direccion,
-        string distrito,
-        string provincia,
-        string departamento,
+        string ubigeoCodigo,
         bool esClienteFacturacion = false,
         bool esClienteServicio = true,
         string tipoDocumento = "DNI",
@@ -71,9 +69,7 @@ public class Cliente : Entity<Guid>
             Apellidos = apellidos?.Trim(),
             TelefonoPrincipal = telefonoPrincipal.Trim(),
             Direccion = direccion.Trim(),
-            Distrito = distrito.Trim(),
-            Provincia = provincia.Trim(),
-            Departamento = departamento.Trim(),
+            UbigeoCodigo = ubigeoCodigo.Trim(),
             EsClienteFacturacion = esClienteFacturacion,
             EsClienteServicio = esClienteServicio,
             TipoDocumento = tipoDocumento.Trim().ToUpperInvariant(),
@@ -91,18 +87,14 @@ public class Cliente : Entity<Guid>
     public void ActualizarContactoYDireccion(
         string telefono,
         string direccion,
-        string distrito,
-        string provincia,
-        string departamento,
+        string ubigeoCodigo,
         string? referencia = null,
         decimal? lat = null,
         decimal? lng = null)
     {
         TelefonoPrincipal = telefono.Trim();
         Direccion = direccion.Trim();
-        Distrito = distrito.Trim();
-        Provincia = provincia.Trim();
-        Departamento = departamento.Trim();
+        UbigeoCodigo = ubigeoCodigo.Trim();
         ReferenciaUbicacion = referencia?.Trim();
         CoordenadaLat = lat;
         CoordenadaLng = lng;

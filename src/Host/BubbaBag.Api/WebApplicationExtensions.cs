@@ -39,5 +39,11 @@ public static class WebApplicationExtensions
 
         var rrhhLogger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RecursosHumanosDbContext>>();
         await BubbaBag.Modules.RecursosHumanos.Infrastructure.Database.Seeders.RecursosHumanosSeeder.SeedAsync(rrhhDbContext, rrhhLogger);
+
+        if (crmDbContext != null)
+        {
+            var crmLogger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<BubbaBag.Modules.Crm.Infrastructure.Database.CrmDbContext>>();
+            await BubbaBag.Modules.Crm.Infrastructure.Database.Seeders.UbigeoSeeder.SeedAsync(crmDbContext, crmLogger);
+        }
     }
 }

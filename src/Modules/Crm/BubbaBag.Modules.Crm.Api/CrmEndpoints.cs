@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using BubbaBag.Modules.Crm.Application.Clientes.Features;
+using BubbaBag.Modules.Crm.Application.Ubigeos.Features;
 using BubbaBag.SharedKernel.Authorization;
 using BubbaBag.SharedKernel.CQRS;
 using Microsoft.AspNetCore.Builder;
@@ -32,6 +33,23 @@ public static class CrmEndpoints
 
         clientesGroup.MapPatch("/{id:guid}/estado", CambiarEstadoCliente)
             .RequireAuthorization(Permissions.Crm.ClientesEditar);
+
+        var ubigeosGroup = app.MapGroup("/api/crm/ubigeos")
+            .WithTags("Catálogo de Ubigeos")
+            .RequireAuthorization();
+
+        ubigeosGroup.MapGet("/", ObtenerUbigeos);
+    }
+
+    private static async Task<IResult> ObtenerUbigeos(
+        IDispatcher dispatcher,
+        string? departamento,
+        string? provincia,
+        string? search)
+    {
+        var query = new ObtenerUbigeosQuery(departamento, provincia, search);
+        var result = await dispatcher.QueryAsync(query);
+        return Results.Ok(result.Value);
     }
 
     private static async Task<IResult> ObtenerClientes(
@@ -68,9 +86,7 @@ public static class CrmEndpoints
             Id: id,
             TelefonoPrincipal: request.TelefonoPrincipal,
             Direccion: request.Direccion,
-            Distrito: request.Distrito,
-            Provincia: request.Provincia,
-            Departamento: request.Departamento,
+            UbigeoCodigo: request.UbigeoCodigo,
             ReferenciaUbicacion: request.ReferenciaUbicacion,
             CoordenadaLat: request.CoordenadaLat,
             CoordenadaLng: request.CoordenadaLng
@@ -95,9 +111,7 @@ public static class CrmEndpoints
 public record ActualizarClienteRequest(
     string TelefonoPrincipal,
     string Direccion,
-    string Distrito,
-    string Provincia,
-    string Departamento,
+    string UbigeoCodigo,
     string? ReferenciaUbicacion = null,
     decimal? CoordenadaLat = null,
     decimal? CoordenadaLng = null);

@@ -4,326 +4,59 @@
   height: 100%;
   overflow: hidden;
   width: 100%;
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
 }
 
-:host-context([data-theme='dark']),
-:host-context(.dark-theme) {
-  background-color: #141414 !important;
-  color: #f3f2f1 !important;
-}
-
-/* Vista del Formulario (Contenedor rígido sin scroll global) */
-.cliente-form-view {
+/* Distribución de 1 input por fila dentro de cada tarjeta */
+.card-form-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
   width: 100%;
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: relative;
-  background-color: #f0f2f5;
 }
 
-:host-context([data-theme='dark']) .cliente-form-view,
-:host-context(.dark-theme) .cliente-form-view {
-  background-color: #000000 !important;
+.card-form-grid nz-form-item,
+.card-form-grid .ant-form-item {
+  margin-bottom: 0 !important;
+  width: 100%;
 }
 
-/* --------------------------------------------------------------------------
-   Cabecera de Registro Dynamics 365 (Fija sin desplazamiento)
-   -------------------------------------------------------------------------- */
-.d365-record-header {
-  flex-shrink: 0;
-  z-index: 10;
-  padding: 16px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  flex-wrap: wrap;
-  background-color: #ffffff;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+/* Sub-título alineado totalmente a la izquierda */
+.form-section-header {
+  width: 100%;
 }
 
-:host-context([data-theme='dark']) .d365-record-header,
-:host-context(.dark-theme) .d365-record-header {
-  background-color: #141414;
-  border-bottom-color: rgba(255, 255, 255, 0.08);
+.form-section-title {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--d365-text-muted, #8a8886);
+  margin-bottom: 6px;
+  text-align: left;
 }
 
-.record-header-main {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+:host-context([data-theme='dark']) .form-section-title,
+:host-context(.dark-theme) .form-section-title {
+  color: #a19f9d !important;
 }
 
-.record-avatar-container {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
+/* Avatar personalizado para Clientes (Color verde azulado característico) */
 .record-avatar {
   background-color: #008272 !important;
   color: #ffffff !important;
-  font-weight: 700;
-  font-size: 18px;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.record-title-block {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.record-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #201f1e;
-  margin: 0;
-  line-height: 1.25;
-}
-
-:host-context([data-theme='dark']) .record-title,
-:host-context(.dark-theme) .record-title {
-  color: #f3f2f1;
-}
-
-.record-metadata-row {
-  display: flex;
-  align-items: center;
-  font-size: 13px;
-  color: #605e5c;
-  line-height: 1.4;
-  flex-wrap: wrap;
-}
-
-.record-metadata-row nz-divider {
-  margin: 0 8px;
-  height: 12px;
-  border-color: rgba(0, 0, 0, 0.15);
-}
-
-:host-context([data-theme='dark']) .record-metadata-row nz-divider,
-:host-context(.dark-theme) .record-metadata-row nz-divider {
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-.record-code-tag {
-  font-family: 'Consolas', 'Courier New', monospace;
-  font-weight: 600;
-  color: #0078d4;
-  background-color: rgba(0, 120, 212, 0.08);
-  padding: 1px 6px;
-  border-radius: 3px;
-}
-
-.record-quick-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.quick-action-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 4px;
-  color: #605e5c;
-  font-size: 13px;
-  transition: all 0.15s ease;
-  text-decoration: none;
-}
-
-.quick-action-icon:hover:not(.disabled) {
-  background-color: rgba(0, 0, 0, 0.05);
-  color: #008272;
-}
-
-.quick-action-icon.disabled {
-  color: #c8c6c4;
-  cursor: default;
-}
-
-/* Indicadores Métricos del Encabezado (KPIs superiores con barras separadoras) */
-.record-header-metrics {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-left: auto;
-}
-
-.metric-item {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-}
-
-.metric-label {
-  font-size: 10px;
-  font-weight: 600;
-  color: #8a8886;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.metric-divider {
-  width: 1px;
-  height: 28px;
-  background-color: rgba(0, 0, 0, 0.08);
-}
-
-:host-context([data-theme='dark']) .metric-divider,
-:host-context(.dark-theme) .metric-divider {
-  background-color: rgba(255, 255, 255, 0.08);
-}
-
-.kpi-value-pill {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 10px;
-  border-radius: 12px;
-}
-
-.pill-active {
-  background-color: rgba(16, 124, 65, 0.12);
-  color: #107c41;
-}
-
-.pill-inactive {
-  background-color: rgba(138, 136, 134, 0.15);
-  color: #8a8886;
-}
-
-.kpi-value-badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background-color: rgba(0, 0, 0, 0.05);
-  color: #8a8886;
-}
-
-.badge-enabled {
-  background-color: rgba(16, 124, 65, 0.1);
-  color: #107c41;
-}
-
+/* Badge de Servicio de Campo */
 .badge-service {
   background-color: rgba(227, 0, 140, 0.1);
   color: #e3008c;
 }
 
-/* --------------------------------------------------------------------------
-   Navegación por Tabs Estilo Microsoft Dynamics 365 (Full-Width)
-   -------------------------------------------------------------------------- */
-.d365-form-container {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 0 24px 32px 24px;
-  box-sizing: border-box;
-  width: 100%;
-}
-
-.d365-form-tabs {
-  width: 100%;
-}
-
-:host ::ng-deep .d365-form-tabs .ant-tabs-nav {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  background-color: #f8f9fa;
-  padding-top: 8px;
-  margin-bottom: 16px !important;
-}
-
-:host ::ng-deep .d365-form-tabs .ant-tabs-nav::before {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
-}
-
-:host-context([data-theme='dark']) ::ng-deep .d365-form-tabs .ant-tabs-nav,
-:host-context(.dark-theme) ::ng-deep .d365-form-tabs .ant-tabs-nav {
-  background-color: #1a1a1a !important;
-}
-
-:host-context([data-theme='dark']) ::ng-deep .d365-form-tabs .ant-tabs-nav::before,
-:host-context(.dark-theme) ::ng-deep .d365-form-tabs .ant-tabs-nav::before {
-  border-bottom-color: rgba(255, 255, 255, 0.12) !important;
-}
-
-:host ::ng-deep .d365-form-tabs .ant-tabs-tab {
-  padding: 10px 16px !important;
-  font-size: 13px !important;
-  font-weight: 500 !important;
-  transition: color 0.15s ease !important;
-}
-
-:host ::ng-deep .d365-form-tabs .ant-tabs-tab-active {
-  font-weight: 600 !important;
-}
-
-.tab-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Grilla de Tarjetas Apiladas (Una arriba y otra abajo) */
-.d365-tab-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  width: 100%;
-}
-
-/* Cards del Formulario */
-.d365-card {
-  width: 100%;
-  border-radius: 4px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-
-.card-header-content {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.card-header-icon {
-  font-size: 15px;
-  color: #008272;
-}
-
-/* Grillas de campos dentro de cada Card */
-.card-form-grid-3 {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.card-form-grid-2 {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.grid-span-2 {
-  grid-column: span 2;
+:host-context([data-theme='dark']) .badge-service,
+:host-context(.dark-theme) .badge-service {
+  background-color: rgba(227, 0, 140, 0.25);
+  color: #f763c3;
 }
 
 /* Cajas de Clasificación Operativa */
@@ -332,15 +65,16 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px;
-  border: 1px solid #edebe9;
+  border: 1px solid var(--d365-border-subtle, #edebe9);
   border-radius: 6px;
-  background-color: #faf9f8;
+  background-color: rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
 }
 
 :host-context([data-theme='dark']) .classification-box,
 :host-context(.dark-theme) .classification-box {
-  background-color: #141414;
-  border-color: #303030;
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 .classification-info {
@@ -353,42 +87,21 @@
 .classification-title {
   font-size: 14px;
   font-weight: 600;
-  color: #242424;
+  color: var(--d365-text-primary, #242424);
 }
 
 :host-context([data-theme='dark']) .classification-title,
 :host-context(.dark-theme) .classification-title {
-  color: #f3f2f1;
+  color: #f3f2f1 !important;
 }
 
 .classification-desc {
   font-size: 12px;
-  color: #605e5c;
+  color: var(--d365-text-muted, #605e5c);
   line-height: 1.4;
 }
 
-/* Responsividad */
-@media (max-width: 992px) {
-  .card-form-grid-3 {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .card-form-grid-3,
-  .card-form-grid-2 {
-    grid-template-columns: 1fr;
-  }
-
-  .grid-span-2 {
-    grid-column: span 1;
-  }
-
-  .record-header-metrics {
-    display: none;
-  }
-
-  .d365-form-container {
-    padding: 0 16px 80px 16px;
-  }
+:host-context([data-theme='dark']) .classification-desc,
+:host-context(.dark-theme) .classification-desc {
+  color: #a19f9d !important;
 }

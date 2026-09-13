@@ -11,20 +11,23 @@ Todos los estilos de estructura, cabecera, KPIs, pestañas y tarjetas están cen
 
 ---
 
-## 2. Paleta de Colores Obligatoria
+## 2. Paleta de Colores Obligatoria (Estilo Dynamics 365)
 
 | Elemento | Tema Claro | Tema Oscuro | Variable CSS / Token |
 | :--- | :--- | :--- | :--- |
 | **Fondo de la Vista / Página** | `#f0f2f5` | `#000000` | `--d365-page-bg` |
-| **Cabecera de Registro (`.d365-record-header`)** | `#ffffff` | `#141414` | `--d365-header-bg` |
-| **Barra Adhesiva de Pestañas (`.ant-tabs-nav`)** | `#f8f9fa` | `#1a1a1a` | `--d365-tabs-bg` |
+| **Cabecera Informativa (`.d365-record-header`)** | `#ffffff` | `#141414` | `--d365-header-bg` |
+| **Barra de Pestañas (`.ant-tabs-nav`)** | `#ffffff` | `#141414` | `--d365-tabs-bg` |
 | **Línea Divisoria Inferior de Pestañas** | `rgba(0, 0, 0, 0.1)` | `rgba(255, 255, 255, 0.12)` | `--d365-border-tab-line` |
+| **Indicador Activo de Pestaña (Ink Bar)** | `#0078d4` | `#0078d4` | `--ant-primary-color` |
 | **Fondo de Tarjetas (`.d365-card`)** | `#ffffff` | `#1f1f1f` | `--d365-card-bg` |
 | **Píldora Activa (Estado)** | `rgba(16, 124, 65, 0.12)` texto `#107c41` | `rgba(16, 124, 65, 0.25)` texto `#6ccb5f` | `--d365-pill-active-*` |
 
-> [!CAUTION]
-> **PROHIBIDO** poner `#f8f9fa` como fondo general de la página. El fondo de página de todo el ERP es `#f0f2f5`.
-> El color `#f8f9fa` se reserva **exclusivamente** para la barra horizontal de pestañas (tabs nav).
+> [!IMPORTANT]
+> **UNIFICACIÓN CABECERA + TABS (ESTILO DYNAMICS 365)**:
+> La parte informativa del registro y la barra de pestañas forman una **única superficie continua** con el **mismo color de fondo** (`#ffffff` en tema claro, `#141414` en tema oscuro).
+> No existe línea divisoria ni separación de color entre la cabecera y las pestañas.
+> La línea divisoria horizontal inferior (`border-bottom`) y el indicador azul de pestaña activa (`ink-bar`) se sitúan al pie de la barra de pestañas, separando el bloque unificado superior del fondo de la página (`#f0f2f5`).
 
 ---
 

@@ -11,9 +11,7 @@ public record ActualizarClienteCommand(
     Guid Id,
     string TelefonoPrincipal,
     string Direccion,
-    string Distrito,
-    string Provincia,
-    string Departamento,
+    string UbigeoCodigo,
     string? ReferenciaUbicacion = null,
     decimal? CoordenadaLat = null,
     decimal? CoordenadaLng = null
@@ -46,12 +44,15 @@ public class ActualizarClienteHandler : ICommandHandler<ActualizarClienteCommand
             return Result.Failure("La dirección es obligatoria.");
         }
 
+        if (string.IsNullOrWhiteSpace(request.UbigeoCodigo))
+        {
+            return Result.Failure("El código de ubigeo es obligatorio.");
+        }
+
         cliente.ActualizarContactoYDireccion(
             telefono: request.TelefonoPrincipal,
             direccion: request.Direccion,
-            distrito: request.Distrito,
-            provincia: request.Provincia,
-            departamento: request.Departamento,
+            ubigeoCodigo: request.UbigeoCodigo,
             referencia: request.ReferenciaUbicacion,
             lat: request.CoordenadaLat,
             lng: request.CoordenadaLng);

@@ -15,9 +15,7 @@ public record CrearClienteCommand(
     string? Apellidos,
     string TelefonoPrincipal,
     string Direccion,
-    string Distrito,
-    string Provincia,
-    string Departamento,
+    string UbigeoCodigo,
     bool EsClienteFacturacion = false,
     bool EsClienteServicio = true,
     string TipoDocumento = "DNI",
@@ -51,6 +49,12 @@ public class CrearClienteHandler : ICommandHandler<CrearClienteCommand, Result<G
         if (string.IsNullOrWhiteSpace(docNormalizado))
         {
             return Result<Guid>.Failure("El número de documento de identidad es obligatorio.");
+        }
+
+        var ubigeoNormalizado = request.UbigeoCodigo?.Trim();
+        if (string.IsNullOrWhiteSpace(ubigeoNormalizado))
+        {
+            return Result<Guid>.Failure("El código de ubigeo es obligatorio.");
         }
 
         // Validación de duplicidad de código
@@ -88,9 +92,7 @@ public class CrearClienteHandler : ICommandHandler<CrearClienteCommand, Result<G
             apellidos: request.Apellidos,
             telefonoPrincipal: request.TelefonoPrincipal,
             direccion: request.Direccion,
-            distrito: request.Distrito,
-            provincia: request.Provincia,
-            departamento: request.Departamento,
+            ubigeoCodigo: ubigeoNormalizado,
             esClienteFacturacion: request.EsClienteFacturacion,
             esClienteServicio: request.EsClienteServicio,
             tipoDocumento: request.TipoDocumento ?? "DNI",

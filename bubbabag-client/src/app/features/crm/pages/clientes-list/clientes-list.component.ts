@@ -77,9 +77,15 @@ export class ClientesListComponent implements OnInit, OnDestroy {
   columnas = [
     { key: 'codigo', label: 'Código', visible: true, required: false },
     { key: 'cliente', label: 'Cliente / Razón Social', visible: true, required: true },
-    { key: 'documento', label: 'Documento', visible: true, required: false },
-    { key: 'contacto', label: 'Contacto', visible: true, required: false },
-    { key: 'ubicacion', label: 'Ubicación', visible: true, required: false },
+    { key: 'tipoPersona', label: 'Tipo Persona', visible: true, required: false },
+    { key: 'tipoDocumento', label: 'Tipo Doc.', visible: true, required: false },
+    { key: 'documento', label: 'N° Documento', visible: true, required: false },
+    { key: 'telefono', label: 'Teléfono', visible: true, required: false },
+    { key: 'email', label: 'Correo Electrónico', visible: true, required: false },
+    { key: 'direccion', label: 'Dirección', visible: true, required: false },
+    { key: 'distrito', label: 'Distrito', visible: true, required: false },
+    { key: 'provincia', label: 'Provincia / Ciudad', visible: true, required: false },
+    { key: 'departamento', label: 'Departamento', visible: false, required: false },
     { key: 'clasificacion', label: 'Clasificación', visible: true, required: false },
     { key: 'estado', label: 'Estado', visible: true, required: false },
   ];

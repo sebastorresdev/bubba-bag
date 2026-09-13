@@ -108,6 +108,7 @@
       [nzPageSize]="15"
       [nzPageSizeOptions]="[10, 15, 25, 50]"
       [nzShowSizeChanger]="true"
+      [nzScroll]="{ x: '1400px' }"
       nzSize="small"
       (nzCurrentPageDataChange)="onCurrentPageDataChange($event)"
       class="d365-table"
@@ -126,25 +127,43 @@
             (nzCheckedChange)="onAllChecked($event)"
           ></th>
           @if (isColVisible('codigo')) {
-            <th nzWidth="120px">Código</th>
+            <th nzWidth="110px">Código</th>
           }
           @if (isColVisible('cliente')) {
-            <th nzWidth="280px">Cliente / Razón Social</th>
+            <th nzWidth="240px">Cliente / Razón Social</th>
+          }
+          @if (isColVisible('tipoPersona')) {
+            <th nzWidth="110px">Tipo Persona</th>
+          }
+          @if (isColVisible('tipoDocumento')) {
+            <th nzWidth="90px">Tipo Doc.</th>
           }
           @if (isColVisible('documento')) {
-            <th nzWidth="150px">Documento</th>
+            <th nzWidth="120px">N° Documento</th>
           }
-          @if (isColVisible('contacto')) {
-            <th nzWidth="160px">Contacto</th>
+          @if (isColVisible('telefono')) {
+            <th nzWidth="120px">Teléfono</th>
           }
-          @if (isColVisible('ubicacion')) {
-            <th nzWidth="190px">Ubicación</th>
+          @if (isColVisible('email')) {
+            <th nzWidth="180px">Correo Electrónico</th>
+          }
+          @if (isColVisible('direccion')) {
+            <th nzWidth="220px">Dirección</th>
+          }
+          @if (isColVisible('distrito')) {
+            <th nzWidth="120px">Distrito</th>
+          }
+          @if (isColVisible('provincia')) {
+            <th nzWidth="120px">Provincia / Ciudad</th>
+          }
+          @if (isColVisible('departamento')) {
+            <th nzWidth="120px">Departamento</th>
           }
           @if (isColVisible('clasificacion')) {
-            <th nzWidth="160px">Clasificación</th>
+            <th nzWidth="140px">Clasificación</th>
           }
           @if (isColVisible('estado')) {
-            <th nzWidth="110px" nzAlign="center">Estado</th>
+            <th nzWidth="100px" nzAlign="center">Estado</th>
           }
         </tr>
       </thead>
@@ -182,44 +201,65 @@
                     >
                       {{ c.nombreCompletoODenominacion }}
                     </a>
-                    <span class="cell-subtext">{{ c.tipoPersona }}</span>
+                    @if (c.tipoPersona === 'JURIDICA' && c.nombres) {
+                      <span class="cell-subtext">Contacto: {{ c.nombres }} {{ c.apellidos || '' }}</span>
+                    }
                   </div>
                 </div>
+              </td>
+            }
+
+            @if (isColVisible('tipoPersona')) {
+              <td>
+                <span>{{ c.tipoPersona === 'NATURAL' ? 'Natural' : 'Jurídica' }}</span>
+              </td>
+            }
+
+            @if (isColVisible('tipoDocumento')) {
+              <td>
+                <span class="doc-tag">{{ c.tipoDocumento }}</span>
               </td>
             }
 
             @if (isColVisible('documento')) {
               <td>
-                <div class="cell-doc">
-                  <span class="doc-tag">{{ c.tipoDocumento }}</span>
-                  <span class="doc-num">{{ c.documentoIdentidad }}</span>
-                </div>
+                <span class="doc-num">{{ c.documentoIdentidad }}</span>
               </td>
             }
 
-            @if (isColVisible('contacto')) {
+            @if (isColVisible('telefono')) {
               <td>
-                <div class="contact-info">
-                  <div class="contact-line">
-                    <nz-icon nzType="phone" class="contact-icon" />
-                    <span>{{ c.telefonoPrincipal }}</span>
-                  </div>
-                  @if (c.email) {
-                    <div class="contact-line contact-email">
-                      <nz-icon nzType="mail" class="contact-icon" />
-                      <span>{{ c.email }}</span>
-                    </div>
-                  }
-                </div>
+                <span>{{ c.telefonoPrincipal }}</span>
               </td>
             }
 
-            @if (isColVisible('ubicacion')) {
+            @if (isColVisible('email')) {
               <td>
-                <div class="cell-address">
-                  <span class="address-text" [title]="c.direccion">{{ c.direccion }}</span>
-                  <span class="cell-subtext">{{ c.distrito }}, {{ c.provincia }}</span>
-                </div>
+                <span>{{ c.email || '-' }}</span>
+              </td>
+            }
+
+            @if (isColVisible('direccion')) {
+              <td>
+                <span class="address-text" [title]="c.direccion">{{ c.direccion }}</span>
+              </td>
+            }
+
+            @if (isColVisible('distrito')) {
+              <td>
+                <span>{{ c.distrito }}</span>
+              </td>
+            }
+
+            @if (isColVisible('provincia')) {
+              <td>
+                <span>{{ c.provincia }}</span>
+              </td>
+            }
+
+            @if (isColVisible('departamento')) {
+              <td>
+                <span>{{ c.departamento }}</span>
               </td>
             }
 
@@ -237,7 +277,7 @@
             }
 
             @if (isColVisible('estado')) {
-              <td>
+              <td nzAlign="center">
                 <div class="kpi-status">
                   <span
                     class="status-dot"

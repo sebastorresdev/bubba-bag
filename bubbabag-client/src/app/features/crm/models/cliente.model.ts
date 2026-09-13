@@ -11,6 +11,7 @@ export interface ClienteListadoItemDto {
   telefonoPrincipal: string;
   email?: string;
   direccion: string;
+  ubigeoCodigo: string;
   distrito: string;
   provincia: string;
   departamento: string;
@@ -33,6 +34,7 @@ export interface ClienteDetalleDto {
   telefonoSecundario?: string;
   email?: string;
   direccion: string;
+  ubigeoCodigo: string;
   distrito: string;
   provincia: string;
   departamento: string;
@@ -51,9 +53,10 @@ export interface CrearClienteCommand {
   apellidos?: string;
   telefonoPrincipal: string;
   direccion: string;
-  distrito: string;
-  provincia: string;
-  departamento: string;
+  ubigeoCodigo: string;
+  distrito?: string;
+  provincia?: string;
+  departamento?: string;
   esClienteFacturacion?: boolean;
   esClienteServicio?: boolean;
   tipoDocumento?: string;
@@ -69,10 +72,17 @@ export interface CrearClienteCommand {
 export interface ActualizarClienteRequest {
   telefonoPrincipal: string;
   direccion: string;
-  distrito: string;
-  provincia: string;
-  departamento: string;
+  ubigeoCodigo: string;
   referenciaUbicacion?: string;
   coordenadaLat?: number;
   coordenadaLng?: number;
+}
+
+export interface UbigeoItemDto {
+  codigo: string;
+  departamento: string;
+  provincia: string;
+  distrito: string;
+  capitalLegal?: string;
+  regionNatural?: string;
 }

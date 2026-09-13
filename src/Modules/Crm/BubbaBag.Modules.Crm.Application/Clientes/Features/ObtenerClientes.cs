@@ -72,9 +72,10 @@ public class ObtenerClientesHandler : IQueryHandler<ObtenerClientesQuery, Result
                 c.TelefonoPrincipal,
                 c.Email,
                 c.Direccion,
-                c.Distrito,
-                c.Provincia,
-                c.Departamento,
+                c.UbigeoCodigo,
+                c.Ubigeo != null ? c.Ubigeo.Distrito : string.Empty,
+                c.Ubigeo != null ? c.Ubigeo.Provincia : string.Empty,
+                c.Ubigeo != null ? c.Ubigeo.Departamento : string.Empty,
                 c.EsClienteFacturacion,
                 c.EsClienteServicio,
                 c.Activo

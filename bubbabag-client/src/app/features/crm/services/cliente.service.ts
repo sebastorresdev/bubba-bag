@@ -6,6 +6,7 @@ import {
   ClienteDetalleDto,
   CrearClienteCommand,
   ActualizarClienteRequest,
+  UbigeoItemDto,
 } from '../models/cliente.model';
 
 @Injectable({
@@ -53,5 +54,19 @@ export class ClienteService {
 
   cambiarEstado(id: string, activo: boolean): Observable<{ message: string }> {
     return this.http.patch<{ message: string }>(`${this.apiUrl}/${id}/estado`, { activo });
+  }
+
+  getUbigeos(departamento?: string, provincia?: string, search?: string): Observable<UbigeoItemDto[]> {
+    let params = new HttpParams();
+    if (departamento) {
+      params = params.set('departamento', departamento);
+    }
+    if (provincia) {
+      params = params.set('provincia', provincia);
+    }
+    if (search) {
+      params = params.set('search', search);
+    }
+    return this.http.get<UbigeoItemDto[]>('/api/crm/ubigeos', { params });
   }
 }

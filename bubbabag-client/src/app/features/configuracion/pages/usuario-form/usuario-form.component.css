@@ -19,8 +19,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   position: relative;
   background-color: #f0f2f5;
 }
@@ -147,24 +146,27 @@
   color: inherit;
 }
 
-/* Cuerpo del Formulario */
-:host ::ng-deep .usuario-form-view > nz-spin {
-  display: block;
+/* Cuerpo del Formulario con Scroll Aislado */
+.user-form-scroll-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px 32px 24px;
+  box-sizing: border-box;
   width: 100%;
 }
 
-.form-content-wrapper {
-  padding: 24px 24px 60px 24px;
-  max-width: 1240px;
+:host ::ng-deep .user-form-scroll-body > nz-spin {
+  display: block;
   width: 100%;
-  margin: 0 auto;
-  box-sizing: border-box;
 }
 
 .form-vertical-layout {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  width: 100%;
 }
 
 .d365-card {

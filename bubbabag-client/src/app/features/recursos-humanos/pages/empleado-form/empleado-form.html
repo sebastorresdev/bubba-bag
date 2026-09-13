@@ -6,7 +6,7 @@
   (back)="volver()"
 ></app-command-bar>
 
-<div class="empleado-form-view">
+<div class="empleado-form-view d365-form-view">
   <!-- Cabecera de Registro (Dynamics 365 Record Header) -->
   <div class="d365-record-header">
     <div class="record-header-main">
@@ -189,24 +189,10 @@
       class="d365-form-tabs"
     >
       <!-- TAB 1: INFORMACIÓN GENERAL Y CONTACTO -->
-      <nz-tab [nzTitle]="tabGeneralTitle">
-        <ng-template #tabGeneralTitle>
-          <span class="tab-label">
-            <nz-icon nzType="user" />
-            <span>General</span>
-          </span>
-        </ng-template>
-
+      <nz-tab nzTitle="General">
         <div class="d365-tab-grid">
           <!-- Card 1: Identificación y Datos Personales -->
-          <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="personalTitle">
-            <ng-template #personalTitle>
-              <div class="card-header-content">
-                <nz-icon nzType="user" class="card-header-icon" />
-                <span>Información Personal e Identificación</span>
-              </div>
-            </ng-template>
-
+          <nz-card [nzBordered]="true" class="d365-card" nzTitle="Información Personal e Identificación">
             <div class="card-form-grid">
               <nz-form-item>
                 <nz-form-label nzRequired nzFor="nombres">Nombres</nz-form-label>
@@ -263,14 +249,7 @@
           </nz-card>
 
           <!-- Card 2: Contacto y Residencia -->
-          <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="contactoTitle">
-            <ng-template #contactoTitle>
-              <div class="card-header-content">
-                <nz-icon nzType="mail" class="card-header-icon" />
-                <span>Contacto y Residencia</span>
-              </div>
-            </ng-template>
-
+          <nz-card [nzBordered]="true" class="d365-card" nzTitle="Contacto y Residencia">
             <div class="card-form-grid">
               <nz-form-item>
                 <nz-form-label nzFor="email">Correo Electrónico</nz-form-label>
@@ -298,23 +277,10 @@
       </nz-tab>
 
       <!-- TAB 2: ESTRUCTURA LABORAL Y PUESTO -->
-      <nz-tab [nzTitle]="tabLaboralTitle">
-        <ng-template #tabLaboralTitle>
-          <span class="tab-label">
-            <nz-icon nzType="solution" />
-            <span>Estructura Laboral</span>
-          </span>
-        </ng-template>
-
+      <nz-tab nzTitle="Estructura Laboral">
         <div class="d365-tab-grid">
           <!-- Card: Estructura Organizativa -->
-          <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="organizativaTitle">
-            <ng-template #organizativaTitle>
-              <div class="card-header-content">
-                <nz-icon nzType="team" class="card-header-icon" />
-                <span>Estructura Organizativa</span>
-              </div>
-            </ng-template>
+          <nz-card [nzBordered]="true" class="d365-card" nzTitle="Estructura Organizativa">
 
             <div class="card-form-grid">
               <nz-form-item>
@@ -323,7 +289,6 @@
                   <nz-select
                     formControlName="departamentoId"
                     id="departamentoId"
-                    (ngModelChange)="onDepartamentoChange($event)"
                     nzPlaceHolder="Seleccionar departamento"
                     nzAllowClear
                   >
@@ -357,14 +322,7 @@
           </nz-card>
 
           <!-- Card: Contratación -->
-          <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="condicionesTitle">
-            <ng-template #condicionesTitle>
-              <div class="card-header-content">
-                <nz-icon nzType="solution" class="card-header-icon" />
-                <span>Condiciones de Contratación</span>
-              </div>
-            </ng-template>
-
+          <nz-card [nzBordered]="true" class="d365-card" nzTitle="Condiciones de Contratación">
             <div class="card-form-grid">
               <nz-form-item>
                 <nz-form-label nzFor="tipoContrato">Tipo de Contrato</nz-form-label>
@@ -389,24 +347,10 @@
       </nz-tab>
 
       <!-- TAB 3: COMPENSACIÓN Y PLANILLA -->
-      <nz-tab [nzTitle]="tabCompensacionTitle">
-        <ng-template #tabCompensacionTitle>
-          <span class="tab-label">
-            <nz-icon nzType="dollar" />
-            <span>Compensación y Nómina</span>
-          </span>
-        </ng-template>
-
+      <nz-tab nzTitle="Compensación y Nómina">
         <div class="d365-tab-grid">
           <!-- Card: Remuneración y Planilla -->
-          <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="compensacionTitle">
-            <ng-template #compensacionTitle>
-              <div class="card-header-content">
-                <nz-icon nzType="dollar" class="card-header-icon" />
-                <span>Remuneración y Beneficios</span>
-              </div>
-            </ng-template>
-
+          <nz-card [nzBordered]="true" class="d365-card" nzTitle="Remuneración y Beneficios">
             <div class="card-form-grid">
               <nz-form-item>
                 <nz-form-label nzFor="salarioBase">Salario Base</nz-form-label>
@@ -437,14 +381,7 @@
           </nz-card>
 
           <!-- Card: Régimen Pensionario y Banco -->
-          <nz-card [nzBordered]="true" class="d365-card" [nzTitle]="socialBancoTitle">
-            <ng-template #socialBancoTitle>
-              <div class="card-header-content">
-                <nz-icon nzType="shop" class="card-header-icon" />
-                <span>Seguridad Social y Cuentas Bancarias</span>
-              </div>
-            </ng-template>
-
+          <nz-card [nzBordered]="true" class="d365-card" nzTitle="Seguridad Social y Cuentas Bancarias">
             <div class="card-form-grid">
               <nz-form-item>
                 <nz-form-label nzFor="regimenPensionario">Régimen Pensionario (AFP / ONP)</nz-form-label>
@@ -495,25 +432,11 @@
 
       <!-- TAB 4: HISTORIAL Y BAJAS (Solo disponible en modo edición) -->
       @if (isEdit) {
-        <nz-tab [nzTitle]="tabBajaTitle">
-          <ng-template #tabBajaTitle>
-            <span class="tab-label">
-              <nz-icon nzType="audit" />
-              <span>Bajas y Cese</span>
-            </span>
-          </ng-template>
-
+        <nz-tab nzTitle="Bajas y Cese">
           <div class="d365-tab-grid">
             <!-- Card de Estado de Cese -->
             @if (empleadoActual?.estado === 'Cesado') {
-              <nz-card [nzBordered]="true" class="d365-card cese-card col-span-full" [nzTitle]="cesadoCardTitle">
-                <ng-template #cesadoCardTitle>
-                  <div class="card-header-content text-danger">
-                    <nz-icon nzType="close-circle" class="card-header-icon" />
-                    <span>Registro de Cese Laboral</span>
-                  </div>
-                </ng-template>
-
+              <nz-card [nzBordered]="true" class="d365-card cese-card col-span-full" nzTitle="Registro de Cese Laboral">
                 <div class="cese-summary-grid">
                   <div class="cese-summary-item">
                     <span class="cese-label">Fecha de Cese:</span>
@@ -542,14 +465,7 @@
               </nz-card>
             } @else {
               <!-- Estado Activo: Colaborador en regla -->
-              <nz-card [nzBordered]="true" class="d365-card col-span-full" [nzTitle]="activoCardTitle">
-                <ng-template #activoCardTitle>
-                  <div class="card-header-content">
-                    <nz-icon nzType="check-circle" class="card-header-icon text-success" />
-                    <span>Estado Laboral Actual</span>
-                  </div>
-                </ng-template>
-
+              <nz-card [nzBordered]="true" class="d365-card col-span-full" nzTitle="Estado Laboral Actual">
                 <div class="activo-state-box">
                   <div class="activo-state-info">
                     <div class="activo-state-title">El colaborador se encuentra actualmente en estado {{ empleadoActual?.estado || 'Activo' }}</div>

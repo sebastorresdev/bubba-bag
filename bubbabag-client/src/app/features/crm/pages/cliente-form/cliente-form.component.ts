@@ -18,6 +18,7 @@ import {
   ClienteDetalleDto,
   CrearClienteCommand,
   ActualizarClienteRequest,
+  UbigeoItemDto,
 } from '../../models/cliente.model';
 
 import { NzFormModule } from 'ng-zorro-antd/form';
@@ -36,6 +37,12 @@ import { NzRadioModule } from 'ng-zorro-antd/radio';
 import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
 import { NzDividerModule } from 'ng-zorro-antd/divider';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
+
+import {
+  getDepartamentos,
+  getProvincias,
+  getDistritos,
+} from '../../../../shared/data/ubigeo.data';
 
 @Component({
   selector: 'app-cliente-form',
@@ -79,15 +86,19 @@ export class ClienteFormComponent implements OnInit {
   loading = false;
   saving = false;
   selectedTabIndex = 0;
+  capturandoUbicacion = false;
 
   tiposDocumento = [
     { label: 'DNI (Documento Nacional de Identidad)', value: 'DNI' },
-    { label: 'RUC (Registro Único de Contribuyentes)', value: 'RUC' },
     { label: 'Carnet de Extranjería (CE)', value: 'CE' },
     { label: 'Pasaporte', value: 'PASAPORTE' },
   ];
 
-  departamentosSugeridos = ['Lima', 'Arequipa', 'Cusco', 'La Libertad', 'Piura', 'Junín', 'Lambayeque', 'Áncash', 'Ica', 'San Martín'];
+  // Catálogo oficial de Ubigeo Perú
+  departamentosLista: string[] = getDepartamentos();
+  provinciasLista: string[] = getProvincias('Lima');
+  distritosLista: string[] = getDistritos('Lima', 'Lima');
+  ubigeosCatalogo: UbigeoItemDto[] = [];
 
   get emailCliente(): string {
     return this.form?.get('email')?.value || '';
@@ -120,6 +131,7 @@ export class ClienteFormComponent implements OnInit {
     this.isEdit = !!this.clienteId;
 
     this.updateCommandBar();
+    this.cargarCatalogoUbigeos();
 
     if (this.isEdit && this.clienteId) {
       this.cargarCliente(this.clienteId);
@@ -129,11 +141,34 @@ export class ClienteFormComponent implements OnInit {
       this.form.patchValue({
         codigoCliente: `CLI-${new Date().getFullYear()}-${randomSuffix}`,
       });
+      this.asignarUbigeoCodigo('Lima', 'Lima', 'Lima');
     }
 
     // Escuchar cambios en tipoPersona para adaptar validaciones
     this.form.get('tipoPersona')?.valueChanges.subscribe((tipo) => {
       this.actualizarValidacionesPorTipo(tipo);
+    });
+  }
+
+  private cargarCatalogoUbigeos(): void {
+    this.clienteService.getUbigeos().subscribe({
+      next: (ubigeos) => {
+        if (ubigeos && ubigeos.length > 0) {
+          this.ubigeosCatalogo = ubigeos;
+          const depts = Array.from(new Set(ubigeos.map((u) => u.departamento))).sort();
+          if (depts.length > 0) {
+            this.departamentosLista = depts;
+          }
+          // Si estamos editando y tenemos cliente cargado, sincronizar
+          if (this.clienteActual?.ubigeoCodigo) {
+            this.sincronizarUbigeoPorCodigo(this.clienteActual.ubigeoCodigo);
+          }
+          this.cdr.markForCheck();
+        }
+      },
+      error: () => {
+        // Mantiene catálogo estático si la API no responde
+      },
     });
   }
 
@@ -150,6 +185,7 @@ export class ClienteFormComponent implements OnInit {
       telefonoSecundario: ['', [Validators.maxLength(20)]],
       email: ['', [Validators.email, Validators.maxLength(100)]],
       direccion: ['', [Validators.required, Validators.maxLength(250)]],
+      ubigeoCodigo: ['150101', [Validators.required, Validators.maxLength(10)]],
       distrito: ['Lima', [Validators.required, Validators.maxLength(80)]],
       provincia: ['Lima', [Validators.required, Validators.maxLength(80)]],
       departamento: ['Lima', [Validators.required, Validators.maxLength(80)]],
@@ -168,25 +204,194 @@ export class ClienteFormComponent implements OnInit {
 
   private actualizarValidacionesPorTipo(tipo: 'NATURAL' | 'JURIDICA'): void {
     const nombresCtrl = this.form.get('nombres');
+    const apellidosCtrl = this.form.get('apellidos');
     const razonSocialCtrl = this.form.get('razonSocial');
     const tipoDocCtrl = this.form.get('tipoDocumento');
+    const docCtrl = this.form.get('documentoIdentidad');
 
     if (tipo === 'JURIDICA') {
+      tipoDocCtrl?.setValue('RUC', { emitEvent: false });
       razonSocialCtrl?.setValidators([Validators.required, Validators.maxLength(150)]);
-      nombresCtrl?.clearValidators();
-      if (tipoDocCtrl?.value === 'DNI') {
-        tipoDocCtrl.setValue('RUC');
-      }
-    } else {
+      // Persona de contacto en la empresa: nombres es requerido para contacto comercial y por BD
       nombresCtrl?.setValidators([Validators.required, Validators.maxLength(100)]);
-      razonSocialCtrl?.clearValidators();
+      apellidosCtrl?.setValidators([Validators.maxLength(100)]);
+      docCtrl?.setValidators([
+        Validators.required,
+        Validators.minLength(11),
+        Validators.maxLength(11),
+        Validators.pattern(/^[0-9]{11}$/),
+      ]);
+    } else {
       if (tipoDocCtrl?.value === 'RUC') {
-        tipoDocCtrl.setValue('DNI');
+        tipoDocCtrl.setValue('DNI', { emitEvent: false });
       }
+      razonSocialCtrl?.clearValidators();
+      nombresCtrl?.setValidators([Validators.required, Validators.maxLength(100)]);
+      apellidosCtrl?.setValidators([Validators.maxLength(100)]);
+      docCtrl?.setValidators([Validators.required, Validators.maxLength(20)]);
     }
 
     nombresCtrl?.updateValueAndValidity();
+    apellidosCtrl?.updateValueAndValidity();
     razonSocialCtrl?.updateValueAndValidity();
+    docCtrl?.updateValueAndValidity();
+  }
+
+  onDepartamentoChange(dept: string): void {
+    if (this.ubigeosCatalogo.length > 0) {
+      const provs = Array.from(
+        new Set(
+          this.ubigeosCatalogo
+            .filter((u) => u.departamento.toUpperCase() === dept.toUpperCase())
+            .map((u) => u.provincia)
+        )
+      ).sort();
+      this.provinciasLista = provs;
+      const defaultProv = provs[0] || '';
+      this.form.patchValue({ provincia: defaultProv });
+
+      const dists = this.ubigeosCatalogo
+        .filter(
+          (u) =>
+            u.departamento.toUpperCase() === dept.toUpperCase() &&
+            u.provincia.toUpperCase() === defaultProv.toUpperCase()
+        )
+        .map((u) => u.distrito)
+        .sort();
+      this.distritosLista = dists;
+      const defaultDist = dists[0] || '';
+      this.form.patchValue({ distrito: defaultDist });
+      this.asignarUbigeoCodigo(dept, defaultProv, defaultDist);
+    } else {
+      this.provinciasLista = getProvincias(dept);
+      const defaultProv = this.provinciasLista[0] || '';
+      this.form.patchValue({ provincia: defaultProv });
+      this.distritosLista = getDistritos(dept, defaultProv);
+      const defaultDist = this.distritosLista[0] || '';
+      this.form.patchValue({ distrito: defaultDist });
+      this.asignarUbigeoCodigo(dept, defaultProv, defaultDist);
+    }
+    this.cdr.markForCheck();
+  }
+
+  onProvinciaChange(prov: string): void {
+    const dept = this.form.get('departamento')?.value || 'Lima';
+    if (this.ubigeosCatalogo.length > 0) {
+      const dists = this.ubigeosCatalogo
+        .filter(
+          (u) =>
+            u.departamento.toUpperCase() === dept.toUpperCase() &&
+            u.provincia.toUpperCase() === prov.toUpperCase()
+        )
+        .map((u) => u.distrito)
+        .sort();
+      this.distritosLista = dists;
+      const defaultDist = dists[0] || '';
+      this.form.patchValue({ distrito: defaultDist });
+      this.asignarUbigeoCodigo(dept, prov, defaultDist);
+    } else {
+      this.distritosLista = getDistritos(dept, prov);
+      const defaultDist = this.distritosLista[0] || '';
+      this.form.patchValue({ distrito: defaultDist });
+      this.asignarUbigeoCodigo(dept, prov, defaultDist);
+    }
+    this.cdr.markForCheck();
+  }
+
+  onDistritoChange(dist: string): void {
+    const dept = this.form.get('departamento')?.value || 'Lima';
+    const prov = this.form.get('provincia')?.value || 'Lima';
+    this.asignarUbigeoCodigo(dept, prov, dist);
+  }
+
+  private asignarUbigeoCodigo(dept: string, prov: string, dist: string): void {
+    if (!dept || !prov || !dist) return;
+
+    if (this.ubigeosCatalogo.length > 0) {
+      const match = this.ubigeosCatalogo.find(
+        (u) =>
+          u.departamento.toUpperCase() === dept.toUpperCase() &&
+          u.provincia.toUpperCase() === prov.toUpperCase() &&
+          u.distrito.toUpperCase() === dist.toUpperCase()
+      );
+      if (match) {
+        this.form.patchValue({ ubigeoCodigo: match.codigo });
+        return;
+      }
+    }
+
+    // Default fallback estándar para pruebas locales
+    this.form.patchValue({ ubigeoCodigo: '150101' });
+  }
+
+  private sincronizarUbigeoPorCodigo(codigo: string): void {
+    if (!codigo || this.ubigeosCatalogo.length === 0) return;
+    const match = this.ubigeosCatalogo.find((u) => u.codigo === codigo);
+    if (match) {
+      this.form.patchValue({
+        departamento: match.departamento,
+        provincia: match.provincia,
+        distrito: match.distrito,
+        ubigeoCodigo: match.codigo,
+      });
+      this.provinciasLista = Array.from(
+        new Set(
+          this.ubigeosCatalogo
+            .filter((u) => u.departamento.toUpperCase() === match.departamento.toUpperCase())
+            .map((u) => u.provincia)
+        )
+      ).sort();
+      this.distritosLista = this.ubigeosCatalogo
+        .filter(
+          (u) =>
+            u.departamento.toUpperCase() === match.departamento.toUpperCase() &&
+            u.provincia.toUpperCase() === match.provincia.toUpperCase()
+        )
+        .map((u) => u.distrito)
+        .sort();
+    }
+  }
+
+  capturarUbicacionActual(): void {
+    if (!navigator.geolocation) {
+      this.message.warning('La geolocalización no está soportada en este navegador.');
+      return;
+    }
+    this.capturandoUbicacion = true;
+    this.cdr.markForCheck();
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        this.capturandoUbicacion = false;
+        const lat = parseFloat(pos.coords.latitude.toFixed(6));
+        const lng = parseFloat(pos.coords.longitude.toFixed(6));
+        this.form.patchValue({
+          coordenadaLat: lat,
+          coordenadaLng: lng,
+        });
+        this.message.success(`Ubicación GPS capturada: ${lat}, ${lng}`);
+        this.cdr.markForCheck();
+      },
+      () => {
+        this.capturandoUbicacion = false;
+        this.message.warning('No se pudo obtener la ubicación GPS actual.');
+        this.cdr.markForCheck();
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  }
+
+  abrirEnMapa(): void {
+    const lat = this.form.get('coordenadaLat')?.value;
+    const lng = this.form.get('coordenadaLng')?.value;
+    if (lat && lng) {
+      window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+    } else {
+      const dir = this.form.get('direccion')?.value || '';
+      const dist = this.form.get('distrito')?.value || '';
+      const prov = this.form.get('provincia')?.value || '';
+      const query = encodeURIComponent(`${dir}, ${dist}, ${prov}, Perú`);
+      window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+    }
   }
 
   recargar(): void {
@@ -286,6 +491,7 @@ export class ClienteFormComponent implements OnInit {
           telefonoSecundario: c.telefonoSecundario,
           email: c.email,
           direccion: c.direccion,
+          ubigeoCodigo: c.ubigeoCodigo || '150101',
           distrito: c.distrito,
           provincia: c.provincia,
           departamento: c.departamento,
@@ -296,6 +502,16 @@ export class ClienteFormComponent implements OnInit {
           esClienteServicio: c.esClienteServicio,
           activo: c.activo,
         });
+
+        if (c.ubigeoCodigo) {
+          this.sincronizarUbigeoPorCodigo(c.ubigeoCodigo);
+        } else if (c.departamento) {
+          this.provinciasLista = getProvincias(c.departamento);
+          if (c.provincia) {
+            this.distritosLista = getDistritos(c.departamento, c.provincia);
+          }
+        }
+        this.actualizarValidacionesPorTipo(c.tipoPersona);
 
         // En edición, el código y documento no deben alterarse para mantener integridad fiscal
         this.form.get('codigoCliente')?.disable();
@@ -336,9 +552,7 @@ export class ClienteFormComponent implements OnInit {
       const updateReq: ActualizarClienteRequest = {
         telefonoPrincipal: formVal.telefonoPrincipal,
         direccion: formVal.direccion,
-        distrito: formVal.distrito,
-        provincia: formVal.provincia,
-        departamento: formVal.departamento,
+        ubigeoCodigo: formVal.ubigeoCodigo || '150101',
         referenciaUbicacion: formVal.referenciaUbicacion,
         coordenadaLat: formVal.coordenadaLat,
         coordenadaLng: formVal.coordenadaLng,
@@ -369,14 +583,15 @@ export class ClienteFormComponent implements OnInit {
         apellidos: formVal.apellidos,
         telefonoPrincipal: formVal.telefonoPrincipal,
         direccion: formVal.direccion,
+        ubigeoCodigo: formVal.ubigeoCodigo || '150101',
         distrito: formVal.distrito,
         provincia: formVal.provincia,
         departamento: formVal.departamento,
         esClienteFacturacion: formVal.esClienteFacturacion ?? false,
         esClienteServicio: formVal.esClienteServicio ?? true,
-        tipoDocumento: formVal.tipoDocumento,
+        tipoDocumento: formVal.tipoPersona === 'JURIDICA' ? 'RUC' : formVal.tipoDocumento,
         tipoPersona: formVal.tipoPersona,
-        razonSocial: formVal.razonSocial,
+        razonSocial: formVal.tipoPersona === 'JURIDICA' ? formVal.razonSocial?.trim() : undefined,
         telefonoSecundario: formVal.telefonoSecundario,
         email: formVal.email,
         referenciaUbicacion: formVal.referenciaUbicacion,
