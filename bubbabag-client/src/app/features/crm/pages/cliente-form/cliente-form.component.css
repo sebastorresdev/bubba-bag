@@ -256,7 +256,7 @@
 
 :host-context([data-theme='dark']) ::ng-deep .d365-form-tabs .ant-tabs-nav,
 :host-context(.dark-theme) ::ng-deep .d365-form-tabs .ant-tabs-nav {
-  background-color: #000000 !important;
+  background-color: #1a1a1a !important;
 }
 
 :host-context([data-theme='dark']) ::ng-deep .d365-form-tabs .ant-tabs-nav::before,
