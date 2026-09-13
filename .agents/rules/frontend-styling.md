@@ -13,3 +13,12 @@
 3. **Respeto a los colores por defecto de NG-ZORRO**:
    - No sobreescribir ni forzar colores salvo que el usuario lo solicite explícitamente para mejorar un elemento específico (como el color corporativo del header `#021936`).
    - El tema claro y tema oscuro deben operar con las hojas de estilo nativas de NG-ZORRO.
+
+## 3. Estándar de Formularios CRUD (Dynamics 365)
+- Para toda pantalla de creación o edición (CRUD) de cualquier módulo, es **obligatorio** cumplir con las pautas de [d365-form-guidelines.md](./d365-form-guidelines.md).
+- Utilizar siempre los tokens y clases maestras centralizadas en `src/styles/d365-form.css`:
+  - Fondo general del área de trabajo: `#f0f2f5` (dark: `#141414`).
+  - Fondo exclusivo de la barra adhesiva de pestañas: `#f8f9fa` (dark: `#141414`).
+  - Cabecera con título dinámico en tiempo real (`valueChanges`), avatar, separadores verticales y KPIs con píldoras/badges (nunca puntos sueltos).
+  - Tarjetas apiladas verticalmente (una arriba y otra abajo) con grillas internas de campos.
+
