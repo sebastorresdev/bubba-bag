@@ -248,12 +248,16 @@
   width: 100%;
 }
 
-.d365-form-tabs {
+.d365-form-tabs,
+.d365-form-container nz-tabs,
+.d365-form-view nz-tabs {
   width: 100%;
 }
 
 /* Barra de Pestañas Adhesiva y Borde Continuo Horizontal */
-.d365-form-tabs .ant-tabs-nav {
+.d365-form-tabs .ant-tabs-nav,
+.d365-form-container .ant-tabs-nav,
+.d365-form-view .ant-tabs-nav {
   position: sticky;
   top: 0;
   z-index: 5;
@@ -262,18 +266,24 @@
   margin-bottom: 16px !important;
 }
 
-.d365-form-tabs .ant-tabs-nav::before {
+.d365-form-tabs .ant-tabs-nav::before,
+.d365-form-container .ant-tabs-nav::before,
+.d365-form-view .ant-tabs-nav::before {
   border-bottom: 1px solid var(--d365-border-tab-line) !important;
 }
 
-.d365-form-tabs .ant-tabs-tab {
+.d365-form-tabs .ant-tabs-tab,
+.d365-form-container .ant-tabs-tab,
+.d365-form-view .ant-tabs-tab {
   padding: 10px 16px !important;
   font-size: 13px !important;
   font-weight: 500 !important;
   transition: color 0.15s ease !important;
 }
 
-.d365-form-tabs .ant-tabs-tab-active {
+.d365-form-tabs .ant-tabs-tab-active,
+.d365-form-container .ant-tabs-tab-active,
+.d365-form-view .ant-tabs-tab-active {
   font-weight: 600 !important;
 }
 
