@@ -47,7 +47,6 @@ export interface ClienteDetalleDto {
 }
 
 export interface CrearClienteCommand {
-  codigoCliente: string;
   documentoIdentidad: string;
   nombres: string;
   apellidos?: string;

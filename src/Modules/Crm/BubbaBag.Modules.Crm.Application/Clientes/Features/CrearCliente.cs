@@ -9,7 +9,6 @@ using Microsoft.EntityFrameworkCore;
 namespace BubbaBag.Modules.Crm.Application.Clientes.Features;
 
 public record CrearClienteCommand(
-    string CodigoCliente,
     string DocumentoIdentidad,
     string Nombres,
     string? Apellidos,
@@ -31,20 +30,16 @@ public record CrearClienteCommand(
 public class CrearClienteHandler : ICommandHandler<CrearClienteCommand, Result<Guid>>
 {
     private readonly ICrmDbContext _context;
+    private readonly ICodigoSecuencialService _codigoSecuencialService;
 
-    public CrearClienteHandler(ICrmDbContext context)
+    public CrearClienteHandler(ICrmDbContext context, ICodigoSecuencialService codigoSecuencialService)
     {
         _context = context;
+        _codigoSecuencialService = codigoSecuencialService;
     }
 
     public async Task<Result<Guid>> HandleAsync(CrearClienteCommand request, CancellationToken cancellationToken)
     {
-        var codigoNormalizado = request.CodigoCliente?.Trim().ToUpperInvariant();
-        if (string.IsNullOrWhiteSpace(codigoNormalizado))
-        {
-            return Result<Guid>.Failure("El código de cliente es obligatorio.");
-        }
-
         var docNormalizado = request.DocumentoIdentidad?.Trim();
         if (string.IsNullOrWhiteSpace(docNormalizado))
         {
@@ -55,12 +50,6 @@ public class CrearClienteHandler : ICommandHandler<CrearClienteCommand, Result<G
         if (string.IsNullOrWhiteSpace(ubigeoNormalizado))
         {
             return Result<Guid>.Failure("El código de ubigeo es obligatorio.");
-        }
-
-        // Validación de duplicidad de código
-        if (await _context.Clientes.AnyAsync(c => c.CodigoCliente == codigoNormalizado, cancellationToken))
-        {
-            return Result<Guid>.Failure($"Ya existe un cliente registrado con el código '{codigoNormalizado}'.");
         }
 
         // Validación de duplicidad de documento
@@ -83,10 +72,21 @@ public class CrearClienteHandler : ICommandHandler<CrearClienteCommand, Result<G
             {
                 return Result<Guid>.Failure("Los nombres son obligatorios para personas naturales.");
             }
+            if (string.IsNullOrWhiteSpace(request.Apellidos))
+            {
+                return Result<Guid>.Failure("Los apellidos son obligatorios para personas naturales.");
+            }
         }
 
+        var codigoCliente = await _codigoSecuencialService.SiguienteCodigoAsync(
+            prefijo: "CLI",
+            nombreSecuencia: "seq_clientes",
+            esquema: "crm",
+            longitud: 6,
+            cancellationToken: cancellationToken);
+
         var cliente = Cliente.Crear(
-            codigoCliente: codigoNormalizado,
+            codigoCliente: codigoCliente,
             documentoIdentidad: docNormalizado,
             nombres: request.Nombres,
             apellidos: request.Apellidos,

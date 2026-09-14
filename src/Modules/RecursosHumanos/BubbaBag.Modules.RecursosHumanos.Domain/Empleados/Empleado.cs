@@ -76,11 +76,12 @@ public class Empleado : Entity<Guid>
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
-    public void ActualizarDatosContacto(string? email, string? telefono, string? direccion)
+    public void ActualizarDatosContacto(string? email, string? telefono, string? direccion, DateOnly? fechaNacimiento = null)
     {
         Email = NormalizeOptional(email);
         Telefono = NormalizeOptional(telefono);
         Direccion = NormalizeOptional(direccion);
+        FechaNacimiento = fechaNacimiento;
     }
 
     public void ActualizarFoto(string? fotoUrl)

@@ -64,7 +64,7 @@ public class CrearEmpleadoHandler : ICommandHandler<CrearEmpleadoCommand, Result
 
         var empleado = Empleado.Registrar(request.Nombres, request.Apellidos, request.TipoDocumento, request.NumeroDocumento);
         
-        empleado.ActualizarDatosContacto(request.Email, request.Telefono, request.Direccion);
+        empleado.ActualizarDatosContacto(request.Email, request.Telefono, request.Direccion, request.FechaNacimiento);
         if (!string.IsNullOrWhiteSpace(request.FotoUrl))
         {
             empleado.ActualizarFoto(request.FotoUrl);

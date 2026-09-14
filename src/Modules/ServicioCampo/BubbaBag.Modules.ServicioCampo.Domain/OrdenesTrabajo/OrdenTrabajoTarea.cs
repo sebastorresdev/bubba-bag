@@ -14,6 +14,7 @@ public class OrdenTrabajoTarea : Entity<Guid>
     public Guid OrdenTrabajoId { get; private set; }
     public OrdenTrabajo OrdenTrabajo { get; private set; } = default!;
 
+    public string CodigoTarea { get; private set; } = default!;
     public Guid TipoTareaId { get; private set; }
     public TipoTareaServicio TipoTarea { get; private set; } = default!;
 
@@ -38,7 +39,11 @@ public class OrdenTrabajoTarea : Entity<Guid>
     // Detalle operativo
     public string? Descripcion { get; private set; }
     public string? ObservacionesCierre { get; private set; }
-    public string? MotivoNoRealizada { get; private set; }
+
+    // Auditoría de Rechazo / Cancelación
+    public Guid? MotivoRechazoId { get; private set; }
+    public MotivoIncidencia? MotivoRechazo { get; private set; }
+    public string? ObservacionesRechazo { get; private set; }
 
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
 
@@ -46,6 +51,7 @@ public class OrdenTrabajoTarea : Entity<Guid>
 
     internal OrdenTrabajoTarea(
         Guid ordenTrabajoId,
+        string codigoTarea,
         Guid tipoTareaId,
         decimal tarifaBase,
         bool esElegibleBono,
@@ -57,6 +63,9 @@ public class OrdenTrabajoTarea : Entity<Guid>
     {
         Id = Guid.NewGuid();
         OrdenTrabajoId = ordenTrabajoId;
+        CodigoTarea = string.IsNullOrWhiteSpace(codigoTarea)
+            ? throw new ArgumentException("El código de tarea es obligatorio.", nameof(codigoTarea))
+            : codigoTarea.Trim().ToUpperInvariant();
         TipoTareaId = tipoTareaId;
         TarifaBaseCongelada = tarifaBase;
         EsElegibleBonoIndicador = esElegibleBono;
@@ -65,7 +74,7 @@ public class OrdenTrabajoTarea : Entity<Guid>
         ItemNumero = itemNumero;
         NumeroWoIbs = numeroWoIbs?.Trim();
         Descripcion = descripcion?.Trim();
-        EstadoTarea = EstadoTarea.Pendiente;
+        EstadoTarea = EstadoTarea.Abierta;
         CreatedAt = DateTime.UtcNow;
     }
 
@@ -79,14 +88,22 @@ public class OrdenTrabajoTarea : Entity<Guid>
 
     public void Completar(string? observaciones = null)
     {
-        EstadoTarea = EstadoTarea.Completada;
+        EstadoTarea = EstadoTarea.Completa;
         ObservacionesCierre = observaciones?.Trim();
     }
 
-    public void MarcarNoRealizada(string motivo)
+    public void Rechazar(Guid motivoId, string? observaciones = null)
     {
-        EstadoTarea = EstadoTarea.NoRealizada;
-        MotivoNoRealizada = motivo.Trim();
+        EstadoTarea = EstadoTarea.Rechazada;
+        MotivoRechazoId = motivoId;
+        ObservacionesRechazo = observaciones?.Trim();
+    }
+
+    public void Cancelar(Guid? motivoId = null, string? observaciones = null)
+    {
+        EstadoTarea = EstadoTarea.Cancelada;
+        MotivoRechazoId = motivoId;
+        ObservacionesRechazo = observaciones?.Trim();
     }
 
     public void AplicarLiquidacionMensual(decimal bono, decimal penalizacion = 0)

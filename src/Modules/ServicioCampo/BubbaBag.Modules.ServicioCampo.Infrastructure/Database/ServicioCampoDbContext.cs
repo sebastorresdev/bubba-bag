@@ -3,18 +3,22 @@ using BubbaBag.Modules.Crm.Domain.Clientes;
 using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 using BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
 using BubbaBag.Modules.ServicioCampo.Domain.Tarifarios;
+using BubbaBag.Modules.ServicioCampo.Application;
 using Microsoft.EntityFrameworkCore;
 
 namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database;
 
-public class ServicioCampoDbContext : DbContext
+public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
 {
     public ServicioCampoDbContext(DbContextOptions<ServicioCampoDbContext> options) : base(options)
     {
     }
 
     public DbSet<OrdenTrabajo> OrdenesTrabajo => Set<OrdenTrabajo>();
+    public DbSet<OrdenTrabajoVisita> OrdenTrabajoVisitas => Set<OrdenTrabajoVisita>();
+    public DbSet<OrdenTrabajoVisitaEvidencia> OrdenTrabajoVisitaEvidencias => Set<OrdenTrabajoVisitaEvidencia>();
     public DbSet<OrdenTrabajoTarea> OrdenTrabajoTareas => Set<OrdenTrabajoTarea>();
+    public DbSet<MotivoIncidencia> MotivosIncidencia => Set<MotivoIncidencia>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<TipoOrdenTrabajo> TiposOrdenTrabajo => Set<TipoOrdenTrabajo>();
     public DbSet<TipoTareaServicio> TiposTareaServicio => Set<TipoTareaServicio>();

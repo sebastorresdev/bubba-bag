@@ -24,6 +24,25 @@
 }
 
 /* --------------------------------------------------------------------------
+   Spin Wrapper para Pestañas y Guardado
+   -------------------------------------------------------------------------- */
+.empleado-spin-wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+}
+
+:host ::ng-deep .empleado-spin-wrapper > .ant-spin-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------------------
    Cabecera de Registro (Dynamics 365 Record Header)
    -------------------------------------------------------------------------- */
 .d365-record-header {
@@ -386,20 +405,118 @@
   color: var(--ant-primary-color, #0f6cbd);
 }
 
-.card-form-grid {
+/* ==========================================================================
+   LAYOUT MULTI-COLUMNA DYNAMICS 365 (Estructura Laboral y Compensación)
+   - 2 Columnas paralelas (50% / 50%) en pantallas >= 850px
+   - 1 Columna completa (100%) en pantallas < 850px
+   ========================================================================== */
+.d365-two-columns {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px 24px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  width: 100%;
+  align-items: start;
 }
 
-@media (max-width: 768px) {
-  .card-form-grid {
+@media (max-width: 850px) {
+  .d365-two-columns {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 }
 
+/* ==========================================================================
+   FORMULARIO ESTILO MICROSOFT DYNAMICS 365: FILAS HORIZONTALES RESPONSIVAS
+   - En Desktop: Label a la izquierda (200px sin corte) + Control a la derecha (flex: 1)
+   - En Tablet/Móvil (<= 768px): Se convierte automáticamente en Vertical
+   ========================================================================== */
+.card-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+:host ::ng-deep .card-form-grid nz-form-item,
+:host ::ng-deep .card-form-grid .ant-form-item {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  margin-bottom: 0 !important;
+  min-height: 38px !important;
+  gap: 12px !important;
+  width: 100% !important;
+}
+
+:host ::ng-deep .card-form-grid .ant-form-item-label {
+  flex: 0 0 200px !important;
+  max-width: 200px !important;
+  width: 200px !important;
+  text-align: left !important;
+  padding: 5px 8px 0 0 !important;
+  line-height: 1.25 !important;
+}
+
+:host ::ng-deep .card-form-grid .ant-form-item-label > label {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #555555 !important;
+  height: auto !important;
+  text-align: left !important;
+  justify-content: flex-start !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  word-break: normal !important;
+  line-height: 1.25 !important;
+}
+
+/* Dynamics 365 no muestra ":" al final de los labels */
+:host ::ng-deep .card-form-grid .ant-form-item-label > label::after {
+  display: none !important;
+}
+
+/* Asterisco de campo requerido estilo sutil D365 */
+:host ::ng-deep .card-form-grid .ant-form-item-label > label.ant-form-item-required::before {
+  margin-right: 4px !important;
+  color: #a80000 !important;
+}
+
+:host ::ng-deep .card-form-grid .ant-form-item-control {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+:host ::ng-deep .card-form-grid .ant-form-item-control-input {
+  min-height: 32px !important;
+}
+
+/* Modo Tablet y Móvil (<= 768px): Colapso a Vertical */
+@media (max-width: 768px) {
+  :host ::ng-deep .card-form-grid nz-form-item,
+  :host ::ng-deep .card-form-grid .ant-form-item {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 4px !important;
+    margin-bottom: 12px !important;
+  }
+
+  :host ::ng-deep .card-form-grid .ant-form-item-label {
+    flex: 0 0 auto !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 0 2px 0 !important;
+  }
+}
+
+/* Soporte Modo Oscuro */
+:host-context([data-theme='dark']) :host ::ng-deep .card-form-grid .ant-form-item-label > label,
+:host-context(.dark-theme) :host ::ng-deep .card-form-grid .ant-form-item-label > label {
+  color: #adadad !important;
+}
+
 .col-span-full {
-  grid-column: 1 / -1;
+  width: 100%;
 }
 
 .full-width {
@@ -600,10 +717,6 @@ nz-form-label {
   .d365-tab-grid {
     grid-template-columns: 1fr;
   }
-
-  .card-form-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* Móviles (<= 576px) */
@@ -681,3 +794,173 @@ nz-form-label {
     padding: 12px !important;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Distribución de Columnas Dynamics 365 (Principal + Lateral)
+   -------------------------------------------------------------------------- */
+.d365-tab-columns {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 20px !important;
+  width: 100% !important;
+  align-items: flex-start !important;
+}
+
+.d365-tab-column.main-column {
+  flex: 1.4 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+}
+
+.d365-tab-column.timeline-column {
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+}
+
+@media (max-width: 850px) {
+  .d365-tab-columns {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .d365-tab-column.main-column,
+  .d365-tab-column.timeline-column {
+    width: 100% !important;
+    flex: 1 !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Línea de Tiempo y Actividad (Columna Lateral Derecha)
+   -------------------------------------------------------------------------- */
+.d365-timeline {
+  padding-top: 8px;
+}
+
+.timeline-event-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timeline-event-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--d365-text-primary, #242424);
+}
+
+:host-context([data-theme='dark']) .timeline-event-title,
+:host-context(.dark-theme) .timeline-event-title {
+  color: #f3f2f1 !important;
+}
+
+.timeline-event-desc {
+  font-size: 12px;
+  color: var(--d365-text-muted, #605e5c);
+  line-height: 1.35;
+}
+
+:host-context([data-theme='dark']) .timeline-event-desc,
+:host-context(.dark-theme) .timeline-event-desc {
+  color: #a19f9d !important;
+}
+
+/* --------------------------------------------------------------------------
+   Información del Registro e Historial (Columna Lateral Derecha)
+   -------------------------------------------------------------------------- */
+.record-meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+:host-context([data-theme='dark']) .meta-row,
+:host-context(.dark-theme) .meta-row {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.meta-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.meta-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--d365-text-muted, #605e5c);
+}
+
+:host-context([data-theme='dark']) .meta-label,
+:host-context(.dark-theme) .meta-label {
+  color: #a19f9d !important;
+}
+
+.meta-value {
+  font-size: 12.5px;
+  color: var(--d365-text-primary, #242424);
+  font-weight: 500;
+  text-align: right;
+}
+
+:host-context([data-theme='dark']) .meta-value,
+:host-context(.dark-theme) .meta-value {
+  color: #f3f2f1 !important;
+}
+
+.meta-value-copy {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.meta-id-code {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  background-color: rgba(0, 0, 0, 0.04);
+  padding: 2px 6px;
+  border-radius: 4px;
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:host-context([data-theme='dark']) .meta-id-code,
+:host-context(.dark-theme) .meta-id-code {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #d1d1d1;
+}
+
+.btn-copy-id {
+  padding: 0 4px;
+  height: 22px;
+}
+
+.text-active {
+  color: #107c41 !important;
+  font-weight: 600;
+}
+
+.text-inactive {
+  color: #d83b01 !important;
+  font-weight: 600;
+}
+
+.text-danger {
+  color: #a80000 !important;
+}
+

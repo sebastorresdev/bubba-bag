@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BubbaBag.Modules.ServicioCampo.Domain\BubbaBag.Modules.ServicioCampo.Domain.csproj" />
+    <ProjectReference Include="..\BubbaBag.Modules.ServicioCampo.Application\BubbaBag.Modules.ServicioCampo.Application.csproj" />
     <ProjectReference Include="..\..\Crm\BubbaBag.Modules.Crm.Domain\BubbaBag.Modules.Crm.Domain.csproj" />
   </ItemGroup>
 

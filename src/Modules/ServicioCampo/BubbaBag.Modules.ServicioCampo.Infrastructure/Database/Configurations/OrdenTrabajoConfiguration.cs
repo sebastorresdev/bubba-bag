@@ -33,6 +33,13 @@ public class OrdenTrabajoConfiguration : IEntityTypeConfiguration<OrdenTrabajo>
             .HasMaxLength(100);
 
         // Estados
+        builder.Property(w => w.Estado)
+            .HasConversion<string>()
+            .HasMaxLength(30)
+            .IsRequired();
+
+        builder.HasIndex(w => w.Estado);
+
         builder.Property(w => w.EstadoSistema)
             .HasConversion<string>()
             .HasMaxLength(30)
@@ -40,34 +47,45 @@ public class OrdenTrabajoConfiguration : IEntityTypeConfiguration<OrdenTrabajo>
 
         builder.HasIndex(w => w.EstadoSistema);
 
-        builder.Property(w => w.EstadoInterno)
-            .IsRequired()
-            .HasMaxLength(50);
-
-        builder.HasIndex(w => w.EstadoInterno);
-
         builder.Property(w => w.EstadoExterno)
             .HasMaxLength(100);
 
-        builder.Property(w => w.MotivoCierre)
-            .HasMaxLength(100);
-
-        builder.Property(w => w.BloqueHorario)
-            .HasMaxLength(50);
-
-        builder.Property(w => w.FirmaClienteUrl)
+        builder.Property(w => w.ObservacionesCierre)
             .HasMaxLength(500);
 
-        builder.Property(w => w.FotoFachadaUrl)
-            .HasMaxLength(500);
+        // Gestión y descarga de materiales consolidada en la Orden
+        builder.Property(w => w.NoConsumioMateriales)
+            .IsRequired();
 
-        builder.Property(w => w.FotoInstalacionUrl)
-            .HasMaxLength(500);
+        builder.Property(w => w.DescargaMaterialesOmitida)
+            .IsRequired();
 
-        builder.Property(w => w.ObservacionesGenerales)
-            .HasMaxLength(1000);
+        builder.Property(w => w.MotivoOmisionMateriales)
+            .HasMaxLength(250);
 
-        // Relaciones
+        builder.Property(w => w.DescargaMaterialesObligatoria)
+            .IsRequired();
+
+        builder.Property(w => w.DescargaMaterialesConfirmada)
+            .IsRequired();
+
+        builder.Property(w => w.FechaDescargaMateriales);
+
+        builder.Property(w => w.ContadorOmisionDescarga)
+            .IsRequired();
+
+        // Ignorar propiedades calculadas de conveniencia delegadas a VisitaActual
+        builder.Ignore(w => w.VisitaActual);
+        builder.Ignore(w => w.CuadrillaTecnicoId);
+        builder.Ignore(w => w.FechaProgramada);
+        builder.Ignore(w => w.BloqueHorario);
+        builder.Ignore(w => w.FechaInicioReal);
+        builder.Ignore(w => w.FechaCierreReal);
+        builder.Ignore(w => w.FirmaClienteUrl);
+        builder.Ignore(w => w.EvidenciasConfirmadas);
+        builder.Ignore(w => w.ObservacionesGenerales);
+
+        // Relaciones maestras
         builder.HasOne(w => w.TipoOrden)
             .WithMany()
             .HasForeignKey(w => w.TipoOrdenId)
@@ -87,6 +105,17 @@ public class OrdenTrabajoConfiguration : IEntityTypeConfiguration<OrdenTrabajo>
             .WithMany()
             .HasForeignKey(w => w.ClienteServicioId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(w => w.MotivoCierre)
+            .WithMany()
+            .HasForeignKey(w => w.MotivoCierreId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Relaciones hijas (Visitas y Tareas)
+        builder.HasMany(w => w.Visitas)
+            .WithOne(v => v.OrdenTrabajo)
+            .HasForeignKey(v => v.OrdenTrabajoId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(w => w.Tareas)
             .WithOne(t => t.OrdenTrabajo)

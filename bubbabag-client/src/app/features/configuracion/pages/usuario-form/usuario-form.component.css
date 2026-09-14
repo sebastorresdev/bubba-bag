@@ -13,255 +13,151 @@
   color: #f3f2f1 !important;
 }
 
-.usuario-form-view {
-  width: 100%;
+/* --------------------------------------------------------------------------
+   Spin Wrapper para Pestañas
+   -------------------------------------------------------------------------- */
+.user-spin-wrapper {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  position: relative;
-  background-color: #f0f2f5;
+  width: 100%;
 }
 
-:host-context([data-theme='dark']) .usuario-form-view,
-:host-context(.dark-theme) .usuario-form-view {
-  background-color: #000000 !important;
+:host ::ng-deep .user-spin-wrapper > .ant-spin-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-/* Cabecera de Registro Dynamics 365 */
-.d365-record-header {
-  position: sticky;
-  top: 0;
-  flex-shrink: 0;
-  z-index: 10;
+/* --------------------------------------------------------------------------
+   Distribución de Columnas Dynamics 365 (Principal + Lateral)
+   -------------------------------------------------------------------------- */
+.d365-tab-column.main-column {
+  flex: 1.55;
+  min-width: 0;
+}
+
+.d365-tab-column.timeline-column {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 1080px) {
+  .d365-tab-columns {
+    flex-direction: column !important;
+  }
+
+  .d365-tab-column.main-column,
+  .d365-tab-column.timeline-column {
+    flex: 1 !important;
+    width: 100% !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Distribución de Campos en Formularios (1 input por fila dentro de cada Card)
+   -------------------------------------------------------------------------- */
+.card-form-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  width: 100%;
+}
+
+.card-form-grid nz-form-item,
+.card-form-grid .ant-form-item {
+  margin-bottom: 0 !important;
+  width: 100%;
+}
+
+/* Avatar personalizado para Usuarios (Azul Dynamics corporativo) */
+.record-avatar {
+  background-color: #0078d4 !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+/* --------------------------------------------------------------------------
+   Caja de Estado de Acceso (Switch interactivo con descripción)
+   -------------------------------------------------------------------------- */
+.classification-box {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
-  background-color: #ffffff;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-:host-context([data-theme='dark']) .d365-record-header,
-:host-context(.dark-theme) .d365-record-header {
-  background-color: #1f1f1f;
-  border-bottom-color: rgba(255, 255, 255, 0.08);
-}
-
-.record-header-main {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.record-avatar {
-  background-color: #0078d4;
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.record-title-block {
-  display: flex;
-  flex-direction: column;
-}
-
-.record-title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.2;
-  color: inherit;
-  letter-spacing: -0.3px;
-}
-
-.record-subtitle {
-  font-size: 13px;
-  color: #605e5c;
-  margin-top: 2px;
-}
-
-:host-context([data-theme='dark']) .record-subtitle,
-:host-context(.dark-theme) .record-subtitle {
-  color: #a19f9d;
-}
-
-.record-header-kpis {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-
-.kpi-item {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
-.kpi-label {
-  font-size: 11px;
-  color: #605e5c;
-  text-transform: uppercase;
-  font-weight: 600;
-}
-
-:host-context([data-theme='dark']) .kpi-label,
-:host-context(.dark-theme) .kpi-label {
-  color: #a19f9d;
-}
-
-.status-cell {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  margin-top: 2px;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.dot-active {
-  background-color: #107c41;
-  box-shadow: 0 0 0 2px rgba(16, 124, 65, 0.2);
-}
-
-.dot-inactive {
-  background-color: #8a8886;
-  box-shadow: 0 0 0 2px rgba(138, 136, 134, 0.2);
-}
-
-.status-text {
-  color: inherit;
-}
-
-/* Cuerpo del Formulario con Scroll Aislado */
-.user-form-scroll-body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 20px 24px 32px 24px;
-  box-sizing: border-box;
-  width: 100%;
-}
-
-:host ::ng-deep .user-form-scroll-body > nz-spin {
-  display: block;
-  width: 100%;
-}
-
-.form-vertical-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  width: 100%;
-}
-
-.d365-card {
-  border-radius: 4px !important;
-  background-color: #ffffff !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  padding: 14px 16px;
+  border: 1px solid var(--d365-border-subtle, #edebe9);
+  border-radius: 6px;
+  background-color: rgba(0, 0, 0, 0.02);
   transition: all 0.2s ease;
 }
 
-:host-context([data-theme='dark']) .d365-card,
-:host-context(.dark-theme) .d365-card {
-  background-color: #1f1f1f !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+:host-context([data-theme='dark']) .classification-box,
+:host-context(.dark-theme) .classification-box {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
-:host-context([data-theme='dark']) input[nz-input],
-:host-context(.dark-theme) input[nz-input] {
-  background-color: #141414 !important;
-  border-color: rgba(255, 255, 255, 0.18) !important;
-  color: #ffffff !important;
-}
-
-:host-context([data-theme='dark']) input[nz-input]:focus,
-:host-context(.dark-theme) input[nz-input]:focus {
-  border-color: #2899f5 !important;
-  box-shadow: 0 0 0 2px rgba(40, 153, 245, 0.2) !important;
-}
-
-.card-section-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-:host-context([data-theme='dark']) .card-section-header,
-:host-context(.dark-theme) .card-section-header {
-  border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-.section-icon {
-  font-size: 18px;
-  color: #0078d4;
-}
-
-.section-header-text {
+.classification-info {
   display: flex;
   flex-direction: column;
+  gap: 3px;
+  padding-right: 16px;
 }
 
-.section-title {
-  font-size: 15px;
+.classification-title {
+  font-size: 13.5px;
   font-weight: 600;
-  color: inherit;
+  color: var(--d365-text-primary, #242424);
 }
 
-.section-subtitle {
+:host-context([data-theme='dark']) .classification-title,
+:host-context(.dark-theme) .classification-title {
+  color: #f3f2f1 !important;
+}
+
+.classification-desc {
   font-size: 12px;
-  color: #605e5c;
+  color: var(--d365-text-muted, #605e5c);
+  line-height: 1.35;
 }
 
-:host-context([data-theme='dark']) .section-subtitle,
-:host-context(.dark-theme) .section-subtitle {
-  color: #a19f9d;
+:host-context([data-theme='dark']) .classification-desc,
+:host-context(.dark-theme) .classification-desc {
+  color: #a19f9d !important;
 }
 
-.form-field-item {
-  margin-bottom: 16px;
+/* --------------------------------------------------------------------------
+   Roles de Seguridad (Cuadrícula en Columna Principal de Tab 1)
+   -------------------------------------------------------------------------- */
+.roles-counter-badge {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-weight: 600;
 }
 
-/* ==========================================================================
-   Tarjeta Inferior: Roles de Seguridad del Sistema (Estilo Dynamics 365 con Checkboxes)
-   ========================================================================== */
 .d365-modules-roles-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
+  gap: 16px;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 768px) {
   .d365-modules-roles-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 12px;
   }
 }
 
 .d365-module-roles-group {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  gap: 10px;
+  padding: 14px;
   border-radius: 4px;
   background-color: #faf9f8;
   border: 1px solid rgba(0, 0, 0, 0.06);
@@ -277,7 +173,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 10px;
+  padding-bottom: 8px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
@@ -289,50 +185,32 @@
 .module-group-title {
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.module-icon-box {
-  width: 28px;
-  height: 28px;
-  border-radius: 4px;
-  background-color: rgba(0, 120, 212, 0.08);
-  color: #0078d4;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-}
-
-:host-context([data-theme='dark']) .module-icon-box,
-:host-context(.dark-theme) .module-icon-box {
-  background-color: rgba(0, 120, 212, 0.25);
-  color: #2899f5;
+  gap: 8px;
 }
 
 .module-title-text {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   color: inherit;
 }
 
 .module-count-badge {
   border-radius: 2px;
-  font-size: 11.5px;
+  font-size: 11px;
   margin: 0;
 }
 
 .module-roles-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .d365-role-checkbox-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 12px 14px;
+  gap: 4px;
+  padding: 10px 12px;
   border-radius: 4px;
   background-color: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.09);
@@ -377,14 +255,14 @@
 }
 
 .role-name-text {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   color: inherit;
   margin-left: 4px;
 }
 
 .role-desc-text {
-  font-size: 12px;
+  font-size: 11.5px;
   color: #605e5c;
   line-height: 1.35;
   padding-left: 24px;
@@ -397,16 +275,279 @@
 
 .role-active-tag {
   border-radius: 2px;
-  font-size: 11px;
+  font-size: 10.5px;
   margin: 0;
   display: inline-flex;
   align-items: center;
   gap: 3px;
 }
 
-/* ==========================================================================
-   Drawer Lateral Derecho: Restablecer Contraseña (Estilo M365 Admin & Dynamics)
-   ========================================================================== */
+/* --------------------------------------------------------------------------
+   Línea de Tiempo y Actividad (Columna Lateral Derecha)
+   -------------------------------------------------------------------------- */
+.d365-timeline {
+  padding-top: 8px;
+}
+
+.timeline-event-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timeline-event-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--d365-text-primary, #242424);
+}
+
+:host-context([data-theme='dark']) .timeline-event-title,
+:host-context(.dark-theme) .timeline-event-title {
+  color: #f3f2f1 !important;
+}
+
+.timeline-event-desc {
+  font-size: 12px;
+  color: var(--d365-text-muted, #605e5c);
+  line-height: 1.35;
+}
+
+:host-context([data-theme='dark']) .timeline-event-desc,
+:host-context(.dark-theme) .timeline-event-desc {
+  color: #a19f9d !important;
+}
+
+/* --------------------------------------------------------------------------
+   Información del Registro e Historial (Columna Lateral Derecha)
+   -------------------------------------------------------------------------- */
+.record-meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+:host-context([data-theme='dark']) .meta-row,
+:host-context(.dark-theme) .meta-row {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.meta-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.meta-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--d365-text-muted, #605e5c);
+}
+
+:host-context([data-theme='dark']) .meta-label,
+:host-context(.dark-theme) .meta-label {
+  color: #a19f9d !important;
+}
+
+.meta-value {
+  font-size: 12.5px;
+  color: var(--d365-text-primary, #242424);
+  font-weight: 500;
+  text-align: right;
+}
+
+:host-context([data-theme='dark']) .meta-value,
+:host-context(.dark-theme) .meta-value {
+  color: #f3f2f1 !important;
+}
+
+.meta-value-copy {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.meta-id-code {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  background-color: rgba(0, 0, 0, 0.04);
+  padding: 2px 6px;
+  border-radius: 4px;
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:host-context([data-theme='dark']) .meta-id-code,
+:host-context(.dark-theme) .meta-id-code {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #d1d1d1;
+}
+
+.btn-copy-id {
+  padding: 0 4px;
+  height: 22px;
+}
+
+.text-active {
+  color: #107c41 !important;
+  font-weight: 600;
+}
+
+.text-inactive {
+  color: #d83b01 !important;
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   Pestaña 2: Accesos y Credenciales (Configuración de Contraseña y Políticas)
+   -------------------------------------------------------------------------- */
+.password-tab-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.password-status-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background-color: #f0f6ff;
+  border-left: 3px solid #0078d4;
+  border-radius: 4px;
+}
+
+:host-context([data-theme='dark']) .password-status-banner,
+:host-context(.dark-theme) .password-status-banner {
+  background-color: rgba(0, 120, 212, 0.12);
+  border-left-color: #2899f5;
+}
+
+.banner-lock-icon {
+  font-size: 20px;
+  color: #0078d4;
+  margin-top: 2px;
+}
+
+:host-context([data-theme='dark']) .banner-lock-icon,
+:host-context(.dark-theme) .banner-lock-icon {
+  color: #2899f5;
+}
+
+.banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.banner-heading {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #004578;
+}
+
+:host-context([data-theme='dark']) .banner-heading,
+:host-context(.dark-theme) .banner-heading {
+  color: #c7e0f4;
+}
+
+.banner-subheading {
+  font-size: 12px;
+  color: #201f1e;
+  line-height: 1.4;
+}
+
+:host-context([data-theme='dark']) .banner-subheading,
+:host-context(.dark-theme) .banner-subheading {
+  color: #a19f9d;
+}
+
+.tab-password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.password-actions-bar {
+  display: flex;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.policies-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.policy-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+:host-context([data-theme='dark']) .policy-card,
+:host-context(.dark-theme) .policy-card {
+  background-color: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.policy-icon {
+  font-size: 18px;
+  color: #0078d4;
+  margin-top: 2px;
+}
+
+:host-context([data-theme='dark']) .policy-icon,
+:host-context(.dark-theme) .policy-icon {
+  color: #2899f5;
+}
+
+.policy-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.policy-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--d365-text-primary, #242424);
+}
+
+:host-context([data-theme='dark']) .policy-title,
+:host-context(.dark-theme) .policy-title {
+  color: #f3f2f1 !important;
+}
+
+.policy-desc {
+  font-size: 11.5px;
+  color: var(--d365-text-muted, #605e5c);
+  line-height: 1.35;
+}
+
+:host-context([data-theme='dark']) .policy-desc,
+:host-context(.dark-theme) .policy-desc {
+  color: #a19f9d !important;
+}
+
+/* --------------------------------------------------------------------------
+   Drawer Lateral Derecho: Restablecer Contraseña (M365 Admin & Dynamics)
+   -------------------------------------------------------------------------- */
 .drawer-user-summary {
   display: flex;
   align-items: center;

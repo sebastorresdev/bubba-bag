@@ -24,16 +24,16 @@
         </h1>
 
         <div class="record-metadata-row">
-          <span class="record-code-tag">{{ form.get('codigoCliente')?.value || 'CLI-NUEVO' }}</span>
+          <span class="record-code-tag">{{ isEdit ? (clienteActual?.codigoCliente || 'CLI-000000') : 'CLI-AUTOGENERADO' }}</span>
           <nz-divider nzType="vertical" />
-          <span>{{ form.get('tipoPersona')?.value === 'JURIDICA' ? 'Persona Jurídica' : 'Persona Natural' }}</span>
-          @if (form.get('documentoIdentidad')?.value) {
+          <span>{{ clienteActual?.tipoPersona === 'JURIDICA' ? 'Persona Jurídica' : (isEdit ? 'Persona Natural' : 'Por definir') }}</span>
+          @if (clienteActual?.documentoIdentidad) {
             <nz-divider nzType="vertical" />
-            <span>{{ form.get('tipoDocumento')?.value }}: {{ form.get('documentoIdentidad')?.value }}</span>
+            <span>{{ clienteActual?.tipoDocumento }}: {{ clienteActual?.documentoIdentidad }}</span>
           }
-          @if (form.get('tipoPersona')?.value === 'JURIDICA' && form.get('nombres')?.value) {
+          @if (clienteActual?.tipoPersona === 'JURIDICA' && clienteActual?.nombres) {
             <nz-divider nzType="vertical" />
-            <span>Contacto: {{ form.get('nombres')?.value }} {{ form.get('apellidos')?.value || '' }}</span>
+            <span>Contacto: {{ clienteActual?.nombres }} {{ clienteActual?.apellidos || '' }}</span>
           }
         </div>
 
@@ -43,43 +43,47 @@
             <a
               [href]="'mailto:' + emailCliente"
               class="quick-action-icon"
-              [title]="emailCliente + ' (Clic para enviar correo)'"
+              nz-tooltip
+              nzTooltipTitle="Enviar Correo Electrónico"
             >
-              <nz-icon nzType="mail" />
+              <nz-icon nzType="mail" nzTheme="outline" />
             </a>
-          } @else {
-            <span class="quick-action-icon disabled" title="Sin correo electrónico">
-              <nz-icon nzType="mail" />
-            </span>
           }
-
           @if (telefonoCliente) {
             <a
               [href]="'tel:' + telefonoCliente"
               class="quick-action-icon"
-              [title]="telefonoCliente + ' (Clic para llamar)'"
+              nz-tooltip
+              nzTooltipTitle="Llamar Teléfono"
             >
-              <nz-icon nzType="phone" />
+              <nz-icon nzType="phone" nzTheme="outline" />
             </a>
-          } @else {
-            <span class="quick-action-icon disabled" title="Sin teléfono">
-              <nz-icon nzType="phone" />
-            </span>
+          }
+          @if (telefonoCliente) {
+            <a
+              [href]="'https://wa.me/51' + telefonoCliente.replace(' ', '')"
+              target="_blank"
+              class="quick-action-icon whatsapp-action"
+              nz-tooltip
+              nzTooltipTitle="Abrir WhatsApp"
+            >
+              <nz-icon nzType="message" nzTheme="outline" />
+            </a>
           }
         </div>
       </div>
     </div>
 
-    <!-- Indicadores Métricos del Encabezado (KPIs superiores con barras separadoras) -->
+    <!-- Indicadores Métricos del Encabezado (KPIs superiores con barras separadoras basados en datos guardados) -->
     <div class="record-header-metrics">
       <div class="metric-item">
         <span class="metric-label">ESTADO</span>
         <span
           class="kpi-value-pill"
-          [class.pill-active]="form.get('activo')?.value"
-          [class.pill-inactive]="!form.get('activo')?.value"
+          [class.pill-active]="(clienteActual?.activo ?? true)"
+          [class.pill-inactive]="clienteActual ? !clienteActual.activo : false"
         >
-          {{ form.get('activo')?.value ? 'ACTIVO' : 'INACTIVO' }}
+          {{ (clienteActual ? (clienteActual.activo ? 'ACTIVO' : 'INACTIVO') : (isEdit ? 'ACTIVO' : 'NUEVO')) }}
         </span>
       </div>
 
@@ -87,8 +91,8 @@
 
       <div class="metric-item">
         <span class="metric-label">FACTURACIÓN</span>
-        <span class="kpi-value-badge" [class.badge-enabled]="form.get('esClienteFacturacion')?.value">
-          {{ form.get('esClienteFacturacion')?.value ? 'HABILITADO' : 'NO' }}
+        <span class="kpi-value-badge" [class.badge-enabled]="clienteActual?.esClienteFacturacion">
+          {{ clienteActual?.esClienteFacturacion ? 'HABILITADO' : 'NO' }}
         </span>
       </div>
 
@@ -96,15 +100,17 @@
 
       <div class="metric-item">
         <span class="metric-label">CAMPO / SERVICIO</span>
-        <span class="kpi-value-badge" [class.badge-service]="form.get('esClienteServicio')?.value">
-          {{ form.get('esClienteServicio')?.value ? 'SEDE VÁLIDA' : 'NO' }}
+        <span class="kpi-value-badge" [class.badge-service]="clienteActual?.esClienteServicio">
+          {{ clienteActual?.esClienteServicio ? 'SEDE VÁLIDA' : 'NO' }}
         </span>
       </div>
     </div>
   </div>
 
-  <!-- Navegación por Tabs Estilo Microsoft Dynamics 365 (Full Width con scroll de contenido) -->
-  <form nz-form [formGroup]="form" nzLayout="vertical" class="d365-form-container">
+  <!-- Contenedor con Indicador Circular de Carga y Guardado (nz-spin) -->
+  <nz-spin [nzSpinning]="loading || saving" [nzTip]="loadingTip" class="cliente-spin-wrapper">
+    <!-- Navegación por Tabs Estilo Microsoft Dynamics 365 (Full Width con scroll de contenido) -->
+    <form nz-form [formGroup]="form" nzLayout="horizontal" [nzNoColon]="true" class="d365-form-container">
     <nz-tabs [(nzSelectedIndex)]="selectedTabIndex" [nzAnimated]="false" class="d365-form-tabs">
       <!-- PESTAÑA 1: GENERAL (Identificación, Contacto, Canales y Dirección) -->
       <nz-tab nzTitle="General">
@@ -115,13 +121,23 @@
             <nz-card [nzBordered]="true" class="d365-card" nzTitle="Identificación y Régimen">
               <div class="card-form-grid">
                 <nz-form-item>
-                  <nz-form-label nzRequired>Código de Cliente</nz-form-label>
-                  <nz-form-control nzErrorTip="El código es obligatorio">
-                    <input
-                      nz-input
-                      formControlName="codigoCliente"
-                      placeholder="Ej. CLI-2026-001"
-                    />
+                  <nz-form-label>Código de Cliente</nz-form-label>
+                  <nz-form-control>
+                    @if (isEdit) {
+                      <input
+                        nz-input
+                        [value]="clienteActual?.codigoCliente || form.get('codigoCliente')?.value"
+                        disabled
+                        class="bg-gray-50 font-mono font-bold text-primary"
+                      />
+                    } @else {
+                      <input
+                        nz-input
+                        value="[Asignado automáticamente por el sistema (ej. CLI-000001)]"
+                        disabled
+                        class="bg-gray-50 text-gray-400 italic"
+                      />
+                    }
                   </nz-form-control>
                 </nz-form-item>
 
@@ -211,8 +227,8 @@
                   </nz-form-item>
 
                   <nz-form-item>
-                    <nz-form-label>Apellidos</nz-form-label>
-                    <nz-form-control>
+                    <nz-form-label nzRequired>Apellidos</nz-form-label>
+                    <nz-form-control nzErrorTip="Por favor ingrese los apellidos">
                       <input nz-input formControlName="apellidos" placeholder="Apellidos" />
                     </nz-form-control>
                   </nz-form-item>
@@ -493,4 +509,5 @@
       }
     </nz-tabs>
   </form>
+  </nz-spin>
 </div>

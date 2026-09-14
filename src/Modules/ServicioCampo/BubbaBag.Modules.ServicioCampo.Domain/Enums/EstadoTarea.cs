@@ -1,10 +1,27 @@
 namespace BubbaBag.Modules.ServicioCampo.Domain.Enums;
 
+/// <summary>
+/// Estados de las subtareas técnicas de una Orden de Trabajo.
+/// </summary>
 public enum EstadoTarea
 {
-    Pendiente = 1,
-    EnProceso = 2,
-    Completada = 3,
-    NoRealizada = 4,
-    Cancelada = 5
+    /// <summary>
+    /// Lista para ser ejecutada durante la visita.
+    /// </summary>
+    Abierta = 1,
+
+    /// <summary>
+    /// Ejecutada con éxito en campo.
+    /// </summary>
+    Completa = 2,
+
+    /// <summary>
+    /// Anulada formalmente (no se atenderá).
+    /// </summary>
+    Cancelada = 3,
+
+    /// <summary>
+    /// Rechazada en sitio por inviabilidad técnica o desistimiento puntual del cliente.
+    /// </summary>
+    Rechazada = 4
 }

@@ -353,9 +353,13 @@
   gap: 20px;
 }
 
-@media (max-width: 992px) {
+@media (max-width: 850px) {
   .d365-tab-columns {
     flex-direction: column;
+    align-items: stretch;
+  }
+  .d365-tab-column {
+    width: 100%;
   }
 }
 
@@ -414,18 +418,110 @@
   gap: 16px;
 }
 
-/* 1 input por fila dentro de cada tarjeta (estándar Dynamics 365 vertical) */
+/* ==========================================================================
+   ESTÁNDAR GLOBAL FORMULARIOS DYNAMICS 365: FILAS HORIZONTALES RESPONSIVAS
+   - En Desktop / Laptop: Label a la izquierda (200px) + Control a la derecha (flex: 1)
+   - En Tablet / Móvil (<= 768px): Se convierte automáticamente en Vertical
+   ========================================================================== */
 .card-form-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  width: 100%;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  width: 100% !important;
 }
 
 .card-form-grid nz-form-item,
 .card-form-grid .ant-form-item {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
   margin-bottom: 0 !important;
+  min-height: 38px !important;
+  gap: 12px !important;
+  width: 100% !important;
+}
+
+.card-form-grid .ant-form-item-label {
+  flex: 0 0 200px !important;
+  max-width: 200px !important;
+  width: 200px !important;
+  text-align: left !important;
+  padding: 5px 8px 0 0 !important;
+  line-height: 1.25 !important;
+}
+
+.card-form-grid .ant-form-item-label > label {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #555555 !important;
+  height: auto !important;
+  text-align: left !important;
+  justify-content: flex-start !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  word-break: normal !important;
+  line-height: 1.25 !important;
+}
+
+/* Dynamics 365 no muestra ":" al final de los labels */
+.card-form-grid .ant-form-item-label > label::after {
+  display: none !important;
+}
+
+/* Asterisco de campo requerido estilo sutil D365 */
+.card-form-grid .ant-form-item-label > label.ant-form-item-required::before {
+  margin-right: 4px !important;
+  color: #a80000 !important;
+}
+
+.card-form-grid .ant-form-item-control {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+.card-form-grid .ant-form-item-control-input {
+  min-height: 32px !important;
+}
+
+/* Modo Tablet y Móvil (<= 768px): Colapso automático a Vertical */
+@media (max-width: 768px) {
+  .card-form-grid nz-form-item,
+  .card-form-grid .ant-form-item {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 4px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .card-form-grid .ant-form-item-label {
+    flex: 0 0 auto !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 0 2px 0 !important;
+  }
+}
+
+/* Soporte Tema Oscuro Global */
+[data-theme='dark'] .card-form-grid .ant-form-item-label > label,
+.dark-theme .card-form-grid .ant-form-item-label > label {
+  color: #adadad !important;
+}
+
+/* Grilla de 2 Columnas Paralelas Dynamics 365 */
+.d365-two-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
   width: 100%;
+  align-items: start;
+}
+
+@media (max-width: 850px) {
+  .d365-two-columns {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
 }
 
 .card-form-stack {

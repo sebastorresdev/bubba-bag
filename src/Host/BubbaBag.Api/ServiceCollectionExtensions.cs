@@ -20,6 +20,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, CurrentUser>();
+        services.AddScoped<ICodigoSecuencialService, PostgresCodigoSecuencialService>();
         services.AddScoped<BubbaBag.SharedKernel.CQRS.IDispatcher, BubbaBag.SharedKernel.CQRS.Dispatcher>();
 
         // Seguridad Module

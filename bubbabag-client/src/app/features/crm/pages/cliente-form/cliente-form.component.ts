@@ -36,6 +36,7 @@ import { NzTabsModule } from 'ng-zorro-antd/tabs';
 import { NzRadioModule } from 'ng-zorro-antd/radio';
 import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
 import { NzDividerModule } from 'ng-zorro-antd/divider';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
 import {
@@ -65,6 +66,7 @@ import {
     NzRadioModule,
     NzInputNumberModule,
     NzDividerModule,
+    NzSpinModule,
     CommandBarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Default,
@@ -88,6 +90,12 @@ export class ClienteFormComponent implements OnInit {
   selectedTabIndex = 0;
   capturandoUbicacion = false;
 
+  get loadingTip(): string {
+    if (this.saving) return 'Guardando información del cliente...';
+    if (this.loading) return 'Cargando datos del cliente...';
+    return 'Procesando...';
+  }
+
   tiposDocumento = [
     { label: 'DNI (Documento Nacional de Identidad)', value: 'DNI' },
     { label: 'Carnet de Extranjería (CE)', value: 'CE' },
@@ -101,25 +109,24 @@ export class ClienteFormComponent implements OnInit {
   ubigeosCatalogo: UbigeoItemDto[] = [];
 
   get emailCliente(): string {
-    return this.form?.get('email')?.value || '';
+    return this.clienteActual?.email || '';
   }
 
   get telefonoCliente(): string {
-    return this.form?.get('telefonoPrincipal')?.value || '';
+    return this.clienteActual?.telefonoPrincipal || '';
   }
 
   get nombreClienteEnFormulario(): string {
-    const tipo = this.form?.get('tipoPersona')?.value;
-    if (tipo === 'JURIDICA') {
-      const razonSocial = this.form?.get('razonSocial')?.value?.trim();
-      if (razonSocial) return razonSocial;
-    } else {
-      const nombres = this.form?.get('nombres')?.value?.trim() || '';
-      const apellidos = this.form?.get('apellidos')?.value?.trim() || '';
-      const completo = `${nombres} ${apellidos}`.trim();
-      if (completo) return completo;
+    if (!this.isEdit || !this.clienteActual) {
+      return 'Nuevo Cliente';
     }
-    return this.isEdit ? 'Cliente' : 'Nuevo Cliente';
+    if (this.clienteActual.tipoPersona === 'JURIDICA') {
+      return this.clienteActual.razonSocial?.trim() || 'Empresa';
+    }
+    const nombres = this.clienteActual.nombres?.trim() || '';
+    const apellidos = this.clienteActual.apellidos?.trim() || '';
+    const completo = `${nombres} ${apellidos}`.trim();
+    return completo || 'Cliente';
   }
 
   commandBarItems: CommandBarItem[] = [];
@@ -136,11 +143,6 @@ export class ClienteFormComponent implements OnInit {
     if (this.isEdit && this.clienteId) {
       this.cargarCliente(this.clienteId);
     } else {
-      // Autogenerar código sugerido si es nuevo
-      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-      this.form.patchValue({
-        codigoCliente: `CLI-${new Date().getFullYear()}-${randomSuffix}`,
-      });
       this.asignarUbigeoCodigo('Lima', 'Lima', 'Lima');
     }
 
@@ -174,12 +176,12 @@ export class ClienteFormComponent implements OnInit {
 
   private initForm(): void {
     this.form = this.fb.group({
-      codigoCliente: ['', [Validators.required, Validators.maxLength(30)]],
+      codigoCliente: [{ value: '', disabled: true }],
       tipoPersona: ['NATURAL', [Validators.required]],
       tipoDocumento: ['DNI', [Validators.required]],
       documentoIdentidad: ['', [Validators.required, Validators.maxLength(20)]],
       nombres: ['', [Validators.required, Validators.maxLength(100)]],
-      apellidos: ['', [Validators.maxLength(100)]],
+      apellidos: ['', [Validators.required, Validators.maxLength(100)]],
       razonSocial: ['', [Validators.maxLength(150)]],
       telefonoPrincipal: ['', [Validators.required, Validators.maxLength(20)]],
       telefonoSecundario: ['', [Validators.maxLength(20)]],
@@ -227,7 +229,7 @@ export class ClienteFormComponent implements OnInit {
       }
       razonSocialCtrl?.clearValidators();
       nombresCtrl?.setValidators([Validators.required, Validators.maxLength(100)]);
-      apellidosCtrl?.setValidators([Validators.maxLength(100)]);
+      apellidosCtrl?.setValidators([Validators.required, Validators.maxLength(100)]);
       docCtrl?.setValidators([Validators.required, Validators.maxLength(20)]);
     }
 
@@ -399,10 +401,7 @@ export class ClienteFormComponent implements OnInit {
       this.cargarCliente(this.clienteId);
     } else {
       this.initForm();
-      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-      this.form.patchValue({
-        codigoCliente: `CLI-${new Date().getFullYear()}-${randomSuffix}`,
-      });
+      this.asignarUbigeoCodigo('Lima', 'Lima', 'Lima');
     }
   }
 
@@ -577,7 +576,6 @@ export class ClienteFormComponent implements OnInit {
       });
     } else {
       const createCmd: CrearClienteCommand = {
-        codigoCliente: formVal.codigoCliente,
         documentoIdentidad: formVal.documentoIdentidad,
         nombres: formVal.nombres || '',
         apellidos: formVal.apellidos,

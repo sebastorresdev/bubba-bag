@@ -12,6 +12,8 @@ public class TipoOrdenTrabajo : Entity<Guid>
     public string Nombre { get; private set; } = default!;
     public string? Descripcion { get; private set; }
     public bool RequiereVisitaCampo { get; private set; }
+    public bool ExigeFirmaCliente { get; private set; } = true;
+    public bool ExigeEvidenciasFotograficas { get; private set; } = true;
     public string ColorHex { get; private set; } = "#0f6cbd";
     public bool Activo { get; private set; }
 
@@ -21,6 +23,8 @@ public class TipoOrdenTrabajo : Entity<Guid>
         string codigo,
         string nombre,
         bool requiereVisitaCampo = true,
+        bool exigeFirmaCliente = true,
+        bool exigeEvidenciasFotograficas = true,
         string? descripcion = null,
         string colorHex = "#0f6cbd")
     {
@@ -30,16 +34,26 @@ public class TipoOrdenTrabajo : Entity<Guid>
             Codigo = codigo.Trim().ToUpperInvariant(),
             Nombre = nombre.Trim(),
             RequiereVisitaCampo = requiereVisitaCampo,
+            ExigeFirmaCliente = exigeFirmaCliente,
+            ExigeEvidenciasFotograficas = exigeEvidenciasFotograficas,
             Descripcion = descripcion?.Trim(),
             ColorHex = colorHex,
             Activo = true
         };
     }
 
-    public void Actualizar(string nombre, bool requiereVisitaCampo, string? descripcion, string colorHex)
+    public void Actualizar(
+        string nombre,
+        bool requiereVisitaCampo,
+        bool exigeFirmaCliente,
+        bool exigeEvidenciasFotograficas,
+        string? descripcion,
+        string colorHex)
     {
         Nombre = nombre.Trim();
         RequiereVisitaCampo = requiereVisitaCampo;
+        ExigeFirmaCliente = exigeFirmaCliente;
+        ExigeEvidenciasFotograficas = exigeEvidenciasFotograficas;
         Descripcion = descripcion?.Trim();
         ColorHex = colorHex;
     }

@@ -34,6 +34,14 @@ public class TipoOrdenTrabajoConfiguration : IEntityTypeConfiguration<TipoOrdenT
         builder.Property(t => t.RequiereVisitaCampo)
             .IsRequired();
 
+        builder.Property(t => t.ExigeFirmaCliente)
+            .IsRequired()
+            .HasDefaultValue(true);
+
+        builder.Property(t => t.ExigeEvidenciasFotograficas)
+            .IsRequired()
+            .HasDefaultValue(true);
+
         builder.Property(t => t.Activo)
             .IsRequired();
     }

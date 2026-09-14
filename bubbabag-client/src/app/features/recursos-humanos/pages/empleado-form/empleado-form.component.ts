@@ -30,6 +30,8 @@ import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzTabsModule } from 'ng-zorro-antd/tabs';
 import { NzModalModule } from 'ng-zorro-antd/modal';
 import { NzDividerModule } from 'ng-zorro-antd/divider';
+import { NzTimelineModule } from 'ng-zorro-antd/timeline';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
 @Component({
@@ -54,6 +56,8 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzTabsModule,
     NzModalModule,
     NzDividerModule,
+    NzTimelineModule,
+    NzSpinModule,
     CommandBarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Default,
@@ -74,12 +78,21 @@ export class EmpleadoFormComponent implements OnInit {
   empleadoActual?: EmpleadoDto;
   isEdit = false;
   loading = false;
+  saving = false;
   loadingCatalogos = true;
   loadingBaja = false;
   loadingReactivar = false;
   isModalBajaVisible = false;
   selectedTabIndex = 0;
   fotoPreview: string | null = null;
+
+  get loadingTip(): string {
+    if (this.saving) return 'Guardando cambios del colaborador...';
+    if (this.loading) return 'Cargando datos del colaborador...';
+    if (this.loadingBaja) return 'Procesando baja del colaborador...';
+    if (this.loadingReactivar) return 'Reactivando colaborador...';
+    return 'Cargando catálogos de recursos humanos...';
+  }
 
   // Listas de catálogos dinámicos
   catalogos?: CatalogosRrhhDto;
@@ -95,10 +108,6 @@ export class EmpleadoFormComponent implements OnInit {
   ngOnInit(): void {
     this.initForm();
     this.cargarCatalogos();
-
-    this.form.get('departamentoId')?.valueChanges.subscribe((departamentoId) => {
-    this.onDepartamentoChange(departamentoId, true);
-  });
 
     this.route.paramMap.subscribe((params) => {
       const id = params.get('id');
@@ -152,6 +161,10 @@ export class EmpleadoFormComponent implements OnInit {
       cuentaInterbancaria: [''],
     });
 
+    this.form.get('departamentoId')?.valueChanges.subscribe((departamentoId) => {
+      this.onDepartamentoChange(departamentoId, true);
+    });
+
     this.form.valueChanges.subscribe(() => {
       this.cdr.markForCheck();
     });
@@ -199,11 +212,12 @@ export class EmpleadoFormComponent implements OnInit {
     if (resetCargo) {
       this.form.get('cargoId')?.setValue(null, { emitEvent: false });
     }
+    this.cdr.markForCheck();
     return;
   }
 
   const depto = (this.departamentos || []).find((d) => d.id === departamentoId);
-  this.cargosFiltrados = depto ? depto.cargos : [];
+  this.cargosFiltrados = depto && depto.cargos ? [...depto.cargos] : [];
 
   if (resetCargo) {
     const currentCargoId = this.form.get('cargoId')?.value;
@@ -211,6 +225,7 @@ export class EmpleadoFormComponent implements OnInit {
       this.form.get('cargoId')?.setValue(null, { emitEvent: false });
     }
   }
+  this.cdr.markForCheck();
 }
 
   cargarEmpleado(): void {
@@ -253,36 +268,29 @@ export class EmpleadoFormComponent implements OnInit {
   }
 
   get departamentoSeleccionadoNombre(): string {
-    const id = this.form?.get('departamentoId')?.value;
-    if (!id) return this.empleadoActual?.departamentoNombre || '';
-    return this.departamentos.find((d) => d.id === id)?.nombre || this.empleadoActual?.departamentoNombre || '';
+    return this.empleadoActual?.departamentoNombre || 'Departamento sin asignar';
   }
 
   get cargoSeleccionadoNombre(): string {
-    const id = this.form?.get('cargoId')?.value;
-    if (!id) return this.empleadoActual?.cargoNombre || '';
-    const fromList = this.cargosFiltrados.find((c) => c.id === id)?.nombre;
-    if (fromList) return fromList;
-    for (const d of this.departamentos) {
-      const c = d.cargos?.find((x) => x.id === id);
-      if (c) return c.nombre;
-    }
-    return this.empleadoActual?.cargoNombre || '';
+    return this.empleadoActual?.cargoNombre || 'Cargo sin asignar';
   }
 
   get emailEmpleado(): string {
-    return this.form?.get('email')?.value || this.empleadoActual?.email || '';
+    return this.empleadoActual?.email || '';
   }
 
   get telefonoEmpleado(): string {
-    return this.form?.get('telefono')?.value || this.empleadoActual?.telefono || '';
+    return this.empleadoActual?.telefono || '';
   }
 
   get nombreEmpleadoEnFormulario(): string {
-    const nombres = this.form?.get('nombres')?.value?.trim() || '';
-    const apellidos = this.form?.get('apellidos')?.value?.trim() || '';
+    if (!this.isEdit || !this.empleadoActual) {
+      return 'Nuevo Colaborador';
+    }
+    const nombres = this.empleadoActual.nombres?.trim() || '';
+    const apellidos = this.empleadoActual.apellidos?.trim() || '';
     const completo = `${nombres} ${apellidos}`.trim();
-    return completo || (this.isEdit ? 'Colaborador' : 'Nuevo Colaborador');
+    return completo || 'Colaborador';
   }
 
   getEstadoDotClass(estado?: string): string {
@@ -300,6 +308,41 @@ export class EmpleadoFormComponent implements OnInit {
       default:
         return 'd365-dot-default';
     }
+  }
+
+  copiarId(): void {
+    if (!this.empleadoId) return;
+    navigator.clipboard.writeText(this.empleadoId).then(() => {
+      this.message.success('Identificador copiado al portapapeles');
+    }).catch(() => {
+      this.message.error('No se pudo copiar el ID');
+    });
+  }
+
+  get antiguedadLaboral(): string {
+    const fecha = this.empleadoActual?.fechaIngreso;
+    if (!fecha) return 'No registrada';
+    const ingreso = new Date(fecha);
+    if (isNaN(ingreso.getTime())) return 'No registrada';
+    const fin = this.isCesado && this.empleadoActual?.fechaCese ? new Date(this.empleadoActual.fechaCese) : new Date();
+
+    let diffYears = fin.getFullYear() - ingreso.getFullYear();
+    let diffMonths = fin.getMonth() - ingreso.getMonth();
+    let diffDays = fin.getDate() - ingreso.getDate();
+
+    if (diffDays < 0) {
+      diffMonths--;
+    }
+    if (diffMonths < 0) {
+      diffYears--;
+      diffMonths += 12;
+    }
+
+    const parts: string[] = [];
+    if (diffYears > 0) parts.push(`${diffYears} año${diffYears > 1 ? 's' : ''}`);
+    if (diffMonths > 0) parts.push(`${diffMonths} mes${diffMonths > 1 ? 'es' : ''}`);
+    if (parts.length === 0) return 'Menos de 1 mes';
+    return parts.join(' y ');
   }
 
   volver(): void {
@@ -452,7 +495,7 @@ export class EmpleadoFormComponent implements OnInit {
       return;
     }
 
-    this.loading = true;
+    this.saving = true;
     const formValue = { ...this.form.value };
     // Normalizar campos opcionales vacíos a null
     Object.keys(formValue).forEach((key) => {
@@ -473,7 +516,7 @@ export class EmpleadoFormComponent implements OnInit {
 
       this.empleadoService.actualizarEmpleado(this.empleadoId!, command).subscribe({
         next: () => {
-          this.loading = false;
+          this.saving = false;
           this.message.success('Empleado actualizado correctamente');
           if (cerrar) {
             this.volver();
@@ -483,7 +526,7 @@ export class EmpleadoFormComponent implements OnInit {
           this.cdr.markForCheck();
         },
         error: () => {
-          this.loading = false;
+          this.saving = false;
           this.cdr.markForCheck();
         },
       });
@@ -492,7 +535,7 @@ export class EmpleadoFormComponent implements OnInit {
 
       this.empleadoService.crearEmpleado(command).subscribe({
         next: (res) => {
-          this.loading = false;
+          this.saving = false;
           this.message.success('Empleado registrado correctamente');
           const nuevoId = typeof res === 'string' ? res : (res as any)?.id || (res as any)?.value;
           if (cerrar) {
@@ -508,7 +551,7 @@ export class EmpleadoFormComponent implements OnInit {
           this.cdr.markForCheck();
         },
         error: () => {
-          this.loading = false;
+          this.saving = false;
           this.cdr.markForCheck();
         },
       });

@@ -6,7 +6,7 @@ import {
   ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { UsuarioService } from '../../services/usuario.service';
 import { UsuarioDto, RolDto } from '../../models/usuario.model';
@@ -21,10 +21,13 @@ import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzDrawerModule } from 'ng-zorro-antd/drawer';
-import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
+import { NzTabsModule } from 'ng-zorro-antd/tabs';
+import { NzDividerModule } from 'ng-zorro-antd/divider';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzTimelineModule } from 'ng-zorro-antd/timeline';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
 @Component({
@@ -48,6 +51,9 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzTagModule,
     NzCheckboxModule,
     NzTooltipModule,
+    NzTabsModule,
+    NzDividerModule,
+    NzTimelineModule,
     CommandBarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Default,
@@ -62,6 +68,8 @@ export class UsuarioFormComponent implements OnInit {
   private message = inject(NzMessageService);
   private cdr = inject(ChangeDetectorRef);
 
+  selectedTabIndex = 0;
+
   form!: FormGroup;
   passwordForm!: FormGroup;
 
@@ -73,11 +81,40 @@ export class UsuarioFormComponent implements OnInit {
   passwordDrawerVisible = false;
   passwordSaving = false;
 
+  get loadingTip(): string {
+    if (this.saving) return 'Guardando información del usuario...';
+    if (this.passwordSaving) return 'Actualizando contraseña del usuario...';
+    if (this.loading) return 'Cargando datos del usuario...';
+    return 'Procesando...';
+  }
+
+  // Visibilidad de contraseñas con componente NG-ZORRO (iconos eye / eye-invisible)
+  passwordVisible = false;
+  confirmPasswordVisible = false;
+  nuevaPasswordVisible = false;
+  confirmarPasswordDrawerVisible = false;
+
   rolesDisponibles: RolDto[] = [];
   modulosRoles: { modulo: string; roles: RolDto[] }[] = [];
   
   // Selección flexible de roles vía Checkboxes (Estilo Microsoft Dynamics 365)
   rolesSeleccionados = new Set<string>();
+
+  get rolesAsignadosNombres(): string[] {
+    return this.rolesDisponibles
+      .filter((r) => this.rolesSeleccionados.has(r.codigo))
+      .map((r) => r.nombreVisible);
+  }
+
+  irATabRoles(): void {
+    this.selectedTabIndex = 1;
+    this.cdr.markForCheck();
+  }
+
+  onTabChange(index: number): void {
+    this.selectedTabIndex = index;
+    this.cdr.markForCheck();
+  }
 
   get commandBarItems(): CommandBarItem[] {
     const isWaitingData = this.isEdit && this.loading && !this.usuarioActual;
@@ -229,23 +266,54 @@ export class UsuarioFormComponent implements OnInit {
         this.usuarioActual = undefined;
         this.rolesSeleccionados.clear();
         this.form.get('password')?.setValidators([Validators.required, Validators.minLength(6)]);
+        this.form.get('confirmarPassword')?.setValidators([Validators.required]);
         this.form.get('password')?.updateValueAndValidity();
+        this.form.get('confirmarPassword')?.updateValueAndValidity();
       }
     });
   }
 
   private initForms(): void {
-    this.form = this.fb.group({
-      nombreCompleto: ['', [Validators.required, Validators.maxLength(150)]],
-      email: ['', [Validators.required, Validators.email, Validators.maxLength(150)]],
-      password: [''],
-      esActivo: [true],
-    });
+    this.form = this.fb.group(
+      {
+        nombreCompleto: ['', [Validators.required, Validators.maxLength(150)]],
+        email: ['', [Validators.required, Validators.email, Validators.maxLength(150)]],
+        password: [''],
+        confirmarPassword: [''],
+        esActivo: [true],
+      },
+      {
+        validators: (group: AbstractControl) => {
+          if (!this.isEdit) {
+            const pass = group.get('password')?.value;
+            const confirm = group.get('confirmarPassword')?.value;
+            if (pass && confirm && pass !== confirm) {
+              group.get('confirmarPassword')?.setErrors({ noCoincide: true });
+              return { noCoincide: true };
+            }
+          }
+          return null;
+        },
+      }
+    );
 
-    this.passwordForm = this.fb.group({
-      nuevaPassword: ['', [Validators.required, Validators.minLength(6)]],
-      confirmarPassword: ['', [Validators.required]],
-    });
+    this.passwordForm = this.fb.group(
+      {
+        nuevaPassword: ['', [Validators.required, Validators.minLength(6)]],
+        confirmarPassword: ['', [Validators.required]],
+      },
+      {
+        validators: (group: AbstractControl) => {
+          const pass = group.get('nuevaPassword')?.value;
+          const confirm = group.get('confirmarPassword')?.value;
+          if (pass && confirm && pass !== confirm) {
+            group.get('confirmarPassword')?.setErrors({ noCoincide: true });
+            return { noCoincide: true };
+          }
+          return null;
+        },
+      }
+    );
   }
 
   cargarRoles(): void {
@@ -288,7 +356,9 @@ export class UsuarioFormComponent implements OnInit {
       esActivo: user.esActivo,
     });
     this.form.get('password')?.clearValidators();
+    this.form.get('confirmarPassword')?.clearValidators();
     this.form.get('password')?.updateValueAndValidity();
+    this.form.get('confirmarPassword')?.updateValueAndValidity();
     this.cdr.markForCheck();
   }
 
@@ -500,5 +570,12 @@ export class UsuarioFormComponent implements OnInit {
     if (m.includes('config') || m.includes('ajuste') || m.includes('sistema')) return 'setting';
     if (m.includes('seguridad') || m.includes('usuario') || m.includes('rol')) return 'safety';
     return 'appstore';
+  }
+
+  copiarId(): void {
+    if (this.usuarioId && navigator.clipboard) {
+      navigator.clipboard.writeText(this.usuarioId);
+      this.message.success('ID de usuario copiado al portapapeles.');
+    }
   }
 }

@@ -2,6 +2,7 @@ using BubbaBag.Api;
 using BubbaBag.Modules.Seguridad.Api;
 using BubbaBag.Modules.RecursosHumanos.Api;
 using BubbaBag.Modules.Crm.Api;
+using BubbaBag.Modules.ServicioCampo.Api;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 
@@ -25,6 +26,7 @@ builder.Services.AddBubbaBagServices(builder.Configuration);
 
 BubbaBag.Modules.RecursosHumanos.Api.RecursosHumanosModule.AddRecursosHumanosModule(builder.Services);
 builder.Services.AddCrmModule();
+builder.Services.AddServicioCampoModule();
 
 var app = builder.Build();
 
@@ -45,6 +47,7 @@ app.UseAuthorization();
 app.MapSeguridadEndpoints();
 app.MapRecursosHumanosEndpoints();
 app.MapCrmEndpoints();
+app.MapServicioCampoEndpoints();
 
 
 app.Run();

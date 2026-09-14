@@ -8,7 +8,7 @@
 
 <div class="usuario-form-view d365-form-view">
   <!-- Cabecera de Registro Dynamics 365 -->
-  <div class="d365-record-header no-tabs">
+  <div class="d365-record-header">
     <div class="record-header-main">
       <div class="record-avatar-container">
         <nz-avatar [nzSize]="56" [nzText]="getIniciales()" class="record-avatar"></nz-avatar>
@@ -22,137 +22,418 @@
             Nuevo Usuario
           }
         </h1>
-        <div class="record-subtitle">
-          <span>{{ isEdit ? (usuarioActual?.email || (loading ? 'Obteniendo datos del servidor...' : '')) : 'Gestión de Credenciales y Accesos' }}</span>
+        <div class="record-metadata-row">
+          <span class="record-code-tag">{{ isEdit ? (usuarioActual?.email || 'USUARIO') : 'NUEVO USUARIO' }}</span>
+          <nz-divider nzType="vertical" />
+          <span>{{ rolesSeleccionados.size }} Rol(es) Asignado(s)</span>
+          @if (usuarioActual?.email) {
+            <nz-divider nzType="vertical" />
+            <span>{{ usuarioActual?.email }}</span>
+          }
         </div>
       </div>
     </div>
 
-    <!-- Indicador de Estado del Registro -->
-    <div class="record-header-kpis">
-      <div class="kpi-item">
-        <span class="kpi-label">Estado</span>
-        <div class="status-cell">
-          <span
-            class="status-dot"
-            [class.dot-active]="form.get('esActivo')?.value"
-            [class.dot-inactive]="!form.get('esActivo')?.value"
-          ></span>
-          <span class="status-text">
-            {{ form.get('esActivo')?.value ? 'Activo' : 'Inactivo' }}
-          </span>
-        </div>
+    <!-- Indicadores Métricos del Encabezado (KPIs superiores con barras separadoras basados en datos guardados) -->
+    <div class="record-header-metrics">
+      <div class="metric-item">
+        <span class="metric-label">ESTADO</span>
+        <span
+          class="kpi-value-pill"
+          [class.pill-active]="usuarioActual ? usuarioActual.esActivo : true"
+          [class.pill-inactive]="usuarioActual ? !usuarioActual.esActivo : false"
+        >
+          {{ (usuarioActual ? usuarioActual.esActivo : true) ? 'ACTIVO' : 'INACTIVO' }}
+        </span>
+      </div>
+
+      <div class="metric-divider"></div>
+
+      <div class="metric-item">
+        <span class="metric-label">ROLES</span>
+        <span class="kpi-value-badge badge-enabled">
+          {{ (usuarioActual?.roles?.length || 0) }} ASIGNADOS
+        </span>
       </div>
     </div>
   </div>
 
-  <!-- Contenedor con Scroll sólo para el contenido del formulario (alineado a la izquierda sin centrado artificial) -->
-  <div class="user-form-scroll-body">
-    <nz-spin [nzSpinning]="isEdit && loading && !usuarioActual" nzTip="Cargando datos del usuario..." [nzDelay]="150">
-      <form nz-form [formGroup]="form" nzLayout="vertical" class="d365-tab-grid">
+  <!-- Contenedor con Tabs Estilo Microsoft Dynamics 365 con Spin Circular -->
+  <nz-spin [nzSpinning]="loading || saving || passwordSaving" [nzTip]="loadingTip" [nzDelay]="150" class="user-spin-wrapper">
+    <form nz-form [formGroup]="form" nzLayout="horizontal" [nzNoColon]="true" class="d365-form-container">
+      <nz-tabs [(nzSelectedIndex)]="selectedTabIndex" [nzAnimated]="false" class="d365-form-tabs">
+        
+        <!-- PESTAÑA 1: GENERAL (Información de Cuenta y Roles a la izquierda; Línea de Tiempo e Historial a la derecha) -->
+        <nz-tab nzTitle="General">
+          <div class="d365-tab-columns">
+            
+            <!-- Columna Principal (Izquierda): Información del Usuario + Roles de Seguridad -->
+            <div class="d365-tab-column main-column">
+              <!-- Tarjeta 1: Información de la Cuenta -->
+              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Información de la Cuenta">
+                <div class="card-form-grid">
+                  <nz-form-item>
+                    <nz-form-label nzRequired>Nombre Completo</nz-form-label>
+                    <nz-form-control nzErrorTip="Ingrese el nombre completo del usuario.">
+                      <input
+                        nz-input
+                        formControlName="nombreCompleto"
+                        placeholder="Ej. Juan Carlos Pérez Ramos"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
 
-        <!-- Bloque Superior: Información de la Cuenta -->
-        <nz-card [nzBordered]="true" class="d365-card account-info-card" nzTitle="Información de la Cuenta">
-          <div nz-row [nzGutter]="24">
-            <div nz-col [nzXs]="24" [nzSm]="24" [nzMd]="12">
-              <nz-form-item class="form-field-item">
-                <nz-form-label nzRequired>Nombre Completo</nz-form-label>
-                <nz-form-control nzErrorTip="Ingrese el nombre completo del usuario.">
-                  <input
-                    nz-input
-                    formControlName="nombreCompleto"
-                    placeholder="Ej. Juan Carlos Pérez Ramos"
-                  />
-                </nz-form-control>
-              </nz-form-item>
-            </div>
+                  <nz-form-item>
+                    <nz-form-label nzRequired>Correo Electrónico (Login)</nz-form-label>
+                    <nz-form-control nzErrorTip="Ingrese un correo corporativo válido.">
+                      <input
+                        nz-input
+                        type="email"
+                        formControlName="email"
+                        placeholder="usuario@empresa.com"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
 
-            <div nz-col [nzXs]="24" [nzSm]="24" [nzMd]="12">
-              <nz-form-item class="form-field-item">
-                <nz-form-label nzRequired>Correo Electrónico (Login)</nz-form-label>
-                <nz-form-control nzErrorTip="Ingrese un correo electrónico corporativo válido.">
-                  <input
-                    nz-input
-                    type="email"
-                    formControlName="email"
-                    placeholder="usuario@empresa.com"
-                  />
-                </nz-form-control>
-              </nz-form-item>
-            </div>
-
-            @if (!isEdit) {
-              <div nz-col [nzXs]="24" [nzSm]="24" [nzMd]="12">
-                <nz-form-item class="form-field-item">
-                  <nz-form-label nzRequired>Contraseña Inicial</nz-form-label>
-                  <nz-form-control nzErrorTip="La contraseña debe tener mínimo 6 caracteres.">
-                    <input
-                      nz-input
-                      type="password"
-                      formControlName="password"
-                      placeholder="Mínimo 6 caracteres"
-                    />
-                  </nz-form-control>
-                </nz-form-item>
-              </div>
-            }
-          </div>
-        </nz-card>
-
-        <!-- Tarjeta 2: Roles de Seguridad del Sistema -->
-        <nz-card [nzBordered]="true" class="d365-card security-roles-card" nzTitle="Roles de Seguridad Asignados">
-          <div class="d365-modules-roles-grid">
-            @for (grupo of modulosRoles; track grupo.modulo) {
-              <div class="d365-module-roles-group">
-                <!-- Encabezado de Módulo con Contador (sin iconos) -->
-                <div class="module-group-header">
-                  <div class="module-group-title">
-                    <span class="module-title-text">{{ grupo.modulo }}</span>
-                  </div>
-                  <nz-tag
-                    [nzColor]="rolesSeleccionadosEnModulo(grupo).length > 0 ? 'processing' : 'default'"
-                    class="module-count-badge"
-                  >
-                    {{ rolesSeleccionadosEnModulo(grupo).length }} de {{ grupo.roles.length }} asignado(s)
-                  </nz-tag>
+                  <nz-form-item>
+                    <nz-form-label>Estado de Acceso</nz-form-label>
+                    <nz-form-control>
+                      <div class="classification-box">
+                        <div class="classification-info">
+                          <span class="classification-title">
+                            {{ form.get('esActivo')?.value ? 'Cuenta Activa' : 'Cuenta Desactivada' }}
+                          </span>
+                          <span class="classification-desc">
+                            {{ form.get('esActivo')?.value ? 'El usuario tiene acceso permitido al sistema.' : 'Acceso bloqueado; no podrá iniciar sesión.' }}
+                          </span>
+                        </div>
+                        <nz-switch formControlName="esActivo"></nz-switch>
+                      </div>
+                    </nz-form-control>
+                  </nz-form-item>
                 </div>
+              </nz-card>
 
-                <!-- Lista de Roles del Módulo vía Checkboxes -->
-                <div class="module-roles-list">
-                  @for (rol of grupo.roles; track rol.codigo) {
-                    <div
-                      class="d365-role-checkbox-card"
-                      [class.is-selected]="isRolSeleccionado(rol.codigo)"
-                      (click)="toggleRol(rol.codigo)"
-                    >
-                      <div class="role-checkbox-header">
-                        <label
-                          nz-checkbox
-                          [ngModel]="isRolSeleccionado(rol.codigo)"
-                          [ngModelOptions]="{ standalone: true }"
-                          (ngModelChange)="onRolCheckboxToggle(rol.codigo, $event)"
-                          (click)="$event.stopPropagation()"
+              <!-- Tarjeta 2: Roles de Seguridad Asignados (A continuación abajo) -->
+              <nz-card
+                [nzBordered]="true"
+                class="d365-card"
+                nzTitle="Roles de Seguridad Asignados"
+                [nzExtra]="rolesExtraTemplate"
+              >
+                <ng-template #rolesExtraTemplate>
+                  <nz-tag nzColor="processing" class="roles-counter-badge">
+                    {{ rolesSeleccionados.size }} de {{ rolesDisponibles.length }} asignado(s)
+                  </nz-tag>
+                </ng-template>
+
+                <div class="d365-modules-roles-grid">
+                  @for (grupo of modulosRoles; track grupo.modulo) {
+                    <div class="d365-module-roles-group">
+                      <!-- Encabezado de Módulo con Contador -->
+                      <div class="module-group-header">
+                        <div class="module-group-title">
+                          <span class="module-title-text">{{ grupo.modulo }}</span>
+                        </div>
+                        <nz-tag
+                          [nzColor]="rolesSeleccionadosEnModulo(grupo).length > 0 ? 'processing' : 'default'"
+                          class="module-count-badge"
                         >
-                          <span class="role-name-text">{{ rol.nombreVisible }}</span>
-                        </label>
-                        @if (isRolSeleccionado(rol.codigo)) {
-                          <nz-tag nzColor="blue" class="role-active-tag">
-                            <nz-icon nzType="check" /> Asignado
-                          </nz-tag>
+                          {{ rolesSeleccionadosEnModulo(grupo).length }} de {{ grupo.roles.length }}
+                        </nz-tag>
+                      </div>
+
+                      <!-- Lista de Roles del Módulo vía Checkboxes -->
+                      <div class="module-roles-list">
+                        @for (rol of grupo.roles; track rol.codigo) {
+                          <div
+                            class="d365-role-checkbox-card"
+                            [class.is-selected]="isRolSeleccionado(rol.codigo)"
+                            (click)="toggleRol(rol.codigo)"
+                          >
+                            <div class="role-checkbox-header">
+                              <label
+                                nz-checkbox
+                                [ngModel]="isRolSeleccionado(rol.codigo)"
+                                [ngModelOptions]="{ standalone: true }"
+                                (ngModelChange)="onRolCheckboxToggle(rol.codigo, $event)"
+                                (click)="$event.stopPropagation()"
+                              >
+                                <span class="role-name-text">{{ rol.nombreVisible }}</span>
+                              </label>
+                              @if (isRolSeleccionado(rol.codigo)) {
+                                <nz-tag nzColor="blue" class="role-active-tag">
+                                  <nz-icon nzType="check" /> Asignado
+                                </nz-tag>
+                              }
+                            </div>
+                            <span class="role-desc-text">{{ rol.descripcion }}</span>
+                          </div>
                         }
                       </div>
-                      <span class="role-desc-text">{{ rol.descripcion }}</span>
                     </div>
                   }
                 </div>
-              </div>
-            }
-          </div>
-        </nz-card>
+              </nz-card>
+            </div>
 
-      </form>
-    </nz-spin>
-  </div>
+            <!-- Columna Lateral (Derecha): Línea de Tiempo e Historial / Información del Registro -->
+            <div class="d365-tab-column timeline-column">
+              <!-- Tarjeta 3: Línea de Tiempo y Actividad (Estilo Dynamics 365) -->
+              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Línea de Tiempo">
+                <nz-timeline class="d365-timeline">
+                  <nz-timeline-item nzColor="blue">
+                    <div class="timeline-event-item">
+                      <span class="timeline-event-title">Creación del Registro</span>
+                      <span class="timeline-event-desc">
+                        {{ isEdit ? 'Usuario registrado en la plataforma.' : 'Nuevo registro preparado para guardar.' }}
+                      </span>
+                    </div>
+                  </nz-timeline-item>
+
+                  <nz-timeline-item [nzColor]="(usuarioActual?.roles?.length || 0) > 0 ? 'green' : 'gray'">
+                    <div class="timeline-event-item">
+                      <span class="timeline-event-title">Seguridad y Permisos</span>
+                      <span class="timeline-event-desc">
+                        {{ isEdit ? ((usuarioActual?.roles?.length || 0) + ' rol(es) de seguridad asignado(s).') : 'Configurando roles iniciales.' }}
+                      </span>
+                    </div>
+                  </nz-timeline-item>
+
+                  <nz-timeline-item [nzColor]="(usuarioActual ? usuarioActual.esActivo : true) ? 'green' : 'red'">
+                    <div class="timeline-event-item">
+                      <span class="timeline-event-title">Estado de la Cuenta</span>
+                      <span class="timeline-event-desc">
+                        {{ (usuarioActual ? usuarioActual.esActivo : true) ? 'Acceso activo a la plataforma y APIs.' : 'Acceso bloqueado en el sistema.' }}
+                      </span>
+                    </div>
+                  </nz-timeline-item>
+
+                  <nz-timeline-item nzColor="purple">
+                    <div class="timeline-event-item">
+                      <span class="timeline-event-title">Autenticación</span>
+                      <span class="timeline-event-desc">
+                        Credenciales protegidas mediante tokens JWT Bearer corporativos.
+                      </span>
+                    </div>
+                  </nz-timeline-item>
+                </nz-timeline>
+              </nz-card>
+
+              <!-- Tarjeta 4: Información del Registro e Historial -->
+              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Información del Registro">
+                <div class="record-meta-list">
+                  <div class="meta-row">
+                    <span class="meta-label">Identificador (ID):</span>
+                    <div class="meta-value-copy">
+                      <span class="meta-id-code">{{ usuarioId || 'AUTOGENERADO' }}</span>
+                      @if (isEdit) {
+                        <button
+                          type="button"
+                          nz-button
+                          nzType="link"
+                          nzSize="small"
+                          (click)="copiarId()"
+                          class="btn-copy-id"
+                          nz-tooltip
+                          nzTooltipTitle="Copiar ID al portapapeles"
+                        >
+                          <nz-icon nzType="copy" />
+                        </button>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="meta-row">
+                    <span class="meta-label">Tipo de Autenticación:</span>
+                    <span class="meta-value">Contraseña Local / JWT</span>
+                  </div>
+
+                  <div class="meta-row">
+                    <span class="meta-label">Estado de Acceso:</span>
+                    <span
+                      class="meta-value"
+                      [class.text-active]="usuarioActual ? usuarioActual.esActivo : true"
+                      [class.text-inactive]="usuarioActual ? !usuarioActual.esActivo : false"
+                    >
+                      {{ (usuarioActual ? usuarioActual.esActivo : true) ? 'Activo' : 'Inactivo' }}
+                    </span>
+                  </div>
+
+                  <div class="meta-row">
+                    <span class="meta-label">Gestión de Credenciales:</span>
+                    <span class="meta-value">
+                      Configurable en pestaña <em>Accesos y Credenciales</em>
+                    </span>
+                  </div>
+                </div>
+              </nz-card>
+            </div>
+
+          </div>
+        </nz-tab>
+
+        <!-- PESTAÑA 2: ACCESOS Y CREDENCIALES (Configuración de Contraseña y Políticas de Seguridad) -->
+        <nz-tab nzTitle="Accesos y Credenciales">
+          <div class="d365-tab-columns">
+            
+            <!-- Columna 1: Configuración de Contraseña -->
+            <div class="d365-tab-column main-column">
+              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Configuración de Contraseña">
+                @if (isEdit) {
+                  <div class="password-tab-container">
+                    <div class="password-status-banner">
+                      <nz-icon nzType="lock" class="banner-lock-icon" />
+                      <div class="banner-content">
+                        <span class="banner-heading">Contraseña Corporativa Cifrada</span>
+                        <span class="banner-subheading">
+                          La contraseña del usuario está protegida con algoritmos de hashing criptográfico unidireccional. Puedes restablecerla o asignarle una nueva contraseña directamente a continuación.
+                        </span>
+                      </div>
+                    </div>
+
+                    <form nz-form [formGroup]="passwordForm" nzLayout="vertical" class="tab-password-form">
+                      <nz-form-item>
+                        <nz-form-label nzRequired>Nueva Contraseña</nz-form-label>
+                        <nz-form-control nzErrorTip="La contraseña debe tener mínimo 6 caracteres.">
+                          <nz-input-password>
+                            <input
+                              nz-input
+                              formControlName="nuevaPassword"
+                              placeholder="Mínimo 6 caracteres"
+                              autocomplete="new-password"
+                            />
+                          </nz-input-password>
+                        </nz-form-control>
+                      </nz-form-item>
+
+                      <nz-form-item>
+                        <nz-form-label nzRequired>Confirmar Nueva Contraseña</nz-form-label>
+                        <nz-form-control [nzErrorTip]="confirmEditErrorTip">
+                          <nz-input-password>
+                            <input
+                              nz-input
+                              formControlName="confirmarPassword"
+                              placeholder="Repita la nueva contraseña"
+                              autocomplete="new-password"
+                            />
+                          </nz-input-password>
+                          <ng-template #confirmEditErrorTip let-control>
+                            @if (control.hasError('required')) {
+                              Confirme la contraseña.
+                            }
+                            @if (control.hasError('noCoincide')) {
+                              Las contraseñas no coinciden.
+                            }
+                          </ng-template>
+                        </nz-form-control>
+                      </nz-form-item>
+
+                      <div class="password-actions-bar">
+                        <button
+                          type="button"
+                          nz-button
+                          nzType="primary"
+                          [nzLoading]="passwordSaving"
+                          (click)="guardarPassword()"
+                        >
+                          <nz-icon nzType="key" />
+                          Actualizar Contraseña
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                } @else {
+                  <div class="password-tab-container">
+                    <div class="password-status-banner">
+                      <nz-icon nzType="safety" class="banner-lock-icon" />
+                      <div class="banner-content">
+                        <span class="banner-heading">Contraseña Inicial de Acceso</span>
+                        <span class="banner-subheading">
+                          Define y confirma la contraseña con la que el usuario ingresará por primera vez a la plataforma.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="card-form-grid">
+                      <nz-form-item>
+                        <nz-form-label nzRequired>Contraseña Inicial</nz-form-label>
+                        <nz-form-control nzErrorTip="La contraseña debe tener mínimo 6 caracteres.">
+                          <nz-input-password>
+                            <input
+                              nz-input
+                              formControlName="password"
+                              placeholder="Mínimo 6 caracteres"
+                              autocomplete="new-password"
+                            />
+                          </nz-input-password>
+                        </nz-form-control>
+                      </nz-form-item>
+
+                      <nz-form-item>
+                        <nz-form-label nzRequired>Confirmar Contraseña Inicial</nz-form-label>
+                        <nz-form-control [nzErrorTip]="confirmNewErrorTip">
+                          <nz-input-password>
+                            <input
+                              nz-input
+                              formControlName="confirmarPassword"
+                              placeholder="Repita la contraseña para confirmar"
+                              autocomplete="new-password"
+                            />
+                          </nz-input-password>
+                          <ng-template #confirmNewErrorTip let-control>
+                            @if (control.hasError('required')) {
+                              Confirme la contraseña.
+                            }
+                            @if (control.hasError('noCoincide')) {
+                              Las contraseñas no coinciden.
+                            }
+                          </ng-template>
+                        </nz-form-control>
+                      </nz-form-item>
+                    </div>
+                  </div>
+                }
+              </nz-card>
+            </div>
+
+            <!-- Columna 2: Políticas de Autenticación y Seguridad -->
+            <div class="d365-tab-column timeline-column">
+              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Políticas de Autenticación">
+                <div class="policies-list">
+                  <div class="policy-card">
+                    <nz-icon nzType="safety-certificate" class="policy-icon" />
+                    <div class="policy-info">
+                      <span class="policy-title">Protocolo de Autenticación</span>
+                      <span class="policy-desc">Tokens JWT Bearer corporativos firmados con clave simétrica y expiración controlada por sesión.</span>
+                    </div>
+                  </div>
+
+                  <div class="policy-card">
+                    <nz-icon nzType="shield" class="policy-icon" />
+                    <div class="policy-info">
+                      <span class="policy-title">Seguridad Criptográfica</span>
+                      <span class="policy-desc">Cifrado irreversible de credenciales. Las contraseñas nunca se guardan en texto plano ni se transmiten en respuestas API.</span>
+                    </div>
+                  </div>
+
+                  <div class="policy-card">
+                    <nz-icon nzType="audit" class="policy-icon" />
+                    <div class="policy-info">
+                      <span class="policy-title">Control RBAC Atómico</span>
+                      <span class="policy-desc">Cada endpoint valida en tiempo real los roles asignados en la pestaña General antes de conceder acceso.</span>
+                    </div>
+                  </div>
+                </div>
+              </nz-card>
+            </div>
+
+          </div>
+        </nz-tab>
+
+      </nz-tabs>
+    </form>
+  </nz-spin>
 </div>
 
 <!-- Drawer Lateral Derecho: Restablecer / Cambiar Contraseña (Estilo Microsoft 365 Admin & Dynamics) -->
@@ -182,26 +463,36 @@
       <nz-form-item>
         <nz-form-label nzRequired>Nueva Contraseña</nz-form-label>
         <nz-form-control nzErrorTip="La contraseña debe tener al menos 6 caracteres.">
-          <input
-            nz-input
-            type="password"
-            formControlName="nuevaPassword"
-            placeholder="Mínimo 6 caracteres"
-            autocomplete="new-password"
-          />
+          <nz-input-password>
+            <input
+              nz-input
+              formControlName="nuevaPassword"
+              placeholder="Mínimo 6 caracteres"
+              autocomplete="new-password"
+            />
+          </nz-input-password>
         </nz-form-control>
       </nz-form-item>
 
       <nz-form-item>
         <nz-form-label nzRequired>Confirmar Nueva Contraseña</nz-form-label>
-        <nz-form-control nzErrorTip="Confirme la contraseña.">
-          <input
-            nz-input
-            type="password"
-            formControlName="confirmarPassword"
-            placeholder="Repita la nueva contraseña"
-            autocomplete="new-password"
-          />
+        <nz-form-control [nzErrorTip]="drawerConfirmErrorTip">
+          <nz-input-password>
+            <input
+              nz-input
+              formControlName="confirmarPassword"
+              placeholder="Repita la nueva contraseña"
+              autocomplete="new-password"
+            />
+          </nz-input-password>
+          <ng-template #drawerConfirmErrorTip let-control>
+            @if (control.hasError('required')) {
+              Confirme la contraseña.
+            }
+            @if (control.hasError('noCoincide')) {
+              Las contraseñas no coinciden.
+            }
+          </ng-template>
         </nz-form-control>
       </nz-form-item>
     </form>

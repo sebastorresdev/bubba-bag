@@ -26,7 +26,9 @@
   </Folder>
   <Folder Name="/src/Modules/ServicioCampo/">
     <Project Path="src/Modules/ServicioCampo/BubbaBag.Modules.ServicioCampo.Domain/BubbaBag.Modules.ServicioCampo.Domain.csproj" />
+    <Project Path="src/Modules/ServicioCampo/BubbaBag.Modules.ServicioCampo.Application/BubbaBag.Modules.ServicioCampo.Application.csproj" />
     <Project Path="src/Modules/ServicioCampo/BubbaBag.Modules.ServicioCampo.Infrastructure/BubbaBag.Modules.ServicioCampo.Infrastructure.csproj" />
+    <Project Path="src/Modules/ServicioCampo/BubbaBag.Modules.ServicioCampo.Api/BubbaBag.Modules.ServicioCampo.Api.csproj" />
   </Folder>
   <Folder Name="/src/Modules/Crm/">
     <Project Path="src/Modules/Crm/BubbaBag.Modules.Crm.Domain/BubbaBag.Modules.Crm.Domain.csproj" />

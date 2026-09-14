@@ -12,6 +12,13 @@ public class OrdenTrabajoTareaConfiguration : IEntityTypeConfiguration<OrdenTrab
 
         builder.HasKey(t => t.Id);
 
+        builder.Property(t => t.CodigoTarea)
+            .IsRequired()
+            .HasMaxLength(30);
+
+        builder.HasIndex(t => t.CodigoTarea)
+            .IsUnique();
+
         builder.Property(t => t.NumeroWoIbs)
             .HasMaxLength(50);
 
@@ -48,8 +55,8 @@ public class OrdenTrabajoTareaConfiguration : IEntityTypeConfiguration<OrdenTrab
         builder.Property(t => t.ObservacionesCierre)
             .HasMaxLength(500);
 
-        builder.Property(t => t.MotivoNoRealizada)
-            .HasMaxLength(150);
+        builder.Property(t => t.ObservacionesRechazo)
+            .HasMaxLength(300);
 
         // Relaciones
         builder.HasOne(t => t.TipoTarea)
@@ -61,6 +68,11 @@ public class OrdenTrabajoTareaConfiguration : IEntityTypeConfiguration<OrdenTrab
             .WithMany()
             .HasForeignKey(t => t.TarifarioReglaId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(t => t.MotivoRechazo)
+            .WithMany()
+            .HasForeignKey(t => t.MotivoRechazoId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(t => t.OrdenTrabajoId);
         builder.HasIndex(t => t.NumeroWoIbs);

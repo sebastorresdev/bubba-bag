@@ -7,7 +7,7 @@ namespace BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
 
 /// <summary>
 /// Orden de Trabajo Universal (Field Service Work Order).
-/// Representa la visita logística o despacho a campo.
+/// Representa el expediente y compromiso de servicio técnico de punta a punta.
 /// </summary>
 public class OrdenTrabajo : Entity<Guid>
 {
@@ -25,41 +25,60 @@ public class OrdenTrabajo : Entity<Guid>
 
     // Actores Clave: Quién paga y Quién recibe la visita
     public Guid ClienteFacturacionId { get; private set; }
-    public Cliente ClienteFacturacion { get; private set; } = default!; // DIRECTV, Claro, Empresa propia
+    public Cliente ClienteFacturacion { get; private set; } = default!; // DIRECTV, Claro, Empresa contratante
 
     public Guid ClienteServicioId { get; private set; }
-    public Cliente ClienteServicio { get; private set; } = default!;    // Andrés Calamaro, Vecino real
+    public Cliente ClienteServicio { get; private set; } = default!;    // Abonado final en domicilio
 
-    // Referencias Externas (Agnóstico a la fuente: Siebel, SGA, etc.)
+    // Referencias Externas (Agnóstico a la fuente: Siebel CRM, SGA, etc.)
     public string? NumeroOrdenExterna { get; private set; }   // "1-86131756103"
     public string? CodigoContratoIbs { get; private set; }    // "40757240"
     public string? IdEncabezadoExterno { get; private set; }
 
     // =========================================================================
-    // TRIPLE ESTADO (Estilo Dynamics 365)
+    // ESTADOS Y CICLO DE VIDA
     // =========================================================================
+    public EstadoOrdenTrabajo Estado { get; private set; }
     public EstadoSistema EstadoSistema { get; private set; }
-    public string EstadoInterno { get; private set; } = default!; // 'PENDIENTE_ASIGNAR', 'ASIGNADA', 'EN_SITIO', 'FINALIZADA_CAMPO', 'FINALIZADA_PREACTIVADA'
-    public string? EstadoExterno { get; private set; }             // Texto libre del Excel: "Abierta", "Liquidada", etc.
+    public string? EstadoExterno { get; private set; }        // Texto original de Siebel/Excel: "Asignada", "Finalizada"
 
-    public string? MotivoCierre { get; private set; }
+    // Auditoría de Cierre / Rechazo / Cancelación
+    public Guid? MotivoCierreId { get; private set; }
+    public MotivoIncidencia? MotivoCierre { get; private set; }
+    public string? ObservacionesCierre { get; private set; }
 
-    // Despacho y Asignación (Booking)
-    public Guid? CuadrillaTecnicoId { get; private set; }
-    public DateOnly? FechaProgramada { get; private set; }
-    public string? BloqueHorario { get; private set; }
+    // =========================================================================
+    // GESTIÓN Y DESCARGA DE MATERIALES DE BODEGA (En la Orden)
+    // =========================================================================
+    public bool NoConsumioMateriales { get; private set; }
+    public bool DescargaMaterialesOmitida { get; private set; }
+    public string? MotivoOmisionMateriales { get; private set; }
+    public bool DescargaMaterialesObligatoria { get; private set; } = true;
+    public bool DescargaMaterialesConfirmada { get; private set; }
+    public DateTime? FechaDescargaMateriales { get; private set; }
+    public int ContadorOmisionDescarga { get; private set; }
 
-    // Tiempos Reales de Operación
-    public DateTime? FechaInicioReal { get; private set; }
-    public DateTime? FechaCierreReal { get; private set; }
+    // =========================================================================
+    // VISITAS EN CAMPO (1 a N)
+    // =========================================================================
+    private readonly List<OrdenTrabajoVisita> _visitas = new();
+    public IReadOnlyCollection<OrdenTrabajoVisita> Visitas => _visitas.AsReadOnly();
 
-    // Evidencias y Cierre
-    public string? FirmaClienteUrl { get; private set; }
-    public string? FotoFachadaUrl { get; private set; }
-    public string? FotoInstalacionUrl { get; private set; }
-    public string? ObservacionesGenerales { get; private set; }
+    public OrdenTrabajoVisita? VisitaActual => _visitas.OrderByDescending(v => v.NumeroVisita).FirstOrDefault();
 
-    // Subtareas (Hijos agregados)
+    // Propiedades delegadas de la Visita Actual (para consulta ágil de lectura)
+    public Guid? CuadrillaTecnicoId => VisitaActual?.CuadrillaTecnicoId;
+    public DateOnly? FechaProgramada => VisitaActual?.FechaProgramada;
+    public string? BloqueHorario => VisitaActual?.BloqueHorario;
+    public DateTime? FechaInicioReal => VisitaActual?.FechaInicioReal;
+    public DateTime? FechaCierreReal => VisitaActual?.FechaFinReal;
+    public string? FirmaClienteUrl => VisitaActual?.FirmaClienteUrl;
+    public bool EvidenciasConfirmadas => VisitaActual?.EvidenciasConfirmadas ?? false;
+    public string? ObservacionesGenerales => VisitaActual?.ObservacionesTecnico;
+
+    // =========================================================================
+    // SUBTAREAS
+    // =========================================================================
     private readonly List<OrdenTrabajoTarea> _tareas = new();
     public IReadOnlyCollection<OrdenTrabajoTarea> Tareas => _tareas.AsReadOnly();
 
@@ -77,9 +96,10 @@ public class OrdenTrabajo : Entity<Guid>
         Guid clienteServicioId,
         string? numeroOrdenExterna = null,
         string? codigoContratoIbs = null,
-        string? estadoExterno = null)
+        string? estadoExterno = null,
+        bool descargaMaterialesObligatoria = true)
     {
-        return new OrdenTrabajo
+        var orden = new OrdenTrabajo
         {
             Id = Guid.NewGuid(),
             CodigoWo = codigoWo.Trim().ToUpperInvariant(),
@@ -91,10 +111,222 @@ public class OrdenTrabajo : Entity<Guid>
             NumeroOrdenExterna = numeroOrdenExterna?.Trim(),
             CodigoContratoIbs = codigoContratoIbs?.Trim(),
             EstadoExterno = estadoExterno?.Trim(),
+            DescargaMaterialesObligatoria = descargaMaterialesObligatoria,
+            Estado = EstadoOrdenTrabajo.Pendiente,
             EstadoSistema = EstadoSistema.PendienteProgramar,
-            EstadoInterno = "PENDIENTE_ASIGNAR",
             CreatedAt = DateTime.UtcNow
         };
+
+        return orden;
+    }
+
+    /// <summary>
+    /// Programa o reprograma una cita de visita con técnico y bloque horario.
+    /// </summary>
+    public OrdenTrabajoVisita ProgramarVisita(
+        string codigoVisita,
+        Guid cuadrillaTecnicoId,
+        DateOnly fechaProgramada,
+        string? bloqueHorario,
+        DateTime? inicioAgendado = null,
+        DateTime? finAgendado = null,
+        string? numeroVisitaSiebel = null,
+        string? numeroVisitaToa = null)
+    {
+        if (Estado == EstadoOrdenTrabajo.Finalizada || Estado == EstadoOrdenTrabajo.Liquidada || Estado == EstadoOrdenTrabajo.Cancelada)
+            throw new InvalidOperationException($"No se puede programar una visita en una orden con estado '{Estado}'.");
+
+        var nuevaVisita = new OrdenTrabajoVisita(
+            Id,
+            codigoVisita,
+            _visitas.Count + 1,
+            cuadrillaTecnicoId,
+            fechaProgramada,
+            bloqueHorario,
+            inicioAgendado,
+            finAgendado,
+            numeroVisitaSiebel,
+            numeroVisitaToa);
+
+        _visitas.Add(nuevaVisita);
+
+        Estado = EstadoOrdenTrabajo.Programada;
+        EstadoSistema = EstadoSistema.Programado;
+        UpdatedAt = DateTime.UtcNow;
+
+        return nuevaVisita;
+    }
+
+    public void NotificarVisitaEnCamino(Guid visitaId, DateTime? fechaSalida = null)
+    {
+        var visita = ObtenerVisita(visitaId);
+        visita.MarcarEnCamino(fechaSalida);
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void NotificarVisitaEnCurso(Guid visitaId, DateTime? fechaLlegada = null)
+    {
+        var visita = ObtenerVisita(visitaId);
+        visita.IniciarAtencion(fechaLlegada);
+
+        Estado = EstadoOrdenTrabajo.EnProgreso;
+        EstadoSistema = EstadoSistema.EnProgreso;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void RegistrarConsumoMateriales(
+        bool noConsumioMateriales,
+        bool descargaOmitida,
+        string? motivoOmisionMateriales = null)
+    {
+        NoConsumioMateriales = noConsumioMateriales;
+        DescargaMaterialesOmitida = descargaOmitida;
+        MotivoOmisionMateriales = motivoOmisionMateriales?.Trim();
+
+        if (descargaOmitida)
+        {
+            ContadorOmisionDescarga++;
+        }
+
+        if (noConsumioMateriales || !DescargaMaterialesObligatoria)
+        {
+            DescargaMaterialesConfirmada = true;
+            FechaDescargaMateriales = DateTime.UtcNow;
+        }
+
+        VerificarPromocionAFinalizada();
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void NotificarVisitaCompletada(
+        Guid visitaId,
+        string? firmaUrl,
+        string? firmadoPor,
+        string? nombreFirmante,
+        string? dniFirmante,
+        string? observaciones,
+        DateTime? fechaFinReal = null,
+        bool sincronizadoInmediato = true)
+    {
+        var visita = ObtenerVisita(visitaId);
+        visita.CompletarVisita(
+            firmaUrl,
+            firmadoPor,
+            nombreFirmante,
+            dniFirmante,
+            observaciones,
+            fechaFinReal,
+            sincronizadoInmediato);
+
+        // Evaluar resultado de las subtareas
+        bool hayTareasCompletas = _tareas.Any(t => t.EstadoTarea == EstadoTarea.Completa);
+        bool todasTareasRechazadasOCanceladas = _tareas.Count > 0 &&
+            _tareas.All(t => t.EstadoTarea == EstadoTarea.Cancelada || t.EstadoTarea == EstadoTarea.Rechazada);
+
+        if (todasTareasRechazadasOCanceladas)
+        {
+            Estado = EstadoOrdenTrabajo.Rechazada;
+            ObservacionesCierre = "Todas las subtareas fueron canceladas o rechazadas en sitio.";
+            EstadoSistema = EstadoSistema.Cancelado;
+        }
+        else if (hayTareasCompletas)
+        {
+            // Si evidencias y materiales están validados -> Finalizada
+            // Si falta alguno -> Completa (esperando regularización)
+            if (EvidenciasConfirmadas && DescargaMaterialesConfirmada)
+            {
+                Estado = EstadoOrdenTrabajo.Finalizada;
+                ObservacionesCierre = "Instalación completada y regularizada satisfactoriamente.";
+                EstadoSistema = EstadoSistema.Completado;
+            }
+            else
+            {
+                Estado = EstadoOrdenTrabajo.Completa;
+                ObservacionesCierre = "Visita técnica completada; pendiente confirmación de evidencias o materiales.";
+                EstadoSistema = EstadoSistema.EnProgreso;
+            }
+        }
+
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void NotificarVisitaCancelada(Guid visitaId, Guid motivoId, string? observaciones = null)
+    {
+        var visita = ObtenerVisita(visitaId);
+        visita.CancelarVisita(motivoId, observaciones);
+
+        // Al cancelarse una visita en sitio, la orden pasa a Rechazada para revisión de coordinación
+        Estado = EstadoOrdenTrabajo.Rechazada;
+        MotivoCierreId = motivoId;
+        ObservacionesCierre = observaciones?.Trim();
+        EstadoSistema = EstadoSistema.PendienteProgramar;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void NotificarVisitaVencida(Guid visitaId, Guid? motivoVencimientoId = null)
+    {
+        var visita = ObtenerVisita(visitaId);
+        visita.MarcarVencida(motivoVencimientoId);
+
+        Estado = EstadoOrdenTrabajo.Rechazada;
+        MotivoCierreId = motivoVencimientoId;
+        ObservacionesCierre = "Visita vencida al cierre de jornada sin reporte técnico.";
+        EstadoSistema = EstadoSistema.PendienteProgramar;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Almacén confirma la descarga de materiales de la bodega móvil.
+    /// Si la orden estaba en 'Completa' y las evidencias están validadas, promueve a 'Finalizada'.
+    /// </summary>
+    public void ConfirmarDescargaMaterialesAlmacen()
+    {
+        DescargaMaterialesConfirmada = true;
+        FechaDescargaMateriales = DateTime.UtcNow;
+
+        VerificarPromocionAFinalizada();
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Liquidar()
+    {
+        if (Estado != EstadoOrdenTrabajo.Finalizada)
+            throw new InvalidOperationException($"Solo se puede liquidar una orden que se encuentre en estado '{EstadoOrdenTrabajo.Finalizada}'.");
+
+        Estado = EstadoOrdenTrabajo.Liquidada;
+        EstadoSistema = EstadoSistema.Completado;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void CerrarComoPreactivacionAdministrativa(string observaciones)
+    {
+        Estado = EstadoOrdenTrabajo.Finalizada;
+        EstadoSistema = EstadoSistema.Completado;
+        ObservacionesCierre = observaciones.Trim();
+        DescargaMaterialesConfirmada = true;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void CancelarOrden(Guid motivoId, string? observaciones = null)
+    {
+        Estado = EstadoOrdenTrabajo.Cancelada;
+        EstadoSistema = EstadoSistema.Cancelado;
+        MotivoCierreId = motivoId;
+        ObservacionesCierre = observaciones?.Trim();
+
+        // Cancelar visita activa si existe
+        if (VisitaActual != null && VisitaActual.Estado != EstadoVisita.Completada && VisitaActual.Estado != EstadoVisita.Cancelada)
+        {
+            VisitaActual.CancelarVisita(motivoId, observaciones);
+        }
+
+        // Cancelar subtareas pendientes
+        foreach (var tarea in _tareas.Where(t => t.EstadoTarea == EstadoTarea.Abierta))
+        {
+            tarea.Cancelar(motivoId, observaciones);
+        }
+
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void ActualizarEstadoExterno(string nuevoEstadoExterno)
@@ -103,59 +335,8 @@ public class OrdenTrabajo : Entity<Guid>
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void AsignarCuadrilla(Guid cuadrillaTecnicoId, DateOnly fechaProgramada, string bloqueHorario)
-    {
-        CuadrillaTecnicoId = cuadrillaTecnicoId;
-        FechaProgramada = fechaProgramada;
-        BloqueHorario = bloqueHorario.Trim();
-        EstadoSistema = EstadoSistema.Programado;
-        EstadoInterno = "ASIGNADA";
-        UpdatedAt = DateTime.UtcNow;
-    }
-
-    public void IniciarVisitaEnCampo()
-    {
-        EstadoSistema = EstadoSistema.EnProgreso;
-        EstadoInterno = "EN_SITIO";
-        FechaInicioReal = DateTime.UtcNow;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
-    public void FinalizarEnCampo(string? firmaUrl, string? fotoFachadaUrl, string? fotoInstalacionUrl, string? observaciones)
-    {
-        EstadoSistema = EstadoSistema.Completado;
-        EstadoInterno = "FINALIZADA_CAMPO";
-        MotivoCierre = "INSTALACION_EXITOSA";
-        FechaCierreReal = DateTime.UtcNow;
-        FirmaClienteUrl = firmaUrl;
-        FotoFachadaUrl = fotoFachadaUrl;
-        FotoInstalacionUrl = fotoInstalacionUrl;
-        ObservacionesGenerales = observaciones?.Trim();
-        UpdatedAt = DateTime.UtcNow;
-    }
-
-    // Cierre Administrativo de Preactivación (Venta en Siebel sin visita a campo)
-    public void CerrarComoPreactivacionAdministrativa(string observaciones)
-    {
-        EstadoSistema = EstadoSistema.Completado;
-        EstadoInterno = "FINALIZADA_PREACTIVADA";
-        MotivoCierre = "PREACTIVACION_ADMINISTRATIVA";
-        FechaCierreReal = DateTime.UtcNow;
-        ObservacionesGenerales = observaciones.Trim();
-        CuadrillaTecnicoId = null;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
-    public void Cancelar(string motivo)
-    {
-        EstadoSistema = EstadoSistema.Cancelado;
-        EstadoInterno = "CANCELADA";
-        MotivoCierre = motivo.Trim();
-        FechaCierreReal = DateTime.UtcNow;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
     public OrdenTrabajoTarea AgregarTarea(
+        string codigoTarea,
         Guid tipoTareaId,
         decimal tarifaBase,
         bool esElegibleBono,
@@ -166,6 +347,7 @@ public class OrdenTrabajo : Entity<Guid>
     {
         var tarea = new OrdenTrabajoTarea(
             Id,
+            codigoTarea,
             tipoTareaId,
             tarifaBase,
             esElegibleBono,
@@ -177,5 +359,23 @@ public class OrdenTrabajo : Entity<Guid>
 
         _tareas.Add(tarea);
         return tarea;
+    }
+
+    private void VerificarPromocionAFinalizada()
+    {
+        if (Estado == EstadoOrdenTrabajo.Completa && EvidenciasConfirmadas && DescargaMaterialesConfirmada)
+        {
+            Estado = EstadoOrdenTrabajo.Finalizada;
+            ObservacionesCierre = "Instalación completada y regularizada satisfactoriamente.";
+            EstadoSistema = EstadoSistema.Completado;
+        }
+    }
+
+    private OrdenTrabajoVisita ObtenerVisita(Guid visitaId)
+    {
+        var visita = _visitas.FirstOrDefault(v => v.Id == visitaId);
+        if (visita == null)
+            throw new InvalidOperationException($"No se encontró la visita '{visitaId}' en la orden '{CodigoWo}'.");
+        return visita;
     }
 }

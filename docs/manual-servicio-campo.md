@@ -80,32 +80,65 @@ El sistema organiza las tareas diarias a través de 3 roles especializados de tr
 
 ---
 
-## 3. Flujo de Vida de una Orden de Trabajo (End-to-End)
+## 3. Arquitectura de 3 Niveles: Orden, Visitas y Subtareas
 
-El ciclo de vida de una orden sigue un flujo de estados estricto y auditable:
+El sistema desacopla el compromiso comercial, la agenda logística y las acciones técnicas en tres niveles claramente diferenciados:
 
 ```
-  [Borrador] 
-      │
-      ▼ (Backoffice asigna cuadrilla y fecha)
-  [Agendada]
-      │
-      ▼ (Técnico inicia recorrido en la app)
-  [En Traslado]
-      │
-      ▼ (Técnico llega al predio del cliente)
-  [En Sitio]
-      │
-      ▼ (Técnico ejecuta tareas, sube fotos y firma)
-  [Ejecutada / Pendiente Validación]
-      │
-      ▼ (Backoffice valida calidad y pruebas)
-  [Liquidada / Completada]
+┌────────────────────────────────────────────────────────┐
+│               1. ORDEN DE TRABAJO                      │
+│   (Expediente global comercial, técnico y financiero)  │
+│   Estados: Pendiente → Programada → EnProgreso →       │
+│            Completa → Finalizada → Liquidada           │
+│            (Excepciones: Rechazada, Cancelada)         │
+└──────────────────────────┬─────────────────────────────┘
+                           │ 1 a N
+┌──────────────────────────▼─────────────────────────────┐
+│               2. VISITAS (Citas / Despacho)            │
+│   (Cada intento logístico presencial en el tiempo)     │
+│   Estados: Programada → EnCamino → EnCurso →           │
+│            Completada | Cancelada | Vencida            │
+└──────────────────────────┬─────────────────────────────┘
+                           │ Agrupa
+┌──────────────────────────▼─────────────────────────────┐
+│               3. SUBTAREAS (Líneas de Trabajo)         │
+│   (Acciones puntuales con tarifa congelada: IB01, etc.)│
+│   Estados: Abierta → Completa | Cancelada | Rechazada  │
+└────────────────────────────────────────────────────────┘
 ```
 
-### Casos de Excepción
-- **Reprogramada / No Contactado:** Si el cliente no se encuentra en el domicilio, el técnico registra la novedad y la orden regresa al Backoffice para reagendamiento de cita.
-- **Cancelada:** Si el cliente desiste del servicio o la solicitud es errónea, únicamente el Backoffice o el Administrador pueden registrar el motivo formal de cancelación.
+### 3.1 Ciclo de Vida de la Orden de Trabajo
+
+1. **`Pendiente`**: Registrada o importada desde Siebel/Excel. Espera agendamiento.
+2. **`Programada`**: El Backoffice coordinó con el cliente y programó una Visita con fecha y técnico.
+3. **`EnProgreso`**: El técnico inició la atención en el domicilio (`EnCurso`).
+4. **`Rechazada`**: La visita no se pudo concretar o fue interrumpida en sitio; queda en bandeja de mesa de control para contactar al abonado o evaluar su reprogramación.
+5. **`Completa`**: El técnico terminó la labor física en campo; queda retenida a la espera del semáforo administrativo (regularización de stock en almacén o sincronización de evidencias).
+6. **`Finalizada`**: Evidencias fotográficas validadas y descarga de materiales confirmada en inventario.
+7. **`Liquidada`**: Facturada y aprobada por Finanzas para pago de tarifas y variables.
+8. **`Cancelada`**: Anulación definitiva por desistimiento del cliente o inviabilidad contractual.
+
+### 3.2 Semáforo Administrativo (`Completa` → `Finalizada`)
+
+Una orden en estado `Completa` solo se promueve a `Finalizada` cuando se cumplen simultáneamente:
+- **Tareas Técnicas:** Tareas resueltas (`Completa` o `Rechazada`).
+- **Materiales:** `DescargaMaterialesConfirmada == true` (Almacén descargó el stock o el trabajo no consumió materiales).
+- **Evidencias:** `EvidenciasConfirmadas == true` (Fotos de fachada, equipo instalado y firma digital recibidas).
+
+### 3.3 Soporte Desconectado (Offline-First en App Móvil)
+- Si el técnico se encuentra en zonas sin cobertura 4G, la app guarda localmente en el dispositivo las tareas, firma y fotos comprimidas.
+- Permite cerrar la visita de inmediato sin bloquear al técnico.
+- Un servicio en segundo plano (`WorkManager`) sincroniza automáticamente con el servidor apenas se recupera la señal o mediante conexión Wi-Fi, respetando la hora real de cierre en campo.
+
+### 3.4 Evidencias Fotográficas y Firma Dinámicas
+- **Configuración por Tipo de Orden:** Cada `TipoOrdenTrabajo` define si `ExigeFirmaCliente` y `ExigeEvidenciasFotograficas`.
+- **Colección 1 a N:** Las fotos ya no están fijas en el código. Cada visita registra su propia lista de evidencias (`OrdenTrabajoVisitaEvidencia`), donde cada una tiene su nombre (ej. *"Foto Antena"*, *"Foto Conector"*, *"Medición Potencia"*), URL, coordenadas GPS y si es de carácter obligatorio para dar por confirmada la visita.
+
+### 3.5 Catálogo Maestro de Motivos de Incidencia (`MotivoIncidencia`)
+Para garantizar la precisión de auditorías y reportes ejecutivos, se eliminan los textos libres para justificar cancelaciones o rechazos, reemplazándolos por un catálogo parametrizable por el usuario:
+- **Ámbito Visita:** Motivos para no concretar o cancelar una visita presencial (ej. *"Cliente ausente"*, *"Lluvia torrencial"*).
+- **Ámbito Orden de Trabajo:** Motivos para cancelar la orden comercial completa (ej. *"Cliente desiste del contrato"*, *"Inviabilidad técnica definitiva"*).
+- **Ámbito Tarea:** Motivos para rechazar una subtarea específica en el domicilio (ej. *"Cliente rechaza punto adicional por costo"*).
 
 ---
 
