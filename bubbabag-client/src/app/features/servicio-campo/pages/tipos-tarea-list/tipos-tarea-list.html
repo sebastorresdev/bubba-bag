@@ -1,0 +1,244 @@
+<app-command-bar [items]="commandBarItems"></app-command-bar>
+
+<div class="catalogo-view-wrapper">
+  <nz-card [nzBordered]="false" class="d365-table-card">
+    <!-- Toolbar de la Vista -->
+    <div class="d365-toolbar-row">
+      <!-- Selector de Vista -->
+      <div>
+        <button
+          nz-button
+          nzType="text"
+          nz-dropdown
+          [nzDropdownMenu]="viewsMenu"
+          nzTrigger="click"
+          class="view-title-btn"
+        >
+          <h1 class="view-title-text">{{ vistaActualTitulo }}</h1>
+          <nz-icon nzType="down" class="view-title-icon" />
+        </button>
+
+        <nz-dropdown-menu #viewsMenu="nzDropdownMenu">
+          <ul nz-menu>
+            <li nz-menu-item (click)="cambiarVista('Activos')" [nzSelected]="vistaActual === 'Activos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Activos' ? 'visible' : 'hidden'" />
+              <span>Tipos de Tarea Activos</span>
+            </li>
+            <li nz-menu-item (click)="cambiarVista('Inactivos')" [nzSelected]="vistaActual === 'Inactivos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Inactivos' ? 'visible' : 'hidden'" />
+              <span>Tipos de Tarea Inactivos</span>
+            </li>
+            <li nz-menu-divider></li>
+            <li nz-menu-item (click)="cambiarVista('Todos')" [nzSelected]="vistaActual === 'Todos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Todos' ? 'visible' : 'hidden'" />
+              <span>Todos los Tipos de Tarea</span>
+            </li>
+          </ul>
+        </nz-dropdown-menu>
+      </div>
+
+      <!-- Filtros y Buscador -->
+      <div class="table-filters-group">
+        <!-- Filtro por Categoría -->
+        <nz-select
+          [(ngModel)]="filtroCategoria"
+          (ngModelChange)="onCategoriaFilterChange()"
+          class="category-select"
+        >
+          <nz-option nzValue="TODAS" nzLabel="Todas las Categorías"></nz-option>
+          @for (cat of categorias; track cat) {
+            <nz-option [nzValue]="cat" [nzLabel]="cat"></nz-option>
+          }
+        </nz-select>
+
+        <!-- Buscador Rápido -->
+        <div class="d365-search-box">
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            (ngModelChange)="onSearchChange()"
+            placeholder="Filtrar por código, nombre..."
+            class="search-input"
+          />
+          @if (searchTerm) {
+            <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
+              <nz-icon nzType="close" />
+            </button>
+          }
+          <button class="search-icon-btn" (click)="onSearchChange()" title="Buscar">
+            <nz-icon nzType="search" />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla Fluida Dynamics 365 -->
+    <div class="table-scroll-container">
+      <nz-table
+        #tareasTable
+        [nzData]="tareasFiltradas"
+        [nzLoading]="loading"
+        [nzShowPagination]="true"
+        [nzPageSize]="20"
+        [nzSize]="'small'"
+        [nzScroll]="{ y: 'calc(100vh - 220px)' }"
+        class="d365-data-table"
+      >
+        <thead>
+          <tr>
+            <th
+              [nzWidth]="'44px'"
+              [nzChecked]="isAllSelected"
+              [nzIndeterminate]="isIndeterminate"
+              (nzCheckedChange)="toggleSelectAll($event)"
+              class="col-checkbox"
+            ></th>
+            <th [nzWidth]="'140px'">Código Tarea</th>
+            <th [nzWidth]="'280px'">Nombre de la Tarea</th>
+            <th [nzWidth]="'160px'">Categoría</th>
+            <th [nzWidth]="'150px'" nzAlign="center">Duración Estimada</th>
+            <th [nzWidth]="'140px'" nzAlign="center">Tarea Siebel</th>
+            <th [nzWidth]="'120px'" nzAlign="center">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of tareasTable.data; track item.id) {
+            <tr
+              [class.row-selected]="selectedIds.has(item.id)"
+              (click)="toggleSelect(item.id)"
+              (dblclick)="abrirModalEditar(item)"
+            >
+              <td
+                class="col-checkbox"
+                [nzChecked]="selectedIds.has(item.id)"
+                (click)="$event.stopPropagation()"
+                (nzCheckedChange)="toggleSelect(item.id)"
+              ></td>
+
+              <!-- Código -->
+              <td class="col-code">
+                <span class="code-tag">{{ item.codigoTarea }}</span>
+              </td>
+
+              <!-- Nombre con enlace -->
+              <td class="col-primary-text">
+                <span class="nombre-link" (click)="$event.stopPropagation(); abrirModalEditar(item)">
+                  {{ item.nombre }}
+                </span>
+              </td>
+
+              <!-- Categoría -->
+              <td>
+                <nz-tag nzColor="cyan">{{ item.categoria }}</nz-tag>
+              </td>
+
+              <!-- Duración Estimada -->
+              <td nzAlign="center">
+                <span class="duration-badge">
+                  <nz-icon nzType="clock-circle" />
+                  {{ formatDuracion(item.duracionEstimadaMinutos) }}
+                </span>
+              </td>
+
+              <!-- Tarea Siebel -->
+              <td nzAlign="center">
+                @if (item.esTareaSiebel) {
+                  <span class="flag-pill flag-yes">Siebel</span>
+                } @else {
+                  <span class="flag-pill flag-no">Interna</span>
+                }
+              </td>
+
+              <!-- Estado con Tag D365 -->
+              <td nzAlign="center">
+                <nz-tag
+                  class="d365-status-tag"
+                  [class.tag-active]="item.activo"
+                  [class.tag-inactive]="!item.activo"
+                >
+                  {{ item.activo ? 'Activo' : 'Inactivo' }}
+                </nz-tag>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </nz-table>
+    </div>
+  </nz-card>
+</div>
+
+<!-- Modal para Crear / Editar Tipo de Tarea -->
+<nz-modal
+  [(nzVisible)]="modalVisible"
+  [nzTitle]="isEdit ? 'Editar Tipo de Tarea de Servicio' : 'Nuevo Tipo de Tarea de Servicio'"
+  [nzOkText]="isEdit ? 'Guardar Cambios' : 'Registrar'"
+  [nzCancelText]="'Cancelar'"
+  [nzOkLoading]="saving"
+  (nzOnOk)="guardar()"
+  (nzOnCancel)="modalVisible = false"
+  [nzWidth]="500"
+>
+  <ng-container *nzModalContent>
+    <form nz-form [formGroup]="form" nzLayout="vertical" class="d365-modal-form">
+      <div class="modal-form-grid">
+        <!-- Código Tarea -->
+        <nz-form-item>
+          <nz-form-label nzRequired>Código de la Tarea</nz-form-label>
+          <nz-form-control nzErrorTip="El código es obligatorio (máx. 30 caracteres)">
+            <input
+              nz-input
+              formControlName="codigoTarea"
+              placeholder="Ej. ACT-FIBRA-01, EMPALME-02"
+              style="text-transform: uppercase;"
+            />
+          </nz-form-control>
+        </nz-form-item>
+
+        <!-- Nombre -->
+        <nz-form-item>
+          <nz-form-label nzRequired>Nombre de la Tarea</nz-form-label>
+          <nz-form-control nzErrorTip="Ingrese un nombre representativo">
+            <input nz-input formControlName="nombre" placeholder="Ej. Fusión y Empalme de Fibra" />
+          </nz-form-control>
+        </nz-form-item>
+
+        <!-- Categoría -->
+        <nz-form-item>
+          <nz-form-label nzRequired>Categoría Operativa</nz-form-label>
+          <nz-form-control nzErrorTip="Seleccione una categoría">
+            <nz-select formControlName="categoria">
+              @for (cat of categorias; track cat) {
+                <nz-option [nzValue]="cat" [nzLabel]="cat"></nz-option>
+              }
+            </nz-select>
+          </nz-form-control>
+        </nz-form-item>
+
+        <!-- Duración Estimada en Minutos -->
+        <nz-form-item>
+          <nz-form-label nzRequired>Duración Estimada (Minutos)</nz-form-label>
+          <nz-form-control nzErrorTip="Ingrese una duración válida (mínimo 1 minuto)">
+            <nz-input-number
+              formControlName="duracionEstimadaMinutos"
+              [nzMin]="1"
+              [nzMax]="1440"
+              [nzStep]="15"
+              style="width: 100%;"
+            ></nz-input-number>
+          </nz-form-control>
+        </nz-form-item>
+
+        <!-- Switch Tarea Siebel -->
+        <div class="switches-box">
+          <div class="switch-row">
+            <div class="switch-text">
+              <span class="switch-title">Tarea Siebel Telecom</span>
+              <span class="switch-subtitle">Corresponde a una actividad homologada del catálogo Siebel</span>
+            </div>
+            <nz-switch formControlName="esTareaSiebel" nzSize="small"></nz-switch>
+          </div>
+        </div>
+      </div>
+    </form>
+  </ng-container>
+</nz-modal>

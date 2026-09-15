@@ -39,6 +39,22 @@ export const routes: Routes = [
       import('./features/crm/crm.routes').then((m) => m.CRM_ROUTES),
   },
   {
+    path: 'servicio-campo',
+    canActivate: [authGuard, roleGuard],
+    data: {
+      roles: [
+        'SuperAdmin',
+        'Gerencia',
+        'ServicioCampoAdmin',
+        'ServicioCampoBackoffice',
+      ],
+    },
+    loadChildren: () =>
+      import('./features/servicio-campo/servicio-campo.routes').then(
+        (m) => m.SERVICIO_CAMPO_ROUTES
+      ),
+  },
+  {
     path: 'login',
     canActivate: [publicGuard],
     loadComponent: () =>

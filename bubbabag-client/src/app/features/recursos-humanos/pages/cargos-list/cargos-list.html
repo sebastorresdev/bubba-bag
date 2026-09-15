@@ -167,12 +167,15 @@
               </span>
             </td>
 
-            <!-- Estado (Status Dot + Texto Plano) -->
-            <td>
-              <div class="status-cell">
-                <span class="status-dot" [class.dot-active]="cargo.activo" [class.dot-inactive]="!cargo.activo"></span>
-                <span class="status-text">{{ cargo.activo ? 'Activo' : 'Inactivo' }}</span>
-              </div>
+            <!-- Estado con Tag D365 -->
+            <td nzAlign="center">
+              <nz-tag
+                class="d365-status-tag"
+                [class.tag-active]="cargo.activo"
+                [class.tag-inactive]="!cargo.activo"
+              >
+                {{ cargo.activo ? 'Activo' : 'Inactivo' }}
+              </nz-tag>
             </td>
           </tr>
           }

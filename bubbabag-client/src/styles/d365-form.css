@@ -247,18 +247,38 @@
 /* --------------------------------------------------------------------------
    4. Navegación por Pestañas Unificada (d365-form-container & d365-form-tabs)
    -------------------------------------------------------------------------- */
+.d365-form-view .ant-spin-nested-loading,
+.d365-form-view .ant-spin-container,
+.cliente-spin-wrapper,
+.cliente-spin-wrapper > .ant-spin-container,
+.empleado-spin-wrapper,
+.empleado-spin-wrapper > .ant-spin-container,
+.user-spin-wrapper,
+.user-spin-wrapper > .ant-spin-container {
+  height: 100% !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
 .d365-form-container {
-  flex: 1;
+  flex: 1 1 0%;
   min-height: 0;
-  overflow-y: auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: 0 !important;
   box-sizing: border-box;
   width: 100%;
   background-color: var(--d365-page-bg) !important;
 }
 
-/* En contenedores sin tabs, aplicar espaciado interno estándar */
+/* En contenedores sin tabs, aplicar scroll vertical y espaciado interno estándar */
 .d365-form-container:not(:has(.ant-tabs-nav)) {
+  overflow-y: auto !important;
   padding: 20px 24px 32px 24px !important;
 }
 
@@ -266,14 +286,20 @@
 .d365-form-container nz-tabs,
 .d365-form-view nz-tabs {
   width: 100%;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
 }
 
-/* Barra de Pestañas Unificada con la Cabecera Informativa (Mismo Color de Fondo) */
+/* Barra de Pestañas Unificada con la Cabecera Informativa (Fija bajo la cabecera de registro) */
 .d365-form-tabs .ant-tabs-nav,
 .d365-form-container .ant-tabs-nav,
 .d365-form-view .ant-tabs-nav {
-  position: sticky;
-  top: 0;
+  position: relative !important;
+  flex-shrink: 0 !important;
   z-index: 5;
   background-color: var(--d365-header-bg) !important;
   padding: 0 24px !important;
@@ -325,14 +351,33 @@
   gap: 8px;
 }
 
-/* Área de Contenido de la Pestaña sobre el Fondo Gris de la Página */
+/* Área de Contenido de la Pestaña sobre el Fondo Gris: Aquí es donde se genera el scroll exclusivamente */
 .d365-form-tabs .ant-tabs-content-holder,
 .d365-form-container .ant-tabs-content-holder,
 .d365-form-view .ant-tabs-content-holder {
-  padding: 20px 24px 32px 24px;
-  box-sizing: border-box;
-  width: 100%;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 20px 24px 32px 24px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
   background-color: var(--d365-page-bg) !important;
+}
+
+.d365-form-tabs .ant-tabs-content,
+.d365-form-container .ant-tabs-content,
+.d365-form-view .ant-tabs-content {
+  min-height: 100%;
+  width: 100%;
+}
+
+.d365-form-tabs .ant-tabs-tabpane,
+.d365-form-container .ant-tabs-tabpane,
+.d365-form-view .ant-tabs-tabpane {
+  min-height: 100%;
+  width: 100%;
 }
 
 /* --------------------------------------------------------------------------
@@ -465,14 +510,37 @@
 }
 
 /* Dynamics 365 no muestra ":" al final de los labels */
-.card-form-grid .ant-form-item-label > label::after {
+.card-form-grid .ant-form-item-label > label::after,
+.ant-form-item-label > label::after {
   display: none !important;
+  content: '' !important;
 }
 
-/* Asterisco de campo requerido estilo sutil D365 */
-.card-form-grid .ant-form-item-label > label.ant-form-item-required::before {
-  margin-right: 4px !important;
+/* Ocultar el asterisco a la izquierda para que todos los labels inicien perfectamente alineados */
+.card-form-grid .ant-form-item-label > label.ant-form-item-required::before,
+.ant-form-item-label > label.ant-form-item-required::before {
+  display: none !important;
+  content: '' !important;
+}
+
+/* Asterisco de campo requerido estilo Dynamics 365: Al final del label */
+.card-form-grid .ant-form-item-label > label.ant-form-item-required::after,
+.ant-form-item-label > label.ant-form-item-required::after {
+  display: inline-block !important;
+  content: ' *' !important;
+  margin-left: 2px !important;
   color: #a80000 !important;
+  font-family: inherit !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+}
+
+[data-theme='dark'] .card-form-grid .ant-form-item-label > label.ant-form-item-required::after,
+.dark-theme .card-form-grid .ant-form-item-label > label.ant-form-item-required::after,
+[data-theme='dark'] .ant-form-item-label > label.ant-form-item-required::after,
+.dark-theme .ant-form-item-label > label.ant-form-item-required::after {
+  color: #f1707b !important;
 }
 
 .card-form-grid .ant-form-item-control {

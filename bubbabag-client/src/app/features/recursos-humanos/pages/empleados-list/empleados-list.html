@@ -189,10 +189,9 @@
             }
             @if (isColVisible('estado')) {
               <td>
-                <div class="kpi-status">
-                  <span class="status-dot" [ngClass]="getEstadoDotClass(data.estado)"></span>
-                  <span class="status-text">{{ data.estado }}</span>
-                </div>
+                <nz-tag class="d365-status-tag" [ngClass]="getEstadoTagClass(data.estado)">
+                  {{ data.estado }}
+                </nz-tag>
               </td>
             }
           </tr>

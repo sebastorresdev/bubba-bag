@@ -409,6 +409,23 @@ export class EmpleadosListComponent implements OnInit {
     this.cambiarVista('Activos');
   }
 
+  getEstadoTagClass(estado: string): string {
+    switch (estado) {
+      case 'Activo':
+        return 'tag-active';
+      case 'Vacaciones':
+        return 'tag-warning';
+      case 'Licencia':
+        return 'tag-info';
+      case 'Suspendido':
+        return 'tag-purple';
+      case 'Cesado':
+        return 'tag-danger';
+      default:
+        return 'tag-inactive';
+    }
+  }
+
   getEstadoDotClass(estado: string): string {
     switch (estado) {
       case 'Activo':

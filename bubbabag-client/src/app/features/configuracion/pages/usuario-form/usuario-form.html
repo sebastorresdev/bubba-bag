@@ -25,7 +25,7 @@
         <div class="record-metadata-row">
           <span class="record-code-tag">{{ isEdit ? (usuarioActual?.email || 'USUARIO') : 'NUEVO USUARIO' }}</span>
           <nz-divider nzType="vertical" />
-          <span>{{ rolesSeleccionados.size }} Rol(es) Asignado(s)</span>
+          <span>{{ (usuarioActual?.roles?.length || 0) }} Rol(es) Asignado(s)</span>
           @if (usuarioActual?.email) {
             <nz-divider nzType="vertical" />
             <span>{{ usuarioActual?.email }}</span>

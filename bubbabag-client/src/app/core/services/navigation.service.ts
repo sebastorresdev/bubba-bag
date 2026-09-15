@@ -242,12 +242,13 @@ export class NavigationService {
         {
           title: 'Catálogos Operativos',
           icon: 'setting',
-          open: false,
-          requiredRoles: ['SuperAdmin', 'Gerencia', 'ServicioCampoAdmin'],
+          open: true,
+          requiredRoles: ['SuperAdmin', 'Gerencia', 'ServicioCampoAdmin', 'ServicioCampoBackoffice'],
           children: [
             { title: 'Tipos de Orden', path: '/servicio-campo/tipos-orden' },
             { title: 'Orígenes (Siebel, SGA)', path: '/servicio-campo/origenes' },
             { title: 'Tipos de Tarea', path: '/servicio-campo/tipos-tarea' },
+            { title: 'Motivos de Incidencia', path: '/servicio-campo/motivos-incidencia' },
           ],
         },
       ],

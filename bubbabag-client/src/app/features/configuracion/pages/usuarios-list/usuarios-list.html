@@ -130,16 +130,15 @@
               </div>
             </td>
 
-            <!-- Estado con Dot + Texto Plano idéntico a Departamentos -->
+            <!-- Estado con Tag D365 -->
             <td>
-              <div class="status-cell">
-                <span
-                  class="status-dot"
-                  [class.dot-active]="data.esActivo"
-                  [class.dot-inactive]="!data.esActivo"
-                ></span>
-                <span class="status-text">{{ data.esActivo ? 'Activo' : 'Inactivo' }}</span>
-              </div>
+              <nz-tag
+                class="d365-status-tag"
+                [class.tag-active]="data.esActivo"
+                [class.tag-inactive]="!data.esActivo"
+              >
+                {{ data.esActivo ? 'Activo' : 'Inactivo' }}
+              </nz-tag>
             </td>
           </tr>
         }

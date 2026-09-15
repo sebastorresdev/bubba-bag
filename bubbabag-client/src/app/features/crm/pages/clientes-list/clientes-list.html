@@ -278,14 +278,13 @@
 
             @if (isColVisible('estado')) {
               <td nzAlign="center">
-                <div class="kpi-status">
-                  <span
-                    class="status-dot"
-                    [class.d365-dot-active]="c.activo"
-                    [class.d365-dot-default]="!c.activo"
-                  ></span>
-                  <span class="status-text">{{ c.activo ? 'Activo' : 'Inactivo' }}</span>
-                </div>
+                <nz-tag
+                  class="d365-status-tag"
+                  [class.tag-active]="c.activo"
+                  [class.tag-inactive]="!c.activo"
+                >
+                  {{ c.activo ? 'Activo' : 'Inactivo' }}
+                </nz-tag>
               </td>
             }
           </tr>

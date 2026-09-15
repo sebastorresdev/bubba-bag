@@ -260,3 +260,119 @@
 .dark-theme .fluent-row-selected td {
   background-color: rgba(255, 255, 255, 0.08) !important;
 }
+
+/* ==========================================================================
+   Etiquetas de Estado Estándar (D365 Status Tags)
+   ========================================================================== */
+.d365-status-tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  line-height: 20px !important;
+  height: 22px !important;
+  padding: 0 10px !important;
+  border-radius: 12px !important;
+  border: 1px solid transparent !important;
+  margin: 0 !important;
+  letter-spacing: 0.2px !important;
+  user-select: none !important;
+}
+
+.d365-status-tag.tag-active,
+.d365-status-tag.status-activo {
+  background-color: rgba(16, 124, 65, 0.12) !important;
+  color: #107c41 !important;
+  border-color: rgba(16, 124, 65, 0.25) !important;
+}
+
+.d365-status-tag.tag-inactive,
+.d365-status-tag.status-inactivo {
+  background-color: rgba(138, 136, 134, 0.14) !important;
+  color: #5d5b59 !important;
+  border-color: rgba(138, 136, 134, 0.22) !important;
+}
+
+.d365-status-tag.tag-warning,
+.d365-status-tag.status-vacaciones {
+  background-color: rgba(255, 170, 0, 0.15) !important;
+  color: #b45309 !important;
+  border-color: rgba(255, 170, 0, 0.3) !important;
+}
+
+.d365-status-tag.tag-danger,
+.d365-status-tag.status-cesado {
+  background-color: rgba(209, 52, 56, 0.12) !important;
+  color: #d13438 !important;
+  border-color: rgba(209, 52, 56, 0.25) !important;
+}
+
+.d365-status-tag.tag-info,
+.d365-status-tag.status-licencia {
+  background-color: rgba(0, 120, 212, 0.12) !important;
+  color: #0078d4 !important;
+  border-color: rgba(0, 120, 212, 0.25) !important;
+}
+
+.d365-status-tag.tag-purple,
+.d365-status-tag.status-suspendido {
+  background-color: rgba(135, 59, 244, 0.12) !important;
+  color: #692bc7 !important;
+  border-color: rgba(135, 59, 244, 0.25) !important;
+}
+
+/* Modo oscuro para los tags de estado */
+[data-theme='dark'] .d365-status-tag.tag-active,
+.dark-theme .d365-status-tag.tag-active,
+[data-theme='dark'] .d365-status-tag.status-activo,
+.dark-theme .d365-status-tag.status-activo {
+  background-color: rgba(16, 124, 65, 0.25) !important;
+  color: #6ccb5f !important;
+  border-color: rgba(108, 203, 95, 0.35) !important;
+}
+
+[data-theme='dark'] .d365-status-tag.tag-inactive,
+.dark-theme .d365-status-tag.tag-inactive,
+[data-theme='dark'] .d365-status-tag.status-inactivo,
+.dark-theme .d365-status-tag.status-inactivo {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #d1d1d1 !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+[data-theme='dark'] .d365-status-tag.tag-danger,
+.dark-theme .d365-status-tag.tag-danger,
+[data-theme='dark'] .d365-status-tag.status-cesado,
+.dark-theme .d365-status-tag.status-cesado {
+  background-color: rgba(209, 52, 56, 0.25) !important;
+  color: #f1707b !important;
+  border-color: rgba(241, 112, 123, 0.35) !important;
+}
+
+[data-theme='dark'] .d365-status-tag.tag-warning,
+.dark-theme .d365-status-tag.tag-warning,
+[data-theme='dark'] .d365-status-tag.status-vacaciones,
+.dark-theme .d365-status-tag.status-vacaciones {
+  background-color: rgba(255, 170, 0, 0.25) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(251, 191, 36, 0.35) !important;
+}
+
+[data-theme='dark'] .d365-status-tag.tag-info,
+.dark-theme .d365-status-tag.tag-info,
+[data-theme='dark'] .d365-status-tag.status-licencia,
+.dark-theme .d365-status-tag.status-licencia {
+  background-color: rgba(0, 120, 212, 0.25) !important;
+  color: #60a5fa !important;
+  border-color: rgba(96, 165, 250, 0.35) !important;
+}
+
+[data-theme='dark'] .d365-status-tag.tag-purple,
+.dark-theme .d365-status-tag.tag-purple,
+[data-theme='dark'] .d365-status-tag.status-suspendido,
+.dark-theme .d365-status-tag.status-suspendido {
+  background-color: rgba(135, 59, 244, 0.25) !important;
+  color: #a78bfa !important;
+  border-color: rgba(167, 139, 250, 0.35) !important;
+}

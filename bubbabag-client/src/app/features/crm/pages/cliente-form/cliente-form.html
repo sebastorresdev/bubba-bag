@@ -490,8 +490,13 @@
                 <div class="summary-field">
                   <span class="summary-label font-bold">Estado en Sistema:</span>
                   <span class="summary-value">
-                    <span class="status-dot" [class.d365-dot-active]="clienteActual?.activo" [class.d365-dot-default]="!clienteActual?.activo"></span>
-                    {{ clienteActual?.activo ? 'Activo' : 'Inactivo' }}
+                    <nz-tag
+                      class="d365-status-tag"
+                      [class.tag-active]="clienteActual?.activo"
+                      [class.tag-inactive]="!clienteActual?.activo"
+                    >
+                      {{ clienteActual?.activo ? 'Activo' : 'Inactivo' }}
+                    </nz-tag>
                   </span>
                 </div>
                 <div class="summary-field">

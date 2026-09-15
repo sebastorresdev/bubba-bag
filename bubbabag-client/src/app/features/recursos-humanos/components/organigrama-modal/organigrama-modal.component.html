@@ -131,14 +131,13 @@
                 </div>
 
                 <div class="tile-field">
-                  <span
-                    class="status-dot"
-                    [class.dot-active]="departamento.activo"
-                    [class.dot-inactive]="!departamento.activo"
-                  ></span>
-                  <span class="field-text">
+                  <nz-tag
+                    class="d365-status-tag"
+                    [class.tag-active]="departamento.activo"
+                    [class.tag-inactive]="!departamento.activo"
+                  >
                     {{ departamento.activo ? 'Departamento Activo' : 'Departamento Inactivo' }}
-                  </span>
+                  </nz-tag>
                 </div>
 
                 @if (departamento.descripcion) {
@@ -203,14 +202,13 @@
                   </div>
 
                   <div class="tile-field">
-                    <span
-                      class="status-dot"
-                      [class.dot-active]="cargo.activo"
-                      [class.dot-inactive]="!cargo.activo"
-                    ></span>
-                    <span class="field-text">
+                    <nz-tag
+                      class="d365-status-tag"
+                      [class.tag-active]="cargo.activo"
+                      [class.tag-inactive]="!cargo.activo"
+                    >
                       {{ cargo.activo ? 'Activo' : 'Inactivo' }}
-                    </span>
+                    </nz-tag>
                   </div>
                 </div>
               </div>

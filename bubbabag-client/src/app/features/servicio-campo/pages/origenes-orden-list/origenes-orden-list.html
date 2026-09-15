@@ -1,0 +1,207 @@
+<app-command-bar [items]="commandBarItems"></app-command-bar>
+
+<div class="catalogo-view-wrapper">
+  <nz-card [nzBordered]="false" class="d365-table-card">
+    <!-- Toolbar de la Vista -->
+    <div class="d365-toolbar-row">
+      <!-- Selector de Vista -->
+      <div>
+        <button
+          nz-button
+          nzType="text"
+          nz-dropdown
+          [nzDropdownMenu]="viewsMenu"
+          nzTrigger="click"
+          class="view-title-btn"
+        >
+          <h1 class="view-title-text">{{ vistaActualTitulo }}</h1>
+          <nz-icon nzType="down" class="view-title-icon" />
+        </button>
+
+        <nz-dropdown-menu #viewsMenu="nzDropdownMenu">
+          <ul nz-menu>
+            <li nz-menu-item (click)="cambiarVista('Activos')" [nzSelected]="vistaActual === 'Activos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Activos' ? 'visible' : 'hidden'" />
+              <span>Orígenes de Orden Activos</span>
+            </li>
+            <li nz-menu-item (click)="cambiarVista('Inactivos')" [nzSelected]="vistaActual === 'Inactivos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Inactivos' ? 'visible' : 'hidden'" />
+              <span>Orígenes de Orden Inactivos</span>
+            </li>
+            <li nz-menu-divider></li>
+            <li nz-menu-item (click)="cambiarVista('Todos')" [nzSelected]="vistaActual === 'Todos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Todos' ? 'visible' : 'hidden'" />
+              <span>Todos los Orígenes de Orden</span>
+            </li>
+          </ul>
+        </nz-dropdown-menu>
+      </div>
+
+      <!-- Buscador Rápido -->
+      <div class="d365-search-box">
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onSearchChange()"
+          placeholder="Filtrar por código, nombre..."
+          class="search-input"
+        />
+        @if (searchTerm) {
+          <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
+            <nz-icon nzType="close" />
+          </button>
+        }
+        <button class="search-icon-btn" (click)="onSearchChange()" title="Buscar">
+          <nz-icon nzType="search" />
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabla Fluida Dynamics 365 -->
+    <div class="table-scroll-container">
+      <nz-table
+        #origenesTable
+        [nzData]="origenesFiltrados"
+        [nzLoading]="loading"
+        [nzShowPagination]="true"
+        [nzPageSize]="20"
+        [nzSize]="'small'"
+        [nzScroll]="{ y: 'calc(100vh - 220px)' }"
+        class="d365-data-table"
+      >
+        <thead>
+          <tr>
+            <th
+              [nzWidth]="'44px'"
+              [nzChecked]="isAllSelected"
+              [nzIndeterminate]="isIndeterminate"
+              (nzCheckedChange)="toggleSelectAll($event)"
+              class="col-checkbox"
+            ></th>
+            <th [nzWidth]="'140px'">Código</th>
+            <th [nzWidth]="'260px'">Nombre del Origen</th>
+            <th [nzWidth]="'180px'" nzAlign="center">Integración Externa</th>
+            <th>Descripción</th>
+            <th [nzWidth]="'120px'" nzAlign="center">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of origenesTable.data; track item.id) {
+            <tr
+              [class.row-selected]="selectedIds.has(item.id)"
+              (click)="toggleSelect(item.id)"
+              (dblclick)="abrirModalEditar(item)"
+            >
+              <td
+                class="col-checkbox"
+                [nzChecked]="selectedIds.has(item.id)"
+                (click)="$event.stopPropagation()"
+                (nzCheckedChange)="toggleSelect(item.id)"
+              ></td>
+
+              <!-- Código -->
+              <td class="col-code">
+                <span class="code-tag">{{ item.codigo }}</span>
+              </td>
+
+              <!-- Nombre con enlace -->
+              <td class="col-primary-text">
+                <span class="nombre-link" (click)="$event.stopPropagation(); abrirModalEditar(item)">
+                  {{ item.nombre }}
+                </span>
+              </td>
+
+              <!-- Integración Externa -->
+              <td nzAlign="center">
+                @if (item.esIntegracionExterna) {
+                  <nz-tag nzColor="blue">Integración Externa</nz-tag>
+                } @else {
+                  <span class="flag-pill flag-no">Interno</span>
+                }
+              </td>
+
+              <!-- Descripción -->
+              <td class="col-desc">
+                {{ item.descripcion || '-' }}
+              </td>
+
+              <!-- Estado con Tag D365 -->
+              <td nzAlign="center">
+                <nz-tag
+                  class="d365-status-tag"
+                  [class.tag-active]="item.activo"
+                  [class.tag-inactive]="!item.activo"
+                >
+                  {{ item.activo ? 'Activo' : 'Inactivo' }}
+                </nz-tag>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </nz-table>
+    </div>
+  </nz-card>
+</div>
+
+<!-- Modal para Crear / Editar Origen de Orden -->
+<nz-modal
+  [(nzVisible)]="modalVisible"
+  [nzTitle]="isEdit ? 'Editar Origen de Orden' : 'Nuevo Origen de Orden'"
+  [nzOkText]="isEdit ? 'Guardar Cambios' : 'Registrar'"
+  [nzCancelText]="'Cancelar'"
+  [nzOkLoading]="saving"
+  (nzOnOk)="guardar()"
+  (nzOnCancel)="modalVisible = false"
+  [nzWidth]="480"
+>
+  <ng-container *nzModalContent>
+    <form nz-form [formGroup]="form" nzLayout="vertical" class="d365-modal-form">
+      <div class="modal-form-grid">
+        <!-- Código -->
+        <nz-form-item>
+          <nz-form-label nzRequired>Código</nz-form-label>
+          <nz-form-control nzErrorTip="El código es obligatorio (máx. 20 caracteres)">
+            <input
+              nz-input
+              formControlName="codigo"
+              placeholder="Ej. SIEBEL, SGA, MESA-AYUDA"
+              style="text-transform: uppercase;"
+            />
+          </nz-form-control>
+        </nz-form-item>
+
+        <!-- Nombre -->
+        <nz-form-item>
+          <nz-form-label nzRequired>Nombre del Origen</nz-form-label>
+          <nz-form-control nzErrorTip="Ingrese un nombre representativo">
+            <input nz-input formControlName="nombre" placeholder="Ej. CRM Siebel Telecom" />
+          </nz-form-control>
+        </nz-form-item>
+
+        <!-- Switch Integración Externa -->
+        <div class="switches-box">
+          <div class="switch-row">
+            <div class="switch-text">
+              <span class="switch-title">Integración Externa</span>
+              <span class="switch-subtitle">Indica si este origen proviene de un sistema externo / webhook</span>
+            </div>
+            <nz-switch formControlName="esIntegracionExterna" nzSize="small"></nz-switch>
+          </div>
+        </div>
+
+        <!-- Descripción -->
+        <nz-form-item>
+          <nz-form-label>Descripción</nz-form-label>
+          <nz-form-control>
+            <textarea
+              nz-input
+              formControlName="descripcion"
+              rows="3"
+              placeholder="Detalles sobre el sistema o canal de procedencia..."
+            ></textarea>
+          </nz-form-control>
+        </nz-form-item>
+      </div>
+    </form>
+  </ng-container>
+</nz-modal>

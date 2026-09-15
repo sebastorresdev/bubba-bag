@@ -841,6 +841,7 @@ export class DashboardComponent {
         'ServicioCampoTecnico',
       ],
       quickLinks: [
+        { label: 'Catálogos Operativos', route: '/servicio-campo/tipos-orden' },
         { label: 'Órdenes de Trabajo', route: '/servicio-campo/ordenes' },
         { label: 'Mi Agenda / Mis Órdenes', route: '/servicio-campo/mis-ordenes' },
         { label: 'Tarifarios', route: '/servicio-campo/tarifarios' },

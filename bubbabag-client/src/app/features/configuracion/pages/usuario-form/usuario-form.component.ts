@@ -555,9 +555,9 @@ export class UsuarioFormComponent implements OnInit {
   }
 
   getIniciales(): string {
-    const nombre = this.usuarioActual?.nombreCompleto || this.form?.get('nombreCompleto')?.value || '';
-    if (!nombre) return this.isEdit ? '' : 'NU';
-    const partes = nombre.trim().split(' ');
+    const nombre = this.usuarioActual?.nombreCompleto?.trim() || '';
+    if (!nombre) return 'NU';
+    const partes = nombre.split(' ').filter((p) => !!p);
     if (partes.length === 1) return partes[0].substring(0, 2).toUpperCase();
     return (partes[0][0] + partes[1][0]).toUpperCase();
   }
