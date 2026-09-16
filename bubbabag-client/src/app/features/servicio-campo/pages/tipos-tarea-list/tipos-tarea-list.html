@@ -39,15 +39,16 @@
 
       <!-- Filtros y Buscador -->
       <div class="table-filters-group">
-        <!-- Filtro por Categoría -->
+        <!-- Filtro por Cliente Facturable -->
         <nz-select
-          [(ngModel)]="filtroCategoria"
-          (ngModelChange)="onCategoriaFilterChange()"
-          class="category-select"
+          [(ngModel)]="filtroCliente"
+          (ngModelChange)="aplicarFiltrosLocales()"
+          style="width: 280px;"
+          nzPlaceHolder="Filtrar por Cliente Facturable"
         >
-          <nz-option nzValue="TODAS" nzLabel="Todas las Categorías"></nz-option>
-          @for (cat of categorias; track cat) {
-            <nz-option [nzValue]="cat" [nzLabel]="cat"></nz-option>
+          <nz-option nzValue="TODOS" nzLabel="Todos los Clientes Facturables"></nz-option>
+          @for (cliente of clientesFacturables; track cliente.id) {
+            <nz-option [nzValue]="cliente.id" [nzLabel]="cliente.nombreCompletoODenominacion + ' (' + cliente.codigoCliente + ')'"></nz-option>
           }
         </nz-select>
 
@@ -95,9 +96,8 @@
             ></th>
             <th [nzWidth]="'140px'">Código Tarea</th>
             <th [nzWidth]="'280px'">Nombre de la Tarea</th>
-            <th [nzWidth]="'160px'">Categoría</th>
+            <th [nzWidth]="'250px'">Cliente Contratante</th>
             <th [nzWidth]="'150px'" nzAlign="center">Duración Estimada</th>
-            <th [nzWidth]="'140px'" nzAlign="center">Tarea Siebel</th>
             <th [nzWidth]="'120px'" nzAlign="center">Estado</th>
           </tr>
         </thead>
@@ -127,9 +127,18 @@
                 </span>
               </td>
 
-              <!-- Categoría -->
+              <!-- Cliente Facturable -->
               <td>
-                <nz-tag nzColor="cyan">{{ item.categoria }}</nz-tag>
+                @if (item.clienteFacturacionNombre) {
+                  <nz-tag nzColor="blue">
+                    {{ item.clienteFacturacionNombre }}
+                    @if (item.clienteFacturacionCodigo) {
+                      <span style="opacity: 0.8;">({{ item.clienteFacturacionCodigo }})</span>
+                    }
+                  </nz-tag>
+                } @else {
+                  <span style="font-size: 12px; color: #8c8c8c;">(General)</span>
+                }
               </td>
 
               <!-- Duración Estimada -->
@@ -138,15 +147,6 @@
                   <nz-icon nzType="clock-circle" />
                   {{ formatDuracion(item.duracionEstimadaMinutos) }}
                 </span>
-              </td>
-
-              <!-- Tarea Siebel -->
-              <td nzAlign="center">
-                @if (item.esTareaSiebel) {
-                  <span class="flag-pill flag-yes">Siebel</span>
-                } @else {
-                  <span class="flag-pill flag-no">Interna</span>
-                }
               </td>
 
               <!-- Estado con Tag D365 -->
@@ -202,13 +202,17 @@
           </nz-form-control>
         </nz-form-item>
 
-        <!-- Categoría -->
+        <!-- Cliente Contratante / Facturable -->
         <nz-form-item>
-          <nz-form-label nzRequired>Categoría Operativa</nz-form-label>
-          <nz-form-control nzErrorTip="Seleccione una categoría">
-            <nz-select formControlName="categoria">
-              @for (cat of categorias; track cat) {
-                <nz-option [nzValue]="cat" [nzLabel]="cat"></nz-option>
+          <nz-form-label nzRequired>Cliente Contratante / Facturable</nz-form-label>
+          <nz-form-control nzErrorTip="Seleccione la empresa contratante (ej. DIRECTV, Claro, Venta Propia)">
+            <nz-select
+              formControlName="clienteFacturacionId"
+              nzPlaceHolder="Seleccionar cliente facturador"
+              nzShowSearch
+            >
+              @for (c of clientesFacturables; track c.id) {
+                <nz-option [nzValue]="c.id" [nzLabel]="c.nombreCompletoODenominacion + ' (' + c.codigoCliente + ')'"></nz-option>
               }
             </nz-select>
           </nz-form-control>
@@ -227,17 +231,6 @@
             ></nz-input-number>
           </nz-form-control>
         </nz-form-item>
-
-        <!-- Switch Tarea Siebel -->
-        <div class="switches-box">
-          <div class="switch-row">
-            <div class="switch-text">
-              <span class="switch-title">Tarea Siebel Telecom</span>
-              <span class="switch-subtitle">Corresponde a una actividad homologada del catálogo Siebel</span>
-            </div>
-            <nz-switch formControlName="esTareaSiebel" nzSize="small"></nz-switch>
-          </div>
-        </div>
       </div>
     </form>
   </ng-container>

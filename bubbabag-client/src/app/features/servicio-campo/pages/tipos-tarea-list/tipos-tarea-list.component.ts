@@ -10,6 +10,8 @@ import { RouterModule } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ServicioCampoService } from '../../services/servicio-campo.service';
 import { TipoTareaServicioDto } from '../../models/servicio-campo-catalogos.model';
+import { ClienteService } from '../../../crm/services/cliente.service';
+import { ClienteListadoItemDto } from '../../../crm/models/cliente.model';
 
 import { NzTableModule } from 'ng-zorro-antd/table';
 import { NzButtonModule } from 'ng-zorro-antd/button';
@@ -60,6 +62,7 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
 })
 export class TiposTareaListComponent implements OnInit {
   private servicioCampoService = inject(ServicioCampoService);
+  private clienteService = inject(ClienteService);
   private message = inject(NzMessageService);
   private modalService = inject(NzModalService);
   private fb = inject(FormBuilder);
@@ -68,12 +71,13 @@ export class TiposTareaListComponent implements OnInit {
   // Datos
   tareas: TipoTareaServicioDto[] = [];
   tareasFiltradas: TipoTareaServicioDto[] = [];
+  clientesFacturables: ClienteListadoItemDto[] = [];
   loading = false;
   saving = false;
 
   // Filtros y Vistas
   searchTerm = '';
-  filtroCategoria: string = 'TODAS';
+  filtroCliente = 'TODOS';
   vistaActual: 'Activos' | 'Todos' | 'Inactivos' = 'Activos';
   vistaActualTitulo = 'Tipos de Tarea Activos';
 
@@ -86,29 +90,27 @@ export class TiposTareaListComponent implements OnInit {
   itemSeleccionadoId: string | null = null;
   form!: FormGroup;
 
-  // Categorías comunes
-  readonly categorias = [
-    'INSTALACION',
-    'MANTENIMIENTO',
-    'REPARACION',
-    'CONFIGURACION',
-    'DESINSTALACION',
-    'INSPECCION',
-    'OTRO',
-  ];
-
   ngOnInit(): void {
     this.initForm();
+    this.cargarClientesFacturables();
     this.cargarDatos();
+  }
+
+  cargarClientesFacturables(): void {
+    this.clienteService.getClientes(undefined, true, undefined, true).subscribe({
+      next: (data) => {
+        this.clientesFacturables = data;
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   initForm(): void {
     this.form = this.fb.group({
       codigoTarea: ['', [Validators.required, Validators.maxLength(30)]],
       nombre: ['', [Validators.required, Validators.maxLength(100)]],
-      categoria: ['INSTALACION', [Validators.required]],
+      clienteFacturacionId: [null, [Validators.required]],
       duracionEstimadaMinutos: [60, [Validators.required, Validators.min(1)]],
-      esTareaSiebel: [true],
     });
   }
 
@@ -176,9 +178,9 @@ export class TiposTareaListComponent implements OnInit {
     if (this.vistaActual === 'Activos') soloActivos = true;
     if (this.vistaActual === 'Inactivos') soloActivos = false;
 
-    const cat = this.filtroCategoria !== 'TODAS' ? this.filtroCategoria : undefined;
+    const clienteId = this.filtroCliente !== 'TODOS' ? this.filtroCliente : undefined;
 
-    this.servicioCampoService.getTiposTarea(cat, soloActivos, this.searchTerm).subscribe({
+    this.servicioCampoService.getTiposTarea(clienteId, soloActivos, this.searchTerm).subscribe({
       next: (data) => {
         this.tareas = data;
         this.aplicarFiltrosLocales();
@@ -209,7 +211,7 @@ export class TiposTareaListComponent implements OnInit {
     this.cargarDatos();
   }
 
-  onCategoriaFilterChange(): void {
+  onClienteFilterChange(): void {
     this.aplicarFiltrosLocales();
   }
 
@@ -225,8 +227,8 @@ export class TiposTareaListComponent implements OnInit {
   aplicarFiltrosLocales(): void {
     let result = [...this.tareas];
 
-    if (this.filtroCategoria !== 'TODAS') {
-      result = result.filter((t) => t.categoria?.toUpperCase() === this.filtroCategoria);
+    if (this.filtroCliente !== 'TODOS') {
+      result = result.filter((t) => t.clienteFacturacionId === this.filtroCliente);
     }
 
     if (this.searchTerm && this.searchTerm.trim() !== '') {
@@ -235,7 +237,8 @@ export class TiposTareaListComponent implements OnInit {
         (t) =>
           t.nombre.toLowerCase().includes(term) ||
           t.codigoTarea.toLowerCase().includes(term) ||
-          t.categoria.toLowerCase().includes(term)
+          (t.clienteFacturacionNombre && t.clienteFacturacionNombre.toLowerCase().includes(term)) ||
+          (t.clienteFacturacionCodigo && t.clienteFacturacionCodigo.toLowerCase().includes(term))
       );
     }
 
@@ -289,9 +292,8 @@ export class TiposTareaListComponent implements OnInit {
     this.form.reset({
       codigoTarea: '',
       nombre: '',
-      categoria: 'INSTALACION',
+      clienteFacturacionId: null,
       duracionEstimadaMinutos: 60,
-      esTareaSiebel: true,
     });
     this.form.get('codigoTarea')?.enable();
     this.modalVisible = true;
@@ -304,9 +306,8 @@ export class TiposTareaListComponent implements OnInit {
     this.form.patchValue({
       codigoTarea: item.codigoTarea,
       nombre: item.nombre,
-      categoria: item.categoria || 'OTRO',
+      clienteFacturacionId: item.clienteFacturacionId,
       duracionEstimadaMinutos: item.duracionEstimadaMinutos || 60,
-      esTareaSiebel: item.esTareaSiebel,
     });
     this.form.get('codigoTarea')?.disable();
     this.modalVisible = true;
@@ -331,9 +332,8 @@ export class TiposTareaListComponent implements OnInit {
       this.servicioCampoService
         .actualizarTipoTarea(this.itemSeleccionadoId, {
           nombre: formVal.nombre,
-          categoria: formVal.categoria,
+          clienteFacturacionId: formVal.clienteFacturacionId,
           duracionEstimadaMinutos: formVal.duracionEstimadaMinutos,
-          esTareaSiebel: formVal.esTareaSiebel,
         })
         .subscribe({
           next: () => {
@@ -353,9 +353,8 @@ export class TiposTareaListComponent implements OnInit {
         .crearTipoTarea({
           codigoTarea: formVal.codigoTarea,
           nombre: formVal.nombre,
-          categoria: formVal.categoria,
+          clienteFacturacionId: formVal.clienteFacturacionId,
           duracionEstimadaMinutos: formVal.duracionEstimadaMinutos,
-          esTareaSiebel: formVal.esTareaSiebel,
         })
         .subscribe({
           next: () => {

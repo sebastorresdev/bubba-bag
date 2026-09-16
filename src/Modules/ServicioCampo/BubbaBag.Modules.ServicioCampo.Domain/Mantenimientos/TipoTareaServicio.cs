@@ -1,18 +1,20 @@
+using BubbaBag.Modules.Crm.Domain.Clientes;
 using BubbaBag.SharedKernel;
 
 namespace BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 
 /// <summary>
-/// Catálogo de Tipos de Tarea / Subtareas de Servicio (Incident Types / Códigos SL de Siebel o Internos).
-/// Ejemplos: 'IB01' (Instalación Básica), 'IA01' (Adicional), 'PC01' (Reposición Antena), 'PC03' (Recableado), 'ENC01' (Envío Encomienda).
+/// Catálogo de Tipos de Tarea / Subtareas de Servicio (Incident Types de Dynamics 365).
+/// Cada tarea pertenece a un Cliente Facturable / Contratante (ej: DIRECTV, Claro, Venta Propia).
+/// Ejemplos: 'IB01' (Instalación Básica), 'MB01' (Mudanza), 'S06' (Avería Decos), 'ENC01' (Envío Encomienda).
 /// </summary>
 public class TipoTareaServicio : Entity<Guid>
 {
     public string CodigoTarea { get; private set; } = default!;
     public string Nombre { get; private set; } = default!;
-    public string Categoria { get; private set; } = default!; // 'INSTALACION', 'AVERIA', 'LOGISTICA', 'ADMIN'
+    public Guid ClienteFacturacionId { get; private set; }
+    public Cliente ClienteFacturacion { get; private set; } = default!;
     public int DuracionEstimadaMinutos { get; private set; }
-    public bool EsTareaSiebel { get; private set; }
     public bool Activo { get; private set; }
 
     private TipoTareaServicio() { }
@@ -20,28 +22,25 @@ public class TipoTareaServicio : Entity<Guid>
     public static TipoTareaServicio Crear(
         string codigoTarea,
         string nombre,
-        string categoria,
-        int duracionMinutos = 60,
-        bool esTareaSiebel = true)
+        Guid clienteFacturacionId,
+        int duracionMinutos = 60)
     {
         return new TipoTareaServicio
         {
             Id = Guid.NewGuid(),
             CodigoTarea = codigoTarea.Trim().ToUpperInvariant(),
             Nombre = nombre.Trim(),
-            Categoria = categoria.Trim().ToUpperInvariant(),
+            ClienteFacturacionId = clienteFacturacionId,
             DuracionEstimadaMinutos = duracionMinutos,
-            EsTareaSiebel = esTareaSiebel,
             Activo = true
         };
     }
 
-    public void Actualizar(string nombre, string categoria, int duracionMinutos, bool esTareaSiebel)
+    public void Actualizar(string nombre, Guid clienteFacturacionId, int duracionMinutos)
     {
         Nombre = nombre.Trim();
-        Categoria = categoria.Trim().ToUpperInvariant();
+        ClienteFacturacionId = clienteFacturacionId;
         DuracionEstimadaMinutos = duracionMinutos;
-        EsTareaSiebel = esTareaSiebel;
     }
 
     public void Desactivar() => Activo = false;

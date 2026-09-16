@@ -3,8 +3,9 @@ using BubbaBag.SharedKernel;
 namespace BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 
 /// <summary>
-/// Catálogo de Tipos de Orden de Trabajo (Mantenimiento parametrizable).
-/// Ejemplos: 'Instalación Oficial DIRECTV', 'Plan Vecino', 'Avería / Servicio Técnico', 'Envío Encomienda', 'Preactivación Administrativa'.
+/// Catálogo de Tipos de Orden de Trabajo (Modalidad Operativa).
+/// Ejemplos: 'Atención Técnica en Terreno' (CAMPO), 'Envío por Encomienda' (ENCOMIENDA), 'Gestión Remota' (REMOTO).
+/// Define las reglas operativas de la visita, evidencias requeridas y firma.
 /// </summary>
 public class TipoOrdenTrabajo : Entity<Guid>
 {

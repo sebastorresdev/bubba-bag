@@ -6,9 +6,6 @@ import {
   CrearMotivoIncidenciaCommand,
   ActualizarMotivoIncidenciaRequest,
   AmbitoMotivo,
-  OrigenOrdenDto,
-  CrearOrigenOrdenCommand,
-  ActualizarOrigenOrdenRequest,
   TipoOrdenTrabajoDto,
   CrearTipoOrdenTrabajoCommand,
   ActualizarTipoOrdenTrabajoRequest,
@@ -64,41 +61,7 @@ export class ServicioCampoService {
   }
 
   // =========================================================================
-  // 2. ORÍGENES DE ORDEN
-  // =========================================================================
-  getOrigenesOrden(
-    soloActivos?: boolean,
-    search?: string
-  ): Observable<OrigenOrdenDto[]> {
-    let params = new HttpParams();
-    if (soloActivos !== undefined && soloActivos !== null) {
-      params = params.set('soloActivos', soloActivos.toString());
-    }
-    if (search && search.trim() !== '') {
-      params = params.set('search', search.trim());
-    }
-    return this.http.get<OrigenOrdenDto[]>(`${this.baseUrl}/origenes-orden`, { params });
-  }
-
-  getOrigenOrdenPorId(id: string): Observable<OrigenOrdenDto> {
-    return this.http.get<OrigenOrdenDto>(`${this.baseUrl}/origenes-orden/${id}`);
-  }
-
-  crearOrigenOrden(command: CrearOrigenOrdenCommand): Observable<{ id: string; message: string }> {
-    return this.http.post<{ id: string; message: string }>(`${this.baseUrl}/origenes-orden`, command);
-  }
-
-  actualizarOrigenOrden(id: string, request: ActualizarOrigenOrdenRequest): Observable<{ message: string }> {
-    return this.http.put<{ message: string }>(`${this.baseUrl}/origenes-orden/${id}`, request);
-  }
-
-  cambiarEstadoOrigenOrden(id: string, activo: boolean): Observable<{ message: string }> {
-    const request: CambiarEstadoCatalogoRequest = { activo };
-    return this.http.patch<{ message: string }>(`${this.baseUrl}/origenes-orden/${id}/estado`, request);
-  }
-
-  // =========================================================================
-  // 3. TIPOS DE ORDEN DE TRABAJO
+  // 2. TIPOS DE ORDEN DE TRABAJO (Modalidad Operativa)
   // =========================================================================
   getTiposOrden(
     soloActivos?: boolean,
@@ -132,16 +95,16 @@ export class ServicioCampoService {
   }
 
   // =========================================================================
-  // 4. TIPOS DE TAREA DE SERVICIO
+  // 3. TIPOS DE TAREA DE SERVICIO (Catálogo de Prestaciones por Cliente)
   // =========================================================================
   getTiposTarea(
-    categoria?: string,
+    clienteFacturacionId?: string,
     soloActivos?: boolean,
     search?: string
   ): Observable<TipoTareaServicioDto[]> {
     let params = new HttpParams();
-    if (categoria && categoria.trim() !== '') {
-      params = params.set('categoria', categoria.trim());
+    if (clienteFacturacionId && clienteFacturacionId.trim() !== '') {
+      params = params.set('clienteFacturacionId', clienteFacturacionId.trim());
     }
     if (soloActivos !== undefined && soloActivos !== null) {
       params = params.set('soloActivos', soloActivos.toString());

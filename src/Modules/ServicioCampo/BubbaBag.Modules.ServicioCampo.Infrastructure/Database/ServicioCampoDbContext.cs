@@ -22,7 +22,6 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<TipoOrdenTrabajo> TiposOrdenTrabajo => Set<TipoOrdenTrabajo>();
     public DbSet<TipoTareaServicio> TiposTareaServicio => Set<TipoTareaServicio>();
-    public DbSet<OrigenOrden> OrigenesOrden => Set<OrigenOrden>();
     public DbSet<Tarifario> Tarifarios => Set<Tarifario>();
     public DbSet<TarifarioRegla> TarifarioReglas => Set<TarifarioRegla>();
     public DbSet<TarifarioReglaCriterio> TarifarioReglaCriterios => Set<TarifarioReglaCriterio>();

@@ -91,11 +91,6 @@ public class OrdenTrabajoConfiguration : IEntityTypeConfiguration<OrdenTrabajo>
             .HasForeignKey(w => w.TipoOrdenId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(w => w.OrigenOrden)
-            .WithMany()
-            .HasForeignKey(w => w.OrigenOrdenId)
-            .OnDelete(DeleteBehavior.Restrict);
-
         builder.HasOne(w => w.ClienteFacturacion)
             .WithMany()
             .HasForeignKey(w => w.ClienteFacturacionId)

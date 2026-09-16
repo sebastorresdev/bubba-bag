@@ -137,40 +137,6 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.ToTable("MotivosIncidencia", "serviciocampo");
                 });
 
-            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos.OrigenOrden", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("Activo")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Codigo")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<string>("Descripcion")
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
-
-                    b.Property<bool>("EsIntegracionExterna")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Codigo")
-                        .IsUnique();
-
-                    b.ToTable("OrigenesOrden", "serviciocampo");
-                });
-
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos.TipoOrdenTrabajo", b =>
                 {
                     b.Property<Guid>("Id")
@@ -231,10 +197,8 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.Property<bool>("Activo")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("Categoria")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                    b.Property<Guid>("ClienteFacturacionId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("CodigoTarea")
                         .IsRequired()
@@ -244,9 +208,6 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.Property<int>("DuracionEstimadaMinutos")
                         .HasColumnType("integer");
 
-                    b.Property<bool>("EsTareaSiebel")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -254,7 +215,7 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CodigoTarea")
+                    b.HasIndex("ClienteFacturacionId", "CodigoTarea")
                         .IsUnique();
 
                     b.ToTable("TiposTareaServicio", "serviciocampo");
@@ -338,9 +299,6 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<Guid>("OrigenOrdenId")
-                        .HasColumnType("uuid");
-
                     b.Property<Guid>("TipoOrdenId")
                         .HasColumnType("uuid");
 
@@ -365,8 +323,6 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.HasIndex("MotivoCierreId");
 
                     b.HasIndex("NumeroOrdenExterna");
-
-                    b.HasIndex("OrigenOrdenId");
 
                     b.HasIndex("TipoOrdenId");
 
@@ -739,6 +695,17 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.ToTable("TarifarioReglaCriterios", "serviciocampo");
                 });
 
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos.TipoTareaServicio", b =>
+                {
+                    b.HasOne("BubbaBag.Modules.Crm.Domain.Clientes.Cliente", "ClienteFacturacion")
+                        .WithMany()
+                        .HasForeignKey("ClienteFacturacionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ClienteFacturacion");
+                });
+
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.OrdenTrabajo", b =>
                 {
                     b.HasOne("BubbaBag.Modules.Crm.Domain.Clientes.Cliente", "ClienteFacturacion")
@@ -758,12 +725,6 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         .HasForeignKey("MotivoCierreId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos.OrigenOrden", "OrigenOrden")
-                        .WithMany()
-                        .HasForeignKey("OrigenOrdenId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos.TipoOrdenTrabajo", "TipoOrden")
                         .WithMany()
                         .HasForeignKey("TipoOrdenId")
@@ -775,8 +736,6 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.Navigation("ClienteServicio");
 
                     b.Navigation("MotivoCierre");
-
-                    b.Navigation("OrigenOrden");
 
                     b.Navigation("TipoOrden");
                 });

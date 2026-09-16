@@ -16,21 +16,22 @@ public class TipoTareaServicioConfiguration : IEntityTypeConfiguration<TipoTarea
             .IsRequired()
             .HasMaxLength(20);
 
-        builder.HasIndex(t => t.CodigoTarea)
-            .IsUnique();
-
         builder.Property(t => t.Nombre)
             .IsRequired()
             .HasMaxLength(150);
 
-        builder.Property(t => t.Categoria)
-            .IsRequired()
-            .HasMaxLength(50);
-
-        builder.Property(t => t.DuracionEstimadaMinutos)
+        builder.Property(t => t.ClienteFacturacionId)
             .IsRequired();
 
-        builder.Property(t => t.EsTareaSiebel)
+        builder.HasOne(t => t.ClienteFacturacion)
+            .WithMany()
+            .HasForeignKey(t => t.ClienteFacturacionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(t => new { t.ClienteFacturacionId, t.CodigoTarea })
+            .IsUnique();
+
+        builder.Property(t => t.DuracionEstimadaMinutos)
             .IsRequired();
 
         builder.Property(t => t.Activo)

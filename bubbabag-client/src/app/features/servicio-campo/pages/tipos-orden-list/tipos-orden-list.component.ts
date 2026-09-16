@@ -25,6 +25,7 @@ import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
+import { NzSelectModule } from 'ng-zorro-antd/select';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
 @Component({
@@ -48,6 +49,7 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzCheckboxModule,
     NzDropdownModule,
     NzTooltipModule,
+    NzSelectModule,
     CommandBarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -95,7 +97,7 @@ export class TiposOrdenListComponent implements OnInit {
 
   initForm(): void {
     this.form = this.fb.group({
-      codigo: ['', [Validators.required, Validators.maxLength(20)]],
+      codigo: ['', [Validators.required, Validators.maxLength(30)]],
       nombre: ['', [Validators.required, Validators.maxLength(100)]],
       requiereVisitaCampo: [true],
       exigeFirmaCliente: [true],

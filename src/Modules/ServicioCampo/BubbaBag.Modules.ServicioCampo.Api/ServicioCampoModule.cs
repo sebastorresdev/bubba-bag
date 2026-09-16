@@ -2,6 +2,7 @@ using System.Linq;
 using BubbaBag.Modules.ServicioCampo.Application;
 using BubbaBag.Modules.ServicioCampo.Infrastructure.Database;
 using BubbaBag.SharedKernel.CQRS;
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BubbaBag.Modules.ServicioCampo.Api;
@@ -13,8 +14,10 @@ public static class ServicioCampoModule
         // Infrastructure
         services.AddScoped<IServicioCampoDbContext>(provider => provider.GetRequiredService<ServicioCampoDbContext>());
 
-        // Application Assembly - Registrar dinámicamente todos los ICommandHandler<,> y IQueryHandler<,>
+        // Application Assembly - Registrar dinámicamente todos los ICommandHandler<,>, IQueryHandler<,> y Validators
         var applicationAssembly = typeof(IServicioCampoDbContext).Assembly;
+
+        services.AddValidatorsFromAssembly(applicationAssembly);
 
         foreach (var type in applicationAssembly.GetTypes().Where(t => !t.IsAbstract && !t.IsInterface))
         {

@@ -13,13 +13,9 @@ public class OrdenTrabajo : Entity<Guid>
 {
     public string CodigoWo { get; private set; } = default!; // 'WO-2026-000001'
     
-    // Tipo de Orden (Mantenimiento)
+    // Tipo de Orden (Modalidad Operativa: CAMPO, ENCOMIENDA, REMOTO)
     public Guid TipoOrdenId { get; private set; }
     public TipoOrdenTrabajo TipoOrden { get; private set; } = default!;
-
-    // Origen Dinámico (Mantenimiento)
-    public Guid OrigenOrdenId { get; private set; }
-    public OrigenOrden OrigenOrden { get; private set; } = default!;
 
     public Guid CreadoPorId { get; private set; }
 
@@ -90,7 +86,6 @@ public class OrdenTrabajo : Entity<Guid>
     public static OrdenTrabajo Crear(
         string codigoWo,
         Guid tipoOrdenId,
-        Guid origenOrdenId,
         Guid creadoPorId,
         Guid clienteFacturacionId,
         Guid clienteServicioId,
@@ -104,7 +99,6 @@ public class OrdenTrabajo : Entity<Guid>
             Id = Guid.NewGuid(),
             CodigoWo = codigoWo.Trim().ToUpperInvariant(),
             TipoOrdenId = tipoOrdenId,
-            OrigenOrdenId = origenOrdenId,
             CreadoPorId = creadoPorId,
             ClienteFacturacionId = clienteFacturacionId,
             ClienteServicioId = clienteServicioId,

@@ -37,30 +37,7 @@ export interface ActualizarMotivoIncidenciaRequest {
   descripcion?: string;
 }
 
-// 2. Orígenes de Orden (Siebel, SGA, Mesa de Ayuda, etc.)
-export interface OrigenOrdenDto {
-  id: string;
-  codigo: string;
-  nombre: string;
-  descripcion?: string;
-  esIntegracionExterna: boolean;
-  activo: boolean;
-}
-
-export interface CrearOrigenOrdenCommand {
-  codigo: string;
-  nombre: string;
-  esIntegracionExterna: boolean;
-  descripcion?: string;
-}
-
-export interface ActualizarOrigenOrdenRequest {
-  nombre: string;
-  esIntegracionExterna: boolean;
-  descripcion?: string;
-}
-
-// 3. Tipos de Orden de Trabajo
+// 2. Tipos de Orden de Trabajo (Modalidad Operativa: CAMPO, ENCOMIENDA, REMOTO)
 export interface TipoOrdenTrabajoDto {
   id: string;
   codigo: string;
@@ -92,30 +69,29 @@ export interface ActualizarTipoOrdenTrabajoRequest {
   colorHex: string;
 }
 
-// 4. Tipos de Tarea de Servicio
+// 3. Tipos de Tarea de Servicio (Catálogo de Prestaciones Técnicas por Cliente Facturable)
 export interface TipoTareaServicioDto {
   id: string;
   codigoTarea: string;
   nombre: string;
-  categoria: string;
+  clienteFacturacionId: string;
+  clienteFacturacionNombre?: string;
+  clienteFacturacionCodigo?: string;
   duracionEstimadaMinutos: number;
-  esTareaSiebel: boolean;
   activo: boolean;
 }
 
 export interface CrearTipoTareaServicioCommand {
   codigoTarea: string;
   nombre: string;
-  categoria: string;
+  clienteFacturacionId: string;
   duracionEstimadaMinutos: number;
-  esTareaSiebel: boolean;
 }
 
 export interface ActualizarTipoTareaServicioRequest {
   nombre: string;
-  categoria: string;
+  clienteFacturacionId: string;
   duracionEstimadaMinutos: number;
-  esTareaSiebel: boolean;
 }
 
 export interface CambiarEstadoCatalogoRequest {

@@ -1,9 +1,32 @@
 using System;
 using System.Threading.Tasks;
-using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Features;
-using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Features.Cargos;
-using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Features.Departamentos;
-using BubbaBag.Modules.RecursosHumanos.Application.Empleados.Features;
+using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Dtos;
+using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Queries.ObtenerCatalogosRrhh;
+
+using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Departamentos.Dtos;
+using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Departamentos.Commands.CrearDepartamento;
+using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Departamentos.Commands.ActualizarDepartamento;
+using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Departamentos.Commands.CambiarEstadoDepartamento;
+using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Departamentos.Commands.EliminarDepartamento;
+using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Departamentos.Queries.ObtenerDepartamentos;
+using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Departamentos.Queries.ObtenerDepartamentoPorId;
+
+using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Cargos.Dtos;
+using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Cargos.Commands.CrearCargo;
+using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Cargos.Commands.ActualizarCargo;
+using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Cargos.Commands.CambiarEstadoCargo;
+using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Cargos.Commands.EliminarCargo;
+using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Cargos.Queries.ObtenerCargos;
+using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Cargos.Queries.ObtenerCargoPorId;
+
+using BubbaBag.Modules.RecursosHumanos.Application.Empleados.Dtos;
+using BubbaBag.Modules.RecursosHumanos.Application.Empleados.Commands.CrearEmpleado;
+using BubbaBag.Modules.RecursosHumanos.Application.Empleados.Commands.ActualizarEmpleado;
+using BubbaBag.Modules.RecursosHumanos.Application.Empleados.Commands.DarDeBajaEmpleado;
+using BubbaBag.Modules.RecursosHumanos.Application.Empleados.Commands.ReactivarEmpleado;
+using BubbaBag.Modules.RecursosHumanos.Application.Empleados.Commands.EliminarEmpleado;
+using BubbaBag.Modules.RecursosHumanos.Application.Empleados.Queries.ObtenerEmpleados;
+using BubbaBag.Modules.RecursosHumanos.Application.Empleados.Queries.ObtenerEmpleado;
 using BubbaBag.Modules.RecursosHumanos.Domain.Empleados;
 using BubbaBag.SharedKernel.CQRS;
 using Microsoft.AspNetCore.Builder;

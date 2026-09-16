@@ -38,22 +38,24 @@
       </div>
 
       <!-- Buscador Rápido -->
-      <div class="d365-search-box">
-        <input
-          type="text"
-          [(ngModel)]="searchTerm"
-          (ngModelChange)="onSearchChange()"
-          placeholder="Filtrar por código, nombre..."
-          class="search-input"
-        />
-        @if (searchTerm) {
-          <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
-            <nz-icon nzType="close" />
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <div class="d365-search-box">
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            (ngModelChange)="onSearchChange()"
+            placeholder="Filtrar por código, nombre..."
+            class="search-input"
+          />
+          @if (searchTerm) {
+            <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
+              <nz-icon nzType="close" />
+            </button>
+          }
+          <button class="search-icon-btn" (click)="onSearchChange()" title="Buscar">
+            <nz-icon nzType="search" />
           </button>
-        }
-        <button class="search-icon-btn" (click)="onSearchChange()" title="Buscar">
-          <nz-icon nzType="search" />
-        </button>
+        </div>
       </div>
     </div>
 
@@ -79,11 +81,11 @@
               class="col-checkbox"
             ></th>
             <th [nzWidth]="'60px'" nzAlign="center">Color</th>
-            <th [nzWidth]="'120px'">Código</th>
-            <th [nzWidth]="'240px'">Nombre</th>
-            <th [nzWidth]="'140px'" nzAlign="center">Visita Campo</th>
-            <th [nzWidth]="'130px'" nzAlign="center">Exige Firma</th>
-            <th [nzWidth]="'150px'" nzAlign="center">Evidencias Foto</th>
+            <th [nzWidth]="'130px'">Código</th>
+            <th [nzWidth]="'260px'">Modalidad Operativa</th>
+            <th [nzWidth]="'130px'" nzAlign="center">Visita Campo</th>
+            <th [nzWidth]="'120px'" nzAlign="center">Exige Firma</th>
+            <th [nzWidth]="'140px'" nzAlign="center">Evidencias Foto</th>
             <th>Descripción</th>
             <th [nzWidth]="'110px'" nzAlign="center">Estado</th>
           </tr>
@@ -109,7 +111,7 @@
 
               <!-- Código -->
               <td class="col-code">
-                <span class="code-tag">{{ item.codigo }}</span>
+                <nz-tag>{{ item.codigo }}</nz-tag>
               </td>
 
               <!-- Nombre con enlace de edición -->

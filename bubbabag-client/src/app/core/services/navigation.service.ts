@@ -245,8 +245,7 @@ export class NavigationService {
           open: true,
           requiredRoles: ['SuperAdmin', 'Gerencia', 'ServicioCampoAdmin', 'ServicioCampoBackoffice'],
           children: [
-            { title: 'Tipos de Orden', path: '/servicio-campo/tipos-orden' },
-            { title: 'Orígenes (Siebel, SGA)', path: '/servicio-campo/origenes' },
+            { title: 'Tipos de Orden (Modalidad)', path: '/servicio-campo/tipos-orden' },
             { title: 'Tipos de Tarea', path: '/servicio-campo/tipos-tarea' },
             { title: 'Motivos de Incidencia', path: '/servicio-campo/motivos-incidencia' },
           ],
