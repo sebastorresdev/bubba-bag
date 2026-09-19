@@ -100,6 +100,12 @@ public class Cliente : Entity<Guid>
         CoordenadaLng = lng;
     }
 
+    public void ActualizarClasificacion(bool esClienteFacturacion, bool esClienteServicio)
+    {
+        EsClienteFacturacion = esClienteFacturacion;
+        EsClienteServicio = esClienteServicio;
+    }
+
     public void Desactivar() => Activo = false;
     public void Activar() => Activo = true;
 }

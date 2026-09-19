@@ -11,6 +11,7 @@ public interface IRecursosHumanosDbContext
     DbSet<Empleado> Empleados { get; }
     DbSet<Departamento> Departamentos { get; }
     DbSet<Cargo> Cargos { get; }
+    DbSet<Sucursal> Sucursales { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

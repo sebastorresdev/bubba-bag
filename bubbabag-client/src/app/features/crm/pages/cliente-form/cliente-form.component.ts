@@ -39,12 +39,6 @@ import { NzDividerModule } from 'ng-zorro-antd/divider';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
-import {
-  getDepartamentos,
-  getProvincias,
-  getDistritos,
-} from '../../../../shared/data/ubigeo.data';
-
 @Component({
   selector: 'app-cliente-form',
   standalone: true,
@@ -102,10 +96,10 @@ export class ClienteFormComponent implements OnInit {
     { label: 'Pasaporte', value: 'PASAPORTE' },
   ];
 
-  // Catálogo oficial de Ubigeo Perú
-  departamentosLista: string[] = getDepartamentos();
-  provinciasLista: string[] = getProvincias('Lima');
-  distritosLista: string[] = getDistritos('Lima', 'Lima');
+  // Catálogo oficial de Ubigeo Perú (cargado desde BD / API)
+  departamentosLista: string[] = [];
+  provinciasLista: string[] = [];
+  distritosLista: string[] = [];
   ubigeosCatalogo: UbigeoItemDto[] = [];
 
   get emailCliente(): string {
@@ -158,18 +152,43 @@ export class ClienteFormComponent implements OnInit {
         if (ubigeos && ubigeos.length > 0) {
           this.ubigeosCatalogo = ubigeos;
           const depts = Array.from(new Set(ubigeos.map((u) => u.departamento))).sort();
-          if (depts.length > 0) {
-            this.departamentosLista = depts;
-          }
-          // Si estamos editando y tenemos cliente cargado, sincronizar
+          this.departamentosLista = depts;
+
           if (this.clienteActual?.ubigeoCodigo) {
             this.sincronizarUbigeoPorCodigo(this.clienteActual.ubigeoCodigo);
+          } else {
+            const currentDep = this.form.get('departamento')?.value || (depts.includes('Lima') ? 'Lima' : depts[0]);
+            this.form.patchValue({ departamento: currentDep });
+
+            const provs = Array.from(
+              new Set(
+                ubigeos
+                  .filter((u) => u.departamento.toUpperCase() === currentDep.toUpperCase())
+                  .map((u) => u.provincia)
+              )
+            ).sort();
+            this.provinciasLista = provs;
+            const currentProv = this.form.get('provincia')?.value || (provs.includes('Lima') ? 'Lima' : provs[0]);
+            this.form.patchValue({ provincia: currentProv });
+
+            const dists = ubigeos
+              .filter(
+                (u) =>
+                  u.departamento.toUpperCase() === currentDep.toUpperCase() &&
+                  u.provincia.toUpperCase() === currentProv.toUpperCase()
+              )
+              .map((u) => u.distrito)
+              .sort();
+            this.distritosLista = dists;
+            const currentDist = this.form.get('distrito')?.value || (dists.includes('Lima') ? 'Lima' : dists[0]);
+            this.form.patchValue({ distrito: currentDist });
+            this.asignarUbigeoCodigo(currentDep, currentProv, currentDist);
           }
           this.cdr.markForCheck();
         }
       },
       error: () => {
-        // Mantiene catálogo estático si la API no responde
+        this.message.warning('No se pudo cargar el catálogo de ubigeos desde el servidor.');
       },
     });
   }
@@ -194,7 +213,7 @@ export class ClienteFormComponent implements OnInit {
       referenciaUbicacion: ['', [Validators.maxLength(250)]],
       coordenadaLat: [null],
       coordenadaLng: [null],
-      esClienteFacturacion: [false],
+      esClienteFacturacion: [true],
       esClienteServicio: [true],
       activo: [true],
     });
@@ -213,6 +232,9 @@ export class ClienteFormComponent implements OnInit {
 
     if (tipo === 'JURIDICA') {
       tipoDocCtrl?.setValue('RUC', { emitEvent: false });
+      if (!this.isEdit) {
+        this.form.patchValue({ esClienteFacturacion: true });
+      }
       razonSocialCtrl?.setValidators([Validators.required, Validators.maxLength(150)]);
       // Persona de contacto en la empresa: nombres es requerido para contacto comercial y por BD
       nombresCtrl?.setValidators([Validators.required, Validators.maxLength(100)]);
@@ -264,14 +286,6 @@ export class ClienteFormComponent implements OnInit {
       const defaultDist = dists[0] || '';
       this.form.patchValue({ distrito: defaultDist });
       this.asignarUbigeoCodigo(dept, defaultProv, defaultDist);
-    } else {
-      this.provinciasLista = getProvincias(dept);
-      const defaultProv = this.provinciasLista[0] || '';
-      this.form.patchValue({ provincia: defaultProv });
-      this.distritosLista = getDistritos(dept, defaultProv);
-      const defaultDist = this.distritosLista[0] || '';
-      this.form.patchValue({ distrito: defaultDist });
-      this.asignarUbigeoCodigo(dept, defaultProv, defaultDist);
     }
     this.cdr.markForCheck();
   }
@@ -289,11 +303,6 @@ export class ClienteFormComponent implements OnInit {
         .sort();
       this.distritosLista = dists;
       const defaultDist = dists[0] || '';
-      this.form.patchValue({ distrito: defaultDist });
-      this.asignarUbigeoCodigo(dept, prov, defaultDist);
-    } else {
-      this.distritosLista = getDistritos(dept, prov);
-      const defaultDist = this.distritosLista[0] || '';
       this.form.patchValue({ distrito: defaultDist });
       this.asignarUbigeoCodigo(dept, prov, defaultDist);
     }
@@ -504,10 +513,23 @@ export class ClienteFormComponent implements OnInit {
 
         if (c.ubigeoCodigo) {
           this.sincronizarUbigeoPorCodigo(c.ubigeoCodigo);
-        } else if (c.departamento) {
-          this.provinciasLista = getProvincias(c.departamento);
+        } else if (c.departamento && this.ubigeosCatalogo.length > 0) {
+          this.provinciasLista = Array.from(
+            new Set(
+              this.ubigeosCatalogo
+                .filter((u) => u.departamento.toUpperCase() === c.departamento.toUpperCase())
+                .map((u) => u.provincia)
+            )
+          ).sort();
           if (c.provincia) {
-            this.distritosLista = getDistritos(c.departamento, c.provincia);
+            this.distritosLista = this.ubigeosCatalogo
+              .filter(
+                (u) =>
+                  u.departamento.toUpperCase() === c.departamento.toUpperCase() &&
+                  u.provincia.toUpperCase() === c.provincia.toUpperCase()
+              )
+              .map((u) => u.distrito)
+              .sort();
           }
         }
         this.actualizarValidacionesPorTipo(c.tipoPersona);
@@ -555,6 +577,8 @@ export class ClienteFormComponent implements OnInit {
         referenciaUbicacion: formVal.referenciaUbicacion,
         coordenadaLat: formVal.coordenadaLat,
         coordenadaLng: formVal.coordenadaLng,
+        esClienteFacturacion: formVal.esClienteFacturacion ?? true,
+        esClienteServicio: formVal.esClienteServicio ?? true,
       };
 
       this.clienteService.actualizarCliente(this.clienteId, updateReq).subscribe({

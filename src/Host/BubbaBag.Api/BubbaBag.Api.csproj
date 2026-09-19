@@ -33,6 +33,8 @@
     <ProjectReference Include="..\..\Modules\Crm\BubbaBag.Modules.Crm.Infrastructure\BubbaBag.Modules.Crm.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\ServicioCampo\BubbaBag.Modules.ServicioCampo.Infrastructure\BubbaBag.Modules.ServicioCampo.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\ServicioCampo\BubbaBag.Modules.ServicioCampo.Api\BubbaBag.Modules.ServicioCampo.Api.csproj" />
+    <ProjectReference Include="..\..\Modules\Inventario\BubbaBag.Modules.Inventario.Infrastructure\BubbaBag.Modules.Inventario.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Inventario\BubbaBag.Modules.Inventario.Api\BubbaBag.Modules.Inventario.Api.csproj" />
   </ItemGroup>
 
 </Project>

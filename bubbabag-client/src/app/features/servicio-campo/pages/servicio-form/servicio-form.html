@@ -1,0 +1,466 @@
+<app-command-bar
+  [items]="commandBarItems"
+  [showBack]="true"
+  (back)="volver()"
+></app-command-bar>
+
+<div class="d365-form-view">
+  <!-- Cabecera de Registro (Dynamics 365 Record Header) -->
+  <div class="d365-record-header">
+    <div class="record-header-main">
+      <div class="record-avatar-container">
+        <nz-avatar
+          [nzSize]="56"
+          [nzText]="getIniciales(form.get('codigo')?.value, form.get('nombre')?.value)"
+          class="record-avatar servicio-header-avatar"
+        />
+      </div>
+
+      <div class="record-title-block">
+        <h1 class="record-title">
+          {{ form.get('nombre')?.value || (isEdit ? 'Servicio' : 'Nuevo Servicio') }}
+        </h1>
+
+        <div class="record-metadata-row">
+          <span class="meta-code">
+            {{ form.get('codigo')?.value || 'SIN CÓDIGO' }}
+          </span>
+          <nz-divider nzType="vertical" />
+          <span class="meta-catalog">
+            <nz-icon nzType="folder" /> {{ getCatalogoNombre() }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Indicadores Métricos de Cabecera (KPIs) -->
+    <div class="record-header-metrics">
+      <div class="metric-item">
+        <span class="metric-label">ESTADO</span>
+        <span
+          class="kpi-value-pill"
+          [class.pill-active]="form.get('activo')?.value"
+          [class.pill-inactive]="!form.get('activo')?.value"
+        >
+          {{ (form.get('activo')?.value ? 'ACTIVO' : 'INACTIVO') }}
+        </span>
+      </div>
+
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="metric-label">DURACIÓN ESTIMADA</span>
+        <span class="kpi-value-number">{{ form.get('duracionEstimadaMinutos')?.value || 60 }} min</span>
+      </div>
+
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="metric-label">PASOS / CHECKLIST</span>
+        <span class="kpi-value-badge badge-enabled">{{ pasosArray.length }} pasos</span>
+      </div>
+
+      <div class="metric-divider"></div>
+      <div class="metric-item">
+        <span class="metric-label">MATERIALES</span>
+        <span class="kpi-value-badge badge-materials">{{ materialesArray.length }} artículos</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenedor con Indicador Circular de Carga -->
+  <nz-spin [nzSpinning]="loading || saving" class="form-spin-wrapper">
+    <form nz-form [formGroup]="form" nzLayout="horizontal" [nzNoColon]="true" class="d365-form-container">
+      <nz-tabs [(nzSelectedIndex)]="selectedTabIndex" [nzAnimated]="false" class="d365-form-tabs">
+        <!-- =================================================================== -->
+        <!-- TAB 1: INFORMACIÓN GENERAL -->
+        <!-- =================================================================== -->
+        <nz-tab nzTitle="General">
+          <div class="d365-tab-columns">
+            <div class="d365-tab-column main-column">
+              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Identificación del Servicio">
+                <div class="card-form-grid">
+                  <!-- Código -->
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="codigo">Código del Servicio</nz-form-label>
+                    <nz-form-control nzErrorTip="Ingrese un código único (ej: IB01, E01, INST-FO)">
+                      <input
+                        nz-input
+                        formControlName="codigo"
+                        id="codigo"
+                        placeholder="Ej. IB01, E01, CABLEADO-EXT"
+                        [readonly]="isEdit"
+                        style="text-transform: uppercase;"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <!-- Nombre -->
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="nombre">Nombre de la Prestación</nz-form-label>
+                    <nz-form-control nzErrorTip="Ingrese el nombre del servicio">
+                      <input
+                        nz-input
+                        formControlName="nombre"
+                        id="nombre"
+                        placeholder="Ej. Instalación Básica Postpago, Encomienda de Decodificadores"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <!-- Catálogo -->
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="catalogoServicioId">Catálogo Agrupador</nz-form-label>
+                    <nz-form-control nzErrorTip="Seleccione el catálogo al que pertenece este servicio">
+                      <nz-select
+                        formControlName="catalogoServicioId"
+                        id="catalogoServicioId"
+                        nzPlaceHolder="Seleccionar catálogo..."
+                        nzShowSearch
+                      >
+                        @for (cat of catalogos; track cat.id) {
+                          <nz-option [nzValue]="cat.id" [nzLabel]="cat.nombre"></nz-option>
+                        }
+                      </nz-select>
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <!-- Duración Estimada -->
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="duracionEstimadaMinutos">Duración Est. (minutos)</nz-form-label>
+                    <nz-form-control nzErrorTip="Ingrese la duración estimada en minutos">
+                      <nz-input-number
+                        formControlName="duracionEstimadaMinutos"
+                        id="duracionEstimadaMinutos"
+                        [nzMin]="5"
+                        [nzMax]="1440"
+                        [nzStep]="15"
+                        style="width: 160px;"
+                      ></nz-input-number>
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <!-- Código Externo -->
+                  <nz-form-item>
+                    <nz-form-label nzFor="codigoExterno">Código Externo / Ref.</nz-form-label>
+                    <nz-form-control nzExtra="Código o SKU en el sistema del contratante (ej: Oracle Field Service o Siebel).">
+                      <input
+                        nz-input
+                        formControlName="codigoExterno"
+                        id="codigoExterno"
+                        placeholder="Ej. EXT-DTV-0091"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <!-- Descripción -->
+                  <nz-form-item>
+                    <nz-form-label nzFor="descripcion">Descripción / Detalle</nz-form-label>
+                    <nz-form-control>
+                      <textarea
+                        nz-input
+                        formControlName="descripcion"
+                        id="descripcion"
+                        rows="3"
+                        placeholder="Especificaciones o notas operativas para este servicio..."
+                      ></textarea>
+                    </nz-form-control>
+                  </nz-form-item>
+                </div>
+              </nz-card>
+            </div>
+
+            <!-- Columna Derecha: Configuración -->
+            <div class="d365-tab-column">
+              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Disponibilidad">
+                <div class="card-form-grid">
+                  <div class="classification-box">
+                    <div class="classification-info">
+                      <span class="classification-title">Estado del Servicio</span>
+                      <span class="classification-desc">
+                        {{ form.get('activo')?.value ? 'Servicio activo y elegible para asignación técnica.' : 'Servicio temporalmente deshabilitado.' }}
+                      </span>
+                    </div>
+                    <nz-switch formControlName="activo" id="activo"></nz-switch>
+                  </div>
+                </div>
+              </nz-card>
+            </div>
+          </div>
+        </nz-tab>
+
+        <!-- =================================================================== -->
+        <!-- TAB 2: PASOS / CHECKLIST / FOTOS (Service Tasks) -->
+        <!-- =================================================================== -->
+        <nz-tab nzTitle="Pasos / Checklist con Fotos">
+          <div style="padding: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <div>
+                <h3 style="margin: 0; font-size: 15px; font-weight: 600;">
+                  Secuencia de Pasos Operativos (Service Tasks)
+                </h3>
+                <p style="margin: 2px 0 0; font-size: 12.5px; color: #605e5c;">
+                  Tareas obligatorias y solicitudes de evidencia fotográfica que el personal técnico o de campo debe completar en su aplicativo.
+                </p>
+              </div>
+              <button nz-button nzType="primary" (click)="agregarPaso()">
+                <nz-icon nzType="plus" /> Agregar Paso
+              </button>
+            </div>
+
+            <nz-table
+              #pasosTable
+              [nzData]="pasosArray.controls"
+              [nzShowPagination]="false"
+              nzSize="middle"
+              class="d365-table"
+              [nzBordered]="true"
+            >
+              <thead>
+                <tr>
+                  <th [nzWidth]="'70px'" nzAlign="center">#</th>
+                  <th>Descripción del Paso / Tarea Técnica</th>
+                  <th [nzWidth]="'160px'" nzAlign="center">¿Requiere Foto?</th>
+                  <th [nzWidth]="'220px'">Tipo de Evidencia</th>
+                  <th [nzWidth]="'130px'" nzAlign="center">¿Obligatorio?</th>
+                  <th [nzWidth]="'80px'" nzAlign="center">Acción</th>
+                </tr>
+              </thead>
+              <tbody formArrayName="pasos">
+                @for (control of pasosArray.controls; track control; let i = $index) {
+                  <tr [formGroupName]="i">
+                    <!-- Número -->
+                    <td nzAlign="center">
+                      <span class="step-circle">{{ i + 1 }}</span>
+                    </td>
+
+                    <!-- Descripción -->
+                    <td>
+                      <input
+                        nz-input
+                        formControlName="descripcion"
+                        placeholder="Ej. Enviar foto de los decos activados, verificar señal, registrar clave..."
+                      />
+                    </td>
+
+                    <!-- Requiere Foto -->
+                    <td nzAlign="center">
+                      <nz-switch
+                        formControlName="requiereFoto"
+                        (ngModelChange)="onRequiereFotoChange(i, $event)"
+                        nzCheckedChildren="Foto"
+                        nzUnCheckedChildren="No"
+                      ></nz-switch>
+                    </td>
+
+                    <!-- Tipo de Evidencia -->
+                    <td>
+                      <nz-select
+                        formControlName="tipoEvidencia"
+                        style="width: 100%;"
+                        (ngModelChange)="onTipoEvidenciaChange(i, $event)"
+                      >
+                        @for (opt of tiposEvidencia; track opt.value) {
+                          <nz-option [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+                        }
+                      </nz-select>
+                    </td>
+
+                    <!-- Es Obligatorio -->
+                    <td nzAlign="center">
+                      <nz-switch
+                        formControlName="esObligatorio"
+                        nzCheckedChildren="Sí"
+                        nzUnCheckedChildren="No"
+                      ></nz-switch>
+                    </td>
+
+                    <!-- Eliminar -->
+                    <td nzAlign="center">
+                      <button
+                        nz-button
+                        nzType="text"
+                        nzDanger
+                        (click)="eliminarPaso(i)"
+                        title="Eliminar paso"
+                      >
+                        <nz-icon nzType="delete" />
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </nz-table>
+
+            @if (pasosArray.length === 0) {
+              <div class="empty-steps-notice">
+                <nz-icon nzType="ordered-list" style="font-size: 28px; color: #0f6cbd;" />
+                <p>No hay pasos configurados aún para este servicio. Haz clic en <b>Agregar Paso</b> para crear el checklist operativo.</p>
+              </div>
+            }
+          </div>
+        </nz-tab>
+
+        <!-- =================================================================== -->
+        <!-- TAB 3: MATERIALES TEÓRICOS (Receta / Consumo Estándar) -->
+        <!-- =================================================================== -->
+        <nz-tab nzTitle="Materiales Teóricos (Receta)">
+          <div style="padding: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <div>
+                <h3 style="margin: 0; font-size: 15px; font-weight: 600;">
+                  Receta de Materiales Teóricos / Planificados
+                </h3>
+                <p style="margin: 2px 0 0; font-size: 12.5px; color: #605e5c;">
+                  Artículos e insumos del inventario que teóricamente se consumen o entregan en la ejecución de este servicio.
+                </p>
+              </div>
+              <button nz-button nzType="primary" (click)="agregarMaterial()">
+                <nz-icon nzType="plus" /> Agregar Material
+              </button>
+            </div>
+
+            <nz-table
+              #materialesTable
+              [nzData]="materialesArray.controls"
+              [nzShowPagination]="false"
+              nzSize="middle"
+              class="d365-table"
+              [nzBordered]="true"
+            >
+              <thead>
+                <tr>
+                  <th [nzWidth]="'70px'" nzAlign="center">#</th>
+                  <th>Producto / Material (Módulo de Inventario)</th>
+                  <th [nzWidth]="'180px'" nzAlign="center">Cantidad Teórica</th>
+                  <th [nzWidth]="'160px'">Unidad de Medida</th>
+                  <th [nzWidth]="'80px'" nzAlign="center">Acción</th>
+                </tr>
+              </thead>
+              <tbody formArrayName="materialesTeoricos">
+                @for (control of materialesArray.controls; track control; let i = $index) {
+                  <tr [formGroupName]="i">
+                    <!-- Número -->
+                    <td nzAlign="center">
+                      <span class="step-circle">{{ i + 1 }}</span>
+                    </td>
+
+                    <!-- Selector de Producto -->
+                    <td>
+                      <nz-select
+                        formControlName="productoId"
+                        nzPlaceHolder="Seleccionar producto del catálogo..."
+                        nzShowSearch
+                        style="width: 100%;"
+                        (ngModelChange)="onProductoSelect(i, $event)"
+                      >
+                        @for (prod of productosCatalogo; track prod.id) {
+                          <nz-option
+                            [nzValue]="prod.id"
+                            [nzLabel]="prod.codigo + ' - ' + prod.nombre + ' (' + prod.categoria + ')'"
+                          ></nz-option>
+                        }
+                      </nz-select>
+                    </td>
+
+                    <!-- Cantidad Teórica -->
+                    <td nzAlign="center">
+                      <nz-input-number
+                        formControlName="cantidadTeorica"
+                        [nzMin]="0.01"
+                        [nzMax]="99999"
+                        [nzStep]="1"
+                        style="width: 140px;"
+                      ></nz-input-number>
+                    </td>
+
+                    <!-- Unidad de Medida -->
+                    <td>
+                      <input
+                        nz-input
+                        formControlName="unidadMedida"
+                        placeholder="Ej. Metros, Unidades, Kit"
+                      />
+                    </td>
+
+                    <!-- Eliminar -->
+                    <td nzAlign="center">
+                      <button
+                        nz-button
+                        nzType="text"
+                        nzDanger
+                        (click)="eliminarMaterial(i)"
+                        title="Eliminar material"
+                      >
+                        <nz-icon nzType="delete" />
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </nz-table>
+
+            @if (materialesArray.length === 0) {
+              <div class="empty-steps-notice">
+                <nz-icon nzType="inbox" style="font-size: 28px; color: #ffaa00;" />
+                <p>No hay materiales teóricos vinculados a este servicio. Haz clic en <b>Agregar Material</b> para definir insumos de inventario.</p>
+              </div>
+            }
+          </div>
+        </nz-tab>
+
+        <!-- =================================================================== -->
+        <!-- TAB 4: SUCURSALES HABILITADAS -->
+        <!-- =================================================================== -->
+        <nz-tab nzTitle="Sucursales Habilitadas">
+          <div style="padding: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <div>
+                <h3 style="margin: 0; font-size: 15px; font-weight: 600;">
+                  Disponibilidad Territorial por Sucursal / Sede
+                </h3>
+                <p style="margin: 2px 0 0; font-size: 12.5px; color: #605e5c;">
+                  Marca las sedes u oficinas operativas en las que este servicio está disponible para programar órdenes de trabajo.
+                </p>
+              </div>
+              <div>
+                <button
+                  nz-button
+                  nzType="default"
+                  (click)="toggleTodasSucursales(!todasSucursalesHabilitadas)"
+                >
+                  {{ todasSucursalesHabilitadas ? 'Desmarcar Todas' : 'Habilitar en Todas' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="branch-grid">
+              @for (sucursal of sucursales; track sucursal.id) {
+                <div
+                  class="branch-card"
+                  [class.branch-active]="isSucursalHabilitada(sucursal.id)"
+                  (click)="toggleSucursal(sucursal.id, !isSucursalHabilitada(sucursal.id))"
+                >
+                  <div class="branch-check">
+                    <label
+                      nz-checkbox
+                      [ngModel]="isSucursalHabilitada(sucursal.id)"
+                      [ngModelOptions]="{standalone: true}"
+                      (click)="$event.stopPropagation()"
+                      (ngModelChange)="toggleSucursal(sucursal.id, $event)"
+                    ></label>
+                  </div>
+                  <div class="branch-info">
+                    <span class="branch-name">{{ sucursal.nombre }}</span>
+                    <span class="branch-code">{{ sucursal.codigo }} - {{ sucursal.ciudad || 'Perú' }}</span>
+                  </div>
+                  @if (sucursal.esSedePrincipal) {
+                    <nz-tag nzColor="blue">Principal</nz-tag>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </nz-tab>
+      </nz-tabs>
+    </form>
+  </nz-spin>
+</div>

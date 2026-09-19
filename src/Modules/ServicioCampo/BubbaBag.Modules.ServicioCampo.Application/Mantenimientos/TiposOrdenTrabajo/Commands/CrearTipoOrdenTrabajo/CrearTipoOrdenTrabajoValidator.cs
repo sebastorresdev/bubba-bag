@@ -6,10 +6,6 @@ public class CrearTipoOrdenTrabajoValidator : AbstractValidator<CrearTipoOrdenTr
 {
     public CrearTipoOrdenTrabajoValidator()
     {
-        RuleFor(x => x.Codigo)
-            .NotEmpty().WithMessage("El código del tipo de orden es obligatorio.")
-            .MaximumLength(30).WithMessage("El código no puede exceder los 30 caracteres.");
-
         RuleFor(x => x.Nombre)
             .NotEmpty().WithMessage("El nombre del tipo de orden es obligatorio.")
             .MaximumLength(100).WithMessage("El nombre no puede exceder los 100 caracteres.");

@@ -1,0 +1,143 @@
+<div class="d365-form-page">
+  <!-- Barra de Comandos Superior -->
+  <app-command-bar [items]="commandBarItems"></app-command-bar>
+
+  <nz-spin [nzSpinning]="loading">
+    <div class="d365-form-scrollable">
+      <!-- Encabezado de Entidad -->
+      <div class="d365-record-header">
+        <div class="d365-record-avatar">
+          <div class="record-avatar-circle">
+            {{ getIniciales() }}
+          </div>
+        </div>
+        <div class="d365-record-titles">
+          <h1 class="d365-record-name">
+            {{ isEdit ? form.get('nombre')?.value : 'Nueva Sucursal' }}
+          </h1>
+          <div class="d365-record-subtitle">
+            <span>{{ form.get('codigo')?.value || 'SIN CÓDIGO' }}</span>
+            <span class="d365-sep">|</span>
+            <span>{{ form.get('ciudad')?.value || 'GENERAL' }}</span>
+            <span *ngIf="form.get('esSedePrincipal')?.value" class="d365-sep">|</span>
+            <nz-tag *ngIf="form.get('esSedePrincipal')?.value" [nzColor]="'purple'">
+              SEDE PRINCIPAL
+            </nz-tag>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navegación de Secciones / Pestañas -->
+      <nz-tabs [(nzSelectedIndex)]="selectedTabIndex" [nzAnimated]="false" class="d365-form-tabs">
+        <nz-tab nzTitle="General">
+          <form [formGroup]="form" class="d365-two-column-form">
+            <!-- Columna Izquierda: Información de la Sucursal -->
+            <div class="d365-form-card">
+              <h2 class="d365-card-title">Datos de la Sucursal</h2>
+
+              <div class="d365-field-row">
+                <label class="d365-field-label">Código <span class="req">*</span></label>
+                <div class="d365-field-control">
+                  <input
+                    nz-input
+                    formControlName="codigo"
+                    placeholder="Ej: CHIC, PIU, LIMA"
+                    style="text-transform: uppercase;"
+                  />
+                  <div
+                    class="d365-field-error"
+                    *ngIf="form.get('codigo')?.dirty && form.get('codigo')?.invalid"
+                  >
+                    El código es obligatorio (máx. 20 caracteres)
+                  </div>
+                </div>
+              </div>
+
+              <div class="d365-field-row">
+                <label class="d365-field-label">Nombre <span class="req">*</span></label>
+                <div class="d365-field-control">
+                  <input
+                    nz-input
+                    formControlName="nombre"
+                    placeholder="Ej: Chiclayo, Piura, Lima Principal"
+                  />
+                  <div
+                    class="d365-field-error"
+                    *ngIf="form.get('nombre')?.dirty && form.get('nombre')?.invalid"
+                  >
+                    El nombre es obligatorio (máx. 100 caracteres)
+                  </div>
+                </div>
+              </div>
+
+              <div class="d365-field-row">
+                <label class="d365-field-label">Ciudad</label>
+                <div class="d365-field-control">
+                  <input
+                    nz-input
+                    formControlName="ciudad"
+                    placeholder="Ej: Chiclayo, Piura, Lima"
+                  />
+                </div>
+              </div>
+
+              <div class="d365-field-row">
+                <label class="d365-field-label">Dirección</label>
+                <div class="d365-field-control">
+                  <input
+                    nz-input
+                    formControlName="direccion"
+                    placeholder="Ej: Av. Balta 123, Chiclayo"
+                  />
+                </div>
+              </div>
+
+              <div class="d365-field-row">
+                <label class="d365-field-label">Teléfono</label>
+                <div class="d365-field-control">
+                  <input
+                    nz-input
+                    formControlName="telefono"
+                    placeholder="Ej: 074-234567"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Columna Derecha: Configuración y Operación -->
+            <div class="d365-form-card">
+              <h2 class="d365-card-title">Configuración de Operación</h2>
+
+              <div class="d365-field-row">
+                <label class="d365-field-label">Sede Principal</label>
+                <div class="d365-field-control">
+                  <nz-switch formControlName="esSedePrincipal"></nz-switch>
+                  <span class="d365-switch-label">
+                    {{ form.get('esSedePrincipal')?.value ? 'Sí (Sede Central)' : 'No' }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="d365-field-row" *ngIf="isEdit">
+                <label class="d365-field-label">Estado</label>
+                <div class="d365-field-control">
+                  <nz-switch formControlName="activo"></nz-switch>
+                  <span class="d365-switch-label">
+                    {{ form.get('activo')?.value ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="d365-form-hint">
+                <span nz-icon nzType="info-circle"></span>
+                <span>
+                  Las sucursales se usan para segmentar tarifas de servicios, asignación de órdenes de trabajo y control de liquidaciones operativas en campo.
+                </span>
+              </div>
+            </div>
+          </form>
+        </nz-tab>
+      </nz-tabs>
+    </div>
+  </nz-spin>
+</div>

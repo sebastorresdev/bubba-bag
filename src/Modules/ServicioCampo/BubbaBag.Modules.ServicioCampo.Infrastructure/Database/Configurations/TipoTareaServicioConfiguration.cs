@@ -21,11 +21,12 @@ public class TipoTareaServicioConfiguration : IEntityTypeConfiguration<TipoTarea
             .HasMaxLength(150);
 
         builder.Property(t => t.ClienteFacturacionId)
-            .IsRequired();
+            .IsRequired(false);
 
         builder.HasOne(t => t.ClienteFacturacion)
             .WithMany()
             .HasForeignKey(t => t.ClienteFacturacionId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(t => new { t.ClienteFacturacionId, t.CodigoTarea })

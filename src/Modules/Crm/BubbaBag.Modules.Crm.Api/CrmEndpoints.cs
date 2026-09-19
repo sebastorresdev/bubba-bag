@@ -1,7 +1,11 @@
 using System;
 using System.Threading.Tasks;
-using BubbaBag.Modules.Crm.Application.Clientes.Features;
-using BubbaBag.Modules.Crm.Application.Ubigeos.Features;
+using BubbaBag.Modules.Crm.Application.Clientes.Commands.ActualizarCliente;
+using BubbaBag.Modules.Crm.Application.Clientes.Commands.CambiarEstadoCliente;
+using BubbaBag.Modules.Crm.Application.Clientes.Commands.CrearCliente;
+using BubbaBag.Modules.Crm.Application.Clientes.Queries.ObtenerClientePorId;
+using BubbaBag.Modules.Crm.Application.Clientes.Queries.ObtenerClientes;
+using BubbaBag.Modules.Crm.Application.Ubigeos.Queries.ObtenerUbigeos;
 using BubbaBag.SharedKernel.Authorization;
 using BubbaBag.SharedKernel.CQRS;
 using Microsoft.AspNetCore.Builder;
@@ -89,7 +93,9 @@ public static class CrmEndpoints
             UbigeoCodigo: request.UbigeoCodigo,
             ReferenciaUbicacion: request.ReferenciaUbicacion,
             CoordenadaLat: request.CoordenadaLat,
-            CoordenadaLng: request.CoordenadaLng
+            CoordenadaLng: request.CoordenadaLng,
+            EsClienteFacturacion: request.EsClienteFacturacion,
+            EsClienteServicio: request.EsClienteServicio
         );
 
         var result = await dispatcher.SendAsync(command);
@@ -114,6 +120,8 @@ public record ActualizarClienteRequest(
     string UbigeoCodigo,
     string? ReferenciaUbicacion = null,
     decimal? CoordenadaLat = null,
-    decimal? CoordenadaLng = null);
+    decimal? CoordenadaLng = null,
+    bool? EsClienteFacturacion = null,
+    bool? EsClienteServicio = null);
 
 public record CambiarEstadoClienteRequest(bool Activo);

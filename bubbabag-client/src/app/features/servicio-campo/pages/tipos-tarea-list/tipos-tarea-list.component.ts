@@ -6,8 +6,8 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { RouterModule, Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { ServicioCampoService } from '../../services/servicio-campo.service';
 import { TipoTareaServicioDto } from '../../models/servicio-campo-catalogos.model';
 import { ClienteService } from '../../../crm/services/cliente.service';
@@ -18,11 +18,7 @@ import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { NzModalModule, NzModalService } from 'ng-zorro-antd/modal';
-import { NzInputModule } from 'ng-zorro-antd/input';
-import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
 import { NzTagModule } from 'ng-zorro-antd/tag';
-import { NzSwitchModule } from 'ng-zorro-antd/switch';
-import { NzFormModule } from 'ng-zorro-antd/form';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
@@ -38,16 +34,11 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     CommonModule,
     RouterModule,
     FormsModule,
-    ReactiveFormsModule,
     NzTableModule,
     NzButtonModule,
     NzIconModule,
     NzModalModule,
-    NzInputModule,
-    NzInputNumberModule,
     NzTagModule,
-    NzSwitchModule,
-    NzFormModule,
     NzCardModule,
     NzEmptyModule,
     NzCheckboxModule,
@@ -65,7 +56,7 @@ export class TiposTareaListComponent implements OnInit {
   private clienteService = inject(ClienteService);
   private message = inject(NzMessageService);
   private modalService = inject(NzModalService);
-  private fb = inject(FormBuilder);
+  private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
 
   // Datos
@@ -73,7 +64,6 @@ export class TiposTareaListComponent implements OnInit {
   tareasFiltradas: TipoTareaServicioDto[] = [];
   clientesFacturables: ClienteListadoItemDto[] = [];
   loading = false;
-  saving = false;
 
   // Filtros y Vistas
   searchTerm = '';
@@ -84,14 +74,7 @@ export class TiposTareaListComponent implements OnInit {
   // Selección
   selectedIds = new Set<string>();
 
-  // Modal Crear / Editar
-  modalVisible = false;
-  isEdit = false;
-  itemSeleccionadoId: string | null = null;
-  form!: FormGroup;
-
   ngOnInit(): void {
-    this.initForm();
     this.cargarClientesFacturables();
     this.cargarDatos();
   }
@@ -99,18 +82,26 @@ export class TiposTareaListComponent implements OnInit {
   cargarClientesFacturables(): void {
     this.clienteService.getClientes(undefined, true, undefined, true).subscribe({
       next: (data) => {
-        this.clientesFacturables = data;
-        this.cdr.markForCheck();
+        if (data && data.length > 0) {
+          this.clientesFacturables = data;
+          this.cdr.markForCheck();
+        } else {
+          this.clienteService.getClientes(undefined, undefined, undefined, true).subscribe({
+            next: (todos) => {
+              this.clientesFacturables = todos;
+              this.cdr.markForCheck();
+            },
+          });
+        }
       },
-    });
-  }
-
-  initForm(): void {
-    this.form = this.fb.group({
-      codigoTarea: ['', [Validators.required, Validators.maxLength(30)]],
-      nombre: ['', [Validators.required, Validators.maxLength(100)]],
-      clienteFacturacionId: [null, [Validators.required]],
-      duracionEstimadaMinutos: [60, [Validators.required, Validators.min(1)]],
+      error: () => {
+        this.clienteService.getClientes(undefined, undefined, undefined, true).subscribe({
+          next: (todos) => {
+            this.clientesFacturables = todos;
+            this.cdr.markForCheck();
+          },
+        });
+      },
     });
   }
 
@@ -131,7 +122,7 @@ export class TiposTareaListComponent implements OnInit {
         icon: 'plus',
         iconColor: 'success',
         tooltip: 'Crear nuevo tipo de tarea de servicio',
-        execute: () => this.abrirModalCrear(),
+        execute: () => this.irANuevo(),
       },
       {
         key: 'edit',
@@ -142,7 +133,7 @@ export class TiposTareaListComponent implements OnInit {
         tooltip: 'Editar el tipo de tarea seleccionado',
         execute: () => {
           if (itemSeleccionado) {
-            this.abrirModalEditar(itemSeleccionado);
+            this.editar(itemSeleccionado.id);
           }
         },
       },
@@ -225,53 +216,45 @@ export class TiposTareaListComponent implements OnInit {
   }
 
   aplicarFiltrosLocales(): void {
-    let result = [...this.tareas];
+    let filtradas = [...this.tareas];
 
     if (this.filtroCliente !== 'TODOS') {
-      result = result.filter((t) => t.clienteFacturacionId === this.filtroCliente);
+      filtradas = filtradas.filter((t) => t.clienteFacturacionId === this.filtroCliente);
     }
 
     if (this.searchTerm && this.searchTerm.trim() !== '') {
-      const term = this.searchTerm.trim().toLowerCase();
-      result = result.filter(
+      const q = this.searchTerm.toLowerCase().trim();
+      filtradas = filtradas.filter(
         (t) =>
-          t.nombre.toLowerCase().includes(term) ||
-          t.codigoTarea.toLowerCase().includes(term) ||
-          (t.clienteFacturacionNombre && t.clienteFacturacionNombre.toLowerCase().includes(term)) ||
-          (t.clienteFacturacionCodigo && t.clienteFacturacionCodigo.toLowerCase().includes(term))
+          t.codigoTarea.toLowerCase().includes(q) ||
+          t.nombre.toLowerCase().includes(q) ||
+          (t.clienteFacturacionNombre && t.clienteFacturacionNombre.toLowerCase().includes(q))
       );
     }
 
-    this.tareasFiltradas = result;
+    this.tareasFiltradas = filtradas;
     this.cdr.markForCheck();
-  }
-
-  formatDuracion(minutos: number): string {
-    if (!minutos) return '0 min';
-    if (minutos < 60) return `${minutos} min`;
-    const horas = Math.floor(minutos / 60);
-    const mins = minutos % 60;
-    return mins > 0 ? `${horas}h ${mins}m` : `${horas}h`;
+    this.cdr.detectChanges();
   }
 
   // Selección
   get isAllSelected(): boolean {
     return (
       this.tareasFiltradas.length > 0 &&
-      this.tareasFiltradas.every((t) => this.selectedIds.has(t.id))
+      this.tareasFiltradas.every((item) => this.selectedIds.has(item.id))
     );
   }
 
   get isIndeterminate(): boolean {
-    const selectedCount = this.tareasFiltradas.filter((t) => this.selectedIds.has(t.id)).length;
-    return selectedCount > 0 && selectedCount < this.tareasFiltradas.length;
+    const count = this.tareasFiltradas.filter((item) => this.selectedIds.has(item.id)).length;
+    return count > 0 && count < this.tareasFiltradas.length;
   }
 
   toggleSelectAll(checked: boolean): void {
     if (checked) {
-      this.tareasFiltradas.forEach((t) => this.selectedIds.add(t.id));
+      this.tareasFiltradas.forEach((item) => this.selectedIds.add(item.id));
     } else {
-      this.selectedIds.clear();
+      this.tareasFiltradas.forEach((item) => this.selectedIds.delete(item.id));
     }
     this.cdr.markForCheck();
   }
@@ -285,91 +268,22 @@ export class TiposTareaListComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
-  // Modales
-  abrirModalCrear(): void {
-    this.isEdit = false;
-    this.itemSeleccionadoId = null;
-    this.form.reset({
-      codigoTarea: '',
-      nombre: '',
-      clienteFacturacionId: null,
-      duracionEstimadaMinutos: 60,
-    });
-    this.form.get('codigoTarea')?.enable();
-    this.modalVisible = true;
-    this.cdr.markForCheck();
+  formatDuracion(minutos?: number): string {
+    if (!minutos) return '0 min';
+    const hrs = Math.floor(minutos / 60);
+    const mins = minutos % 60;
+    if (hrs > 0 && mins > 0) return `${hrs}h ${mins}m`;
+    if (hrs > 0) return `${hrs}h`;
+    return `${mins} min`;
   }
 
-  abrirModalEditar(item: TipoTareaServicioDto): void {
-    this.isEdit = true;
-    this.itemSeleccionadoId = item.id;
-    this.form.patchValue({
-      codigoTarea: item.codigoTarea,
-      nombre: item.nombre,
-      clienteFacturacionId: item.clienteFacturacionId,
-      duracionEstimadaMinutos: item.duracionEstimadaMinutos || 60,
-    });
-    this.form.get('codigoTarea')?.disable();
-    this.modalVisible = true;
-    this.cdr.markForCheck();
+  // Navegación a Páginas Dedicadas (Cero Modales)
+  irANuevo(): void {
+    this.router.navigate(['/servicio-campo/tipos-tarea/nuevo']);
   }
 
-  guardar(): void {
-    if (this.form.invalid) {
-      Object.values(this.form.controls).forEach((ctrl) => {
-        if (ctrl.invalid) {
-          ctrl.markAsDirty();
-          ctrl.updateValueAndValidity({ onlySelf: true });
-        }
-      });
-      return;
-    }
-
-    this.saving = true;
-    const formVal = this.form.getRawValue();
-
-    if (this.isEdit && this.itemSeleccionadoId) {
-      this.servicioCampoService
-        .actualizarTipoTarea(this.itemSeleccionadoId, {
-          nombre: formVal.nombre,
-          clienteFacturacionId: formVal.clienteFacturacionId,
-          duracionEstimadaMinutos: formVal.duracionEstimadaMinutos,
-        })
-        .subscribe({
-          next: () => {
-            this.saving = false;
-            this.modalVisible = false;
-            this.message.success('Tipo de tarea actualizado correctamente.');
-            this.cargarDatos();
-          },
-          error: (err) => {
-            this.saving = false;
-            this.message.error(err.error?.message || 'Error al actualizar tipo de tarea.');
-            this.cdr.markForCheck();
-          },
-        });
-    } else {
-      this.servicioCampoService
-        .crearTipoTarea({
-          codigoTarea: formVal.codigoTarea,
-          nombre: formVal.nombre,
-          clienteFacturacionId: formVal.clienteFacturacionId,
-          duracionEstimadaMinutos: formVal.duracionEstimadaMinutos,
-        })
-        .subscribe({
-          next: () => {
-            this.saving = false;
-            this.modalVisible = false;
-            this.message.success('Tipo de tarea registrado exitosamente.');
-            this.cargarDatos();
-          },
-          error: (err) => {
-            this.saving = false;
-            this.message.error(err.error?.message || 'Error al crear tipo de tarea.');
-            this.cdr.markForCheck();
-          },
-        });
-    }
+  editar(id: string): void {
+    this.router.navigate(['/servicio-campo/tipos-tarea/editar', id]);
   }
 
   cambiarEstadoSeleccionados(): void {

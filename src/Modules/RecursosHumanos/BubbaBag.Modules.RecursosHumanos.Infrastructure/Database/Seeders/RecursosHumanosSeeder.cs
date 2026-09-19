@@ -89,5 +89,31 @@ public static class RecursosHumanosSeeder
         }
 
         logger.LogInformation("Departamentos y Cargos de RRHH sembrados exitosamente.");
+
+        await SeedSucursalesAsync(context, logger);
+    }
+
+    private static async Task SeedSucursalesAsync(RecursosHumanosDbContext context, ILogger logger)
+    {
+        if (await context.Sucursales.AnyAsync())
+        {
+            return;
+        }
+
+        logger.LogInformation("Sembrando catálogo oficial de Sucursales y Sedes...");
+
+        var sucursales = new List<Sucursal>
+        {
+            Sucursal.Crear("LIMA", "Sede Central Lima", "Lima", "Av. Javier Prado Este 444, San Isidro", "01-2004600", esSedePrincipal: true),
+            Sucursal.Crear("CHICLAYO", "Sucursal Chiclayo", "Chiclayo", "Av. José Balta 850", "074-234567", esSedePrincipal: false),
+            Sucursal.Crear("PIURA", "Sucursal Piura", "Piura", "Av. Grau 430", "073-345678", esSedePrincipal: false),
+            Sucursal.Crear("TRUJILLO", "Sucursal Trujillo", "Trujillo", "Av. España 1120", "044-456789", esSedePrincipal: false),
+            Sucursal.Crear("AREQUIPA", "Sucursal Arequipa", "Arequipa", "Calle Mercaderes 210", "054-567890", esSedePrincipal: false)
+        };
+
+        await context.Sucursales.AddRangeAsync(sucursales);
+        await context.SaveChangesAsync();
+
+        logger.LogInformation("Se sembraron {Count} sucursales exitosamente.", sucursales.Count);
     }
 }

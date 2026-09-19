@@ -24,7 +24,6 @@ public class ObtenerTipoOrdenTrabajoPorIdHandler : IQueryHandler<ObtenerTipoOrde
             .Where(t => t.Id == request.Id)
             .Select(t => new TipoOrdenTrabajoDto(
                 t.Id,
-                t.Codigo,
                 t.Nombre,
                 t.Descripcion,
                 t.RequiereVisitaCampo,

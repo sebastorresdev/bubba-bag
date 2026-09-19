@@ -24,6 +24,9 @@ public class ActualizarTipoOrdenTrabajoHandler : ICommandHandler<ActualizarTipoO
         if (tipo == null)
             return Result.Failure("Tipo de orden de trabajo no encontrado.");
 
+        if (await _context.TiposOrdenTrabajo.AnyAsync(t => t.Id != request.Id && t.Nombre.ToLower() == nombreNormalizado.ToLower(), cancellationToken))
+            return Result.Failure($"Ya existe otro tipo de orden de trabajo con el nombre '{nombreNormalizado}'.");
+
         tipo.Actualizar(
             nombreNormalizado,
             request.RequiereVisitaCampo,

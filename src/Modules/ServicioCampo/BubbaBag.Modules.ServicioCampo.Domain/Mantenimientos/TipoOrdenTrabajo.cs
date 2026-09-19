@@ -1,15 +1,15 @@
+using System;
+using System.Collections.Generic;
 using BubbaBag.SharedKernel;
 
 namespace BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 
 /// <summary>
-/// Catálogo de Tipos de Orden de Trabajo (Modalidad Operativa).
-/// Ejemplos: 'Atención Técnica en Terreno' (CAMPO), 'Envío por Encomienda' (ENCOMIENDA), 'Gestión Remota' (REMOTO).
-/// Define las reglas operativas de la visita, evidencias requeridas y firma.
+/// Catálogo de Tipos de Orden de Trabajo (Contexto / Naturaleza Operativa).
+/// Ejemplos: 'Atención en Campo', 'Logística / Encomienda', 'Recolección de Equipos', 'Instalación', 'Servicio Técnico'.
 /// </summary>
 public class TipoOrdenTrabajo : Entity<Guid>
 {
-    public string Codigo { get; private set; } = default!;
     public string Nombre { get; private set; } = default!;
     public string? Descripcion { get; private set; }
     public bool RequiereVisitaCampo { get; private set; }
@@ -18,10 +18,12 @@ public class TipoOrdenTrabajo : Entity<Guid>
     public string ColorHex { get; private set; } = "#0f6cbd";
     public bool Activo { get; private set; }
 
+    private readonly List<CampoDefinicion> _camposDefinicion = new();
+    public IReadOnlyCollection<CampoDefinicion> CamposDefinicion => _camposDefinicion.AsReadOnly();
+
     private TipoOrdenTrabajo() { }
 
     public static TipoOrdenTrabajo Crear(
-        string codigo,
         string nombre,
         bool requiereVisitaCampo = true,
         bool exigeFirmaCliente = true,
@@ -32,7 +34,6 @@ public class TipoOrdenTrabajo : Entity<Guid>
         return new TipoOrdenTrabajo
         {
             Id = Guid.NewGuid(),
-            Codigo = codigo.Trim().ToUpperInvariant(),
             Nombre = nombre.Trim(),
             RequiereVisitaCampo = requiereVisitaCampo,
             ExigeFirmaCliente = exigeFirmaCliente,

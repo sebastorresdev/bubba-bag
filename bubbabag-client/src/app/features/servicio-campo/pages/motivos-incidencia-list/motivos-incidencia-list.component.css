@@ -178,26 +178,98 @@
   align-items: center;
 }
 
-/* Contenedor de Tabla */
-.table-scroll-container {
+/* Grilla Full-Height Dynamics 365 */
+.d365-grid-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
   background-color: #ffffff;
 }
 
-:host-context([data-theme='dark']) .table-scroll-container,
-:host-context(.dark-theme) .table-scroll-container {
+:host-context([data-theme='dark']) .d365-grid-container,
+:host-context(.dark-theme) .d365-grid-container {
   background-color: #141414;
 }
 
-.d365-data-table {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
+.d365-table {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
+:host ::ng-deep .d365-table .ant-table-wrapper,
+:host ::ng-deep .d365-table .ant-spin-nested-loading,
+:host ::ng-deep .d365-table .ant-spin-container {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
+:host ::ng-deep .d365-table .ant-table {
+  flex: 1 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background-color: transparent !important;
+}
+
+:host ::ng-deep .d365-table .ant-table-container {
+  flex: 1 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+}
+
+:host ::ng-deep .d365-table .ant-table-content {
+  flex: 1 !important;
+  min-height: 0 !important;
+}
+
+:host ::ng-deep .d365-table thead.ant-table-thead > tr > th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 2 !important;
+}
+
+/* Pie de Página Paginador Estilo Microsoft Dynamics 365 (Total a la izquierda, botones a la derecha) */
+:host ::ng-deep .d365-table .ant-table-pagination.ant-pagination {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 8px 16px !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+  background-color: #ffffff !important;
+  flex-shrink: 0 !important;
+}
+
+:host-context([data-theme='dark']) :host ::ng-deep .d365-table .ant-table-pagination.ant-pagination,
+:host-context(.dark-theme) :host ::ng-deep .d365-table .ant-table-pagination.ant-pagination {
+  border-top-color: rgba(255, 255, 255, 0.08) !important;
+  background-color: #1f1f1f !important;
+}
+
+:host ::ng-deep .d365-table .ant-pagination-total-text {
+  order: -1 !important;
+  margin-right: auto !important;
+  font-size: 12px !important;
+  color: #605e5c !important;
+  font-weight: 500 !important;
+}
+
+:host-context([data-theme='dark']) :host ::ng-deep .d365-table .ant-pagination-total-text,
+:host-context(.dark-theme) :host ::ng-deep .d365-table .ant-pagination-total-text {
+  color: #a19f9d !important;
 }
 
 .col-checkbox {
@@ -252,22 +324,29 @@
   color: #a19f9d;
 }
 
+/* Filas y Hover Dynamics 365 */
+.d365-data-row {
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.d365-data-row:hover td {
+  background-color: rgba(0, 120, 212, 0.04) !important;
+}
+
+:host-context([data-theme='dark']) .d365-data-row:hover td,
+:host-context(.dark-theme) .d365-data-row:hover td,
+[data-theme='dark'] .d365-data-row:hover td {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
 tr.row-selected td {
   background-color: var(--ant-primary-1, #edf5fd) !important;
 }
 
 [data-theme='dark'] tr.row-selected td,
-.dark-theme tr.row-selected td {
+.dark-theme tr.row-selected td,
+:host-context([data-theme='dark']) tr.row-selected td,
+:host-context(.dark-theme) tr.row-selected td {
   background-color: rgba(255, 255, 255, 0.08) !important;
-}
-
-/* Modales */
-.d365-modal-form {
-  padding-top: 8px;
-}
-
-.modal-form-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }

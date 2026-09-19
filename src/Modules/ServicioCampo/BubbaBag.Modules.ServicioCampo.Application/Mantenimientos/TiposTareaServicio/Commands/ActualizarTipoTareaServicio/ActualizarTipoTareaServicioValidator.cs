@@ -15,9 +15,11 @@ public class ActualizarTipoTareaServicioValidator : AbstractValidator<Actualizar
             .NotEmpty().WithMessage("El nombre de la tarea es obligatorio.")
             .MaximumLength(150).WithMessage("El nombre de la tarea no puede exceder los 150 caracteres.");
 
-        RuleFor(x => x.ClienteFacturacionId)
-            .NotEmpty().WithMessage("El cliente contratante / facturable es obligatorio.")
-            .NotEqual(Guid.Empty).WithMessage("El cliente contratante / facturable especificado es inválido.");
+        When(x => x.ClienteFacturacionId.HasValue, () =>
+        {
+            RuleFor(x => x.ClienteFacturacionId!.Value)
+                .NotEqual(Guid.Empty).WithMessage("El cliente contratante / facturable especificado es inválido.");
+        });
 
         RuleFor(x => x.DuracionEstimadaMinutos)
             .GreaterThan(0).WithMessage("La duración estimada debe ser mayor a 0 minutos.")

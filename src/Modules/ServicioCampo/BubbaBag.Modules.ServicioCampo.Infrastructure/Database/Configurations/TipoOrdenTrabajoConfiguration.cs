@@ -12,16 +12,12 @@ public class TipoOrdenTrabajoConfiguration : IEntityTypeConfiguration<TipoOrdenT
 
         builder.HasKey(t => t.Id);
 
-        builder.Property(t => t.Codigo)
-            .IsRequired()
-            .HasMaxLength(30);
-
-        builder.HasIndex(t => t.Codigo)
-            .IsUnique();
-
         builder.Property(t => t.Nombre)
             .IsRequired()
             .HasMaxLength(100);
+
+        builder.HasIndex(t => t.Nombre)
+            .IsUnique();
 
         builder.Property(t => t.Descripcion)
             .HasMaxLength(250);
@@ -35,14 +31,17 @@ public class TipoOrdenTrabajoConfiguration : IEntityTypeConfiguration<TipoOrdenT
             .IsRequired();
 
         builder.Property(t => t.ExigeFirmaCliente)
-            .IsRequired()
-            .HasDefaultValue(true);
+            .IsRequired();
 
         builder.Property(t => t.ExigeEvidenciasFotograficas)
-            .IsRequired()
-            .HasDefaultValue(true);
+            .IsRequired();
 
         builder.Property(t => t.Activo)
             .IsRequired();
+
+        builder.HasMany(t => t.CamposDefinicion)
+            .WithOne()
+            .HasForeignKey(c => c.TipoOrdenTrabajoId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

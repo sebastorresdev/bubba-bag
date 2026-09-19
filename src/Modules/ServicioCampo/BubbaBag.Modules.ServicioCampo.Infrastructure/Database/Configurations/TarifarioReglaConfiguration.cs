@@ -31,10 +31,5 @@ public class TarifarioReglaConfiguration : IEntityTypeConfiguration<TarifarioReg
             .WithMany()
             .HasForeignKey(r => r.TipoTareaServicioId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasMany(r => r.Criterios)
-            .WithOne(c => c.TarifarioRegla)
-            .HasForeignKey(c => c.TarifarioReglaId)
-            .OnDelete(DeleteBehavior.Cascade);
     }
 }

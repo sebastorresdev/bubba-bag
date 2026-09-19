@@ -3,6 +3,7 @@ using System.Linq;
 using BubbaBag.Modules.Crm.Application;
 using BubbaBag.Modules.Crm.Infrastructure.Database;
 using BubbaBag.SharedKernel.CQRS;
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BubbaBag.Modules.Crm.Api;
@@ -16,6 +17,9 @@ public static class CrmModule
 
         // Application Assembly
         var applicationAssembly = typeof(ICrmDbContext).Assembly;
+
+        // FluentValidation
+        services.AddValidatorsFromAssembly(applicationAssembly);
 
         // Registrar dinámicamente todos los ICommandHandler<,> y IQueryHandler<,>
         foreach (var type in applicationAssembly.GetTypes().Where(t => !t.IsAbstract && !t.IsInterface))

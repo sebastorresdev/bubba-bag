@@ -233,6 +233,35 @@
                     </nz-form-control>
                   </nz-form-item>
                 }
+
+                <div class="form-section-header">
+                  <nz-divider style="margin: 16px 0 10px 0;"></nz-divider>
+                  <span class="form-section-title">Roles Operativos del Cliente</span>
+                </div>
+
+                <nz-form-item>
+                  <nz-form-label>Cliente Facturable / Contratante</nz-form-label>
+                  <nz-form-control>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <nz-switch formControlName="esClienteFacturacion"></nz-switch>
+                      <span class="text-xs text-gray-500">
+                        {{ form.get('esClienteFacturacion')?.value ? 'Sí, contratante (Facturación y Catálogo de Tareas)' : 'No' }}
+                      </span>
+                    </div>
+                  </nz-form-control>
+                </nz-form-item>
+
+                <nz-form-item>
+                  <nz-form-label>Cliente Servicio en Campo</nz-form-label>
+                  <nz-form-control>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <nz-switch formControlName="esClienteServicio"></nz-switch>
+                      <span class="text-xs text-gray-500">
+                        {{ form.get('esClienteServicio')?.value ? 'Sí, recibe órdenes de trabajo y visitas de campo' : 'No' }}
+                      </span>
+                    </div>
+                  </nz-form-control>
+                </nz-form-item>
               </div>
             </nz-card>
 

@@ -22,11 +22,19 @@ public class CrearTipoTareaServicioHandler : ICommandHandler<CrearTipoTareaServi
         var codigoNormalizado = request.CodigoTarea.Trim().ToUpperInvariant();
         var nombreNormalizado = request.Nombre.Trim();
 
-        if (!await _context.Clientes.AnyAsync(c => c.Id == request.ClienteFacturacionId, cancellationToken))
-            return Result<Guid>.Failure("El cliente contratante / facturable especificado no existe o es inválido.");
+        if (request.ClienteFacturacionId.HasValue)
+        {
+            if (!await _context.Clientes.AnyAsync(c => c.Id == request.ClienteFacturacionId.Value, cancellationToken))
+                return Result<Guid>.Failure("El cliente contratante / facturable especificado no existe o es inválido.");
 
-        if (await _context.TiposTareaServicio.AnyAsync(t => t.ClienteFacturacionId == request.ClienteFacturacionId && t.CodigoTarea == codigoNormalizado, cancellationToken))
-            return Result<Guid>.Failure($"Ya existe una tarea con el código '{codigoNormalizado}' para el cliente facturable seleccionado.");
+            if (await _context.TiposTareaServicio.AnyAsync(t => t.ClienteFacturacionId == request.ClienteFacturacionId.Value && t.CodigoTarea == codigoNormalizado, cancellationToken))
+                return Result<Guid>.Failure($"Ya existe una tarea con el código '{codigoNormalizado}' para el cliente facturable seleccionado.");
+        }
+        else
+        {
+            if (await _context.TiposTareaServicio.AnyAsync(t => t.ClienteFacturacionId == null && t.CodigoTarea == codigoNormalizado, cancellationToken))
+                return Result<Guid>.Failure($"Ya existe una tarea interna con el código '{codigoNormalizado}'.");
+        }
 
         var tarea = TipoTareaServicio.Crear(
             codigoNormalizado,

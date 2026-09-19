@@ -4,7 +4,6 @@ namespace BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.TiposOrdenTr
 
 public record TipoOrdenTrabajoDto(
     Guid Id,
-    string Codigo,
     string Nombre,
     string? Descripcion,
     bool RequiereVisitaCampo,

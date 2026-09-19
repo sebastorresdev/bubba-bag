@@ -1,0 +1,439 @@
+<!-- Barra de Comandos Superior Dynamics 365 -->
+<app-command-bar
+  [items]="commandBarItems"
+  [farItems]="farItems"
+  [showBack]="true"
+  (back)="volver()"
+></app-command-bar>
+
+<div class="tarifa-form-view d365-form-view">
+  <!-- Cabecera de Registro (Dynamics 365 Record Header) -->
+  <div class="d365-record-header">
+    <div class="record-header-main">
+      <div class="record-avatar-container">
+        <nz-avatar
+          [nzSize]="56"
+          [nzText]="getIniciales(form.get('detalleServicio')?.value || form.get('codigoServicio')?.value || (isEdit ? 'Tarifa Servicio' : 'Nueva Tarifa'))"
+          class="record-avatar tarifa-header-avatar"
+        />
+      </div>
+
+      <div class="record-title-block">
+        <h1 class="record-title">
+          {{ form.get('detalleServicio')?.value || (isEdit ? 'Tarifa de Servicio' : 'Nueva Tarifa de Servicio') }}
+        </h1>
+
+        <div class="record-metadata-row">
+          <span class="meta-code">
+            {{ form.get('codigoServicio')?.value || 'SIN CÓDIGO' }}
+          </span>
+          <nz-divider nzType="vertical" />
+          <span class="meta-tip">
+            {{ form.get('tipificacion')?.value || 'SIN TIPIFICACIÓN' }}
+          </span>
+          <nz-divider nzType="vertical" />
+          <span class="meta-empresa">
+            {{ form.get('empresaContratante')?.value || 'DIRECTV PERU S.R.L.' }}
+          </span>
+          @if (form.get('sucursal')?.value) {
+            <nz-divider nzType="vertical" />
+            <span class="meta-sucursal">{{ form.get('sucursal')?.value }}</span>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Indicadores Métricos de Cabecera (KPIs Dynamics 365) -->
+    <div class="record-header-metrics">
+      <div class="metric-item">
+        <span class="metric-label">ESTADO</span>
+        <span
+          class="kpi-value-pill"
+          [class.pill-active]="form.get('activo')?.value"
+          [class.pill-inactive]="!form.get('activo')?.value"
+        >
+          {{ (form.get('activo')?.value ? 'ACTIVO' : 'INACTIVO') }}
+        </span>
+      </div>
+
+      <div class="metric-divider"></div>
+
+      <div class="metric-item">
+        <span class="metric-label">PUNTOS</span>
+        <span class="kpi-value-badge badge-enabled">
+          {{ form.get('puntos')?.value || 0 }} PTS
+        </span>
+      </div>
+
+      <div class="metric-divider"></div>
+
+      <div class="metric-item">
+        <span class="metric-label">TOTAL TEÓRICO</span>
+        <span class="kpi-value-badge kpi-highlight">
+          S/ {{ totalTeoricoCalculado | number:'1.2-2' }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenedor con Indicador Circular de Carga -->
+  <nz-spin [nzSpinning]="loading || saving" class="tarifa-spin-wrapper">
+    <form nz-form [formGroup]="form" nzLayout="horizontal" [nzNoColon]="true" class="d365-form-container">
+      <nz-tabs [(nzSelectedIndex)]="selectedTabIndex" [nzAnimated]="false" class="d365-form-tabs">
+        <!-- TAB 1: GENERAL -->
+        <nz-tab nzTitle="General y Estructura Fija">
+          <div class="d365-tab-columns">
+            <!-- Columna Izquierda: Identificación y Clasificación -->
+            <div class="d365-tab-column main-column">
+              <!-- Card 1: Definición de la Tarea y Servicio -->
+              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Información de la Prestación y Servicio">
+                <div class="card-form-grid">
+                  <!-- Selector de Tipo de Tarea Operativa -->
+                  <nz-form-item>
+                    <nz-form-label nzFor="tipoTareaServicioId">Tarea Operativa</nz-form-label>
+                    <nz-form-control nzExtra="Al seleccionar una tarea, se vinculará y bloqueará el código, nombre y empresa oficial.">
+                      <nz-select
+                        formControlName="tipoTareaServicioId"
+                        id="tipoTareaServicioId"
+                        nzShowSearch
+                        nzAllowClear
+                        nzPlaceHolder="Buscar tarea (L33, IA01, etc.)..."
+                      >
+                        @for (t of tiposTarea; track t.id) {
+                          <nz-option
+                            [nzValue]="t.id"
+                            [nzLabel]="t.codigoTarea + ' - ' + t.nombre + (t.clienteFacturacionNombre ? ' (' + t.clienteFacturacionNombre + ')' : '')"
+                          ></nz-option>
+                        }
+                      </nz-select>
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <!-- Tipificación -->
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="tipificacion">Tipificación</nz-form-label>
+                    <nz-form-control nzErrorTip="Por favor selecciona la tipificación">
+                      <nz-select
+                        formControlName="tipificacion"
+                        id="tipificacion"
+                        nzShowSearch
+                        nzPlaceHolder="Seleccionar tipificación"
+                      >
+                        @for (tip of tipificacionesDisponibles; track tip) {
+                          <nz-option [nzValue]="tip" [nzLabel]="tip"></nz-option>
+                        }
+                      </nz-select>
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <!-- Código de Servicio -->
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="codigoServicio">Código de Servicio</nz-form-label>
+                    <nz-form-control nzErrorTip="El código del servicio es requerido">
+                      <input
+                        nz-input
+                        formControlName="codigoServicio"
+                        id="codigoServicio"
+                        placeholder="Ej: L33, IA01, AU01"
+                        [readonly]="isEdit || !!form.get('tipoTareaServicioId')?.value"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <!-- Detalle / Descripción del Servicio -->
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="detalleServicio">Detalle / Nombre</nz-form-label>
+                    <nz-form-control nzErrorTip="El detalle del servicio es requerido">
+                      <input
+                        nz-input
+                        formControlName="detalleServicio"
+                        id="detalleServicio"
+                        placeholder="Ej: Instalación adicional casa, Mudanza externa, Auditoría"
+                        [readonly]="!!form.get('tipoTareaServicioId')?.value"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <!-- Empresa Contratante -->
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="empresaContratante">Empresa Contratante</nz-form-label>
+                    <nz-form-control nzErrorTip="La empresa contratante es requerida">
+                      <input
+                        nz-input
+                        formControlName="empresaContratante"
+                        id="empresaContratante"
+                        placeholder="Ej: DIRECTV PERU S.R.L."
+                        [readonly]="!!form.get('tipoTareaServicioId')?.value"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <!-- Sucursal -->
+                  <nz-form-item>
+                    <nz-form-label nzFor="sucursal">Sucursal / Zona</nz-form-label>
+                    <nz-form-control nzExtra="Dejar en blanco para tarifa general a nivel nacional o seleccionar una sucursal específica.">
+                      <nz-select
+                        formControlName="sucursal"
+                        id="sucursal"
+                        nzPlaceHolder="General / Nivel Nacional"
+                        nzAllowClear
+                        nzShowSearch
+                      >
+                        <nz-option nzValue="" nzLabel="General / Nivel Nacional (Todas las sedes)"></nz-option>
+                        @for (s of sucursalesDisponibles; track s.id) {
+                          <nz-option
+                            [nzValue]="s.nombre"
+                            [nzLabel]="s.nombre + (s.ciudad ? ' (' + s.ciudad + ')' : '')"
+                          ></nz-option>
+                        }
+                      </nz-select>
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <!-- Puntos -->
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="puntos">Puntos de Productividad</nz-form-label>
+                    <nz-form-control nzErrorTip="Puntos válidos requeridos">
+                      <nz-input-number
+                        formControlName="puntos"
+                        id="puntos"
+                        [nzMin]="0"
+                        [nzStep]="0.5"
+                        style="width: 100%;"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+                </div>
+              </nz-card>
+            </div>
+
+            <!-- Columna Derecha: Remuneración Fija y Condiciones -->
+            <div class="d365-tab-column">
+              <!-- Card 2: Remuneración Fija -->
+              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Remuneración Fija Contractual">
+                <div class="card-form-grid">
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="fijoBase">Monto Fijo Base (S/.)</nz-form-label>
+                    <nz-form-control nzErrorTip="Monto requerido">
+                      <nz-input-number
+                        formControlName="fijoBase"
+                        id="fijoBase"
+                        [nzMin]="0"
+                        [nzStep]="1"
+                        [nzPrecision]="2"
+                        nzPlaceHolder="0.00"
+                        style="width: 100%;"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="fijoAdicional">Monto Fijo Adicional (S/.)</nz-form-label>
+                    <nz-form-control nzErrorTip="Monto requerido">
+                      <nz-input-number
+                        formControlName="fijoAdicional"
+                        id="fijoAdicional"
+                        [nzMin]="0"
+                        [nzStep]="1"
+                        [nzPrecision]="2"
+                        nzPlaceHolder="0.00"
+                        style="width: 100%;"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <nz-form-item>
+                    <nz-form-label>Total Fijo Contractual</nz-form-label>
+                    <nz-form-control>
+                      <div class="calculated-summary-box">
+                        <span class="calc-label">TOTAL FIJO</span>
+                        <span class="calc-value">S/ {{ totalFijoCalculado | number:'1.2-2' }}</span>
+                      </div>
+                    </nz-form-control>
+                  </nz-form-item>
+                </div>
+              </nz-card>
+
+              <!-- Card 3: Condiciones Operativas y Políticas -->
+              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Condiciones Operativas y Políticas">
+                <div class="card-form-grid">
+                  <div class="classification-box">
+                    <div class="classification-info">
+                      <span class="classification-title">Aplica Pago al Técnico</span>
+                      <span class="classification-desc">Si está activo, computará remuneración directa en liquidación.</span>
+                    </div>
+                    <nz-switch formControlName="aplicaPago" id="aplicaPago"></nz-switch>
+                  </div>
+
+                  <div class="classification-box">
+                    <div class="classification-info">
+                      <span class="classification-title">Aplica Garantía / Postventa</span>
+                      <span class="classification-desc">Sujeto a políticas de garantía técnica por reincidencia.</span>
+                    </div>
+                    <nz-switch formControlName="aplicaGarantia" id="aplicaGarantia"></nz-switch>
+                  </div>
+
+                  <div class="classification-box">
+                    <div class="classification-info">
+                      <span class="classification-title">Estado de la Tarifa</span>
+                      <span class="classification-desc">{{ form.get('activo')?.value ? 'Tarifa activa y disponible para liquidar.' : 'Tarifa deshabilitada.' }}</span>
+                    </div>
+                    <nz-switch formControlName="activo" id="activo"></nz-switch>
+                  </div>
+                </div>
+              </nz-card>
+            </div>
+          </div>
+        </nz-tab>
+
+        <!-- TAB 2: INCENTIVOS Y VARIABLES -->
+        <nz-tab nzTitle="Incentivos Variables e Indicadores">
+          <div class="d365-tab-columns">
+            <!-- Columna Izquierda: Variables Base -->
+            <div class="d365-tab-column main-column">
+              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Indicadores Variables Base">
+                <div class="card-form-grid">
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="cycleTime">Cycle Time Base (S/.)</nz-form-label>
+                    <nz-form-control nzErrorTip="Monto requerido">
+                      <nz-input-number
+                        formControlName="cycleTime"
+                        id="cycleTime"
+                        [nzMin]="0"
+                        [nzStep]="0.5"
+                        [nzPrecision]="2"
+                        style="width: 100%;"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="cumplimientoAgenda">Agenda Base (S/.)</nz-form-label>
+                    <nz-form-control nzErrorTip="Monto requerido">
+                      <nz-input-number
+                        formControlName="cumplimientoAgenda"
+                        id="cumplimientoAgenda"
+                        [nzMin]="0"
+                        [nzStep]="0.5"
+                        [nzPrecision]="2"
+                        style="width: 100%;"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="sin30Dias">Sin 30 Días Base (S/.)</nz-form-label>
+                    <nz-form-control nzErrorTip="Monto requerido">
+                      <nz-input-number
+                        formControlName="sin30Dias"
+                        id="sin30Dias"
+                        [nzMin]="0"
+                        [nzStep]="0.5"
+                        [nzPrecision]="2"
+                        style="width: 100%;"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <nz-form-item>
+                    <nz-form-label>Subtotal Variable Base</nz-form-label>
+                    <nz-form-control>
+                      <div class="calculated-summary-box">
+                        <span class="calc-label">SUBTOTAL VARIABLE BASE</span>
+                        <span class="calc-value variable">S/ {{ totalVariableBaseCalculado | number:'1.2-2' }}</span>
+                      </div>
+                    </nz-form-control>
+                  </nz-form-item>
+                </div>
+              </nz-card>
+            </div>
+
+            <!-- Columna Derecha: Variables Adicionales y Consolidado -->
+            <div class="d365-tab-column">
+              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Indicadores Variables Adicionales">
+                <div class="card-form-grid">
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="cycleTimeAdicional">Cycle Time Adic. (S/.)</nz-form-label>
+                    <nz-form-control nzErrorTip="Monto requerido">
+                      <nz-input-number
+                        formControlName="cycleTimeAdicional"
+                        id="cycleTimeAdicional"
+                        [nzMin]="0"
+                        [nzStep]="0.5"
+                        [nzPrecision]="2"
+                        style="width: 100%;"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="cumplimientoAgendaAdicional">Agenda Adic. (S/.)</nz-form-label>
+                    <nz-form-control nzErrorTip="Monto requerido">
+                      <nz-input-number
+                        formControlName="cumplimientoAgendaAdicional"
+                        id="cumplimientoAgendaAdicional"
+                        [nzMin]="0"
+                        [nzStep]="0.5"
+                        [nzPrecision]="2"
+                        style="width: 100%;"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="sin30DiasAdicional">Sin 30 Días Adic. (S/.)</nz-form-label>
+                    <nz-form-control nzErrorTip="Monto requerido">
+                      <nz-input-number
+                        formControlName="sin30DiasAdicional"
+                        id="sin30DiasAdicional"
+                        [nzMin]="0"
+                        [nzStep]="0.5"
+                        [nzPrecision]="2"
+                        style="width: 100%;"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <nz-form-item>
+                    <nz-form-label>Subtotal Var. Adicional</nz-form-label>
+                    <nz-form-control>
+                      <div class="calculated-summary-box">
+                        <span class="calc-label">SUBTOTAL VARIABLE ADICIONAL</span>
+                        <span class="calc-value variable">S/ {{ totalVariableAdicionalCalculado | number:'1.2-2' }}</span>
+                      </div>
+                    </nz-form-control>
+                  </nz-form-item>
+                </div>
+              </nz-card>
+
+              <!-- Resumen Consolidado -->
+              <nz-card [nzBordered]="true" class="d365-card consolidated-card" nzTitle="Resumen Consolidado de la Tarifa">
+                <div class="summary-breakdown-row">
+                  <div class="breakdown-col">
+                    <span class="b-label">Total Fijo</span>
+                    <span class="b-val">S/ {{ totalFijoCalculado | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="plus-sign">+</div>
+                  <div class="breakdown-col">
+                    <span class="b-label">Var. Base</span>
+                    <span class="b-val">S/ {{ totalVariableBaseCalculado | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="plus-sign">+</div>
+                  <div class="breakdown-col">
+                    <span class="b-label">Var. Adic.</span>
+                    <span class="b-val">S/ {{ totalVariableAdicionalCalculado | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="equals-sign">=</div>
+                  <div class="breakdown-col grand-total">
+                    <span class="b-label">TOTAL TEÓRICO</span>
+                    <span class="b-val highlight">S/ {{ totalTeoricoCalculado | number:'1.2-2' }}</span>
+                  </div>
+                </div>
+              </nz-card>
+            </div>
+          </div>
+        </nz-tab>
+      </nz-tabs>
+    </form>
+  </nz-spin>
+</div>

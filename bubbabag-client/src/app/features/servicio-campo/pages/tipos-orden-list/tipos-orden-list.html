@@ -59,18 +59,21 @@
       </div>
     </div>
 
-    <!-- Tabla Fluida Dynamics 365 -->
-    <div class="table-scroll-container">
+    <!-- Grilla / Tabla Estilo Dynamics 365 -->
+    <div class="d365-grid-container">
       <nz-table
         #tiposTable
         [nzData]="tiposOrdenFiltrados"
         [nzLoading]="loading"
         [nzShowPagination]="true"
-        [nzPageSize]="20"
-        [nzSize]="'small'"
-        [nzScroll]="{ y: 'calc(100vh - 220px)' }"
-        class="d365-data-table"
+        [nzShowTotal]="totalRangeTpl"
+        [nzPageSize]="15"
+        nzSize="small"
+        class="d365-table"
       >
+        <ng-template #totalRangeTpl let-range="range" let-total="total">
+          {{ range[0] }} - {{ range[1] }} de {{ total }}
+        </ng-template>
         <thead>
           <tr>
             <th
@@ -80,9 +83,8 @@
               (nzCheckedChange)="toggleSelectAll($event)"
               class="col-checkbox"
             ></th>
-            <th [nzWidth]="'60px'" nzAlign="center">Color</th>
-            <th [nzWidth]="'130px'">Código</th>
-            <th [nzWidth]="'260px'">Modalidad Operativa</th>
+            <th [nzWidth]="'60px'" nzAlign="center">Icono</th>
+            <th [nzWidth]="'280px'">Modalidad Operativa</th>
             <th [nzWidth]="'130px'" nzAlign="center">Visita Campo</th>
             <th [nzWidth]="'120px'" nzAlign="center">Exige Firma</th>
             <th [nzWidth]="'140px'" nzAlign="center">Evidencias Foto</th>
@@ -93,9 +95,10 @@
         <tbody>
           @for (item of tiposTable.data; track item.id) {
             <tr
+              class="d365-data-row"
               [class.row-selected]="selectedIds.has(item.id)"
               (click)="toggleSelect(item.id)"
-              (dblclick)="abrirModalEditar(item)"
+              (dblclick)="editar(item.id)"
             >
               <td
                 class="col-checkbox"
@@ -104,19 +107,19 @@
                 (nzCheckedChange)="toggleSelect(item.id)"
               ></td>
 
-              <!-- Indicador de Color -->
+              <!-- Circular Avatar con Iniciales -->
               <td nzAlign="center">
-                <span class="color-badge" [style.backgroundColor]="item.colorHex || '#0f6cbd'"></span>
-              </td>
-
-              <!-- Código -->
-              <td class="col-code">
-                <nz-tag>{{ item.codigo }}</nz-tag>
+                <nz-avatar
+                  [nzSize]="32"
+                  [nzText]="getIniciales(item.nombre)"
+                  class="d365-circular-avatar"
+                  [style.backgroundColor]="item.colorHex || '#0f6cbd'"
+                ></nz-avatar>
               </td>
 
               <!-- Nombre con enlace de edición -->
               <td class="col-primary-text">
-                <span class="nombre-link" (click)="$event.stopPropagation(); abrirModalEditar(item)">
+                <span class="nombre-link" (click)="$event.stopPropagation(); editar(item.id)">
                   {{ item.nombre }}
                 </span>
               </td>
@@ -164,102 +167,3 @@
     </div>
   </nz-card>
 </div>
-
-<!-- Modal D365 para Crear / Editar Tipo de Orden -->
-<nz-modal
-  [(nzVisible)]="modalVisible"
-  [nzTitle]="isEdit ? 'Editar Tipo de Orden de Trabajo' : 'Nuevo Tipo de Orden de Trabajo'"
-  [nzOkText]="isEdit ? 'Guardar Cambios' : 'Registrar'"
-  [nzCancelText]="'Cancelar'"
-  [nzOkLoading]="saving"
-  (nzOnOk)="guardar()"
-  (nzOnCancel)="modalVisible = false"
-  [nzWidth]="540"
->
-  <ng-container *nzModalContent>
-    <form nz-form [formGroup]="form" nzLayout="vertical" class="d365-modal-form">
-      <div class="modal-form-grid">
-        <!-- Código -->
-        <nz-form-item>
-          <nz-form-label nzRequired>Código</nz-form-label>
-          <nz-form-control nzErrorTip="El código es obligatorio (máx. 20 caracteres)">
-            <input
-              nz-input
-              formControlName="codigo"
-              placeholder="Ej. INST-FIBRA, MANT-PREV"
-              style="text-transform: uppercase;"
-            />
-          </nz-form-control>
-        </nz-form-item>
-
-        <!-- Nombre -->
-        <nz-form-item>
-          <nz-form-label nzRequired>Nombre del Tipo de Orden</nz-form-label>
-          <nz-form-control nzErrorTip="Ingrese un nombre representativo">
-            <input nz-input formControlName="nombre" placeholder="Ej. Instalación de Fibra Óptica" />
-          </nz-form-control>
-        </nz-form-item>
-
-        <!-- Color Identificador -->
-        <nz-form-item>
-          <nz-form-label nzRequired>Color Distintivo</nz-form-label>
-          <nz-form-control>
-            <div class="color-picker-row">
-              <input type="color" formControlName="colorHex" class="native-color-picker" />
-              <div class="color-preset-list">
-                @for (c of colorPresets; track c) {
-                  <span
-                    class="color-preset-dot"
-                    [style.backgroundColor]="c"
-                    [class.selected]="form.get('colorHex')?.value === c"
-                    (click)="form.patchValue({ colorHex: c })"
-                  ></span>
-                }
-              </div>
-            </div>
-          </nz-form-control>
-        </nz-form-item>
-
-        <!-- Switches de Validación Operativa -->
-        <div class="switches-box">
-          <div class="switch-row">
-            <div class="switch-text">
-              <span class="switch-title">Requiere Visita en Campo</span>
-              <span class="switch-subtitle">La orden implica desplazamiento del técnico</span>
-            </div>
-            <nz-switch formControlName="requiereVisitaCampo" nzSize="small"></nz-switch>
-          </div>
-
-          <div class="switch-row">
-            <div class="switch-text">
-              <span class="switch-title">Exige Firma del Cliente</span>
-              <span class="switch-subtitle">Requiere conformidad firmada al finalizar</span>
-            </div>
-            <nz-switch formControlName="exigeFirmaCliente" nzSize="small"></nz-switch>
-          </div>
-
-          <div class="switch-row">
-            <div class="switch-text">
-              <span class="switch-title">Exige Evidencias Fotográficas</span>
-              <span class="switch-subtitle">El técnico debe capturar fotos del servicio</span>
-            </div>
-            <nz-switch formControlName="exigeEvidenciasFotograficas" nzSize="small"></nz-switch>
-          </div>
-        </div>
-
-        <!-- Descripción -->
-        <nz-form-item>
-          <nz-form-label>Descripción / Criterios</nz-form-label>
-          <nz-form-control>
-            <textarea
-              nz-input
-              formControlName="descripcion"
-              rows="3"
-              placeholder="Instrucciones generales o alcance del tipo de orden..."
-            ></textarea>
-          </nz-form-control>
-        </nz-form-item>
-      </div>
-    </form>
-  </ng-container>
-</nz-modal>

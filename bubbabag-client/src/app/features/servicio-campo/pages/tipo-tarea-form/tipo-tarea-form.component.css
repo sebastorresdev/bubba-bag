@@ -1,0 +1,118 @@
+@import '../../../../../styles/d365-form.css';
+
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.tarea-header-avatar {
+  background-color: #107c41;
+  color: #ffffff !important;
+  border-radius: 50% !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+}
+
+.tarea-spin-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:host ::ng-deep .tarea-spin-wrapper > .ant-spin-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tarea-form-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background-color: var(--d365-page-bg, #f0f2f5);
+  overflow: hidden;
+}
+
+:host-context([data-theme='dark']) .tarea-form-view,
+:host-context(.dark-theme) .tarea-form-view,
+[data-theme='dark'] .tarea-form-view {
+  background-color: #000000 !important;
+}
+
+/* Distribución de campos horizontales Dynamics 365 */
+.card-form-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+  width: 100%;
+}
+
+:host ::ng-deep .card-form-grid nz-form-item,
+:host ::ng-deep .card-form-grid .ant-form-item {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  margin-bottom: 0 !important;
+  min-height: 38px !important;
+  gap: 12px !important;
+  width: 100% !important;
+}
+
+:host ::ng-deep .card-form-grid .ant-form-item-label {
+  flex: 0 0 190px !important;
+  max-width: 190px !important;
+  width: 190px !important;
+  text-align: left !important;
+  padding: 5px 8px 0 0 !important;
+  line-height: 1.25 !important;
+}
+
+:host ::ng-deep .card-form-grid .ant-form-item-label > label {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: var(--d365-text-primary, #555555) !important;
+  height: auto !important;
+  text-align: left !important;
+  justify-content: flex-start !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  line-height: 1.25 !important;
+}
+
+:host ::ng-deep .card-form-grid .ant-form-item-control {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+:host-context([data-theme='dark']) :host ::ng-deep .card-form-grid .ant-form-item-label > label,
+:host-context(.dark-theme) :host ::ng-deep .card-form-grid .ant-form-item-label > label,
+[data-theme='dark'] :host ::ng-deep .card-form-grid .ant-form-item-label > label {
+  color: #adadad !important;
+}
+
+@media (max-width: 768px) {
+  :host ::ng-deep .card-form-grid nz-form-item,
+  :host ::ng-deep .card-form-grid .ant-form-item {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 4px !important;
+  }
+
+  :host ::ng-deep .card-form-grid .ant-form-item-label {
+    flex: 0 0 auto !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+}

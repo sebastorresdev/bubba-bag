@@ -28,6 +28,7 @@ public static class UbigeoSeeder
                 Path.Combine(AppContext.BaseDirectory, "Data", "Seed", "Ubigeo.xlsx"),
                 Path.Combine(Directory.GetCurrentDirectory(), "src", "Host", "BubbaBag.Api", "Data", "Seed", "Ubigeos.xlsx"),
                 Path.Combine(Directory.GetCurrentDirectory(), "Data", "Seed", "Ubigeos.xlsx"),
+                @"C:\DEV_HOME\PROYECTOS\BUBBA_BAG\src\Host\BubbaBag.Api\Data\Seed\Ubigeos.xlsx",
                 @"D:\PROYECTOS\bubba-bag\src\Host\BubbaBag.Api\Data\Seed\Ubigeos.xlsx"
             };
 

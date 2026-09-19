@@ -73,18 +73,21 @@
       </div>
     </div>
 
-    <!-- Tabla Fluida Dynamics 365 -->
-    <div class="table-scroll-container">
+    <!-- Grilla / Tabla Estilo Dynamics 365 -->
+    <div class="d365-grid-container">
       <nz-table
         #motivosTable
         [nzData]="motivosFiltrados"
         [nzLoading]="loading"
         [nzShowPagination]="true"
-        [nzPageSize]="20"
-        [nzSize]="'small'"
-        [nzScroll]="{ y: 'calc(100vh - 220px)' }"
-        class="d365-data-table"
+        [nzShowTotal]="totalRangeTpl"
+        [nzPageSize]="15"
+        nzSize="small"
+        class="d365-table"
       >
+        <ng-template #totalRangeTpl let-range="range" let-total="total">
+          {{ range[0] }} - {{ range[1] }} de {{ total }}
+        </ng-template>
         <thead>
           <tr>
             <th
@@ -104,9 +107,10 @@
         <tbody>
           @for (item of motivosTable.data; track item.id) {
             <tr
+              class="d365-data-row"
               [class.row-selected]="selectedIds.has(item.id)"
               (click)="toggleSelect(item.id)"
-              (dblclick)="abrirModalEditar(item)"
+              (dblclick)="editar(item.id)"
             >
               <td
                 class="col-checkbox"
@@ -122,7 +126,7 @@
 
               <!-- Nombre con enlace -->
               <td class="col-primary-text">
-                <span class="nombre-link" (click)="$event.stopPropagation(); abrirModalEditar(item)">
+                <span class="nombre-link" (click)="$event.stopPropagation(); editar(item.id)">
                   {{ item.nombre }}
                 </span>
               </td>
@@ -156,67 +160,3 @@
     </div>
   </nz-card>
 </div>
-
-<!-- Modal para Crear / Editar Motivo de Incidencia -->
-<nz-modal
-  [(nzVisible)]="modalVisible"
-  [nzTitle]="isEdit ? 'Editar Motivo de Incidencia' : 'Nuevo Motivo de Incidencia'"
-  [nzOkText]="isEdit ? 'Guardar Cambios' : 'Registrar'"
-  [nzCancelText]="'Cancelar'"
-  [nzOkLoading]="saving"
-  (nzOnOk)="guardar()"
-  (nzOnCancel)="modalVisible = false"
-  [nzWidth]="500"
->
-  <ng-container *nzModalContent>
-    <form nz-form [formGroup]="form" nzLayout="vertical" class="d365-modal-form">
-      <div class="modal-form-grid">
-        <!-- Código -->
-        <nz-form-item>
-          <nz-form-label nzRequired>Código</nz-form-label>
-          <nz-form-control nzErrorTip="El código es obligatorio (máx. 20 caracteres)">
-            <input
-              nz-input
-              formControlName="codigo"
-              placeholder="Ej. CLIENTE-AUSENTE, CLIENTE-RECHAZA"
-              style="text-transform: uppercase;"
-            />
-          </nz-form-control>
-        </nz-form-item>
-
-        <!-- Nombre -->
-        <nz-form-item>
-          <nz-form-label nzRequired>Nombre del Motivo</nz-form-label>
-          <nz-form-control nzErrorTip="Ingrese un nombre representativo">
-            <input nz-input formControlName="nombre" placeholder="Ej. Cliente Ausente en Domicilio" />
-          </nz-form-control>
-        </nz-form-item>
-
-        <!-- Ámbito Operativo -->
-        <nz-form-item>
-          <nz-form-label nzRequired>Ámbito Operativo</nz-form-label>
-          <nz-form-control nzErrorTip="Seleccione el ámbito">
-            <nz-select formControlName="ambito" nzPlaceHolder="Seleccione el ámbito...">
-              <nz-option [nzValue]="AmbitoMotivo.Visita" nzLabel="Visita en Campo"></nz-option>
-              <nz-option [nzValue]="AmbitoMotivo.OrdenTrabajo" nzLabel="Orden de Trabajo"></nz-option>
-              <nz-option [nzValue]="AmbitoMotivo.Tarea" nzLabel="Subtarea Técnica"></nz-option>
-            </nz-select>
-          </nz-form-control>
-        </nz-form-item>
-
-        <!-- Descripción -->
-        <nz-form-item>
-          <nz-form-label>Descripción</nz-form-label>
-          <nz-form-control>
-            <textarea
-              nz-input
-              formControlName="descripcion"
-              rows="3"
-              placeholder="Detalle los criterios o causas de esta incidencia o cancelación..."
-            ></textarea>
-          </nz-form-control>
-        </nz-form-item>
-      </div>
-    </form>
-  </ng-container>
-</nz-modal>

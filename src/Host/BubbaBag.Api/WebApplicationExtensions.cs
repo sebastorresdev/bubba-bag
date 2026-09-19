@@ -28,13 +28,19 @@ public static class WebApplicationExtensions
             await crmDbContext.Database.MigrateAsync();
         }
 
+        var inventarioDbContext = scope.ServiceProvider.GetService<BubbaBag.Modules.Inventario.Infrastructure.Database.InventarioDbContext>();
+        if (inventarioDbContext != null)
+        {
+            await inventarioDbContext.Database.MigrateAsync();
+        }
+
         var servicioCampoDbContext = scope.ServiceProvider.GetService<BubbaBag.Modules.ServicioCampo.Infrastructure.Database.ServicioCampoDbContext>();
         if (servicioCampoDbContext != null)
         {
             await servicioCampoDbContext.Database.MigrateAsync();
         }
 
-        // 2. Ejecutar sembradores modulares
+        // 2. Ejecutar sembradores modulares en orden de dependencias
         await SeguridadSeeder.SeedAsync(scope.ServiceProvider);
 
         var rrhhLogger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RecursosHumanosDbContext>>();
@@ -44,6 +50,29 @@ public static class WebApplicationExtensions
         {
             var crmLogger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<BubbaBag.Modules.Crm.Infrastructure.Database.CrmDbContext>>();
             await BubbaBag.Modules.Crm.Infrastructure.Database.Seeders.UbigeoSeeder.SeedAsync(crmDbContext, crmLogger);
+            await BubbaBag.Modules.Crm.Infrastructure.Database.Seeders.ClienteSeeder.SeedAsync(crmDbContext, crmLogger);
+
+            try
+            {
+                await crmDbContext.Database.ExecuteSqlRawAsync(
+                    @"UPDATE crm.clientes SET ""EsClienteFacturacion"" = TRUE WHERE ""TipoPersona"" = 'JURIDICA' AND ""EsClienteFacturacion"" = FALSE;");
+            }
+            catch
+            {
+                // Ignorar si aún no existe la tabla o campos
+            }
+        }
+
+        if (inventarioDbContext != null)
+        {
+            var invLogger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<BubbaBag.Modules.Inventario.Infrastructure.Database.InventarioDbContext>>();
+            await BubbaBag.Modules.Inventario.Infrastructure.Database.Seeders.InventarioSeeder.SeedAsync(inventarioDbContext, invLogger);
+        }
+
+        if (servicioCampoDbContext != null)
+        {
+            var scLogger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<BubbaBag.Modules.ServicioCampo.Infrastructure.Database.ServicioCampoDbContext>>();
+            await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.TarifaServicioSeeder.SeedAsync(servicioCampoDbContext, scLogger);
         }
     }
 }

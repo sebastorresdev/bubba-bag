@@ -199,6 +199,48 @@ namespace BubbaBag.Modules.RecursosHumanos.Infrastructure.Database.Migrations
                     b.ToTable("Departamentos", "rrhh");
                 });
 
+            modelBuilder.Entity("BubbaBag.Modules.RecursosHumanos.Domain.Organizacion.Sucursal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Ciudad")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("Direccion")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<bool>("EsSedePrincipal")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Telefono")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
+
+                    b.ToTable("Sucursales", "rrhh");
+                });
+
             modelBuilder.Entity("BubbaBag.Modules.RecursosHumanos.Domain.Empleados.Empleado", b =>
                 {
                     b.HasOne("BubbaBag.Modules.RecursosHumanos.Domain.Organizacion.Cargo", "Cargo")

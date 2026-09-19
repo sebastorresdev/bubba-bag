@@ -1,0 +1,184 @@
+<!-- Barra de Comandos Superior Dynamics 365 -->
+<app-command-bar
+  [items]="commandBarItems"
+  [farItems]="farItems"
+  [showBack]="true"
+  (back)="volver()"
+></app-command-bar>
+
+<div class="orden-form-view d365-form-view">
+  <!-- Cabecera de Registro (Dynamics 365 Record Header) -->
+  <div class="d365-record-header">
+    <div class="record-header-main">
+      <div class="record-avatar-container">
+        <nz-avatar
+          [nzSize]="56"
+          [nzText]="getIniciales(form.get('nombre')?.value || (isEdit ? 'Tipo Orden' : 'Nueva Orden'))"
+          class="record-avatar orden-header-avatar"
+          [style.backgroundColor]="form.get('colorHex')?.value || '#0078d4'"
+        />
+      </div>
+
+      <div class="record-title-block">
+        <h1 class="record-title">
+          {{ form.get('nombre')?.value || (isEdit ? 'Tipo de Orden' : 'Nuevo Tipo de Orden') }}
+        </h1>
+
+        <div class="record-metadata-row">
+          <span class="meta-color-badge" [style.color]="form.get('colorHex')?.value">
+            ● {{ form.get('colorHex')?.value || '#0078d4' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Indicadores Métricos de Cabecera (KPIs Dynamics 365) -->
+    <div class="record-header-metrics">
+      <div class="metric-item">
+        <span class="metric-label">ESTADO</span>
+        <span
+          class="kpi-value-pill"
+          [class.pill-active]="form.get('activo')?.value"
+          [class.pill-inactive]="!form.get('activo')?.value"
+        >
+          {{ (form.get('activo')?.value ? 'ACTIVO' : 'INACTIVO') }}
+        </span>
+      </div>
+
+      <div class="metric-divider"></div>
+
+      <div class="metric-item">
+        <span class="metric-label">VISITA A CAMPO</span>
+        <span class="kpi-value-badge" [class.badge-enabled]="form.get('requiereVisitaCampo')?.value">
+          {{ form.get('requiereVisitaCampo')?.value ? 'REQUERIDA' : 'NO REQUERIDA' }}
+        </span>
+      </div>
+
+      <div class="metric-divider"></div>
+
+      <div class="metric-item">
+        <span class="metric-label">FIRMA CLIENTE</span>
+        <span class="kpi-value-badge" [class.badge-enabled]="form.get('exigeFirmaCliente')?.value">
+          {{ form.get('exigeFirmaCliente')?.value ? 'OBLIGATORIA' : 'OPCIONAL' }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenedor con Indicador Circular de Carga -->
+  <nz-spin [nzSpinning]="loading || saving" class="orden-spin-wrapper">
+    <form nz-form [formGroup]="form" nzLayout="horizontal" [nzNoColon]="true" class="d365-form-container">
+      <nz-tabs [(nzSelectedIndex)]="selectedTabIndex" [nzAnimated]="false" class="d365-form-tabs">
+        <!-- TAB 1: GENERAL -->
+        <nz-tab nzTitle="General">
+          <div class="d365-tab-columns">
+            <!-- Columna Izquierda: Identificación -->
+            <div class="d365-tab-column main-column">
+              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Identificación del Tipo de Orden">
+                <div class="card-form-grid">
+                  <!-- Nombre -->
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="nombre">Nombre</nz-form-label>
+                    <nz-form-control nzErrorTip="Ingrese un nombre representativo">
+                      <input
+                        nz-input
+                        formControlName="nombre"
+                        id="nombre"
+                        placeholder="Ej. Instalación de Fibra Óptica, Encomienda, Reparación"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <!-- Color Identificador -->
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="colorHex">Color Distintivo</nz-form-label>
+                    <nz-form-control nzErrorTip="Seleccione o ingrese un color válido en formato HEX">
+                      <div class="color-picker-group">
+                        <div class="color-preview-box" [style.backgroundColor]="form.get('colorHex')?.value"></div>
+                        <input
+                          nz-input
+                          formControlName="colorHex"
+                          id="colorHex"
+                          placeholder="#0078d4"
+                          style="max-width: 140px;"
+                        />
+                        <div class="color-presets-row">
+                          @for (color of colorPresets; track color) {
+                            <button
+                              type="button"
+                              class="preset-circle"
+                              [style.backgroundColor]="color"
+                              [class.preset-active]="form.get('colorHex')?.value === color"
+                              (click)="form.get('colorHex')?.setValue(color)"
+                            ></button>
+                          }
+                        </div>
+                      </div>
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <!-- Descripción -->
+                  <nz-form-item>
+                    <nz-form-label nzFor="descripcion">Descripción</nz-form-label>
+                    <nz-form-control>
+                      <textarea
+                        nz-input
+                        formControlName="descripcion"
+                        id="descripcion"
+                        rows="3"
+                        placeholder="Detalles sobre cuándo y cómo se aplica esta modalidad de orden..."
+                      ></textarea>
+                    </nz-form-control>
+                  </nz-form-item>
+                </div>
+              </nz-card>
+            </div>
+
+            <!-- Columna Derecha: Reglas y Requisitos -->
+            <div class="d365-tab-column">
+              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Reglas Operativas y Requisitos">
+                <div class="card-form-grid">
+                  <!-- Requiere Visita de Campo -->
+                  <div class="classification-box">
+                    <div class="classification-info">
+                      <span class="classification-title">¿Requiere Visita de Campo?</span>
+                      <span class="classification-desc">Indica si la cuadrilla debe desplazarse presencialmente a la ubicación del cliente.</span>
+                    </div>
+                    <nz-switch formControlName="requiereVisitaCampo" id="requiereVisitaCampo"></nz-switch>
+                  </div>
+
+                  <!-- Exige Firma del Cliente -->
+                  <div class="classification-box">
+                    <div class="classification-info">
+                      <span class="classification-title">¿Exige Firma del Cliente?</span>
+                      <span class="classification-desc">El técnico no podrá liquidar la orden sin la rúbrica digital de conformidad.</span>
+                    </div>
+                    <nz-switch formControlName="exigeFirmaCliente" id="exigeFirmaCliente"></nz-switch>
+                  </div>
+
+                  <!-- Exige Evidencias Fotográficas -->
+                  <div class="classification-box">
+                    <div class="classification-info">
+                      <span class="classification-title">¿Exige Evidencias Fotográficas?</span>
+                      <span class="classification-desc">Obliga a adjuntar fotografías del trabajo realizado antes de dar por cerrada la orden.</span>
+                    </div>
+                    <nz-switch formControlName="exigeEvidenciasFotograficas" id="exigeEvidenciasFotograficas"></nz-switch>
+                  </div>
+
+                  <!-- Estado Activo -->
+                  <div class="classification-box">
+                    <div class="classification-info">
+                      <span class="classification-title">Estado del Registro</span>
+                      <span class="classification-desc">{{ form.get('activo')?.value ? 'Modalidad habilitada para nuevas órdenes.' : 'Modalidad deshabilitada temporalmente.' }}</span>
+                    </div>
+                    <nz-switch formControlName="activo" id="activo"></nz-switch>
+                  </div>
+                </div>
+              </nz-card>
+            </div>
+          </div>
+        </nz-tab>
+      </nz-tabs>
+    </form>
+  </nz-spin>
+</div>

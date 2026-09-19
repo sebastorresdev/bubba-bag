@@ -7,6 +7,6 @@ namespace BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.TiposTareaSe
 public record CrearTipoTareaServicioCommand(
     string CodigoTarea,
     string Nombre,
-    Guid ClienteFacturacionId,
+    Guid? ClienteFacturacionId = null,
     int DuracionEstimadaMinutos = 60
 ) : ICommand<Result<Guid>>;

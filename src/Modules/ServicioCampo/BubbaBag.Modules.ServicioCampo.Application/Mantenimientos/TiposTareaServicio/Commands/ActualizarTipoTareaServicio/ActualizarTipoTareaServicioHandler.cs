@@ -24,8 +24,11 @@ public class ActualizarTipoTareaServicioHandler : ICommandHandler<ActualizarTipo
         if (tarea == null)
             return Result.Failure("Tipo de tarea de servicio no encontrado.");
 
-        if (!await _context.Clientes.AnyAsync(c => c.Id == request.ClienteFacturacionId, cancellationToken))
-            return Result.Failure("El cliente contratante / facturable especificado no existe o es inválido.");
+        if (request.ClienteFacturacionId.HasValue)
+        {
+            if (!await _context.Clientes.AnyAsync(c => c.Id == request.ClienteFacturacionId.Value, cancellationToken))
+                return Result.Failure("El cliente contratante / facturable especificado no existe o es inválido.");
+        }
 
         tarea.Actualizar(nombreNormalizado, request.ClienteFacturacionId, request.DuracionEstimadaMinutos);
 

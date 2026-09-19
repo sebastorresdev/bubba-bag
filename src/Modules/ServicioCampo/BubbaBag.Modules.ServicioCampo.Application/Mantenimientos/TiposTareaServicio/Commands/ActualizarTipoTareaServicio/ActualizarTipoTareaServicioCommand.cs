@@ -7,6 +7,6 @@ namespace BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.TiposTareaSe
 public record ActualizarTipoTareaServicioCommand(
     Guid Id,
     string Nombre,
-    Guid ClienteFacturacionId,
-    int DuracionEstimadaMinutos
+    Guid? ClienteFacturacionId = null,
+    int DuracionEstimadaMinutos = 60
 ) : ICommand<Result>;

@@ -40,7 +40,6 @@ export interface ActualizarMotivoIncidenciaRequest {
 // 2. Tipos de Orden de Trabajo (Modalidad Operativa: CAMPO, ENCOMIENDA, REMOTO)
 export interface TipoOrdenTrabajoDto {
   id: string;
-  codigo: string;
   nombre: string;
   descripcion?: string;
   requiereVisitaCampo: boolean;
@@ -51,7 +50,6 @@ export interface TipoOrdenTrabajoDto {
 }
 
 export interface CrearTipoOrdenTrabajoCommand {
-  codigo: string;
   nombre: string;
   requiereVisitaCampo: boolean;
   exigeFirmaCliente: boolean;
@@ -69,12 +67,158 @@ export interface ActualizarTipoOrdenTrabajoRequest {
   colorHex: string;
 }
 
-// 3. Tipos de Tarea de Servicio (Catálogo de Prestaciones Técnicas por Cliente Facturable)
+// =============================================================================
+// 2.1 Catálogos de Servicios (Agrupadores / Contratantes)
+// =============================================================================
+export interface CatalogoServicioDto {
+  id: string;
+  nombre: string;
+  descripcion?: string;
+  contratanteId?: string | null;
+  contratanteNombre?: string | null;
+  cantidadServicios: number;
+  activo: boolean;
+}
+
+export interface CrearCatalogoServicioCommand {
+  nombre: string;
+  contratanteId?: string | null;
+  descripcion?: string | null;
+}
+
+export interface ActualizarCatalogoServicioRequest {
+  nombre: string;
+  contratanteId?: string | null;
+  descripcion?: string | null;
+  activo: boolean;
+}
+
+// =============================================================================
+// 2.2 Servicios / Plantillas (Checklist, Fotos, Materiales, Sucursales)
+// =============================================================================
+export enum TipoEvidenciaPaso {
+  Check = 1,
+  Foto = 2,
+  Texto = 3,
+  Firma = 4
+}
+
+export const TipoEvidenciaPasoLabels: Record<TipoEvidenciaPaso, string> = {
+  [TipoEvidenciaPaso.Check]: 'Check / Confirmación',
+  [TipoEvidenciaPaso.Foto]: 'Fotografía Obligatoria',
+  [TipoEvidenciaPaso.Texto]: 'Entrada de Texto / Serial',
+  [TipoEvidenciaPaso.Firma]: 'Firma Digital'
+};
+
+export interface ServicioPasoDto {
+  id?: string;
+  numeroPaso: number;
+  descripcion: string;
+  requiereFoto: boolean;
+  tipoEvidencia: TipoEvidenciaPaso;
+  esObligatorio: boolean;
+}
+
+export interface ServicioMaterialDto {
+  id?: string;
+  productoId: string;
+  productoCodigo?: string;
+  productoNombre?: string;
+  cantidadTeorica: number;
+  unidadMedida: string;
+}
+
+export interface SucursalServicioDto {
+  id?: string;
+  sucursalId: string;
+  sucursalNombre?: string;
+  sucursalCiudad?: string;
+  habilitado: boolean;
+}
+
+export interface ServicioItemDto {
+  id: string;
+  codigo: string;
+  nombre: string;
+  catalogoServicioId: string;
+  catalogoServicioNombre: string;
+  duracionEstimadaMinutos: number;
+  codigoExterno?: string;
+  cantidadPasos: number;
+  cantidadMateriales: number;
+  activo: boolean;
+}
+
+export interface ServicioDetalleDto {
+  id: string;
+  codigo: string;
+  nombre: string;
+  descripcion?: string;
+  catalogoServicioId: string;
+  catalogoServicioNombre: string;
+  duracionEstimadaMinutos: number;
+  codigoExterno?: string;
+  activo: boolean;
+  pasos: ServicioPasoDto[];
+  materialesTeoricos: ServicioMaterialDto[];
+  sucursalesHabilitadas: SucursalServicioDto[];
+}
+
+export interface ServicioPasoInput {
+  numeroPaso: number;
+  descripcion: string;
+  requiereFoto: boolean;
+  tipoEvidencia: number;
+  esObligatorio: boolean;
+}
+
+export interface ServicioMaterialInput {
+  productoId: string;
+  cantidadTeorica: number;
+  unidadMedida: string;
+}
+
+export interface CrearServicioRequest {
+  codigo: string;
+  nombre: string;
+  catalogoServicioId: string;
+  duracionEstimadaMinutos: number;
+  descripcion?: string;
+  codigoExterno?: string;
+  pasos?: ServicioPasoInput[];
+  materialesTeoricos?: ServicioMaterialInput[];
+  sucursalesHabilitadasIds?: string[];
+}
+
+export interface ActualizarServicioRequest {
+  nombre: string;
+  catalogoServicioId: string;
+  duracionEstimadaMinutos: number;
+  descripcion?: string;
+  codigoExterno?: string;
+  activo: boolean;
+  pasos?: ServicioPasoInput[];
+  materialesTeoricos?: ServicioMaterialInput[];
+  sucursalesHabilitadasIds?: string[];
+}
+
+// Producto Básico para selección de materiales
+export interface ProductoItemDto {
+  id: string;
+  codigo: string;
+  nombre: string;
+  categoria: string;
+  unidadMedida: string;
+  esSerializado: boolean;
+  activo: boolean;
+}
+
+// 3. Tipos de Tarea de Servicio (Catálogo de Prestaciones Técnicas por Cliente Facturable u Operación Interna)
 export interface TipoTareaServicioDto {
   id: string;
   codigoTarea: string;
   nombre: string;
-  clienteFacturacionId: string;
+  clienteFacturacionId?: string | null;
   clienteFacturacionNombre?: string;
   clienteFacturacionCodigo?: string;
   duracionEstimadaMinutos: number;
@@ -84,16 +228,95 @@ export interface TipoTareaServicioDto {
 export interface CrearTipoTareaServicioCommand {
   codigoTarea: string;
   nombre: string;
-  clienteFacturacionId: string;
+  clienteFacturacionId?: string | null;
   duracionEstimadaMinutos: number;
 }
 
 export interface ActualizarTipoTareaServicioRequest {
   nombre: string;
-  clienteFacturacionId: string;
+  clienteFacturacionId?: string | null;
   duracionEstimadaMinutos: number;
 }
 
 export interface CambiarEstadoCatalogoRequest {
   activo: boolean;
 }
+
+// 4. Tarifas de Servicio Contratante (DIRECTV, CLARO, WIN, etc.)
+export interface TarifaServicioDto {
+  id: string;
+  tipificacion: string;
+  tipoTareaServicioId?: string | null;
+  tipoTareaServicioCodigo?: string;
+  tipoTareaServicioNombre?: string;
+  codigoServicio: string;
+  detalleServicio: string;
+  empresaContratante: string;
+  clienteFacturacionId?: string | null;
+  clienteFacturacionNombre?: string;
+  sucursal?: string | null;
+  puntos: number;
+  fijoBase: number;
+  fijoAdicional: number;
+  totalFijo?: number;
+  variableTotal: number;
+  cycleTime: number;
+  cumplimientoAgenda: number;
+  sin30Dias: number;
+  variableAdicionalTotal: number;
+  cycleTimeAdicional: number;
+  cumplimientoAgendaAdicional: number;
+  sin30DiasAdicional: number;
+  montoTotalTeorico: number;
+  aplicaPago: boolean;
+  aplicaGarantia: boolean;
+  activo: boolean;
+}
+
+export interface CrearTarifaServicioCommand {
+  codigoServicio: string;
+  detalleServicio: string;
+  tipificacion: string;
+  tipoTareaServicioId?: string | null;
+  empresaContratante: string;
+  clienteFacturacionId?: string | null;
+  sucursal?: string | null;
+  puntos: number;
+  fijoBase: number;
+  fijoAdicional: number;
+  variableTotal?: number;
+  cycleTime: number;
+  cumplimientoAgenda: number;
+  sin30Dias: number;
+  variableAdicionalTotal?: number;
+  cycleTimeAdicional: number;
+  cumplimientoAgendaAdicional: number;
+  sin30DiasAdicional: number;
+  montoTotalTeorico?: number;
+  aplicaPago: boolean;
+  aplicaGarantia: boolean;
+}
+
+export interface ActualizarTarifaServicioRequest {
+  detalleServicio: string;
+  tipificacion: string;
+  tipoTareaServicioId?: string | null;
+  empresaContratante: string;
+  clienteFacturacionId?: string | null;
+  sucursal?: string | null;
+  puntos: number;
+  fijoBase: number;
+  fijoAdicional: number;
+  variableTotal?: number;
+  cycleTime: number;
+  cumplimientoAgenda: number;
+  sin30Dias: number;
+  variableAdicionalTotal?: number;
+  cycleTimeAdicional: number;
+  cumplimientoAgendaAdicional: number;
+  sin30DiasAdicional: number;
+  montoTotalTeorico?: number;
+  aplicaPago: boolean;
+  aplicaGarantia: boolean;
+}
+

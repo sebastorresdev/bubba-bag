@@ -232,11 +232,10 @@ export class NavigationService {
         {
           title: 'Tarifarios y Precios',
           icon: 'dollar',
-          open: false,
+          open: true,
           requiredRoles: ['SuperAdmin', 'Gerencia', 'ServicioCampoAdmin'],
           children: [
-            { title: 'Listas de Precios', path: '/servicio-campo/tarifarios' },
-            { title: 'Reglas y Criterios', path: '/servicio-campo/reglas' },
+            { title: 'Tarifario de Servicios', path: '/servicio-campo/tarifas-servicio' },
           ],
         },
         {
@@ -245,6 +244,8 @@ export class NavigationService {
           open: true,
           requiredRoles: ['SuperAdmin', 'Gerencia', 'ServicioCampoAdmin', 'ServicioCampoBackoffice'],
           children: [
+            { title: 'Catálogos de Servicio', path: '/servicio-campo/catalogos-servicio' },
+            { title: 'Plantillas de Servicios', path: '/servicio-campo/servicios' },
             { title: 'Tipos de Orden (Modalidad)', path: '/servicio-campo/tipos-orden' },
             { title: 'Tipos de Tarea', path: '/servicio-campo/tipos-tarea' },
             { title: 'Motivos de Incidencia', path: '/servicio-campo/motivos-incidencia' },
@@ -293,6 +294,14 @@ export class NavigationService {
           open: true,
           children: [
             { title: 'Usuarios del Sistema', path: '/configuracion/usuarios' },
+          ],
+        },
+        {
+          title: 'Organización y Sedes',
+          icon: 'bank',
+          open: true,
+          children: [
+            { title: 'Sucursales y Sedes', path: '/configuracion/sucursales' },
           ],
         },
       ],

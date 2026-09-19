@@ -13,6 +13,17 @@ import {
   CrearTipoTareaServicioCommand,
   ActualizarTipoTareaServicioRequest,
   CambiarEstadoCatalogoRequest,
+  TarifaServicioDto,
+  CrearTarifaServicioCommand,
+  ActualizarTarifaServicioRequest,
+  CatalogoServicioDto,
+  CrearCatalogoServicioCommand,
+  ActualizarCatalogoServicioRequest,
+  ServicioItemDto,
+  ServicioDetalleDto,
+  CrearServicioRequest,
+  ActualizarServicioRequest,
+  ProductoItemDto,
 } from '../models/servicio-campo-catalogos.model';
 
 @Injectable({
@@ -131,4 +142,128 @@ export class ServicioCampoService {
     const request: CambiarEstadoCatalogoRequest = { activo };
     return this.http.patch<{ message: string }>(`${this.baseUrl}/tipos-tarea/${id}/estado`, request);
   }
+
+  // =========================================================================
+  // 4. TARIFAS DE SERVICIO (Matriz Contractual: DIRECTV, CLARO, etc.)
+  // =========================================================================
+  getTarifasServicio(
+    empresaContratante?: string,
+    sucursal?: string,
+    soloActivos?: boolean,
+    search?: string
+  ): Observable<TarifaServicioDto[]> {
+    let params = new HttpParams();
+    if (empresaContratante && empresaContratante.trim() !== '') {
+      params = params.set('empresaContratante', empresaContratante.trim());
+    }
+    if (sucursal && sucursal.trim() !== '') {
+      params = params.set('sucursal', sucursal.trim());
+    }
+    if (soloActivos !== undefined && soloActivos !== null) {
+      params = params.set('soloActivos', soloActivos.toString());
+    }
+    if (search && search.trim() !== '') {
+      params = params.set('search', search.trim());
+    }
+    return this.http.get<TarifaServicioDto[]>(`${this.baseUrl}/tarifas-servicio`, { params });
+  }
+
+  getTarifaServicioPorId(id: string): Observable<TarifaServicioDto> {
+    return this.http.get<TarifaServicioDto>(`${this.baseUrl}/tarifas-servicio/${id}`);
+  }
+
+  crearTarifaServicio(command: CrearTarifaServicioCommand): Observable<{ id: string; message: string }> {
+    return this.http.post<{ id: string; message: string }>(`${this.baseUrl}/tarifas-servicio`, command);
+  }
+
+  actualizarTarifaServicio(id: string, request: ActualizarTarifaServicioRequest): Observable<{ message: string }> {
+    return this.http.put<{ message: string }>(`${this.baseUrl}/tarifas-servicio/${id}`, request);
+  }
+
+  cambiarEstadoTarifaServicio(id: string, activo: boolean): Observable<{ message: string }> {
+    const request: CambiarEstadoCatalogoRequest = { activo };
+    return this.http.patch<{ message: string }>(`${this.baseUrl}/tarifas-servicio/${id}/estado`, request);
+  }
+
+  // =========================================================================
+  // 5. CATÁLOGOS DE SERVICIO (Agrupadores / Contratantes)
+  // =========================================================================
+  getCatalogosServicio(
+    search?: string,
+    contratanteId?: string,
+    soloActivos?: boolean
+  ): Observable<CatalogoServicioDto[]> {
+    let params = new HttpParams();
+    if (search && search.trim() !== '') {
+      params = params.set('search', search.trim());
+    }
+    if (contratanteId && contratanteId.trim() !== '') {
+      params = params.set('contratanteId', contratanteId.trim());
+    }
+    if (soloActivos !== undefined && soloActivos !== null) {
+      params = params.set('soloActivos', soloActivos.toString());
+    }
+    return this.http.get<CatalogoServicioDto[]>(`${this.baseUrl}/catalogos-servicio`, { params });
+  }
+
+  getCatalogoServicioPorId(id: string): Observable<CatalogoServicioDto> {
+    return this.http.get<CatalogoServicioDto>(`${this.baseUrl}/catalogos-servicio/${id}`);
+  }
+
+  crearCatalogoServicio(command: CrearCatalogoServicioCommand): Observable<{ id: string; message: string }> {
+    return this.http.post<{ id: string; message: string }>(`${this.baseUrl}/catalogos-servicio`, command);
+  }
+
+  actualizarCatalogoServicio(id: string, request: ActualizarCatalogoServicioRequest): Observable<{ message: string }> {
+    return this.http.put<{ message: string }>(`${this.baseUrl}/catalogos-servicio/${id}`, request);
+  }
+
+  // =========================================================================
+  // 6. SERVICIOS / PLANTILLAS (Checklist, Fotos, Materiales, Sucursales)
+  // =========================================================================
+  getServicios(
+    catalogoServicioId?: string,
+    soloActivos?: boolean
+  ): Observable<ServicioItemDto[]> {
+    let params = new HttpParams();
+    if (catalogoServicioId && catalogoServicioId.trim() !== '') {
+      params = params.set('catalogoServicioId', catalogoServicioId.trim());
+    }
+    if (soloActivos !== undefined && soloActivos !== null) {
+      params = params.set('soloActivos', soloActivos.toString());
+    }
+    return this.http.get<ServicioItemDto[]>(`${this.baseUrl}/servicios`, { params });
+  }
+
+  getServicioPorId(id: string): Observable<ServicioDetalleDto> {
+    return this.http.get<ServicioDetalleDto>(`${this.baseUrl}/servicios/${id}`);
+  }
+
+  crearServicio(command: CrearServicioRequest): Observable<{ id: string; message: string }> {
+    return this.http.post<{ id: string; message: string }>(`${this.baseUrl}/servicios`, command);
+  }
+
+  actualizarServicio(id: string, request: ActualizarServicioRequest): Observable<{ message: string }> {
+    return this.http.put<{ message: string }>(`${this.baseUrl}/servicios/${id}`, request);
+  }
+
+  // =========================================================================
+  // 7. INVENTARIO / PRODUCTOS LOOKUP
+  // =========================================================================
+  getProductos(
+    search?: string,
+    categoria?: string,
+    soloActivos: boolean = true
+  ): Observable<ProductoItemDto[]> {
+    let params = new HttpParams();
+    if (search && search.trim() !== '') {
+      params = params.set('search', search.trim());
+    }
+    if (categoria && categoria.trim() !== '') {
+      params = params.set('categoria', categoria.trim());
+    }
+    params = params.set('soloActivos', soloActivos.toString());
+    return this.http.get<ProductoItemDto[]>('/api/inventario/productos', { params });
+  }
 }
+

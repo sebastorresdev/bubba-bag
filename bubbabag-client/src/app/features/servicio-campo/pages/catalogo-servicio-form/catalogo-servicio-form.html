@@ -1,0 +1,142 @@
+<app-command-bar
+  [items]="commandBarItems"
+  [showBack]="true"
+  (back)="volver()"
+></app-command-bar>
+
+<div class="d365-form-view">
+  <!-- Cabecera de Registro (Dynamics 365 Record Header) -->
+  <div class="d365-record-header">
+    <div class="record-header-main">
+      <div class="record-avatar-container">
+        <nz-avatar
+          [nzSize]="56"
+          [nzText]="getIniciales(form.get('nombre')?.value || (isEdit ? 'Catálogo' : 'Nuevo'))"
+          class="record-avatar catalogo-header-avatar"
+        />
+      </div>
+
+      <div class="record-title-block">
+        <h1 class="record-title">
+          {{ form.get('nombre')?.value || (isEdit ? 'Catálogo de Servicios' : 'Nuevo Catálogo de Servicios') }}
+        </h1>
+
+        <div class="record-metadata-row">
+          <span class="meta-tag">
+            <nz-icon nzType="folder-open" /> Agrupador Maestro
+          </span>
+          <nz-divider nzType="vertical" />
+          <span class="meta-owner">
+            {{ form.get('contratanteId')?.value ? 'Contratante Externo' : 'Catálogo Propio' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Indicadores Métricos de Cabecera (KPIs) -->
+    <div class="record-header-metrics">
+      <div class="metric-item">
+        <span class="metric-label">ESTADO</span>
+        <span
+          class="kpi-value-pill"
+          [class.pill-active]="form.get('activo')?.value"
+          [class.pill-inactive]="!form.get('activo')?.value"
+        >
+          {{ (form.get('activo')?.value ? 'ACTIVO' : 'INACTIVO') }}
+        </span>
+      </div>
+
+      @if (catalogoActual) {
+        <div class="metric-divider"></div>
+        <div class="metric-item">
+          <span class="metric-label">SERVICIOS ASOCIADOS</span>
+          <span class="kpi-value-number">{{ catalogoActual.cantidadServicios }}</span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Contenedor con Indicador Circular de Carga -->
+  <nz-spin [nzSpinning]="loading || saving" class="form-spin-wrapper">
+    <form nz-form [formGroup]="form" nzLayout="horizontal" [nzNoColon]="true" class="d365-form-container">
+      <nz-tabs [(nzSelectedIndex)]="selectedTabIndex" [nzAnimated]="false" class="d365-form-tabs">
+        <nz-tab nzTitle="General">
+          <div class="d365-tab-columns">
+            <!-- Columna Izquierda: Datos del Catálogo -->
+            <div class="d365-tab-column main-column">
+              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Información del Catálogo">
+                <div class="card-form-grid">
+                  <!-- Nombre -->
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="nombre">Nombre del Catálogo</nz-form-label>
+                    <nz-form-control nzErrorTip="Ingrese el nombre del catálogo">
+                      <input
+                        nz-input
+                        formControlName="nombre"
+                        id="nombre"
+                        placeholder="Ej. Catálogo DIRECTV, Catálogo Claro Hogar, Operaciones Propias"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <!-- Contratante / Mandante -->
+                  <nz-form-item>
+                    <nz-form-label nzFor="contratanteId">Cliente Contratante</nz-form-label>
+                    <nz-form-control nzExtra="Si se deja vacío, se considerará un catálogo propio de la empresa.">
+                      <nz-select
+                        formControlName="contratanteId"
+                        id="contratanteId"
+                        nzPlaceHolder="Seleccionar contratante (o vacío si es propio)..."
+                        [nzLoading]="loadingClientes"
+                        nzAllowClear
+                        nzShowSearch
+                      >
+                        @for (cliente of clientesContratantes; track cliente.id) {
+                          <nz-option
+                            [nzValue]="cliente.id"
+                            [nzLabel]="cliente.nombreCompletoODenominacion + ' (' + cliente.documentoIdentidad + ')'"
+                          ></nz-option>
+                        }
+                      </nz-select>
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <!-- Descripción -->
+                  <nz-form-item>
+                    <nz-form-label nzFor="descripcion">Descripción</nz-form-label>
+                    <nz-form-control>
+                      <textarea
+                        nz-input
+                        formControlName="descripcion"
+                        id="descripcion"
+                        rows="4"
+                        placeholder="Alcance, acuerdos contractuales o notas específicas del catálogo..."
+                      ></textarea>
+                    </nz-form-control>
+                  </nz-form-item>
+                </div>
+              </nz-card>
+            </div>
+
+            <!-- Columna Derecha: Parámetros -->
+            <div class="d365-tab-column">
+              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Configuración Operativa">
+                <div class="card-form-grid">
+                  <div class="classification-box">
+                    <div class="classification-info">
+                      <span class="classification-title">Estado del Catálogo</span>
+                      <span class="classification-desc">
+                        {{ form.get('activo')?.value ? 'Disponible para asociar nuevos servicios y órdenes.' : 'Catálogo deshabilitado.' }}
+                      </span>
+                    </div>
+                    <nz-switch formControlName="activo" id="activo"></nz-switch>
+                  </div>
+                </div>
+              </nz-card>
+            </div>
+          </div>
+        </nz-tab>
+      </nz-tabs>
+    </form>
+  </nz-spin>
+</div>

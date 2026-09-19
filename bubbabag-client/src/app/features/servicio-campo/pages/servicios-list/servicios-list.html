@@ -1,0 +1,203 @@
+<app-command-bar [items]="commandBarItems"></app-command-bar>
+
+<div class="catalogo-view-wrapper">
+  <nz-card [nzBordered]="false" class="d365-table-card">
+    <!-- Toolbar de la Vista -->
+    <div class="d365-toolbar-row">
+      <!-- Selector de Vista (Dynamics 365 View Selector) -->
+      <div>
+        <button
+          nz-button
+          nzType="text"
+          nz-dropdown
+          [nzDropdownMenu]="viewsMenu"
+          nzTrigger="click"
+          class="view-title-btn"
+        >
+          <h1 class="view-title-text">{{ vistaActualTitulo }}</h1>
+          <nz-icon nzType="down" class="view-title-icon" />
+        </button>
+
+        <nz-dropdown-menu #viewsMenu="nzDropdownMenu">
+          <ul nz-menu>
+            <li nz-menu-item (click)="cambiarVista('Activos')" [nzSelected]="vistaActual === 'Activos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Activos' ? 'visible' : 'hidden'" />
+              <span>Servicios Activos</span>
+            </li>
+            <li nz-menu-item (click)="cambiarVista('Inactivos')" [nzSelected]="vistaActual === 'Inactivos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Inactivos' ? 'visible' : 'hidden'" />
+              <span>Servicios Inactivos</span>
+            </li>
+            <li nz-menu-divider></li>
+            <li nz-menu-item (click)="cambiarVista('Todos')" [nzSelected]="vistaActual === 'Todos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Todos' ? 'visible' : 'hidden'" />
+              <span>Todos los Servicios</span>
+            </li>
+          </ul>
+        </nz-dropdown-menu>
+      </div>
+
+      <!-- Filtros y Buscador Rápido -->
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <!-- Filtro por Catálogo -->
+        <div style="width: 220px;">
+          <nz-select
+            [(ngModel)]="catalogoSeleccionadoId"
+            (ngModelChange)="onCatalogoFilterChange()"
+            nzPlaceHolder="Filtrar por Catálogo..."
+            nzAllowClear
+            nzSize="small"
+            style="width: 100%;"
+          >
+            @for (cat of catalogos; track cat.id) {
+              <nz-option [nzValue]="cat.id" [nzLabel]="cat.nombre"></nz-option>
+            }
+          </nz-select>
+        </div>
+
+        <!-- Buscador Rápido -->
+        <div class="d365-search-box">
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            (ngModelChange)="onSearchChange()"
+            placeholder="Filtrar por código, nombre..."
+            class="search-input"
+          />
+          @if (searchTerm) {
+            <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
+              <nz-icon nzType="close" />
+            </button>
+          }
+          <button class="search-icon-btn" (click)="onSearchChange()" title="Buscar">
+            <nz-icon nzType="search" />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grilla / Tabla Estilo Dynamics 365 -->
+    <div class="d365-grid-container">
+      <nz-table
+        #serviciosTable
+        [nzData]="serviciosFiltrados"
+        [nzLoading]="loading"
+        [nzShowPagination]="true"
+        [nzShowTotal]="totalRangeTpl"
+        [nzPageSize]="15"
+        nzSize="small"
+        class="d365-table"
+      >
+        <ng-template #totalRangeTpl let-range="range" let-total="total">
+          {{ range[0] }} - {{ range[1] }} de {{ total }}
+        </ng-template>
+        <thead>
+          <tr>
+            <th
+              [nzWidth]="'44px'"
+              [nzChecked]="isAllSelected"
+              [nzIndeterminate]="isIndeterminate"
+              (nzCheckedChange)="toggleSelectAll($event)"
+              class="col-checkbox"
+            ></th>
+            <th [nzWidth]="'60px'" nzAlign="center">Icono</th>
+            <th [nzWidth]="'120px'">Código</th>
+            <th [nzWidth]="'280px'">Nombre del Servicio</th>
+            <th [nzWidth]="'200px'">Catálogo</th>
+            <th [nzWidth]="'120px'" nzAlign="center">Duración</th>
+            <th [nzWidth]="'140px'" nzAlign="center">Checklist / Pasos</th>
+            <th [nzWidth]="'140px'" nzAlign="center">Materiales</th>
+            <th [nzWidth]="'130px'">Código Ext.</th>
+            <th [nzWidth]="'110px'" nzAlign="center">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of serviciosTable.data; track item.id) {
+            <tr
+              class="d365-data-row"
+              [class.row-selected]="selectedIds.has(item.id)"
+              (click)="toggleSelect(item.id)"
+              (dblclick)="editar(item.id)"
+            >
+              <td
+                class="col-checkbox"
+                [nzChecked]="selectedIds.has(item.id)"
+                (click)="$event.stopPropagation()"
+                (nzCheckedChange)="toggleSelect(item.id)"
+              ></td>
+
+              <!-- Circular Avatar con Iniciales del Código -->
+              <td nzAlign="center">
+                <nz-avatar
+                  [nzSize]="32"
+                  [nzText]="getIniciales(item.codigo, item.nombre)"
+                  class="d365-circular-avatar"
+                  [style.backgroundColor]="getColor(item.codigo)"
+                ></nz-avatar>
+              </td>
+
+              <!-- Código -->
+              <td class="col-code">
+                <span class="code-tag">{{ item.codigo }}</span>
+              </td>
+
+              <!-- Nombre con enlace de edición -->
+              <td class="col-primary-text">
+                <span class="nombre-link" (click)="$event.stopPropagation(); editar(item.id)">
+                  {{ item.nombre }}
+                </span>
+              </td>
+
+              <!-- Catálogo -->
+              <td>
+                <nz-tag nzColor="processing">
+                  <nz-icon nzType="folder" />
+                  {{ item.catalogoServicioNombre }}
+                </nz-tag>
+              </td>
+
+              <!-- Duración Estimada -->
+              <td nzAlign="center">
+                <span style="font-size: 12px; color: #605e5c;">
+                  <nz-icon nzType="clock-circle" /> {{ item.duracionEstimadaMinutos }} min
+                </span>
+              </td>
+
+              <!-- Checklist Pasos -->
+              <td nzAlign="center">
+                <nz-tag nzColor="success" style="font-weight: 600;">
+                  <nz-icon nzType="check-square" />
+                  {{ item.cantidadPasos }} pasos
+                </nz-tag>
+              </td>
+
+              <!-- Materiales Teóricos -->
+              <td nzAlign="center">
+                <nz-tag nzColor="warning" style="font-weight: 600;">
+                  <nz-icon nzType="inbox" />
+                  {{ item.cantidadMateriales }} artículos
+                </nz-tag>
+              </td>
+
+              <!-- Código Externo -->
+              <td class="col-desc">
+                {{ item.codigoExterno || '-' }}
+              </td>
+
+              <!-- Estado con Tag D365 -->
+              <td nzAlign="center">
+                <nz-tag
+                  class="d365-status-tag"
+                  [class.tag-active]="item.activo"
+                  [class.tag-inactive]="!item.activo"
+                >
+                  {{ item.activo ? 'Activo' : 'Inactivo' }}
+                </nz-tag>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </nz-table>
+    </div>
+  </nz-card>
+</div>

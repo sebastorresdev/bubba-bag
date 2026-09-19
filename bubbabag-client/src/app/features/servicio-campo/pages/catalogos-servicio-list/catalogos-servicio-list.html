@@ -1,0 +1,170 @@
+<app-command-bar [items]="commandBarItems"></app-command-bar>
+
+<div class="catalogo-view-wrapper">
+  <nz-card [nzBordered]="false" class="d365-table-card">
+    <!-- Toolbar de la Vista -->
+    <div class="d365-toolbar-row">
+      <!-- Selector de Vista (Dynamics 365 View Selector) -->
+      <div>
+        <button
+          nz-button
+          nzType="text"
+          nz-dropdown
+          [nzDropdownMenu]="viewsMenu"
+          nzTrigger="click"
+          class="view-title-btn"
+        >
+          <h1 class="view-title-text">{{ vistaActualTitulo }}</h1>
+          <nz-icon nzType="down" class="view-title-icon" />
+        </button>
+
+        <nz-dropdown-menu #viewsMenu="nzDropdownMenu">
+          <ul nz-menu>
+            <li nz-menu-item (click)="cambiarVista('Activos')" [nzSelected]="vistaActual === 'Activos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Activos' ? 'visible' : 'hidden'" />
+              <span>Catálogos Activos</span>
+            </li>
+            <li nz-menu-item (click)="cambiarVista('Inactivos')" [nzSelected]="vistaActual === 'Inactivos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Inactivos' ? 'visible' : 'hidden'" />
+              <span>Catálogos Inactivos</span>
+            </li>
+            <li nz-menu-divider></li>
+            <li nz-menu-item (click)="cambiarVista('Todos')" [nzSelected]="vistaActual === 'Todos'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Todos' ? 'visible' : 'hidden'" />
+              <span>Todos los Catálogos</span>
+            </li>
+          </ul>
+        </nz-dropdown-menu>
+      </div>
+
+      <!-- Buscador Rápido -->
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <div class="d365-search-box">
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            (ngModelChange)="onSearchChange()"
+            placeholder="Buscar por catálogo o contratante..."
+            class="search-input"
+          />
+          @if (searchTerm) {
+            <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
+              <nz-icon nzType="close" />
+            </button>
+          }
+          <button class="search-icon-btn" (click)="onSearchChange()" title="Buscar">
+            <nz-icon nzType="search" />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grilla / Tabla Estilo Dynamics 365 -->
+    <div class="d365-grid-container">
+      <nz-table
+        #catalogosTable
+        [nzData]="catalogosFiltrados"
+        [nzLoading]="loading"
+        [nzShowPagination]="true"
+        [nzShowTotal]="totalRangeTpl"
+        [nzPageSize]="15"
+        nzSize="small"
+        class="d365-table"
+      >
+        <ng-template #totalRangeTpl let-range="range" let-total="total">
+          {{ range[0] }} - {{ range[1] }} de {{ total }}
+        </ng-template>
+        <thead>
+          <tr>
+            <th
+              [nzWidth]="'44px'"
+              [nzChecked]="isAllSelected"
+              [nzIndeterminate]="isIndeterminate"
+              (nzCheckedChange)="toggleSelectAll($event)"
+              class="col-checkbox"
+            ></th>
+            <th [nzWidth]="'60px'" nzAlign="center">Icono</th>
+            <th [nzWidth]="'280px'">Nombre del Catálogo</th>
+            <th [nzWidth]="'260px'">Contratante / Mandante</th>
+            <th [nzWidth]="'160px'" nzAlign="center">Servicios Incluidos</th>
+            <th>Descripción</th>
+            <th [nzWidth]="'110px'" nzAlign="center">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of catalogosTable.data; track item.id) {
+            <tr
+              class="d365-data-row"
+              [class.row-selected]="selectedIds.has(item.id)"
+              (click)="toggleSelect(item.id)"
+              (dblclick)="editar(item.id)"
+            >
+              <td
+                class="col-checkbox"
+                [nzChecked]="selectedIds.has(item.id)"
+                (click)="$event.stopPropagation()"
+                (nzCheckedChange)="toggleSelect(item.id)"
+              ></td>
+
+              <!-- Circular Avatar con Iniciales -->
+              <td nzAlign="center">
+                <nz-avatar
+                  [nzSize]="32"
+                  [nzText]="getIniciales(item.nombre)"
+                  class="d365-circular-avatar"
+                  [style.backgroundColor]="getColor(item.nombre)"
+                ></nz-avatar>
+              </td>
+
+              <!-- Nombre con enlace de edición -->
+              <td class="col-primary-text">
+                <span class="nombre-link" (click)="$event.stopPropagation(); editar(item.id)">
+                  {{ item.nombre }}
+                </span>
+              </td>
+
+              <!-- Contratante / Mandante -->
+              <td>
+                @if (item.contratanteNombre) {
+                  <nz-tag nzColor="blue">
+                    <nz-icon nzType="bank" />
+                    {{ item.contratanteNombre }}
+                  </nz-tag>
+                } @else {
+                  <nz-tag nzColor="purple">
+                    <nz-icon nzType="home" />
+                    Catálogo Propio
+                  </nz-tag>
+                }
+              </td>
+
+              <!-- Servicios Vinculados -->
+              <td nzAlign="center">
+                <nz-tag nzColor="default" style="font-weight: 600;">
+                  <nz-icon nzType="tool" />
+                  {{ item.cantidadServicios }} servicios
+                </nz-tag>
+              </td>
+
+              <!-- Descripción -->
+              <td class="col-desc">
+                {{ item.descripcion || '-' }}
+              </td>
+
+              <!-- Estado con Tag D365 -->
+              <td nzAlign="center">
+                <nz-tag
+                  class="d365-status-tag"
+                  [class.tag-active]="item.activo"
+                  [class.tag-inactive]="!item.activo"
+                >
+                  {{ item.activo ? 'Activo' : 'Inactivo' }}
+                </nz-tag>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </nz-table>
+    </div>
+  </nz-card>
+</div>

@@ -6,7 +6,7 @@ public record TipoTareaServicioDto(
     Guid Id,
     string CodigoTarea,
     string Nombre,
-    Guid ClienteFacturacionId,
+    Guid? ClienteFacturacionId,
     string? ClienteFacturacionNombre,
     string? ClienteFacturacionCodigo,
     int DuracionEstimadaMinutos,

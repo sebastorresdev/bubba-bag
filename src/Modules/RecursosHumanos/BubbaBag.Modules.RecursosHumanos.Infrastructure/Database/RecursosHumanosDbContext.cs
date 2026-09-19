@@ -15,6 +15,7 @@ public class RecursosHumanosDbContext : DbContext, IRecursosHumanosDbContext
     public DbSet<Empleado> Empleados => Set<Empleado>();
     public DbSet<Departamento> Departamentos => Set<Departamento>();
     public DbSet<Cargo> Cargos => Set<Cargo>();
+    public DbSet<Sucursal> Sucursales => Set<Sucursal>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -73,18 +73,21 @@
       </div>
     </div>
 
-    <!-- Tabla Fluida Dynamics 365 -->
-    <div class="table-scroll-container">
+    <!-- Grilla / Tabla Estilo Dynamics 365 -->
+    <div class="d365-grid-container">
       <nz-table
         #tareasTable
         [nzData]="tareasFiltradas"
         [nzLoading]="loading"
         [nzShowPagination]="true"
-        [nzPageSize]="20"
-        [nzSize]="'small'"
-        [nzScroll]="{ y: 'calc(100vh - 220px)' }"
-        class="d365-data-table"
+        [nzShowTotal]="totalRangeTpl"
+        [nzPageSize]="15"
+        nzSize="small"
+        class="d365-table"
       >
+        <ng-template #totalRangeTpl let-range="range" let-total="total">
+          {{ range[0] }} - {{ range[1] }} de {{ total }}
+        </ng-template>
         <thead>
           <tr>
             <th
@@ -106,7 +109,7 @@
             <tr
               [class.row-selected]="selectedIds.has(item.id)"
               (click)="toggleSelect(item.id)"
-              (dblclick)="abrirModalEditar(item)"
+              (dblclick)="editar(item.id)"
             >
               <td
                 class="col-checkbox"
@@ -122,22 +125,26 @@
 
               <!-- Nombre con enlace -->
               <td class="col-primary-text">
-                <span class="nombre-link" (click)="$event.stopPropagation(); abrirModalEditar(item)">
+                <span class="nombre-link" (click)="$event.stopPropagation(); editar(item.id)">
                   {{ item.nombre }}
                 </span>
               </td>
 
-              <!-- Cliente Facturable -->
+              <!-- Cliente Facturable / Operación Interna -->
               <td>
                 @if (item.clienteFacturacionNombre) {
                   <nz-tag nzColor="blue">
+                    <nz-icon nzType="shop" />
                     {{ item.clienteFacturacionNombre }}
                     @if (item.clienteFacturacionCodigo) {
-                      <span style="opacity: 0.8;">({{ item.clienteFacturacionCodigo }})</span>
+                      <span style="opacity: 0.8; margin-left: 2px;">({{ item.clienteFacturacionCodigo }})</span>
                     }
                   </nz-tag>
                 } @else {
-                  <span style="font-size: 12px; color: #8c8c8c;">(General)</span>
+                  <nz-tag nzColor="purple">
+                    <nz-icon nzType="home" />
+                    Operación Propia / Interna
+                  </nz-tag>
                 }
               </td>
 
@@ -166,72 +173,3 @@
     </div>
   </nz-card>
 </div>
-
-<!-- Modal para Crear / Editar Tipo de Tarea -->
-<nz-modal
-  [(nzVisible)]="modalVisible"
-  [nzTitle]="isEdit ? 'Editar Tipo de Tarea de Servicio' : 'Nuevo Tipo de Tarea de Servicio'"
-  [nzOkText]="isEdit ? 'Guardar Cambios' : 'Registrar'"
-  [nzCancelText]="'Cancelar'"
-  [nzOkLoading]="saving"
-  (nzOnOk)="guardar()"
-  (nzOnCancel)="modalVisible = false"
-  [nzWidth]="500"
->
-  <ng-container *nzModalContent>
-    <form nz-form [formGroup]="form" nzLayout="vertical" class="d365-modal-form">
-      <div class="modal-form-grid">
-        <!-- Código Tarea -->
-        <nz-form-item>
-          <nz-form-label nzRequired>Código de la Tarea</nz-form-label>
-          <nz-form-control nzErrorTip="El código es obligatorio (máx. 30 caracteres)">
-            <input
-              nz-input
-              formControlName="codigoTarea"
-              placeholder="Ej. ACT-FIBRA-01, EMPALME-02"
-              style="text-transform: uppercase;"
-            />
-          </nz-form-control>
-        </nz-form-item>
-
-        <!-- Nombre -->
-        <nz-form-item>
-          <nz-form-label nzRequired>Nombre de la Tarea</nz-form-label>
-          <nz-form-control nzErrorTip="Ingrese un nombre representativo">
-            <input nz-input formControlName="nombre" placeholder="Ej. Fusión y Empalme de Fibra" />
-          </nz-form-control>
-        </nz-form-item>
-
-        <!-- Cliente Contratante / Facturable -->
-        <nz-form-item>
-          <nz-form-label nzRequired>Cliente Contratante / Facturable</nz-form-label>
-          <nz-form-control nzErrorTip="Seleccione la empresa contratante (ej. DIRECTV, Claro, Venta Propia)">
-            <nz-select
-              formControlName="clienteFacturacionId"
-              nzPlaceHolder="Seleccionar cliente facturador"
-              nzShowSearch
-            >
-              @for (c of clientesFacturables; track c.id) {
-                <nz-option [nzValue]="c.id" [nzLabel]="c.nombreCompletoODenominacion + ' (' + c.codigoCliente + ')'"></nz-option>
-              }
-            </nz-select>
-          </nz-form-control>
-        </nz-form-item>
-
-        <!-- Duración Estimada en Minutos -->
-        <nz-form-item>
-          <nz-form-label nzRequired>Duración Estimada (Minutos)</nz-form-label>
-          <nz-form-control nzErrorTip="Ingrese una duración válida (mínimo 1 minuto)">
-            <nz-input-number
-              formControlName="duracionEstimadaMinutos"
-              [nzMin]="1"
-              [nzMax]="1440"
-              [nzStep]="15"
-              style="width: 100%;"
-            ></nz-input-number>
-          </nz-form-control>
-        </nz-form-item>
-      </div>
-    </form>
-  </ng-container>
-</nz-modal>

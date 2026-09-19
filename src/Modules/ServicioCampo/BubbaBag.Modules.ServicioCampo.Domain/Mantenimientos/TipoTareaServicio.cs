@@ -12,8 +12,8 @@ public class TipoTareaServicio : Entity<Guid>
 {
     public string CodigoTarea { get; private set; } = default!;
     public string Nombre { get; private set; } = default!;
-    public Guid ClienteFacturacionId { get; private set; }
-    public Cliente ClienteFacturacion { get; private set; } = default!;
+    public Guid? ClienteFacturacionId { get; private set; }
+    public Cliente? ClienteFacturacion { get; private set; }
     public int DuracionEstimadaMinutos { get; private set; }
     public bool Activo { get; private set; }
 
@@ -22,7 +22,7 @@ public class TipoTareaServicio : Entity<Guid>
     public static TipoTareaServicio Crear(
         string codigoTarea,
         string nombre,
-        Guid clienteFacturacionId,
+        Guid? clienteFacturacionId,
         int duracionMinutos = 60)
     {
         return new TipoTareaServicio
@@ -36,7 +36,7 @@ public class TipoTareaServicio : Entity<Guid>
         };
     }
 
-    public void Actualizar(string nombre, Guid clienteFacturacionId, int duracionMinutos)
+    public void Actualizar(string nombre, Guid? clienteFacturacionId, int duracionMinutos)
     {
         Nombre = nombre.Trim();
         ClienteFacturacionId = clienteFacturacionId;

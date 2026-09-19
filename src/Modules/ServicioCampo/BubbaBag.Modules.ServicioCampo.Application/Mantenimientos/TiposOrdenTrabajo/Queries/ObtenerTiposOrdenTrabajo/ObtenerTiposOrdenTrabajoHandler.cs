@@ -28,14 +28,13 @@ public class ObtenerTiposOrdenTrabajoHandler : IQueryHandler<ObtenerTiposOrdenTr
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = request.Search.Trim().ToLowerInvariant();
-            query = query.Where(t => t.Codigo.ToLower().Contains(search) || t.Nombre.ToLower().Contains(search));
+            query = query.Where(t => t.Nombre.ToLower().Contains(search) || (t.Descripcion != null && t.Descripcion.ToLower().Contains(search)));
         }
 
         var lista = await query
             .OrderBy(t => t.Nombre)
             .Select(t => new TipoOrdenTrabajoDto(
                 t.Id,
-                t.Codigo,
                 t.Nombre,
                 t.Descripcion,
                 t.RequiereVisitaCampo,

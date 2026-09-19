@@ -1,0 +1,109 @@
+<div class="sucursales-container">
+  <!-- Command Bar -->
+  <app-command-bar [items]="commandBarItems"></app-command-bar>
+
+  <!-- Content Area -->
+  <div class="content-area">
+    <!-- Header Controls -->
+    <div class="header-controls">
+      <div class="view-title">
+        <h2>Sucursales y Sedes</h2>
+        <span class="record-count">{{ sucursales.length }} registros</span>
+      </div>
+
+      <div class="filters-group">
+        <nz-select
+          [(ngModel)]="filtroEstado"
+          (ngModelChange)="onFiltroEstadoChange($event)"
+          class="estado-select"
+          nzPlaceHolder="Estado"
+        >
+          <nz-option nzValue="activos" nzLabel="Sucursales Activas"></nz-option>
+          <nz-option nzValue="inactivos" nzLabel="Sucursales Inactivas"></nz-option>
+          <nz-option nzValue="todos" nzLabel="Todas las Sucursales"></nz-option>
+        </nz-select>
+
+        <!-- Buscador Rápido -->
+        <div class="d365-search-box">
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            (ngModelChange)="onSearchChange()"
+            placeholder="Buscar por código, nombre, ciudad..."
+            class="search-input"
+          />
+          @if (searchTerm) {
+            <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
+              <nz-icon nzType="close" />
+            </button>
+          }
+          <button class="search-icon-btn" (click)="onSearchChange()" title="Buscar">
+            <nz-icon nzType="search" />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-card">
+      <nz-table
+        #sucursalesTable
+        [nzData]="sucursales"
+        [nzLoading]="loading"
+        [nzPageSize]="15"
+        [nzShowSizeChanger]="true"
+        [nzPageSizeOptions]="[15, 30, 50]"
+        nzSize="middle"
+        [nzScroll]="{ x: '900px' }"
+      >
+        <thead>
+          <tr>
+            <th
+              [nzChecked]="isAllSelected"
+              [nzIndeterminate]="isIndeterminate"
+              (nzCheckedChange)="onAllChecked($event)"
+              nzWidth="48px"
+            ></th>
+            <th nzWidth="120px">Código</th>
+            <th nzWidth="220px">Nombre</th>
+            <th nzWidth="150px">Ciudad</th>
+            <th>Dirección</th>
+            <th nzWidth="130px">Teléfono</th>
+            <th nzWidth="130px">Tipo Sede</th>
+            <th nzWidth="100px">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of sucursalesTable.data" (dblclick)="navegarAEditar(s.id)">
+            <td
+              [nzChecked]="selectedIds.has(s.id)"
+              (nzCheckedChange)="onItemSelect(s.id, $event)"
+            ></td>
+            <td>
+              <span class="sucursal-code">{{ s.codigo }}</span>
+            </td>
+            <td>
+              <a (click)="navegarAEditar(s.id)" class="row-link">
+                {{ s.nombre }}
+              </a>
+            </td>
+            <td>{{ s.ciudad || '—' }}</td>
+            <td class="text-truncate">{{ s.direccion || '—' }}</td>
+            <td>{{ s.telefono || '—' }}</td>
+            <td>
+              <nz-tag *ngIf="s.esSedePrincipal" [nzColor]="'purple'">
+                <span nz-icon nzType="star" nzTheme="fill"></span> Principal
+              </nz-tag>
+              <span *ngIf="!s.esSedePrincipal" class="text-muted">Sucursal</span>
+            </td>
+            <td>
+              <nz-tag [nzColor]="s.activo ? 'success' : 'default'">
+                {{ s.activo ? 'Activo' : 'Inactivo' }}
+              </nz-tag>
+            </td>
+          </tr>
+        </tbody>
+      </nz-table>
+    </div>
+  </div>
+</div>

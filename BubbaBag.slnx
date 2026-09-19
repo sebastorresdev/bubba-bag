@@ -18,6 +18,12 @@
     <Project Path="src/Modules/Seguridad/BubbaBag.Modules.Seguridad.Domain/BubbaBag.Modules.Seguridad.Domain.csproj" />
     <Project Path="src/Modules/Seguridad/BubbaBag.Modules.Seguridad.Infrastructure/BubbaBag.Modules.Seguridad.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Inventario/">
+    <Project Path="src/Modules/Inventario/BubbaBag.Modules.Inventario.Api/BubbaBag.Modules.Inventario.Api.csproj" />
+    <Project Path="src/Modules/Inventario/BubbaBag.Modules.Inventario.Application/BubbaBag.Modules.Inventario.Application.csproj" />
+    <Project Path="src/Modules/Inventario/BubbaBag.Modules.Inventario.Domain/BubbaBag.Modules.Inventario.Domain.csproj" />
+    <Project Path="src/Modules/Inventario/BubbaBag.Modules.Inventario.Infrastructure/BubbaBag.Modules.Inventario.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Ventas/">
     <Project Path="src/Modules/Ventas/BubbaBag.Modules.Ventas.Api/BubbaBag.Modules.Ventas.Api.csproj" />
     <Project Path="src/Modules/Ventas/BubbaBag.Modules.Ventas.Application/BubbaBag.Modules.Ventas.Application.csproj" />

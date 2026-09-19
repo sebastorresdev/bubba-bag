@@ -75,6 +75,8 @@ export interface ActualizarClienteRequest {
   referenciaUbicacion?: string;
   coordenadaLat?: number;
   coordenadaLng?: number;
+  esClienteFacturacion?: boolean;
+  esClienteServicio?: boolean;
 }
 
 export interface UbigeoItemDto {

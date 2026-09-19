@@ -20,12 +20,6 @@ public class TarifarioRegla : Entity<Guid>
     public bool AplicaBonoIndicador { get; private set; }             // FALSE si no recibe bono, TRUE si sí
     public int Prioridad { get; private set; } = 10;                  // 1 = máxima prioridad (excepciones), 99 = general
 
-    // Criterios dinámicos asociados
-    private readonly List<TarifarioReglaCriterio> _criterios = new();
-    public IReadOnlyCollection<TarifarioReglaCriterio> Criterios => _criterios.AsReadOnly();
-
-    public int PesoEspecificidad => _criterios.Count;
-
     private TarifarioRegla() { }
 
     internal TarifarioRegla(
@@ -43,10 +37,5 @@ public class TarifarioRegla : Entity<Guid>
         MontoTarifaBase = monto;
         AplicaBonoIndicador = aplicaBono;
         Prioridad = prioridad;
-    }
-
-    public void AgregarCriterio(string campoOrdenTrabajo, string valorEsperado, string operador = "IGUAL")
-    {
-        _criterios.Add(new TarifarioReglaCriterio(Id, campoOrdenTrabajo, valorEsperado, operador));
     }
 }

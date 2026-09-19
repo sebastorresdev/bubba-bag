@@ -19,14 +19,12 @@ public class CrearTipoOrdenTrabajoHandler : ICommandHandler<CrearTipoOrdenTrabaj
 
     public async Task<Result<Guid>> HandleAsync(CrearTipoOrdenTrabajoCommand request, CancellationToken cancellationToken)
     {
-        var codigoNormalizado = request.Codigo.Trim().ToUpperInvariant();
         var nombreNormalizado = request.Nombre.Trim();
 
-        if (await _context.TiposOrdenTrabajo.AnyAsync(t => t.Codigo == codigoNormalizado, cancellationToken))
-            return Result<Guid>.Failure($"Ya existe un tipo de orden de trabajo con el código '{codigoNormalizado}'.");
+        if (await _context.TiposOrdenTrabajo.AnyAsync(t => t.Nombre.ToLower() == nombreNormalizado.ToLower(), cancellationToken))
+            return Result<Guid>.Failure($"Ya existe un tipo de orden de trabajo con el nombre '{nombreNormalizado}'.");
 
         var tipo = TipoOrdenTrabajo.Crear(
-            codigoNormalizado,
             nombreNormalizado,
             request.RequiereVisitaCampo,
             request.ExigeFirmaCliente,

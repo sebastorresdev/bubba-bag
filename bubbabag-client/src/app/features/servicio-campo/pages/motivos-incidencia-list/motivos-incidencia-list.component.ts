@@ -6,8 +6,8 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { ServicioCampoService } from '../../services/servicio-campo.service';
 import {
   MotivoIncidenciaDto,
@@ -23,7 +23,6 @@ import { NzModalModule, NzModalService } from 'ng-zorro-antd/modal';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzSelectModule } from 'ng-zorro-antd/select';
-import { NzFormModule } from 'ng-zorro-antd/form';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
@@ -38,7 +37,6 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     CommonModule,
     RouterModule,
     FormsModule,
-    ReactiveFormsModule,
     NzTableModule,
     NzButtonModule,
     NzIconModule,
@@ -46,7 +44,6 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzInputModule,
     NzTagModule,
     NzSelectModule,
-    NzFormModule,
     NzCardModule,
     NzEmptyModule,
     NzCheckboxModule,
@@ -59,10 +56,10 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
   styleUrl: './motivos-incidencia-list.component.css',
 })
 export class MotivosIncidenciaListComponent implements OnInit {
+  private router = inject(Router);
   private servicioCampoService = inject(ServicioCampoService);
   private message = inject(NzMessageService);
   private modalService = inject(NzModalService);
-  private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
 
   // Model & Labels
@@ -84,24 +81,8 @@ export class MotivosIncidenciaListComponent implements OnInit {
   // Selección
   selectedIds = new Set<string>();
 
-  // Modal Crear / Editar
-  modalVisible = false;
-  isEdit = false;
-  itemSeleccionadoId: string | null = null;
-  form!: FormGroup;
-
   ngOnInit(): void {
-    this.initForm();
     this.cargarDatos();
-  }
-
-  initForm(): void {
-    this.form = this.fb.group({
-      codigo: ['', [Validators.required, Validators.maxLength(20)]],
-      nombre: ['', [Validators.required, Validators.maxLength(100)]],
-      ambito: [AmbitoMotivo.OrdenTrabajo, [Validators.required]],
-      descripcion: [''],
-    });
   }
 
   get commandBarItems(): CommandBarItem[] {
@@ -121,7 +102,7 @@ export class MotivosIncidenciaListComponent implements OnInit {
         icon: 'plus',
         iconColor: 'success',
         tooltip: 'Crear nuevo motivo de incidencia',
-        execute: () => this.abrirModalCrear(),
+        execute: () => this.irANuevo(),
       },
       {
         key: 'edit',
@@ -132,7 +113,7 @@ export class MotivosIncidenciaListComponent implements OnInit {
         tooltip: 'Editar el motivo seleccionado',
         execute: () => {
           if (itemSeleccionado) {
-            this.abrirModalEditar(itemSeleccionado);
+            this.editar(itemSeleccionado.id);
           }
         },
       },
@@ -276,91 +257,12 @@ export class MotivosIncidenciaListComponent implements OnInit {
     }
   }
 
-  // Modales
-  abrirModalCrear(): void {
-    this.isEdit = false;
-    this.itemSeleccionadoId = null;
-    this.form.reset({
-      codigo: '',
-      nombre: '',
-      ambito: AmbitoMotivo.OrdenTrabajo,
-      descripcion: '',
-    });
-    this.form.get('codigo')?.enable();
-    this.modalVisible = true;
-    this.cdr.markForCheck();
+  irANuevo(): void {
+    this.router.navigate(['/servicio-campo/motivos-incidencia/nuevo']);
   }
 
-  abrirModalEditar(item: MotivoIncidenciaDto): void {
-    this.isEdit = true;
-    this.itemSeleccionadoId = item.id;
-    this.form.patchValue({
-      codigo: item.codigo,
-      nombre: item.nombre,
-      ambito: item.ambito,
-      descripcion: item.descripcion || '',
-    });
-    this.form.get('codigo')?.disable();
-    this.modalVisible = true;
-    this.cdr.markForCheck();
-  }
-
-  guardar(): void {
-    if (this.form.invalid) {
-      Object.values(this.form.controls).forEach((ctrl) => {
-        if (ctrl.invalid) {
-          ctrl.markAsDirty();
-          ctrl.updateValueAndValidity({ onlySelf: true });
-        }
-      });
-      return;
-    }
-
-    this.saving = true;
-    const formVal = this.form.getRawValue();
-
-    if (this.isEdit && this.itemSeleccionadoId) {
-      this.servicioCampoService
-        .actualizarMotivoIncidencia(this.itemSeleccionadoId, {
-          nombre: formVal.nombre,
-          ambito: formVal.ambito,
-          descripcion: formVal.descripcion,
-        })
-        .subscribe({
-          next: () => {
-            this.saving = false;
-            this.modalVisible = false;
-            this.message.success('Motivo de incidencia actualizado correctamente.');
-            this.cargarDatos();
-          },
-          error: (err) => {
-            this.saving = false;
-            this.message.error(err.error?.message || 'Error al actualizar motivo de incidencia.');
-            this.cdr.markForCheck();
-          },
-        });
-    } else {
-      this.servicioCampoService
-        .crearMotivoIncidencia({
-          codigo: formVal.codigo,
-          nombre: formVal.nombre,
-          ambito: formVal.ambito,
-          descripcion: formVal.descripcion,
-        })
-        .subscribe({
-          next: () => {
-            this.saving = false;
-            this.modalVisible = false;
-            this.message.success('Motivo de incidencia registrado exitosamente.');
-            this.cargarDatos();
-          },
-          error: (err) => {
-            this.saving = false;
-            this.message.error(err.error?.message || 'Error al crear motivo de incidencia.');
-            this.cdr.markForCheck();
-          },
-        });
-    }
+  editar(id: string): void {
+    this.router.navigate(['/servicio-campo/motivos-incidencia/editar', id]);
   }
 
   cambiarEstadoSeleccionados(): void {

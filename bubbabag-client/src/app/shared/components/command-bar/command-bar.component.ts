@@ -11,6 +11,7 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
 import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
 import { CommandBarItem } from './command-bar.model';
+export * from './command-bar.model';
 
 @Component({
   selector: 'app-command-bar',
