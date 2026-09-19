@@ -87,7 +87,7 @@ export class CatalogosServicioListComponent implements OnInit {
     return [
       {
         key: 'new',
-        label: 'Nuevo Catálogo',
+        label: 'Nuevo',
         icon: 'plus',
         iconColor: 'success',
         tooltip: 'Crear nuevo catálogo de servicios',

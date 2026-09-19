@@ -77,6 +77,7 @@ export class ClientesListComponent implements OnInit, OnDestroy {
   columnas = [
     { key: 'codigo', label: 'Código', visible: true, required: false },
     { key: 'cliente', label: 'Cliente / Razón Social', visible: true, required: true },
+    { key: 'contacto', label: 'Contacto', visible: true, required: false },
     { key: 'tipoPersona', label: 'Tipo Persona', visible: true, required: false },
     { key: 'tipoDocumento', label: 'Tipo Doc.', visible: true, required: false },
     { key: 'documento', label: 'N° Documento', visible: true, required: false },
@@ -381,6 +382,8 @@ export class ClientesListComponent implements OnInit, OnDestroy {
           c.codigoCliente.toLowerCase().includes(term) ||
           c.documentoIdentidad.toLowerCase().includes(term) ||
           c.nombreCompletoODenominacion.toLowerCase().includes(term) ||
+          (c.nombres && c.nombres.toLowerCase().includes(term)) ||
+          (c.apellidos && c.apellidos.toLowerCase().includes(term)) ||
           c.telefonoPrincipal.toLowerCase().includes(term) ||
           (c.email && c.email.toLowerCase().includes(term)) ||
           (c.distrito && c.distrito.toLowerCase().includes(term)) ||

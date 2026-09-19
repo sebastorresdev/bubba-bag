@@ -2,6 +2,7 @@ import {
   Component,
   inject,
   OnInit,
+  OnDestroy,
   ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -18,7 +19,8 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzTagModule } from 'ng-zorro-antd/tag';
-import { NzSelectModule } from 'ng-zorro-antd/select';
+import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
+import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzBadgeModule } from 'ng-zorro-antd/badge';
@@ -36,7 +38,8 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzIconModule,
     NzInputModule,
     NzTagModule,
-    NzSelectModule,
+    NzDropdownModule,
+    NzCardModule,
     NzCheckboxModule,
     NzTooltipModule,
     NzBadgeModule,
@@ -45,7 +48,7 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
   templateUrl: './sucursales-list.html',
   styleUrl: './sucursales-list.component.css',
 })
-export class SucursalesListComponent implements OnInit {
+export class SucursalesListComponent implements OnInit, OnDestroy {
   private sucursalService = inject(SucursalService);
   private message = inject(NzMessageService);
   private router = inject(Router);
@@ -54,18 +57,87 @@ export class SucursalesListComponent implements OnInit {
   sucursales: SucursalDto[] = [];
   loading = false;
 
-  // Filtros
+  // Filtros y Búsqueda
   searchTerm = '';
-  filtroEstado: 'todos' | 'activos' | 'inactivos' = 'activos';
+  vistaActual: 'Activos' | 'Todos' | 'Inactivos' = 'Activos';
   private searchSubject = new Subject<string>();
 
   // Selección
   selectedIds = new Set<string>();
+  checked = false;
+  indeterminate = false;
 
-  commandBarItems: CommandBarItem[] = [];
+  get vistaActualTitulo(): string {
+    switch (this.vistaActual) {
+      case 'Activos':
+        return 'Sucursales Activas';
+      case 'Todos':
+        return 'Todas las Sucursales';
+      case 'Inactivos':
+        return 'Sucursales Inactivas';
+    }
+  }
+
+  get selectedCount(): number {
+    return this.selectedIds.size;
+  }
+
+  getSelectedSucursal(): SucursalDto | undefined {
+    if (this.selectedIds.size !== 1) return undefined;
+    const id = Array.from(this.selectedIds)[0];
+    return this.sucursales.find((s) => s.id === id);
+  }
+
+  get commandBarItems(): CommandBarItem[] {
+    const singleSelected = this.selectedIds.size === 1;
+    const selected = singleSelected ? this.getSelectedSucursal() : undefined;
+    const isActivo = selected ? selected.activo : false;
+
+    return [
+      {
+        key: 'new',
+        label: 'Nuevo',
+        icon: 'plus',
+        iconColor: 'success',
+        execute: () => this.irANuevo(),
+      },
+      {
+        key: 'edit',
+        label: 'Editar',
+        icon: 'edit',
+        iconColor: 'primary',
+        disabled: !singleSelected,
+        execute: () => this.irAEditar(),
+      },
+      {
+        key: 'toggleStatus',
+        label: isActivo ? 'Desactivar' : 'Activar',
+        icon: isActivo ? 'close' : 'check',
+        disabled: !singleSelected,
+        danger: isActivo,
+        iconColor: isActivo ? 'danger' : 'success',
+        execute: () => this.toggleEstadoSucursal(),
+      },
+      {
+        key: 'div-actions',
+        label: '',
+        isDivider: true,
+      },
+      {
+        key: 'refresh',
+        label: 'Actualizar',
+        icon: 'reload',
+        iconColor: 'neutral',
+        execute: () => this.cargarSucursales(),
+      },
+    ];
+  }
+
+  get farItems(): CommandBarItem[] {
+    return [];
+  }
 
   ngOnInit(): void {
-    this.updateCommandBar();
     this.cargarSucursales();
 
     this.searchSubject
@@ -75,12 +147,16 @@ export class SucursalesListComponent implements OnInit {
       });
   }
 
+  ngOnDestroy(): void {
+    this.searchSubject.complete();
+  }
+
   cargarSucursales(): void {
     this.loading = true;
     const soloActivos =
-      this.filtroEstado === 'activos'
+      this.vistaActual === 'Activos'
         ? true
-        : this.filtroEstado === 'inactivos'
+        : this.vistaActual === 'Inactivos'
         ? false
         : undefined;
 
@@ -88,6 +164,7 @@ export class SucursalesListComponent implements OnInit {
       next: (data) => {
         this.sucursales = data;
         this.loading = false;
+        this.actualizarEstadoSeleccion();
         this.cdr.markForCheck();
       },
       error: () => {
@@ -104,84 +181,53 @@ export class SucursalesListComponent implements OnInit {
 
   limpiarBusqueda(): void {
     this.searchTerm = '';
-    this.onSearchChange();
-  }
-
-  onFiltroEstadoChange(val: 'todos' | 'activos' | 'inactivos'): void {
-    this.filtroEstado = val;
     this.cargarSucursales();
   }
 
-  updateCommandBar(): void {
-    const hasSelection = this.selectedIds.size > 0;
-    const singleSelection = this.selectedIds.size === 1;
-
-    this.commandBarItems = [
-      {
-        key: 'new',
-        label: 'Nuevo',
-        icon: 'plus',
-        action: () => this.router.navigate(['/configuracion/sucursales/nuevo']),
-      },
-      {
-        key: 'edit',
-        label: 'Editar',
-        icon: 'edit',
-        disabled: !singleSelection,
-        action: () => {
-          const id = Array.from(this.selectedIds)[0];
-          this.router.navigate(['/configuracion/sucursales/editar', id]);
-        },
-      },
-      {
-        key: 'toggle-status',
-        label: 'Cambiar Estado',
-        icon: 'check-circle',
-        disabled: !hasSelection,
-        action: () => this.cambiarEstadoSeleccionados(),
-      },
-      {
-        key: 'refresh',
-        label: 'Actualizar',
-        icon: 'reload',
-        action: () => this.cargarSucursales(),
-      },
-    ];
+  cambiarVista(vista: 'Activos' | 'Todos' | 'Inactivos'): void {
+    this.vistaActual = vista;
+    this.selectedIds.clear();
+    this.cargarSucursales();
   }
 
-  cambiarEstadoSeleccionados(): void {
-    const ids = Array.from(this.selectedIds);
-    if (ids.length === 0) return;
+  irANuevo(): void {
+    this.router.navigate(['/configuracion/sucursales/nuevo']);
+  }
 
-    const first = this.sucursales.find((s) => s.id === ids[0]);
-    const nuevoEstado = !(first?.activo ?? true);
+  irAEditar(id?: string): void {
+    const targetId = id || Array.from(this.selectedIds)[0];
+    if (targetId) {
+      this.router.navigate(['/configuracion/sucursales/editar', targetId]);
+    }
+  }
 
-    let completed = 0;
-    ids.forEach((id) => {
-      this.sucursalService.cambiarEstado(id, nuevoEstado).subscribe({
-        next: () => {
-          completed++;
-          if (completed === ids.length) {
-            this.message.success('Estado actualizado correctamente');
-            this.selectedIds.clear();
-            this.updateCommandBar();
-            this.cargarSucursales();
-          }
-        },
-        error: () => {
-          this.message.error(`Error al actualizar estado`);
-        },
-      });
+  toggleEstadoSucursal(): void {
+    const selected = this.getSelectedSucursal();
+    if (!selected) return;
+
+    const nuevoEstado = !selected.activo;
+    this.sucursalService.cambiarEstado(selected.id, nuevoEstado).subscribe({
+      next: () => {
+        this.message.success(
+          nuevoEstado
+            ? `Sucursal "${selected.nombre}" activada exitosamente`
+            : `Sucursal "${selected.nombre}" desactivada`
+        );
+        this.cargarSucursales();
+      },
+      error: () => {
+        this.message.error('Error al cambiar el estado de la sucursal');
+      },
     });
   }
 
-  onItemSelect(id: string, checked: boolean): void {
+  onItemChecked(id: string, checked: boolean): void {
     if (checked) {
       this.selectedIds.add(id);
     } else {
       this.selectedIds.delete(id);
     }
-    this.updateCommandBar();
+    this.actualizarEstadoSeleccion();
   }
 
   onAllChecked(checked: boolean): void {
@@ -190,24 +236,14 @@ export class SucursalesListComponent implements OnInit {
     } else {
       this.selectedIds.clear();
     }
-    this.updateCommandBar();
+    this.actualizarEstadoSeleccion();
   }
 
-  get isAllSelected(): boolean {
-    return (
-      this.sucursales.length > 0 &&
-      this.sucursales.every((s) => this.selectedIds.has(s.id))
-    );
-  }
-
-  get isIndeterminate(): boolean {
-    return (
-      this.sucursales.some((s) => this.selectedIds.has(s.id)) &&
-      !this.isAllSelected
-    );
-  }
-
-  navegarAEditar(id: string): void {
-    this.router.navigate(['/configuracion/sucursales/editar', id]);
+  private actualizarEstadoSeleccion(): void {
+    const total = this.sucursales.length;
+    const selectedCount = this.selectedIds.size;
+    this.checked = total > 0 && selectedCount === total;
+    this.indeterminate = selectedCount > 0 && selectedCount < total;
+    this.cdr.markForCheck();
   }
 }

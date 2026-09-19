@@ -320,3 +320,13 @@ export interface ActualizarTarifaServicioRequest {
   aplicaGarantia: boolean;
 }
 
+export interface ImportarServiciosResultadoDto {
+  totalLeidos: number;
+  totalImportados: number;
+  totalActualizados: number;
+  totalOmitidos: number;
+  errores: string[];
+  advertencias: string[];
+}
+
+

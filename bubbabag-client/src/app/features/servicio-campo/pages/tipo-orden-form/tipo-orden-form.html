@@ -13,20 +13,20 @@
       <div class="record-avatar-container">
         <nz-avatar
           [nzSize]="56"
-          [nzText]="getIniciales(form.get('nombre')?.value || (isEdit ? 'Tipo Orden' : 'Nueva Orden'))"
+          [nzText]="isEdit && ordenActual ? getIniciales(ordenActual.nombre) : 'TO'"
           class="record-avatar orden-header-avatar"
-          [style.backgroundColor]="form.get('colorHex')?.value || '#0078d4'"
+          [style.backgroundColor]="ordenActual?.colorHex || '#0078d4'"
         />
       </div>
 
       <div class="record-title-block">
         <h1 class="record-title">
-          {{ form.get('nombre')?.value || (isEdit ? 'Tipo de Orden' : 'Nuevo Tipo de Orden') }}
+          {{ isEdit ? (ordenActual?.nombre || 'Tipo de Orden') : 'Nuevo Tipo de Orden' }}
         </h1>
 
         <div class="record-metadata-row">
-          <span class="meta-color-badge" [style.color]="form.get('colorHex')?.value">
-            ● {{ form.get('colorHex')?.value || '#0078d4' }}
+          <span class="meta-color-badge" [style.color]="ordenActual?.colorHex || '#0078d4'">
+            ● {{ isEdit ? (ordenActual?.colorHex || '#0078d4') : 'Color por definir' }}
           </span>
         </div>
       </div>
@@ -38,10 +38,10 @@
         <span class="metric-label">ESTADO</span>
         <span
           class="kpi-value-pill"
-          [class.pill-active]="form.get('activo')?.value"
-          [class.pill-inactive]="!form.get('activo')?.value"
+          [class.pill-active]="ordenActual ? ordenActual.activo : true"
+          [class.pill-inactive]="ordenActual ? !ordenActual.activo : false"
         >
-          {{ (form.get('activo')?.value ? 'ACTIVO' : 'INACTIVO') }}
+          {{ (ordenActual ? ordenActual.activo : true) ? 'ACTIVO' : 'INACTIVO' }}
         </span>
       </div>
 

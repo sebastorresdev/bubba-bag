@@ -13,24 +13,26 @@
       <div class="record-avatar-container">
         <nz-avatar
           [nzSize]="56"
-          [nzText]="getIniciales(form.get('nombre')?.value || (isEdit ? 'Motivo Incidencia' : 'Nuevo Motivo'))"
+          [nzText]="isEdit && motivoActual ? getIniciales(motivoActual.nombre) : 'MI'"
           class="record-avatar motivo-header-avatar"
         />
       </div>
 
       <div class="record-title-block">
         <h1 class="record-title">
-          {{ form.get('nombre')?.value || (isEdit ? 'Motivo de Incidencia' : 'Nuevo Motivo de Incidencia') }}
+          {{ isEdit ? (motivoActual?.nombre || 'Motivo de Incidencia') : 'Nuevo Motivo de Incidencia' }}
         </h1>
 
         <div class="record-metadata-row">
           <span class="meta-code">
-            {{ form.get('codigo')?.value || 'SIN CÓDIGO' }}
+            {{ isEdit ? (motivoActual?.codigo || 'SIN CÓDIGO') : 'NUEVO MOTIVO' }}
           </span>
-          <nz-divider nzType="vertical" />
-          <span class="meta-ambito">
-            {{ getAmbitoLabel() | uppercase }}
-          </span>
+          @if (isEdit && motivoActual) {
+            <nz-divider nzType="vertical" />
+            <span class="meta-ambito">
+              {{ AmbitoMotivoLabels[motivoActual.ambito] | uppercase }}
+            </span>
+          }
         </div>
       </div>
     </div>
@@ -41,10 +43,10 @@
         <span class="metric-label">ESTADO</span>
         <span
           class="kpi-value-pill"
-          [class.pill-active]="form.get('activo')?.value"
-          [class.pill-inactive]="!form.get('activo')?.value"
+          [class.pill-active]="motivoActual ? motivoActual.activo : true"
+          [class.pill-inactive]="motivoActual ? !motivoActual.activo : false"
         >
-          {{ (form.get('activo')?.value ? 'ACTIVO' : 'INACTIVO') }}
+          {{ (motivoActual ? motivoActual.activo : true) ? 'ACTIVO' : 'INACTIVO' }}
         </span>
       </div>
 

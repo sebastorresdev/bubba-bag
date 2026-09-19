@@ -215,25 +215,26 @@
   padding: 8px 0 !important;
 }
 
-.d365-circular-avatar,
-:host ::ng-deep .d365-circular-avatar.ant-avatar {
-  border-radius: 50% !important;
-  font-weight: 600 !important;
-  font-size: 11px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  color: #ffffff !important;
+.code-text {
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  color: #323130;
 }
 
-.code-tag {
-  font-family: 'Consolas', monospace;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 2px 6px;
-  background-color: rgba(0, 0, 0, 0.05);
-  border-radius: 3px;
-  color: #0f6cbd;
+:host-context([data-theme='dark']) .code-text,
+:host-context(.dark-theme) .code-text {
+  color: #f3f2f1;
+}
+
+.col-text {
+  font-size: 13px;
+  color: #323130;
+}
+
+:host-context([data-theme='dark']) .col-text,
+:host-context(.dark-theme) .col-text {
+  color: #d2d0ce;
 }
 
 .nombre-link {
@@ -267,3 +268,255 @@
 tr.row-selected td {
   background-color: var(--ant-primary-1, #edf5fd) !important;
 }
+
+/* ========================================================================= */
+/* ESTILOS DEL MODAL DE IMPORTACIÓN EXCEL */
+/* ========================================================================= */
+.modal-import-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0;
+}
+
+/* Banner de Descarga de Plantilla */
+.template-download-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background-color: #f3f9f5;
+  border: 1px solid #c7e5d2;
+  border-radius: 4px;
+}
+
+:host-context([data-theme='dark']) .template-download-banner,
+:host-context(.dark-theme) .template-download-banner {
+  background-color: #102418;
+  border-color: #1c472d;
+}
+
+.banner-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.banner-text {
+  flex: 1;
+}
+
+.banner-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #107c41;
+  margin-bottom: 2px;
+}
+
+:host-context([data-theme='dark']) .banner-title,
+:host-context(.dark-theme) .banner-title {
+  color: #4cd984;
+}
+
+.banner-desc {
+  font-size: 12px;
+  color: #605e5c;
+  line-height: 1.35;
+}
+
+:host-context([data-theme='dark']) .banner-desc,
+:host-context(.dark-theme) .banner-desc {
+  color: #a19f9d;
+}
+
+.btn-download-tpl {
+  font-weight: 600;
+  border-color: #107c41 !important;
+  color: #107c41 !important;
+}
+
+.btn-download-tpl:hover {
+  background-color: #eaf5ee !important;
+}
+
+/* Dropzone */
+.dropzone-box {
+  border: 2px dashed #0078d4;
+  background-color: #f8fbff;
+  border-radius: 6px;
+  padding: 28px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+:host-context([data-theme='dark']) .dropzone-box,
+:host-context(.dark-theme) .dropzone-box {
+  background-color: #132230;
+  border-color: #1b5e94;
+}
+
+.dropzone-box:hover {
+  background-color: #edf5fd;
+  border-color: #106ebe;
+}
+
+.dropzone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropzone-main-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #323130;
+}
+
+:host-context([data-theme='dark']) .dropzone-main-text,
+:host-context(.dark-theme) .dropzone-main-text {
+  color: #ffffff;
+}
+
+.dropzone-sub-text {
+  font-size: 12px;
+  color: #797775;
+}
+
+/* Previsualización de Archivo */
+.file-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  background-color: #ffffff;
+  border: 1px solid #d1d1d1;
+  border-radius: 4px;
+  text-align: left;
+}
+
+:host-context([data-theme='dark']) .file-preview-card,
+:host-context(.dark-theme) .file-preview-card {
+  background-color: #242424;
+  border-color: #484644;
+}
+
+.file-preview-details {
+  flex: 1;
+}
+
+.file-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #323130;
+  word-break: break-all;
+}
+
+:host-context([data-theme='dark']) .file-name,
+:host-context(.dark-theme) .file-name {
+  color: #ffffff;
+}
+
+.file-size {
+  font-size: 11.5px;
+  color: #797775;
+}
+
+.loading-container {
+  padding: 30px;
+  text-align: center;
+}
+
+/* Resultados de Importación */
+.results-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.results-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.summary-card {
+  padding: 12px 10px;
+  border-radius: 4px;
+  text-align: center;
+  border: 1px solid #e1dfdd;
+  background-color: #f8f9fa;
+}
+
+:host-context([data-theme='dark']) .summary-card,
+:host-context(.dark-theme) .summary-card {
+  background-color: #1f1f1f;
+  border-color: #383838;
+}
+
+.metric-number {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.metric-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-total .metric-number { color: #605e5c; }
+.card-created .metric-number { color: #107c41; }
+.card-updated .metric-number { color: #0078d4; }
+.card-omitted .metric-number { color: #605e5c; }
+.card-omitted.has-issues .metric-number { color: #d13438; }
+
+.issues-alert-box {
+  padding: 12px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.issues-alert-box.info-box {
+  background-color: #f0f8ff;
+  border: 1px solid #b3d7ff;
+  color: #005a9e;
+}
+
+.issues-alert-box.error-box {
+  background-color: #fdf3f4;
+  border: 1px solid #f8c0c4;
+  color: #a80000;
+}
+
+:host-context([data-theme='dark']) .issues-alert-box.error-box,
+:host-context(.dark-theme) .issues-alert-box.error-box {
+  background-color: #2b1114;
+  border-color: #631d24;
+  color: #ff949b;
+}
+
+.issues-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.issues-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.issues-list li {
+  margin-bottom: 3px;
+  line-height: 1.35;
+}
+

@@ -262,6 +262,35 @@
 }
 
 /* ==========================================================================
+   Grillas Dynamics 365: Protección contra desbordes y alturas uniformes
+   ========================================================================== */
+.d365-table table,
+.d365-grid table {
+  table-layout: fixed !important;
+}
+
+.d365-table th,
+.d365-table td,
+.d365-grid th,
+.d365-grid td,
+.d365-table .ant-table-cell,
+.d365-grid .ant-table-cell {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  vertical-align: middle !important;
+}
+
+.cell-ellipsis {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* ==========================================================================
    Etiquetas de Estado Estándar (D365 Status Tags)
    ========================================================================== */
 .d365-status-tag {

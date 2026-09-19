@@ -120,70 +120,24 @@
   font-size: 12px;
 }
 
-.empty-steps-notice {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  background-color: rgba(0, 0, 0, 0.02);
-  border: 1px dashed #d1d1d1;
-  border-radius: 6px;
-  margin-top: 16px;
-  text-align: center;
-}
-
-.empty-steps-notice p {
-  margin-top: 8px;
+.card-subtitle-desc {
+  font-size: 12.5px;
   color: #605e5c;
-  font-size: 13px;
+  margin-top: -4px;
+  margin-bottom: 14px;
+  line-height: 1.4;
 }
 
-/* Sucursales Grid */
-.branch-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
-  margin-top: 12px;
+:host-context([data-theme='dark']) .card-subtitle-desc,
+:host-context(.dark-theme) .card-subtitle-desc {
+  color: #a19f9d;
 }
 
-.branch-card {
+.d365-empty-box {
+  padding: 24px 16px;
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border: 1px solid var(--d365-border-subtle, #e1dfdd);
-  border-radius: 4px;
-  background-color: var(--d365-surface, #ffffff);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.branch-card:hover {
-  border-color: #0f6cbd;
-  background-color: rgba(15, 108, 189, 0.03);
-}
-
-.branch-card.branch-active {
-  border-color: #0f6cbd;
-  background-color: rgba(15, 108, 189, 0.06);
-}
-
-.branch-info {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.branch-name {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: #323130;
-}
-
-.branch-code {
-  font-size: 12px;
-  color: #797775;
 }
 
 .classification-box {

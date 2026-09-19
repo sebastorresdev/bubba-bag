@@ -28,6 +28,8 @@ import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzTabsModule } from 'ng-zorro-antd/tabs';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzDividerModule } from 'ng-zorro-antd/divider';
+import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
 @Component({
@@ -48,6 +50,8 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzTagModule,
     NzTabsModule,
     NzSpinModule,
+    NzDividerModule,
+    NzPopconfirmModule,
     CommandBarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Default,
@@ -70,11 +74,130 @@ export class SucursalFormComponent implements OnInit {
   selectedTabIndex = 0;
   sucursalActual: SucursalDto | null = null;
 
-  commandBarItems: CommandBarItem[] = [];
+  get loadingTip(): string {
+    if (this.saving) return 'Guardando información de la sucursal...';
+    if (this.loading) return 'Cargando datos de la sucursal...';
+    return 'Procesando...';
+  }
+
+
+  get commandBarItems(): CommandBarItem[] {
+    const isWaitingData = this.isEdit && this.loading && !this.sucursalActual;
+    const items: CommandBarItem[] = [
+      {
+        key: 'save',
+        label: 'Guardar',
+        icon: 'save',
+        iconColor: 'purple',
+        disabled: this.saving || isWaitingData,
+        execute: () => this.guardar(false),
+      },
+      {
+        key: 'saveAndClose',
+        label: 'Guardar y Cerrar',
+        icon: 'save',
+        iconColor: 'purple',
+        disabled: this.saving || isWaitingData,
+        execute: () => this.guardar(true),
+      },
+    ];
+
+    if (this.isEdit) {
+      items.push({
+        key: 'div-edit-actions',
+        label: '',
+        isDivider: true,
+      });
+
+      items.push({
+        key: 'new',
+        label: 'Nuevo',
+        icon: 'plus',
+        iconColor: 'success',
+        tooltip: 'Crear una nueva sucursal o sede',
+        execute: () => this.irANuevo(),
+      });
+
+      const isActivo = this.sucursalActual?.activo ?? true;
+      items.push({
+        key: 'estado',
+        label: isActivo ? 'Desactivar' : 'Activar',
+        icon: isActivo ? 'close' : 'check',
+        danger: isActivo,
+        iconColor: isActivo ? 'danger' : 'success',
+        disabled: this.saving || isWaitingData,
+        popconfirm: {
+          title: isActivo
+            ? `¿Está seguro de desactivar la sucursal "${this.sucursalActual?.nombre || ''}"?`
+            : `¿Desea activar la sucursal "${this.sucursalActual?.nombre || ''}"?`,
+          okText: isActivo ? 'Desactivar' : 'Activar',
+          cancelText: 'Cancelar',
+          okDanger: isActivo,
+          onConfirm: () => this.ejecutarCambioEstado(!isActivo),
+        },
+      });
+    }
+
+    items.push({
+      key: 'div-common-actions',
+      label: '',
+      isDivider: true,
+    });
+
+    items.push({
+      key: 'discard',
+      label: 'Descartar',
+      icon: 'close',
+      iconColor: 'neutral',
+      execute: () => this.volver(),
+    });
+
+    items.push({
+      key: 'refresh',
+      label: 'Actualizar',
+      icon: 'reload',
+      iconColor: 'neutral',
+      tooltip: 'Recargar datos del formulario',
+      disabled: this.saving,
+      execute: () => {
+        if (this.sucursalId) {
+          this.cargarSucursal(this.sucursalId);
+        } else {
+          this.form.reset({ activo: true, esSedePrincipal: false });
+        }
+      },
+    });
+
+    return items;
+  }
+
+  get farItems(): CommandBarItem[] {
+    return [
+      {
+        key: 'share',
+        label: 'Compartir',
+        icon: 'export',
+        appearance: 'primary',
+        tooltip: 'Compartir ficha de sucursal',
+        children: [
+          {
+            key: 'copy-link',
+            label: 'Copiar vínculo',
+            icon: 'link',
+            execute: () => {
+              if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                navigator.clipboard.writeText(window.location.href);
+                this.message.success('Vínculo copiado al portapapeles');
+              }
+            },
+          },
+        ],
+      },
+    ];
+  }
 
   ngOnInit(): void {
     this.initForm();
-    this.updateCommandBar();
 
     this.route.paramMap.subscribe((params) => {
       const id = params.get('id');
@@ -82,6 +205,11 @@ export class SucursalFormComponent implements OnInit {
         this.isEdit = true;
         this.sucursalId = id;
         this.cargarSucursal(id);
+      } else {
+        this.isEdit = false;
+        this.sucursalId = null;
+        this.sucursalActual = null;
+        this.form.get('codigo')?.enable();
       }
     });
   }
@@ -96,49 +224,6 @@ export class SucursalFormComponent implements OnInit {
       esSedePrincipal: [false],
       activo: [true],
     });
-  }
-
-  updateCommandBar(): void {
-    this.commandBarItems = [
-      {
-        key: 'back',
-        label: '',
-        icon: 'arrow-left',
-        action: () => this.descartar(),
-      },
-      {
-        key: 'save',
-        label: 'Guardar',
-        icon: 'save',
-        disabled: this.saving,
-        action: () => this.guardar(false),
-      },
-      {
-        key: 'save-close',
-        label: 'Guardar y cerrar',
-        icon: 'save',
-        disabled: this.saving,
-        action: () => this.guardar(true),
-      },
-      {
-        key: 'discard',
-        label: 'Descartar',
-        icon: 'close',
-        action: () => this.descartar(),
-      },
-      {
-        key: 'refresh',
-        label: 'Actualizar',
-        icon: 'reload',
-        action: () => {
-          if (this.sucursalId) {
-            this.cargarSucursal(this.sucursalId);
-          } else {
-            this.form.reset({ activo: true, esSedePrincipal: false });
-          }
-        },
-      },
-    ];
   }
 
   cargarSucursal(id: string): void {
@@ -178,8 +263,6 @@ export class SucursalFormComponent implements OnInit {
     }
 
     this.saving = true;
-    this.updateCommandBar();
-
     const val = this.form.getRawValue();
 
     if (this.isEdit && this.sucursalId) {
@@ -196,14 +279,13 @@ export class SucursalFormComponent implements OnInit {
             this.saving = false;
             this.message.success('Sucursal actualizada correctamente');
             if (cerrar) {
-              this.router.navigate(['/configuracion/sucursales']);
+              this.volver();
             } else {
               this.cargarSucursal(this.sucursalId!);
             }
           },
           error: (err) => {
             this.saving = false;
-            this.updateCommandBar();
             const msg = err?.error?.detail || err?.error || 'Error al actualizar la sucursal';
             this.message.error(typeof msg === 'string' ? msg : 'Error al actualizar');
           },
@@ -223,14 +305,13 @@ export class SucursalFormComponent implements OnInit {
             this.saving = false;
             this.message.success('Sucursal creada exitosamente');
             if (cerrar) {
-              this.router.navigate(['/configuracion/sucursales']);
+              this.volver();
             } else {
               this.router.navigate(['/configuracion/sucursales/editar', res.id]);
             }
           },
           error: (err) => {
             this.saving = false;
-            this.updateCommandBar();
             const msg = err?.error?.detail || err?.error || 'Error al crear la sucursal';
             this.message.error(typeof msg === 'string' ? msg : 'Error al crear');
           },
@@ -238,14 +319,41 @@ export class SucursalFormComponent implements OnInit {
     }
   }
 
-  descartar(): void {
+  ejecutarCambioEstado(nuevoEstado: boolean): void {
+    if (!this.sucursalId) return;
+
+    this.saving = true;
+    this.sucursalService.cambiarEstado(this.sucursalId, nuevoEstado).subscribe({
+      next: () => {
+        this.saving = false;
+        this.message.success(
+          nuevoEstado ? 'Sucursal activada con éxito' : 'Sucursal desactivada'
+        );
+        this.form.get('activo')?.setValue(nuevoEstado);
+        if (this.sucursalActual) {
+          this.sucursalActual.activo = nuevoEstado;
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.saving = false;
+        this.message.error('Error al cambiar el estado de la sucursal');
+      },
+    });
+  }
+
+  volver(): void {
     this.router.navigate(['/configuracion/sucursales']);
   }
 
+  irANuevo(): void {
+    this.router.navigate(['/configuracion/sucursales/nuevo']);
+  }
+
   getIniciales(): string {
-    const nom = this.form.get('nombre')?.value;
-    if (!nom || typeof nom !== 'string') return 'SC';
-    const partes = nom.trim().split(/\s+/);
+    const nom = this.sucursalActual?.nombre?.trim();
+    if (!nom) return 'SC';
+    const partes = nom.split(/\s+/);
     if (partes.length >= 2) {
       return (partes[0].charAt(0) + partes[1].charAt(0)).toUpperCase();
     }

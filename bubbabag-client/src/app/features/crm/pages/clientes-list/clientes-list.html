@@ -108,7 +108,7 @@
       [nzPageSize]="15"
       [nzPageSizeOptions]="[10, 15, 25, 50]"
       [nzShowSizeChanger]="true"
-      [nzScroll]="{ x: '1400px' }"
+      [nzScroll]="{ x: '1900px' }"
       nzSize="small"
       (nzCurrentPageDataChange)="onCurrentPageDataChange($event)"
       class="d365-table"
@@ -130,7 +130,10 @@
             <th nzWidth="110px">Código</th>
           }
           @if (isColVisible('cliente')) {
-            <th nzWidth="240px">Cliente / Razón Social</th>
+            <th nzWidth="260px">Cliente / Razón Social</th>
+          }
+          @if (isColVisible('contacto')) {
+            <th nzWidth="180px">Contacto</th>
           }
           @if (isColVisible('tipoPersona')) {
             <th nzWidth="110px">Tipo Persona</th>
@@ -139,25 +142,25 @@
             <th nzWidth="90px">Tipo Doc.</th>
           }
           @if (isColVisible('documento')) {
-            <th nzWidth="120px">N° Documento</th>
+            <th nzWidth="130px">N° Documento</th>
           }
           @if (isColVisible('telefono')) {
-            <th nzWidth="120px">Teléfono</th>
+            <th nzWidth="130px">Teléfono</th>
           }
           @if (isColVisible('email')) {
             <th nzWidth="180px">Correo Electrónico</th>
           }
           @if (isColVisible('direccion')) {
-            <th nzWidth="220px">Dirección</th>
+            <th nzWidth="240px">Dirección</th>
           }
           @if (isColVisible('distrito')) {
-            <th nzWidth="120px">Distrito</th>
+            <th nzWidth="130px">Distrito</th>
           }
           @if (isColVisible('provincia')) {
-            <th nzWidth="120px">Provincia / Ciudad</th>
+            <th nzWidth="130px">Provincia / Ciudad</th>
           }
           @if (isColVisible('departamento')) {
-            <th nzWidth="120px">Departamento</th>
+            <th nzWidth="130px">Departamento</th>
           }
           @if (isColVisible('clasificacion')) {
             <th nzWidth="140px">Clasificación</th>
@@ -181,31 +184,42 @@
             ></td>
 
             @if (isColVisible('codigo')) {
-              <td>
-                <span class="cell-code">{{ c.codigoCliente }}</span>
+              <td [title]="'Abrir cliente ' + c.codigoCliente">
+                <a
+                  (click)="editarCliente(c.id); $event.stopPropagation()"
+                  class="cell-code"
+                >
+                  {{ c.codigoCliente }}
+                </a>
               </td>
             }
 
             @if (isColVisible('cliente')) {
-              <td>
+              <td [title]="c.nombreCompletoODenominacion">
                 <div class="cliente-cell">
                   <nz-avatar
                     [nzText]="getIniciales(c.nombreCompletoODenominacion)"
                     nzSize="small"
                     class="cliente-avatar"
                   ></nz-avatar>
-                  <div class="cliente-info">
-                    <a
-                      (click)="editarCliente(c.id); $event.stopPropagation()"
-                      class="cell-link"
-                    >
-                      {{ c.nombreCompletoODenominacion }}
-                    </a>
-                    @if (c.tipoPersona === 'JURIDICA' && c.nombres) {
-                      <span class="cell-subtext">Contacto: {{ c.nombres }} {{ c.apellidos || '' }}</span>
-                    }
-                  </div>
+                  <a
+                    (click)="editarCliente(c.id); $event.stopPropagation()"
+                    class="cell-link"
+                    [title]="c.nombreCompletoODenominacion"
+                  >
+                    {{ c.nombreCompletoODenominacion }}
+                  </a>
                 </div>
+              </td>
+            }
+
+            @if (isColVisible('contacto')) {
+              <td [title]="c.tipoPersona === 'JURIDICA' && c.nombres ? (c.nombres + ' ' + (c.apellidos || '')) : ''">
+                @if (c.tipoPersona === 'JURIDICA' && c.nombres) {
+                  <span class="cell-ellipsis">{{ c.nombres }} {{ c.apellidos || '' }}</span>
+                } @else {
+                  <span class="text-muted">—</span>
+                }
               </td>
             }
 
@@ -222,44 +236,44 @@
             }
 
             @if (isColVisible('documento')) {
-              <td>
+              <td [title]="c.documentoIdentidad">
                 <span class="doc-num">{{ c.documentoIdentidad }}</span>
               </td>
             }
 
             @if (isColVisible('telefono')) {
-              <td>
-                <span>{{ c.telefonoPrincipal }}</span>
+              <td [title]="c.telefonoPrincipal || ''">
+                <span class="cell-ellipsis">{{ c.telefonoPrincipal || '-' }}</span>
               </td>
             }
 
             @if (isColVisible('email')) {
-              <td>
-                <span>{{ c.email || '-' }}</span>
+              <td [title]="c.email || ''">
+                <span class="cell-ellipsis">{{ c.email || '-' }}</span>
               </td>
             }
 
             @if (isColVisible('direccion')) {
-              <td>
-                <span class="address-text" [title]="c.direccion">{{ c.direccion }}</span>
+              <td [title]="c.direccion || ''">
+                <span class="cell-ellipsis">{{ c.direccion || '-' }}</span>
               </td>
             }
 
             @if (isColVisible('distrito')) {
-              <td>
-                <span>{{ c.distrito }}</span>
+              <td [title]="c.distrito || ''">
+                <span class="cell-ellipsis">{{ c.distrito || '-' }}</span>
               </td>
             }
 
             @if (isColVisible('provincia')) {
-              <td>
-                <span>{{ c.provincia }}</span>
+              <td [title]="c.provincia || ''">
+                <span class="cell-ellipsis">{{ c.provincia || '-' }}</span>
               </td>
             }
 
             @if (isColVisible('departamento')) {
-              <td>
-                <span>{{ c.departamento }}</span>
+              <td [title]="c.departamento || ''">
+                <span class="cell-ellipsis">{{ c.departamento || '-' }}</span>
               </td>
             }
 

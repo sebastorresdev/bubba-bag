@@ -206,12 +206,33 @@
   font-size: 12.5px;
   font-weight: 600;
   color: #0078d4;
+  cursor: pointer;
+  display: inline-block;
+  transition: color 0.15s ease;
+}
+
+.cell-code:hover {
+  text-decoration: underline;
+  color: #106ebe;
+}
+
+:host-context([data-theme='dark']) .cell-code,
+:host-context(.dark-theme) .cell-code {
+  color: #2899f5;
+}
+
+:host-context([data-theme='dark']) .cell-code:hover,
+:host-context(.dark-theme) .cell-code:hover {
+  color: #60a5fa;
 }
 
 .cliente-cell {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .cliente-avatar {
@@ -222,12 +243,6 @@
   font-weight: 600;
 }
 
-.cliente-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
 .cell-link {
   color: #0078d4 !important;
   font-weight: 600;
@@ -236,6 +251,9 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
 .cell-link:hover {
@@ -243,10 +261,14 @@
   color: #106ebe !important;
 }
 
-.cell-subtext {
-  font-size: 11px;
-  opacity: 0.7;
-  margin-top: 2px;
+.text-muted {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.35);
+}
+
+:host-context([data-theme='dark']) .text-muted,
+:host-context(.dark-theme) .text-muted {
+  color: rgba(255, 255, 255, 0.35);
 }
 
 .cell-doc {
@@ -304,11 +326,12 @@
 }
 
 .address-text {
+  display: block;
   font-size: 12.5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 170px;
+  max-width: 100%;
 }
 
 .class-tags {
@@ -415,6 +438,18 @@
   flex: 1 !important;
   min-height: 0 !important;
   height: 100% !important;
+}
+
+:host ::ng-deep .d365-table table {
+  table-layout: fixed !important;
+}
+
+:host ::ng-deep .d365-table th,
+:host ::ng-deep .d365-table td,
+:host ::ng-deep .d365-table .ant-table-cell {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 :host ::ng-deep .d365-table .ant-table-wrapper,

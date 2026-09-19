@@ -11,14 +11,14 @@
       <div class="record-avatar-container">
         <nz-avatar
           [nzSize]="56"
-          [nzText]="getIniciales(form.get('nombre')?.value || (isEdit ? 'Catálogo' : 'Nuevo'))"
+          [nzText]="isEdit && catalogoActual ? getIniciales(catalogoActual.nombre) : 'NC'"
           class="record-avatar catalogo-header-avatar"
         />
       </div>
 
       <div class="record-title-block">
         <h1 class="record-title">
-          {{ form.get('nombre')?.value || (isEdit ? 'Catálogo de Servicios' : 'Nuevo Catálogo de Servicios') }}
+          {{ isEdit ? (catalogoActual?.nombre || 'Catálogo de Servicios') : 'Nuevo Catálogo de Servicios' }}
         </h1>
 
         <div class="record-metadata-row">
@@ -27,7 +27,7 @@
           </span>
           <nz-divider nzType="vertical" />
           <span class="meta-owner">
-            {{ form.get('contratanteId')?.value ? 'Contratante Externo' : 'Catálogo Propio' }}
+            {{ isEdit ? (catalogoActual?.contratanteNombre || (catalogoActual?.contratanteId ? 'Contratante Externo' : 'Catálogo Propio')) : 'Catálogo Propio' }}
           </span>
         </div>
       </div>
@@ -39,10 +39,10 @@
         <span class="metric-label">ESTADO</span>
         <span
           class="kpi-value-pill"
-          [class.pill-active]="form.get('activo')?.value"
-          [class.pill-inactive]="!form.get('activo')?.value"
+          [class.pill-active]="catalogoActual ? catalogoActual.activo : true"
+          [class.pill-inactive]="catalogoActual ? !catalogoActual.activo : false"
         >
-          {{ (form.get('activo')?.value ? 'ACTIVO' : 'INACTIVO') }}
+          {{ (catalogoActual ? catalogoActual.activo : true) ? 'ACTIVO' : 'INACTIVO' }}
         </span>
       </div>
 

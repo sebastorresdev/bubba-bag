@@ -39,7 +39,9 @@ using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.Servicios.Comman
 using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.Servicios.Commands.ActualizarServicio;
 using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.Servicios.Queries.ObtenerServicios;
 using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.Servicios.Queries.ObtenerServicioPorId;
+using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.Servicios.Services;
 using System.Collections.Generic;
+using System.Threading;
 
 using BubbaBag.Modules.ServicioCampo.Domain.Enums;
 using BubbaBag.SharedKernel.Authorization;
@@ -139,6 +141,11 @@ public static class CatalogosServicioCampoEndpoints
             .RequireAuthorization(Permissions.ServicioCampo.Acceso);
         serviciosGroup.MapGet("/{id:guid}", ObtenerServicioPorId)
             .RequireAuthorization(Permissions.ServicioCampo.Acceso);
+        serviciosGroup.MapGet("/plantilla-excel", DescargarPlantillaExcel)
+            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
+        serviciosGroup.MapPost("/importar-excel", ImportarServiciosExcel)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar)
+            .DisableAntiforgery();
         serviciosGroup.MapPost("/", CrearServicio)
             .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
         serviciosGroup.MapPut("/{id:guid}", ActualizarServicio)
@@ -439,6 +446,39 @@ public static class CatalogosServicioCampoEndpoints
         return result.IsSuccess
             ? Results.Ok(new { message = "Servicio actualizado exitosamente." })
             : Results.BadRequest(new { message = result.Error });
+    }
+
+    private static async Task<IResult> DescargarPlantillaExcel(
+        IServicioExcelService excelService,
+        CancellationToken cancellationToken)
+    {
+        var bytes = await excelService.GenerarPlantillaExcelAsync(cancellationToken);
+        return Results.File(
+            bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "Plantilla_Importacion_Servicios.xlsx"
+        );
+    }
+
+    private static async Task<IResult> ImportarServiciosExcel(
+        Microsoft.AspNetCore.Http.IFormFile file,
+        IServicioExcelService excelService,
+        CancellationToken cancellationToken)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return Results.BadRequest(new { message = "Debe proporcionar un archivo Excel (.xlsx) válido." });
+        }
+
+        var extension = System.IO.Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (extension != ".xlsx" && extension != ".xls")
+        {
+            return Results.BadRequest(new { message = "El formato no es válido. Asegúrese de cargar un archivo con extensión .xlsx." });
+        }
+
+        using var stream = file.OpenReadStream();
+        var resultado = await excelService.ImportarServiciosDesdeExcelAsync(stream, cancellationToken);
+        return Results.Ok(resultado);
     }
 }
 

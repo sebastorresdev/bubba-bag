@@ -183,6 +183,16 @@
   transition: color 0.15s;
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.truncate-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .nombre-link:hover {
@@ -295,6 +305,18 @@
   flex: 1 !important;
   min-height: 0 !important;
   height: 100% !important;
+}
+
+:host ::ng-deep .d365-table table {
+  table-layout: fixed !important;
+}
+
+:host ::ng-deep .d365-table th,
+:host ::ng-deep .d365-table td,
+:host ::ng-deep .d365-table .ant-table-cell {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 :host ::ng-deep .d365-table .ant-table-wrapper,

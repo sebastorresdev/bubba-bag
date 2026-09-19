@@ -13,31 +13,35 @@
       <div class="record-avatar-container">
         <nz-avatar
           [nzSize]="56"
-          [nzText]="getIniciales(form.get('detalleServicio')?.value || form.get('codigoServicio')?.value || (isEdit ? 'Tarifa Servicio' : 'Nueva Tarifa'))"
+          [nzText]="isEdit && tarifaActual ? getIniciales(tarifaActual.detalleServicio || tarifaActual.codigoServicio) : 'TS'"
           class="record-avatar tarifa-header-avatar"
         />
       </div>
 
       <div class="record-title-block">
         <h1 class="record-title">
-          {{ form.get('detalleServicio')?.value || (isEdit ? 'Tarifa de Servicio' : 'Nueva Tarifa de Servicio') }}
+          {{ isEdit ? (tarifaActual?.detalleServicio || 'Tarifa de Servicio') : 'Nueva Tarifa de Servicio' }}
         </h1>
 
         <div class="record-metadata-row">
           <span class="meta-code">
-            {{ form.get('codigoServicio')?.value || 'SIN CÓDIGO' }}
+            {{ isEdit ? (tarifaActual?.codigoServicio || 'SIN CÓDIGO') : 'NUEVA TARIFA' }}
           </span>
-          <nz-divider nzType="vertical" />
-          <span class="meta-tip">
-            {{ form.get('tipificacion')?.value || 'SIN TIPIFICACIÓN' }}
-          </span>
-          <nz-divider nzType="vertical" />
-          <span class="meta-empresa">
-            {{ form.get('empresaContratante')?.value || 'DIRECTV PERU S.R.L.' }}
-          </span>
-          @if (form.get('sucursal')?.value) {
+          @if (isEdit && tarifaActual?.tipificacion) {
             <nz-divider nzType="vertical" />
-            <span class="meta-sucursal">{{ form.get('sucursal')?.value }}</span>
+            <span class="meta-tip">
+              {{ tarifaActual?.tipificacion }}
+            </span>
+          }
+          @if (isEdit && tarifaActual?.empresaContratante) {
+            <nz-divider nzType="vertical" />
+            <span class="meta-empresa">
+              {{ tarifaActual?.empresaContratante }}
+            </span>
+          }
+          @if (isEdit && tarifaActual?.sucursal) {
+            <nz-divider nzType="vertical" />
+            <span class="meta-sucursal">{{ tarifaActual?.sucursal }}</span>
           }
         </div>
       </div>
@@ -49,10 +53,10 @@
         <span class="metric-label">ESTADO</span>
         <span
           class="kpi-value-pill"
-          [class.pill-active]="form.get('activo')?.value"
-          [class.pill-inactive]="!form.get('activo')?.value"
+          [class.pill-active]="tarifaActual ? tarifaActual.activo : true"
+          [class.pill-inactive]="tarifaActual ? !tarifaActual.activo : false"
         >
-          {{ (form.get('activo')?.value ? 'ACTIVO' : 'INACTIVO') }}
+          {{ (tarifaActual ? tarifaActual.activo : true) ? 'ACTIVO' : 'INACTIVO' }}
         </span>
       </div>
 

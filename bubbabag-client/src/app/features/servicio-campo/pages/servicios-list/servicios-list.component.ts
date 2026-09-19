@@ -12,6 +12,7 @@ import { ServicioCampoService } from '../../services/servicio-campo.service';
 import {
   ServicioItemDto,
   CatalogoServicioDto,
+  ImportarServiciosResultadoDto,
 } from '../../models/servicio-campo-catalogos.model';
 
 import { NzTableModule } from 'ng-zorro-antd/table';
@@ -29,6 +30,8 @@ import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzBadgeModule } from 'ng-zorro-antd/badge';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzAlertModule } from 'ng-zorro-antd/alert';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
 @Component({
@@ -53,6 +56,8 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzTooltipModule,
     NzAvatarModule,
     NzBadgeModule,
+    NzSpinModule,
+    NzAlertModule,
     CommandBarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -77,6 +82,13 @@ export class ServiciosListComponent implements OnInit {
 
   selectedIds = new Set<string>();
 
+  // Estado del Modal de Importación Excel
+  modalImportacionVisible = false;
+  archivoSeleccionado: File | null = null;
+  importando = false;
+  descargandoPlantilla = false;
+  resultadoImportacion: ImportarServiciosResultadoDto | null = null;
+
   ngOnInit(): void {
     this.cargarCatalogos();
     this.cargarDatos();
@@ -95,7 +107,7 @@ export class ServiciosListComponent implements OnInit {
     return [
       {
         key: 'new',
-        label: 'Nuevo Servicio',
+        label: 'Nuevo',
         icon: 'plus',
         iconColor: 'success',
         tooltip: 'Crear nueva plantilla de servicio',
@@ -113,6 +125,21 @@ export class ServiciosListComponent implements OnInit {
             this.editar(itemSeleccionado.id);
           }
         },
+      },
+      {
+        key: 'import',
+        label: 'Importar Excel',
+        icon: 'upload',
+        iconColor: 'primary',
+        tooltip: 'Importar lista de servicios desde un archivo Excel',
+        execute: () => this.abrirModalImportacion(),
+      },
+      {
+        key: 'template',
+        label: 'Descargar Plantilla',
+        icon: 'download',
+        tooltip: 'Descargar plantilla oficial de Excel con catálogos actuales',
+        execute: () => this.descargarPlantilla(),
       },
       {
         key: 'refresh',
@@ -240,6 +267,131 @@ export class ServiciosListComponent implements OnInit {
 
   editar(id: string): void {
     this.router.navigate(['/servicio-campo/servicios/editar', id]);
+  }
+
+  // =========================================================================
+  // MÉTODOS DE IMPORTACIÓN Y PLANTILLA EXCEL
+  // =========================================================================
+  descargarPlantilla(): void {
+    this.descargandoPlantilla = true;
+    this.message.loading('Generando plantilla Excel con catálogos actuales...', { nzDuration: 2000 });
+    this.servicioCampoService.descargarPlantillaServiciosExcel().subscribe({
+      next: (blob) => {
+        this.descargandoPlantilla = false;
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Plantilla_Importacion_Servicios.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        this.message.success('Plantilla descargada correctamente.');
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.descargandoPlantilla = false;
+        this.message.error('No se pudo generar la plantilla Excel.');
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  abrirModalImportacion(): void {
+    this.modalImportacionVisible = true;
+    this.archivoSeleccionado = null;
+    this.resultadoImportacion = null;
+    this.importando = false;
+    this.cdr.markForCheck();
+  }
+
+  cerrarModalImportacion(): void {
+    const huboCambios =
+      this.resultadoImportacion &&
+      (this.resultadoImportacion.totalImportados > 0 || this.resultadoImportacion.totalActualizados > 0);
+    this.modalImportacionVisible = false;
+    this.archivoSeleccionado = null;
+    this.resultadoImportacion = null;
+    this.importando = false;
+    if (huboCambios) {
+      this.cargarDatos();
+    }
+    this.cdr.markForCheck();
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.archivoSeleccionado = input.files[0];
+      this.resultadoImportacion = null;
+      this.cdr.markForCheck();
+    }
+  }
+
+  onDropFile(event: DragEvent): void {
+    event.preventDefault();
+    if (event.dataTransfer && event.dataTransfer.files.length > 0) {
+      const file = event.dataTransfer.files[0];
+      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+        this.archivoSeleccionado = file;
+        this.resultadoImportacion = null;
+        this.cdr.markForCheck();
+      } else {
+        this.message.warning('Por favor seleccione únicamente un archivo Excel (.xlsx).');
+      }
+    }
+  }
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+  }
+
+  quitarArchivo(): void {
+    this.archivoSeleccionado = null;
+    this.resultadoImportacion = null;
+    this.cdr.markForCheck();
+  }
+
+  ejecutarImportacion(): void {
+    if (!this.archivoSeleccionado) {
+      this.message.warning('Debe seleccionar un archivo Excel para procesar.');
+      return;
+    }
+
+    this.importando = true;
+    this.resultadoImportacion = null;
+    this.cdr.markForCheck();
+
+    this.servicioCampoService.importarServiciosExcel(this.archivoSeleccionado).subscribe({
+      next: (res) => {
+        this.importando = false;
+        this.resultadoImportacion = res;
+        if (res.totalImportados > 0 || res.totalActualizados > 0) {
+          this.message.success(
+            `Proceso finalizado: ${res.totalImportados} nuevos servicios creados, ${res.totalActualizados} actualizados.`
+          );
+        } else if (res.errores.length > 0) {
+          this.message.error('El archivo contiene observaciones que impidieron la importación.');
+        } else {
+          this.message.info('No se encontraron registros de servicios en el archivo.');
+        }
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.importando = false;
+        const msg = err.error?.message || 'Ocurrió un error al procesar el archivo Excel.';
+        this.message.error(msg);
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  formatearBytes(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   }
 
   getIniciales(codigo?: string, nombre?: string): string {

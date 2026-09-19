@@ -83,8 +83,7 @@
               (nzCheckedChange)="toggleSelectAll($event)"
               class="col-checkbox"
             ></th>
-            <th [nzWidth]="'60px'" nzAlign="center">Icono</th>
-            <th [nzWidth]="'280px'">Nombre del Catálogo</th>
+            <th [nzWidth]="'300px'">Nombre del Catálogo</th>
             <th [nzWidth]="'260px'">Contratante / Mandante</th>
             <th [nzWidth]="'160px'" nzAlign="center">Servicios Incluidos</th>
             <th>Descripción</th>
@@ -106,16 +105,6 @@
                 (nzCheckedChange)="toggleSelect(item.id)"
               ></td>
 
-              <!-- Circular Avatar con Iniciales -->
-              <td nzAlign="center">
-                <nz-avatar
-                  [nzSize]="32"
-                  [nzText]="getIniciales(item.nombre)"
-                  class="d365-circular-avatar"
-                  [style.backgroundColor]="getColor(item.nombre)"
-                ></nz-avatar>
-              </td>
-
               <!-- Nombre con enlace de edición -->
               <td class="col-primary-text">
                 <span class="nombre-link" (click)="$event.stopPropagation(); editar(item.id)">
@@ -123,27 +112,14 @@
                 </span>
               </td>
 
-              <!-- Contratante / Mandante -->
-              <td>
-                @if (item.contratanteNombre) {
-                  <nz-tag nzColor="blue">
-                    <nz-icon nzType="bank" />
-                    {{ item.contratanteNombre }}
-                  </nz-tag>
-                } @else {
-                  <nz-tag nzColor="purple">
-                    <nz-icon nzType="home" />
-                    Catálogo Propio
-                  </nz-tag>
-                }
+              <!-- Contratante / Mandante: Texto normal sobrio -->
+              <td class="col-text">
+                {{ item.contratanteNombre || 'Catálogo Propio' }}
               </td>
 
-              <!-- Servicios Vinculados -->
-              <td nzAlign="center">
-                <nz-tag nzColor="default" style="font-weight: 600;">
-                  <nz-icon nzType="tool" />
-                  {{ item.cantidadServicios }} servicios
-                </nz-tag>
+              <!-- Servicios Vinculados: Conteo sobrio -->
+              <td nzAlign="center" class="col-desc">
+                {{ item.cantidadServicios }}
               </td>
 
               <!-- Descripción -->

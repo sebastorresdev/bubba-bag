@@ -13,24 +13,26 @@
       <div class="record-avatar-container">
         <nz-avatar
           [nzSize]="56"
-          [nzText]="getIniciales(form.get('nombre')?.value || (isEdit ? 'Tipo Tarea' : 'Nueva Tarea'))"
+          [nzText]="isEdit && tareaActual ? getIniciales(tareaActual.nombre) : 'TT'"
           class="record-avatar tarea-header-avatar"
         />
       </div>
 
       <div class="record-title-block">
         <h1 class="record-title">
-          {{ form.get('nombre')?.value || (isEdit ? 'Tipo de Tarea' : 'Nuevo Tipo de Tarea') }}
+          {{ isEdit ? (tareaActual?.nombre || 'Tipo de Tarea') : 'Nuevo Tipo de Tarea' }}
         </h1>
 
         <div class="record-metadata-row">
           <span class="meta-code">
-            {{ form.get('codigoTarea')?.value || 'SIN CÓDIGO' }}
+            {{ isEdit ? (tareaActual?.codigoTarea || 'SIN CÓDIGO') : 'NUEVA TAREA' }}
           </span>
-          <nz-divider nzType="vertical" />
-          <span class="meta-cliente">
-            {{ getClienteNombre() }}
-          </span>
+          @if (isEdit && tareaActual?.clienteFacturacionNombre) {
+            <nz-divider nzType="vertical" />
+            <span class="meta-cliente">
+              {{ tareaActual?.clienteFacturacionNombre }}
+            </span>
+          }
         </div>
       </div>
     </div>
@@ -41,10 +43,10 @@
         <span class="metric-label">ESTADO</span>
         <span
           class="kpi-value-pill"
-          [class.pill-active]="form.get('activo')?.value"
-          [class.pill-inactive]="!form.get('activo')?.value"
+          [class.pill-active]="tareaActual ? tareaActual.activo : true"
+          [class.pill-inactive]="tareaActual ? !tareaActual.activo : false"
         >
-          {{ (form.get('activo')?.value ? 'ACTIVO' : 'INACTIVO') }}
+          {{ (tareaActual ? tareaActual.activo : true) ? 'ACTIVO' : 'INACTIVO' }}
         </span>
       </div>
 
@@ -53,7 +55,7 @@
       <div class="metric-item">
         <span class="metric-label">DURACIÓN ESTIMADA</span>
         <span class="kpi-value-badge badge-enabled">
-          {{ form.get('duracionEstimadaMinutos')?.value || 0 }} MIN
+          {{ (tareaActual?.duracionEstimadaMinutos || 0) }} MIN
         </span>
       </div>
 

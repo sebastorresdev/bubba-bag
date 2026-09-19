@@ -104,16 +104,16 @@
             ></td>
             
             <!-- Nombre Completo Clickeable estilo D365 -->
-            <td class="col-primary-text">
+            <td class="col-primary-text" [title]="data.nombreCompleto">
               <span class="nombre-link" (click)="$event.stopPropagation(); irAEditar(data.id)">
                 <nz-icon nzType="user" class="row-user-icon" />
-                {{ data.nombreCompleto }}
+                <span class="truncate-text">{{ data.nombreCompleto }}</span>
               </span>
             </td>
 
             <!-- Correo Electrónico en línea independiente -->
-            <td class="col-desc">
-              {{ data.email }}
+            <td class="col-desc" [title]="data.email">
+              <span class="cell-ellipsis">{{ data.email }}</span>
             </td>
 
             <!-- Roles Asignados -->

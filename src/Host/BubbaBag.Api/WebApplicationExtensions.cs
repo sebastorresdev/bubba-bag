@@ -69,10 +69,6 @@ public static class WebApplicationExtensions
             await BubbaBag.Modules.Inventario.Infrastructure.Database.Seeders.InventarioSeeder.SeedAsync(inventarioDbContext, invLogger);
         }
 
-        if (servicioCampoDbContext != null)
-        {
-            var scLogger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<BubbaBag.Modules.ServicioCampo.Infrastructure.Database.ServicioCampoDbContext>>();
-            await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.TarifaServicioSeeder.SeedAsync(servicioCampoDbContext, scLogger);
-        }
+
     }
 }

@@ -24,6 +24,7 @@ import {
   CrearServicioRequest,
   ActualizarServicioRequest,
   ProductoItemDto,
+  ImportarServiciosResultadoDto,
 } from '../models/servicio-campo-catalogos.model';
 
 @Injectable({
@@ -245,6 +246,21 @@ export class ServicioCampoService {
 
   actualizarServicio(id: string, request: ActualizarServicioRequest): Observable<{ message: string }> {
     return this.http.put<{ message: string }>(`${this.baseUrl}/servicios/${id}`, request);
+  }
+
+  descargarPlantillaServiciosExcel(): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/servicios/plantilla-excel`, {
+      responseType: 'blob',
+    });
+  }
+
+  importarServiciosExcel(file: File): Observable<ImportarServiciosResultadoDto> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    return this.http.post<ImportarServiciosResultadoDto>(
+      `${this.baseUrl}/servicios/importar-excel`,
+      formData
+    );
   }
 
   // =========================================================================
