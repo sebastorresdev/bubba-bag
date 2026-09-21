@@ -268,17 +268,6 @@
   padding: 8px 0 !important;
 }
 
-.d365-circular-avatar,
-:host ::ng-deep .d365-circular-avatar.ant-avatar {
-  border-radius: 50% !important;
-  font-weight: 600 !important;
-  font-size: 12px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  color: #ffffff !important;
-}
-
 .color-badge {
   display: inline-block;
   width: 16px;

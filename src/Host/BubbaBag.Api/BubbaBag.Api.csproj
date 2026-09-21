@@ -26,6 +26,7 @@
     <ProjectReference Include="..\..\Shared\BubbaBag.SharedKernel\BubbaBag.SharedKernel.csproj" />
     <ProjectReference Include="..\..\Modules\RecursosHumanos\BubbaBag.Modules.RecursosHumanos.Api\BubbaBag.Modules.RecursosHumanos.Api.csproj" />
     <ProjectReference Include="..\..\Modules\Ventas\BubbaBag.Modules.Ventas.Api\BubbaBag.Modules.Ventas.Api.csproj" />
+    <ProjectReference Include="..\..\Modules\Ventas\BubbaBag.Modules.Ventas.Infrastructure\BubbaBag.Modules.Ventas.Infrastructure.csproj" />
     <ProjectReference Include="..\BubbaBag.ServiceDefaults\BubbaBag.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\Modules\Seguridad\BubbaBag.Modules.Seguridad.Api\BubbaBag.Modules.Seguridad.Api.csproj" />
     <ProjectReference Include="..\..\Modules\Seguridad\BubbaBag.Modules.Seguridad.Infrastructure\BubbaBag.Modules.Seguridad.Infrastructure.csproj" />

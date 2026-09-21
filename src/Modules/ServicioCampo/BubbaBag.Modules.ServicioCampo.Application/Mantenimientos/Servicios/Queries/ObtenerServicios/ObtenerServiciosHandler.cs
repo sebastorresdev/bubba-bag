@@ -47,6 +47,7 @@ public class ObtenerServiciosHandler : IQueryHandler<ObtenerServiciosQuery, Resu
                 s.CatalogoServicio.Nombre,
                 s.DuracionEstimadaMinutos,
                 s.CodigoExterno,
+                s.PrecioBase,
                 s.Pasos.Count,
                 s.MaterialesTeoricos.Count,
                 s.Activo

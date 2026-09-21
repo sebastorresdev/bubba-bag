@@ -1,6 +1,8 @@
+using System;
 using System.Threading.Tasks;
 using BubbaBag.Modules.Inventario.Application.Productos.Commands.CrearProducto;
 using BubbaBag.Modules.Inventario.Application.Productos.Queries.ObtenerProductos;
+using BubbaBag.Modules.Inventario.Domain.Productos;
 using BubbaBag.SharedKernel.CQRS;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -23,10 +25,12 @@ public static class ProductosEndpoints
     private static async Task<IResult> ObtenerProductos(
         string? search,
         string? categoria,
+        TipoProducto? tipo,
+        Guid? catalogoId,
         bool? soloActivos,
         IDispatcher dispatcher)
     {
-        var result = await dispatcher.QueryAsync(new ObtenerProductosQuery(search, categoria, soloActivos));
+        var result = await dispatcher.QueryAsync(new ObtenerProductosQuery(search, categoria, tipo, catalogoId, soloActivos));
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 
@@ -37,6 +41,9 @@ public static class ProductosEndpoints
         var command = new CrearProductoCommand(
             request.Codigo,
             request.Nombre,
+            request.Tipo ?? TipoProducto.Inventario,
+            request.PrecioBase ?? 0m,
+            request.CatalogoId,
             request.Categoria ?? "Materiales",
             request.UnidadMedida ?? "Unidades",
             request.EsSerializado,
@@ -53,6 +60,9 @@ public static class ProductosEndpoints
 public record CrearProductoRequest(
     string Codigo,
     string Nombre,
+    TipoProducto? Tipo,
+    decimal? PrecioBase,
+    Guid? CatalogoId,
     string? Categoria,
     string? UnidadMedida,
     bool EsSerializado,

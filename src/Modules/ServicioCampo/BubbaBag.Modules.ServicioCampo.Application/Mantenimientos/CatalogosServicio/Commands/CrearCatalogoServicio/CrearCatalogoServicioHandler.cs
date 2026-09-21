@@ -29,7 +29,7 @@ public class CrearCatalogoServicioHandler : ICommandHandler<CrearCatalogoServici
 
         var catalogo = CatalogoServicio.Crear(
             request.Nombre,
-            request.ContratanteId,
+            request.ClienteId,
             request.Descripcion);
 
         _context.CatalogosServicio.Add(catalogo);

@@ -45,7 +45,8 @@ public class ActualizarServicioHandler : ICommandHandler<ActualizarServicioComma
             request.CatalogoServicioId,
             request.DuracionEstimadaMinutos > 0 ? request.DuracionEstimadaMinutos : 60,
             request.Descripcion,
-            request.CodigoExterno
+            request.CodigoExterno,
+            request.PrecioBase
         );
 
         if (request.Activo)

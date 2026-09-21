@@ -23,6 +23,18 @@ public class ProductoConfiguration : IEntityTypeConfiguration<Producto>
             .IsRequired()
             .HasMaxLength(150);
 
+        builder.Property(p => p.Tipo)
+            .IsRequired()
+            .HasConversion<int>();
+
+        builder.Property(p => p.PrecioBase)
+            .IsRequired()
+            .HasPrecision(12, 2)
+            .HasDefaultValue(0m);
+
+        builder.Property(p => p.CatalogoId)
+            .IsRequired(false);
+
         builder.Property(p => p.Categoria)
             .IsRequired()
             .HasMaxLength(50);

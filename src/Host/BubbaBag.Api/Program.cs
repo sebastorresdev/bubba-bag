@@ -22,7 +22,14 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.AddNpgsqlDbContext<BubbaBag.Modules.Seguridad.Infrastructure.Persistence.SeguridadDbContext>("sqldb");
 builder.AddNpgsqlDbContext<BubbaBag.Modules.RecursosHumanos.Infrastructure.Database.RecursosHumanosDbContext>("sqldb");
 builder.AddNpgsqlDbContext<BubbaBag.Modules.Crm.Infrastructure.Database.CrmDbContext>("sqldb");
-builder.AddNpgsqlDbContext<BubbaBag.Modules.Inventario.Infrastructure.Database.InventarioDbContext>("sqldb");
+builder.AddNpgsqlDbContext<BubbaBag.Modules.Inventario.Infrastructure.Database.InventarioDbContext>("sqldb", configureDbContextOptions: options =>
+{
+    options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+});
+builder.AddNpgsqlDbContext<BubbaBag.Modules.Ventas.Infrastructure.Database.VentasDbContext>("sqldb", configureDbContextOptions: options =>
+{
+    options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+});
 builder.AddNpgsqlDbContext<BubbaBag.Modules.ServicioCampo.Infrastructure.Database.ServicioCampoDbContext>("sqldb", configureDbContextOptions: options =>
 {
     options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
@@ -30,6 +37,7 @@ builder.AddNpgsqlDbContext<BubbaBag.Modules.ServicioCampo.Infrastructure.Databas
 builder.Services.AddBubbaBagServices(builder.Configuration);
 
 BubbaBag.Modules.RecursosHumanos.Api.RecursosHumanosModule.AddRecursosHumanosModule(builder.Services);
+BubbaBag.Modules.Ventas.Api.VentasModule.AddVentasModule(builder.Services);
 builder.Services.AddCrmModule();
 builder.Services.AddInventarioModule();
 builder.Services.AddServicioCampoModule();
@@ -55,6 +63,7 @@ app.MapRecursosHumanosEndpoints();
 app.MapSucursalesEndpoints();
 app.MapCrmEndpoints();
 app.MapInventarioEndpoints();
+BubbaBag.Modules.Ventas.Api.ListasPrecioEndpoints.MapVentasEndpoints(app);
 app.MapServicioCampoEndpoints();
 
 

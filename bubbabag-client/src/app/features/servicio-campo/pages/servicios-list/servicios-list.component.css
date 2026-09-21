@@ -93,6 +93,44 @@
   color: rgba(0, 0, 0, 0.45);
 }
 
+.d365-filter-select,
+:host ::ng-deep .d365-filter-select.ant-select {
+  height: 32px !important;
+}
+
+:host ::ng-deep .d365-filter-select.ant-select .ant-select-selector {
+  height: 32px !important;
+  border: 1px solid #d1d1d1 !important;
+  border-radius: 2px !important;
+  display: flex !important;
+  align-items: center !important;
+  font-size: 13px !important;
+  transition: all 0.15s ease !important;
+}
+
+:host-context([data-theme='dark']) :host ::ng-deep .d365-filter-select.ant-select .ant-select-selector,
+:host-context(.dark-theme) :host ::ng-deep .d365-filter-select.ant-select .ant-select-selector {
+  background-color: #242424 !important;
+  border-color: #484644 !important;
+}
+
+:host ::ng-deep .d365-filter-select.ant-select.ant-select-focused .ant-select-selector,
+:host ::ng-deep .d365-filter-select.ant-select .ant-select-selector:focus,
+:host ::ng-deep .d365-filter-select.ant-select .ant-select-selector:active {
+  border-color: #0f6cbd !important;
+  box-shadow: 0 0 0 1px #0f6cbd !important;
+}
+
+:host ::ng-deep .d365-filter-select.ant-select .ant-select-selection-search-input {
+  height: 30px !important;
+}
+
+:host ::ng-deep .d365-filter-select.ant-select .ant-select-selection-placeholder,
+:host ::ng-deep .d365-filter-select.ant-select .ant-select-selection-item {
+  line-height: 30px !important;
+  font-size: 13px !important;
+}
+
 .d365-search-box {
   display: flex;
   align-items: center;

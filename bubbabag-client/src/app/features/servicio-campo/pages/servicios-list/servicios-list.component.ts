@@ -129,15 +129,24 @@ export class ServiciosListComponent implements OnInit {
       {
         key: 'import',
         label: 'Importar Excel',
-        icon: 'upload',
-        iconColor: 'primary',
-        tooltip: 'Importar lista de servicios desde un archivo Excel',
+        icon: 'file-excel',
+        iconColor: 'excel',
+        tooltip: 'Importar lista de servicios desde un archivo Excel (.xlsx)',
         execute: () => this.abrirModalImportacion(),
+      },
+      {
+        key: 'export',
+        label: 'Exportar a Excel',
+        icon: 'file-excel',
+        iconColor: 'excel',
+        tooltip: 'Exportar servicios visibles a Excel (.csv)',
+        execute: () => this.exportarExcel(),
       },
       {
         key: 'template',
         label: 'Descargar Plantilla',
-        icon: 'download',
+        icon: 'file-excel',
+        iconColor: 'excel',
         tooltip: 'Descargar plantilla oficial de Excel con catálogos actuales',
         execute: () => this.descargarPlantilla(),
       },
@@ -295,6 +304,47 @@ export class ServiciosListComponent implements OnInit {
         this.cdr.markForCheck();
       },
     });
+  }
+
+  exportarExcel(): void {
+    if (this.serviciosFiltrados.length === 0) {
+      this.message.warning('No hay servicios para exportar.');
+      return;
+    }
+
+    const headers = [
+      'Codigo',
+      'Nombre',
+      'Catalogo',
+      'DuracionMinutos',
+      'PasosChecklist',
+      'Materiales',
+      'CodigoExterno',
+      'Estado',
+    ];
+
+    const rows = this.serviciosFiltrados.map((s) => [
+      `"${s.codigo || ''}"`,
+      `"${(s.nombre || '').replace(/"/g, '""')}"`,
+      `"${(s.catalogoServicioNombre || '').replace(/"/g, '""')}"`,
+      s.duracionEstimadaMinutos ?? 0,
+      s.cantidadPasos ?? 0,
+      s.cantidadMateriales ?? 0,
+      `"${s.codigoExterno || ''}"`,
+      s.activo ? 'ACTIVO' : 'INACTIVO',
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Servicios_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    this.message.success('Servicios exportados correctamente.');
   }
 
   abrirModalImportacion(): void {

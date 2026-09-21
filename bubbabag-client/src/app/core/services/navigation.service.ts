@@ -112,7 +112,9 @@ export class NavigationService {
       searchPlaceholder: 'Buscar productos, clientes, pedidos...',
       requiredRoles: ['SuperAdmin', 'Gerencia', 'VentasAdmin'],
       items: [
+        { title: 'Catálogos Comerciales', icon: 'appstore', path: '/ventas/catalogos' },
         { title: 'Punto de Venta (POS)', icon: 'shop', path: '/ventas/pos' },
+        { title: 'Listas de Precios', icon: 'dollar', path: '/ventas/listas-precio' },
         { title: 'Pedidos y Cotizaciones', icon: 'file-text', path: '/ventas/pedidos' },
         {
           title: 'Clientes y Fidelidad',
@@ -230,13 +232,10 @@ export class NavigationService {
           ],
         },
         {
-          title: 'Tarifarios y Precios',
+          title: 'Tarifario de Liquidación',
           icon: 'dollar',
-          open: true,
+          path: '/servicio-campo/tarifas-servicio',
           requiredRoles: ['SuperAdmin', 'Gerencia', 'ServicioCampoAdmin'],
-          children: [
-            { title: 'Tarifario de Servicios', path: '/servicio-campo/tarifas-servicio' },
-          ],
         },
         {
           title: 'Catálogos Operativos',
@@ -244,7 +243,7 @@ export class NavigationService {
           open: true,
           requiredRoles: ['SuperAdmin', 'Gerencia', 'ServicioCampoAdmin', 'ServicioCampoBackoffice'],
           children: [
-            { title: 'Catálogos de Servicio', path: '/servicio-campo/catalogos-servicio' },
+            { title: 'Catálogos de Servicios', path: '/servicio-campo/catalogos-servicio' },
             { title: 'Plantillas de Servicios', path: '/servicio-campo/servicios' },
             { title: 'Tipos de Orden (Modalidad)', path: '/servicio-campo/tipos-orden' },
             { title: 'Tipos de Tarea', path: '/servicio-campo/tipos-tarea' },

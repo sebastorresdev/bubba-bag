@@ -2,6 +2,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BubbaBag.Modules.Ventas.Application\BubbaBag.Modules.Ventas.Application.csproj" />
+    <ProjectReference Include="..\BubbaBag.Modules.Ventas.Infrastructure\BubbaBag.Modules.Ventas.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\Shared\BubbaBag.SharedKernel\BubbaBag.SharedKernel.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -9,8 +15,5 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
 
 </Project>

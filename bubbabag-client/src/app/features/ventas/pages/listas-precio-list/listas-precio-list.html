@@ -1,0 +1,153 @@
+<app-command-bar [items]="commandBarItems"></app-command-bar>
+
+<div class="catalogo-view-wrapper">
+  <nz-card [nzBordered]="false" class="d365-table-card">
+    <!-- Toolbar de la Vista -->
+    <div class="d365-toolbar-row">
+      <!-- Selector de Vista -->
+      <div>
+        <button
+          nz-button
+          nzType="text"
+          nz-dropdown
+          [nzDropdownMenu]="viewsMenu"
+          nzTrigger="click"
+          class="view-title-btn"
+        >
+          <h1 class="view-title-text">{{ vistaActualTitulo }}</h1>
+          <nz-icon nzType="down" class="view-title-icon" />
+        </button>
+
+        <nz-dropdown-menu #viewsMenu="nzDropdownMenu">
+          <ul nz-menu>
+            <li nz-menu-item (click)="cambiarVista('Activas')" [nzSelected]="vistaActual === 'Activas'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Activas' ? 'visible' : 'hidden'" />
+              <span>Listas de Precios Activas</span>
+            </li>
+            <li nz-menu-item (click)="cambiarVista('Inactivas')" [nzSelected]="vistaActual === 'Inactivas'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Inactivas' ? 'visible' : 'hidden'" />
+              <span>Listas de Precios Inactivas</span>
+            </li>
+            <li nz-menu-divider></li>
+            <li nz-menu-item (click)="cambiarVista('Todas')" [nzSelected]="vistaActual === 'Todas'">
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Todas' ? 'visible' : 'hidden'" />
+              <span>Todas las Listas de Precios</span>
+            </li>
+          </ul>
+        </nz-dropdown-menu>
+      </div>
+
+      <!-- Buscador Rápido -->
+      <div class="d365-search-box">
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Filtrar por nombre..."
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onSearchChange()"
+        />
+        @if (searchTerm) {
+          <button type="button" class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
+            <nz-icon nzType="close" />
+          </button>
+        } @else {
+          <span class="search-icon-btn">
+            <nz-icon nzType="search" />
+          </span>
+        }
+      </div>
+    </div>
+
+    <!-- Grilla Full-Height -->
+    <div class="d365-grid-container">
+      <nz-table
+        #lpTable
+        [nzData]="listasPrecioFiltradas"
+        [nzLoading]="loading"
+        [nzSize]="'small'"
+        [nzBordered]="false"
+        [nzShowPagination]="true"
+        [nzPageSize]="20"
+        [nzShowTotal]="totalTemplate"
+        class="d365-table"
+      >
+        <thead>
+          <tr>
+            <th
+              [nzWidth]="'44px'"
+              [nzChecked]="isAllSelected"
+              [nzIndeterminate]="isIndeterminate"
+              (nzCheckedChange)="toggleSelectAll($event)"
+              class="col-checkbox"
+            ></th>
+            <th [nzWidth]="'280px'">Nombre de la Lista</th>
+            <th [nzWidth]="'100px'" nzAlign="center">Moneda</th>
+            <th [nzWidth]="'120px'" nzAlign="center">Predeterminada</th>
+            <th [nzWidth]="'110px'" nzAlign="center">Ítems Fijados</th>
+            <th>Descripción</th>
+            <th [nzWidth]="'110px'" nzAlign="center">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of lpTable.data; track item.id) {
+            <tr
+              class="d365-data-row"
+              [class.row-selected]="selectedIds.has(item.id)"
+              (click)="toggleSelect(item.id)"
+              (dblclick)="editar(item.id)"
+            >
+              <td
+                class="col-checkbox"
+                [nzChecked]="selectedIds.has(item.id)"
+                (click)="$event.stopPropagation()"
+                (nzCheckedChange)="toggleSelect(item.id)"
+              ></td>
+
+              <!-- Nombre con enlace de edición -->
+              <td class="col-primary-text">
+                <span class="nombre-link" (click)="$event.stopPropagation(); editar(item.id)">
+                  {{ item.nombre }}
+                </span>
+              </td>
+
+              <!-- Moneda -->
+              <td nzAlign="center">
+                <span class="currency-badge">{{ item.moneda }}</span>
+              </td>
+
+              <!-- Predeterminada -->
+              <td nzAlign="center">
+                <span class="flag-pill" [class.flag-yes]="item.esPredeterminada" [class.flag-no]="!item.esPredeterminada">
+                  {{ item.esPredeterminada ? 'Sí' : 'No' }}
+                </span>
+              </td>
+
+              <!-- Ítems Fijados -->
+              <td nzAlign="center">
+                <nz-tag [nzColor]="item.totalItems > 0 ? 'blue' : 'default'">
+                  {{ item.totalItems }} tarifas
+                </nz-tag>
+              </td>
+
+              <!-- Descripción -->
+              <td class="col-desc">
+                {{ item.descripcion || '—' }}
+              </td>
+
+              <!-- Estado -->
+              <td nzAlign="center">
+                <span class="flag-pill" [class.flag-yes]="item.activo" [class.flag-no]="!item.activo">
+                  {{ item.activo ? 'Activa' : 'Inactiva' }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </nz-table>
+
+      <ng-template #totalTemplate let-total>
+        Mostrando {{ listasPrecioFiltradas.length }} de {{ total }} listas de precios
+      </ng-template>
+    </div>
+  </nz-card>
+</div>

@@ -1,0 +1,106 @@
+@import '../../../../../styles/d365-form.css';
+
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.orden-spin-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:host ::ng-deep .orden-spin-wrapper > .ant-spin-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.orden-form-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background-color: var(--d365-page-bg, #f0f2f5);
+  overflow: hidden;
+}
+
+:host-context([data-theme='dark']) .orden-form-view,
+:host-context(.dark-theme) .orden-form-view,
+[data-theme='dark'] .orden-form-view {
+  background-color: #000000 !important;
+}
+
+.card-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px 24px;
+}
+
+.grid-span-full {
+  grid-column: 1 / -1;
+}
+
+.field-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #323130;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+:host-context([data-theme='dark']) .field-label,
+:host-context(.dark-theme) .field-label {
+  color: #e1dfdd;
+}
+
+.field-required {
+  color: #d13438;
+}
+
+.table-toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.tipo-pill {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tipo-servicio {
+  background-color: rgba(0, 120, 212, 0.1);
+  color: #0078d4;
+}
+
+.tipo-inventario {
+  background-color: rgba(16, 124, 65, 0.1);
+  color: #107c41;
+}
+
+.tipo-noinventario {
+  background-color: rgba(135, 100, 184, 0.1);
+  color: #8764b8;
+}
+
+.price-input {
+  width: 140px;
+  text-align: right;
+  font-family: 'Consolas', monospace;
+  font-weight: 600;
+}

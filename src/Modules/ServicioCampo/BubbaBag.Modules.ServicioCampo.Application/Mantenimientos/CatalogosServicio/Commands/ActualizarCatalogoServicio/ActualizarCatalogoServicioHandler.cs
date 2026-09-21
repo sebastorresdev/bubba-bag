@@ -34,7 +34,7 @@ public class ActualizarCatalogoServicioHandler : ICommandHandler<ActualizarCatal
             return Result.Failure($"Ya existe otro catálogo con el nombre '{request.Nombre}'.");
         }
 
-        catalogo.Actualizar(request.Nombre, request.ContratanteId, request.Descripcion);
+        catalogo.Actualizar(request.Nombre, request.ClienteId, request.Descripcion);
 
         if (request.Activo)
             catalogo.Activar();

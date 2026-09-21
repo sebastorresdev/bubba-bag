@@ -29,6 +29,11 @@ public class ServicioConfiguration : IEntityTypeConfiguration<Servicio>
         builder.Property(s => s.CodigoExterno)
             .HasMaxLength(60);
 
+        builder.Property(s => s.PrecioBase)
+            .IsRequired()
+            .HasPrecision(12, 2)
+            .HasDefaultValue(0m);
+
         builder.HasMany(s => s.Pasos)
             .WithOne()
             .HasForeignKey(p => p.ServicioId)

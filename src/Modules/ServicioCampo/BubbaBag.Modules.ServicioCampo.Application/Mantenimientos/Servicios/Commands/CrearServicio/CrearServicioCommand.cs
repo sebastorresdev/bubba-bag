@@ -26,7 +26,8 @@ public record CrearServicioCommand(
     int DuracionEstimadaMinutos,
     string? Descripcion,
     string? CodigoExterno,
-    List<ServicioPasoInput>? Pasos,
-    List<ServicioMaterialInput>? MaterialesTeoricos,
-    List<Guid>? SucursalesHabilitadasIds
+    decimal PrecioBase = 0m,
+    List<ServicioPasoInput>? Pasos = null,
+    List<ServicioMaterialInput>? MaterialesTeoricos = null,
+    List<Guid>? SucursalesHabilitadasIds = null
 ) : ICommand<Result<Guid>>;

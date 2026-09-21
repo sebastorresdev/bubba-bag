@@ -40,13 +40,13 @@
       <!-- Filtros y Buscador Rápido -->
       <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
         <!-- Filtro por Catálogo -->
-        <div style="width: 220px;">
+        <div style="width: 240px;">
           <nz-select
             [(ngModel)]="catalogoSeleccionadoId"
             (ngModelChange)="onCatalogoFilterChange()"
             nzPlaceHolder="Filtrar por Catálogo..."
             nzAllowClear
-            nzSize="small"
+            class="d365-filter-select"
             style="width: 100%;"
           >
             @for (cat of catalogos; track cat.id) {
@@ -101,13 +101,14 @@
               class="col-checkbox"
             ></th>
             <th [nzWidth]="'120px'">Código</th>
-            <th [nzWidth]="'320px'">Nombre del Servicio</th>
-            <th [nzWidth]="'200px'">Catálogo</th>
-            <th [nzWidth]="'110px'" nzAlign="center">Duración</th>
-            <th [nzWidth]="'110px'" nzAlign="center">Checklist</th>
-            <th [nzWidth]="'110px'" nzAlign="center">Materiales</th>
-            <th [nzWidth]="'130px'">Código Ext.</th>
-            <th [nzWidth]="'110px'" nzAlign="center">Estado</th>
+            <th [nzWidth]="'300px'">Nombre del Servicio</th>
+            <th [nzWidth]="'180px'">Catálogo</th>
+            <th [nzWidth]="'100px'" nzAlign="right">Precio Base</th>
+            <th [nzWidth]="'100px'" nzAlign="center">Duración</th>
+            <th [nzWidth]="'100px'" nzAlign="center">Checklist</th>
+            <th [nzWidth]="'100px'" nzAlign="center">Materiales</th>
+            <th [nzWidth]="'120px'">Código Ext.</th>
+            <th [nzWidth]="'100px'" nzAlign="center">Estado</th>
           </tr>
         </thead>
         <tbody>
@@ -140,6 +141,11 @@
               <!-- Catálogo: Texto normal -->
               <td class="col-text">
                 {{ item.catalogoServicioNombre }}
+              </td>
+
+              <!-- Precio Base -->
+              <td nzAlign="right" class="col-price" style="font-weight: 600; color: var(--d365-text-primary);">
+                {{ (item.precioBase || 0) | currency:'PEN':'symbol':'1.2-2' }}
               </td>
 
               <!-- Duración Estimada -->
@@ -210,7 +216,7 @@
           [nzLoading]="descargandoPlantilla"
           class="btn-download-tpl"
         >
-          <nz-icon nzType="download" /> Descargar Plantilla
+          <nz-icon nzType="file-excel" style="color: #107c41;" /> Descargar Plantilla
         </button>
       </div>
 

@@ -11,6 +11,9 @@ namespace BubbaBag.Modules.Inventario.Application.Productos.Commands.CrearProduc
 public record CrearProductoCommand(
     string Codigo,
     string Nombre,
+    TipoProducto Tipo = TipoProducto.Inventario,
+    decimal PrecioBase = 0m,
+    Guid? CatalogoId = null,
     string Categoria = "Materiales",
     string UnidadMedida = "Unidades",
     bool EsSerializado = false,
@@ -36,12 +39,15 @@ public class CrearProductoHandler : ICommandHandler<CrearProductoCommand, Result
         }
 
         var producto = Producto.Crear(
-            codigoUpper,
-            command.Nombre,
-            command.Categoria,
-            command.UnidadMedida,
-            command.EsSerializado,
-            command.Descripcion
+            codigo: codigoUpper,
+            nombre: command.Nombre,
+            categoria: command.Categoria,
+            unidadMedida: command.UnidadMedida,
+            esSerializado: command.EsSerializado,
+            descripcion: command.Descripcion,
+            tipo: command.Tipo,
+            precioBase: command.PrecioBase,
+            catalogoId: command.CatalogoId
         );
 
         await _context.Productos.AddAsync(producto, cancellationToken);

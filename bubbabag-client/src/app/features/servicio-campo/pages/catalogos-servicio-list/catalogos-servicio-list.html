@@ -44,7 +44,7 @@
             type="text"
             [(ngModel)]="searchTerm"
             (ngModelChange)="onSearchChange()"
-            placeholder="Buscar por catálogo o contratante..."
+            placeholder="Buscar por catálogo o cliente..."
             class="search-input"
           />
           @if (searchTerm) {
@@ -54,6 +54,19 @@
           }
           <button class="search-icon-btn" (click)="onSearchChange()" title="Buscar">
             <nz-icon nzType="search" />
+          </button>
+        </div>
+
+        <div class="filter-actions">
+          <button
+            nz-button
+            nzType="default"
+            class="btn-refresh"
+            (click)="cargarDatos()"
+            [nzLoading]="loading"
+            nz-tooltip="Recargar datos"
+          >
+            <nz-icon nzType="reload" />
           </button>
         </div>
       </div>
@@ -84,7 +97,7 @@
               class="col-checkbox"
             ></th>
             <th [nzWidth]="'300px'">Nombre del Catálogo</th>
-            <th [nzWidth]="'260px'">Contratante / Mandante</th>
+            <th [nzWidth]="'260px'">Cliente</th>
             <th [nzWidth]="'160px'" nzAlign="center">Servicios Incluidos</th>
             <th>Descripción</th>
             <th [nzWidth]="'110px'" nzAlign="center">Estado</th>

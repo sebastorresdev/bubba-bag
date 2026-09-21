@@ -6,16 +6,16 @@ using BubbaBag.SharedKernel;
 namespace BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 
 /// <summary>
-/// Agrupador de Servicios de la empresa o provisto por un Contratante (ej: Catálogo DIRECTV, Catálogo Claro, Catálogo Cámaras).
+/// Catálogo de Servicios de la empresa o provisto por un Cliente (ej: Catálogo DIRECTV, Catálogo Claro, Catálogo Cámaras).
 /// </summary>
 public class CatalogoServicio : Entity<Guid>
 {
     public string Nombre { get; private set; } = default!;
     public string? Descripcion { get; private set; }
     
-    // Contratante dueño del catálogo (opcional: ej. DIRECTV PERU S.R.L. o null para propio)
-    public Guid? ContratanteId { get; private set; }
-    public Cliente? Contratante { get; private set; }
+    // Cliente dueño del catálogo (opcional: ej. DIRECTV PERU S.R.L. o null para catálogo propio)
+    public Guid? ClienteId { get; private set; }
+    public Cliente? Cliente { get; private set; }
 
     public bool Activo { get; private set; }
 
@@ -26,23 +26,23 @@ public class CatalogoServicio : Entity<Guid>
 
     public static CatalogoServicio Crear(
         string nombre,
-        Guid? contratanteId = null,
+        Guid? clienteId = null,
         string? descripcion = null)
     {
         return new CatalogoServicio
         {
             Id = Guid.NewGuid(),
             Nombre = nombre.Trim(),
-            ContratanteId = contratanteId,
+            ClienteId = clienteId,
             Descripcion = descripcion?.Trim(),
             Activo = true
         };
     }
 
-    public void Actualizar(string nombre, Guid? contratanteId, string? descripcion)
+    public void Actualizar(string nombre, Guid? clienteId, string? descripcion)
     {
         Nombre = nombre.Trim();
-        ContratanteId = contratanteId;
+        ClienteId = clienteId;
         Descripcion = descripcion?.Trim();
     }
 

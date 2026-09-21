@@ -258,7 +258,8 @@ export class EmpleadosListComponent implements OnInit {
       {
         key: 'import',
         label: 'Importar desde Excel',
-        icon: 'upload',
+        icon: 'file-excel',
+        iconColor: 'excel',
         tooltip: 'Importar colaboradores desde archivo externo',
         execute: () => this.message.info('La importación masiva estará disponible próximamente.'),
       },

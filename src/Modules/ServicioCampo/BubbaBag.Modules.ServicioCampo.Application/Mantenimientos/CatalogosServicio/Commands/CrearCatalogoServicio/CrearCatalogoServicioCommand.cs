@@ -6,6 +6,6 @@ namespace BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.CatalogosSer
 
 public record CrearCatalogoServicioCommand(
     string Nombre,
-    Guid? ContratanteId,
+    Guid? ClienteId,
     string? Descripcion
 ) : ICommand<Result<Guid>>;

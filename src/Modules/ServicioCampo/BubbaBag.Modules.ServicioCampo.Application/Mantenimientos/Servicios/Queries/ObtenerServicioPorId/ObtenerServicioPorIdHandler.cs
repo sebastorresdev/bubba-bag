@@ -94,6 +94,7 @@ public class ObtenerServicioPorIdHandler : IQueryHandler<ObtenerServicioPorIdQue
             servicio.CatalogoServicio.Nombre,
             servicio.DuracionEstimadaMinutos,
             servicio.CodigoExterno,
+            servicio.PrecioBase,
             servicio.Activo,
             pasosDtos,
             materialesDtos,

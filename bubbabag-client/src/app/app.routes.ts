@@ -23,6 +23,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'ventas',
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['SuperAdmin', 'Gerencia', 'VentasAdmin', 'ServicioCampoAdmin'] },
+    loadChildren: () =>
+      import('./features/ventas/ventas.routes').then((m) => m.VENTAS_ROUTES),
+  },
+  {
     path: 'crm',
     canActivate: [authGuard, roleGuard],
     data: {

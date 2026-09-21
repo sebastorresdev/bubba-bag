@@ -83,7 +83,6 @@
               (nzCheckedChange)="toggleSelectAll($event)"
               class="col-checkbox"
             ></th>
-            <th [nzWidth]="'60px'" nzAlign="center">Icono</th>
             <th [nzWidth]="'280px'">Modalidad Operativa</th>
             <th [nzWidth]="'130px'" nzAlign="center">Visita Campo</th>
             <th [nzWidth]="'120px'" nzAlign="center">Exige Firma</th>
@@ -106,16 +105,6 @@
                 (click)="$event.stopPropagation()"
                 (nzCheckedChange)="toggleSelect(item.id)"
               ></td>
-
-              <!-- Circular Avatar con Iniciales -->
-              <td nzAlign="center">
-                <nz-avatar
-                  [nzSize]="32"
-                  [nzText]="getIniciales(item.nombre)"
-                  class="d365-circular-avatar"
-                  [style.backgroundColor]="item.colorHex || '#0f6cbd'"
-                ></nz-avatar>
-              </td>
 
               <!-- Nombre con enlace de edición -->
               <td class="col-primary-text">

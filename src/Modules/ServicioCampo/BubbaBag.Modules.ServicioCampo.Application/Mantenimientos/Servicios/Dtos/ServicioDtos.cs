@@ -37,6 +37,7 @@ public record ServicioItemDto(
     string CatalogoServicioNombre,
     int DuracionEstimadaMinutos,
     string? CodigoExterno,
+    decimal PrecioBase,
     int CantidadPasos,
     int CantidadMateriales,
     bool Activo
@@ -51,6 +52,7 @@ public record ServicioDetalleDto(
     string CatalogoServicioNombre,
     int DuracionEstimadaMinutos,
     string? CodigoExterno,
+    decimal PrecioBase,
     bool Activo,
     List<ServicioPasoDto> Pasos,
     List<ServicioMaterialDto> MaterialesTeoricos,

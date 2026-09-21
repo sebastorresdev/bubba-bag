@@ -7,7 +7,7 @@ namespace BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.CatalogosSer
 public record ActualizarCatalogoServicioCommand(
     Guid Id,
     string Nombre,
-    Guid? ContratanteId,
+    Guid? ClienteId,
     string? Descripcion,
     bool Activo
 ) : ICommand<Result>;

@@ -26,8 +26,8 @@ public class ObtenerCatalogoServicioPorIdHandler : IQueryHandler<ObtenerCatalogo
                 c.Id,
                 c.Nombre,
                 c.Descripcion,
-                c.ContratanteId,
-                c.Contratante != null ? c.Contratante.RazonSocial ?? c.Contratante.Nombres + " " + c.Contratante.Apellidos : null,
+                c.ClienteId,
+                c.Cliente != null ? c.Cliente.RazonSocial ?? c.Cliente.Nombres + " " + c.Cliente.Apellidos : null,
                 c.Servicios.Count,
                 c.Activo
             ))

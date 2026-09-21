@@ -23,7 +23,6 @@ import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
-import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
 @Component({
@@ -45,7 +44,6 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzCheckboxModule,
     NzDropdownModule,
     NzTooltipModule,
-    NzAvatarModule,
     CommandBarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -197,14 +195,6 @@ export class TiposOrdenListComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
-  getIniciales(nombre?: string): string {
-    if (!nombre || !nombre.trim()) return 'TO';
-    const parts = nombre.trim().split(/\s+/);
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return nombre.trim().substring(0, 2).toUpperCase();
-  }
 
   // Selección
   get isAllSelected(): boolean {

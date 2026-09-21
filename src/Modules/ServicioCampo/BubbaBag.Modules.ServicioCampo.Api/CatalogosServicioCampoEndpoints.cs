@@ -368,9 +368,13 @@ public static class CatalogosServicioCampoEndpoints
     }
 
     // Handlers - Catálogos de Servicio
-    private static async Task<IResult> ObtenerCatalogosServicio(IDispatcher dispatcher)
+    private static async Task<IResult> ObtenerCatalogosServicio(
+        IDispatcher dispatcher,
+        string? search,
+        Guid? clienteId,
+        bool? soloActivos)
     {
-        var result = await dispatcher.QueryAsync(new ObtenerCatalogosServicioQuery());
+        var result = await dispatcher.QueryAsync(new ObtenerCatalogosServicioQuery(search, clienteId, soloActivos));
         return Results.Ok(result.Value);
     }
 
@@ -395,7 +399,7 @@ public static class CatalogosServicioCampoEndpoints
         var command = new ActualizarCatalogoServicioCommand(
             id,
             request.Nombre,
-            request.ContratanteId,
+            request.ClienteId,
             request.Descripcion,
             request.Activo);
 
@@ -437,6 +441,7 @@ public static class CatalogosServicioCampoEndpoints
             request.DuracionEstimadaMinutos,
             request.Descripcion,
             request.CodigoExterno,
+            request.PrecioBase,
             request.Activo,
             request.Pasos,
             request.MaterialesTeoricos,
@@ -484,7 +489,7 @@ public static class CatalogosServicioCampoEndpoints
 
 public record ActualizarCatalogoServicioRequest(
     string Nombre,
-    Guid? ContratanteId,
+    Guid? ClienteId,
     string? Descripcion,
     bool Activo);
 
@@ -494,6 +499,7 @@ public record ActualizarServicioRequest(
     int DuracionEstimadaMinutos,
     string? Descripcion,
     string? CodigoExterno,
+    decimal PrecioBase,
     bool Activo,
     List<ServicioPasoInput>? Pasos,
     List<ServicioMaterialInput>? MaterialesTeoricos,

@@ -27,7 +27,7 @@
           </span>
           <nz-divider nzType="vertical" />
           <span class="meta-owner">
-            {{ isEdit ? (catalogoActual?.contratanteNombre || (catalogoActual?.contratanteId ? 'Contratante Externo' : 'Catálogo Propio')) : 'Catálogo Propio' }}
+            {{ isEdit ? (catalogoActual?.contratanteNombre || (catalogoActual?.contratanteId ? 'Cliente Asignado' : 'Catálogo Propio')) : 'Catálogo Propio' }}
           </span>
         </div>
       </div>
@@ -79,14 +79,14 @@
                     </nz-form-control>
                   </nz-form-item>
 
-                  <!-- Contratante / Mandante -->
+                  <!-- Cliente -->
                   <nz-form-item>
-                    <nz-form-label nzFor="contratanteId">Cliente Contratante</nz-form-label>
+                    <nz-form-label nzFor="contratanteId">Cliente</nz-form-label>
                     <nz-form-control nzExtra="Si se deja vacío, se considerará un catálogo propio de la empresa.">
                       <nz-select
                         formControlName="contratanteId"
                         id="contratanteId"
-                        nzPlaceHolder="Seleccionar contratante (o vacío si es propio)..."
+                        nzPlaceHolder="Seleccionar cliente (o vacío si es propio)..."
                         [nzLoading]="loadingClientes"
                         nzAllowClear
                         nzShowSearch

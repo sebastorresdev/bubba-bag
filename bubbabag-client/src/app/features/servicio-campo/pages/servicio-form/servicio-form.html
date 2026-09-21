@@ -97,7 +97,7 @@
 
                   <!-- Nombre -->
                   <nz-form-item>
-                    <nz-form-label nzRequired nzFor="nombre">Nombre de la Prestación</nz-form-label>
+                    <nz-form-label nzRequired nzFor="nombre">Nombre del Servicio</nz-form-label>
                     <nz-form-control nzErrorTip="Ingrese el nombre del servicio">
                       <input
                         nz-input
@@ -110,7 +110,7 @@
 
                   <!-- Catálogo -->
                   <nz-form-item>
-                    <nz-form-label nzRequired nzFor="catalogoServicioId">Catálogo Agrupador</nz-form-label>
+                    <nz-form-label nzRequired nzFor="catalogoServicioId">Catálogo</nz-form-label>
                     <nz-form-control nzErrorTip="Seleccione el catálogo al que pertenece este servicio">
                       <nz-select
                         formControlName="catalogoServicioId"
@@ -140,10 +140,25 @@
                     </nz-form-control>
                   </nz-form-item>
 
+                  <!-- Precio Base -->
+                  <nz-form-item>
+                    <nz-form-label nzRequired nzFor="precioBase">Precio Base (S/.)</nz-form-label>
+                    <nz-form-control nzErrorTip="Ingrese el precio base de venta" nzExtra="Precio por defecto si una orden no asocia una Lista de Precios específica.">
+                      <nz-input-number
+                        formControlName="precioBase"
+                        id="precioBase"
+                        [nzMin]="0"
+                        [nzStep]="1"
+                        [nzPrecision]="2"
+                        style="width: 160px;"
+                      ></nz-input-number>
+                    </nz-form-control>
+                  </nz-form-item>
+
                   <!-- Código Externo -->
                   <nz-form-item>
                     <nz-form-label nzFor="codigoExterno">Código Externo / Ref.</nz-form-label>
-                    <nz-form-control nzExtra="Código o SKU en el sistema del contratante (ej: Oracle Field Service o Siebel).">
+                    <nz-form-control nzExtra="Código o SKU en el sistema del cliente (ej: Oracle Field Service o Siebel).">
                       <input
                         nz-input
                         formControlName="codigoExterno"

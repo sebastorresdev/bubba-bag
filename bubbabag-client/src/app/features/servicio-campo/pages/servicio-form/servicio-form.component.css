@@ -61,11 +61,42 @@
   font-weight: 600 !important;
 }
 
-/* Distribución de campos horizontales Dynamics 365 */
+/* --------------------------------------------------------------------------
+   Tarjetas Dynamics 365 con Padding Oficial (24px)
+   -------------------------------------------------------------------------- */
+:host ::ng-deep .d365-card {
+  background-color: var(--d365-card-bg, #ffffff) !important;
+  border: 1px solid var(--d365-border-subtle, rgba(0, 0, 0, 0.08)) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+:host ::ng-deep .d365-card .ant-card-head {
+  padding: 0 24px !important;
+  min-height: 48px !important;
+  border-bottom: 1px solid var(--d365-border-subtle, rgba(0, 0, 0, 0.08)) !important;
+  display: flex;
+  align-items: center;
+}
+
+:host ::ng-deep .d365-card .ant-card-head-title {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  padding: 12px 0 !important;
+  color: var(--d365-text-primary, #201f1e) !important;
+}
+
+:host ::ng-deep .d365-card .ant-card-body {
+  padding: 24px !important;
+}
+
+/* --------------------------------------------------------------------------
+   Distribución de campos horizontales Dynamics 365 (Sin Wrap)
+   -------------------------------------------------------------------------- */
 .card-form-grid {
   display: flex !important;
   flex-direction: column !important;
-  gap: 14px !important;
+  gap: 16px !important;
   width: 100%;
 }
 
@@ -73,19 +104,20 @@
 :host ::ng-deep .card-form-grid .ant-form-item {
   display: flex !important;
   flex-direction: row !important;
+  flex-wrap: nowrap !important;
   align-items: flex-start !important;
   margin-bottom: 0 !important;
   min-height: 38px !important;
-  gap: 12px !important;
+  gap: 16px !important;
   width: 100% !important;
 }
 
 :host ::ng-deep .card-form-grid .ant-form-item-label {
-  flex: 0 0 190px !important;
-  max-width: 190px !important;
-  width: 190px !important;
+  flex: 0 0 170px !important;
+  max-width: 170px !important;
+  width: 170px !important;
   text-align: left !important;
-  padding: 5px 8px 0 0 !important;
+  padding: 6px 0 0 0 !important;
   line-height: 1.25 !important;
 }
 
@@ -102,9 +134,25 @@
 }
 
 :host ::ng-deep .card-form-grid .ant-form-item-control {
-  flex: 1 1 auto !important;
-  max-width: none !important;
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
   width: auto !important;
+}
+
+:host ::ng-deep .card-form-grid .ant-form-item-control-input {
+  min-height: 32px !important;
+}
+
+:host ::ng-deep .card-form-grid .ant-form-item-extra {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+  margin-top: 4px;
+}
+
+:host-context([data-theme='dark']) :host ::ng-deep .card-form-grid .ant-form-item-extra,
+:host-context(.dark-theme) :host ::ng-deep .card-form-grid .ant-form-item-extra {
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .step-circle {

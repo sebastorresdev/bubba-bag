@@ -6,8 +6,8 @@ public record CatalogoServicioDto(
     Guid Id,
     string Nombre,
     string? Descripcion,
-    Guid? ContratanteId,
-    string? ContratanteNombre,
+    Guid? ClienteId,
+    string? ClienteNombre,
     int CantidadServicios,
     bool Activo
 );

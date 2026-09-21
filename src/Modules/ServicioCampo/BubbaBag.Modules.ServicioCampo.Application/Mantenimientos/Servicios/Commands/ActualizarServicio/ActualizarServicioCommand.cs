@@ -13,6 +13,7 @@ public record ActualizarServicioCommand(
     int DuracionEstimadaMinutos,
     string? Descripcion,
     string? CodigoExterno,
+    decimal PrecioBase,
     bool Activo,
     List<ServicioPasoInput>? Pasos,
     List<ServicioMaterialInput>? MaterialesTeoricos,

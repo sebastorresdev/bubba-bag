@@ -21,9 +21,9 @@ public class CatalogoServicioConfiguration : IEntityTypeConfiguration<CatalogoSe
         builder.Property(c => c.Descripcion)
             .HasMaxLength(300);
 
-        builder.HasOne(c => c.Contratante)
+        builder.HasOne(c => c.Cliente)
             .WithMany()
-            .HasForeignKey(c => c.ContratanteId)
+            .HasForeignKey(c => c.ClienteId)
             .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasMany(c => c.Servicios)

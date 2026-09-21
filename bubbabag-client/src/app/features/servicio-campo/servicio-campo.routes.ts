@@ -9,10 +9,10 @@ import { TipoTareaFormComponent } from './pages/tipo-tarea-form/tipo-tarea-form.
 
 import { TipoOrdenFormComponent } from './pages/tipo-orden-form/tipo-orden-form.component';
 import { MotivoIncidenciaFormComponent } from './pages/motivo-incidencia-form/motivo-incidencia-form.component';
-import { CatalogosServicioListComponent } from './pages/catalogos-servicio-list/catalogos-servicio-list.component';
-import { CatalogoServicioFormComponent } from './pages/catalogo-servicio-form/catalogo-servicio-form.component';
 import { ServiciosListComponent } from './pages/servicios-list/servicios-list.component';
 import { ServicioFormComponent } from './pages/servicio-form/servicio-form.component';
+import { CatalogosServicioListComponent } from './pages/catalogos-servicio-list/catalogos-servicio-list.component';
+import { CatalogoServicioFormComponent } from './pages/catalogo-servicio-form/catalogo-servicio-form.component';
 
 export const SERVICIO_CAMPO_ROUTES: Routes = [
   {
@@ -37,17 +37,17 @@ export const SERVICIO_CAMPO_ROUTES: Routes = [
       {
         path: 'catalogos-servicio',
         component: CatalogosServicioListComponent,
-        title: 'Catálogos de Servicio - Servicio de Campo',
+        title: 'Catálogos de Servicios - Servicio de Campo',
       },
       {
         path: 'catalogos-servicio/nuevo',
         component: CatalogoServicioFormComponent,
-        title: 'Nuevo Catálogo de Servicio - Servicio de Campo',
+        title: 'Nuevo Catálogo de Servicios - Servicio de Campo',
       },
       {
         path: 'catalogos-servicio/editar/:id',
         component: CatalogoServicioFormComponent,
-        title: 'Editar Catálogo de Servicio - Servicio de Campo',
+        title: 'Editar Catálogo de Servicios - Servicio de Campo',
       },
       {
         path: 'servicios',

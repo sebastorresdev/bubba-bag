@@ -143,6 +143,7 @@ export interface ServicioItemDto {
   catalogoServicioId: string;
   catalogoServicioNombre: string;
   duracionEstimadaMinutos: number;
+  precioBase: number;
   codigoExterno?: string;
   cantidadPasos: number;
   cantidadMateriales: number;
@@ -157,6 +158,7 @@ export interface ServicioDetalleDto {
   catalogoServicioId: string;
   catalogoServicioNombre: string;
   duracionEstimadaMinutos: number;
+  precioBase: number;
   codigoExterno?: string;
   activo: boolean;
   pasos: ServicioPasoDto[];
@@ -183,6 +185,7 @@ export interface CrearServicioRequest {
   nombre: string;
   catalogoServicioId: string;
   duracionEstimadaMinutos: number;
+  precioBase?: number;
   descripcion?: string;
   codigoExterno?: string;
   pasos?: ServicioPasoInput[];
@@ -194,6 +197,7 @@ export interface ActualizarServicioRequest {
   nombre: string;
   catalogoServicioId: string;
   duracionEstimadaMinutos: number;
+  precioBase?: number;
   descripcion?: string;
   codigoExterno?: string;
   activo: boolean;

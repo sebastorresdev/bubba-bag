@@ -11,7 +11,7 @@ namespace BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.CatalogosSer
 
 public record ObtenerCatalogosServicioQuery(
     string? Search = null,
-    Guid? ContratanteId = null,
+    Guid? ClienteId = null,
     bool? SoloActivos = true
 ) : IQuery<Result<List<CatalogoServicioDto>>>;
 
@@ -28,7 +28,7 @@ public class ObtenerCatalogosServicioHandler : IQueryHandler<ObtenerCatalogosSer
     {
         var dbQuery = _context.CatalogosServicio
             .AsNoTracking()
-            .Include(c => c.Contratante)
+            .Include(c => c.Cliente)
             .Include(c => c.Servicios)
             .AsQueryable();
 
@@ -37,9 +37,9 @@ public class ObtenerCatalogosServicioHandler : IQueryHandler<ObtenerCatalogosSer
             dbQuery = dbQuery.Where(c => c.Activo == query.SoloActivos.Value);
         }
 
-        if (query.ContratanteId.HasValue)
+        if (query.ClienteId.HasValue)
         {
-            dbQuery = dbQuery.Where(c => c.ContratanteId == query.ContratanteId.Value);
+            dbQuery = dbQuery.Where(c => c.ClienteId == query.ClienteId.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(query.Search))
@@ -56,8 +56,8 @@ public class ObtenerCatalogosServicioHandler : IQueryHandler<ObtenerCatalogosSer
                 c.Id,
                 c.Nombre,
                 c.Descripcion,
-                c.ContratanteId,
-                c.Contratante != null ? c.Contratante.RazonSocial ?? c.Contratante.Nombres + " " + c.Contratante.Apellidos : null,
+                c.ClienteId,
+                c.Cliente != null ? c.Cliente.RazonSocial ?? c.Cliente.Nombres + " " + c.Cliente.Apellidos : null,
                 c.Servicios.Count(),
                 c.Activo
             ))
