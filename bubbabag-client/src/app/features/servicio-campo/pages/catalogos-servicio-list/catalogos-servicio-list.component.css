@@ -275,3 +275,10 @@
 tr.row-selected td {
   background-color: var(--ant-primary-1, #edf5fd) !important;
 }
+
+[data-theme='dark'] tr.row-selected td,
+.dark-theme tr.row-selected td,
+:host-context([data-theme='dark']) tr.row-selected td,
+:host-context(.dark-theme) tr.row-selected td {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
