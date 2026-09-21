@@ -213,3 +213,35 @@
   background-color: rgba(255, 255, 255, 0.08);
   color: rgba(255, 255, 255, 0.55);
 }
+
+:host ::ng-deep .d365-table .ant-table-pagination.ant-pagination {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 8px 16px !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+  background-color: #ffffff !important;
+  flex-shrink: 0 !important;
+}
+
+:host-context([data-theme='dark']) :host ::ng-deep .d365-table .ant-table-pagination.ant-pagination,
+:host-context(.dark-theme) :host ::ng-deep .d365-table .ant-table-pagination.ant-pagination {
+  border-top-color: rgba(255, 255, 255, 0.08) !important;
+  background-color: #1f1f1f !important;
+}
+
+:host ::ng-deep .d365-table .ant-pagination-total-text {
+  order: -1 !important;
+  margin-right: auto !important;
+  font-size: 12px !important;
+  color: #605e5c !important;
+  font-weight: 500 !important;
+}
+
+:host-context([data-theme='dark']) :host ::ng-deep .d365-table .ant-pagination-total-text,
+:host-context(.dark-theme) :host ::ng-deep .d365-table .ant-pagination-total-text {
+  color: #a19f9d !important;
+}
+

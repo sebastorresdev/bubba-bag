@@ -22,16 +22,16 @@
           <ul nz-menu>
             <li nz-menu-item (click)="cambiarVista('Activos')" [nzSelected]="vistaActual === 'Activos'">
               <nz-icon nzType="check" [style.visibility]="vistaActual === 'Activos' ? 'visible' : 'hidden'" />
-              <span>Catálogos Activos</span>
+              <span>Catálogos de Servicios Activos</span>
             </li>
             <li nz-menu-item (click)="cambiarVista('Inactivos')" [nzSelected]="vistaActual === 'Inactivos'">
               <nz-icon nzType="check" [style.visibility]="vistaActual === 'Inactivos' ? 'visible' : 'hidden'" />
-              <span>Catálogos Inactivos</span>
+              <span>Catálogos de Servicios Inactivos</span>
             </li>
             <li nz-menu-divider></li>
             <li nz-menu-item (click)="cambiarVista('Todos')" [nzSelected]="vistaActual === 'Todos'">
               <nz-icon nzType="check" [style.visibility]="vistaActual === 'Todos' ? 'visible' : 'hidden'" />
-              <span>Todos los Catálogos</span>
+              <span>Todos los Catálogos de Servicios</span>
             </li>
           </ul>
         </nz-dropdown-menu>
@@ -44,7 +44,7 @@
             type="text"
             [(ngModel)]="searchTerm"
             (ngModelChange)="onSearchChange()"
-            placeholder="Buscar por catálogo o cliente..."
+            placeholder="Filtrar por código, nombre..."
             class="search-input"
           />
           @if (searchTerm) {
@@ -54,19 +54,6 @@
           }
           <button class="search-icon-btn" (click)="onSearchChange()" title="Buscar">
             <nz-icon nzType="search" />
-          </button>
-        </div>
-
-        <div class="filter-actions">
-          <button
-            nz-button
-            nzType="default"
-            class="btn-refresh"
-            (click)="cargarDatos()"
-            [nzLoading]="loading"
-            nz-tooltip="Recargar datos"
-          >
-            <nz-icon nzType="reload" />
           </button>
         </div>
       </div>

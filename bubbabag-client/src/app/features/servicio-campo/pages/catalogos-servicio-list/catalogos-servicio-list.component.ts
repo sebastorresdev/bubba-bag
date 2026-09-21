@@ -66,7 +66,7 @@ export class CatalogosServicioListComponent implements OnInit {
 
   searchTerm = '';
   vistaActual: 'Activos' | 'Todos' | 'Inactivos' = 'Activos';
-  vistaActualTitulo = 'Catálogos Activos';
+  vistaActualTitulo = 'Catálogos de Servicios Activos';
 
   selectedIds = new Set<string>();
 
@@ -144,13 +144,13 @@ export class CatalogosServicioListComponent implements OnInit {
     this.vistaActual = vista;
     switch (vista) {
       case 'Activos':
-        this.vistaActualTitulo = 'Catálogos Activos';
+        this.vistaActualTitulo = 'Catálogos de Servicios Activos';
         break;
       case 'Todos':
-        this.vistaActualTitulo = 'Todos los Catálogos';
+        this.vistaActualTitulo = 'Todos los Catálogos de Servicios';
         break;
       case 'Inactivos':
-        this.vistaActualTitulo = 'Catálogos Inactivos';
+        this.vistaActualTitulo = 'Catálogos de Servicios Inactivos';
         break;
     }
     this.cargarDatos();
