@@ -12,8 +12,6 @@ import { ServicioFormComponent } from './pages/servicio-form/servicio-form.compo
 import { CatalogosServicioListComponent } from './pages/catalogos-servicio-list/catalogos-servicio-list.component';
 import { CatalogoServicioFormComponent } from './pages/catalogo-servicio-form/catalogo-servicio-form.component';
 import { OrdenesListComponent } from './pages/ordenes-list/ordenes-list.component';
-import { MisOrdenesListComponent } from './pages/mis-ordenes-list/mis-ordenes-list.component';
-
 export const SERVICIO_CAMPO_ROUTES: Routes = [
   {
     path: '',
@@ -23,11 +21,6 @@ export const SERVICIO_CAMPO_ROUTES: Routes = [
         path: 'ordenes',
         component: OrdenesListComponent,
         title: 'Órdenes de Trabajo - Servicio de Campo',
-      },
-      {
-        path: 'mis-ordenes',
-        component: MisOrdenesListComponent,
-        title: 'Mis Órdenes del Día - Servicio de Campo',
       },
       {
         path: 'tarifas-servicio',

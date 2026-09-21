@@ -1,45 +1,48 @@
-<div class="d365-page-container">
-  <!-- Command Bar Dynamics 365 -->
-  <app-command-bar [items]="commandBarItems"></app-command-bar>
+<app-command-bar [items]="commandBarItems"></app-command-bar>
 
-  <div class="d365-content-area">
-    <!-- Header de Vista y Búsqueda Dynamics 365 -->
-    <div class="d365-view-header">
-      <div class="view-selector-container">
+<div class="ordenes-view-wrapper">
+  <nz-card [nzBordered]="false" class="d365-table-card">
+    <!-- Toolbar de la Vista -->
+    <div class="d365-toolbar-row">
+      <!-- Selector de Vista (Dynamics 365 View Selector) -->
+      <div>
         <button
           nz-button
           nzType="text"
-          class="view-selector-btn"
           nz-dropdown
-          [nzDropdownMenu]="viewMenu"
+          [nzDropdownMenu]="viewsMenu"
           nzTrigger="click"
+          class="view-title-btn"
         >
-          <span class="view-title">{{ vistaActualTitulo }}</span>
-          <nz-icon nzType="down" class="view-chevron" />
+          <h1 class="view-title-text">{{ vistaActualTitulo }}</h1>
+          <nz-icon nzType="down" class="view-title-icon" />
         </button>
-        <nz-dropdown-menu #viewMenu="nzDropdownMenu">
-          <ul nz-menu class="d365-dropdown-menu">
+
+        <nz-dropdown-menu #viewsMenu="nzDropdownMenu">
+          <ul nz-menu>
             <li nz-menu-item (click)="cambiarVista('Todas')" [nzSelected]="vistaActual === 'Todas'">
-              <nz-icon nzType="check" *ngIf="vistaActual === 'Todas'" />
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Todas' ? 'visible' : 'hidden'" />
               <span>Todas las Órdenes de Trabajo</span>
             </li>
             <li nz-menu-item (click)="cambiarVista('Pendientes')" [nzSelected]="vistaActual === 'Pendientes'">
-              <nz-icon nzType="check" *ngIf="vistaActual === 'Pendientes'" />
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Pendientes' ? 'visible' : 'hidden'" />
               <span>Órdenes Pendientes</span>
             </li>
             <li nz-menu-item (click)="cambiarVista('EnProceso')" [nzSelected]="vistaActual === 'EnProceso'">
-              <nz-icon nzType="check" *ngIf="vistaActual === 'EnProceso'" />
-              <span>Órdenes en Progreso / En Ruta</span>
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'EnProceso' ? 'visible' : 'hidden'" />
+              <span>Órdenes en Progreso</span>
             </li>
+            <li nz-menu-divider></li>
             <li nz-menu-item (click)="cambiarVista('Completadas')" [nzSelected]="vistaActual === 'Completadas'">
-              <nz-icon nzType="check" *ngIf="vistaActual === 'Completadas'" />
+              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Completadas' ? 'visible' : 'hidden'" />
               <span>Órdenes Completadas</span>
             </li>
           </ul>
         </nz-dropdown-menu>
       </div>
 
-      <div class="view-actions-container">
+      <!-- Buscador Rápido -->
+      <div style="display: flex; gap: 8px; align-items: center;">
         <div class="d365-search-box">
           <input
             type="text"
@@ -48,9 +51,11 @@
             placeholder="Buscar por N° OT, cliente, técnico..."
             class="search-input"
           />
-          <button *ngIf="searchTerm" class="clear-btn" (click)="limpiarBusqueda()">
-            <nz-icon nzType="close" />
-          </button>
+          @if (searchTerm) {
+            <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
+              <nz-icon nzType="close" />
+            </button>
+          }
           <button class="search-icon-btn" (click)="onSearchChange()" title="Buscar">
             <nz-icon nzType="search" />
           </button>
@@ -84,83 +89,74 @@
         class="d365-table"
       >
         <ng-template #totalRangeTpl let-range="range" let-total="total">
-          <span class="pagination-total-text">
-            {{ range[0] }}-{{ range[1] }} de {{ total }} registros
-          </span>
+          {{ range[0] }} - {{ range[1] }} de {{ total }}
         </ng-template>
-
         <thead>
           <tr>
             <th
-              nzWidth="40px"
-              class="col-select"
+              [nzWidth]="'44px'"
               [nzChecked]="isAllSelected"
               [nzIndeterminate]="isIndeterminate"
-              (nzCheckedChange)="onSelectAll($event)"
+              (nzCheckedChange)="toggleSelectAll($event)"
+              class="col-checkbox"
             ></th>
-            <th nzWidth="120px">N° Orden</th>
-            <th nzWidth="180px">Cliente</th>
-            <th nzWidth="180px">Servicio</th>
-            <th nzWidth="220px">Dirección</th>
-            <th nzWidth="150px">Técnico</th>
-            <th nzWidth="140px">Fecha Prog.</th>
-            <th nzWidth="100px">Prioridad</th>
-            <th nzWidth="110px">Estado</th>
+            <th [nzWidth]="'130px'">N° Orden</th>
+            <th [nzWidth]="'240px'">Cliente</th>
+            <th [nzWidth]="'200px'">Servicio</th>
+            <th>Dirección de Atención</th>
+            <th [nzWidth]="'160px'">Técnico Asignado</th>
+            <th [nzWidth]="'140px'" nzAlign="center">Fecha Prog.</th>
+            <th [nzWidth]="'110px'" nzAlign="center">Prioridad</th>
+            <th [nzWidth]="'120px'" nzAlign="center">Estado</th>
           </tr>
         </thead>
         <tbody>
-          <tr
-            *ngFor="let item of ordenesTable.data"
-            [class.row-selected]="selectedIds.has(item.id)"
-            (click)="onItemSelect(item.id, !selectedIds.has(item.id))"
-          >
-            <td
-              class="col-select"
-              [nzChecked]="selectedIds.has(item.id)"
-              (nzCheckedChange)="onItemSelect(item.id, $event)"
-              (click)="$event.stopPropagation()"
-            ></td>
-            <td class="col-code font-semibold">
-              <span class="cell-link" (click)="verDetalle(item.id); $event.stopPropagation()">
-                {{ item.numero }}
-              </span>
-            </td>
-            <td>{{ item.cliente }}</td>
-            <td>{{ item.servicio }}</td>
-            <td class="text-secondary">{{ item.direccion }}</td>
-            <td>{{ item.tecnico || 'Sin asignar' }}</td>
-            <td>{{ item.fechaProgramada }}</td>
-            <td>
-              <nz-tag [nzColor]="item.prioridad === 'Alta' ? 'red' : item.prioridad === 'Media' ? 'orange' : 'blue'">
-                {{ item.prioridad }}
-              </nz-tag>
-            </td>
-            <td>
-              <nz-tag [nzColor]="item.estado === 'Completada' ? 'green' : item.estado === 'Cancelada' ? 'default' : 'processing'">
-                {{ item.estado }}
-              </nz-tag>
-            </td>
-          </tr>
+          @for (item of ordenesTable.data; track item.id) {
+            <tr
+              class="d365-data-row"
+              [class.row-selected]="selectedIds.has(item.id)"
+              (click)="toggleSelect(item.id)"
+              (dblclick)="editar(item.id)"
+            >
+              <td
+                class="col-checkbox"
+                [nzChecked]="selectedIds.has(item.id)"
+                (click)="$event.stopPropagation()"
+                (nzCheckedChange)="toggleSelect(item.id)"
+              ></td>
+
+              <td class="col-primary-text">
+                <span class="nombre-link" (click)="$event.stopPropagation(); editar(item.id)">
+                  {{ item.numero }}
+                </span>
+              </td>
+
+              <td class="col-text">{{ item.cliente }}</td>
+              <td class="col-text">{{ item.servicio }}</td>
+              <td class="col-desc">{{ item.direccion }}</td>
+              <td class="col-text">{{ item.tecnico || 'Sin asignar' }}</td>
+              <td nzAlign="center" class="col-desc">{{ item.fechaProgramada }}</td>
+              <td nzAlign="center">
+                <nz-tag
+                  class="d365-priority-tag"
+                  [nzColor]="item.prioridad === 'Alta' ? 'red' : item.prioridad === 'Media' ? 'orange' : 'blue'"
+                >
+                  {{ item.prioridad }}
+                </nz-tag>
+              </td>
+              <td nzAlign="center">
+                <nz-tag
+                  class="d365-status-tag"
+                  [class.tag-active]="item.estado === 'Completada'"
+                  [class.tag-inactive]="item.estado === 'Cancelada'"
+                >
+                  {{ item.estado }}
+                </nz-tag>
+              </td>
+            </tr>
+          }
         </tbody>
       </nz-table>
-
-      <!-- Estado Vacío -->
-      <div *ngIf="!loading && ordenesFiltradas.length === 0" class="d365-empty-state">
-        <nz-empty
-          [nzNotFoundImage]="'simple'"
-          [nzNotFoundContent]="contentTpl"
-        >
-          <ng-template #contentTpl>
-            <p class="empty-title">No hay órdenes de trabajo para mostrar</p>
-            <p class="empty-desc">
-              {{ searchTerm ? 'No se encontraron registros que coincidan con la búsqueda.' : 'Cree su primera orden de trabajo con el botón superior.' }}
-            </p>
-            <button nz-button nzType="primary" class="btn-d365-primary" (click)="nuevaOrden()">
-              <nz-icon nzType="plus" /> Nueva Orden
-            </button>
-          </ng-template>
-        </nz-empty>
-      </div>
     </div>
-  </div>
+  </nz-card>
 </div>

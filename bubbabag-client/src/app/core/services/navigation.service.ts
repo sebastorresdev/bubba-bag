@@ -206,29 +206,13 @@ export class NavigationService {
         {
           title: 'Órdenes de Trabajo',
           icon: 'solution',
-          open: true,
-          children: [
-            {
-              title: 'Todas las Órdenes',
-              path: '/servicio-campo/ordenes',
-              requiredRoles: [
-                'SuperAdmin',
-                'Gerencia',
-                'ServicioCampoAdmin',
-                'ServicioCampoBackoffice',
-              ],
-            },
-            {
-              title: 'Mis Órdenes del Día',
-              path: '/servicio-campo/mis-ordenes',
-              requiredRoles: [
-                'SuperAdmin',
-                'Gerencia',
-                'ServicioCampoAdmin',
-                'ServicioCampoBackoffice',
-                'ServicioCampoTecnico',
-              ],
-            },
+          path: '/servicio-campo/ordenes',
+          requiredRoles: [
+            'SuperAdmin',
+            'Gerencia',
+            'ServicioCampoAdmin',
+            'ServicioCampoBackoffice',
+            'ServicioCampoTecnico',
           ],
         },
         {

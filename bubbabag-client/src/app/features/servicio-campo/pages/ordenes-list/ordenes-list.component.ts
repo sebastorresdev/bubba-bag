@@ -21,7 +21,6 @@ import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
-import { NzBadgeModule } from 'ng-zorro-antd/badge';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 
 export interface OrdenTrabajoItemDto {
@@ -55,7 +54,6 @@ export interface OrdenTrabajoItemDto {
     NzCheckboxModule,
     NzDropdownModule,
     NzTooltipModule,
-    NzBadgeModule,
     CommandBarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -100,36 +98,36 @@ export class OrdenesListComponent implements OnInit {
     return [
       {
         key: 'new',
-        label: 'Nueva Orden',
+        label: 'Nuevo',
         icon: 'plus',
         iconColor: 'success',
         tooltip: 'Crear nueva orden de trabajo',
-        execute: () => this.nuevaOrden(),
+        execute: () => this.nuevo(),
       },
       {
-        key: 'view',
-        label: 'Ver Detalle',
-        icon: 'eye',
+        key: 'edit',
+        label: 'Editar',
+        icon: 'edit',
         iconColor: 'primary',
         disabled: !esUnico,
-        tooltip: esUnico ? 'Ver orden de trabajo seleccionada' : 'Seleccione una orden',
+        tooltip: esUnico ? 'Editar orden seleccionada' : 'Seleccione exactamente una orden',
         execute: () => {
           const id = Array.from(this.selectedIds)[0];
-          if (id) this.verDetalle(id);
+          if (id) this.editar(id);
         },
       },
       {
         key: 'refresh',
         label: 'Actualizar',
         icon: 'reload',
-        tooltip: 'Refrescar listado',
+        tooltip: 'Actualizar lista',
         execute: () => this.cargarDatos(),
       },
       {
         key: 'export',
         label: 'Exportar a Excel',
         icon: 'file-excel',
-        tooltip: 'Descargar datos actuales',
+        tooltip: 'Exportar datos actuales a Excel',
         execute: () => this.exportar(),
       },
     ];
@@ -143,13 +141,12 @@ export class OrdenesListComponent implements OnInit {
     this.loading = true;
     this.cdr.markForCheck();
 
-    // Simulación inicial mientras no haya OTs registradas en backend
     setTimeout(() => {
       this.ordenes = [];
       this.aplicarFiltrosLocales();
       this.loading = false;
       this.cdr.markForCheck();
-    }, 250);
+    }, 150);
   }
 
   cambiarVista(vista: 'Todas' | 'Pendientes' | 'EnProceso' | 'Completadas'): void {
@@ -159,7 +156,7 @@ export class OrdenesListComponent implements OnInit {
         this.vistaActualTitulo = 'Órdenes Pendientes';
         break;
       case 'EnProceso':
-        this.vistaActualTitulo = 'Órdenes en Progreso / En Ruta';
+        this.vistaActualTitulo = 'Órdenes en Progreso';
         break;
       case 'Completadas':
         this.vistaActualTitulo = 'Órdenes Completadas';
@@ -209,7 +206,7 @@ export class OrdenesListComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
-  onSelectAll(checked: boolean): void {
+  toggleSelectAll(checked: boolean): void {
     if (checked) {
       this.ordenesFiltradas.forEach((item) => this.selectedIds.add(item.id));
     } else {
@@ -218,21 +215,21 @@ export class OrdenesListComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
-  onItemSelect(id: string, checked: boolean): void {
-    if (checked) {
-      this.selectedIds.add(id);
-    } else {
+  toggleSelect(id: string): void {
+    if (this.selectedIds.has(id)) {
       this.selectedIds.delete(id);
+    } else {
+      this.selectedIds.add(id);
     }
     this.cdr.markForCheck();
   }
 
-  nuevaOrden(): void {
+  nuevo(): void {
     this.message.info('El flujo de creación de Órdenes de Trabajo estará disponible próximamente.');
   }
 
-  verDetalle(id: string): void {
-    this.message.info(`Abriendo detalle de orden: ${id}`);
+  editar(id: string): void {
+    this.message.info(`Abriendo orden de trabajo: ${id}`);
   }
 
   exportar(): void {
