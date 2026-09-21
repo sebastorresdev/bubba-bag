@@ -1,0 +1,189 @@
+<div class="view-selector-container">
+  <!-- Disparador con Estilo de Botón Dynamics 365 (Sombra y Fondo suave al pasar el cursor) -->
+  <button
+    type="button"
+    nz-button
+    nzType="text"
+    nz-dropdown
+    [nzDropdownMenu]="viewsMenu"
+    [(nzVisible)]="dropdownVisible"
+    nzTrigger="click"
+    nzPlacement="bottomLeft"
+    class="view-title-btn d365-view-trigger"
+    title="Cambiar vista o administrar vistas"
+  >
+    <span class="view-title-text trigger-label">
+      {{ vistaActualNombre }}<span *ngIf="esModificada" class="view-dirty-asterisk" title="Vista con cambios sin guardar">*</span>
+    </span>
+    <nz-icon nzType="down" class="view-title-icon trigger-chevron" />
+  </button>
+
+  <!-- Panel Desplegable de Vistas Estilo Dynamics 365 -->
+  <nz-dropdown-menu #viewsMenu="nzDropdownMenu">
+    <div class="d365-views-dropdown-panel" (click)="$event.stopPropagation()">
+      <!-- Buscador de Vistas ("Search views") -->
+      <div class="search-views-wrapper">
+        <nz-input-group nzPrefixIcon="search">
+          <input
+            type="text"
+            nz-input
+            [(ngModel)]="busqueda"
+            placeholder="Buscar vistas..."
+            class="search-views-input"
+            (click)="$event.stopPropagation()"
+          />
+        </nz-input-group>
+      </div>
+
+      <!-- Lista de Vistas con Scroll -->
+      <ul nz-menu class="views-menu-list">
+        @if (vistasFiltradas.length === 0) {
+          <li nz-menu-item nzDisabled class="empty-views-item">
+            <span>No se encontraron vistas</span>
+          </li>
+        }
+
+        @for (vista of vistasFiltradas; track vista.key) {
+          <li
+            nz-menu-item
+            (click)="seleccionarVista(vista)"
+            [nzSelected]="vista.key === vistaActualKey || vista.id === vistaActualKey"
+            class="view-menu-row"
+          >
+            <!-- Checkmark si está seleccionada -->
+            <div class="check-col">
+              @if (vista.key === vistaActualKey || vista.id === vistaActualKey) {
+                <nz-icon nzType="check" class="row-check-icon" />
+              }
+            </div>
+
+            <!-- Nombre de la Vista -->
+            <span class="view-name-text" [title]="vista.descripcion || vista.nombre">
+              {{ vista.nombre }}
+            </span>
+
+            <!-- Badge si es predeterminada -->
+            @if (vista.esPredeterminada) {
+              <span class="default-badge">Predeterminada</span>
+            }
+
+            <!-- Botones de Acción (Pin / Eliminar) -->
+            <div class="row-actions" (click)="$event.stopPropagation()">
+              <button
+                type="button"
+                class="action-icon-btn pin-btn"
+                [class.pinned]="vista.esPredeterminada"
+                (click)="establecerPredeterminada(vista, $event)"
+                [title]="vista.esPredeterminada ? 'Es la vista predeterminada' : 'Establecer como vista predeterminada'"
+              >
+                <nz-icon [nzType]="vista.esPredeterminada ? 'pushpin' : 'pushpin'" [nzTheme]="vista.esPredeterminada ? 'fill' : 'outline'" />
+              </button>
+
+              @if (!vista.esSistema && vista.id) {
+                <button
+                  type="button"
+                  class="action-icon-btn delete-btn"
+                  (click)="eliminarVista(vista, $event)"
+                  title="Eliminar vista personalizada"
+                >
+                  <nz-icon nzType="delete" />
+                </button>
+              }
+            </div>
+          </li>
+        }
+
+        <!-- Separador -->
+        <li nz-menu-divider></li>
+
+        @if (esModificada && esVistaPersonalizada) {
+          <li
+            nz-menu-item
+            (click)="onGuardarCambios($event)"
+            class="action-menu-row"
+          >
+            <div class="check-col">
+              <nz-icon nzType="save" class="action-row-icon" />
+            </div>
+            <span class="action-row-text">Guardar cambios en esta vista</span>
+          </li>
+        }
+
+        <!-- Acción: Guardar como nueva vista -->
+        <li
+          nz-menu-item
+          (click)="abrirModalGuardar($event)"
+          class="action-menu-row"
+        >
+          <div class="check-col">
+            <nz-icon nzType="plus" class="action-row-icon" />
+          </div>
+          <span class="action-row-text">Guardar como nueva vista</span>
+        </li>
+
+        @if (esModificada) {
+          <li
+            nz-menu-item
+            (click)="onDescartarCambios($event)"
+            class="action-menu-row text-danger"
+          >
+            <div class="check-col">
+              <nz-icon nzType="undo" class="action-row-icon" />
+            </div>
+            <span class="action-row-text">Descartar cambios</span>
+          </li>
+        }
+      </ul>
+    </div>
+  </nz-dropdown-menu>
+</div>
+
+<!-- Modal Dynamics 365: Guardar como nueva vista -->
+<nz-modal
+  [(nzVisible)]="modalVisible"
+  nzTitle="Guardar como nueva vista"
+  (nzOnCancel)="cerrarModal()"
+  (nzOnOk)="guardarNuevaVista()"
+  [nzOkLoading]="guardandoVista"
+  [nzOkText]="'Guardar'"
+  [nzCancelText]="'Cancelar'"
+  [nzWidth]="480"
+  [nzMaskClosable]="false"
+>
+  <ng-container *nzModalContent>
+    <p class="modal-subtitle">
+      La vista se almacenará en la lista de vistas guardadas
+    </p>
+
+    <div class="modal-form-group">
+      <label class="form-label required">Nombre</label>
+      <input
+        type="text"
+        nz-input
+        [(ngModel)]="nuevoNombre"
+        placeholder="Ej. Mis Órdenes Prioritarias"
+        class="form-control"
+        maxlength="100"
+        autofocus
+      />
+    </div>
+
+    <div class="modal-form-group">
+      <label class="form-label">Descripción</label>
+      <textarea
+        nz-input
+        [(ngModel)]="nuevaDescripcion"
+        placeholder="Opcional: detalla el propósito de esta vista..."
+        rows="3"
+        class="form-control"
+        maxlength="300"
+      ></textarea>
+    </div>
+
+    <div class="modal-checkbox-group">
+      <label nz-checkbox [(ngModel)]="marcarComoPredeterminada">
+        <span>Establecer como vista predeterminada</span>
+      </label>
+    </div>
+  </ng-container>
+</nz-modal>

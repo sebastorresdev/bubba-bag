@@ -29,14 +29,13 @@ import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzModalModule } from 'ng-zorro-antd/modal';
 import { NzDatePickerModule } from 'ng-zorro-antd/date-picker';
-import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
-import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
 import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
+import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
 
 @Component({
   selector: 'app-empleados-list',
@@ -54,14 +53,13 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzSelectModule,
     NzModalModule,
     NzDatePickerModule,
-    NzTooltipModule,
     NzCardModule,
     NzEmptyModule,
     NzAvatarModule,
     NzCheckboxModule,
-    NzDropdownModule,
     NzDrawerModule,
     CommandBarComponent,
+    ViewSelectorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './empleados-list.html',
@@ -77,9 +75,19 @@ export class EmpleadosListComponent implements OnInit {
   loading = false;
 
   // Vistas de Sistema (Dynamics 365 View Selector)
-  vistaActual: 'Activos' | 'Todos' | 'Vacaciones' | 'Cesados' = 'Activos';
+  vistaActual = 'Activos';
+  vistasSistema: VistaItem[] = [
+    { key: 'Activos', nombre: 'Colaboradores Activos', esSistema: true, esPredeterminada: true },
+    { key: 'Todos', nombre: 'Todos los Colaboradores', esSistema: true },
+    { key: 'Vacaciones', nombre: 'En Vacaciones / Licencia', esSistema: true },
+    { key: 'Cesados', nombre: 'Colaboradores Cesados', esSistema: true },
+  ];
   drawerFiltrosVisible = false;
   drawerColumnasVisible = false;
+
+  onVistaChange(vista: VistaItem): void {
+    this.cambiarVista(vista.key);
+  }
 
   // Definición de Columnas Visibles (Dynamics 365 Edit Columns)
   columnas = [
@@ -126,6 +134,8 @@ export class EmpleadosListComponent implements OnInit {
         return 'En Vacaciones / Licencia';
       case 'Cesados':
         return 'Colaboradores Cesados';
+      default:
+        return 'Colaboradores';
     }
   }
 
@@ -371,7 +381,7 @@ export class EmpleadosListComponent implements OnInit {
       });
   }
 
-  cambiarVista(vista: 'Activos' | 'Todos' | 'Vacaciones' | 'Cesados') {
+  cambiarVista(vista: string) {
     this.vistaActual = vista;
     switch (vista) {
       case 'Activos':

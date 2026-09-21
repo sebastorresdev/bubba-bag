@@ -51,7 +51,9 @@ export class ThemeService {
       document.body.classList.remove('dark-theme');
 
       if (link) {
-        link.disabled = true;
+        // Remover el nodo del DOM fuerza al navegador a purgar completamente
+        // las reglas CSS cacheadas, eliminando residuos visuales instantáneamente
+        link.remove();
       }
     }
   }

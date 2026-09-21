@@ -25,8 +25,8 @@ public class ObtenerMotivosIncidenciaHandler : IQueryHandler<ObtenerMotivosIncid
         if (request.Ambito.HasValue)
             query = query.Where(m => m.Ambito == request.Ambito.Value);
 
-        if (request.SoloActivos == true)
-            query = query.Where(m => m.Activo);
+        if (request.SoloActivos.HasValue)
+            query = query.Where(m => m.Activo == request.SoloActivos.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {

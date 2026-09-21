@@ -28,8 +28,8 @@ public class ObtenerTiposTareaServicioHandler : IQueryHandler<ObtenerTiposTareaS
             query = query.Where(t => t.ClienteFacturacionId == request.ClienteFacturacionId.Value);
         }
 
-        if (request.SoloActivos == true)
-            query = query.Where(t => t.Activo);
+        if (request.SoloActivos.HasValue)
+            query = query.Where(t => t.Activo == request.SoloActivos.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {

@@ -5,44 +5,15 @@
     <!-- Toolbar de la Vista -->
     <div class="d365-toolbar-row">
       <!-- Selector de Vista (Dynamics 365 View Selector) -->
-      <div>
-        <button
-          nz-button
-          nzType="text"
-          nz-dropdown
-          [nzDropdownMenu]="viewsMenu"
-          nzTrigger="click"
-          class="view-title-btn"
-        >
-          <h1 class="view-title-text">{{ vistaActualTitulo }}</h1>
-          <nz-icon nzType="down" class="view-title-icon" />
-        </button>
-
-        <nz-dropdown-menu #viewsMenu="nzDropdownMenu">
-          <ul nz-menu>
-            <li nz-menu-item (click)="cambiarVista('Todas')" [nzSelected]="vistaActual === 'Todas'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Todas' ? 'visible' : 'hidden'" />
-              <span>Todas las Órdenes de Trabajo</span>
-            </li>
-            <li nz-menu-item (click)="cambiarVista('Pendientes')" [nzSelected]="vistaActual === 'Pendientes'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Pendientes' ? 'visible' : 'hidden'" />
-              <span>Órdenes Pendientes</span>
-            </li>
-            <li nz-menu-item (click)="cambiarVista('EnProceso')" [nzSelected]="vistaActual === 'EnProceso'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'EnProceso' ? 'visible' : 'hidden'" />
-              <span>Órdenes en Progreso</span>
-            </li>
-            <li nz-menu-divider></li>
-            <li nz-menu-item (click)="cambiarVista('Completadas')" [nzSelected]="vistaActual === 'Completadas'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Completadas' ? 'visible' : 'hidden'" />
-              <span>Órdenes Completadas</span>
-            </li>
-          </ul>
-        </nz-dropdown-menu>
-      </div>
+      <app-view-selector
+        entidad="OrdenesTrabajo"
+        [vistasSistema]="vistasSistema"
+        [(vistaActualKey)]="vistaActual"
+        (vistaChange)="onVistaChange($event)"
+      ></app-view-selector>
 
       <!-- Buscador Rápido -->
-      <div style="display: flex; gap: 8px; align-items: center;">
+      <div class="view-tools-group">
         <div class="d365-search-box">
           <input
             type="text"

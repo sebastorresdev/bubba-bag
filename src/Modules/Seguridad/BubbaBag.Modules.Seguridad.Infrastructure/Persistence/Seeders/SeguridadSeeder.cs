@@ -113,6 +113,7 @@ public static class SeguridadSeeder
         {
             admin = new Usuario
             {
+                Id = Guid.Parse("00000000-0000-0000-0000-000000000001"),
                 UserName = "admin@bubbabag.com",
                 Email = "admin@bubbabag.com",
                 NombreCompleto = "Desarrollador / SuperAdmin"

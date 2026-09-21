@@ -5,37 +5,12 @@
     <!-- Toolbar de la Vista -->
     <div class="d365-toolbar-row">
       <!-- Selector de Vista (Dynamics 365 View Selector) -->
-      <div>
-        <button
-          nz-button
-          nzType="text"
-          nz-dropdown
-          [nzDropdownMenu]="viewsMenu"
-          nzTrigger="click"
-          class="view-title-btn"
-        >
-          <h1 class="view-title-text">{{ vistaActualTitulo }}</h1>
-          <nz-icon nzType="down" class="view-title-icon" />
-        </button>
-
-        <nz-dropdown-menu #viewsMenu="nzDropdownMenu">
-          <ul nz-menu>
-            <li nz-menu-item (click)="cambiarVista('Activos')" [nzSelected]="vistaActual === 'Activos'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Activos' ? 'visible' : 'hidden'" />
-              <span>Servicios Activos</span>
-            </li>
-            <li nz-menu-item (click)="cambiarVista('Inactivos')" [nzSelected]="vistaActual === 'Inactivos'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Inactivos' ? 'visible' : 'hidden'" />
-              <span>Servicios Inactivos</span>
-            </li>
-            <li nz-menu-divider></li>
-            <li nz-menu-item (click)="cambiarVista('Todos')" [nzSelected]="vistaActual === 'Todos'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Todos' ? 'visible' : 'hidden'" />
-              <span>Todos los Servicios</span>
-            </li>
-          </ul>
-        </nz-dropdown-menu>
-      </div>
+      <app-view-selector
+        entidad="Servicios"
+        [vistasSistema]="vistasSistema"
+        [(vistaActualKey)]="vistaActual"
+        (vistaChange)="onVistaChange($event)"
+      ></app-view-selector>
 
       <!-- Filtros y Buscador Rápido -->
       <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">

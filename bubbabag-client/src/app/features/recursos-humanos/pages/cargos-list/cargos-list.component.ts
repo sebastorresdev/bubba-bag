@@ -30,10 +30,10 @@ import { NzFormModule } from 'ng-zorro-antd/form';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
-import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
-import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 import { OrganigramaModalComponent } from '../../components/organigrama-modal/organigrama-modal.component';
+import { VistaItem } from '../../../../shared/components/view-selector';
+import { EntityTableComponent, CellDefDirective, ColumnDef } from '../../../../shared/components/entity-table';
 
 @Component({
   selector: 'app-cargos-list',
@@ -57,10 +57,10 @@ import { OrganigramaModalComponent } from '../../components/organigrama-modal/or
     NzCardModule,
     NzEmptyModule,
     NzCheckboxModule,
-    NzDropdownModule,
-    NzTooltipModule,
     CommandBarComponent,
     OrganigramaModalComponent,
+    EntityTableComponent,
+    CellDefDirective,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './cargos-list.html',
@@ -89,6 +89,69 @@ export class CargosListComponent implements OnInit {
 
   // Vistas D365
   vistaActual: 'Activos' | 'Todos' | 'Inactivos' = 'Activos';
+
+  columnas: ColumnDef[] = [
+    {
+      key: 'jerarquia',
+      title: 'Jerarquía',
+      width: '54px',
+      align: 'center',
+      sortable: false,
+      canHide: false,
+    },
+    {
+      key: 'nombre',
+      title: 'Nombre del Cargo',
+      width: '280px',
+      sortable: true,
+      filterType: 'text',
+      canHide: false,
+      primaryLink: true,
+    },
+    {
+      key: 'departamentoNombre',
+      title: 'Departamento / Área',
+      width: '240px',
+      sortable: true,
+      filterType: 'text',
+    },
+    {
+      key: 'salarioReferencial',
+      title: 'Salario Referencial',
+      width: '180px',
+      align: 'right',
+      sortable: true,
+    },
+    {
+      key: 'totalEmpleados',
+      title: 'Colaboradores',
+      width: '160px',
+      align: 'center',
+      sortable: true,
+    },
+    {
+      key: 'activo',
+      title: 'Estado',
+      width: '120px',
+      align: 'center',
+      sortable: true,
+      filterType: 'select',
+      filterOptions: [
+        { label: 'Activo', value: true },
+        { label: 'Inactivo', value: false },
+      ],
+    },
+  ];
+
+  vistasSistema: VistaItem[] = [
+    { key: 'Activos', nombre: 'Cargos Activos', esSistema: true, esPredeterminada: true },
+    { key: 'Inactivos', nombre: 'Cargos Inactivos', esSistema: true, esPredeterminada: false },
+    { key: 'Todos', nombre: 'Todos los Cargos', esSistema: true, esPredeterminada: false },
+  ];
+
+  onVistaChange(vista: VistaItem): void {
+    this.cambiarVista(vista.key);
+  }
 
   // Selección
   selectedIds = new Set<string>();
@@ -144,6 +207,8 @@ export class CargosListComponent implements OnInit {
         return 'Cargos y Puestos Inactivos';
       case 'Todos':
         return 'Todos los Cargos y Puestos';
+      default:
+        return 'Cargos y Puestos';
     }
   }
 
@@ -257,9 +322,9 @@ export class CargosListComponent implements OnInit {
     });
   }
 
-  cambiarVista(vista: 'Activos' | 'Todos' | 'Inactivos'): void {
-    if (this.vistaActual === vista) return;
-    this.vistaActual = vista;
+  cambiarVista(vista: string): void {
+    this.vistaActual = (vista as any) || 'Activos';
+    this.selectedIds.clear();
     this.cargarCargos();
   }
 

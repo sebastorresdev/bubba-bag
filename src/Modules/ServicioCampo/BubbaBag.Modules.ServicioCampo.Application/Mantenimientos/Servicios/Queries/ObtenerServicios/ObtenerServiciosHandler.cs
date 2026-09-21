@@ -32,9 +32,9 @@ public class ObtenerServiciosHandler : IQueryHandler<ObtenerServiciosQuery, Resu
             query = query.Where(s => s.CatalogoServicioId == request.CatalogoServicioId.Value);
         }
 
-        if (request.SoloActivos == true)
+        if (request.SoloActivos.HasValue)
         {
-            query = query.Where(s => s.Activo);
+            query = query.Where(s => s.Activo == request.SoloActivos.Value);
         }
 
         var list = await query

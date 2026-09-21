@@ -22,8 +22,8 @@ public class ObtenerTiposOrdenTrabajoHandler : IQueryHandler<ObtenerTiposOrdenTr
     {
         var query = _context.TiposOrdenTrabajo.AsNoTracking().AsQueryable();
 
-        if (request.SoloActivos == true)
-            query = query.Where(t => t.Activo);
+        if (request.SoloActivos.HasValue)
+            query = query.Where(t => t.Activo == request.SoloActivos.Value);
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {

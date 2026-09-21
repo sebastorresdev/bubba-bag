@@ -1,0 +1,304 @@
+:host {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.d365-table-card,
+:host ::ng-deep .ant-card.d365-table-card {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  border-radius: 0 !important;
+  border: none !important;
+  background-color: var(--d365-bg-card, #ffffff) !important;
+}
+
+:host ::ng-deep .ant-card.d365-table-card > .ant-card-body {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  background-color: var(--d365-bg-card, #ffffff) !important;
+}
+
+.d365-toolbar-row {
+  flex-shrink: 0 !important;
+}
+
+.d365-grid-container {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  background-color: var(--d365-bg-card, #ffffff) !important;
+}
+
+.d365-table,
+:host ::ng-deep .d365-table {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
+:host ::ng-deep .d365-table .ant-table-wrapper,
+:host ::ng-deep .d365-table .ant-spin-nested-loading,
+:host ::ng-deep .d365-table .ant-spin-container {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
+:host ::ng-deep .d365-table .ant-table {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+:host ::ng-deep .d365-table .ant-table-container {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+}
+
+:host ::ng-deep .d365-table .ant-table-content {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+}
+
+:host ::ng-deep .d365-table thead.ant-table-thead > tr > th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 2 !important;
+}
+
+:host ::ng-deep .d365-table .ant-table-pagination.ant-pagination {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 8px 16px !important;
+  border-top: 1px solid var(--d365-border-color, rgba(0, 0, 0, 0.06)) !important;
+  background-color: var(--d365-pagination-bg, #ffffff) !important;
+  flex-shrink: 0 !important;
+}
+
+:host ::ng-deep .d365-table .ant-pagination-total-text {
+  order: -1 !important;
+  margin-right: auto !important;
+  font-size: 12px !important;
+  color: var(--d365-pagination-total, #605e5c) !important;
+  font-weight: 500 !important;
+}
+
+/* --- Botón "Editar columnas" estilo Dynamics 365 --- */
+.d365-btn-edit-cols {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  height: 32px !important;
+  padding: 0 12px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: var(--d365-text-primary, #323130) !important;
+  background: transparent !important;
+  border: 1px solid var(--d365-border-subtle, #e1dfdd) !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.d365-btn-edit-cols:hover {
+  background: var(--d365-row-hover-bg, #f3f2f1) !important;
+  border-color: var(--d365-border-strong, #8a8886) !important;
+  color: var(--d365-primary-blue, #0078d4) !important;
+}
+
+/* --- Cabeceras con Filtro Avanzado --- */
+.th-content-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.th-content-wrapper.th-center {
+  justify-content: center;
+}
+
+.th-content-wrapper.th-right {
+  justify-content: flex-end;
+}
+
+.th-title {
+  user-select: none;
+}
+
+.th-filter-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 22px !important;
+  height: 22px !important;
+  padding: 0 !important;
+  font-size: 12px !important;
+  color: var(--d365-subtext-color, #8a8886) !important;
+  border-radius: 3px !important;
+  transition: all 0.15s ease !important;
+  opacity: 0.6;
+}
+
+th:hover .th-filter-btn,
+.th-filter-btn.filter-active {
+  opacity: 1;
+}
+
+.th-filter-btn:hover {
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: var(--d365-primary-blue, #0078d4) !important;
+}
+
+.th-filter-btn.filter-active {
+  color: var(--d365-primary-blue, #0078d4) !important;
+  background: rgba(0, 120, 212, 0.1) !important;
+}
+
+/* --- Panel Desplegable de Filtro de Cabecera --- */
+.th-filter-dropdown-panel {
+  background: var(--d365-bg-card, #ffffff);
+  border: 1px solid var(--d365-border-subtle, #edebe9);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  padding: 12px;
+  min-width: 220px;
+  max-width: 280px;
+}
+
+.filter-dropdown-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-dropdown-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--d365-text-primary, #323130);
+}
+
+.filter-text-input {
+  font-size: 13px !important;
+  border-radius: 4px !important;
+}
+
+.filter-dropdown-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.filter-checkbox-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-checkbox-item {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+}
+
+/* --- Modal "Editar Columnas" --- */
+.edit-cols-subtitle {
+  font-size: 13px;
+  color: var(--d365-subtext-color, #605e5c);
+  margin-bottom: 12px;
+}
+
+.edit-cols-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.edit-col-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--d365-bg-table, #faf9f8);
+  border: 1px solid var(--d365-border-subtle, #edebe9);
+  border-radius: 4px;
+}
+
+.edit-col-checkbox {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.edit-col-order-btns {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.edit-cols-footer-link {
+  margin-top: 14px;
+  text-align: left;
+}
+
+/* --- Modo Oscuro --- */
+[data-theme='dark'] .d365-btn-edit-cols {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #e1dfdd !important;
+}
+
+[data-theme='dark'] .d365-btn-edit-cols:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+[data-theme='dark'] .th-filter-dropdown-panel {
+  background: #252423;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme='dark'] .edit-col-item {
+  background: #2b2a29;
+  border-color: rgba(255, 255, 255, 0.08);
+}

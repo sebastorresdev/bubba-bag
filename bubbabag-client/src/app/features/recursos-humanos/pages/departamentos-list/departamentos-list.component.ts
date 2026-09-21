@@ -26,10 +26,10 @@ import { NzFormModule } from 'ng-zorro-antd/form';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
-import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
-import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
+import { NzSelectModule } from 'ng-zorro-antd/select';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 import { OrganigramaModalComponent } from '../../components/organigrama-modal/organigrama-modal.component';
+import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
 
 @Component({
   selector: 'app-departamentos-list',
@@ -50,10 +50,10 @@ import { OrganigramaModalComponent } from '../../components/organigrama-modal/or
     NzCardModule,
     NzEmptyModule,
     NzCheckboxModule,
-    NzDropdownModule,
-    NzTooltipModule,
+    NzSelectModule,
     CommandBarComponent,
     OrganigramaModalComponent,
+    ViewSelectorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './departamentos-list.html',
@@ -79,6 +79,16 @@ export class DepartamentosListComponent implements OnInit {
 
   // Vistas D365
   vistaActual: 'Activos' | 'Todos' | 'Inactivos' = 'Activos';
+
+  vistasSistema: VistaItem[] = [
+    { key: 'Activos', nombre: 'Departamentos Activos', esSistema: true, esPredeterminada: true },
+    { key: 'Inactivos', nombre: 'Departamentos Inactivos', esSistema: true, esPredeterminada: false },
+    { key: 'Todos', nombre: 'Todos los Departamentos', esSistema: true, esPredeterminada: false },
+  ];
+
+  onVistaChange(vista: VistaItem): void {
+    this.cambiarVista(vista.key);
+  }
 
   // Selección
   selectedIds = new Set<string>();
@@ -130,6 +140,8 @@ export class DepartamentosListComponent implements OnInit {
         return 'Departamentos Inactivos';
       case 'Todos':
         return 'Todos los Departamentos';
+      default:
+        return 'Departamentos';
     }
   }
 
@@ -259,9 +271,9 @@ export class DepartamentosListComponent implements OnInit {
     this.organigramaVisible = true;
   }
 
-  cambiarVista(vista: 'Activos' | 'Todos' | 'Inactivos'): void {
-    if (this.vistaActual === vista) return;
-    this.vistaActual = vista;
+  cambiarVista(vista: string): void {
+    this.vistaActual = (vista as any) || 'Activos';
+    this.selectedIds.clear();
     this.cargarDepartamentos();
   }
 

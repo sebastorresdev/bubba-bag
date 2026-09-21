@@ -83,9 +83,15 @@ import {
   SafetyCertificateOutline,
   MessageOutline,
   CompassOutline,
+  PushpinOutline,
+  PushpinFill,
+  UndoOutline,
 } from '@ant-design/icons-angular/icons';
 
 export const ICONS: IconDefinition[] = [
+  UndoOutline,
+  PushpinOutline,
+  PushpinFill,
   BankOutline,
   StarOutline,
   StarFill,

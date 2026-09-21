@@ -19,12 +19,12 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzTagModule } from 'ng-zorro-antd/tag';
-import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
+import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
-import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzBadgeModule } from 'ng-zorro-antd/badge';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
+import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
 
 @Component({
   selector: 'app-sucursales-list',
@@ -38,12 +38,12 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzIconModule,
     NzInputModule,
     NzTagModule,
-    NzDropdownModule,
+    NzSelectModule,
     NzCardModule,
     NzCheckboxModule,
-    NzTooltipModule,
     NzBadgeModule,
     CommandBarComponent,
+    ViewSelectorComponent,
   ],
   templateUrl: './sucursales-list.html',
   styleUrl: './sucursales-list.component.css',
@@ -60,6 +60,16 @@ export class SucursalesListComponent implements OnInit, OnDestroy {
   // Filtros y Búsqueda
   searchTerm = '';
   vistaActual: 'Activos' | 'Todos' | 'Inactivos' = 'Activos';
+
+  vistasSistema: VistaItem[] = [
+    { key: 'Activos', nombre: 'Sucursales Activas', esSistema: true, esPredeterminada: true },
+    { key: 'Inactivos', nombre: 'Sucursales Inactivas', esSistema: true, esPredeterminada: false },
+    { key: 'Todos', nombre: 'Todas las Sucursales', esSistema: true, esPredeterminada: false },
+  ];
+
+  onVistaChange(vista: VistaItem): void {
+    this.cambiarVista(vista.key);
+  }
   private searchSubject = new Subject<string>();
 
   // Selección
@@ -75,6 +85,8 @@ export class SucursalesListComponent implements OnInit, OnDestroy {
         return 'Todas las Sucursales';
       case 'Inactivos':
         return 'Sucursales Inactivas';
+      default:
+        return 'Sucursales';
     }
   }
 
@@ -184,9 +196,10 @@ export class SucursalesListComponent implements OnInit, OnDestroy {
     this.cargarSucursales();
   }
 
-  cambiarVista(vista: 'Activos' | 'Todos' | 'Inactivos'): void {
-    this.vistaActual = vista;
+  cambiarVista(vista: string): void {
+    this.vistaActual = (vista as any) || 'Activos';
     this.selectedIds.clear();
+    this.checked = false;
     this.cargarSucursales();
   }
 

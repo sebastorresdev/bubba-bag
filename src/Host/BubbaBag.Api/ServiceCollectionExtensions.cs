@@ -26,6 +26,7 @@ public static class ServiceCollectionExtensions
         // Seguridad Module
         services.AddScoped<IJwtProvider, JwtProvider>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<BubbaBag.Modules.Seguridad.Application.Vistas.IVistasService, BubbaBag.Modules.Seguridad.Infrastructure.Vistas.VistasService>();
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
 
         services.AddIdentity<Usuario, Rol>()

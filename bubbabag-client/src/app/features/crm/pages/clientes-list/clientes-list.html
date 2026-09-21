@@ -5,46 +5,13 @@
   <nz-card [nzBordered]="true" [nzBodyStyle]="{ padding: '0' }" class="d365-table-card">
     <!-- Sub-Header / Selector de Vista & Herramientas -->
     <div class="d365-toolbar-row">
-      <!-- Izquierda: Selector de Vista de Sistema (Dropdown interactivo, sin prefijo 'Vista:') -->
-      <div>
-        <button
-          nz-button
-          nzType="text"
-          nz-dropdown
-          [nzDropdownMenu]="viewsMenu"
-          nzTrigger="click"
-          class="view-title-btn"
-        >
-          <h1 class="view-title-text">{{ vistaActualTitulo }}</h1>
-          <nz-icon nzType="down" class="view-title-icon" />
-        </button>
-
-        <nz-dropdown-menu #viewsMenu="nzDropdownMenu">
-          <ul nz-menu>
-            <li nz-menu-item (click)="cambiarVista('Activos')" [nzSelected]="vistaActual === 'Activos'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Activos' ? 'visible' : 'hidden'" />
-              <span>Clientes Activos</span>
-            </li>
-            <li nz-menu-item (click)="cambiarVista('Facturacion')" [nzSelected]="vistaActual === 'Facturacion'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Facturacion' ? 'visible' : 'hidden'" />
-              <span>Clientes de Facturación</span>
-            </li>
-            <li nz-menu-item (click)="cambiarVista('Servicio')" [nzSelected]="vistaActual === 'Servicio'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Servicio' ? 'visible' : 'hidden'" />
-              <span>Clientes de Servicio (Sedes)</span>
-            </li>
-            <li nz-menu-item (click)="cambiarVista('Inactivos')" [nzSelected]="vistaActual === 'Inactivos'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Inactivos' ? 'visible' : 'hidden'" />
-              <span>Clientes Inactivos</span>
-            </li>
-            <li nz-menu-divider></li>
-            <li nz-menu-item (click)="cambiarVista('Todos')" [nzSelected]="vistaActual === 'Todos'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Todos' ? 'visible' : 'hidden'" />
-              <span>Todos los Clientes</span>
-            </li>
-          </ul>
-        </nz-dropdown-menu>
-      </div>
+      <!-- Izquierda: Selector de Vista de Sistema (Dynamics 365 View Selector) -->
+      <app-view-selector
+        entidad="Clientes"
+        [vistasSistema]="vistasSistema"
+        [(vistaActualKey)]="vistaActual"
+        (vistaChange)="onVistaChange($event)"
+      ></app-view-selector>
 
       <!-- Derecha: Herramientas de la Vista (Editar Columnas, Editar Filtros y Buscador) -->
       <div class="view-tools-group">

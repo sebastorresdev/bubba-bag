@@ -45,9 +45,9 @@ public class ObtenerTarifasServicioHandler : IQueryHandler<ObtenerTarifasServici
             query = query.Where(t => t.Sucursal == suc || t.Sucursal == null);
         }
 
-        if (request.SoloActivos == true)
+        if (request.SoloActivos.HasValue)
         {
-            query = query.Where(t => t.Activo);
+            query = query.Where(t => t.Activo == request.SoloActivos.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(request.Search))

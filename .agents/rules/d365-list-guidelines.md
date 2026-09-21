@@ -12,20 +12,30 @@ El modelo canónico y de referencia absoluta es:
 
 ---
 
-## 2. Errores Prohibidos
+## 2. Errores Prohibidos (Tolerancia Cero)
 
-1. **PROHIBIDO usar `[nzScroll]` con alturas calculadas** (`[nzScroll]="{ y: 'calc(...)' }"`):
-   - **Por qué**: Rompe el layout flex, genera una barra de scroll vertical innecesaria a la derecha y desconecta la paginación, dejándola flotando a media pantalla.
-2. **PROHIBIDO poner botones extra no estándar en la Command Bar del Listado**:
-   - En vistas de listado, `farItems` debe retornar siempre un arreglo vacío `[]` (sin botón Compartir flotante).
-3. **PROHIBIDO dejar la paginación flotando**:
-   - La paginación siempre debe estar fija al pie inferior de la tarjeta D365 con el total a la izquierda (`1 - X de Y`) y los controles de página a la derecha.
-4. **PROHIBIDO usar puntos, círculos sueltos o celdas manuales para el estado**:
-   - El estado en las tablas siempre debe ser la píldora oficial D365: `<nz-tag class="d365-status-tag" [class.tag-active]="item.activo" [class.tag-inactive]="!item.activo">{{ item.activo ? 'Activo' : 'Inactivo' }}</nz-tag>` (estilizado en `common.css`). NUNCA usar dots o círculos.
+1. **PROHIBIDO inventar o duplicar estilos de tabla, hover o selección en el `.component.css`**:
+   - Todo el diseño está centralizado globalmente en `src/styles/d365-list.css`.
+   - El archivo `.component.css` de un nuevo listado debe tener **máximo 10-20 líneas** (únicamente para anchos específicos de columnas de la entidad).
+2. **PROHIBIDO usar colores azules/celestes en hover o selección**:
+   - El hover **SIEMPRE es gris neutro ultra sutil** (`rgba(0,0,0,0.03)` en claro / `rgba(255,255,255,0.04)` en oscuro). NUNCA usar `rgba(0, 120, 212, ...)` en filas.
+   - La selección **SIEMPRE es gris cálido Fluent UI** (`#edebe9` en claro / `rgba(255,255,255,0.08)` en oscuro). NUNCA usar tonos celestes como `#edf5fd` o `var(--ant-primary-1)`.
+   - El color azul (`#0078d4` / `#2899f5`) se reserva **exclusivamente** para el enlace clickeable del nombre (`.nombre-link`).
+3. **PROHIBIDO usar `[nzScroll]` con alturas calculadas** (`[nzScroll]="{ y: 'calc(...)' }"`):
+   - Rompe el layout flex, genera doble barra de scroll y desconecta el paginador.
+4. **PROHIBIDO poner botones extra no estándar en la Command Bar del Listado**:
+   - En vistas de listado, `farItems` debe retornar siempre `[]`.
+5. **PROHIBIDO usar puntos, círculos sueltos o celdas manuales para el estado**:
+   - El estado en las tablas siempre debe ser la píldora oficial D365:
+     ```html
+     <nz-tag class="d365-status-tag" [class.tag-active]="item.activo" [class.tag-inactive]="!item.activo">
+       {{ item.activo ? 'Activo' : 'Inactivo' }}
+     </nz-tag>
+     ```
 
 ---
 
-## 3. Estructura HTML Requerida
+## 3. Estructura HTML Requerida (Template Canónico)
 
 ```html
 <!-- 1. Command Bar Superior -->
@@ -72,7 +82,7 @@ El modelo canónico y de referencia absoluta es:
         <div class="d365-search-box">
           <input
             type="text"
-            placeholder="Filtrar por término..."
+            placeholder="Filtrar..."
             [(ngModel)]="searchTerm"
             (ngModelChange)="onSearchTermChange()"
             class="search-input"
@@ -89,7 +99,7 @@ El modelo canónico y de referencia absoluta es:
       </div>
     </div>
 
-    <!-- 4. Tabla Dynamics 365 (Sin nzScroll, nzSize small, d365-grid d365-table) -->
+    <!-- 4. Tabla Dynamics 365 (Sin nzScroll, nzSize small, d365-table) -->
     <nz-table
       #basicTable
       [nzData]="items"
@@ -98,7 +108,7 @@ El modelo canónico y de referencia absoluta es:
       [nzShowTotal]="totalRangeTpl"
       [nzPageSize]="15"
       nzSize="small"
-      class="d365-grid d365-table"
+      class="d365-table"
     >
       <ng-template #totalRangeTpl let-range="range" let-total="total">
         {{ range[0] }} - {{ range[1] }} de {{ total }}
@@ -107,24 +117,28 @@ El modelo canónico y de referencia absoluta es:
       <thead>
         <tr>
           <th [nzWidth]="'48px'" [nzChecked]="checked" [nzIndeterminate]="indeterminate" (nzCheckedChange)="onAllChecked($event)"></th>
-          <!-- Columnas con nzWidth fijo donde aplique -->
+          <th>Nombre</th>
+          <th [nzWidth]="'120px'" nzAlign="center">Estado</th>
         </tr>
       </thead>
       <tbody>
         @for (item of basicTable.data; track item.id) {
           <tr
+            class="d365-data-row"
             [class.fluent-row-selected]="selectedIds.has(item.id)"
             (click)="onItemChecked(item.id, !selectedIds.has(item.id))"
-            style="cursor: pointer;"
           >
             <td [nzChecked]="selectedIds.has(item.id)" (nzCheckedChange)="onItemChecked(item.id, $event)" (click)="$event.stopPropagation()"></td>
             <td class="col-primary-text">
               <span class="nombre-link" (click)="$event.stopPropagation(); irAEditar(item.id)">
-                <nz-icon [nzType]="iconoEntidad" class="row-user-icon" />
                 {{ item.nombre }}
               </span>
             </td>
-            <!-- Resto de celdas -->
+            <td nzAlign="center">
+              <nz-tag class="d365-status-tag" [class.tag-active]="item.activo" [class.tag-inactive]="!item.activo">
+                {{ item.activo ? 'Activo' : 'Inactivo' }}
+              </nz-tag>
+            </td>
           </tr>
         }
       </tbody>
@@ -135,77 +149,14 @@ El modelo canónico y de referencia absoluta es:
 
 ---
 
-## 4. Reglas CSS Obligatorias (`.component.css`)
+## 4. Archivo CSS del Componente (`.component.css`)
 
-El archivo CSS del componente debe incluir la distribución flexbox que ancla la paginación al pie:
+Gracias al archivo global `src/styles/d365-list.css`, el archivo `.component.css` del componente **NO debe contener estilos de layout, tarjetas, toolbar, buscador ni tablas**. Solo contendrá ajustes mínimos de columnas específicas si es necesario:
 
 ```css
-:host {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
-}
-
-.catalogo-view-wrapper {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  padding: 0;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.d365-table {
-  display: flex !important;
-  flex-direction: column !important;
-  flex: 1 !important;
-  min-height: 0 !important;
-  height: 100% !important;
-}
-
-:host ::ng-deep .d365-table .ant-table-wrapper,
-:host ::ng-deep .d365-table .ant-spin-nested-loading,
-:host ::ng-deep .d365-table .ant-spin-container {
-  display: flex !important;
-  flex-direction: column !important;
-  flex: 1 !important;
-  min-height: 0 !important;
-  height: 100% !important;
-}
-
-:host ::ng-deep .d365-table .ant-table-container {
-  flex: 1 !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow-y: auto !important;
-  overflow-x: auto !important;
-}
-
-/* Paginador pegado al pie con total a la izquierda */
-:host ::ng-deep .d365-table .ant-table-pagination.ant-pagination {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  width: 100% !important;
-  margin: 0 !important;
-  padding: 8px 16px !important;
-  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
-  background-color: #ffffff !important;
-  flex-shrink: 0 !important;
-}
-
-:host ::ng-deep .d365-table .ant-pagination-total-text {
-  order: -1 !important;
-  margin-right: auto !important;
-  font-size: 12px !important;
-  color: #605e5c !important;
-  font-weight: 500 !important;
+/* Estilos particulares de la entidad (opcional) */
+.col-codigo {
+  font-family: 'Consolas', monospace;
+  font-weight: 600;
 }
 ```

@@ -25,11 +25,11 @@ import { NzFormModule } from 'ng-zorro-antd/form';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
-import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
-import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
+import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzBadgeModule } from 'ng-zorro-antd/badge';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
+import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
 
 @Component({
   selector: 'app-usuarios-list',
@@ -49,11 +49,11 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzCardModule,
     NzEmptyModule,
     NzCheckboxModule,
-    NzDropdownModule,
-    NzTooltipModule,
+    NzSelectModule,
     NzAvatarModule,
     NzBadgeModule,
     CommandBarComponent,
+    ViewSelectorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './usuarios-list.html',
@@ -74,6 +74,17 @@ export class UsuariosListComponent implements OnInit, OnDestroy {
   searchSubject = new Subject<string>();
 
   vistaActual: 'Activos' | 'Todos' | 'Inactivos' = 'Activos';
+
+  vistasSistema: VistaItem[] = [
+    { key: 'Activos', nombre: 'Usuarios Activos', esSistema: true, esPredeterminada: true },
+    { key: 'Inactivos', nombre: 'Usuarios Inactivos', esSistema: true, esPredeterminada: false },
+    { key: 'Todos', nombre: 'Todos los Usuarios', esSistema: true, esPredeterminada: false },
+  ];
+
+  onVistaChange(vista: VistaItem): void {
+    this.cambiarVista(vista.key as any);
+  }
+
   selectedIds = new Set<string>();
   checked = false;
   indeterminate = false;
@@ -234,8 +245,8 @@ export class UsuariosListComponent implements OnInit, OnDestroy {
     });
   }
 
-  cambiarVista(vista: 'Activos' | 'Todos' | 'Inactivos'): void {
-    this.vistaActual = vista;
+  cambiarVista(vista: string): void {
+    this.vistaActual = (vista as any) || 'Activos';
     this.selectedIds.clear();
     this.cargarUsuarios();
   }
@@ -292,6 +303,8 @@ export class UsuariosListComponent implements OnInit, OnDestroy {
         return 'Usuarios Inactivos';
       case 'Todos':
         return 'Todos los Usuarios';
+      default:
+        return 'Usuarios';
     }
   }
 

@@ -16,9 +16,28 @@ public class CurrentUser : ICurrentUser
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public Guid Id => Guid.TryParse(_httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : Guid.Empty;
+    public Guid Id
+    {
+        get
+        {
+            var user = _httpContextAccessor.HttpContext?.User;
+            if (user == null) return Guid.Empty;
 
-    public string Email => _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
+            var claimValue = user.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? user.FindFirstValue("sub")
+                ?? user.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)
+                ?? user.FindFirst("sub")?.Value
+                ?? user.FindFirst("id")?.Value;
+
+            return Guid.TryParse(claimValue, out var id) ? id : Guid.Empty;
+        }
+    }
+
+    public string Email =>
+        _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Email)
+        ?? _httpContextAccessor.HttpContext?.User?.FindFirstValue("email")
+        ?? _httpContextAccessor.HttpContext?.User?.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Email)
+        ?? string.Empty;
 
     public IReadOnlyList<string> Roles => _httpContextAccessor.HttpContext?.User?.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList() ?? new List<string>();
 

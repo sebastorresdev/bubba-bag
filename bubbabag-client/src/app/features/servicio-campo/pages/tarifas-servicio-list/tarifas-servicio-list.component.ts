@@ -18,13 +18,12 @@ import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
-import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
-import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzModalModule, NzModalService } from 'ng-zorro-antd/modal';
 
 // Shared Components & Services
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar/command-bar.component';
+import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
 import { ServicioCampoService } from '../../services/servicio-campo.service';
 import {
   TarifaServicioDto,
@@ -44,11 +43,10 @@ import {
     NzCardModule,
     NzEmptyModule,
     NzCheckboxModule,
-    NzDropdownModule,
-    NzTooltipModule,
     NzSelectModule,
     NzModalModule,
     CommandBarComponent,
+    ViewSelectorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './tarifas-servicio-list.html',
@@ -83,8 +81,17 @@ export class TarifasServicioListComponent implements OnInit {
     'SERVICIOS MENORES',
     'SERVICIOS TECNICOS',
   ];
-  vistaActual: 'Activos' | 'Todos' | 'Inactivos' = 'Activos';
+  vistaActual = 'Activos';
   vistaActualTitulo = 'Tarifas de Servicio Activas';
+  vistasSistema: VistaItem[] = [
+    { key: 'Activos', nombre: 'Tarifas de Servicio Activas', esSistema: true, esPredeterminada: true },
+    { key: 'Inactivos', nombre: 'Tarifas de Servicio Inactivas', esSistema: true },
+    { key: 'Todos', nombre: 'Todas las Tarifas de Servicio', esSistema: true },
+  ];
+
+  onVistaChange(vista: VistaItem): void {
+    this.cambiarVista(vista.key);
+  }
 
   // Selección
   selectedIds = new Set<string>();
@@ -143,7 +150,7 @@ export class TarifasServicioListComponent implements OnInit {
     }
   }
 
-  cambiarVista(vista: 'Activos' | 'Todos' | 'Inactivos'): void {
+  cambiarVista(vista: string): void {
     this.vistaActual = vista;
     switch (vista) {
       case 'Activos':

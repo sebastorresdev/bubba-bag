@@ -4,248 +4,6 @@
   height: 100%;
   width: 100%;
   overflow: hidden;
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
-}
-
-.catalogo-view-wrapper {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  padding: 0;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-/* Tarjeta D365 sin redondeo y Full-Height */
-.d365-table-card,
-:host ::ng-deep .ant-card.d365-table-card {
-  width: 100%;
-  height: 100%;
-  display: flex !important;
-  flex-direction: column !important;
-  flex: 1 !important;
-  min-height: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  border: none !important;
-}
-
-:host ::ng-deep .ant-card.d365-table-card .ant-card-body {
-  padding: 0 !important;
-  border-radius: 0 !important;
-  height: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-  flex: 1 !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-}
-
-/* Sub-Header: Toolbar Fijo */
-.d365-toolbar-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  gap: 16px;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
-
-:host-context([data-theme='dark']) .d365-toolbar-row,
-:host-context(.dark-theme) .d365-toolbar-row {
-  border-bottom-color: rgba(255, 255, 255, 0.08);
-}
-
-.view-title-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 8px;
-  height: auto;
-  border: none;
-  background: transparent;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.view-title-btn:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-:host-context([data-theme='dark']) .view-title-btn:hover,
-:host-context(.dark-theme) .view-title-btn:hover {
-  background-color: rgba(255, 255, 255, 0.06);
-}
-
-.view-title-text {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 1.2;
-  color: inherit;
-  letter-spacing: -0.2px;
-}
-
-.view-title-icon {
-  font-size: 11px;
-  color: rgba(0, 0, 0, 0.45);
-}
-
-:host-context([data-theme='dark']) .view-title-icon,
-:host-context(.dark-theme) .view-title-icon {
-  color: rgba(255, 255, 255, 0.45);
-}
-
-.view-tools-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.d365-search-box {
-  display: flex;
-  align-items: center;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-  height: 32px;
-  padding: 0 8px;
-  width: 260px;
-  background-color: transparent;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-:host-context([data-theme='dark']) .d365-search-box,
-:host-context(.dark-theme) .d365-search-box {
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.d365-search-box:focus-within {
-  border-color: var(--ant-primary-color, #0078d4) !important;
-  box-shadow: 0 0 0 1px var(--ant-primary-color, #0078d4);
-}
-
-.search-input {
-  border: none;
-  outline: none;
-  background: transparent;
-  width: 100%;
-  font-size: 13px;
-  padding: 0;
-  color: inherit;
-}
-
-.search-clear-btn {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  padding: 0 2px;
-  display: flex;
-  align-items: center;
-  opacity: 0.6;
-}
-
-.search-clear-btn:hover {
-  opacity: 1;
-}
-
-.search-icon {
-  display: flex;
-  align-items: center;
-  color: rgba(0, 0, 0, 0.45);
-}
-
-/* Grilla Full-Height Dynamics 365 */
-.d365-grid-container {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.d365-table {
-  display: flex !important;
-  flex-direction: column !important;
-  flex: 1 !important;
-  min-height: 0 !important;
-  height: 100% !important;
-}
-
-:host ::ng-deep .d365-table .ant-table-wrapper,
-:host ::ng-deep .d365-table .ant-spin-nested-loading,
-:host ::ng-deep .d365-table .ant-spin-container {
-  display: flex !important;
-  flex-direction: column !important;
-  flex: 1 !important;
-  min-height: 0 !important;
-  height: 100% !important;
-}
-
-:host ::ng-deep .d365-table .ant-table {
-  flex: 1 !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  background-color: transparent !important;
-}
-
-:host ::ng-deep .d365-table .ant-table-container {
-  flex: 1 !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow-y: auto !important;
-  overflow-x: auto !important;
-}
-
-:host ::ng-deep .d365-table .ant-table-content {
-  flex: 1 !important;
-  min-height: 0 !important;
-}
-
-:host ::ng-deep .d365-table thead.ant-table-thead > tr > th {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 2 !important;
-}
-
-/* Pie de Página Paginador Estilo Microsoft Dynamics 365 (Total a la izquierda, botones a la derecha) */
-:host ::ng-deep .d365-table .ant-table-pagination.ant-pagination {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  width: 100% !important;
-  margin: 0 !important;
-  padding: 8px 16px !important;
-  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
-  background-color: #ffffff !important;
-  flex-shrink: 0 !important;
-}
-
-:host-context([data-theme='dark']) :host ::ng-deep .d365-table .ant-table-pagination.ant-pagination,
-:host-context(.dark-theme) :host ::ng-deep .d365-table .ant-table-pagination.ant-pagination {
-  border-top-color: rgba(255, 255, 255, 0.08) !important;
-  background-color: #1f1f1f !important;
-}
-
-:host ::ng-deep .d365-table .ant-pagination-total-text {
-  order: -1 !important;
-  margin-right: auto !important;
-  font-size: 12px !important;
-  color: #605e5c !important;
-  font-weight: 500 !important;
-}
-
-:host-context([data-theme='dark']) :host ::ng-deep .d365-table .ant-pagination-total-text,
-:host-context(.dark-theme) :host ::ng-deep .d365-table .ant-pagination-total-text {
-  color: #a19f9d !important;
 }
 
 .col-checkbox {
@@ -279,7 +37,7 @@
   border: none;
   background: transparent;
   border-radius: 3px;
-  color: #0078d4;
+  color: var(--d365-link-color);
   cursor: pointer;
   font-size: 14px;
   transition: background-color 0.15s ease, color 0.15s ease;
@@ -287,44 +45,13 @@
 
 .hierarchy-btn:hover {
   background-color: rgba(0, 120, 212, 0.08);
-  color: #106ebe;
-}
-
-:host-context([data-theme='dark']) .hierarchy-btn,
-:host-context(.dark-theme) .hierarchy-btn {
-  color: #2899f5;
-}
-
-:host-context([data-theme='dark']) .hierarchy-btn:hover,
-:host-context(.dark-theme) .hierarchy-btn:hover {
-  background-color: rgba(40, 153, 245, 0.15);
-  color: #60b2f8;
-}
-
-.nombre-link {
-  color: #0078d4;
-  cursor: pointer;
-  transition: color 0.15s;
-}
-
-.nombre-link:hover {
-  text-decoration: underline;
-  color: #106ebe;
-}
-
-:host-context([data-theme='dark']) .nombre-link,
-:host-context(.dark-theme) .nombre-link {
-  color: #2899f5;
+  color: var(--d365-link-hover-color);
 }
 
 .col-desc {
-  color: rgba(0, 0, 0, 0.65);
+  color: inherit;
+  opacity: 0.75;
   font-size: 13px;
-}
-
-:host-context([data-theme='dark']) .col-desc,
-:host-context(.dark-theme) .col-desc {
-  color: rgba(255, 255, 255, 0.65);
 }
 
 .link-drilldown {
@@ -332,7 +59,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  color: #0078d4;
+  color: var(--d365-link-color);
   font-weight: 600;
   cursor: pointer;
   background: transparent;
@@ -344,7 +71,7 @@
 
 .link-drilldown:hover {
   text-decoration: underline;
-  color: #106ebe;
+  color: var(--d365-link-hover-color);
   background-color: rgba(0, 120, 212, 0.05);
 }
 
@@ -356,65 +83,9 @@
   align-items: center;
 }
 
-:host-context([data-theme='dark']) .link-drilldown,
-:host-context(.dark-theme) .link-drilldown {
-  color: #2899f5;
-}
-
-:host-context([data-theme='dark']) .link-drilldown:hover,
-:host-context(.dark-theme) .link-drilldown:hover {
-  color: #60b2f8;
-  background-color: rgba(40, 153, 245, 0.1);
-}
-
 .text-muted {
-  color: rgba(0, 0, 0, 0.35);
-}
-
-:host-context([data-theme='dark']) .text-muted,
-:host-context(.dark-theme) .text-muted {
-  color: rgba(255, 255, 255, 0.35);
-}
-
-/* Indicador de Estado D365 (Dot + Texto) */
-.status-cell {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-  flex-shrink: 0;
-}
-
-.dot-active {
-  background-color: #107c41;
-  box-shadow: 0 0 0 2px rgba(16, 124, 65, 0.2);
-}
-
-.dot-inactive {
-  background-color: #8a8886;
-  box-shadow: 0 0 0 2px rgba(138, 136, 134, 0.2);
-}
-
-.status-text {
-  color: inherit;
-  font-weight: 500;
-}
-
-/* Fila seleccionada estilo Dynamics 365 */
-.row-selected {
-  background-color: #f3f9fd !important;
-}
-
-:host-context([data-theme='dark']) .row-selected,
-:host-context(.dark-theme) .row-selected {
-  background-color: rgba(40, 153, 245, 0.12) !important;
+  font-size: 12px;
+  opacity: 0.35;
 }
 
 /* Modal Estilo D365 */
@@ -427,7 +98,7 @@
 }
 
 .modal-header-icon {
-  color: #0078d4;
+  color: var(--d365-link-color);
   font-size: 18px;
 }
 

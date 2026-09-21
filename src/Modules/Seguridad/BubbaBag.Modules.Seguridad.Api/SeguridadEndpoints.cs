@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using BubbaBag.Modules.Seguridad.Application.Auth;
+using BubbaBag.Modules.Seguridad.Application.Vistas;
+using BubbaBag.SharedKernel;
 using BubbaBag.SharedKernel.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -44,6 +46,19 @@ public static class SeguridadEndpoints
 
         group.MapPut("/usuarios/{id:guid}/roles", AsignarRolesUsuario)
             .RequireAuthorization(p => p.RequireRole(Roles.SuperAdmin));
+
+        // Vistas Personalizadas y Predeterminadas (Dynamics 365)
+        group.MapGet("/vistas", ObtenerVistasPorEntidad)
+            .RequireAuthorization();
+
+        group.MapPost("/vistas", GuardarVista)
+            .RequireAuthorization();
+
+        group.MapPut("/vistas/predeterminada", EstablecerVistaPredeterminada)
+            .RequireAuthorization();
+
+        group.MapDelete("/vistas/{id:guid}", EliminarVista)
+            .RequireAuthorization();
     }
 
     private static async Task<IResult> IniciarSesion(LoginRequest request, IAuthService authService)
@@ -136,6 +151,46 @@ public static class SeguridadEndpoints
             return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Error al asignar roles", result.Error));
         }
         return Results.NoContent();
+    }
+
+    private static async Task<IResult> ObtenerVistasPorEntidad(string entidad, IVistasService vistasService, ICurrentUser currentUser)
+    {
+        var result = await vistasService.ObtenerVistasPorEntidadAsync(currentUser.Id, entidad);
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Error al obtener vistas", result.Error));
+        }
+        return Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> GuardarVista(GuardarVistaRequest request, IVistasService vistasService, ICurrentUser currentUser)
+    {
+        var result = await vistasService.GuardarVistaAsync(currentUser.Id, request);
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Error al guardar vista", result.Error));
+        }
+        return Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> EstablecerVistaPredeterminada(EstablecerPredeterminadaRequest request, IVistasService vistasService, ICurrentUser currentUser)
+    {
+        var result = await vistasService.EstablecerPredeterminadaAsync(currentUser.Id, request.Entidad, request.VistaId, request.VistaKey);
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Error al establecer vista predeterminada", result.Error));
+        }
+        return Results.Ok(new { Success = true });
+    }
+
+    private static async Task<IResult> EliminarVista(Guid id, IVistasService vistasService, ICurrentUser currentUser)
+    {
+        var result = await vistasService.EliminarVistaAsync(currentUser.Id, id);
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Error al eliminar vista", result.Error));
+        }
+        return Results.Ok(new { Success = true });
     }
 }
 

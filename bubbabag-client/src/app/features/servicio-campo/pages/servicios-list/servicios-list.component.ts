@@ -26,13 +26,12 @@ import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
-import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
-import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzBadgeModule } from 'ng-zorro-antd/badge';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzAlertModule } from 'ng-zorro-antd/alert';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
+import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
 
 @Component({
   selector: 'app-servicios-list',
@@ -52,13 +51,12 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzCardModule,
     NzEmptyModule,
     NzCheckboxModule,
-    NzDropdownModule,
-    NzTooltipModule,
     NzAvatarModule,
     NzBadgeModule,
     NzSpinModule,
     NzAlertModule,
     CommandBarComponent,
+    ViewSelectorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './servicios-list.html',
@@ -77,8 +75,17 @@ export class ServiciosListComponent implements OnInit {
 
   loading = false;
   searchTerm = '';
-  vistaActual: 'Activos' | 'Todos' | 'Inactivos' = 'Activos';
+  vistaActual = 'Activos';
   vistaActualTitulo = 'Servicios Activos';
+  vistasSistema: VistaItem[] = [
+    { key: 'Activos', nombre: 'Servicios Activos', esSistema: true, esPredeterminada: true },
+    { key: 'Inactivos', nombre: 'Servicios Inactivos', esSistema: true },
+    { key: 'Todos', nombre: 'Todos los Servicios', esSistema: true },
+  ];
+
+  onVistaChange(vista: VistaItem): void {
+    this.cambiarVista(vista.key);
+  }
 
   selectedIds = new Set<string>();
 
@@ -193,7 +200,7 @@ export class ServiciosListComponent implements OnInit {
     });
   }
 
-  cambiarVista(vista: 'Activos' | 'Todos' | 'Inactivos'): void {
+  cambiarVista(vista: string): void {
     this.vistaActual = vista;
     switch (vista) {
       case 'Activos':

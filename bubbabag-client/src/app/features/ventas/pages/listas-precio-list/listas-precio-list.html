@@ -4,38 +4,13 @@
   <nz-card [nzBordered]="false" class="d365-table-card">
     <!-- Toolbar de la Vista -->
     <div class="d365-toolbar-row">
-      <!-- Selector de Vista -->
-      <div>
-        <button
-          nz-button
-          nzType="text"
-          nz-dropdown
-          [nzDropdownMenu]="viewsMenu"
-          nzTrigger="click"
-          class="view-title-btn"
-        >
-          <h1 class="view-title-text">{{ vistaActualTitulo }}</h1>
-          <nz-icon nzType="down" class="view-title-icon" />
-        </button>
-
-        <nz-dropdown-menu #viewsMenu="nzDropdownMenu">
-          <ul nz-menu>
-            <li nz-menu-item (click)="cambiarVista('Activas')" [nzSelected]="vistaActual === 'Activas'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Activas' ? 'visible' : 'hidden'" />
-              <span>Listas de Precios Activas</span>
-            </li>
-            <li nz-menu-item (click)="cambiarVista('Inactivas')" [nzSelected]="vistaActual === 'Inactivas'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Inactivas' ? 'visible' : 'hidden'" />
-              <span>Listas de Precios Inactivas</span>
-            </li>
-            <li nz-menu-divider></li>
-            <li nz-menu-item (click)="cambiarVista('Todas')" [nzSelected]="vistaActual === 'Todas'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Todas' ? 'visible' : 'hidden'" />
-              <span>Todas las Listas de Precios</span>
-            </li>
-          </ul>
-        </nz-dropdown-menu>
-      </div>
+      <!-- Selector de Vista Dynamics 365 Reutilizable -->
+      <app-view-selector
+        entidad="ListasPrecio"
+        [vistasSistema]="vistasSistema"
+        [(vistaActualKey)]="vistaActual"
+        (vistaChange)="onVistaChange($event)"
+      ></app-view-selector>
 
       <!-- Buscador Rápido -->
       <div class="d365-search-box">

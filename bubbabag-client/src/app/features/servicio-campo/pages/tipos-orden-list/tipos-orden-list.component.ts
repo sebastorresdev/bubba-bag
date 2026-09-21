@@ -21,9 +21,9 @@ import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
-import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
-import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
+import { NzSelectModule } from 'ng-zorro-antd/select';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
+import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
 
 @Component({
   selector: 'app-tipos-orden-list',
@@ -42,9 +42,9 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzCardModule,
     NzEmptyModule,
     NzCheckboxModule,
-    NzDropdownModule,
-    NzTooltipModule,
+    NzSelectModule,
     CommandBarComponent,
+    ViewSelectorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './tipos-orden-list.html',
@@ -65,8 +65,17 @@ export class TiposOrdenListComponent implements OnInit {
 
   // Filtros y Vistas
   searchTerm = '';
-  vistaActual: 'Activos' | 'Todos' | 'Inactivos' = 'Activos';
+  vistaActual = 'Activos';
   vistaActualTitulo = 'Tipos de Orden Activos';
+  vistasSistema: VistaItem[] = [
+    { key: 'Activos', nombre: 'Tipos de Orden Activos', esSistema: true, esPredeterminada: true },
+    { key: 'Inactivos', nombre: 'Tipos de Orden Inactivos', esSistema: true },
+    { key: 'Todos', nombre: 'Todos los Tipos de Orden', esSistema: true },
+  ];
+
+  onVistaChange(vista: VistaItem): void {
+    this.cambiarVista(vista.key);
+  }
 
   // Selección
   selectedIds = new Set<string>();
@@ -154,7 +163,7 @@ export class TiposOrdenListComponent implements OnInit {
     });
   }
 
-  cambiarVista(vista: 'Activos' | 'Todos' | 'Inactivos'): void {
+  cambiarVista(vista: string): void {
     this.vistaActual = vista;
     switch (vista) {
       case 'Activos':

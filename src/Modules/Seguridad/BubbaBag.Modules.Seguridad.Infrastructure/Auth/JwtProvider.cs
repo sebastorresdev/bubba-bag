@@ -23,7 +23,9 @@ public class JwtProvider : IJwtProvider
     {
         var claims = new List<Claim>
         {
+            new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()),
+            new Claim(ClaimTypes.Email, usuario.Email ?? string.Empty),
             new Claim(JwtRegisteredClaimNames.Email, usuario.Email ?? string.Empty),
             new Claim("nombre_completo", usuario.NombreCompleto)
         };

@@ -2,6 +2,7 @@
 @import './styles/layout.css';
 @import './styles/common.css';
 @import './styles/d365-form.css';
+@import './styles/d365-list.css';
 
 *,
 html,

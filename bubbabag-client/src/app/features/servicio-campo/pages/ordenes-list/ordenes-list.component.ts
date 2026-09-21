@@ -19,9 +19,9 @@ import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
-import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
-import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
+import { NzSelectModule } from 'ng-zorro-antd/select';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
+import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
 
 export interface OrdenTrabajoItemDto {
   id: string;
@@ -52,9 +52,9 @@ export interface OrdenTrabajoItemDto {
     NzCardModule,
     NzEmptyModule,
     NzCheckboxModule,
-    NzDropdownModule,
-    NzTooltipModule,
+    NzSelectModule,
     CommandBarComponent,
+    ViewSelectorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './ordenes-list.html',
@@ -70,8 +70,18 @@ export class OrdenesListComponent implements OnInit {
   loading = false;
 
   searchTerm = '';
-  vistaActual: 'Todas' | 'Pendientes' | 'EnProceso' | 'Completadas' = 'Todas';
+  vistaActual = 'Todas';
   vistaActualTitulo = 'Todas las Órdenes de Trabajo';
+  vistasSistema: VistaItem[] = [
+    { key: 'Todas', nombre: 'Todas las Órdenes de Trabajo', esSistema: true, esPredeterminada: true },
+    { key: 'Pendientes', nombre: 'Órdenes Pendientes', esSistema: true },
+    { key: 'EnProceso', nombre: 'Órdenes en Progreso', esSistema: true },
+    { key: 'Completadas', nombre: 'Órdenes Completadas', esSistema: true },
+  ];
+
+  onVistaChange(vista: VistaItem): void {
+    this.cambiarVista(vista.key);
+  }
 
   selectedIds = new Set<string>();
 
@@ -149,7 +159,7 @@ export class OrdenesListComponent implements OnInit {
     }, 150);
   }
 
-  cambiarVista(vista: 'Todas' | 'Pendientes' | 'EnProceso' | 'Completadas'): void {
+  cambiarVista(vista: string): void {
     this.vistaActual = vista;
     switch (vista) {
       case 'Pendientes':

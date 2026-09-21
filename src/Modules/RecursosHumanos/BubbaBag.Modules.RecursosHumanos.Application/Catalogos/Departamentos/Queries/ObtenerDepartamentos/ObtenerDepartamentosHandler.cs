@@ -25,9 +25,9 @@ public class ObtenerDepartamentosHandler : IQueryHandler<ObtenerDepartamentosQue
             .AsNoTracking()
             .AsQueryable();
 
-        if (query.SoloActivos.HasValue && query.SoloActivos.Value)
+        if (query.SoloActivos.HasValue)
         {
-            dbQuery = dbQuery.Where(d => d.Activo);
+            dbQuery = dbQuery.Where(d => d.Activo == query.SoloActivos.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(query.SearchTerm))

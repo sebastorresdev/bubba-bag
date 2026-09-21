@@ -21,9 +21,9 @@ import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
-import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
-import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
+import { NzSelectModule } from 'ng-zorro-antd/select';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
+import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
 
 @Component({
   selector: 'app-listas-precio-list',
@@ -42,9 +42,9 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzCardModule,
     NzEmptyModule,
     NzCheckboxModule,
-    NzDropdownModule,
-    NzTooltipModule,
+    NzSelectModule,
     CommandBarComponent,
+    ViewSelectorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './listas-precio-list.html',
@@ -64,6 +64,16 @@ export class ListasPrecioListComponent implements OnInit {
   vistaActual: 'Activas' | 'Todas' | 'Inactivas' = 'Activas';
   vistaActualTitulo: string = 'Listas de Precios Activas';
   searchTerm: string = '';
+
+  vistasSistema: VistaItem[] = [
+    { key: 'Activas', nombre: 'Listas de Precios Activas', esSistema: true, esPredeterminada: true },
+    { key: 'Inactivas', nombre: 'Listas de Precios Inactivas', esSistema: true, esPredeterminada: false },
+    { key: 'Todas', nombre: 'Todas las Listas de Precios', esSistema: true, esPredeterminada: false },
+  ];
+
+  onVistaChange(vista: VistaItem): void {
+    this.cambiarVista(vista.key);
+  }
 
   selectedIds: Set<string> = new Set<string>();
 
@@ -150,8 +160,8 @@ export class ListasPrecioListComponent implements OnInit {
     });
   }
 
-  cambiarVista(vista: 'Activas' | 'Todas' | 'Inactivas'): void {
-    this.vistaActual = vista;
+  cambiarVista(vista: string): void {
+    this.vistaActual = (vista as any) || 'Activas';
     switch (vista) {
       case 'Activas':
         this.vistaActualTitulo = 'Listas de Precios Activas';
@@ -161,6 +171,9 @@ export class ListasPrecioListComponent implements OnInit {
         break;
       case 'Inactivas':
         this.vistaActualTitulo = 'Listas de Precios Inactivas';
+        break;
+      default:
+        this.vistaActualTitulo = vista;
         break;
     }
     this.cargarDatos();

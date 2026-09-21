@@ -22,14 +22,13 @@ import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzSelectModule } from 'ng-zorro-antd/select';
-import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
-import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
 import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
+import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
 
 @Component({
   selector: 'app-clientes-list',
@@ -45,14 +44,13 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzInputModule,
     NzTagModule,
     NzSelectModule,
-    NzTooltipModule,
     NzCardModule,
     NzEmptyModule,
     NzAvatarModule,
     NzCheckboxModule,
-    NzDropdownModule,
     NzDrawerModule,
     CommandBarComponent,
+    ViewSelectorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Default,
   templateUrl: './clientes-list.html',
@@ -69,9 +67,20 @@ export class ClientesListComponent implements OnInit, OnDestroy {
   loading = false;
 
   // Vistas de Sistema (Dynamics 365 View Selector)
-  vistaActual: 'Activos' | 'Todos' | 'Facturacion' | 'Servicio' | 'Inactivos' = 'Activos';
+  vistaActual = 'Activos';
+  vistasSistema: VistaItem[] = [
+    { key: 'Activos', nombre: 'Clientes Activos', esSistema: true, esPredeterminada: true },
+    { key: 'Facturacion', nombre: 'Clientes de Facturación', esSistema: true },
+    { key: 'Servicio', nombre: 'Clientes de Servicio (Sedes)', esSistema: true },
+    { key: 'Inactivos', nombre: 'Clientes Inactivos', esSistema: true },
+    { key: 'Todos', nombre: 'Todos los Clientes', esSistema: true },
+  ];
   drawerFiltrosVisible = false;
   drawerColumnasVisible = false;
+
+  onVistaChange(vista: VistaItem): void {
+    this.cambiarVista(vista.key);
+  }
 
   // Definición de Columnas Visibles (Dynamics 365 Edit Columns)
   columnas = [
@@ -335,7 +344,7 @@ export class ClientesListComponent implements OnInit, OnDestroy {
     this.aplicarFiltros();
   }
 
-  cambiarVista(vista: 'Activos' | 'Todos' | 'Facturacion' | 'Servicio' | 'Inactivos'): void {
+  cambiarVista(vista: string): void {
     this.vistaActual = vista;
     this.aplicarFiltros();
   }

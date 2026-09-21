@@ -31,9 +31,9 @@ public class ObtenerCargosHandler : IQueryHandler<ObtenerCargosQuery, Result<Lis
             dbQuery = dbQuery.Where(c => c.DepartamentoId == query.DepartamentoId.Value);
         }
 
-        if (query.SoloActivos.HasValue && query.SoloActivos.Value)
+        if (query.SoloActivos.HasValue)
         {
-            dbQuery = dbQuery.Where(c => c.Activo);
+            dbQuery = dbQuery.Where(c => c.Activo == query.SoloActivos.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(query.SearchTerm))

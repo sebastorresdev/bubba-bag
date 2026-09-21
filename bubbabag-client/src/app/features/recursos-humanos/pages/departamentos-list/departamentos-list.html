@@ -4,31 +4,13 @@
   <nz-card [nzBordered]="true" [nzBodyStyle]="{ padding: '0' }" class="d365-table-card">
     <!-- Sub-Header / Selector de Vista & Herramientas -->
     <div class="d365-toolbar-row">
-      <!-- Izquierda: Selector de Vista de Sistema (Dropdown interactivo) -->
-      <div>
-        <button nz-button nzType="text" nz-dropdown [nzDropdownMenu]="viewsMenu" nzTrigger="click"
-          class="view-title-btn">
-          <h1 class="view-title-text">{{ vistaActualTitulo }}</h1>
-          <nz-icon nzType="down" class="view-title-icon" />
-        </button>
-
-        <nz-dropdown-menu #viewsMenu="nzDropdownMenu">
-          <ul nz-menu>
-            <li nz-menu-item (click)="cambiarVista('Activos')" [nzSelected]="vistaActual === 'Activos'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Activos' ? 'visible' : 'hidden'" />
-              <span>Departamentos Activos</span>
-            </li>
-            <li nz-menu-item (click)="cambiarVista('Todos')" [nzSelected]="vistaActual === 'Todos'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Todos' ? 'visible' : 'hidden'" />
-              <span>Todos los Departamentos</span>
-            </li>
-            <li nz-menu-item (click)="cambiarVista('Inactivos')" [nzSelected]="vistaActual === 'Inactivos'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Inactivos' ? 'visible' : 'hidden'" />
-              <span>Departamentos Inactivos</span>
-            </li>
-          </ul>
-        </nz-dropdown-menu>
-      </div>
+      <!-- Selector de Vista Dynamics 365 Reutilizable -->
+      <app-view-selector
+        entidad="Departamentos"
+        [vistasSistema]="vistasSistema"
+        [(vistaActualKey)]="vistaActual"
+        (vistaChange)="onVistaChange($event)"
+      ></app-view-selector>
 
       <!-- Derecha: Buscador Rápido Fluent UI -->
       <div class="view-tools-group">

@@ -251,15 +251,6 @@
   opacity: 0.75;
 }
 
-/* Fila seleccionada estilo Fluent UI / Dynamics 365 */
-.fluent-row-selected td {
-  background-color: var(--ant-primary-1, #edf5fd) !important;
-}
-
-[data-theme='dark'] .fluent-row-selected td,
-.dark-theme .fluent-row-selected td {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-}
 
 /* ==========================================================================
    Grillas Dynamics 365: Protección contra desbordes y alturas uniformes
@@ -405,3 +396,135 @@
   color: #a78bfa !important;
   border-color: rgba(167, 139, 250, 0.35) !important;
 }
+
+/* ==========================================================================
+   Punto Indicador de Estado D365 (Dot + Texto)
+   ========================================================================== */
+.status-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.dot-active,
+.status-active,
+.d365-dot-active {
+  background-color: #107c41;
+  box-shadow: 0 0 0 2px rgba(16, 124, 65, 0.2);
+}
+
+.dot-inactive,
+.status-inactive,
+.d365-dot-inactive,
+.d365-dot-default {
+  background-color: #8a8886;
+  box-shadow: 0 0 0 2px rgba(138, 136, 134, 0.2);
+}
+
+.status-text {
+  color: inherit;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Badges de Códigos Monoespaciados (Code Tags)
+   ========================================================================== */
+.code-tag,
+.d365-code-tag,
+.cell-code,
+.doc-tag {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-weight: 600;
+  font-size: 11.5px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background-color: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: inherit;
+  display: inline-block;
+}
+
+[data-theme='dark'] .code-tag,
+.dark-theme .code-tag,
+[data-theme='dark'] .d365-code-tag,
+.dark-theme .d365-code-tag,
+[data-theme='dark'] .cell-code,
+.dark-theme .cell-code,
+[data-theme='dark'] .doc-tag,
+.dark-theme .doc-tag {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ==========================================================================
+   Píldoras Booleanas (Sí / No)
+   ========================================================================== */
+.flag-pill {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.flag-yes {
+  background-color: rgba(16, 124, 65, 0.1);
+  color: #107c41;
+}
+
+.flag-no {
+  background-color: rgba(0, 0, 0, 0.04);
+  color: #797775;
+}
+
+[data-theme='dark'] .flag-yes,
+.dark-theme .flag-yes {
+  background-color: rgba(16, 124, 65, 0.25);
+  color: #6ccb5f;
+}
+
+[data-theme='dark'] .flag-no,
+.dark-theme .flag-no {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #a19f9d;
+}
+
+/* ==========================================================================
+   Badges de Moneda y Empresa
+   ========================================================================== */
+.currency-badge {
+  font-family: 'Consolas', monospace;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: rgba(0, 120, 212, 0.1);
+  color: var(--d365-link-color, #0078d4);
+}
+
+.empresa-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background-color: rgba(3, 105, 161, 0.1);
+  color: #0369a1;
+  border: 1px solid rgba(3, 105, 161, 0.25);
+  border-radius: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+[data-theme='dark'] .empresa-badge,
+.dark-theme .empresa-badge {
+  background-color: rgba(3, 105, 161, 0.25);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.3);
+}

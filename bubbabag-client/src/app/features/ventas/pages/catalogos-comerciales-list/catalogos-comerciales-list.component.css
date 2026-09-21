@@ -1,188 +1,15 @@
-@import '../../../../../styles/d365-form.css';
-
 :host {
   display: flex;
   flex-direction: column;
   height: 100%;
   width: 100%;
   overflow: hidden;
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
-}
-
-.catalogo-view-wrapper {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  padding: 0;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.d365-table-card,
-:host ::ng-deep .ant-card.d365-table-card {
-  width: 100%;
-  height: 100%;
-  display: flex !important;
-  flex-direction: column !important;
-  flex: 1 !important;
-  min-height: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  border: none !important;
-  background-color: transparent !important;
-}
-
-:host ::ng-deep .ant-card.d365-table-card .ant-card-body {
-  padding: 0 !important;
-  border-radius: 0 !important;
-  height: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-  flex: 1 !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-}
-
-.d365-toolbar-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  gap: 16px;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-  background-color: #ffffff;
-}
-
-:host-context([data-theme='dark']) .d365-toolbar-row,
-:host-context(.dark-theme) .d365-toolbar-row {
-  background-color: #141414;
-  border-bottom-color: rgba(255, 255, 255, 0.08);
-}
-
-.view-title-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 8px;
-  height: auto;
-  border: none;
-  background: transparent;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.view-title-btn:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-.view-title-text {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 1.2;
-  color: inherit;
-  letter-spacing: -0.2px;
-}
-
-.view-title-icon {
-  font-size: 11px;
-  color: rgba(0, 0, 0, 0.45);
-}
-
-.d365-search-box {
-  display: flex;
-  align-items: center;
-  height: 32px;
-  background-color: #ffffff;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  overflow: hidden;
-  transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
-}
-
-.d365-search-box:focus-within {
-  border-color: #0078d4;
-  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
-}
-
-.d365-search-input {
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-  padding: 4px 11px;
-  font-size: 13px;
-  width: 240px;
-}
-
-.d365-grid-container {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  background-color: #ffffff;
-}
-
-:host-context([data-theme='dark']) .d365-grid-container,
-:host-context(.dark-theme) .d365-grid-container {
-  background-color: #141414;
-}
-
-.d365-table {
-  width: 100%;
-}
-
-.d365-data-row {
-  cursor: pointer;
-  transition: background-color 0.1s ease;
-}
-
-.d365-data-row:hover {
-  background-color: rgba(0, 120, 212, 0.04) !important;
-}
-
-.d365-data-row.row-selected {
-  background-color: rgba(0, 120, 212, 0.08) !important;
 }
 
 .col-checkbox {
+  width: 44px;
   text-align: center;
-}
-
-.col-primary-text {
-  font-weight: 500;
-}
-
-.nombre-link {
-  color: #0078d4;
-  cursor: pointer;
-}
-
-.nombre-link:hover {
-  text-decoration: underline;
-}
-
-.col-text {
-  color: rgba(0, 0, 0, 0.85);
-}
-
-:host-context([data-theme='dark']) .col-text,
-:host-context(.dark-theme) .col-text {
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.col-desc {
-  color: rgba(0, 0, 0, 0.55);
-  font-size: 12px;
-}
-
-:host-context([data-theme='dark']) .col-desc,
-:host-context(.dark-theme) .col-desc {
-  color: rgba(255, 255, 255, 0.55);
+  padding: 8px 0 !important;
 }
 
 .d365-status-tag {
@@ -202,46 +29,14 @@
   color: #5f6368;
 }
 
-:host-context([data-theme='dark']) .tag-active,
-:host-context(.dark-theme) .tag-active {
+[data-theme='dark'] .tag-active,
+.dark-theme .tag-active {
   background-color: rgba(30, 142, 62, 0.2);
   color: #81c995;
 }
 
-:host-context([data-theme='dark']) .tag-inactive,
-:host-context(.dark-theme) .tag-inactive {
+[data-theme='dark'] .tag-inactive,
+.dark-theme .tag-inactive {
   background-color: rgba(255, 255, 255, 0.08);
   color: rgba(255, 255, 255, 0.55);
 }
-
-:host ::ng-deep .d365-table .ant-table-pagination.ant-pagination {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  width: 100% !important;
-  margin: 0 !important;
-  padding: 8px 16px !important;
-  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
-  background-color: #ffffff !important;
-  flex-shrink: 0 !important;
-}
-
-:host-context([data-theme='dark']) :host ::ng-deep .d365-table .ant-table-pagination.ant-pagination,
-:host-context(.dark-theme) :host ::ng-deep .d365-table .ant-table-pagination.ant-pagination {
-  border-top-color: rgba(255, 255, 255, 0.08) !important;
-  background-color: #1f1f1f !important;
-}
-
-:host ::ng-deep .d365-table .ant-pagination-total-text {
-  order: -1 !important;
-  margin-right: auto !important;
-  font-size: 12px !important;
-  color: #605e5c !important;
-  font-weight: 500 !important;
-}
-
-:host-context([data-theme='dark']) :host ::ng-deep .d365-table .ant-pagination-total-text,
-:host-context(.dark-theme) :host ::ng-deep .d365-table .ant-pagination-total-text {
-  color: #a19f9d !important;
-}
-

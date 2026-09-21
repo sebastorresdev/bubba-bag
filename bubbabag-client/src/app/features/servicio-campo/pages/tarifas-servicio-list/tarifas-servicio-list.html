@@ -5,52 +5,29 @@
     <!-- Toolbar de la Vista (Selector de Vistas + Filtros + Buscador) -->
     <div class="d365-toolbar-row">
       <!-- Selector de Vista Dynamics 365 -->
-      <div>
-        <button
-          nz-button
-          nzType="text"
-          nz-dropdown
-          [nzDropdownMenu]="viewsMenu"
-          nzTrigger="click"
-          class="view-title-btn"
-        >
-          <h1 class="view-title-text">{{ vistaActualTitulo }}</h1>
-          <nz-icon nzType="down" class="view-title-icon" />
-        </button>
-
-        <nz-dropdown-menu #viewsMenu="nzDropdownMenu">
-          <ul nz-menu>
-            <li nz-menu-item (click)="cambiarVista('Activos')" [nzSelected]="vistaActual === 'Activos'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Activos' ? 'visible' : 'hidden'" />
-              <span>Tarifas de Servicio Activas</span>
-            </li>
-            <li nz-menu-item (click)="cambiarVista('Inactivos')" [nzSelected]="vistaActual === 'Inactivos'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Inactivos' ? 'visible' : 'hidden'" />
-              <span>Tarifas de Servicio Inactivas</span>
-            </li>
-            <li nz-menu-divider></li>
-            <li nz-menu-item (click)="cambiarVista('Todos')" [nzSelected]="vistaActual === 'Todos'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Todos' ? 'visible' : 'hidden'" />
-              <span>Todas las Tarifas de Servicio</span>
-            </li>
-          </ul>
-        </nz-dropdown-menu>
-      </div>
+      <app-view-selector
+        entidad="TarifasServicio"
+        [vistasSistema]="vistasSistema"
+        [(vistaActualKey)]="vistaActual"
+        (vistaChange)="onVistaChange($event)"
+      ></app-view-selector>
 
       <!-- Filtros y Buscador Rápido -->
-      <div class="table-filters-group">
-        <!-- Filtro por Tipificación (Estilo idéntico a Filtro por Cliente Facturable en Tipos de Tarea) -->
-        <nz-select
-          [(ngModel)]="filtroTipificacion"
-          (ngModelChange)="onFiltroChange()"
-          style="width: 280px;"
-          nzPlaceHolder="Todas las Tipificaciones"
-        >
-          <nz-option nzValue="TODAS" nzLabel="Todas las Tipificaciones"></nz-option>
-          @for (tip of tipificacionesDisponibles; track tip) {
-            <nz-option [nzValue]="tip" [nzLabel]="tip"></nz-option>
-          }
-        </nz-select>
+      <div class="view-tools-group">
+        <!-- Filtro por Tipificación -->
+        <div style="width: 260px;">
+          <nz-select
+            [(ngModel)]="filtroTipificacion"
+            (ngModelChange)="onFiltroChange()"
+            style="width: 100%;"
+            nzPlaceHolder="Todas las Tipificaciones"
+          >
+            <nz-option nzValue="TODAS" nzLabel="Todas las Tipificaciones"></nz-option>
+            @for (tip of tipificacionesDisponibles; track tip) {
+              <nz-option [nzValue]="tip" [nzLabel]="tip"></nz-option>
+            }
+          </nz-select>
+        </div>
 
         <!-- Buscador Rápido Fluent UI -->
         <div class="d365-search-box">

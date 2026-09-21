@@ -4,53 +4,30 @@
   <nz-card [nzBordered]="false" class="d365-table-card">
     <!-- Toolbar de la Vista -->
     <div class="d365-toolbar-row">
-      <!-- Selector de Vista -->
-      <div>
-        <button
-          nz-button
-          nzType="text"
-          nz-dropdown
-          [nzDropdownMenu]="viewsMenu"
-          nzTrigger="click"
-          class="view-title-btn"
-        >
-          <h1 class="view-title-text">{{ vistaActualTitulo }}</h1>
-          <nz-icon nzType="down" class="view-title-icon" />
-        </button>
-
-        <nz-dropdown-menu #viewsMenu="nzDropdownMenu">
-          <ul nz-menu>
-            <li nz-menu-item (click)="cambiarVista('Activos')" [nzSelected]="vistaActual === 'Activos'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Activos' ? 'visible' : 'hidden'" />
-              <span>Motivos de Incidencia Activos</span>
-            </li>
-            <li nz-menu-item (click)="cambiarVista('Inactivos')" [nzSelected]="vistaActual === 'Inactivos'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Inactivos' ? 'visible' : 'hidden'" />
-              <span>Motivos de Incidencia Inactivos</span>
-            </li>
-            <li nz-menu-divider></li>
-            <li nz-menu-item (click)="cambiarVista('Todos')" [nzSelected]="vistaActual === 'Todos'">
-              <nz-icon nzType="check" [style.visibility]="vistaActual === 'Todos' ? 'visible' : 'hidden'" />
-              <span>Todos los Motivos de Incidencia</span>
-            </li>
-          </ul>
-        </nz-dropdown-menu>
-      </div>
+      <!-- Selector de Vista (Dynamics 365 View Selector) -->
+      <app-view-selector
+        entidad="MotivosIncidencia"
+        [vistasSistema]="vistasSistema"
+        [(vistaActualKey)]="vistaActual"
+        (vistaChange)="onVistaChange($event)"
+      ></app-view-selector>
 
       <!-- Filtros a la derecha: Ámbito y Buscador Rápido -->
-      <div class="toolbar-right-actions">
+      <div class="view-tools-group">
         <!-- Filtro por Ámbito -->
-        <nz-select
-          [ngModel]="ambitoSeleccionado"
-          (ngModelChange)="cambiarFiltroAmbito($event)"
-          [nzAllowClear]="true"
-          nzPlaceHolder="Filtrar por ámbito..."
-          class="ambito-select"
-        >
-          <nz-option [nzValue]="AmbitoMotivo.Visita" nzLabel="Visita en Campo"></nz-option>
-          <nz-option [nzValue]="AmbitoMotivo.OrdenTrabajo" nzLabel="Orden de Trabajo"></nz-option>
-          <nz-option [nzValue]="AmbitoMotivo.Tarea" nzLabel="Subtarea Técnica"></nz-option>
-        </nz-select>
+        <div style="width: 220px;">
+          <nz-select
+            [ngModel]="ambitoSeleccionado"
+            (ngModelChange)="cambiarFiltroAmbito($event)"
+            [nzAllowClear]="true"
+            nzPlaceHolder="Filtrar por ámbito..."
+            style="width: 100%;"
+          >
+            <nz-option [nzValue]="AmbitoMotivo.Visita" nzLabel="Visita en Campo"></nz-option>
+            <nz-option [nzValue]="AmbitoMotivo.OrdenTrabajo" nzLabel="Orden de Trabajo"></nz-option>
+            <nz-option [nzValue]="AmbitoMotivo.Tarea" nzLabel="Subtarea Técnica"></nz-option>
+          </nz-select>
+        </div>
 
         <!-- Buscador Rápido -->
         <div class="d365-search-box">

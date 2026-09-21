@@ -4,256 +4,6 @@
   height: 100%;
   width: 100%;
   overflow: hidden;
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
-}
-
-.catalogo-view-wrapper {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  padding: 0;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.d365-table-card,
-:host ::ng-deep .ant-card.d365-table-card {
-  width: 100%;
-  height: 100%;
-  display: flex !important;
-  flex-direction: column !important;
-  flex: 1 !important;
-  min-height: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  border: none !important;
-  background-color: transparent !important;
-}
-
-:host ::ng-deep .ant-card.d365-table-card .ant-card-body {
-  padding: 0 !important;
-  border-radius: 0 !important;
-  height: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-  flex: 1 !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-}
-
-.d365-toolbar-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  gap: 16px;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-  background-color: #ffffff;
-}
-
-:host-context([data-theme='dark']) .d365-toolbar-row,
-:host-context(.dark-theme) .d365-toolbar-row {
-  background-color: #141414;
-  border-bottom-color: rgba(255, 255, 255, 0.08);
-}
-
-.view-title-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 8px;
-  height: auto;
-  border: none;
-  background: transparent;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.view-title-btn:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-:host-context([data-theme='dark']) .view-title-btn:hover,
-:host-context(.dark-theme) .view-title-btn:hover {
-  background-color: rgba(255, 255, 255, 0.06);
-}
-
-.view-title-text {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 1.2;
-  color: inherit;
-  letter-spacing: -0.2px;
-}
-
-.view-title-icon {
-  font-size: 11px;
-  color: rgba(0, 0, 0, 0.45);
-}
-
-.table-filters-group {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-/* Buscador Rápido Fluent UI */
-.d365-search-box {
-  display: flex;
-  align-items: center;
-  height: 32px;
-  background-color: #ffffff;
-  border: 1px solid #d1d1d1;
-  border-radius: 2px;
-  padding: 0 4px 0 8px;
-  width: 240px;
-  transition: all 0.15s ease;
-}
-
-:host-context([data-theme='dark']) .d365-search-box,
-:host-context(.dark-theme) .d365-search-box {
-  background-color: #242424;
-  border-color: #484644;
-}
-
-.d365-search-box:focus-within {
-  border-color: #0f6cbd;
-  box-shadow: 0 0 0 1px #0f6cbd;
-}
-
-.search-input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 13px;
-  color: inherit;
-  min-width: 0;
-}
-
-.search-input::placeholder {
-  color: #797775;
-}
-
-.search-clear-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 2px;
-  color: #797775;
-  display: flex;
-  align-items: center;
-}
-
-.search-icon-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 2px 4px;
-  color: #797775;
-  display: flex;
-  align-items: center;
-}
-
-/* Grilla Full-Height Dynamics 365 */
-.d365-grid-container {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  background-color: #ffffff;
-}
-
-:host-context([data-theme='dark']) .d365-grid-container,
-:host-context(.dark-theme) .d365-grid-container {
-  background-color: #141414;
-}
-
-.d365-table {
-  display: flex !important;
-  flex-direction: column !important;
-  flex: 1 !important;
-  min-height: 0 !important;
-  height: 100% !important;
-}
-
-:host ::ng-deep .d365-table .ant-table-wrapper,
-:host ::ng-deep .d365-table .ant-spin-nested-loading,
-:host ::ng-deep .d365-table .ant-spin-container {
-  display: flex !important;
-  flex-direction: column !important;
-  flex: 1 !important;
-  min-height: 0 !important;
-  height: 100% !important;
-}
-
-:host ::ng-deep .d365-table .ant-table {
-  flex: 1 !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  background-color: transparent !important;
-}
-
-:host ::ng-deep .d365-table .ant-table-container {
-  flex: 1 !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow-y: auto !important;
-  overflow-x: auto !important;
-}
-
-:host ::ng-deep .d365-table .ant-table-content {
-  flex: 1 !important;
-  min-height: 0 !important;
-}
-
-:host ::ng-deep .d365-table thead.ant-table-thead > tr > th {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 2 !important;
-}
-
-/* Paginador Estilo Dynamics 365 */
-:host ::ng-deep .d365-table .ant-table-pagination.ant-pagination {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  width: 100% !important;
-  margin: 0 !important;
-  padding: 8px 16px !important;
-  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
-  background-color: #ffffff !important;
-  flex-shrink: 0 !important;
-}
-
-:host-context([data-theme='dark']) :host ::ng-deep .d365-table .ant-table-pagination.ant-pagination,
-:host-context(.dark-theme) :host ::ng-deep .d365-table .ant-table-pagination.ant-pagination {
-  border-top-color: rgba(255, 255, 255, 0.08) !important;
-  background-color: #141414 !important;
-}
-
-:host ::ng-deep .d365-table .ant-pagination-total-text {
-  order: -1 !important;
-  margin-right: auto !important;
-  font-size: 12px !important;
-  color: #605e5c !important;
-  font-weight: 500 !important;
-}
-
-:host-context([data-theme='dark']) :host ::ng-deep .d365-table .ant-pagination-total-text,
-:host-context(.dark-theme) :host ::ng-deep .d365-table .ant-pagination-total-text {
-  color: #a19f9d !important;
 }
 
 .col-checkbox {
@@ -268,21 +18,8 @@
   font-weight: 600;
 }
 
-.code-tag,
-.cell-code {
-  font-family: 'Segoe UI', monospace;
-  font-size: 12px;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-:host-context([data-theme='dark']) .cell-code,
-:host-context(.dark-theme) .cell-code {
-  color: #f1f5f9;
-}
-
 .primary-link {
-  color: #0f6cbd;
+  color: var(--d365-link-color);
   font-weight: 600;
   cursor: pointer;
   transition: color 0.15s ease;
@@ -290,12 +27,7 @@
 
 .primary-link:hover {
   text-decoration: underline;
-  color: #115ea3;
-}
-
-:host-context([data-theme='dark']) .primary-link,
-:host-context(.dark-theme) .primary-link {
-  color: #60a5fa;
+  color: var(--d365-link-hover-color);
 }
 
 .tag-tipificacion {
@@ -305,32 +37,10 @@
   text-transform: uppercase;
 }
 
-.empresa-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  background-color: #f0f9ff;
-  color: #0369a1;
-  border: 1px solid #bae6fd;
-  border-radius: 4px;
-  font-size: 11.5px;
-  font-weight: 600;
-}
-
-:host-context([data-theme='dark']) .empresa-badge,
-:host-context(.dark-theme) .empresa-badge {
-  background-color: rgba(3, 105, 161, 0.25);
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.3);
-}
-
 .cell-sucursal {
   font-size: 12px;
-  color: #64748b;
-}
-
-:host-context([data-theme='dark']) .cell-sucursal,
-:host-context(.dark-theme) .cell-sucursal {
-  color: #94a3b8;
+  color: inherit;
+  opacity: 0.75;
 }
 
 .tag-points {
@@ -349,22 +59,13 @@
 .monto-principal {
   font-size: 13px;
   font-weight: 700;
-  color: #1e293b;
-}
-
-:host-context([data-theme='dark']) .monto-principal,
-:host-context(.dark-theme) .monto-principal {
-  color: #f8fafc;
+  color: inherit;
 }
 
 .monto-secundario {
   font-size: 11px;
-  color: #64748b;
-}
-
-:host-context([data-theme='dark']) .monto-secundario,
-:host-context(.dark-theme) .monto-secundario {
-  color: #94a3b8;
+  color: inherit;
+  opacity: 0.65;
 }
 
 .monto-variable {
@@ -373,19 +74,15 @@
   color: #107c41;
 }
 
-:host-context([data-theme='dark']) .monto-variable,
-:host-context(.dark-theme) .monto-variable {
+[data-theme='dark'] .monto-variable,
+.dark-theme .monto-variable {
   color: #4ade80;
 }
 
 .indicadores-sub {
   font-size: 9.5px;
-  color: #94a3b8;
-}
-
-:host-context([data-theme='dark']) .indicadores-sub,
-:host-context(.dark-theme) .indicadores-sub {
-  color: #64748b;
+  color: inherit;
+  opacity: 0.6;
 }
 
 .tag-total-teorico {
@@ -393,45 +90,4 @@
   font-weight: 700;
   border-radius: 4px;
   padding: 2px 8px;
-}
-
-.status-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.status-active {
-  background-color: #107c41;
-  box-shadow: 0 0 0 2px rgba(16, 124, 65, 0.2);
-}
-
-.status-inactive {
-  background-color: #94a3b8;
-}
-
-.d365-data-row {
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.d365-data-row:hover {
-  background-color: rgba(0, 120, 212, 0.04) !important;
-}
-
-:host-context([data-theme='dark']) .d365-data-row:hover,
-:host-context(.dark-theme) .d365-data-row:hover,
-[data-theme='dark'] .d365-data-row:hover {
-  background-color: rgba(255, 255, 255, 0.04) !important;
-}
-
-.row-selected {
-  background-color: rgba(0, 120, 212, 0.08) !important;
-}
-
-:host-context([data-theme='dark']) .row-selected,
-:host-context(.dark-theme) .row-selected,
-[data-theme='dark'] .row-selected {
-  background-color: rgba(0, 120, 212, 0.25) !important;
 }

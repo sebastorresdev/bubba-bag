@@ -26,9 +26,8 @@ import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
-import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
-import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
+import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
 
 @Component({
   selector: 'app-motivos-incidencia-list',
@@ -47,9 +46,8 @@ import { CommandBarComponent, CommandBarItem } from '../../../../shared/componen
     NzCardModule,
     NzEmptyModule,
     NzCheckboxModule,
-    NzDropdownModule,
-    NzTooltipModule,
     CommandBarComponent,
+    ViewSelectorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './motivos-incidencia-list.html',
@@ -75,8 +73,17 @@ export class MotivosIncidenciaListComponent implements OnInit {
   // Filtros y Vistas
   searchTerm = '';
   ambitoSeleccionado: AmbitoMotivo | null = null;
-  vistaActual: 'Activos' | 'Todos' | 'Inactivos' = 'Activos';
+  vistaActual = 'Activos';
   vistaActualTitulo = 'Motivos de Incidencia Activos';
+  vistasSistema: VistaItem[] = [
+    { key: 'Activos', nombre: 'Motivos de Incidencia Activos', esSistema: true, esPredeterminada: true },
+    { key: 'Inactivos', nombre: 'Motivos de Incidencia Inactivos', esSistema: true },
+    { key: 'Todos', nombre: 'Todos los Motivos de Incidencia', esSistema: true },
+  ];
+
+  onVistaChange(vista: VistaItem): void {
+    this.cambiarVista(vista.key);
+  }
 
   // Selección
   selectedIds = new Set<string>();
@@ -166,7 +173,7 @@ export class MotivosIncidenciaListComponent implements OnInit {
     });
   }
 
-  cambiarVista(vista: 'Activos' | 'Todos' | 'Inactivos'): void {
+  cambiarVista(vista: string): void {
     this.vistaActual = vista;
     switch (vista) {
       case 'Activos':
