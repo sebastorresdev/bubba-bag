@@ -1,11 +1,9 @@
 import { Routes } from '@angular/router';
 import { MainLayoutComponent } from '../../core/layout/main-layout/main-layout.component';
 import { TiposOrdenListComponent } from './pages/tipos-orden-list/tipos-orden-list.component';
-import { TiposTareaListComponent } from './pages/tipos-tarea-list/tipos-tarea-list.component';
 import { MotivosIncidenciaListComponent } from './pages/motivos-incidencia-list/motivos-incidencia-list.component';
 import { TarifasServicioListComponent } from './pages/tarifas-servicio-list/tarifas-servicio-list.component';
 import { TarifaServicioFormComponent } from './pages/tarifa-servicio-form/tarifa-servicio-form.component';
-import { TipoTareaFormComponent } from './pages/tipo-tarea-form/tipo-tarea-form.component';
 
 import { TipoOrdenFormComponent } from './pages/tipo-orden-form/tipo-orden-form.component';
 import { MotivoIncidenciaFormComponent } from './pages/motivo-incidencia-form/motivo-incidencia-form.component';
@@ -92,21 +90,6 @@ export const SERVICIO_CAMPO_ROUTES: Routes = [
         title: 'Editar Tipo de Orden - Servicio de Campo',
       },
       {
-        path: 'tipos-tarea',
-        component: TiposTareaListComponent,
-        title: 'Tipos de Tarea - Servicio de Campo',
-      },
-      {
-        path: 'tipos-tarea/nuevo',
-        component: TipoTareaFormComponent,
-        title: 'Nuevo Tipo de Tarea - Servicio de Campo',
-      },
-      {
-        path: 'tipos-tarea/editar/:id',
-        component: TipoTareaFormComponent,
-        title: 'Editar Tipo de Tarea - Servicio de Campo',
-      },
-      {
         path: 'motivos-incidencia',
         component: MotivosIncidenciaListComponent,
         title: 'Motivos de Incidencia - Servicio de Campo',
@@ -123,7 +106,7 @@ export const SERVICIO_CAMPO_ROUTES: Routes = [
       },
       {
         path: '',
-        redirectTo: 'tipos-orden',
+        redirectTo: 'ordenes',
         pathMatch: 'full',
       },
     ],

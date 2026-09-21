@@ -246,7 +246,6 @@ export class NavigationService {
             { title: 'Catálogos de Servicios', path: '/servicio-campo/catalogos-servicio' },
             { title: 'Plantillas de Servicios', path: '/servicio-campo/servicios' },
             { title: 'Tipos de Orden (Modalidad)', path: '/servicio-campo/tipos-orden' },
-            { title: 'Tipos de Tarea', path: '/servicio-campo/tipos-tarea' },
             { title: 'Motivos de Incidencia', path: '/servicio-campo/motivos-incidencia' },
           ],
         },
