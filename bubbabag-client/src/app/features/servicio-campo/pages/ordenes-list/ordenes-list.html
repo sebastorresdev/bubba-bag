@@ -1,0 +1,166 @@
+<div class="d365-page-container">
+  <!-- Command Bar Dynamics 365 -->
+  <app-command-bar [items]="commandBarItems"></app-command-bar>
+
+  <div class="d365-content-area">
+    <!-- Header de Vista y Búsqueda Dynamics 365 -->
+    <div class="d365-view-header">
+      <div class="view-selector-container">
+        <button
+          nz-button
+          nzType="text"
+          class="view-selector-btn"
+          nz-dropdown
+          [nzDropdownMenu]="viewMenu"
+          nzTrigger="click"
+        >
+          <span class="view-title">{{ vistaActualTitulo }}</span>
+          <nz-icon nzType="down" class="view-chevron" />
+        </button>
+        <nz-dropdown-menu #viewMenu="nzDropdownMenu">
+          <ul nz-menu class="d365-dropdown-menu">
+            <li nz-menu-item (click)="cambiarVista('Todas')" [nzSelected]="vistaActual === 'Todas'">
+              <nz-icon nzType="check" *ngIf="vistaActual === 'Todas'" />
+              <span>Todas las Órdenes de Trabajo</span>
+            </li>
+            <li nz-menu-item (click)="cambiarVista('Pendientes')" [nzSelected]="vistaActual === 'Pendientes'">
+              <nz-icon nzType="check" *ngIf="vistaActual === 'Pendientes'" />
+              <span>Órdenes Pendientes</span>
+            </li>
+            <li nz-menu-item (click)="cambiarVista('EnProceso')" [nzSelected]="vistaActual === 'EnProceso'">
+              <nz-icon nzType="check" *ngIf="vistaActual === 'EnProceso'" />
+              <span>Órdenes en Progreso / En Ruta</span>
+            </li>
+            <li nz-menu-item (click)="cambiarVista('Completadas')" [nzSelected]="vistaActual === 'Completadas'">
+              <nz-icon nzType="check" *ngIf="vistaActual === 'Completadas'" />
+              <span>Órdenes Completadas</span>
+            </li>
+          </ul>
+        </nz-dropdown-menu>
+      </div>
+
+      <div class="view-actions-container">
+        <div class="d365-search-box">
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            (ngModelChange)="onSearchChange()"
+            placeholder="Buscar por N° OT, cliente, técnico..."
+            class="search-input"
+          />
+          <button *ngIf="searchTerm" class="clear-btn" (click)="limpiarBusqueda()">
+            <nz-icon nzType="close" />
+          </button>
+          <button class="search-icon-btn" (click)="onSearchChange()" title="Buscar">
+            <nz-icon nzType="search" />
+          </button>
+        </div>
+
+        <div class="filter-actions">
+          <button
+            nz-button
+            nzType="default"
+            class="btn-refresh"
+            (click)="cargarDatos()"
+            [nzLoading]="loading"
+            nz-tooltip="Recargar datos"
+          >
+            <nz-icon nzType="reload" />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grilla / Tabla Estilo Dynamics 365 -->
+    <div class="d365-grid-container">
+      <nz-table
+        #ordenesTable
+        [nzData]="ordenesFiltradas"
+        [nzLoading]="loading"
+        [nzShowPagination]="true"
+        [nzShowTotal]="totalRangeTpl"
+        [nzPageSize]="15"
+        nzSize="small"
+        class="d365-table"
+      >
+        <ng-template #totalRangeTpl let-range="range" let-total="total">
+          <span class="pagination-total-text">
+            {{ range[0] }}-{{ range[1] }} de {{ total }} registros
+          </span>
+        </ng-template>
+
+        <thead>
+          <tr>
+            <th
+              nzWidth="40px"
+              class="col-select"
+              [nzChecked]="isAllSelected"
+              [nzIndeterminate]="isIndeterminate"
+              (nzCheckedChange)="onSelectAll($event)"
+            ></th>
+            <th nzWidth="120px">N° Orden</th>
+            <th nzWidth="180px">Cliente</th>
+            <th nzWidth="180px">Servicio</th>
+            <th nzWidth="220px">Dirección</th>
+            <th nzWidth="150px">Técnico</th>
+            <th nzWidth="140px">Fecha Prog.</th>
+            <th nzWidth="100px">Prioridad</th>
+            <th nzWidth="110px">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let item of ordenesTable.data"
+            [class.row-selected]="selectedIds.has(item.id)"
+            (click)="onItemSelect(item.id, !selectedIds.has(item.id))"
+          >
+            <td
+              class="col-select"
+              [nzChecked]="selectedIds.has(item.id)"
+              (nzCheckedChange)="onItemSelect(item.id, $event)"
+              (click)="$event.stopPropagation()"
+            ></td>
+            <td class="col-code font-semibold">
+              <span class="cell-link" (click)="verDetalle(item.id); $event.stopPropagation()">
+                {{ item.numero }}
+              </span>
+            </td>
+            <td>{{ item.cliente }}</td>
+            <td>{{ item.servicio }}</td>
+            <td class="text-secondary">{{ item.direccion }}</td>
+            <td>{{ item.tecnico || 'Sin asignar' }}</td>
+            <td>{{ item.fechaProgramada }}</td>
+            <td>
+              <nz-tag [nzColor]="item.prioridad === 'Alta' ? 'red' : item.prioridad === 'Media' ? 'orange' : 'blue'">
+                {{ item.prioridad }}
+              </nz-tag>
+            </td>
+            <td>
+              <nz-tag [nzColor]="item.estado === 'Completada' ? 'green' : item.estado === 'Cancelada' ? 'default' : 'processing'">
+                {{ item.estado }}
+              </nz-tag>
+            </td>
+          </tr>
+        </tbody>
+      </nz-table>
+
+      <!-- Estado Vacío -->
+      <div *ngIf="!loading && ordenesFiltradas.length === 0" class="d365-empty-state">
+        <nz-empty
+          [nzNotFoundImage]="'simple'"
+          [nzNotFoundContent]="contentTpl"
+        >
+          <ng-template #contentTpl>
+            <p class="empty-title">No hay órdenes de trabajo para mostrar</p>
+            <p class="empty-desc">
+              {{ searchTerm ? 'No se encontraron registros que coincidan con la búsqueda.' : 'Cree su primera orden de trabajo con el botón superior.' }}
+            </p>
+            <button nz-button nzType="primary" class="btn-d365-primary" (click)="nuevaOrden()">
+              <nz-icon nzType="plus" /> Nueva Orden
+            </button>
+          </ng-template>
+        </nz-empty>
+      </div>
+    </div>
+  </div>
+</div>

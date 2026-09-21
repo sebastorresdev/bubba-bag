@@ -1,0 +1,120 @@
+<div class="d365-page-container">
+  <app-command-bar [items]="commandBarItems"></app-command-bar>
+
+  <div class="d365-content-area">
+    <div class="d365-view-header">
+      <div class="view-selector-container">
+        <button
+          nz-button
+          nzType="text"
+          class="view-selector-btn"
+          nz-dropdown
+          [nzDropdownMenu]="viewMenu"
+          nzTrigger="click"
+        >
+          <span class="view-title">{{ vistaActualTitulo }}</span>
+          <nz-icon nzType="down" class="view-chevron" />
+        </button>
+        <nz-dropdown-menu #viewMenu="nzDropdownMenu">
+          <ul nz-menu class="d365-dropdown-menu">
+            <li nz-menu-item (click)="cambiarVista('Hoy')" [nzSelected]="vistaActual === 'Hoy'">
+              <nz-icon nzType="check" *ngIf="vistaActual === 'Hoy'" />
+              <span>Mis Órdenes del Día</span>
+            </li>
+            <li nz-menu-item (click)="cambiarVista('EnRuta')" [nzSelected]="vistaActual === 'EnRuta'">
+              <nz-icon nzType="check" *ngIf="vistaActual === 'EnRuta'" />
+              <span>Mis Órdenes en Ruta</span>
+            </li>
+            <li nz-menu-item (click)="cambiarVista('Completadas')" [nzSelected]="vistaActual === 'Completadas'">
+              <nz-icon nzType="check" *ngIf="vistaActual === 'Completadas'" />
+              <span>Mis Órdenes Realizadas Hoy</span>
+            </li>
+          </ul>
+        </nz-dropdown-menu>
+      </div>
+
+      <div class="view-actions-container">
+        <div class="d365-search-box">
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            (ngModelChange)="onSearchChange()"
+            placeholder="Buscar en mis órdenes..."
+            class="search-input"
+          />
+          <button *ngIf="searchTerm" class="clear-btn" (click)="limpiarBusqueda()">
+            <nz-icon nzType="close" />
+          </button>
+          <button class="search-icon-btn" (click)="onSearchChange()" title="Buscar">
+            <nz-icon nzType="search" />
+          </button>
+        </div>
+
+        <div class="filter-actions">
+          <button
+            nz-button
+            nzType="default"
+            class="btn-refresh"
+            (click)="cargarDatos()"
+            [nzLoading]="loading"
+            nz-tooltip="Recargar datos"
+          >
+            <nz-icon nzType="reload" />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grilla Dynamics 365 -->
+    <div class="d365-grid-container">
+      <nz-table
+        #misOrdenesTable
+        [nzData]="ordenesFiltradas"
+        [nzLoading]="loading"
+        [nzShowPagination]="true"
+        [nzPageSize]="15"
+        nzSize="small"
+        class="d365-table"
+      >
+        <thead>
+          <tr>
+            <th nzWidth="120px">N° Orden</th>
+            <th nzWidth="200px">Cliente</th>
+            <th nzWidth="200px">Servicio</th>
+            <th nzWidth="250px">Dirección de Atención</th>
+            <th nzWidth="140px">Hora Prog.</th>
+            <th nzWidth="110px">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of misOrdenesTable.data">
+            <td class="col-code font-semibold">{{ item.numero }}</td>
+            <td>{{ item.cliente }}</td>
+            <td>{{ item.servicio }}</td>
+            <td>{{ item.direccion }}</td>
+            <td>{{ item.fechaProgramada }}</td>
+            <td>
+              <nz-tag [nzColor]="item.estado === 'Completada' ? 'green' : 'processing'">
+                {{ item.estado }}
+              </nz-tag>
+            </td>
+          </tr>
+        </tbody>
+      </nz-table>
+
+      <div *ngIf="!loading && ordenesFiltradas.length === 0" class="d365-empty-state">
+        <nz-empty
+          [nzNotFoundImage]="'simple'"
+          [nzNotFoundContent]="contentTpl"
+        >
+          <ng-template #contentTpl>
+            <p class="empty-title">No tiene órdenes asignadas para hoy</p>
+            <p class="empty-desc">
+              Cuando el área de despacho le asigne órdenes de trabajo, aparecerán automáticamente en esta vista.
+            </p>
+          </ng-template>
+        </nz-empty>
+      </div>
+    </div>
+  </div>
+</div>

@@ -13,12 +13,24 @@ import { ServiciosListComponent } from './pages/servicios-list/servicios-list.co
 import { ServicioFormComponent } from './pages/servicio-form/servicio-form.component';
 import { CatalogosServicioListComponent } from './pages/catalogos-servicio-list/catalogos-servicio-list.component';
 import { CatalogoServicioFormComponent } from './pages/catalogo-servicio-form/catalogo-servicio-form.component';
+import { OrdenesListComponent } from './pages/ordenes-list/ordenes-list.component';
+import { MisOrdenesListComponent } from './pages/mis-ordenes-list/mis-ordenes-list.component';
 
 export const SERVICIO_CAMPO_ROUTES: Routes = [
   {
     path: '',
     component: MainLayoutComponent,
     children: [
+      {
+        path: 'ordenes',
+        component: OrdenesListComponent,
+        title: 'Órdenes de Trabajo - Servicio de Campo',
+      },
+      {
+        path: 'mis-ordenes',
+        component: MisOrdenesListComponent,
+        title: 'Mis Órdenes del Día - Servicio de Campo',
+      },
       {
         path: 'tarifas-servicio',
         component: TarifasServicioListComponent,

@@ -89,7 +89,21 @@ public static class WebApplicationExtensions
             try
             {
                 await servicioCampoDbContext.Database.ExecuteSqlRawAsync(
-                    @"ALTER TABLE serviciocampo.""Servicios"" ADD COLUMN IF NOT EXISTS ""PrecioBase"" numeric(12,2) NOT NULL DEFAULT 0;");
+                    @"ALTER TABLE serviciocampo.""Servicios"" ADD COLUMN IF NOT EXISTS ""PrecioBase"" numeric(12,2) NOT NULL DEFAULT 0;
+                      ALTER TABLE serviciocampo.""Servicios"" ADD COLUMN IF NOT EXISTS ""ProductoComercialId"" uuid;
+                      DO $$
+                      BEGIN
+                          IF EXISTS (
+                              SELECT 1 FROM information_schema.columns 
+                              WHERE table_schema = 'serviciocampo' AND table_name = 'CatalogosServicio' AND column_name = 'ContratanteId'
+                          ) AND NOT EXISTS (
+                              SELECT 1 FROM information_schema.columns 
+                              WHERE table_schema = 'serviciocampo' AND table_name = 'CatalogosServicio' AND column_name = 'ClienteId'
+                          ) THEN
+                              ALTER TABLE serviciocampo.""CatalogosServicio"" RENAME COLUMN ""ContratanteId"" TO ""ClienteId"";
+                          END IF;
+                      END $$;
+                      ALTER TABLE serviciocampo.""CatalogosServicio"" ADD COLUMN IF NOT EXISTS ""ClienteId"" uuid;");
             }
             catch { }
         }
