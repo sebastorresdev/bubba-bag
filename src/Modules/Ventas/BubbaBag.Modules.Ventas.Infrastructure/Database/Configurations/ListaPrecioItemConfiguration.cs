@@ -12,11 +12,17 @@ public class ListaPrecioItemConfiguration : IEntityTypeConfiguration<ListaPrecio
 
         builder.HasKey(i => i.Id);
 
+        builder.Property(i => i.ProductoComercialId)
+            .HasColumnName("ProductoId")
+            .IsRequired();
+
         builder.Property(i => i.PrecioUnitario)
             .IsRequired()
             .HasPrecision(12, 2);
 
-        builder.HasIndex(i => new { i.ListaPrecioId, i.ProductoId })
+        builder.Ignore(i => i.ProductoId);
+
+        builder.HasIndex(i => new { i.ListaPrecioId, i.ProductoComercialId })
             .IsUnique();
     }
 }

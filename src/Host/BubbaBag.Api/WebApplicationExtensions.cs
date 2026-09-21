@@ -102,6 +102,7 @@ public static class WebApplicationExtensions
                     @"CREATE SCHEMA IF NOT EXISTS ventas;
                       CREATE TABLE IF NOT EXISTS ventas.""ListasPrecio"" (
                           ""Id"" uuid NOT NULL PRIMARY KEY,
+                          ""Codigo"" character varying(50),
                           ""Nombre"" character varying(150) NOT NULL,
                           ""Moneda"" character varying(10) NOT NULL DEFAULT 'PEN',
                           ""Descripcion"" character varying(300),
@@ -111,6 +112,8 @@ public static class WebApplicationExtensions
                           ""ClienteId"" uuid,
                           ""Activo"" boolean NOT NULL DEFAULT true
                       );
+                      ALTER TABLE ventas.""ListasPrecio"" ADD COLUMN IF NOT EXISTS ""Codigo"" character varying(50);
+                      ALTER TABLE ventas.""ListasPrecio"" ADD COLUMN IF NOT EXISTS ""ClienteId"" uuid;
                       CREATE TABLE IF NOT EXISTS ventas.""ListasPrecioItems"" (
                           ""Id"" uuid NOT NULL PRIMARY KEY,
                           ""ListaPrecioId"" uuid NOT NULL REFERENCES ventas.""ListasPrecio""(""Id"") ON DELETE CASCADE,

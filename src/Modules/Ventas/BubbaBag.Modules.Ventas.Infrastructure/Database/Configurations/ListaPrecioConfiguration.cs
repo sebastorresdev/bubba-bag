@@ -12,6 +12,9 @@ public class ListaPrecioConfiguration : IEntityTypeConfiguration<ListaPrecio>
 
         builder.HasKey(lp => lp.Id);
 
+        builder.Property(lp => lp.Codigo)
+            .HasMaxLength(50);
+
         builder.Property(lp => lp.Nombre)
             .IsRequired()
             .HasMaxLength(150);
@@ -29,6 +32,12 @@ public class ListaPrecioConfiguration : IEntityTypeConfiguration<ListaPrecio>
 
         builder.Property(lp => lp.Activo)
             .IsRequired();
+
+        builder.Property(lp => lp.EntidadComercialId)
+            .HasColumnName("ClienteId");
+
+        builder.Ignore(lp => lp.ClienteId);
+        builder.Ignore(lp => lp.CatalogosAsociadosIds);
 
         builder.HasMany(lp => lp.Items)
             .WithOne()
