@@ -95,25 +95,25 @@ public static class RecursosHumanosSeeder
 
     private static async Task SeedSucursalesAsync(RecursosHumanosDbContext context, ILogger logger)
     {
-        if (await context.Sucursales.AnyAsync())
-        {
-            return;
-        }
-
-        logger.LogInformation("Sembrando catálogo oficial de Sucursales y Sedes...");
-
-        var sucursales = new List<Sucursal>
+        var sucursalesIniciales = new List<Sucursal>
         {
             Sucursal.Crear("LIMA", "Sede Central Lima", "Lima", "Av. Javier Prado Este 444, San Isidro", "01-2004600", esSedePrincipal: true),
+            Sucursal.Crear("ANCASH", "Sucursal Ancash", "Huaraz", "Av. Luzuriaga 450", "043-421234", esSedePrincipal: false),
             Sucursal.Crear("CHICLAYO", "Sucursal Chiclayo", "Chiclayo", "Av. José Balta 850", "074-234567", esSedePrincipal: false),
             Sucursal.Crear("PIURA", "Sucursal Piura", "Piura", "Av. Grau 430", "073-345678", esSedePrincipal: false),
             Sucursal.Crear("TRUJILLO", "Sucursal Trujillo", "Trujillo", "Av. España 1120", "044-456789", esSedePrincipal: false),
             Sucursal.Crear("AREQUIPA", "Sucursal Arequipa", "Arequipa", "Calle Mercaderes 210", "054-567890", esSedePrincipal: false)
         };
 
-        await context.Sucursales.AddRangeAsync(sucursales);
+        foreach (var suc in sucursalesIniciales)
+        {
+            if (!await context.Sucursales.AnyAsync(s => s.Codigo == suc.Codigo))
+            {
+                await context.Sucursales.AddAsync(suc);
+            }
+        }
         await context.SaveChangesAsync();
 
-        logger.LogInformation("Se sembraron {Count} sucursales exitosamente.", sucursales.Count);
+        logger.LogInformation("Catálogo oficial de Sucursales verificado/sembrado exitosamente.");
     }
 }

@@ -1,9 +1,11 @@
 using System.Reflection;
 using BubbaBag.Modules.Crm.Domain.Clientes;
+using BubbaBag.Modules.Inventario.Domain.Almacenes;
 using BubbaBag.Modules.Inventario.Domain.Productos;
 using BubbaBag.Modules.RecursosHumanos.Domain.Organizacion;
 using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 using BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
+using BubbaBag.Modules.ServicioCampo.Domain.Recursos;
 using BubbaBag.Modules.ServicioCampo.Domain.Tarifarios;
 using BubbaBag.Modules.ServicioCampo.Application;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +22,10 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public DbSet<OrdenTrabajoVisita> OrdenTrabajoVisitas => Set<OrdenTrabajoVisita>();
     public DbSet<OrdenTrabajoVisitaEvidencia> OrdenTrabajoVisitaEvidencias => Set<OrdenTrabajoVisitaEvidencia>();
     public DbSet<OrdenTrabajoTarea> OrdenTrabajoTareas => Set<OrdenTrabajoTarea>();
+    public DbSet<OrdenTrabajoMaterial> OrdenTrabajoMateriales => Set<OrdenTrabajoMaterial>();
+    public DbSet<ZonaOperativa> ZonasOperativas => Set<ZonaOperativa>();
+    public DbSet<RecursoTecnico> RecursosTecnicos => Set<RecursoTecnico>();
+    public DbSet<Almacen> Almacenes => Set<Almacen>();
     public DbSet<MotivoIncidencia> MotivosIncidencia => Set<MotivoIncidencia>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<Producto> Productos => Set<Producto>();
@@ -54,6 +60,13 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
         {
             b.ToTable("Productos", "inventario", t => t.ExcludeFromMigrations());
             b.HasKey(p => p.Id);
+        });
+
+        // Referencia a la tabla maestra del módulo Inventario (Almacenes)
+        modelBuilder.Entity<Almacen>(b =>
+        {
+            b.ToTable("Almacenes", "inventario", t => t.ExcludeFromMigrations());
+            b.HasKey(a => a.Id);
         });
 
         // Referencia a la tabla maestra del módulo Recursos Humanos

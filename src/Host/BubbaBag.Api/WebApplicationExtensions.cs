@@ -52,6 +52,9 @@ public static class WebApplicationExtensions
         var rrhhLogger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RecursosHumanosDbContext>>();
         await BubbaBag.Modules.RecursosHumanos.Infrastructure.Database.Seeders.RecursosHumanosSeeder.SeedAsync(rrhhDbContext, rrhhLogger);
 
+        var sucursalesMap = await rrhhDbContext.Sucursales
+            .ToDictionaryAsync(s => s.Codigo, s => s.Id);
+
         if (crmDbContext != null)
         {
             var crmLogger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<BubbaBag.Modules.Crm.Infrastructure.Database.CrmDbContext>>();
@@ -81,7 +84,7 @@ public static class WebApplicationExtensions
             catch { }
 
             var invLogger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<BubbaBag.Modules.Inventario.Infrastructure.Database.InventarioDbContext>>();
-            await BubbaBag.Modules.Inventario.Infrastructure.Database.Seeders.InventarioSeeder.SeedAsync(inventarioDbContext, invLogger);
+            await BubbaBag.Modules.Inventario.Infrastructure.Database.Seeders.InventarioSeeder.SeedAsync(inventarioDbContext, invLogger, sucursalesMap);
         }
 
         if (servicioCampoDbContext != null)
@@ -106,6 +109,10 @@ public static class WebApplicationExtensions
                       ALTER TABLE serviciocampo.""CatalogosServicio"" ADD COLUMN IF NOT EXISTS ""ClienteId"" uuid;");
             }
             catch { }
+
+            var scLogger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<BubbaBag.Modules.ServicioCampo.Infrastructure.Database.ServicioCampoDbContext>>();
+            await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.RecursosYZonasSeeder.SeedAsync(servicioCampoDbContext, scLogger);
+            await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.TarifaServicioSeeder.SeedAsync(servicioCampoDbContext, scLogger);
         }
 
         if (ventasDbContext != null)

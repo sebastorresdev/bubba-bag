@@ -25,20 +25,25 @@ public class OrdenTrabajoVisitaConfiguration : IEntityTypeConfiguration<OrdenTra
         builder.HasIndex(v => new { v.OrdenTrabajoId, v.NumeroVisita })
             .IsUnique();
 
-        builder.Property(v => v.NumeroVisitaSiebel)
+        builder.Property(v => v.NumeroVisitaOrigen)
             .HasMaxLength(50);
 
-        builder.HasIndex(v => v.NumeroVisitaSiebel);
+        builder.HasIndex(v => v.NumeroVisitaOrigen);
 
-        builder.Property(v => v.NumeroVisitaToa)
+        builder.Property(v => v.NumeroCita)
             .HasMaxLength(50);
 
-        builder.HasIndex(v => v.NumeroVisitaToa);
+        builder.HasIndex(v => v.NumeroCita);
 
-        builder.Property(v => v.CuadrillaTecnicoId)
+        builder.Property(v => v.RecursoTecnicoId)
             .IsRequired();
 
-        builder.HasIndex(v => v.CuadrillaTecnicoId);
+        builder.HasIndex(v => v.RecursoTecnicoId);
+
+        builder.HasOne(v => v.RecursoTecnico)
+            .WithMany()
+            .HasForeignKey(v => v.RecursoTecnicoId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(v => v.FechaProgramada)
             .IsRequired();

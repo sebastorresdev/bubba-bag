@@ -3,6 +3,7 @@ using System;
 using BubbaBag.Modules.ServicioCampo.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
 {
     [DbContext(typeof(ServicioCampoDbContext))]
-    partial class ServicioCampoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260922030853_RedisenioRecursosYZonasOperativas")]
+    partial class RedisenioRecursosYZonasOperativas
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -659,63 +662,6 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.HasIndex("ZonaOperativaId");
 
                     b.ToTable("OrdenesTrabajo", "serviciocampo");
-                });
-
-            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.OrdenTrabajoMaterial", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("Cantidad")
-                        .HasPrecision(14, 2)
-                        .HasColumnType("numeric(14,2)");
-
-                    b.Property<bool>("EsRetiro")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("FechaRegistro")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ItemSeriadoId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("NumeroSerie")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("NumeroSmartCard")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("Observaciones")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<Guid>("OrdenTrabajoId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("OrdenTrabajoVisitaId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ProductoId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FechaRegistro");
-
-                    b.HasIndex("ItemSeriadoId");
-
-                    b.HasIndex("NumeroSerie");
-
-                    b.HasIndex("NumeroSmartCard");
-
-                    b.HasIndex("OrdenTrabajoId");
-
-                    b.HasIndex("OrdenTrabajoVisitaId");
-
-                    b.ToTable("OrdenTrabajoMateriales", "serviciocampo");
                 });
 
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.OrdenTrabajoTarea", b =>
@@ -1382,24 +1328,6 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.Navigation("ZonaOperativa");
                 });
 
-            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.OrdenTrabajoMaterial", b =>
-                {
-                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.OrdenTrabajo", "OrdenTrabajo")
-                        .WithMany("Materiales")
-                        .HasForeignKey("OrdenTrabajoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.OrdenTrabajoVisita", "OrdenTrabajoVisita")
-                        .WithMany()
-                        .HasForeignKey("OrdenTrabajoVisitaId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("OrdenTrabajo");
-
-                    b.Navigation("OrdenTrabajoVisita");
-                });
-
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.OrdenTrabajoTarea", b =>
                 {
                     b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos.MotivoIncidencia", "MotivoRechazo")
@@ -1549,8 +1477,6 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
 
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.OrdenTrabajo", b =>
                 {
-                    b.Navigation("Materiales");
-
                     b.Navigation("Tareas");
 
                     b.Navigation("Visitas");

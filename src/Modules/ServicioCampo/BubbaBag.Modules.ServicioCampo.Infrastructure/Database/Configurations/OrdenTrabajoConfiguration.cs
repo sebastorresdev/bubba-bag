@@ -19,18 +19,22 @@ public class OrdenTrabajoConfiguration : IEntityTypeConfiguration<OrdenTrabajo>
         builder.HasIndex(w => w.CodigoWo)
             .IsUnique();
 
-        builder.Property(w => w.NumeroOrdenExterna)
+        builder.Property(w => w.NumeroOrden)
             .HasMaxLength(100);
 
-        builder.HasIndex(w => w.NumeroOrdenExterna);
+        builder.HasIndex(w => w.NumeroOrden);
 
-        builder.Property(w => w.CodigoContratoIbs)
+        builder.Property(w => w.CodigoContrato)
             .HasMaxLength(100);
 
-        builder.HasIndex(w => w.CodigoContratoIbs);
+        builder.HasIndex(w => w.CodigoContrato);
 
-        builder.Property(w => w.IdEncabezadoExterno)
+        builder.Property(w => w.NumeroPedido)
             .HasMaxLength(100);
+
+        // Zona Operativa / Territorio
+        builder.Property(w => w.ZonaOperativaId);
+        builder.HasIndex(w => w.ZonaOperativaId);
 
         // Estados
         builder.Property(w => w.Estado)
@@ -47,7 +51,7 @@ public class OrdenTrabajoConfiguration : IEntityTypeConfiguration<OrdenTrabajo>
 
         builder.HasIndex(w => w.EstadoSistema);
 
-        builder.Property(w => w.EstadoExterno)
+        builder.Property(w => w.EstadoOrigen)
             .HasMaxLength(100);
 
         builder.Property(w => w.ObservacionesCierre)
@@ -76,7 +80,7 @@ public class OrdenTrabajoConfiguration : IEntityTypeConfiguration<OrdenTrabajo>
 
         // Ignorar propiedades calculadas de conveniencia delegadas a VisitaActual
         builder.Ignore(w => w.VisitaActual);
-        builder.Ignore(w => w.CuadrillaTecnicoId);
+        builder.Ignore(w => w.RecursoTecnicoId);
         builder.Ignore(w => w.FechaProgramada);
         builder.Ignore(w => w.BloqueHorario);
         builder.Ignore(w => w.FechaInicioReal);
@@ -86,6 +90,11 @@ public class OrdenTrabajoConfiguration : IEntityTypeConfiguration<OrdenTrabajo>
         builder.Ignore(w => w.ObservacionesGenerales);
 
         // Relaciones maestras
+        builder.HasOne(w => w.ZonaOperativa)
+            .WithMany()
+            .HasForeignKey(w => w.ZonaOperativaId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasOne(w => w.TipoOrden)
             .WithMany()
             .HasForeignKey(w => w.TipoOrdenId)

@@ -1,10 +1,12 @@
 using System.Threading;
 using System.Threading.Tasks;
 using BubbaBag.Modules.Crm.Domain.Clientes;
+using BubbaBag.Modules.Inventario.Domain.Almacenes;
 using BubbaBag.Modules.Inventario.Domain.Productos;
 using BubbaBag.Modules.RecursosHumanos.Domain.Organizacion;
 using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 using BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
+using BubbaBag.Modules.ServicioCampo.Domain.Recursos;
 using BubbaBag.Modules.ServicioCampo.Domain.Tarifarios;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,6 +18,10 @@ public interface IServicioCampoDbContext
     DbSet<OrdenTrabajoVisita> OrdenTrabajoVisitas { get; }
     DbSet<OrdenTrabajoVisitaEvidencia> OrdenTrabajoVisitaEvidencias { get; }
     DbSet<OrdenTrabajoTarea> OrdenTrabajoTareas { get; }
+    DbSet<OrdenTrabajoMaterial> OrdenTrabajoMateriales { get; }
+    DbSet<ZonaOperativa> ZonasOperativas { get; }
+    DbSet<RecursoTecnico> RecursosTecnicos { get; }
+    DbSet<Almacen> Almacenes { get; }
     DbSet<MotivoIncidencia> MotivosIncidencia { get; }
     DbSet<Cliente> Clientes { get; }
     DbSet<Producto> Productos { get; }

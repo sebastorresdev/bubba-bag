@@ -1,6 +1,7 @@
 using BubbaBag.SharedKernel;
 using BubbaBag.Modules.ServicioCampo.Domain.Enums;
 using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
+using BubbaBag.Modules.ServicioCampo.Domain.Recursos;
 using BubbaBag.Modules.Crm.Domain.Clientes;
 
 namespace BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
@@ -19,6 +20,10 @@ public class OrdenTrabajo : Entity<Guid>
 
     public Guid CreadoPorId { get; private set; }
 
+    // Zona Operativa / Territorio de despacho
+    public Guid? ZonaOperativaId { get; private set; }
+    public ZonaOperativa? ZonaOperativa { get; private set; }
+
     // Actores Clave: Quién paga y Quién recibe la visita
     public Guid ClienteFacturacionId { get; private set; }
     public Cliente ClienteFacturacion { get; private set; } = default!; // DIRECTV, Claro, Empresa contratante
@@ -26,17 +31,17 @@ public class OrdenTrabajo : Entity<Guid>
     public Guid ClienteServicioId { get; private set; }
     public Cliente ClienteServicio { get; private set; } = default!;    // Abonado final en domicilio
 
-    // Referencias Externas (Agnóstico a la fuente: Siebel CRM, SGA, etc.)
-    public string? NumeroOrdenExterna { get; private set; }   // "1-86131756103"
-    public string? CodigoContratoIbs { get; private set; }    // "40757240"
-    public string? IdEncabezadoExterno { get; private set; }
+    // Identificadores y referencias del requerimiento
+    public string? NumeroOrden { get; private set; }         // "1-86131756103"
+    public string? CodigoContrato { get; private set; }      // "40757240"
+    public string? NumeroPedido { get; private set; }
 
     // =========================================================================
     // ESTADOS Y CICLO DE VIDA
     // =========================================================================
     public EstadoOrdenTrabajo Estado { get; private set; }
     public EstadoSistema EstadoSistema { get; private set; }
-    public string? EstadoExterno { get; private set; }        // Texto original de Siebel/Excel: "Asignada", "Finalizada"
+    public string? EstadoOrigen { get; private set; }        // Texto original: "Asignada", "Finalizada"
 
     // Auditoría de Cierre / Rechazo / Cancelación
     public Guid? MotivoCierreId { get; private set; }
@@ -54,6 +59,9 @@ public class OrdenTrabajo : Entity<Guid>
     public DateTime? FechaDescargaMateriales { get; private set; }
     public int ContadorOmisionDescarga { get; private set; }
 
+    private readonly List<OrdenTrabajoMaterial> _materiales = new();
+    public IReadOnlyCollection<OrdenTrabajoMaterial> Materiales => _materiales.AsReadOnly();
+
     // =========================================================================
     // VISITAS EN CAMPO (1 a N)
     // =========================================================================
@@ -63,7 +71,7 @@ public class OrdenTrabajo : Entity<Guid>
     public OrdenTrabajoVisita? VisitaActual => _visitas.OrderByDescending(v => v.NumeroVisita).FirstOrDefault();
 
     // Propiedades delegadas de la Visita Actual (para consulta ágil de lectura)
-    public Guid? CuadrillaTecnicoId => VisitaActual?.CuadrillaTecnicoId;
+    public Guid? RecursoTecnicoId => VisitaActual?.RecursoTecnicoId;
     public DateOnly? FechaProgramada => VisitaActual?.FechaProgramada;
     public string? BloqueHorario => VisitaActual?.BloqueHorario;
     public DateTime? FechaInicioReal => VisitaActual?.FechaInicioReal;
@@ -89,9 +97,11 @@ public class OrdenTrabajo : Entity<Guid>
         Guid creadoPorId,
         Guid clienteFacturacionId,
         Guid clienteServicioId,
-        string? numeroOrdenExterna = null,
-        string? codigoContratoIbs = null,
-        string? estadoExterno = null,
+        Guid? zonaOperativaId = null,
+        string? numeroOrden = null,
+        string? codigoContrato = null,
+        string? numeroPedido = null,
+        string? estadoOrigen = null,
         bool descargaMaterialesObligatoria = true)
     {
         var orden = new OrdenTrabajo
@@ -102,9 +112,11 @@ public class OrdenTrabajo : Entity<Guid>
             CreadoPorId = creadoPorId,
             ClienteFacturacionId = clienteFacturacionId,
             ClienteServicioId = clienteServicioId,
-            NumeroOrdenExterna = numeroOrdenExterna?.Trim(),
-            CodigoContratoIbs = codigoContratoIbs?.Trim(),
-            EstadoExterno = estadoExterno?.Trim(),
+            ZonaOperativaId = zonaOperativaId,
+            NumeroOrden = numeroOrden?.Trim(),
+            CodigoContrato = codigoContrato?.Trim(),
+            NumeroPedido = numeroPedido?.Trim(),
+            EstadoOrigen = estadoOrigen?.Trim(),
             DescargaMaterialesObligatoria = descargaMaterialesObligatoria,
             Estado = EstadoOrdenTrabajo.Pendiente,
             EstadoSistema = EstadoSistema.PendienteProgramar,
@@ -114,18 +126,24 @@ public class OrdenTrabajo : Entity<Guid>
         return orden;
     }
 
+    public void AsignarZonaOperativa(Guid zonaOperativaId)
+    {
+        ZonaOperativaId = zonaOperativaId;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     /// <summary>
     /// Programa o reprograma una cita de visita con técnico y bloque horario.
     /// </summary>
     public OrdenTrabajoVisita ProgramarVisita(
         string codigoVisita,
-        Guid cuadrillaTecnicoId,
+        Guid recursoTecnicoId,
         DateOnly fechaProgramada,
         string? bloqueHorario,
         DateTime? inicioAgendado = null,
         DateTime? finAgendado = null,
-        string? numeroVisitaSiebel = null,
-        string? numeroVisitaToa = null)
+        string? numeroVisitaOrigen = null,
+        string? numeroCita = null)
     {
         if (Estado == EstadoOrdenTrabajo.Finalizada || Estado == EstadoOrdenTrabajo.Liquidada || Estado == EstadoOrdenTrabajo.Cancelada)
             throw new InvalidOperationException($"No se puede programar una visita en una orden con estado '{Estado}'.");
@@ -134,13 +152,13 @@ public class OrdenTrabajo : Entity<Guid>
             Id,
             codigoVisita,
             _visitas.Count + 1,
-            cuadrillaTecnicoId,
+            recursoTecnicoId,
             fechaProgramada,
             bloqueHorario,
             inicioAgendado,
             finAgendado,
-            numeroVisitaSiebel,
-            numeroVisitaToa);
+            numeroVisitaOrigen,
+            numeroCita);
 
         _visitas.Add(nuevaVisita);
 
@@ -190,6 +208,58 @@ public class OrdenTrabajo : Entity<Guid>
 
         VerificarPromocionAFinalizada();
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    public OrdenTrabajoMaterial RegistrarMaterialConsumido(
+        Guid productoId,
+        decimal cantidad,
+        Guid? itemSeriadoId = null,
+        string? numeroSerie = null,
+        string? numeroSmartCard = null,
+        Guid? visitaId = null,
+        string? observaciones = null)
+    {
+        var mat = OrdenTrabajoMaterial.CrearConsumo(
+            Id,
+            productoId,
+            cantidad,
+            itemSeriadoId,
+            numeroSerie,
+            numeroSmartCard,
+            visitaId,
+            observaciones);
+
+        _materiales.Add(mat);
+        DescargaMaterialesConfirmada = true;
+        FechaDescargaMateriales = DateTime.UtcNow;
+        NoConsumioMateriales = false;
+        DescargaMaterialesOmitida = false;
+        UpdatedAt = DateTime.UtcNow;
+
+        VerificarPromocionAFinalizada();
+        return mat;
+    }
+
+    public OrdenTrabajoMaterial RegistrarEquipoRetirado(
+        Guid productoId,
+        string numeroSerie,
+        Guid? itemSeriadoId = null,
+        string? numeroSmartCard = null,
+        Guid? visitaId = null,
+        string? motivo = null)
+    {
+        var mat = OrdenTrabajoMaterial.CrearRetiro(
+            Id,
+            productoId,
+            numeroSerie,
+            itemSeriadoId,
+            numeroSmartCard,
+            visitaId,
+            motivo);
+
+        _materiales.Add(mat);
+        UpdatedAt = DateTime.UtcNow;
+        return mat;
     }
 
     public void NotificarVisitaCompletada(
@@ -323,9 +393,9 @@ public class OrdenTrabajo : Entity<Guid>
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void ActualizarEstadoExterno(string nuevoEstadoExterno)
+    public void ActualizarEstadoOrigen(string nuevoEstadoOrigen)
     {
-        EstadoExterno = nuevoEstadoExterno.Trim();
+        EstadoOrigen = nuevoEstadoOrigen.Trim();
         UpdatedAt = DateTime.UtcNow;
     }
 

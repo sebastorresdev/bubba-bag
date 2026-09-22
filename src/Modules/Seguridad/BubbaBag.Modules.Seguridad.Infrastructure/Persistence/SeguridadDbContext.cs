@@ -8,6 +8,8 @@ namespace BubbaBag.Modules.Seguridad.Infrastructure.Persistence;
 public class SeguridadDbContext : IdentityDbContext<Usuario, Rol, Guid>
 {
     public DbSet<VistaUsuario> VistasUsuario => Set<VistaUsuario>();
+    public DbSet<UsuarioZonaOperativa> UsuariosZonasOperativas => Set<UsuarioZonaOperativa>();
+    public DbSet<UsuarioAlmacen> UsuariosAlmacenes => Set<UsuarioAlmacen>();
 
     public SeguridadDbContext(DbContextOptions<SeguridadDbContext> options) : base(options)
     {
@@ -36,6 +38,32 @@ public class SeguridadDbContext : IdentityDbContext<Usuario, Rol, Guid>
 
             entity.HasIndex(v => new { v.UsuarioId, v.Entidad });
             entity.HasIndex(v => new { v.UsuarioId, v.Entidad, v.EsPredeterminada });
+        });
+
+        builder.Entity<UsuarioZonaOperativa>(entity =>
+        {
+            entity.ToTable("UsuariosZonasOperativas");
+            entity.HasKey(u => u.Id);
+
+            entity.HasOne(u => u.Usuario)
+                .WithMany()
+                .HasForeignKey(u => u.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(u => new { u.UsuarioId, u.ZonaOperativaId }).IsUnique();
+        });
+
+        builder.Entity<UsuarioAlmacen>(entity =>
+        {
+            entity.ToTable("UsuariosAlmacenes");
+            entity.HasKey(u => u.Id);
+
+            entity.HasOne(u => u.Usuario)
+                .WithMany()
+                .HasForeignKey(u => u.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(u => new { u.UsuarioId, u.AlmacenId }).IsUnique();
         });
     }
 }

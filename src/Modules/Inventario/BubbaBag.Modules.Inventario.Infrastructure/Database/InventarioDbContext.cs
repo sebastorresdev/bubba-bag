@@ -1,4 +1,5 @@
 using BubbaBag.Modules.Inventario.Application;
+using BubbaBag.Modules.Inventario.Domain.Almacenes;
 using BubbaBag.Modules.Inventario.Domain.Productos;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +12,10 @@ public class InventarioDbContext : DbContext, IInventarioDbContext
     }
 
     public DbSet<Producto> Productos => Set<Producto>();
+    public DbSet<Almacen> Almacenes => Set<Almacen>();
+    public DbSet<ItemSeriado> ItemsSeriados => Set<ItemSeriado>();
+    public DbSet<StockAlmacen> StocksAlmacen => Set<StockAlmacen>();
+    public DbSet<MovimientoInventario> MovimientosInventario => Set<MovimientoInventario>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -1,6 +1,7 @@
 using BubbaBag.SharedKernel;
 using BubbaBag.Modules.ServicioCampo.Domain.Enums;
 using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
+using BubbaBag.Modules.ServicioCampo.Domain.Recursos;
 
 namespace BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
 
@@ -16,12 +17,13 @@ public class OrdenTrabajoVisita : Entity<Guid>
     public string CodigoVisita { get; private set; } = default!;
     public int NumeroVisita { get; private set; } // 1, 2, 3...
 
-    // Referencias a sistemas externos (Siebel CRM / Oracle Field Service TOA)
-    public string? NumeroVisitaSiebel { get; private set; } // '1-142O8E0U'
-    public string? NumeroVisitaToa { get; private set; }    // '1730748'
+    // Referencias a orígenes del requerimiento
+    public string? NumeroVisitaOrigen { get; private set; } // '1-142O8E0U'
+    public string? NumeroCita { get; private set; }         // '1730748'
 
-    // Asignación de Cuadrilla y Agenda
-    public Guid CuadrillaTecnicoId { get; private set; }
+    // Asignación de Técnico / Cuadrilla y Agenda
+    public Guid RecursoTecnicoId { get; private set; }
+    public RecursoTecnico RecursoTecnico { get; private set; } = default!;
     public DateOnly FechaProgramada { get; private set; }
     public string? BloqueHorario { get; private set; } // 'MAÑANA', 'TARDE', '09:00 - 13:00'
     public DateTime? InicioAgendado { get; private set; }
@@ -62,13 +64,13 @@ public class OrdenTrabajoVisita : Entity<Guid>
         Guid ordenTrabajoId,
         string codigoVisita,
         int numeroVisita,
-        Guid cuadrillaTecnicoId,
+        Guid recursoTecnicoId,
         DateOnly fechaProgramada,
         string? bloqueHorario,
         DateTime? inicioAgendado = null,
         DateTime? finAgendado = null,
-        string? numeroVisitaSiebel = null,
-        string? numeroVisitaToa = null)
+        string? numeroVisitaOrigen = null,
+        string? numeroCita = null)
     {
         Id = Guid.NewGuid();
         OrdenTrabajoId = ordenTrabajoId;
@@ -76,15 +78,21 @@ public class OrdenTrabajoVisita : Entity<Guid>
             ? throw new ArgumentException("El código de visita es obligatorio.", nameof(codigoVisita))
             : codigoVisita.Trim().ToUpperInvariant();
         NumeroVisita = numeroVisita;
-        CuadrillaTecnicoId = cuadrillaTecnicoId;
+        RecursoTecnicoId = recursoTecnicoId;
         FechaProgramada = fechaProgramada;
         BloqueHorario = bloqueHorario?.Trim().ToUpperInvariant();
         InicioAgendado = inicioAgendado;
         FinAgendado = finAgendado;
-        NumeroVisitaSiebel = numeroVisitaSiebel?.Trim();
-        NumeroVisitaToa = numeroVisitaToa?.Trim();
+        NumeroVisitaOrigen = numeroVisitaOrigen?.Trim();
+        NumeroCita = numeroCita?.Trim();
         Estado = EstadoVisita.Programada;
         CreatedAt = DateTime.UtcNow;
+    }
+
+    public void ReasignarTecnico(Guid recursoTecnicoId)
+    {
+        RecursoTecnicoId = recursoTecnicoId;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void MarcarEnCamino(DateTime? fechaSalida = null)
