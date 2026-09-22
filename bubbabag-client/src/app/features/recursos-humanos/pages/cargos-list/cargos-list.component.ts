@@ -104,6 +104,7 @@ export class CargosListComponent implements OnInit {
       title: 'Nombre del Cargo',
       width: '280px',
       sortable: true,
+      dataType: 'text',
       filterType: 'text',
       canHide: false,
       primaryLink: true,
@@ -113,6 +114,7 @@ export class CargosListComponent implements OnInit {
       title: 'Departamento / Área',
       width: '240px',
       sortable: true,
+      dataType: 'text',
       filterType: 'text',
     },
     {
@@ -121,6 +123,7 @@ export class CargosListComponent implements OnInit {
       width: '180px',
       align: 'right',
       sortable: true,
+      dataType: 'currency',
     },
     {
       key: 'totalEmpleados',
@@ -128,6 +131,7 @@ export class CargosListComponent implements OnInit {
       width: '160px',
       align: 'center',
       sortable: true,
+      dataType: 'number',
     },
     {
       key: 'activo',
@@ -135,6 +139,7 @@ export class CargosListComponent implements OnInit {
       width: '120px',
       align: 'center',
       sortable: true,
+      dataType: 'boolean',
       filterType: 'select',
       filterOptions: [
         { label: 'Activo', value: true },

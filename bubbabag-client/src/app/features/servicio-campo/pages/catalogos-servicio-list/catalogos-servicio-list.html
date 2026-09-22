@@ -1,121 +1,40 @@
 <app-command-bar [items]="commandBarItems"></app-command-bar>
 
 <div class="catalogo-view-wrapper">
-  <nz-card [nzBordered]="false" class="d365-table-card">
-    <!-- Toolbar de la Vista -->
-    <div class="d365-toolbar-row">
-      <!-- Selector de Vista (Dynamics 365 View Selector) -->
-      <app-view-selector
-        entidad="CatalogosServicio"
-        [vistasSistema]="vistasSistema"
-        [(vistaActualKey)]="vistaActual"
-        (vistaChange)="onVistaChange($event)"
-      ></app-view-selector>
+  <app-entity-table
+    entidad="Catálogos de Servicios"
+    [vistasSistema]="vistasSistema"
+    [(vistaActualKey)]="vistaActual"
+    [columnas]="columnas"
+    [datos]="catalogosFiltrados"
+    [loading]="loading"
+    [(selectedIds)]="selectedIds"
+    (selectedIdsChange)="onSelectedIdsChange($event)"
+    (vistaChange)="onVistaChange($event)"
+    (recargar)="cargarDatos()"
+    (rowDblClick)="editar($event.id)"
+  >
+    <!-- Nombre -->
+    <ng-template cellDef="nombre" let-item>
+      <span class="nombre-link" (click)="editar(item.id)">
+        {{ item.nombre }}
+      </span>
+    </ng-template>
 
-      <!-- Buscador Rápido -->
-      <div class="view-tools-group">
-        <div class="d365-search-box">
-          <input
-            type="text"
-            [(ngModel)]="searchTerm"
-            (ngModelChange)="onSearchChange()"
-            placeholder="Filtrar por código, nombre..."
-            class="search-input"
-          />
-          @if (searchTerm) {
-            <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
-              <nz-icon nzType="close" />
-            </button>
-          }
-          <button class="search-icon-btn" (click)="onSearchChange()" title="Buscar">
-            <nz-icon nzType="search" />
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Cliente -->
+    <ng-template cellDef="contratanteNombre" let-item>
+      <span>{{ item.contratanteNombre || 'Catálogo Propio' }}</span>
+    </ng-template>
 
-    <!-- Grilla / Tabla Estilo Dynamics 365 -->
-    <div class="d365-grid-container">
-      <nz-table
-        #catalogosTable
-        [nzData]="catalogosFiltrados"
-        [nzLoading]="loading"
-        [nzShowPagination]="true"
-        [nzShowTotal]="totalRangeTpl"
-        [nzPageSize]="15"
-        nzSize="small"
-        class="d365-table"
+    <!-- Estado -->
+    <ng-template cellDef="activo" let-item>
+      <nz-tag
+        class="d365-status-tag"
+        [class.tag-active]="item.activo"
+        [class.tag-inactive]="!item.activo"
       >
-        <ng-template #totalRangeTpl let-range="range" let-total="total">
-          {{ range[0] }} - {{ range[1] }} de {{ total }}
-        </ng-template>
-        <thead>
-          <tr>
-            <th
-              [nzWidth]="'44px'"
-              [nzChecked]="isAllSelected"
-              [nzIndeterminate]="isIndeterminate"
-              (nzCheckedChange)="toggleSelectAll($event)"
-              class="col-checkbox"
-            ></th>
-            <th [nzWidth]="'300px'">Nombre del Catálogo</th>
-            <th [nzWidth]="'260px'">Cliente</th>
-            <th [nzWidth]="'160px'" nzAlign="center">Servicios Incluidos</th>
-            <th>Descripción</th>
-            <th [nzWidth]="'110px'" nzAlign="center">Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (item of catalogosTable.data; track item.id) {
-            <tr
-              class="d365-data-row"
-              [class.row-selected]="selectedIds.has(item.id)"
-              (click)="toggleSelect(item.id)"
-              (dblclick)="editar(item.id)"
-            >
-              <td
-                class="col-checkbox"
-                [nzChecked]="selectedIds.has(item.id)"
-                (click)="$event.stopPropagation()"
-                (nzCheckedChange)="toggleSelect(item.id)"
-              ></td>
-
-              <!-- Nombre con enlace de edición -->
-              <td class="col-primary-text">
-                <span class="nombre-link" (click)="$event.stopPropagation(); editar(item.id)">
-                  {{ item.nombre }}
-                </span>
-              </td>
-
-              <!-- Contratante / Mandante: Texto normal sobrio -->
-              <td class="col-text">
-                {{ item.contratanteNombre || 'Catálogo Propio' }}
-              </td>
-
-              <!-- Servicios Vinculados: Conteo sobrio -->
-              <td nzAlign="center" class="col-desc">
-                {{ item.cantidadServicios }}
-              </td>
-
-              <!-- Descripción -->
-              <td class="col-desc">
-                {{ item.descripcion || '-' }}
-              </td>
-
-              <!-- Estado con Tag D365 -->
-              <td nzAlign="center">
-                <nz-tag
-                  class="d365-status-tag"
-                  [class.tag-active]="item.activo"
-                  [class.tag-inactive]="!item.activo"
-                >
-                  {{ item.activo ? 'Activo' : 'Inactivo' }}
-                </nz-tag>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </nz-table>
-    </div>
-  </nz-card>
+        {{ item.activo ? 'Activo' : 'Inactivo' }}
+      </nz-tag>
+    </ng-template>
+  </app-entity-table>
 </div>

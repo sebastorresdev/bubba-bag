@@ -23,9 +23,9 @@ import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
-import { NzBadgeModule } from 'ng-zorro-antd/badge';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
-import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
+import { VistaItem } from '../../../../shared/components/view-selector';
+import { EntityTableComponent, CellDefDirective, ColumnDef } from '../../../../shared/components/entity-table';
 
 @Component({
   selector: 'app-catalogos-servicio-list',
@@ -46,9 +46,9 @@ import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/
     NzCheckboxModule,
     NzSelectModule,
     NzAvatarModule,
-    NzBadgeModule,
     CommandBarComponent,
-    ViewSelectorComponent,
+    EntityTableComponent,
+    CellDefDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './catalogos-servicio-list.html',
@@ -77,7 +77,58 @@ export class CatalogosServicioListComponent implements OnInit {
     this.cambiarVista(vista.key);
   }
 
+  columnas: ColumnDef<CatalogoServicioDto>[] = [
+    {
+      key: 'nombre',
+      title: 'Nombre del Catálogo',
+      width: '300px',
+      sortable: true,
+      dataType: 'text',
+      primaryLink: true,
+      canHide: false,
+    },
+    {
+      key: 'contratanteNombre',
+      title: 'Cliente',
+      width: '260px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'cantidadServicios',
+      title: 'Servicios Incluidos',
+      width: '160px',
+      align: 'center',
+      sortable: true,
+      dataType: 'number',
+    },
+    {
+      key: 'descripcion',
+      title: 'Descripción',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'activo',
+      title: 'Estado',
+      width: '110px',
+      align: 'center',
+      sortable: true,
+      dataType: 'boolean',
+      filterType: 'select',
+      filterOptions: [
+        { label: 'Activo', value: true },
+        { label: 'Inactivo', value: false },
+      ],
+    },
+  ];
+
   selectedIds = new Set<string>();
+
+  onSelectedIdsChange(ids: Set<string>): void {
+    this.selectedIds = ids;
+    this.cdr.markForCheck();
+  }
 
   ngOnInit(): void {
     this.cargarDatos();

@@ -35,7 +35,8 @@ import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
-import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
+import { VistaItem } from '../../../../shared/components/view-selector';
+import { EntityTableComponent, CellDefDirective, ColumnDef } from '../../../../shared/components/entity-table';
 
 @Component({
   selector: 'app-empleados-list',
@@ -59,7 +60,8 @@ import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/
     NzCheckboxModule,
     NzDrawerModule,
     CommandBarComponent,
-    ViewSelectorComponent,
+    EntityTableComponent,
+    CellDefDirective,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './empleados-list.html',
@@ -90,27 +92,87 @@ export class EmpleadosListComponent implements OnInit {
   }
 
   // Definición de Columnas Visibles (Dynamics 365 Edit Columns)
-  columnas = [
-    { key: 'colaborador', label: 'Colaborador', visible: true, required: true },
-    { key: 'email', label: 'Correo Electrónico', visible: true, required: false },
-    { key: 'documento', label: 'Documento', visible: true, required: false },
-    { key: 'cargo', label: 'Cargo', visible: true, required: false },
-    { key: 'departamento', label: 'Área', visible: true, required: false },
-    { key: 'tipoContrato', label: 'Tipo de Contrato', visible: true, required: false },
-    { key: 'estado', label: 'Estado (KPI)', visible: true, required: false },
+  columnas: ColumnDef[] = [
+    {
+      key: 'colaborador',
+      title: 'Colaborador',
+      width: '260px',
+      sortable: true,
+      dataType: 'text',
+      primaryLink: true,
+      canHide: false,
+    },
+    {
+      key: 'email',
+      title: 'Correo Electrónico',
+      width: '220px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'documento',
+      title: 'Documento',
+      width: '160px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'cargoNombre',
+      title: 'Cargo',
+      width: '200px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'departamentoNombre',
+      title: 'Área',
+      width: '180px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'tipoContrato',
+      title: 'Tipo de Contrato',
+      width: '160px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'estado',
+      title: 'Estado (KPI)',
+      width: '130px',
+      align: 'center',
+      sortable: true,
+      dataType: 'select',
+      filterType: 'select',
+      filterOptions: [
+        { label: 'Activo', value: 'Activo' },
+        { label: 'Vacaciones', value: 'Vacaciones' },
+        { label: 'Licencia', value: 'Licencia' },
+        { label: 'Cesado', value: 'Cesado' },
+      ],
+    },
+    {
+      key: 'fechaIngreso',
+      title: 'Fecha de Ingreso',
+      width: '140px',
+      align: 'center',
+      sortable: true,
+      dataType: 'date',
+    },
   ];
 
-  toggleColumnasDrawer(): void {
-    this.drawerColumnasVisible = !this.drawerColumnasVisible;
-  }
-
-  isColVisible(key: string): boolean {
-    const col = this.columnas.find((c) => c.key === key);
-    return col ? col.visible : true;
-  }
-
-  restablecerColumnas(): void {
-    this.columnas.forEach((c) => (c.visible = true));
+  onSelectedIdsChange(ids: Set<string>): void {
+    this.setOfCheckedId = ids;
+    if (ids.size === 1) {
+      const selectedId = Array.from(ids)[0];
+      this.selectedEmpleado = this.empleados.find((e) => e.id === selectedId) || null;
+    } else {
+      this.selectedEmpleado = null;
+    }
+    this.checked = ids.size > 0 && ids.size === this.empleados.length;
+    this.indeterminate = ids.size > 0 && ids.size < this.empleados.length;
+    this.cdr.markForCheck();
   }
 
   // Filtros

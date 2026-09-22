@@ -140,3 +140,195 @@ app-empleado-form {
   background: #1f1f1f !important;
   background-color: #1f1f1f !important;
 }
+
+/* ==========================================================================
+   Notificaciones Toast Superiores Derechas Estilo Dynamics 365
+   ========================================================================== */
+
+/* 1. Mensajes Rápidos (ant-message) posicionados en la esquina superior derecha */
+.ant-message {
+  position: fixed !important;
+  top: 56px !important;
+  right: 24px !important;
+  left: auto !important;
+  width: auto !important;
+  max-width: 440px !important;
+  z-index: 1060 !important;
+  pointer-events: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+}
+
+.ant-message-notice {
+  text-align: right !important;
+  padding: 0 !important;
+  margin-bottom: 8px !important;
+  pointer-events: all !important;
+}
+
+.ant-message-notice-content {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 10px 16px !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 6.4px 14.4px 0 rgba(0, 0, 0, 0.13), 0 1.2px 3.6px 0 rgba(0, 0, 0, 0.11) !important;
+  font-size: 13px !important;
+  color: #323130 !important;
+  font-weight: 500 !important;
+}
+
+.ant-message-custom-content {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.ant-message-custom-content .anticon {
+  font-size: 16px !important;
+  margin-right: 0 !important;
+}
+
+.ant-message-success .anticon {
+  color: #107c41 !important;
+}
+
+.ant-message-error .anticon {
+  color: #d13438 !important;
+}
+
+.ant-message-warning .anticon {
+  color: #ffaa00 !important;
+}
+
+.ant-message-info .anticon {
+  color: #0f6cbd !important;
+}
+
+/* Modo oscuro para ant-message */
+[data-theme='dark'] .ant-message-notice-content,
+.dark-theme .ant-message-notice-content {
+  background: #252423 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  color: #f3f2f1 !important;
+}
+
+/* 2. Notificaciones Ricas (ant-notification) estilo Dynamics 365 */
+.ant-notification-topRight {
+  top: 56px !important;
+  right: 24px !important;
+  z-index: 1060 !important;
+}
+
+.ant-notification-notice {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 6.4px 14.4px 0 rgba(0, 0, 0, 0.13), 0 1.2px 3.6px 0 rgba(0, 0, 0, 0.11) !important;
+  padding: 12px 16px !important;
+  margin-bottom: 10px !important;
+}
+
+.ant-notification-notice-message {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #323130 !important;
+  margin-bottom: 2px !important;
+  line-height: 1.4 !important;
+}
+
+.ant-notification-notice-description {
+  font-size: 12px !important;
+  color: #605e5c !important;
+  line-height: 1.4 !important;
+}
+
+.ant-notification-notice-icon-success {
+  color: #107c41 !important;
+}
+
+.ant-notification-notice-icon-error {
+  color: #d13438 !important;
+}
+
+.ant-notification-notice-icon-warning {
+  color: #ffaa00 !important;
+}
+
+.ant-notification-notice-icon-info {
+  color: #0f6cbd !important;
+}
+
+.ant-notification-notice-close {
+  color: #8a8886 !important;
+  top: 12px !important;
+  right: 12px !important;
+}
+
+.ant-notification-notice-close:hover {
+  color: #323130 !important;
+}
+
+/* Modo oscuro para ant-notification */
+[data-theme='dark'] .ant-notification-notice,
+.dark-theme .ant-notification-notice {
+  background: #252423 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme='dark'] .ant-notification-notice-message,
+.dark-theme .ant-notification-notice-message {
+  color: #ffffff !important;
+}
+
+[data-theme='dark'] .ant-notification-notice-description,
+.dark-theme .ant-notification-notice-description {
+  color: #c8c6c4 !important;
+}
+
+[data-theme='dark'] .ant-notification-notice-close:hover,
+.dark-theme .ant-notification-notice-close:hover {
+  color: #ffffff !important;
+}
+
+/* 3. CDK Drag & Drop Estilos Globales (Overlay / Body) */
+.cdk-drag-preview {
+  box-sizing: border-box;
+  border-radius: 4px;
+  box-shadow: 0 6.4px 14.4px 0 rgba(0, 0, 0, 0.13), 0 1.2px 3.6px 0 rgba(0, 0, 0, 0.11) !important;
+  background: #ffffff !important;
+  border: 1px solid #0f6cbd !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  z-index: 2500 !important;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.35;
+  background: #f3f2f1 !important;
+  border: 1px dashed #0f6cbd !important;
+  border-radius: 4px;
+  min-height: 40px;
+}
+
+[data-theme='dark'] .cdk-drag-preview,
+.dark-theme .cdk-drag-preview {
+  background: #252423 !important;
+  border-color: #2886de !important;
+  color: #f3f2f1 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-theme='dark'] .cdk-drag-placeholder,
+.dark-theme .cdk-drag-placeholder {
+  background: #1e1e1e !important;
+  border-color: #2886de !important;
+}
+

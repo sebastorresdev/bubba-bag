@@ -1,4 +1,5 @@
 import { TemplateRef } from '@angular/core';
+import { ColumnDataType, FilterGroup } from '../advanced-filter';
 
 export type ColumnAlign = 'left' | 'center' | 'right';
 export type ColumnFilterType = 'text' | 'select' | 'none';
@@ -14,6 +15,7 @@ export interface ColumnDef<T = any> {
   width?: string;
   align?: ColumnAlign;
   sortable?: boolean;
+  dataType?: ColumnDataType;
   filterType?: ColumnFilterType;
   filterOptions?: FilterOption[];
   hidden?: boolean;
@@ -32,5 +34,6 @@ export interface TableStateSnapshot {
   searchTerm: string;
   sort: TableSortState;
   filters: Record<string, any>;
+  advancedFilter?: FilterGroup | null;
   visibleColumnKeys: string[];
 }

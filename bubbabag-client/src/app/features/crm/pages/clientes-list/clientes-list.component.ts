@@ -28,7 +28,8 @@ import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
-import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
+import { VistaItem } from '../../../../shared/components/view-selector';
+import { EntityTableComponent, CellDefDirective, ColumnDef } from '../../../../shared/components/entity-table';
 
 @Component({
   selector: 'app-clientes-list',
@@ -48,9 +49,9 @@ import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/
     NzEmptyModule,
     NzAvatarModule,
     NzCheckboxModule,
-    NzDrawerModule,
     CommandBarComponent,
-    ViewSelectorComponent,
+    EntityTableComponent,
+    CellDefDirective,
   ],
   changeDetection: ChangeDetectionStrategy.Default,
   templateUrl: './clientes-list.html',
@@ -82,39 +83,32 @@ export class ClientesListComponent implements OnInit, OnDestroy {
     this.cambiarVista(vista.key);
   }
 
-  // Definición de Columnas Visibles (Dynamics 365 Edit Columns)
-  columnas = [
-    { key: 'codigo', label: 'Código', visible: true, required: false },
-    { key: 'cliente', label: 'Cliente / Razón Social', visible: true, required: true },
-    { key: 'contacto', label: 'Contacto', visible: true, required: false },
-    { key: 'tipoPersona', label: 'Tipo Persona', visible: true, required: false },
-    { key: 'tipoDocumento', label: 'Tipo Doc.', visible: true, required: false },
-    { key: 'documento', label: 'N° Documento', visible: true, required: false },
-    { key: 'telefono', label: 'Teléfono', visible: true, required: false },
-    { key: 'email', label: 'Correo Electrónico', visible: true, required: false },
-    { key: 'direccion', label: 'Dirección', visible: true, required: false },
-    { key: 'distrito', label: 'Distrito', visible: true, required: false },
-    { key: 'provincia', label: 'Provincia / Ciudad', visible: true, required: false },
-    { key: 'departamento', label: 'Departamento', visible: false, required: false },
-    { key: 'clasificacion', label: 'Clasificación', visible: true, required: false },
-    { key: 'estado', label: 'Estado', visible: true, required: false },
+  columnas: ColumnDef<ClienteListadoItemDto>[] = [
+    { key: 'codigoCliente', title: 'Código', width: '110px', sortable: true, dataType: 'text' },
+    { key: 'nombreCompletoODenominacion', title: 'Cliente / Razón Social', width: '260px', sortable: true, dataType: 'text', primaryLink: true, canHide: false },
+    { key: 'contacto', title: 'Contacto', width: '180px', sortable: true, dataType: 'text' },
+    { key: 'tipoPersona', title: 'Tipo Persona', width: '120px', sortable: true, dataType: 'text', filterType: 'select', filterOptions: [{ label: 'Natural', value: 'NATURAL' }, { label: 'Jurídica', value: 'JURIDICA' }] },
+    { key: 'tipoDocumento', title: 'Tipo Doc.', width: '100px', sortable: true, dataType: 'text' },
+    { key: 'documentoIdentidad', title: 'N° Documento', width: '130px', sortable: true, dataType: 'text' },
+    { key: 'telefonoPrincipal', title: 'Teléfono', width: '130px', sortable: true, dataType: 'text' },
+    { key: 'email', title: 'Correo Electrónico', width: '180px', sortable: true, dataType: 'text' },
+    { key: 'direccion', title: 'Dirección', width: '240px', sortable: true, dataType: 'text' },
+    { key: 'distrito', title: 'Distrito', width: '130px', sortable: true, dataType: 'text' },
+    { key: 'provincia', title: 'Provincia / Ciudad', width: '130px', sortable: true, dataType: 'text' },
+    { key: 'departamento', title: 'Departamento', width: '130px', sortable: true, dataType: 'text', hidden: true },
+    { key: 'clasificacion', title: 'Clasificación', width: '140px', sortable: true, dataType: 'text' },
+    { key: 'activo', title: 'Estado', width: '100px', align: 'center', sortable: true, dataType: 'boolean', filterType: 'select', filterOptions: [{ label: 'Activo', value: true }, { label: 'Inactivo', value: false }] },
   ];
 
-  toggleColumnasDrawer(): void {
-    this.drawerColumnasVisible = !this.drawerColumnasVisible;
-  }
-
-  toggleFiltrosDrawer(): void {
-    this.drawerFiltrosVisible = !this.drawerFiltrosVisible;
-  }
-
-  isColVisible(key: string): boolean {
-    const col = this.columnas.find((c) => c.key === key);
-    return col ? col.visible : true;
-  }
-
-  restablecerColumnas(): void {
-    this.columnas.forEach((c) => (c.visible = true));
+  onSelectedIdsChange(ids: Set<string>): void {
+    this.setOfCheckedId = ids;
+    if (ids.size === 1) {
+      const selectedId = Array.from(ids)[0];
+      this.selectedCliente = this.clientes.find((c) => c.id === selectedId) || null;
+    } else {
+      this.selectedCliente = null;
+    }
+    this.cdr.markForCheck();
   }
 
   // Filtros

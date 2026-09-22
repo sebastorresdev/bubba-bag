@@ -21,7 +21,8 @@ import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
-import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
+import { VistaItem } from '../../../../shared/components/view-selector';
+import { EntityTableComponent, CellDefDirective, ColumnDef } from '../../../../shared/components/entity-table';
 
 export interface OrdenTrabajoItemDto {
   id: string;
@@ -54,7 +55,8 @@ export interface OrdenTrabajoItemDto {
     NzCheckboxModule,
     NzSelectModule,
     CommandBarComponent,
-    ViewSelectorComponent,
+    EntityTableComponent,
+    CellDefDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './ordenes-list.html',
@@ -83,7 +85,89 @@ export class OrdenesListComponent implements OnInit {
     this.cambiarVista(vista.key);
   }
 
+  columnas: ColumnDef<OrdenTrabajoItemDto>[] = [
+    {
+      key: 'numero',
+      title: 'N° Orden',
+      width: '130px',
+      sortable: true,
+      dataType: 'text',
+      primaryLink: true,
+      canHide: false,
+    },
+    {
+      key: 'cliente',
+      title: 'Cliente',
+      width: '240px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'servicio',
+      title: 'Servicio',
+      width: '200px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'direccion',
+      title: 'Dirección de Atención',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'tecnico',
+      title: 'Técnico Asignado',
+      width: '160px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'fechaProgramada',
+      title: 'Fecha Prog.',
+      width: '140px',
+      align: 'center',
+      sortable: true,
+      dataType: 'date',
+    },
+    {
+      key: 'prioridad',
+      title: 'Prioridad',
+      width: '110px',
+      align: 'center',
+      sortable: true,
+      dataType: 'text',
+      filterType: 'select',
+      filterOptions: [
+        { label: 'Alta', value: 'Alta' },
+        { label: 'Media', value: 'Media' },
+        { label: 'Baja', value: 'Baja' },
+      ],
+    },
+    {
+      key: 'estado',
+      title: 'Estado',
+      width: '120px',
+      align: 'center',
+      sortable: true,
+      dataType: 'text',
+      filterType: 'select',
+      filterOptions: [
+        { label: 'Pendiente', value: 'Pendiente' },
+        { label: 'En Ruta', value: 'EnRuta' },
+        { label: 'En Proceso', value: 'EnProceso' },
+        { label: 'Completada', value: 'Completada' },
+        { label: 'Cancelada', value: 'Cancelada' },
+      ],
+    },
+  ];
+
   selectedIds = new Set<string>();
+
+  onSelectedIdsChange(ids: Set<string>): void {
+    this.selectedIds = ids;
+    this.cdr.markForCheck();
+  }
 
   get isAllSelected(): boolean {
     return (

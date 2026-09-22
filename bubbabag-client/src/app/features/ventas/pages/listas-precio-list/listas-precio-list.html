@@ -1,128 +1,50 @@
 <app-command-bar [items]="commandBarItems"></app-command-bar>
 
 <div class="catalogo-view-wrapper">
-  <nz-card [nzBordered]="false" class="d365-table-card">
-    <!-- Toolbar de la Vista -->
-    <div class="d365-toolbar-row">
-      <!-- Selector de Vista Dynamics 365 Reutilizable -->
-      <app-view-selector
-        entidad="ListasPrecio"
-        [vistasSistema]="vistasSistema"
-        [(vistaActualKey)]="vistaActual"
-        (vistaChange)="onVistaChange($event)"
-      ></app-view-selector>
+  <app-entity-table
+    entidad="Listas de Precios"
+    [vistasSistema]="vistasSistema"
+    [(vistaActualKey)]="vistaActual"
+    [columnas]="columnas"
+    [datos]="listasPrecioFiltradas"
+    [loading]="loading"
+    [(selectedIds)]="selectedIds"
+    (selectedIdsChange)="onSelectedIdsChange($event)"
+    (vistaChange)="onVistaChange($event)"
+    (recargar)="cargarDatos()"
+    (rowDblClick)="editar($event.id)"
+  >
+    <!-- Nombre -->
+    <ng-template cellDef="nombre" let-item>
+      <span class="nombre-link" (click)="editar(item.id)">
+        {{ item.nombre }}
+      </span>
+    </ng-template>
 
-      <!-- Buscador Rápido -->
-      <div class="d365-search-box">
-        <input
-          type="text"
-          class="search-input"
-          placeholder="Filtrar por nombre..."
-          [(ngModel)]="searchTerm"
-          (ngModelChange)="onSearchChange()"
-        />
-        @if (searchTerm) {
-          <button type="button" class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
-            <nz-icon nzType="close" />
-          </button>
-        } @else {
-          <span class="search-icon-btn">
-            <nz-icon nzType="search" />
-          </span>
-        }
-      </div>
-    </div>
+    <!-- Moneda -->
+    <ng-template cellDef="moneda" let-item>
+      <span class="currency-badge">{{ item.moneda }}</span>
+    </ng-template>
 
-    <!-- Grilla Full-Height -->
-    <div class="d365-grid-container">
-      <nz-table
-        #lpTable
-        [nzData]="listasPrecioFiltradas"
-        [nzLoading]="loading"
-        [nzSize]="'small'"
-        [nzBordered]="false"
-        [nzShowPagination]="true"
-        [nzPageSize]="20"
-        [nzShowTotal]="totalTemplate"
-        class="d365-table"
-      >
-        <thead>
-          <tr>
-            <th
-              [nzWidth]="'44px'"
-              [nzChecked]="isAllSelected"
-              [nzIndeterminate]="isIndeterminate"
-              (nzCheckedChange)="toggleSelectAll($event)"
-              class="col-checkbox"
-            ></th>
-            <th [nzWidth]="'280px'">Nombre de la Lista</th>
-            <th [nzWidth]="'100px'" nzAlign="center">Moneda</th>
-            <th [nzWidth]="'120px'" nzAlign="center">Predeterminada</th>
-            <th [nzWidth]="'110px'" nzAlign="center">Ítems Fijados</th>
-            <th>Descripción</th>
-            <th [nzWidth]="'110px'" nzAlign="center">Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (item of lpTable.data; track item.id) {
-            <tr
-              class="d365-data-row"
-              [class.row-selected]="selectedIds.has(item.id)"
-              (click)="toggleSelect(item.id)"
-              (dblclick)="editar(item.id)"
-            >
-              <td
-                class="col-checkbox"
-                [nzChecked]="selectedIds.has(item.id)"
-                (click)="$event.stopPropagation()"
-                (nzCheckedChange)="toggleSelect(item.id)"
-              ></td>
+    <!-- Predeterminada -->
+    <ng-template cellDef="esPredeterminada" let-item>
+      <span class="flag-pill" [class.flag-yes]="item.esPredeterminada" [class.flag-no]="!item.esPredeterminada">
+        {{ item.esPredeterminada ? 'Sí' : 'No' }}
+      </span>
+    </ng-template>
 
-              <!-- Nombre con enlace de edición -->
-              <td class="col-primary-text">
-                <span class="nombre-link" (click)="$event.stopPropagation(); editar(item.id)">
-                  {{ item.nombre }}
-                </span>
-              </td>
+    <!-- Ítems Fijados -->
+    <ng-template cellDef="totalItems" let-item>
+      <nz-tag [nzColor]="item.totalItems > 0 ? 'blue' : 'default'">
+        {{ item.totalItems }} tarifas
+      </nz-tag>
+    </ng-template>
 
-              <!-- Moneda -->
-              <td nzAlign="center">
-                <span class="currency-badge">{{ item.moneda }}</span>
-              </td>
-
-              <!-- Predeterminada -->
-              <td nzAlign="center">
-                <span class="flag-pill" [class.flag-yes]="item.esPredeterminada" [class.flag-no]="!item.esPredeterminada">
-                  {{ item.esPredeterminada ? 'Sí' : 'No' }}
-                </span>
-              </td>
-
-              <!-- Ítems Fijados -->
-              <td nzAlign="center">
-                <nz-tag [nzColor]="item.totalItems > 0 ? 'blue' : 'default'">
-                  {{ item.totalItems }} tarifas
-                </nz-tag>
-              </td>
-
-              <!-- Descripción -->
-              <td class="col-desc">
-                {{ item.descripcion || '—' }}
-              </td>
-
-              <!-- Estado -->
-              <td nzAlign="center">
-                <span class="flag-pill" [class.flag-yes]="item.activo" [class.flag-no]="!item.activo">
-                  {{ item.activo ? 'Activa' : 'Inactiva' }}
-                </span>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </nz-table>
-
-      <ng-template #totalTemplate let-total>
-        Mostrando {{ listasPrecioFiltradas.length }} de {{ total }} listas de precios
-      </ng-template>
-    </div>
-  </nz-card>
+    <!-- Estado -->
+    <ng-template cellDef="activo" let-item>
+      <span class="flag-pill" [class.flag-yes]="item.activo" [class.flag-no]="!item.activo">
+        {{ item.activo ? 'Activa' : 'Inactiva' }}
+      </span>
+    </ng-template>
+  </app-entity-table>
 </div>

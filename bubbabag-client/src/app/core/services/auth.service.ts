@@ -108,10 +108,15 @@ export class AuthService {
         ? [roleData]
         : [];
 
+      let nombreCompleto = payload.nombre_completo || payload.email || 'Usuario';
+      if (nombreCompleto === 'Desarrollador / SuperAdmin') {
+        nombreCompleto = 'SuperAdmin';
+      }
+
       return {
         id: payload.sub || '',
         email: payload.email || '',
-        nombreCompleto: payload.nombre_completo || payload.email || 'Usuario',
+        nombreCompleto,
         roles: roles.map((r) => String(r)),
       };
     } catch {

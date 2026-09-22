@@ -17,9 +17,11 @@ import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
 import { NzInputModule } from 'ng-zorro-antd/input';
-import { NzModalModule } from 'ng-zorro-antd/modal';
+import { NzModalModule, NzModalService } from 'ng-zorro-antd/modal';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { NzMessageService } from 'ng-zorro-antd/message';
+import { NzTableModule } from 'ng-zorro-antd/table';
+import { NzTagModule } from 'ng-zorro-antd/tag';
 
 import { VistaItem } from './view-selector.models';
 import { ViewSelectorService } from './view-selector.service';
@@ -36,6 +38,8 @@ import { ViewSelectorService } from './view-selector.service';
     NzInputModule,
     NzModalModule,
     NzCheckboxModule,
+    NzTableModule,
+    NzTagModule,
   ],
   templateUrl: './view-selector.component.html',
   styleUrl: './view-selector.component.css',
@@ -45,6 +49,7 @@ import { ViewSelectorService } from './view-selector.service';
 export class ViewSelectorComponent implements OnInit {
   private viewService = inject(ViewSelectorService);
   private message = inject(NzMessageService);
+  private modalService = inject(NzModalService);
   private cdr = inject(ChangeDetectorRef);
 
   /** Nombre de la entidad (ej: 'Clientes', 'CatalogosComerciales', 'OrdenesTrabajo') */
@@ -85,6 +90,9 @@ export class ViewSelectorComponent implements OnInit {
   nuevoNombre: string = '';
   nuevaDescripcion: string = '';
   marcarComoPredeterminada: boolean = false;
+
+  // Modal "Administrar y compartir vistas"
+  modalAdminVisible: boolean = false;
 
   ngOnInit(): void {
     this.cargarVistas();
@@ -171,8 +179,32 @@ export class ViewSelectorComponent implements OnInit {
     event.stopPropagation();
     this.dropdownVisible = false;
     const actual = this.vistaActualItem;
-    if (actual) {
-      this.guardarCambios.emit(actual);
+    if (!actual) return;
+
+    if (actual.esSistema) {
+      // Si es del sistema, se guarda como vista personalizada con modal
+      this.nuevoNombre = `${actual.nombre} (Personalizada)`;
+      this.nuevaDescripcion = actual.descripcion || '';
+      this.marcarComoPredeterminada = false;
+      this.modalVisible = true;
+      this.cdr.markForCheck();
+    } else {
+      // Si es una vista personalizada, guardar cambios directamente
+      const configJson = this.filtrosActuales ? JSON.stringify(this.filtrosActuales) : '{}';
+      this.viewService
+        .actualizarVista(this.entidad, actual.id!, configJson)
+        .subscribe({
+          next: () => {
+            actual.configuracion = this.filtrosActuales;
+            this.message.success(`Cambios guardados en "${actual.nombre}".`);
+            this.guardarCambios.emit(actual);
+            this.cdr.markForCheck();
+          },
+          error: () => {
+            this.message.error('No se pudieron guardar los cambios en la vista.');
+            this.cdr.markForCheck();
+          },
+        });
     }
   }
 
@@ -187,8 +219,10 @@ export class ViewSelectorComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
-  establecerPredeterminada(vista: VistaItem, event: MouseEvent): void {
-    event.stopPropagation();
+  establecerPredeterminada(vista: VistaItem, event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation();
+    }
 
     // Desmarcar todas
     this.vistasSistema.forEach((v) => (v.esPredeterminada = false));
@@ -256,6 +290,7 @@ export class ViewSelectorComponent implements OnInit {
 
           this.vistasUsuario.push(nuevaVista);
           this.seleccionarVista(nuevaVista, true);
+          this.guardarCambios.emit(nuevaVista);
           this.message.success(`Vista "${nuevaVista.nombre}" guardada con éxito.`);
           this.cdr.markForCheck();
         },
@@ -267,22 +302,56 @@ export class ViewSelectorComponent implements OnInit {
       });
   }
 
-  eliminarVista(vista: VistaItem, event: MouseEvent): void {
-    event.stopPropagation();
+  // --- Modal "Administrar y compartir vistas" ---
+  abrirModalAdministrarVistas(event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.dropdownVisible = false;
+    this.modalAdminVisible = true;
+    this.cdr.markForCheck();
+  }
+
+  cerrarModalAdministrarVistas(): void {
+    this.modalAdminVisible = false;
+    this.cdr.markForCheck();
+  }
+
+  confirmarEliminarVista(vista: VistaItem, event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation();
+    }
     if (!vista.id || vista.esSistema) return;
 
-    this.viewService.eliminarVista(this.entidad, vista.id).subscribe(() => {
-      this.vistasUsuario = this.vistasUsuario.filter((v) => v.id !== vista.id);
-      this.message.success(`Vista "${vista.nombre}" eliminada.`);
+    this.modalService.confirm({
+      nzTitle: '¿Eliminar vista personalizada?',
+      nzContent: `¿Está seguro de que desea eliminar la vista "${vista.nombre}"? Esta acción no se puede deshacer.`,
+      nzOkText: 'Sí, eliminar',
+      nzOkDanger: true,
+      nzCancelText: 'Cancelar',
+      nzOnOk: () => {
+        this.viewService.eliminarVista(this.entidad, vista.id!).subscribe(() => {
+          this.vistasUsuario = this.vistasUsuario.filter((v) => v.id !== vista.id);
+          this.message.success(`Vista "${vista.nombre}" eliminada.`);
 
-      // Si la que se eliminó estaba activa, seleccionar la primera del sistema
-      if (this.vistaActualKey === vista.key) {
-        const defaultVista = this.vistasSistema[0];
-        if (defaultVista) {
-          this.seleccionarVista(defaultVista);
-        }
-      }
-      this.cdr.markForCheck();
+          // Si la que se eliminó estaba activa, seleccionar la predeterminada o la primera del sistema
+          if (this.vistaActualKey === vista.key || this.vistaActualKey === vista.id) {
+            const fallback =
+              this.vistasUsuario.find((v) => v.esPredeterminada) ||
+              this.vistasSistema.find((v) => v.esPredeterminada) ||
+              this.vistasSistema[0];
+            if (fallback) {
+              this.seleccionarVista(fallback);
+            }
+          }
+          this.cdr.markForCheck();
+        });
+      },
     });
+  }
+
+  // Compatibilidad
+  eliminarVista(vista: VistaItem, event: MouseEvent): void {
+    this.confirmarEliminarVista(vista, event);
   }
 }

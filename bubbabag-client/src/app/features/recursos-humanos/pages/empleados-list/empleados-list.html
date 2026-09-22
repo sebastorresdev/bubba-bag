@@ -1,267 +1,61 @@
 <app-command-bar [items]="commandBarItems" [farItems]="farItems"></app-command-bar>
 
 <div class="empleados-view-wrapper">
-  <!-- Tarjeta Contenedora de NG-ZORRO (con bordes y fondo nativo, sin redondeo) -->
-  <nz-card [nzBordered]="true" [nzBodyStyle]="{ padding: '0' }" class="d365-table-card">
-    <!-- Sub-Header / Selector de Vista & Herramientas -->
-    <div class="d365-toolbar-row">
-      <!-- Izquierda: Selector de Vista de Sistema (Dynamics 365 View Selector) -->
-      <app-view-selector
-        entidad="Empleados"
-        [vistasSistema]="vistasSistema"
-        [(vistaActualKey)]="vistaActual"
-        (vistaChange)="onVistaChange($event)"
-      ></app-view-selector>
+  <app-entity-table
+    entidad="Empleados"
+    [vistasSistema]="vistasSistema"
+    [(vistaActualKey)]="vistaActual"
+    [columnas]="columnas"
+    [datos]="empleados"
+    [loading]="loading"
+    [selectedIds]="setOfCheckedId"
+    (selectedIdsChange)="onSelectedIdsChange($event)"
+    (vistaChange)="onVistaChange($event)"
+    (recargar)="cargarEmpleados()"
+    (rowDblClick)="editar($event.id)"
+  >
+    <!-- Colaborador (Nombre con Avatar) -->
+    <ng-template cellDef="colaborador" let-data>
+      <a class="cell-link" (click)="editar(data.id); $event.stopPropagation()">
+        {{ data.nombres }} {{ data.apellidos }}
+      </a>
+    </ng-template>
 
-      <!-- Derecha: Herramientas de la Vista (Editar Columnas, Editar Filtros y Buscador) -->
-      <div class="view-tools-group">
-        <!-- Botón Editar Columnas -->
-        <button
-          nz-button
-          nzType="default"
-          class="filter-btn"
-          (click)="toggleColumnasDrawer()"
-          title="Editar columnas de la tabla"
-        >
-          <nz-icon nzType="table" />
-          <span>Editar columnas</span>
-        </button>
+    <!-- Documento -->
+    <ng-template cellDef="documento" let-data>
+      @if (data.numeroDocumento) {
+        <span class="doc-tag">{{ data.tipoDocumento }}: {{ data.numeroDocumento }}</span>
+      }
+    </ng-template>
 
-        <!-- Botón Editar Filtros -->
-        <button
-          nz-button
-          nzType="default"
-          class="filter-btn"
-          [class.active]="filtrosActivosCount > 0"
-          (click)="toggleFiltrosDrawer()"
-          title="Editar filtros de la vista"
-        >
-          <nz-icon nzType="filter" />
-          <span>Editar filtros</span>
-          @if (filtrosActivosCount > 0) {
-            <span class="filter-badge">{{ filtrosActivosCount }}</span>
-          }
-        </button>
+    <!-- Cargo -->
+    <ng-template cellDef="cargoNombre" let-data>
+      <span class="cell-singleline">{{ data.cargoNombre || '' }}</span>
+    </ng-template>
 
-        <!-- Cuadro de Búsqueda Rápida Fluent UI -->
-        <div class="d365-search-box">
-          <input
-            type="text"
-            placeholder="Filtrar por palabra clave..."
-            [(ngModel)]="searchTerm"
-            (ngModelChange)="onSearchTermChange()"
-            (keyup.enter)="buscar()"
-            class="search-input"
-          />
-          @if (searchTerm) {
-            <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
-              <nz-icon nzType="close" />
-            </button>
-          }
-          <button class="search-icon-btn" (click)="buscar()" title="Buscar">
-            <nz-icon nzType="search" />
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Departamento / Área -->
+    <ng-template cellDef="departamentoNombre" let-data>
+      <span class="cell-singleline">{{ data.departamentoNombre || '' }}</span>
+    </ng-template>
 
-    <!-- Cuadrícula NG-ZORRO con estilo nativo por defecto y selección por checkbox -->
-    <nz-table
-      #basicTable
-      [nzData]="empleados"
-      [nzLoading]="loading"
-      [nzShowPagination]="true"
-      [nzShowTotal]="totalRangeTpl"
-      [nzPageSize]="15"
-      nzSize="small"
-      (nzCurrentPageDataChange)="onCurrentPageDataChange($event)"
-      class="d365-table"
-    >
-      <ng-template #totalRangeTpl let-range="range" let-total="total">
-        {{ range[0] }} - {{ range[1] }} de {{ total }}
-      </ng-template>
-      <thead>
-        <tr>
-          <th
-            [nzWidth]="'48px'"
-            [nzChecked]="checked"
-            [nzIndeterminate]="indeterminate"
-            nzLabel="Seleccionar todos"
-            (nzCheckedChange)="onAllChecked($event)"
-          ></th>
-          @if (isColVisible('colaborador')) {
-            <th>Colaborador</th>
-          }
-          @if (isColVisible('email')) {
-            <th>Correo Electrónico</th>
-          }
-          @if (isColVisible('documento')) {
-            <th>Documento</th>
-          }
-          @if (isColVisible('cargo')) {
-            <th>Cargo</th>
-          }
-          @if (isColVisible('departamento')) {
-            <th>Departamento</th>
-          }
-          @if (isColVisible('tipoContrato')) {
-            <th>Tipo Contrato</th>
-          }
-          @if (isColVisible('estado')) {
-            <th>Estado (KPI)</th>
-          }
-        </tr>
-      </thead>
-      <tbody>
-        @for (data of basicTable.data; track data.id) {
-          <tr
-            [class.fluent-row-selected]="setOfCheckedId.has(data.id)"
-            (click)="onItemChecked(data.id, !setOfCheckedId.has(data.id))"
-            style="cursor: pointer;"
-          >
-            <td
-              [nzChecked]="setOfCheckedId.has(data.id)"
-              [nzLabel]="data.nombres + ' ' + data.apellidos"
-              (nzCheckedChange)="onItemChecked(data.id, $event)"
-              (click)="$event.stopPropagation()"
-            ></td>
-            @if (isColVisible('colaborador')) {
-              <td>
-                <a class="cell-link" (click)="editar(data.id); $event.stopPropagation()">
-                  {{ data.nombres }} {{ data.apellidos }}
-                </a>
-              </td>
-            }
-            @if (isColVisible('email')) {
-              <td>
-                <span>{{ data.email || '' }}</span>
-              </td>
-            }
-            @if (isColVisible('documento')) {
-              <td>
-                @if (data.numeroDocumento) {
-                  <span class="doc-tag">{{ data.tipoDocumento }}: {{ data.numeroDocumento }}</span>
-                }
-              </td>
-            }
-            @if (isColVisible('cargo')) {
-              <td>
-                <span class="cell-singleline">{{ data.cargoNombre || '' }}</span>
-              </td>
-            }
-            @if (isColVisible('departamento')) {
-              <td>
-                <span class="cell-singleline">{{ data.departamentoNombre || '' }}</span>
-              </td>
-            }
-            @if (isColVisible('tipoContrato')) {
-              <td>
-                <span class="cell-contract">{{ data.tipoContrato || '' }}</span>
-              </td>
-            }
-            @if (isColVisible('estado')) {
-              <td>
-                <nz-tag class="d365-status-tag" [ngClass]="getEstadoTagClass(data.estado)">
-                  {{ data.estado }}
-                </nz-tag>
-              </td>
-            }
-          </tr>
-        }
-      </tbody>
-    </nz-table>
-  </nz-card>
+    <!-- Tipo de Contrato -->
+    <ng-template cellDef="tipoContrato" let-data>
+      <span class="cell-contract">{{ data.tipoContrato || '' }}</span>
+    </ng-template>
+
+    <!-- Estado (KPI Tag) -->
+    <ng-template cellDef="estado" let-data>
+      <nz-tag class="d365-status-tag" [ngClass]="getEstadoTagClass(data.estado)">
+        {{ data.estado }}
+      </nz-tag>
+    </ng-template>
+
+    <!-- Fecha de Ingreso -->
+    <ng-template cellDef="fechaIngreso" let-data>
+      <span>{{ data.fechaIngreso ? (data.fechaIngreso | date:'dd/MM/yyyy') : '-' }}</span>
+    </ng-template>
+  </app-entity-table>
 </div>
-
-<!-- Drawer Lateral para "Editar Columnas" -->
-<nz-drawer
-  [nzVisible]="drawerColumnasVisible"
-  nzPlacement="right"
-  nzTitle="Editar columnas"
-  [nzWidth]="340"
-  (nzOnClose)="drawerColumnasVisible = false"
->
-  <ng-container *nzDrawerContent>
-    <div class="drawer-filter-body">
-      <div class="columns-drawer-desc">
-        Selecciona las columnas que deseas mostrar u ocultar en la tabla:
-      </div>
-      <div class="columns-checklist">
-        @for (col of columnas; track col.key) {
-          <label
-            nz-checkbox
-            [(ngModel)]="col.visible"
-            [nzDisabled]="col.required"
-            class="column-checkbox-item"
-          >
-            <span>{{ col.label }}</span>
-            @if (col.required) {
-              <span class="required-badge">(Obligatoria)</span>
-            }
-          </label>
-        }
-      </div>
-
-      <div class="drawer-actions">
-        <button nz-button nzType="default" (click)="restablecerColumnas()">
-          Restablecer
-        </button>
-        <button nz-button nzType="primary" (click)="drawerColumnasVisible = false">
-          Listo
-        </button>
-      </div>
-    </div>
-  </ng-container>
-</nz-drawer>
-
-<!-- Drawer Lateral para "Editar Filtros" -->
-<nz-drawer
-  [nzVisible]="drawerFiltrosVisible"
-  nzPlacement="right"
-  nzTitle="Filtros de la Vista"
-  [nzWidth]="340"
-  (nzOnClose)="drawerFiltrosVisible = false"
->
-  <ng-container *nzDrawerContent>
-    <div class="drawer-filter-body">
-      <div class="drawer-field-group">
-        <label class="drawer-field-label">Departamento</label>
-        <nz-select
-          [(ngModel)]="filtroDepartamento"
-          (ngModelChange)="cargarEmpleados()"
-          nzAllowClear
-          nzPlaceHolder="Todos los departamentos"
-          class="full-width"
-        >
-          @for (d of departamentos; track d.id) {
-            <nz-option [nzValue]="d.id" [nzLabel]="d.nombre"></nz-option>
-          }
-        </nz-select>
-      </div>
-
-      <div class="drawer-field-group">
-        <label class="drawer-field-label">Estado de Colaborador</label>
-        <nz-select [(ngModel)]="filtroEstado" (ngModelChange)="cargarEmpleados()" class="full-width">
-          <nz-option nzValue="Todos" nzLabel="Todos"></nz-option>
-          <nz-option nzValue="Activo" nzLabel="Activo"></nz-option>
-          <nz-option nzValue="Vacaciones" nzLabel="Vacaciones"></nz-option>
-          <nz-option nzValue="Licencia" nzLabel="Licencia"></nz-option>
-          <nz-option nzValue="Suspendido" nzLabel="Suspendido"></nz-option>
-          <nz-option nzValue="Cesado" nzLabel="Cesado / Baja"></nz-option>
-        </nz-select>
-      </div>
-
-      <div class="drawer-actions">
-        <button nz-button nzType="default" (click)="limpiarFiltros(); drawerFiltrosVisible = false">
-          Restablecer
-        </button>
-        <button nz-button nzType="primary" (click)="cargarEmpleados(); drawerFiltrosVisible = false">
-          Aplicar Filtros
-        </button>
-      </div>
-    </div>
-  </ng-container>
-</nz-drawer>
 
 <!-- Modal Dedicado para Dar de Baja / Cese -->
 <nz-modal

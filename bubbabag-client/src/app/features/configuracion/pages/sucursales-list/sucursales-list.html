@@ -2,129 +2,62 @@
 <app-command-bar [items]="commandBarItems" [farItems]="farItems"></app-command-bar>
 
 <div class="catalogo-view-wrapper">
-  <!-- Tarjeta Contenedora Dynamics 365 -->
-  <nz-card [nzBordered]="true" [nzBodyStyle]="{ padding: '0' }" class="d365-table-card">
-    
-    <!-- Sub-Header / Selector de Vista & Herramientas -->
-    <div class="d365-toolbar-row">
-      <!-- Selector de Vista Dynamics 365 Reutilizable -->
-      <app-view-selector
-        entidad="Sucursales"
-        [vistasSistema]="vistasSistema"
-        [(vistaActualKey)]="vistaActual"
-        (vistaChange)="onVistaChange($event)"
-      ></app-view-selector>
+  <app-entity-table
+    entidad="Sucursales"
+    [vistasSistema]="vistasSistema"
+    [(vistaActualKey)]="vistaActual"
+    [columnas]="columnas"
+    [datos]="sucursales"
+    [loading]="loading"
+    [(selectedIds)]="selectedIds"
+    (selectedIdsChange)="onSelectedIdsChange($event)"
+    (vistaChange)="onVistaChange($event)"
+    (searchChange)="onBuscar($event)"
+    (recargar)="cargarSucursales()"
+    (rowDblClick)="irAEditar($event.id)"
+  >
+    <!-- Código -->
+    <ng-template cellDef="codigo" let-s>
+      <span class="d365-code-tag">{{ s.codigo }}</span>
+    </ng-template>
 
-      <!-- Buscador Fluent UI -->
-      <div class="view-tools-group">
-        <div class="d365-search-box">
-          <input
-            type="text"
-            placeholder="Filtrar por código, nombre o ciudad..."
-            [(ngModel)]="searchTerm"
-            (ngModelChange)="onSearchChange()"
-            (keyup.enter)="cargarSucursales()"
-            class="search-input"
-          />
-          @if (searchTerm) {
-            <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
-              <nz-icon nzType="close" />
-            </button>
-          }
-          <button class="search-icon-btn" (click)="cargarSucursales()" title="Buscar">
-            <nz-icon nzType="search" />
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Nombre -->
+    <ng-template cellDef="nombre" let-s>
+      <span class="nombre-link" (click)="irAEditar(s.id)">
+        <nz-icon nzType="bank" class="row-branch-icon" />
+        <span class="truncate-text">{{ s.nombre }}</span>
+      </span>
+    </ng-template>
 
-    <!-- Tabla Dynamics 365 con Selección por Checkbox -->
-    <nz-table
-      #sucursalesTable
-      [nzData]="sucursales"
-      [nzLoading]="loading"
-      [nzShowPagination]="true"
-      [nzShowTotal]="totalRangeTpl"
-      [nzPageSize]="15"
-      nzSize="small"
-      class="d365-grid d365-table"
-    >
-      <ng-template #totalRangeTpl let-range="range" let-total="total">
-        {{ range[0] }} - {{ range[1] }} de {{ total }}
-      </ng-template>
-      <thead>
-        <tr>
-          <th
-            [nzWidth]="'48px'"
-            [nzChecked]="checked"
-            [nzIndeterminate]="indeterminate"
-            nzLabel="Seleccionar todos"
-            (nzCheckedChange)="onAllChecked($event)"
-          ></th>
-          <th [nzWidth]="'110px'">Código</th>
-          <th [nzWidth]="'280px'">Nombre de la Sucursal</th>
-          <th [nzWidth]="'140px'">Ciudad</th>
-          <th>Dirección</th>
-          <th [nzWidth]="'140px'">Teléfono</th>
-          <th [nzWidth]="'140px'">Tipo Sede</th>
-          <th [nzWidth]="'110px'">Estado</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (s of sucursalesTable.data; track s.id) {
-          <tr
-            [class.fluent-row-selected]="selectedIds.has(s.id)"
-            (click)="onItemChecked(s.id, !selectedIds.has(s.id))"
-            style="cursor: pointer;"
-          >
-            <td
-              [nzChecked]="selectedIds.has(s.id)"
-              (nzCheckedChange)="onItemChecked(s.id, $event)"
-              (click)="$event.stopPropagation()"
-            ></td>
-            <td [title]="s.codigo">
-              <span class="d365-code-tag">{{ s.codigo }}</span>
-            </td>
-            <td class="col-primary-text" [title]="s.nombre">
-              <span class="nombre-link" (click)="$event.stopPropagation(); irAEditar(s.id)">
-                <nz-icon nzType="bank" class="row-branch-icon" />
-                <span class="truncate-text">{{ s.nombre }}</span>
-              </span>
-            </td>
-            <td [title]="s.ciudad || ''">
-              <span class="cell-ellipsis">{{ s.ciudad || '—' }}</span>
-            </td>
-            <td [title]="s.direccion || ''">
-              <span class="cell-ellipsis">{{ s.direccion || '—' }}</span>
-            </td>
-            <td [title]="s.telefono || ''">
-              @if (s.telefono) {
-                <span class="cell-ellipsis">{{ s.telefono }}</span>
-              } @else {
-                <span class="text-muted">—</span>
-              }
-            </td>
-            <td>
-              @if (s.esSedePrincipal) {
-                <span class="d365-badge-sede-principal">
-                  <nz-icon nzType="star" nzTheme="fill" /> Principal
-                </span>
-              } @else {
-                <span class="text-muted">Sucursal</span>
-              }
-            </td>
-            <td>
-              <nz-tag
-                class="d365-status-tag"
-                [class.tag-active]="s.activo"
-                [class.tag-inactive]="!s.activo"
-              >
-                {{ s.activo ? 'Activo' : 'Inactivo' }}
-              </nz-tag>
-            </td>
-          </tr>
-        }
-      </tbody>
-    </nz-table>
-  </nz-card>
+    <!-- Teléfono -->
+    <ng-template cellDef="telefono" let-s>
+      @if (s.telefono) {
+        <span class="cell-ellipsis">{{ s.telefono }}</span>
+      } @else {
+        <span class="text-muted">—</span>
+      }
+    </ng-template>
+
+    <!-- Tipo Sede -->
+    <ng-template cellDef="esSedePrincipal" let-s>
+      @if (s.esSedePrincipal) {
+        <span class="d365-badge-sede-principal">
+          <nz-icon nzType="star" nzTheme="fill" /> Principal
+        </span>
+      } @else {
+        <span class="text-muted">Sucursal</span>
+      }
+    </ng-template>
+
+    <!-- Estado -->
+    <ng-template cellDef="activo" let-s>
+      <nz-tag
+        class="d365-status-tag"
+        [class.tag-active]="s.activo"
+        [class.tag-inactive]="!s.activo"
+      >
+        {{ s.activo ? 'Activo' : 'Inactivo' }}
+      </nz-tag>
+    </ng-template>
+  </app-entity-table>
 </div>

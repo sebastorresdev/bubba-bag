@@ -21,9 +21,9 @@ import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzModalModule, NzModalService } from 'ng-zorro-antd/modal';
 
-// Shared Components & Services
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar/command-bar.component';
-import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
+import { VistaItem } from '../../../../shared/components/view-selector';
+import { EntityTableComponent, CellDefDirective, ColumnDef } from '../../../../shared/components/entity-table';
 import { ServicioCampoService } from '../../services/servicio-campo.service';
 import {
   TarifaServicioDto,
@@ -46,7 +46,8 @@ import {
     NzSelectModule,
     NzModalModule,
     CommandBarComponent,
-    ViewSelectorComponent,
+    EntityTableComponent,
+    CellDefDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './tarifas-servicio-list.html',
@@ -93,8 +94,99 @@ export class TarifasServicioListComponent implements OnInit {
     this.cambiarVista(vista.key);
   }
 
+  columnas: ColumnDef<TarifaServicioDto>[] = [
+    {
+      key: 'tipificacion',
+      title: 'Tipificación',
+      width: '160px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'codigoServicio',
+      title: 'Código',
+      width: '90px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'detalleServicio',
+      title: 'Detalle del Servicio',
+      width: '280px',
+      sortable: true,
+      dataType: 'text',
+      primaryLink: true,
+      canHide: false,
+    },
+    {
+      key: 'empresaContratante',
+      title: 'Empresa Facturadora',
+      width: '170px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'sucursal',
+      title: 'Sucursal',
+      width: '110px',
+      align: 'center',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'puntos',
+      title: 'Puntos',
+      width: '80px',
+      align: 'center',
+      sortable: true,
+      dataType: 'number',
+    },
+    {
+      key: 'totalFijo',
+      title: 'Fijo',
+      width: '110px',
+      align: 'right',
+      sortable: true,
+      dataType: 'currency',
+    },
+    {
+      key: 'variableTotal',
+      title: 'Variable',
+      width: '110px',
+      align: 'right',
+      sortable: true,
+      dataType: 'currency',
+    },
+    {
+      key: 'montoTotalTeorico',
+      title: 'Total Teórico',
+      width: '120px',
+      align: 'right',
+      sortable: true,
+      dataType: 'currency',
+    },
+    {
+      key: 'activo',
+      title: 'Estado',
+      width: '90px',
+      align: 'center',
+      sortable: true,
+      dataType: 'boolean',
+      filterType: 'select',
+      filterOptions: [
+        { label: 'Activo', value: true },
+        { label: 'Inactivo', value: false },
+      ],
+    },
+  ];
+
   // Selección
   selectedIds = new Set<string>();
+
+  onSelectedIdsChange(ids: Set<string>): void {
+    this.selectedIds = ids;
+    this.cdr.markForCheck();
+  }
 
   ngOnInit(): void {
     this.cargarDatos();

@@ -1,192 +1,93 @@
 <app-command-bar [items]="commandBarItems"></app-command-bar>
 
 <div class="catalogo-view-wrapper">
-  <nz-card [nzBordered]="false" class="d365-table-card">
-    <!-- Toolbar de la Vista (Selector de Vistas + Filtros + Buscador) -->
-    <div class="d365-toolbar-row">
-      <!-- Selector de Vista Dynamics 365 -->
-      <app-view-selector
-        entidad="TarifasServicio"
-        [vistasSistema]="vistasSistema"
-        [(vistaActualKey)]="vistaActual"
-        (vistaChange)="onVistaChange($event)"
-      ></app-view-selector>
-
-      <!-- Filtros y Buscador Rápido -->
-      <div class="view-tools-group">
-        <!-- Filtro por Tipificación -->
-        <div style="width: 260px;">
-          <nz-select
-            [(ngModel)]="filtroTipificacion"
-            (ngModelChange)="onFiltroChange()"
-            style="width: 100%;"
-            nzPlaceHolder="Todas las Tipificaciones"
-          >
-            <nz-option nzValue="TODAS" nzLabel="Todas las Tipificaciones"></nz-option>
-            @for (tip of tipificacionesDisponibles; track tip) {
-              <nz-option [nzValue]="tip" [nzLabel]="tip"></nz-option>
-            }
-          </nz-select>
-        </div>
-
-        <!-- Buscador Rápido Fluent UI -->
-        <div class="d365-search-box">
-          <input
-            type="text"
-            [(ngModel)]="searchTerm"
-            (ngModelChange)="onSearchChange()"
-            placeholder="Filtrar por código, detalle..."
-            class="search-input"
-          />
-          @if (searchTerm) {
-            <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
-              <nz-icon nzType="close" />
-            </button>
-          }
-          <button class="search-icon-btn" (click)="onSearchChange()" title="Buscar">
-            <nz-icon nzType="search" />
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Grilla / Tabla Estilo Dynamics 365 con Scroll Vertical -->
-    <div class="d365-grid-container">
-      <nz-table
-        #tarifasTable
-        [nzData]="tarifasFiltradas"
-        [nzLoading]="loading"
-        [nzShowPagination]="true"
-        [nzShowTotal]="totalRangeTpl"
-        [nzPageSize]="15"
-        nzSize="small"
-        class="d365-table"
+  <app-entity-table
+    entidad="Tarifas de Servicio"
+    [vistasSistema]="vistasSistema"
+    [(vistaActualKey)]="vistaActual"
+    [columnas]="columnas"
+    [datos]="tarifasFiltradas"
+    [loading]="loading"
+    [(selectedIds)]="selectedIds"
+    (selectedIdsChange)="onSelectedIdsChange($event)"
+    (vistaChange)="onVistaChange($event)"
+    (recargar)="cargarDatos()"
+    (rowDblClick)="editar($event.id)"
+  >
+    <!-- Tipificación -->
+    <ng-template cellDef="tipificacion" let-item>
+      <nz-tag
+        [nzColor]="getTipificacionColor(item.tipificacion || 'GENERAL')"
+        class="tag-tipificacion"
       >
-        <ng-template #totalRangeTpl let-range="range" let-total="total">
-          {{ range[0] }} - {{ range[1] }} de {{ total }}
-        </ng-template>
+        {{ item.tipificacion || 'GENERAL' }}
+      </nz-tag>
+    </ng-template>
 
-        <thead>
-          <tr>
-            <th
-              [nzWidth]="'44px'"
-              [nzChecked]="isAllSelected"
-              [nzIndeterminate]="isIndeterminate"
-              (nzCheckedChange)="toggleSelectAll($event)"
-              class="col-checkbox"
-            ></th>
-            <th [nzWidth]="'160px'">Tipificación</th>
-            <th [nzWidth]="'90px'">Código</th>
-            <th [nzWidth]="'280px'">Detalle del Servicio</th>
-            <th [nzWidth]="'170px'">Empresa Facturadora</th>
-            <th [nzWidth]="'110px'" nzAlign="center">Sucursal</th>
-            <th [nzWidth]="'75px'" nzAlign="center">Puntos</th>
-            <th [nzWidth]="'110px'" nzAlign="right">Fijo</th>
-            <th [nzWidth]="'110px'" nzAlign="right">Variable</th>
-            <th [nzWidth]="'120px'" nzAlign="right">Total Teórico</th>
-            <th [nzWidth]="'90px'" nzAlign="center">Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (item of tarifasTable.data; track item.id) {
-            <tr
-              [class.row-selected]="selectedIds.has(item.id)"
-              (click)="toggleSelect(item.id)"
-              (dblclick)="editar(item.id)"
-              class="d365-data-row"
-            >
-              <td
-                class="col-checkbox"
-                [nzChecked]="selectedIds.has(item.id)"
-                (nzCheckedChange)="toggleSelect(item.id)"
-                (click)="$event.stopPropagation()"
-              ></td>
+    <!-- Código -->
+    <ng-template cellDef="codigoServicio" let-item>
+      <span class="cell-code">{{ item.codigoServicio }}</span>
+    </ng-template>
 
-              <!-- Tipificación con Tag Estilizado -->
-              <td>
-                <nz-tag
-                  [nzColor]="getTipificacionColor(item.tipificacion || 'GENERAL')"
-                  class="tag-tipificacion"
-                >
-                  {{ item.tipificacion || 'GENERAL' }}
-                </nz-tag>
-              </td>
+    <!-- Detalle -->
+    <ng-template cellDef="detalleServicio" let-item>
+      <a
+        class="primary-link"
+        (click)="editar(item.id)"
+        title="Clic para editar esta tarifa"
+      >
+        {{ item.detalleServicio }}
+      </a>
+    </ng-template>
 
-              <!-- Código de Servicio -->
-              <td>
-                <span class="cell-code">{{ item.codigoServicio }}</span>
-              </td>
+    <!-- Empresa -->
+    <ng-template cellDef="empresaContratante" let-item>
+      <span class="empresa-badge">{{ item.empresaContratante }}</span>
+    </ng-template>
 
-              <!-- Detalle del Servicio -->
-              <td>
-                <a
-                  class="primary-link"
-                  (click)="editar(item.id); $event.stopPropagation()"
-                  title="Clic para editar esta tarifa"
-                >
-                  {{ item.detalleServicio }}
-                </a>
-              </td>
+    <!-- Sucursal -->
+    <ng-template cellDef="sucursal" let-item>
+      <span class="cell-sucursal">{{ item.sucursal || 'General' }}</span>
+    </ng-template>
 
-              <!-- Empresa Facturadora -->
-              <td>
-                <span class="empresa-badge">
-                  {{ item.empresaContratante }}
-                </span>
-              </td>
+    <!-- Puntos -->
+    <ng-template cellDef="puntos" let-item>
+      <nz-tag nzColor="blue" class="tag-points">{{ item.puntos }} pts</nz-tag>
+    </ng-template>
 
-              <!-- Sucursal -->
-              <td nzAlign="center">
-                <span class="cell-sucursal">
-                  {{ item.sucursal || 'General' }}
-                </span>
-              </td>
+    <!-- Fijo -->
+    <ng-template cellDef="totalFijo" let-item>
+      <div class="monto-block">
+        <span class="monto-principal">S/ {{ (item.totalFijo ?? (item.fijoBase + item.fijoAdicional)) | number:'1.2-2' }}</span>
+        @if (item.fijoAdicional > 0) {
+          <span class="monto-secundario">(+{{ item.fijoAdicional | number:'1.2-2' }})</span>
+        }
+      </div>
+    </ng-template>
 
-              <!-- Puntos -->
-              <td nzAlign="center">
-                <nz-tag nzColor="blue" class="tag-points">
-                  {{ item.puntos }} pts
-                </nz-tag>
-              </td>
+    <!-- Variable -->
+    <ng-template cellDef="variableTotal" let-item>
+      <div class="monto-block">
+        <span class="monto-variable">S/ {{ item.variableTotal | number:'1.2-2' }}</span>
+      </div>
+    </ng-template>
 
-              <!-- Remuneración Fija -->
-              <td nzAlign="right">
-                <div class="monto-block">
-                  <span class="monto-principal">S/ {{ (item.totalFijo ?? (item.fijoBase + item.fijoAdicional)) | number:'1.2-2' }}</span>
-                  @if (item.fijoAdicional > 0) {
-                    <span class="monto-secundario">(+{{ item.fijoAdicional | number:'1.2-2' }})</span>
-                  }
-                </div>
-              </td>
+    <!-- Total Teórico -->
+    <ng-template cellDef="montoTotalTeorico" let-item>
+      <nz-tag nzColor="processing" class="tag-total-teorico">
+        S/ {{ item.montoTotalTeorico | number:'1.2-2' }}
+      </nz-tag>
+    </ng-template>
 
-              <!-- Remuneración Variable -->
-              <td nzAlign="right">
-                <div class="monto-block">
-                  <span class="monto-variable">S/ {{ item.variableTotal | number:'1.2-2' }}</span>
-                  <span class="indicadores-sub">CT/Ag/S30</span>
-                </div>
-              </td>
-
-              <!-- Total Teórico -->
-              <td nzAlign="right">
-                <nz-tag nzColor="processing" class="tag-total-teorico">
-                  S/ {{ item.montoTotalTeorico | number:'1.2-2' }}
-                </nz-tag>
-              </td>
-
-              <!-- Estado -->
-              <td nzAlign="center">
-                <span
-                  class="status-dot"
-                  [class.status-active]="item.activo"
-                  [class.status-inactive]="!item.activo"
-                  [title]="item.activo ? 'Activo' : 'Inactivo'"
-                ></span>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </nz-table>
-    </div>
-  </nz-card>
+    <!-- Estado -->
+    <ng-template cellDef="activo" let-item>
+      <nz-tag
+        class="d365-status-tag"
+        [class.tag-active]="item.activo"
+        [class.tag-inactive]="!item.activo"
+      >
+        {{ item.activo ? 'Activo' : 'Inactivo' }}
+      </nz-tag>
+    </ng-template>
+  </app-entity-table>
 </div>

@@ -25,9 +25,9 @@ import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
-import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
-import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
+import { VistaItem } from '../../../../shared/components/view-selector';
+import { EntityTableComponent, CellDefDirective, ColumnDef } from '../../../../shared/components/entity-table';
 
 @Component({
   selector: 'app-motivos-incidencia-list',
@@ -45,9 +45,9 @@ import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/
     NzSelectModule,
     NzCardModule,
     NzEmptyModule,
-    NzCheckboxModule,
     CommandBarComponent,
-    ViewSelectorComponent,
+    EntityTableComponent,
+    CellDefDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './motivos-incidencia-list.html',
@@ -63,6 +63,10 @@ export class MotivosIncidenciaListComponent implements OnInit {
   // Model & Labels
   AmbitoMotivo = AmbitoMotivo;
   AmbitoMotivoLabels = AmbitoMotivoLabels;
+
+  getAmbitoLabel(ambito: any): string {
+    return (this.AmbitoMotivoLabels as any)[ambito] || 'No definido';
+  }
 
   // Datos
   motivos: MotivoIncidenciaDto[] = [];
@@ -85,8 +89,65 @@ export class MotivosIncidenciaListComponent implements OnInit {
     this.cambiarVista(vista.key);
   }
 
+  columnas: ColumnDef<MotivoIncidenciaDto>[] = [
+    {
+      key: 'codigo',
+      title: 'Código',
+      width: '140px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'nombre',
+      title: 'Nombre del Motivo',
+      width: '280px',
+      sortable: true,
+      dataType: 'text',
+      primaryLink: true,
+      canHide: false,
+    },
+    {
+      key: 'ambito',
+      title: 'Ámbito Operativo',
+      width: '180px',
+      align: 'center',
+      sortable: true,
+      dataType: 'select',
+      filterType: 'select',
+      filterOptions: [
+        { label: 'Visita en Campo', value: 1 },
+        { label: 'Orden de Trabajo', value: 2 },
+        { label: 'Subtarea Técnica', value: 3 },
+      ],
+    },
+    {
+      key: 'descripcion',
+      title: 'Descripción',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'activo',
+      title: 'Estado',
+      width: '120px',
+      align: 'center',
+      sortable: true,
+      dataType: 'boolean',
+      filterType: 'select',
+      filterOptions: [
+        { label: 'Activo', value: true },
+        { label: 'Inactivo', value: false },
+      ],
+    },
+  ];
+
   // Selección
   selectedIds = new Set<string>();
+
+  onSelectedIdsChange(ids: Set<string>): void {
+    this.selectedIds = ids;
+    this.cdr.markForCheck();
+  }
 
   ngOnInit(): void {
     this.cargarDatos();

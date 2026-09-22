@@ -22,6 +22,17 @@ const ngZorroConfig: NzConfig = {
     successColor: '#107c41',
     infoColor: '#0078d4',
   },
+  notification: {
+    nzPlacement: 'topRight',
+    nzTop: 60,
+    nzDuration: 4000,
+    nzMaxStack: 5,
+  },
+  message: {
+    nzTop: 60,
+    nzDuration: 3500,
+    nzMaxStack: 4,
+  },
 };
 
 export const appConfig: ApplicationConfig = {

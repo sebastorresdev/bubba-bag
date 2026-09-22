@@ -27,9 +27,9 @@ import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
-import { NzBadgeModule } from 'ng-zorro-antd/badge';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
-import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
+import { VistaItem } from '../../../../shared/components/view-selector';
+import { EntityTableComponent, CellDefDirective, ColumnDef } from '../../../../shared/components/entity-table';
 
 @Component({
   selector: 'app-usuarios-list',
@@ -51,9 +51,9 @@ import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/
     NzCheckboxModule,
     NzSelectModule,
     NzAvatarModule,
-    NzBadgeModule,
     CommandBarComponent,
-    ViewSelectorComponent,
+    EntityTableComponent,
+    CellDefDirective,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './usuarios-list.html',
@@ -85,9 +85,58 @@ export class UsuariosListComponent implements OnInit, OnDestroy {
     this.cambiarVista(vista.key as any);
   }
 
+  columnas: ColumnDef<UsuarioDto>[] = [
+    {
+      key: 'nombreCompleto',
+      title: 'Nombre Completo',
+      width: '280px',
+      sortable: true,
+      dataType: 'text',
+      primaryLink: true,
+      canHide: false,
+    },
+    {
+      key: 'email',
+      title: 'Correo Electrónico',
+      width: '280px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'roles',
+      title: 'Roles Asignados',
+      sortable: false,
+      dataType: 'text',
+    },
+    {
+      key: 'esActivo',
+      title: 'Estado',
+      width: '140px',
+      align: 'center',
+      sortable: true,
+      dataType: 'boolean',
+      filterType: 'select',
+      filterOptions: [
+        { label: 'Activo', value: true },
+        { label: 'Inactivo', value: false },
+      ],
+    },
+  ];
+
   selectedIds = new Set<string>();
   checked = false;
   indeterminate = false;
+
+  onSelectedIdsChange(ids: Set<string>): void {
+    this.selectedIds = ids;
+    this.actualizarEstadoSeleccion();
+    this.cdr.markForCheck();
+  }
+
+  onBuscar(term: string): void {
+    this.searchTerm = term;
+    this.cargarUsuarios();
+  }
 
   // Modal Crear / Editar
   modalVisible = false;

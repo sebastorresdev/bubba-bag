@@ -31,7 +31,8 @@ import { NzBadgeModule } from 'ng-zorro-antd/badge';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzAlertModule } from 'ng-zorro-antd/alert';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
-import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
+import { VistaItem } from '../../../../shared/components/view-selector';
+import { EntityTableComponent, CellDefDirective, ColumnDef } from '../../../../shared/components/entity-table';
 
 @Component({
   selector: 'app-servicios-list',
@@ -56,7 +57,8 @@ import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/
     NzSpinModule,
     NzAlertModule,
     CommandBarComponent,
-    ViewSelectorComponent,
+    EntityTableComponent,
+    CellDefDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './servicios-list.html',
@@ -87,7 +89,90 @@ export class ServiciosListComponent implements OnInit {
     this.cambiarVista(vista.key);
   }
 
+  columnas: ColumnDef<ServicioItemDto>[] = [
+    {
+      key: 'codigo',
+      title: 'Código',
+      width: '120px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'nombre',
+      title: 'Nombre del Servicio',
+      width: '300px',
+      sortable: true,
+      dataType: 'text',
+      primaryLink: true,
+      canHide: false,
+    },
+    {
+      key: 'catalogoServicioNombre',
+      title: 'Catálogo',
+      width: '180px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'precioBase',
+      title: 'Precio Base',
+      width: '110px',
+      align: 'right',
+      sortable: true,
+      dataType: 'currency',
+    },
+    {
+      key: 'duracionEstimadaMinutos',
+      title: 'Duración',
+      width: '100px',
+      align: 'center',
+      sortable: true,
+      dataType: 'number',
+    },
+    {
+      key: 'cantidadPasos',
+      title: 'Checklist',
+      width: '100px',
+      align: 'center',
+      sortable: true,
+      dataType: 'number',
+    },
+    {
+      key: 'cantidadMateriales',
+      title: 'Materiales',
+      width: '100px',
+      align: 'center',
+      sortable: true,
+      dataType: 'number',
+    },
+    {
+      key: 'codigoExterno',
+      title: 'Código Ext.',
+      width: '120px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'activo',
+      title: 'Estado',
+      width: '100px',
+      align: 'center',
+      sortable: true,
+      dataType: 'boolean',
+      filterType: 'select',
+      filterOptions: [
+        { label: 'Activo', value: true },
+        { label: 'Inactivo', value: false },
+      ],
+    },
+  ];
+
   selectedIds = new Set<string>();
+
+  onSelectedIdsChange(ids: Set<string>): void {
+    this.selectedIds = ids;
+    this.cdr.markForCheck();
+  }
 
   // Estado del Modal de Importación Excel
   modalImportacionVisible = false;

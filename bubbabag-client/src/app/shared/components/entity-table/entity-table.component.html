@@ -2,20 +2,59 @@
   <!-- Sub-Header / Selector de Vista & Herramientas -->
   <div class="d365-toolbar-row">
     <!-- Selector de Vista Dynamics 365 Reutilizable con Asterisco (*) -->
-    <app-view-selector
-      [entidad]="entidad"
-      [vistasSistema]="vistasSistema"
-      [(vistaActualKey)]="vistaActualKey"
-      [esModificada]="esModificada"
-      [filtrosActuales]="filtrosActualesParaGuardar"
-      (vistaChange)="onVistaChange($event)"
-      (descartarCambios)="descartarCambios()"
-    ></app-view-selector>
+    @if (showViews) {
+      <app-view-selector
+        [entidad]="entidad"
+        [vistasSistema]="vistasSistema"
+        [(vistaActualKey)]="vistaActualKey"
+        [esModificada]="esModificada"
+        [filtrosActuales]="filtrosActualesParaGuardar"
+        (vistaChange)="onVistaChange($event)"
+        (descartarCambios)="descartarCambios()"
+        (guardarCambios)="onGuardarCambiosEnVista($event)"
+      ></app-view-selector>
+    } @else {
+      <div class="d365-table-title">{{ entidad }}</div>
+    }
 
-    <!-- Derecha: Filtros Adicionales, Buscador Rápido y Editar Columnas -->
+    <!-- Derecha: Filtros Adicionales, Filtrar, Editar Columnas y Buscador Rápido -->
     <div class="view-tools-group">
       <!-- Proyección de Filtros Adicionales (ej. selects específicos) -->
       <ng-content select="[extra-filters]"></ng-content>
+
+      <!-- Botón Filtros Avanzados Estilo Dynamics 365 -->
+      @if (showAdvancedFilter) {
+        <button
+          type="button"
+          nz-button
+          nzType="text"
+          class="d365-btn-filter"
+          [class.filter-active]="activeFilterConditionsCount > 0"
+          (click)="abrirDrawerFiltros()"
+          title="Filtros avanzados"
+        >
+          <nz-icon nzType="filter" class="filter-icon" />
+          <span>Filtrar</span>
+          @if (activeFilterConditionsCount > 0) {
+            <span class="filter-count-pill">{{ activeFilterConditionsCount }}</span>
+          }
+        </button>
+      }
+
+      <!-- Botón Editar Columnas Estilo D365 (a la izquierda de la búsqueda clásica) -->
+      @if (showEditColumns) {
+        <button
+          type="button"
+          nz-button
+          nzType="text"
+          class="d365-btn-edit-cols"
+          (click)="abrirDrawerEditarColumnas()"
+          title="Editar columnas visibles y orden"
+        >
+          <nz-icon nzType="column-width" class="edit-cols-icon" />
+          <span>Editar columnas</span>
+        </button>
+      }
 
       <!-- Buscador Rápido Fluent UI -->
       @if (showSearch) {
@@ -42,21 +81,6 @@
           }
         </div>
       }
-
-      <!-- Botón Editar Columnas Estilo D365 -->
-      @if (showEditColumns) {
-        <button
-          type="button"
-          nz-button
-          nzType="text"
-          class="d365-btn-edit-cols"
-          (click)="abrirModalEditarColumnas()"
-          title="Editar columnas visibles y orden"
-        >
-          <nz-icon nzType="column-width" />
-          <span>Editar columnas</span>
-        </button>
-      }
     </div>
   </div>
 
@@ -71,6 +95,7 @@
       [nzPageSize]="pageSize"
       [nzSize]="'small'"
       [nzBordered]="false"
+      [nzScroll]="scrollX ? { x: scrollX } : {}"
       class="d365-table"
     >
       <ng-template #totalRangeTpl let-range="range" let-total="total">
@@ -224,71 +249,100 @@
   </div>
 </nz-card>
 
-<!-- Modal Dynamics 365: "Editar Columnas" -->
-<nz-modal
-  [(nzVisible)]="editColumnsModalVisible"
+<!-- Drawer Dynamics 365: "Editar Columnas" Lateral Derecho -->
+<nz-drawer
+  [nzVisible]="editColumnsDrawerVisible"
+  nzPlacement="right"
   nzTitle="Editar columnas"
-  (nzOnCancel)="editColumnsModalVisible = false"
-  (nzOnOk)="aplicarColumnasEditadas()"
-  nzOkText="Aplicar"
-  nzCancelText="Cancelar"
-  [nzWidth]="480"
-  [nzMaskClosable]="false"
+  [nzWidth]="380"
+  [nzFooter]="drawerFooterTpl"
+  (nzOnClose)="cerrarDrawerEditarColumnas()"
 >
-  <ng-container *nzModalContent>
-    <p class="edit-cols-subtitle">
-      Selecciona las columnas visibles y utiliza los botones para ordenar su posición en la tabla.
-    </p>
+  <ng-container *nzDrawerContent>
+    <div class="edit-cols-drawer-content">
+      <p class="edit-cols-subtitle">
+        @if (allowColumnReorder) {
+          Selecciona las columnas visibles y arrastra los elementos para ordenar su posición en la tabla.
+        } @else {
+          Selecciona las columnas visibles que deseas mostrar en la tabla.
+        }
+      </p>
 
-    <div class="edit-cols-list">
-      @for (colItem of columnasEdicion; track colItem.key; let i = $index) {
-        <div class="edit-col-item">
-          <label
-            nz-checkbox
-            [(ngModel)]="colItem.visible"
-            [nzDisabled]="!colItem.canHide"
-            class="edit-col-checkbox"
-          >
-            <span>{{ colItem.title }}</span>
-          </label>
-
-          <div class="edit-col-order-btns">
-            <button
-              type="button"
-              nz-button
-              nzType="text"
-              nzSize="small"
-              [disabled]="i === 0"
-              (click)="moverColumna(i, -1)"
-              title="Mover arriba"
-            >
-              <nz-icon nzType="up" />
-            </button>
-            <button
-              type="button"
-              nz-button
-              nzType="text"
-              nzSize="small"
-              [disabled]="i === columnasEdicion.length - 1"
-              (click)="moverColumna(i, 1)"
-              title="Mover abajo"
-            >
-              <nz-icon nzType="down" />
-            </button>
-          </div>
-        </div>
-      }
-    </div>
-
-    <div class="edit-cols-footer-link">
-      <button
-        type="button"
-        nz-button
-        nzType="link"
-        (click)="restablecerColumnasPorDefecto()"
+      <div
+        class="edit-cols-list"
+        cdkDropList
+        [cdkDropListDisabled]="!allowColumnReorder"
+        [cdkDropListData]="columnasEdicion"
+        (cdkDropListDropped)="onColumnaDrop($event)"
       >
-        Restablecer columnas predeterminadas
-      </button>
+        @for (colItem of columnasEdicion; track colItem.key; let i = $index) {
+          <div class="edit-col-item" cdkDrag [cdkDragDisabled]="!allowColumnReorder">
+            <div class="edit-col-left">
+              <label
+                nz-checkbox
+                [(ngModel)]="colItem.visible"
+                [nzDisabled]="!colItem.canHide"
+                class="edit-col-checkbox"
+              >
+              </label>
+              <span
+                class="edit-col-title"
+                [attr.cdkDragHandle]="allowColumnReorder ? '' : null"
+                [title]="allowColumnReorder ? 'Arrastrar para reordenar columna' : colItem.title"
+              >{{ colItem.title }}</span>
+            </div>
+
+            <!-- Grip / Drag handle visible estilo Dynamics 365 -->
+            @if (allowColumnReorder) {
+              <div class="edit-col-drag-handle" cdkDragHandle title="Arrastrar para reordenar columna">
+                <svg class="grip-svg" width="10" height="16" viewBox="0 0 10 16" fill="currentColor">
+                  <circle cx="2" cy="2.5" r="1.5"/>
+                  <circle cx="8" cy="2.5" r="1.5"/>
+                  <circle cx="2" cy="8" r="1.5"/>
+                  <circle cx="8" cy="8" r="1.5"/>
+                  <circle cx="2" cy="13.5" r="1.5"/>
+                  <circle cx="8" cy="13.5" r="1.5"/>
+                </svg>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="edit-cols-footer-link">
+        <button
+          type="button"
+          nz-button
+          nzType="link"
+          (click)="restablecerColumnasPorDefecto()"
+        >
+          Restablecer columnas predeterminadas
+        </button>
+      </div>
     </div>
   </ng-container>
-</nz-modal>
+
+  <ng-template #drawerFooterTpl>
+    <div class="drawer-footer-actions">
+      <button nz-button nzType="default" (click)="cerrarDrawerEditarColumnas()">
+        Cancelar
+      </button>
+      <button nz-button nzType="primary" (click)="aplicarColumnasEditadas()">
+        Aplicar
+      </button>
+    </div>
+  </ng-template>
+</nz-drawer>
+
+<!-- Drawer de Filtros Avanzados (Dynamics 365) -->
+@if (showAdvancedFilter) {
+  <app-advanced-filter-drawer
+    [(visible)]="advancedFilterDrawerVisible"
+    [entidad]="entidad"
+    [columns]="columnas"
+    [currentFilter]="activeFilterGroup"
+    (applyFilter)="onAplicarFiltroAvanzado($event)"
+    (clearFilter)="onLimpiarFiltroAvanzado()"
+  ></app-advanced-filter-drawer>
+}
+

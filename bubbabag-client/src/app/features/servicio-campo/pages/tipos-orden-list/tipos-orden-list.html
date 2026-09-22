@@ -1,133 +1,56 @@
 <app-command-bar [items]="commandBarItems"></app-command-bar>
 
 <div class="catalogo-view-wrapper">
-  <nz-card [nzBordered]="false" class="d365-table-card">
-    <!-- Toolbar de la Vista -->
-    <div class="d365-toolbar-row">
-      <!-- Selector de Vista (Dynamics 365 View Selector) -->
-      <app-view-selector
-        entidad="TiposOrdenTrabajo"
-        [vistasSistema]="vistasSistema"
-        [(vistaActualKey)]="vistaActual"
-        (vistaChange)="onVistaChange($event)"
-      ></app-view-selector>
+  <app-entity-table
+    entidad="Tipos de Orden de Trabajo"
+    [vistasSistema]="vistasSistema"
+    [(vistaActualKey)]="vistaActual"
+    [columnas]="columnas"
+    [datos]="tiposOrdenFiltrados"
+    [loading]="loading"
+    [(selectedIds)]="selectedIds"
+    (selectedIdsChange)="onSelectedIdsChange($event)"
+    (vistaChange)="onVistaChange($event)"
+    (recargar)="cargarDatos()"
+    (rowDblClick)="editar($event.id)"
+  >
+    <!-- Modalidad Operativa -->
+    <ng-template cellDef="nombre" let-item>
+      <span class="nombre-link" (click)="editar(item.id)">
+        {{ item.nombre }}
+      </span>
+    </ng-template>
 
-      <!-- Buscador Rápido -->
-      <div class="view-tools-group">
-        <div class="d365-search-box">
-          <input
-            type="text"
-            [(ngModel)]="searchTerm"
-            (ngModelChange)="onSearchChange()"
-            placeholder="Filtrar por código, nombre..."
-            class="search-input"
-          />
-          @if (searchTerm) {
-            <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
-              <nz-icon nzType="close" />
-            </button>
-          }
-          <button class="search-icon-btn" (click)="onSearchChange()" title="Buscar">
-            <nz-icon nzType="search" />
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Visita Campo -->
+    <ng-template cellDef="requiereVisitaCampo" let-item>
+      <span class="flag-pill" [class.flag-yes]="item.requiereVisitaCampo" [class.flag-no]="!item.requiereVisitaCampo">
+        {{ item.requiereVisitaCampo ? 'Sí' : 'No' }}
+      </span>
+    </ng-template>
 
-    <!-- Grilla / Tabla Estilo Dynamics 365 -->
-    <div class="d365-grid-container">
-      <nz-table
-        #tiposTable
-        [nzData]="tiposOrdenFiltrados"
-        [nzLoading]="loading"
-        [nzShowPagination]="true"
-        [nzShowTotal]="totalRangeTpl"
-        [nzPageSize]="15"
-        nzSize="small"
-        class="d365-table"
+    <!-- Exige Firma -->
+    <ng-template cellDef="exigeFirmaCliente" let-item>
+      <span class="flag-pill" [class.flag-yes]="item.exigeFirmaCliente" [class.flag-no]="!item.exigeFirmaCliente">
+        {{ item.exigeFirmaCliente ? 'Sí' : 'No' }}
+      </span>
+    </ng-template>
+
+    <!-- Evidencias Foto -->
+    <ng-template cellDef="exigeEvidenciasFotograficas" let-item>
+      <span class="flag-pill" [class.flag-yes]="item.exigeEvidenciasFotograficas" [class.flag-no]="!item.exigeEvidenciasFotograficas">
+        {{ item.exigeEvidenciasFotograficas ? 'Sí' : 'No' }}
+      </span>
+    </ng-template>
+
+    <!-- Estado -->
+    <ng-template cellDef="activo" let-item>
+      <nz-tag
+        class="d365-status-tag"
+        [class.tag-active]="item.activo"
+        [class.tag-inactive]="!item.activo"
       >
-        <ng-template #totalRangeTpl let-range="range" let-total="total">
-          {{ range[0] }} - {{ range[1] }} de {{ total }}
-        </ng-template>
-        <thead>
-          <tr>
-            <th
-              [nzWidth]="'44px'"
-              [nzChecked]="isAllSelected"
-              [nzIndeterminate]="isIndeterminate"
-              (nzCheckedChange)="toggleSelectAll($event)"
-              class="col-checkbox"
-            ></th>
-            <th [nzWidth]="'280px'">Modalidad Operativa</th>
-            <th [nzWidth]="'130px'" nzAlign="center">Visita Campo</th>
-            <th [nzWidth]="'120px'" nzAlign="center">Exige Firma</th>
-            <th [nzWidth]="'140px'" nzAlign="center">Evidencias Foto</th>
-            <th>Descripción</th>
-            <th [nzWidth]="'110px'" nzAlign="center">Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (item of tiposTable.data; track item.id) {
-            <tr
-              class="d365-data-row"
-              [class.row-selected]="selectedIds.has(item.id)"
-              (click)="toggleSelect(item.id)"
-              (dblclick)="editar(item.id)"
-            >
-              <td
-                class="col-checkbox"
-                [nzChecked]="selectedIds.has(item.id)"
-                (click)="$event.stopPropagation()"
-                (nzCheckedChange)="toggleSelect(item.id)"
-              ></td>
-
-              <!-- Nombre con enlace de edición -->
-              <td class="col-primary-text">
-                <span class="nombre-link" (click)="$event.stopPropagation(); editar(item.id)">
-                  {{ item.nombre }}
-                </span>
-              </td>
-
-              <!-- Visita Campo -->
-              <td nzAlign="center">
-                <span class="flag-pill" [class.flag-yes]="item.requiereVisitaCampo" [class.flag-no]="!item.requiereVisitaCampo">
-                  {{ item.requiereVisitaCampo ? 'Sí' : 'No' }}
-                </span>
-              </td>
-
-              <!-- Exige Firma -->
-              <td nzAlign="center">
-                <span class="flag-pill" [class.flag-yes]="item.exigeFirmaCliente" [class.flag-no]="!item.exigeFirmaCliente">
-                  {{ item.exigeFirmaCliente ? 'Sí' : 'No' }}
-                </span>
-              </td>
-
-              <!-- Evidencias Fotográficas -->
-              <td nzAlign="center">
-                <span class="flag-pill" [class.flag-yes]="item.exigeEvidenciasFotograficas" [class.flag-no]="!item.exigeEvidenciasFotograficas">
-                  {{ item.exigeEvidenciasFotograficas ? 'Sí' : 'No' }}
-                </span>
-              </td>
-
-              <!-- Descripción -->
-              <td class="col-desc">
-                {{ item.descripcion || '-' }}
-              </td>
-
-              <!-- Estado con Tag D365 -->
-              <td nzAlign="center">
-                <nz-tag
-                  class="d365-status-tag"
-                  [class.tag-active]="item.activo"
-                  [class.tag-inactive]="!item.activo"
-                >
-                  {{ item.activo ? 'Activo' : 'Inactivo' }}
-                </nz-tag>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </nz-table>
-    </div>
-  </nz-card>
+        {{ item.activo ? 'Activo' : 'Inactivo' }}
+      </nz-tag>
+    </ng-template>
+  </app-entity-table>
 </div>

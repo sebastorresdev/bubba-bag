@@ -50,7 +50,7 @@
             [nzSelected]="vista.key === vistaActualKey || vista.id === vistaActualKey"
             class="view-menu-row"
           >
-            <!-- Checkmark si está seleccionada -->
+            <!-- Checkmark discreto estilo Dynamics 365 pegado al texto -->
             <div class="check-col">
               @if (vista.key === vistaActualKey || vista.id === vistaActualKey) {
                 <nz-icon nzType="check" class="row-check-icon" />
@@ -62,41 +62,18 @@
               {{ vista.nombre }}
             </span>
 
-            <!-- Badge si es predeterminada -->
+            <!-- Texto si es predeterminada estilo D365 -->
             @if (vista.esPredeterminada) {
-              <span class="default-badge">Predeterminada</span>
+              <span class="default-badge-text">Predeterminada</span>
             }
-
-            <!-- Botones de Acción (Pin / Eliminar) -->
-            <div class="row-actions" (click)="$event.stopPropagation()">
-              <button
-                type="button"
-                class="action-icon-btn pin-btn"
-                [class.pinned]="vista.esPredeterminada"
-                (click)="establecerPredeterminada(vista, $event)"
-                [title]="vista.esPredeterminada ? 'Es la vista predeterminada' : 'Establecer como vista predeterminada'"
-              >
-                <nz-icon [nzType]="vista.esPredeterminada ? 'pushpin' : 'pushpin'" [nzTheme]="vista.esPredeterminada ? 'fill' : 'outline'" />
-              </button>
-
-              @if (!vista.esSistema && vista.id) {
-                <button
-                  type="button"
-                  class="action-icon-btn delete-btn"
-                  (click)="eliminarVista(vista, $event)"
-                  title="Eliminar vista personalizada"
-                >
-                  <nz-icon nzType="delete" />
-                </button>
-              }
-            </div>
           </li>
         }
 
         <!-- Separador -->
-        <li nz-menu-divider></li>
+        <li nz-menu-divider class="d365-menu-divider"></li>
 
-        @if (esModificada && esVistaPersonalizada) {
+        <!-- Opciones de Guardar/Descartar: Solo si la vista ha sido modificada -->
+        @if (esModificada) {
           <li
             nz-menu-item
             (click)="onGuardarCambios($event)"
@@ -107,21 +84,7 @@
             </div>
             <span class="action-row-text">Guardar cambios en esta vista</span>
           </li>
-        }
 
-        <!-- Acción: Guardar como nueva vista -->
-        <li
-          nz-menu-item
-          (click)="abrirModalGuardar($event)"
-          class="action-menu-row"
-        >
-          <div class="check-col">
-            <nz-icon nzType="plus" class="action-row-icon" />
-          </div>
-          <span class="action-row-text">Guardar como nueva vista</span>
-        </li>
-
-        @if (esModificada) {
           <li
             nz-menu-item
             (click)="onDescartarCambios($event)"
@@ -132,11 +95,125 @@
             </div>
             <span class="action-row-text">Descartar cambios</span>
           </li>
+
+          <li nz-menu-divider class="d365-menu-divider"></li>
         }
+
+        <!-- Acción: Administrar y compartir vistas (Siempre disponible) -->
+        <li
+          nz-menu-item
+          (click)="abrirModalAdministrarVistas($event)"
+          class="action-menu-row manage-views-row"
+        >
+          <div class="check-col">
+            <nz-icon nzType="appstore" class="action-row-icon manage-icon-primary" />
+          </div>
+          <span class="action-row-text">Administrar y compartir vistas</span>
+        </li>
       </ul>
     </div>
   </nz-dropdown-menu>
 </div>
+
+<!-- Modal Dynamics 365: Administrar y compartir vistas -->
+<nz-modal
+  [(nzVisible)]="modalAdminVisible"
+  nzTitle="Administrar y compartir vistas"
+  (nzOnCancel)="cerrarModalAdministrarVistas()"
+  [nzFooter]="modalAdminFooterTpl"
+  [nzWidth]="680"
+  [nzMaskClosable]="false"
+  [nzCentered]="true"
+>
+  <ng-container *nzModalContent>
+    <div class="manage-views-modal-body">
+      <p class="modal-subtitle">
+        Administra tus vistas guardadas, define cuál será la predeterminada al ingresar o elimina vistas personalizadas que ya no utilices.
+      </p>
+
+      <nz-table
+        #manageTable
+        [nzData]="todasLasVistas"
+        [nzShowPagination]="false"
+        [nzSize]="'small'"
+        class="manage-views-table"
+      >
+        <thead>
+          <tr>
+            <th nzWidth="44%">Nombre de la vista</th>
+            <th nzWidth="18%">Tipo</th>
+            <th nzWidth="24%" nzAlign="center">Predeterminada</th>
+            <th nzWidth="14%" nzAlign="right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (vista of manageTable.data; track vista.key) {
+            <tr>
+              <td>
+                <div class="manage-view-name-cell">
+                  <span class="manage-view-title">{{ vista.nombre }}</span>
+                  @if (vista.descripcion) {
+                    <span class="manage-view-desc">{{ vista.descripcion }}</span>
+                  }
+                </div>
+              </td>
+              <td>
+                @if (vista.esSistema) {
+                  <nz-tag class="tag-d365-system">Sistema</nz-tag>
+                } @else {
+                  <nz-tag class="tag-d365-custom">Personalizada</nz-tag>
+                }
+              </td>
+              <td nzAlign="center">
+                @if (vista.esPredeterminada) {
+                  <span class="default-indicator">
+                    <nz-icon nzType="check" class="default-check-icon" />
+                    <span>Predeterminada</span>
+                  </span>
+                } @else {
+                  <button
+                    type="button"
+                    nz-button
+                    nzType="link"
+                    nzSize="small"
+                    class="btn-make-default"
+                    (click)="establecerPredeterminada(vista)"
+                    title="Establecer como vista predeterminada"
+                  >
+                    Hacer predeterminada
+                  </button>
+                }
+              </td>
+              <td nzAlign="right">
+                @if (!vista.esSistema && vista.id) {
+                  <button
+                    type="button"
+                    nz-button
+                    nzType="text"
+                    nzDanger
+                    nzSize="small"
+                    (click)="confirmarEliminarVista(vista)"
+                    title="Eliminar vista personalizada"
+                  >
+                    <nz-icon nzType="delete" />
+                  </button>
+                } @else {
+                  <span class="text-muted text-xs">—</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </nz-table>
+    </div>
+  </ng-container>
+
+  <ng-template #modalAdminFooterTpl>
+    <button nz-button nzType="primary" (click)="cerrarModalAdministrarVistas()">
+      Cerrar
+    </button>
+  </ng-template>
+</nz-modal>
 
 <!-- Modal Dynamics 365: Guardar como nueva vista -->
 <nz-modal

@@ -29,7 +29,8 @@ import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 import { OrganigramaModalComponent } from '../../components/organigrama-modal/organigrama-modal.component';
-import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
+import { VistaItem } from '../../../../shared/components/view-selector';
+import { EntityTableComponent, CellDefDirective, ColumnDef } from '../../../../shared/components/entity-table';
 
 @Component({
   selector: 'app-departamentos-list',
@@ -53,7 +54,8 @@ import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/
     NzSelectModule,
     CommandBarComponent,
     OrganigramaModalComponent,
-    ViewSelectorComponent,
+    EntityTableComponent,
+    CellDefDirective,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './departamentos-list.html',
@@ -84,6 +86,61 @@ export class DepartamentosListComponent implements OnInit {
     { key: 'Activos', nombre: 'Departamentos Activos', esSistema: true, esPredeterminada: true },
     { key: 'Inactivos', nombre: 'Departamentos Inactivos', esSistema: true, esPredeterminada: false },
     { key: 'Todos', nombre: 'Todos los Departamentos', esSistema: true, esPredeterminada: false },
+  ];
+
+  columnas: ColumnDef[] = [
+    {
+      key: 'jerarquia',
+      title: 'Jerarquía',
+      width: '54px',
+      align: 'center',
+      sortable: false,
+      canHide: false,
+    },
+    {
+      key: 'nombre',
+      title: 'Nombre del Departamento',
+      width: '280px',
+      sortable: true,
+      dataType: 'text',
+      primaryLink: true,
+      canHide: false,
+    },
+    {
+      key: 'descripcion',
+      title: 'Descripción',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'totalCargos',
+      title: 'Cargos',
+      width: '140px',
+      align: 'center',
+      sortable: true,
+      dataType: 'number',
+    },
+    {
+      key: 'totalEmpleados',
+      title: 'Colaboradores',
+      width: '160px',
+      align: 'center',
+      sortable: true,
+      dataType: 'number',
+    },
+    {
+      key: 'activo',
+      title: 'Estado',
+      width: '120px',
+      align: 'center',
+      sortable: true,
+      dataType: 'boolean',
+      filterType: 'select',
+      filterOptions: [
+        { label: 'Activo', value: true },
+        { label: 'Inactivo', value: false },
+      ],
+    },
   ];
 
   onVistaChange(vista: VistaItem): void {

@@ -22,9 +22,9 @@ import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
-import { NzBadgeModule } from 'ng-zorro-antd/badge';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
-import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
+import { VistaItem } from '../../../../shared/components/view-selector';
+import { EntityTableComponent, CellDefDirective, ColumnDef } from '../../../../shared/components/entity-table';
 
 @Component({
   selector: 'app-sucursales-list',
@@ -41,9 +41,9 @@ import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/
     NzSelectModule,
     NzCardModule,
     NzCheckboxModule,
-    NzBadgeModule,
     CommandBarComponent,
-    ViewSelectorComponent,
+    EntityTableComponent,
+    CellDefDirective,
   ],
   templateUrl: './sucursales-list.html',
   styleUrl: './sucursales-list.component.css',
@@ -71,6 +71,77 @@ export class SucursalesListComponent implements OnInit, OnDestroy {
     this.cambiarVista(vista.key);
   }
   private searchSubject = new Subject<string>();
+
+  columnas: ColumnDef<SucursalDto>[] = [
+    {
+      key: 'codigo',
+      title: 'Código',
+      width: '110px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'nombre',
+      title: 'Nombre de la Sucursal',
+      width: '280px',
+      sortable: true,
+      dataType: 'text',
+      primaryLink: true,
+      canHide: false,
+    },
+    {
+      key: 'ciudad',
+      title: 'Ciudad',
+      width: '140px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'direccion',
+      title: 'Dirección',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'telefono',
+      title: 'Teléfono',
+      width: '140px',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'esSedePrincipal',
+      title: 'Tipo Sede',
+      width: '140px',
+      align: 'center',
+      sortable: true,
+      dataType: 'boolean',
+    },
+    {
+      key: 'activo',
+      title: 'Estado',
+      width: '110px',
+      align: 'center',
+      sortable: true,
+      dataType: 'boolean',
+      filterType: 'select',
+      filterOptions: [
+        { label: 'Activo', value: true },
+        { label: 'Inactivo', value: false },
+      ],
+    },
+  ];
+
+  onSelectedIdsChange(ids: Set<string>): void {
+    this.selectedIds = ids;
+    this.actualizarEstadoSeleccion();
+    this.cdr.markForCheck();
+  }
+
+  onBuscar(term: string): void {
+    this.searchTerm = term;
+    this.cargarSucursales();
+  }
 
   // Selección
   selectedIds = new Set<string>();

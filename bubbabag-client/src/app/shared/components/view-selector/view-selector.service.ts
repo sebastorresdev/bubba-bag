@@ -88,6 +88,13 @@ export class ViewSelectorService {
     );
   }
 
+  actualizarVista(entidad: string, vistaId: string, configuracionJson: string): Observable<any> {
+    this.actualizarVistaLocal(entidad, vistaId, configuracionJson);
+    return this.http.put(`${this.apiUrl}/${vistaId}`, { configuracionJson }).pipe(
+      catchError(() => of({ success: true }))
+    );
+  }
+
   // --- LocalStorage Helpers ---
   private getStorageKey(entidad: string): string {
     return `bubbabag_saved_views_${entidad}`;
@@ -145,4 +152,18 @@ export class ViewSelectorService {
       // Ignorar restricciones de almacenamiento
     }
   }
+
+  private actualizarVistaLocal(entidad: string, vistaId: string, configuracionJson: string): void {
+    try {
+      const vistas = this.getVistasLocales(entidad);
+      const idx = vistas.findIndex((v) => v.id === vistaId);
+      if (idx !== -1) {
+        vistas[idx].configuracion = JSON.parse(configuracionJson);
+        localStorage.setItem(this.getStorageKey(entidad), JSON.stringify(vistas));
+      }
+    } catch {
+      // Ignorar restricciones de almacenamiento
+    }
+  }
 }
+

@@ -1,135 +1,71 @@
 <app-command-bar [items]="commandBarItems" [farItems]="farItems"></app-command-bar>
 
 <div class="catalogo-view-wrapper">
-  <nz-card [nzBordered]="true" [nzBodyStyle]="{ padding: '0' }" class="d365-table-card">
-    <!-- Sub-Header / Selector de Vista & Herramientas -->
-    <div class="d365-toolbar-row">
-      <!-- Selector de Vista Dynamics 365 Reutilizable -->
-      <app-view-selector
-        entidad="Departamentos"
-        [vistasSistema]="vistasSistema"
-        [(vistaActualKey)]="vistaActual"
-        (vistaChange)="onVistaChange($event)"
-      ></app-view-selector>
-
-      <!-- Derecha: Buscador Rápido Fluent UI -->
-      <div class="view-tools-group">
-        <div class="d365-search-box">
-          <input type="text" placeholder="Filtrar por nombre o descripción..." [(ngModel)]="searchTerm"
-            (ngModelChange)="onSearchChange()" class="search-input" />
-          @if (searchTerm) {
-          <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
-            <nz-icon nzType="close" />
-          </button>
-          } @else {
-          <span class="search-icon">
-            <nz-icon nzType="search" />
-          </span>
-          }
-        </div>
-      </div>
-    </div>
-
-    <!-- Grilla / Tabla Estilo Dynamics 365 -->
-    <div class="d365-grid-container">
-      <nz-table
-        #deptosTable
-        [nzData]="departamentos"
-        [nzLoading]="loading"
-        [nzShowPagination]="true"
-        [nzShowTotal]="totalRangeTpl"
-        [nzPageSize]="15"
-        [nzSize]="'small'"
-        [nzBordered]="false"
-        class="d365-table"
+  <app-entity-table
+    entidad="Departamentos"
+    [vistasSistema]="vistasSistema"
+    [(vistaActualKey)]="vistaActual"
+    [columnas]="columnas"
+    [datos]="departamentos"
+    [loading]="loading"
+    [(selectedIds)]="selectedIds"
+    (vistaChange)="onVistaChange($event)"
+    (recargar)="cargarDepartamentos()"
+    (rowDblClick)="abrirModalEditar($event)"
+  >
+    <!-- Columna Organigrama / Jerarquía -->
+    <ng-template cellDef="jerarquia" let-depto>
+      <button
+        type="button"
+        class="hierarchy-btn"
+        (click)="abrirOrganigrama(depto, $event)"
+        title="Ver organigrama de {{ depto.nombre }}"
       >
-        <ng-template #totalRangeTpl let-range="range" let-total="total">
-          {{ range[0] }} - {{ range[1] }} de {{ total }}
-        </ng-template>
-        <thead>
-          <tr>
-            <th [nzWidth]="'44px'" [nzChecked]="isAllSelected" [nzIndeterminate]="isIndeterminate"
-              (nzCheckedChange)="toggleSelectAll($event)" class="col-checkbox"></th>
-            <th [nzWidth]="'44px'" nzAlign="center" class="col-hierarchy" title="Jerarquía / Organigrama">
-              <nz-icon nzType="apartment" />
-            </th>
-            <th [nzWidth]="'280px'">Nombre del Departamento</th>
-            <th>Descripción</th>
-            <th [nzWidth]="'140px'" nzAlign="center">Cargos</th>
-            <th [nzWidth]="'160px'" nzAlign="center">Colaboradores</th>
-            <th [nzWidth]="'120px'" nzAlign="center">Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (depto of deptosTable.data; track depto.id) {
-          <tr [class.row-selected]="selectedIds.has(depto.id)" (click)="toggleSelect(depto.id)"
-            (dblclick)="abrirModalEditar(depto)">
-            <td class="col-checkbox" [nzChecked]="selectedIds.has(depto.id)" (click)="$event.stopPropagation()"
-              (nzCheckedChange)="toggleSelect(depto.id)"></td>
+        <nz-icon nzType="apartment" />
+      </button>
+    </ng-template>
 
-            <!-- Columna Organigrama / Jerarquía -->
-            <td nzAlign="center" class="col-hierarchy">
-              <button
-                type="button"
-                class="hierarchy-btn"
-                (click)="abrirOrganigrama(depto, $event)"
-                title="Ver organigrama de {{ depto.nombre }}"
-              >
-                <nz-icon nzType="apartment" />
-              </button>
-            </td>
+    <!-- Nombre -->
+    <ng-template cellDef="nombre" let-depto>
+      <span class="nombre-link" (click)="abrirModalEditar(depto)">
+        {{ depto.nombre }}
+      </span>
+    </ng-template>
 
-            <!-- Nombre -->
-            <td class="col-primary-text">
-              <span class="nombre-link" (click)="$event.stopPropagation(); abrirModalEditar(depto)">
-                {{ depto.nombre }}
-              </span>
-            </td>
+    <!-- Total Cargos -->
+    <ng-template cellDef="totalCargos" let-depto>
+      @if (depto.totalCargos > 0) {
+        <span
+          class="link-drilldown"
+          (click)="irACargos(depto.id, $event)"
+          title="Ver {{ depto.totalCargos }} cargo(s) de {{ depto.nombre }} en pantalla completa"
+        >
+          <nz-icon nzType="export" class="drilldown-icon" />
+          <span>{{ depto.totalCargos }}</span>
+        </span>
+      } @else {
+        <span class="text-muted">0</span>
+      }
+    </ng-template>
 
-            <!-- Descripción -->
-            <td class="col-desc">
-              {{ depto.descripcion || '' }}
-            </td>
+    <!-- Total Colaboradores -->
+    <ng-template cellDef="totalEmpleados" let-depto>
+      <span [class.text-muted]="!depto.totalEmpleados">
+        {{ depto.totalEmpleados }}
+      </span>
+    </ng-template>
 
-            <!-- Cantidad de Cargos -->
-            <td nzAlign="center">
-              @if (depto.totalCargos > 0) {
-              <span
-                class="link-drilldown"
-                (click)="irACargos(depto.id, $event)"
-                title="Ver {{ depto.totalCargos }} cargo(s) de {{ depto.nombre }} en pantalla completa"
-              >
-                <nz-icon nzType="export" class="drilldown-icon" />
-                <span>{{ depto.totalCargos }}</span>
-              </span>
-              } @else {
-              <span class="text-muted">0</span>
-              }
-            </td>
-
-            <!-- Cantidad de Colaboradores -->
-            <td nzAlign="center">
-              <span [class.text-muted]="!depto.totalEmpleados">
-                {{ depto.totalEmpleados }}
-              </span>
-            </td>
-
-            <!-- Estado con Tag D365 -->
-            <td>
-              <nz-tag
-                class="d365-status-tag"
-                [class.tag-active]="depto.activo"
-                [class.tag-inactive]="!depto.activo"
-              >
-                {{ depto.activo ? 'Activo' : 'Inactivo' }}
-              </nz-tag>
-            </td>
-          </tr>
-          }
-        </tbody>
-      </nz-table>
-    </div>
-  </nz-card>
+    <!-- Estado con Tag D365 -->
+    <ng-template cellDef="activo" let-depto>
+      <nz-tag
+        class="d365-status-tag"
+        [class.tag-active]="depto.activo"
+        [class.tag-inactive]="!depto.activo"
+      >
+        {{ depto.activo ? 'Activo' : 'Inactivo' }}
+      </nz-tag>
+    </ng-template>
+  </app-entity-table>
 </div>
 
 <!-- Modal Crear / Editar Departamento (Estilo Dynamics 365) -->

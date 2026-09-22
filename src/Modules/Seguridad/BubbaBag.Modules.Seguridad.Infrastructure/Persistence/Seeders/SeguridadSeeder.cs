@@ -107,7 +107,7 @@ public static class SeguridadSeeder
             await roleManager.DeleteAsync(rolViejoAdmin);
         }
 
-        // 3. Sembrar usuario inicial SuperAdmin (Desarrollador)
+        // 3. Sembrar usuario inicial SuperAdmin
         var admin = await userManager.FindByEmailAsync("admin@bubbabag.com");
         if (admin == null)
         {
@@ -116,13 +116,19 @@ public static class SeguridadSeeder
                 Id = Guid.Parse("00000000-0000-0000-0000-000000000001"),
                 UserName = "admin@bubbabag.com",
                 Email = "admin@bubbabag.com",
-                NombreCompleto = "Desarrollador / SuperAdmin"
+                NombreCompleto = "SuperAdmin"
             };
             await userManager.CreateAsync(admin, "Admin123!");
             await userManager.AddToRoleAsync(admin, Roles.SuperAdmin);
         }
         else
         {
+            if (admin.NombreCompleto != "SuperAdmin")
+            {
+                admin.NombreCompleto = "SuperAdmin";
+                await userManager.UpdateAsync(admin);
+            }
+
             if (!await userManager.IsInRoleAsync(admin, Roles.SuperAdmin))
             {
                 await userManager.AddToRoleAsync(admin, Roles.SuperAdmin);

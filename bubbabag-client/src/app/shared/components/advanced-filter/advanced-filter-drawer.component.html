@@ -1,0 +1,248 @@
+<nz-drawer
+  [nzVisible]="visible"
+  [nzWidth]="660"
+  nzPlacement="right"
+  [nzTitle]="drawerTitleTpl"
+  [nzFooter]="drawerFooterTpl"
+  (nzOnClose)="close()"
+  class="d365-filter-drawer"
+>
+  <!-- Encabezado estilo Dynamics 365: Solo texto limpio sin icono grande -->
+  <ng-template #drawerTitleTpl>
+    <div class="d365-filter-title">
+      Editar filtros: {{ entidad || 'Filtros avanzados' }}
+    </div>
+  </ng-template>
+
+  <ng-container *nzDrawerContent>
+    <div class="d365-filter-body">
+      <!-- Sub-barra de acciones: Restablecer valores predeterminados -->
+      <div class="filter-top-actions">
+        <button
+          type="button"
+          nz-button
+          nzType="link"
+          class="btn-reset-defaults"
+          (click)="onLimpiarTodo()"
+          [disabled]="localGroup.conditions.length === 0"
+        >
+          <nz-icon nzType="undo" />
+          <span>Restablecer valores predeterminados</span>
+        </button>
+      </div>
+
+      <!-- Árbol de condiciones estilo Dynamics 365 con líneas y conector Y / O -->
+      <div class="d365-tree-container">
+        <!-- Selector de Lógica (Y / O) en la raíz del árbol -->
+        <div class="tree-root-logic">
+          <nz-select
+            [(ngModel)]="localGroup.logic"
+            nzSize="small"
+            class="logic-select-d365"
+            title="Operador lógico del grupo (Y = Todas / O = Cualquiera)"
+          >
+            <nz-option nzValue="AND" nzLabel="Y"></nz-option>
+            <nz-option nzValue="OR" nzLabel="O"></nz-option>
+          </nz-select>
+        </div>
+
+        <!-- Línea vertical del árbol -->
+        <div class="tree-vertical-line"></div>
+
+        <!-- Filas de condiciones -->
+        <div class="tree-branches-list">
+          @if (localGroup.conditions.length === 0) {
+            <div class="tree-empty-notice">
+              <nz-empty
+                [nzNotFoundImage]="'simple'"
+                [nzNotFoundContent]="'No hay condiciones configuradas. Haz clic en + Agregar para definir un filtro.'"
+              ></nz-empty>
+            </div>
+          } @else {
+            @for (cond of localGroup.conditions; track cond.id; let idx = $index) {
+              <div class="tree-rule-row">
+                <!-- Conector horizontal hacia la fila -->
+                <div class="tree-connector-h"></div>
+
+                <!-- Campo (Select) -->
+                <div class="rule-col rule-col-field">
+                  <nz-select
+                    [(ngModel)]="cond.field"
+                    (ngModelChange)="onFieldChange(cond)"
+                    nzPlaceHolder="Campo"
+                    class="full-width"
+                  >
+                    @for (col of availableColumns; track col.key) {
+                      <nz-option [nzValue]="col.key" [nzLabel]="col.title"></nz-option>
+                    }
+                  </nz-select>
+                </div>
+
+                <!-- Operador (Select) -->
+                <div class="rule-col rule-col-op">
+                  <nz-select
+                    [(ngModel)]="cond.operator"
+                    (ngModelChange)="onOperatorChange(cond)"
+                    nzPlaceHolder="Operador"
+                    class="full-width"
+                  >
+                    @for (op of getOperatorsForField(cond.field); track op.value) {
+                      <nz-option [nzValue]="op.value" [nzLabel]="op.label"></nz-option>
+                    }
+                  </nz-select>
+                </div>
+
+                <!-- Valor (Control dinámico según tipo) -->
+                <div class="rule-col rule-col-val">
+                  @if (isUnaryOperator(cond.field, cond.operator)) {
+                    <div class="unary-badge">
+                      <nz-tag nzColor="default">Sin valor</nz-tag>
+                    </div>
+                  } @else if (getColumnDataType(cond.field) === 'boolean') {
+                    <nz-select
+                      [(ngModel)]="cond.value"
+                      nzPlaceHolder="Seleccionar..."
+                      class="full-width"
+                    >
+                      <nz-option [nzValue]="true" nzLabel="Sí / Activo"></nz-option>
+                      <nz-option [nzValue]="false" nzLabel="No / Inactivo"></nz-option>
+                    </nz-select>
+                  } @else if (getColumnDataType(cond.field) === 'number' || getColumnDataType(cond.field) === 'currency') {
+                    @if (isRangeOperator(cond.field, cond.operator)) {
+                      <div class="range-inputs">
+                        <nz-input-number
+                          [(ngModel)]="cond.value"
+                          nzPlaceHolder="Mín"
+                          class="range-subinput"
+                        ></nz-input-number>
+                        <span class="range-sep">-</span>
+                        <nz-input-number
+                          [(ngModel)]="cond.secondValue"
+                          nzPlaceHolder="Máx"
+                          class="range-subinput"
+                        ></nz-input-number>
+                      </div>
+                    } @else {
+                      <nz-input-number
+                        [(ngModel)]="cond.value"
+                        nzPlaceHolder="Valor..."
+                        class="full-width"
+                      ></nz-input-number>
+                    }
+                  } @else if (getColumnDataType(cond.field) === 'date') {
+                    @if (isRangeOperator(cond.field, cond.operator)) {
+                      <div class="range-inputs">
+                        <nz-date-picker
+                          [(ngModel)]="cond.value"
+                          nzPlaceHolder="Desde"
+                          class="range-subinput"
+                        ></nz-date-picker>
+                        <span class="range-sep">-</span>
+                        <nz-date-picker
+                          [(ngModel)]="cond.secondValue"
+                          nzPlaceHolder="Hasta"
+                          class="range-subinput"
+                        ></nz-date-picker>
+                      </div>
+                    } @else {
+                      <nz-date-picker
+                        [(ngModel)]="cond.value"
+                        nzPlaceHolder="Fecha..."
+                        class="full-width"
+                      ></nz-date-picker>
+                    }
+                  } @else if (getColumnDataType(cond.field) === 'select') {
+                    @if (cond.operator === 'in' || cond.operator === 'notIn') {
+                      <nz-select
+                        [(ngModel)]="cond.value"
+                        nzMode="multiple"
+                        nzPlaceHolder="Opciones..."
+                        class="full-width"
+                      >
+                        @for (opt of getColumnDef(cond.field)?.filterOptions; track opt.value) {
+                          <nz-option [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+                        }
+                      </nz-select>
+                    } @else {
+                      <nz-select
+                        [(ngModel)]="cond.value"
+                        nzPlaceHolder="Opción..."
+                        class="full-width"
+                      >
+                        @for (opt of getColumnDef(cond.field)?.filterOptions; track opt.value) {
+                          <nz-option [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+                        }
+                      </nz-select>
+                    }
+                  } @else {
+                    <input
+                      nz-input
+                      type="text"
+                      [(ngModel)]="cond.value"
+                      placeholder="Valor..."
+                      class="full-width"
+                    />
+                  }
+                </div>
+
+                <!-- Botón eliminar regla -->
+                <button
+                  type="button"
+                  nz-button
+                  nzType="text"
+                  nzDanger
+                  (click)="removeCondition(idx)"
+                  title="Eliminar regla"
+                  class="btn-delete-row"
+                >
+                  <nz-icon nzType="delete" />
+                </button>
+              </div>
+            }
+          }
+
+          <!-- Botón "+ Agregar" en la rama del árbol -->
+          <div class="tree-add-branch">
+            <div class="tree-connector-h"></div>
+            <button
+              type="button"
+              nz-button
+              nzType="default"
+              (click)="addCondition()"
+              class="btn-add-d365"
+            >
+              <nz-icon nzType="plus" />
+              <span>Agregar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Footer estilo Dynamics 365: [Aplicar] [Cancelar] a la derecha -->
+  <ng-template #drawerFooterTpl>
+    <div class="d365-drawer-footer">
+      <div class="footer-spacer"></div>
+      <div class="footer-actions">
+        <button
+          type="button"
+          nz-button
+          nzType="primary"
+          (click)="onAplicar()"
+          class="btn-d365-apply"
+        >
+          Aplicar
+        </button>
+        <button
+          type="button"
+          nz-button
+          nzType="default"
+          (click)="close()"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </ng-template>
+</nz-drawer>

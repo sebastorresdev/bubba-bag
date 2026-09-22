@@ -21,9 +21,9 @@ import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
-import { NzSelectModule } from 'ng-zorro-antd/select';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
-import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/view-selector';
+import { VistaItem } from '../../../../shared/components/view-selector';
+import { EntityTableComponent, CellDefDirective, ColumnDef } from '../../../../shared/components/entity-table';
 
 @Component({
   selector: 'app-listas-precio-list',
@@ -42,9 +42,9 @@ import { ViewSelectorComponent, VistaItem } from '../../../../shared/components/
     NzCardModule,
     NzEmptyModule,
     NzCheckboxModule,
-    NzSelectModule,
     CommandBarComponent,
-    ViewSelectorComponent,
+    EntityTableComponent,
+    CellDefDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './listas-precio-list.html',
@@ -75,7 +75,67 @@ export class ListasPrecioListComponent implements OnInit {
     this.cambiarVista(vista.key);
   }
 
+  columnas: ColumnDef<ListaPrecioDto>[] = [
+    {
+      key: 'nombre',
+      title: 'Nombre de la Lista',
+      width: '280px',
+      sortable: true,
+      dataType: 'text',
+      primaryLink: true,
+      canHide: false,
+    },
+    {
+      key: 'moneda',
+      title: 'Moneda',
+      width: '100px',
+      align: 'center',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'esPredeterminada',
+      title: 'Predeterminada',
+      width: '120px',
+      align: 'center',
+      sortable: true,
+      dataType: 'boolean',
+    },
+    {
+      key: 'totalItems',
+      title: 'Ítems Fijados',
+      width: '110px',
+      align: 'center',
+      sortable: true,
+      dataType: 'number',
+    },
+    {
+      key: 'descripcion',
+      title: 'Descripción',
+      sortable: true,
+      dataType: 'text',
+    },
+    {
+      key: 'activo',
+      title: 'Estado',
+      width: '110px',
+      align: 'center',
+      sortable: true,
+      dataType: 'boolean',
+      filterType: 'select',
+      filterOptions: [
+        { label: 'Activo', value: true },
+        { label: 'Inactivo', value: false },
+      ],
+    },
+  ];
+
   selectedIds: Set<string> = new Set<string>();
+
+  onSelectedIdsChange(ids: Set<string>): void {
+    this.selectedIds = ids;
+    this.cdr.markForCheck();
+  }
 
   ngOnInit(): void {
     this.cargarDatos();

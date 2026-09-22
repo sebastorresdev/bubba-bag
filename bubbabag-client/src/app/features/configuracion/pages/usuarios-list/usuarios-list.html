@@ -1,126 +1,53 @@
 <app-command-bar [items]="commandBarItems" [farItems]="farItems"></app-command-bar>
 
 <div class="catalogo-view-wrapper">
-  <!-- Tarjeta Contenedora Dynamics 365 -->
-  <nz-card [nzBordered]="true" [nzBodyStyle]="{ padding: '0' }" class="d365-table-card">
-    
-    <!-- Sub-Header / Selector de Vista & Herramientas -->
-    <div class="d365-toolbar-row">
-      <!-- Selector de Vista Dynamics 365 Reutilizable -->
-      <app-view-selector
-        entidad="Usuarios"
-        [vistasSistema]="vistasSistema"
-        [(vistaActualKey)]="vistaActual"
-        (vistaChange)="onVistaChange($event)"
-      ></app-view-selector>
+  <app-entity-table
+    entidad="Usuarios"
+    [vistasSistema]="vistasSistema"
+    [(vistaActualKey)]="vistaActual"
+    [columnas]="columnas"
+    [datos]="usuarios"
+    [loading]="loading"
+    [(selectedIds)]="selectedIds"
+    (selectedIdsChange)="onSelectedIdsChange($event)"
+    (vistaChange)="onVistaChange($event)"
+    (searchChange)="onBuscar($event)"
+    (recargar)="cargarUsuarios()"
+    (rowDblClick)="irAEditar($event.id)"
+  >
+    <!-- Nombre Completo -->
+    <ng-template cellDef="nombreCompleto" let-data>
+      <span class="nombre-link" (click)="irAEditar(data.id)">
+        <nz-icon nzType="user" class="row-user-icon" />
+        <span class="truncate-text">{{ data.nombreCompleto }}</span>
+      </span>
+    </ng-template>
 
-      <!-- Buscador Fluent UI -->
-      <div class="view-tools-group">
-        <div class="d365-search-box">
-          <input
-            type="text"
-            placeholder="Filtrar por nombre o correo..."
-            [(ngModel)]="searchTerm"
-            (ngModelChange)="onSearchTermChange()"
-            (keyup.enter)="buscar()"
-            class="search-input"
-          />
-          @if (searchTerm) {
-            <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
-              <nz-icon nzType="close" />
-            </button>
-          }
-          <button class="search-icon-btn" (click)="buscar()" title="Buscar">
-            <nz-icon nzType="search" />
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tabla Dynamics 365 con Selección por Checkbox y filas en una sola línea -->
-    <nz-table
-      #basicTable
-      [nzData]="usuarios"
-      [nzLoading]="loading"
-      [nzShowPagination]="true"
-      [nzShowTotal]="totalRangeTpl"
-      [nzPageSize]="15"
-      nzSize="small"
-      class="d365-grid d365-table"
-    >
-      <ng-template #totalRangeTpl let-range="range" let-total="total">
-        {{ range[0] }} - {{ range[1] }} de {{ total }}
-      </ng-template>
-      <thead>
-        <tr>
-          <th
-            [nzWidth]="'48px'"
-            [nzChecked]="checked"
-            [nzIndeterminate]="indeterminate"
-            nzLabel="Seleccionar todos"
-            (nzCheckedChange)="onAllChecked($event)"
-          ></th>
-          <th [nzWidth]="'280px'">Nombre Completo</th>
-          <th [nzWidth]="'280px'">Correo Electrónico</th>
-          <th>Roles Asignados</th>
-          <th [nzWidth]="'140px'">Estado</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (data of basicTable.data; track data.id) {
-          <tr
-            [class.fluent-row-selected]="selectedIds.has(data.id)"
-            (click)="onItemChecked(data.id, !selectedIds.has(data.id))"
-            style="cursor: pointer;"
-          >
-            <td
-              [nzChecked]="selectedIds.has(data.id)"
-              (nzCheckedChange)="onItemChecked(data.id, $event)"
-              (click)="$event.stopPropagation()"
-            ></td>
-            
-            <!-- Nombre Completo Clickeable estilo D365 -->
-            <td class="col-primary-text" [title]="data.nombreCompleto">
-              <span class="nombre-link" (click)="$event.stopPropagation(); irAEditar(data.id)">
-                <nz-icon nzType="user" class="row-user-icon" />
-                <span class="truncate-text">{{ data.nombreCompleto }}</span>
-              </span>
-            </td>
-
-            <!-- Correo Electrónico en línea independiente -->
-            <td class="col-desc" [title]="data.email">
-              <span class="cell-ellipsis">{{ data.email }}</span>
-            </td>
-
-            <!-- Roles Asignados -->
-            <td>
-              <div class="roles-tags-wrapper">
-                @if (data.roles.length === 0) {
-                  <span class="text-muted">Sin roles</span>
-                }
-                @for (rol of data.roles; track rol) {
-                  <nz-tag [nzColor]="getRolTagColor(rol)" class="d365-rol-tag">
-                    {{ getNombreRolVisible(rol) }}
-                  </nz-tag>
-                }
-              </div>
-            </td>
-
-            <!-- Estado con Tag D365 -->
-            <td>
-              <nz-tag
-                class="d365-status-tag"
-                [class.tag-active]="data.esActivo"
-                [class.tag-inactive]="!data.esActivo"
-              >
-                {{ data.esActivo ? 'Activo' : 'Inactivo' }}
-              </nz-tag>
-            </td>
-          </tr>
+    <!-- Roles Asignados -->
+    <ng-template cellDef="roles" let-data>
+      <div class="roles-tags-wrapper">
+        @if (data.roles.length === 0) {
+          <span class="text-muted">Sin roles</span>
         }
-      </tbody>
-    </nz-table>
-  </nz-card>
+        @for (rol of data.roles; track rol) {
+          <nz-tag [nzColor]="getRolTagColor(rol)" class="d365-rol-tag">
+            {{ getNombreRolVisible(rol) }}
+          </nz-tag>
+        }
+      </div>
+    </ng-template>
+
+    <!-- Estado con Tag D365 -->
+    <ng-template cellDef="esActivo" let-data>
+      <nz-tag
+        class="d365-status-tag"
+        [class.tag-active]="data.esActivo"
+        [class.tag-inactive]="!data.esActivo"
+      >
+        {{ data.esActivo ? 'Activo' : 'Inactivo' }}
+      </nz-tag>
+    </ng-template>
+  </app-entity-table>
 </div>
 
 <!-- Modal Rápido: Restablecer Contraseña desde Command Bar -->

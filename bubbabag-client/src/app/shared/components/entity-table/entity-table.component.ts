@@ -20,18 +20,26 @@ import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { NzTableModule } from 'ng-zorro-antd/table';
+import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
-import { NzModalModule } from 'ng-zorro-antd/modal';
+import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzTagModule } from 'ng-zorro-antd/tag';
+import { NzBadgeModule } from 'ng-zorro-antd/badge';
 
 import { ViewSelectorComponent, VistaItem } from '../view-selector';
 import { ColumnDef, TableSortState, TableStateSnapshot } from './entity-table.models';
 import { CellDefDirective } from './cell-def.directive';
+import {
+  AdvancedFilterDrawerComponent,
+  FilterGroup,
+  evaluateFilterGroup,
+  ColumnDataType,
+} from '../advanced-filter';
 
 @Component({
   selector: 'app-entity-table',
@@ -45,10 +53,13 @@ import { CellDefDirective } from './cell-def.directive';
     NzInputModule,
     NzDropdownModule,
     NzCheckboxModule,
-    NzModalModule,
+    NzDrawerModule,
     NzCardModule,
     NzTagModule,
+    NzBadgeModule,
+    DragDropModule,
     ViewSelectorComponent,
+    AdvancedFilterDrawerComponent,
   ],
   templateUrl: './entity-table.component.html',
   styleUrl: './entity-table.component.css',
@@ -64,11 +75,15 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
   @Input({ required: true }) datos: any[] = [];
   @Input() loading: boolean = false;
   @Input() selectedIds: Set<string> = new Set<string>();
-  @Input() searchPlaceholder: string = 'Filtrar datos...';
+  @Input() searchPlaceholder: string = 'Filtrar por palabra clave';
   @Input() pageSize: number = 15;
   @Input() showEditColumns: boolean = true;
+  @Input() allowColumnReorder: boolean = true;
+  @Input() showAdvancedFilter: boolean = true;
+  @Input() showViews: boolean = true;
   @Input() showSearch: boolean = true;
   @Input() rowKey: string = 'id';
+  @Input() scrollX?: string;
 
   @Output() vistaChange = new EventEmitter<VistaItem>();
   @Output() vistaActualKeyChange = new EventEmitter<string>();
@@ -76,12 +91,31 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
   @Output() rowClick = new EventEmitter<any>();
   @Output() rowDblClick = new EventEmitter<any>();
   @Output() searchChange = new EventEmitter<string>();
+  @Output() advancedFilterChange = new EventEmitter<FilterGroup | null>();
   @Output() recargar = new EventEmitter<void>();
 
   @ContentChildren(CellDefDirective) cellDefs!: QueryList<CellDefDirective>;
 
   // Columnas activas y ordenadas
   columnasVisibles: ColumnDef[] = [];
+
+  // Filtros avanzados estilo Dynamics 365
+  advancedFilterDrawerVisible: boolean = false;
+  activeFilterGroup: FilterGroup | null = null;
+
+  get activeFilterConditionsCount(): number {
+    return (
+      this.activeFilterGroup?.conditions?.filter((c) => !!c.field)?.length || 0
+    );
+  }
+
+  get columnTypesMap(): Record<string, ColumnDataType> {
+    const map: Record<string, ColumnDataType> = {};
+    for (const col of this.columnas) {
+      map[col.key] = col.dataType || 'text';
+    }
+    return map;
+  }
 
   // Búsqueda rápida
   searchTerm: string = '';
@@ -99,8 +133,14 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
   initialSnapshot: TableStateSnapshot | null = null;
   esModificada: boolean = false;
 
-  // Modal "Editar Columnas"
-  editColumnsModalVisible: boolean = false;
+  // Drawer "Editar Columnas"
+  editColumnsDrawerVisible: boolean = false;
+  get editColumnsModalVisible(): boolean {
+    return this.editColumnsDrawerVisible;
+  }
+  set editColumnsModalVisible(val: boolean) {
+    this.editColumnsDrawerVisible = val;
+  }
   columnasEdicion: {
     key: string;
     title: string;
@@ -149,6 +189,9 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
       searchTerm: '',
       sort: { key: null, order: null },
       filters: {},
+      advancedFilter: this.activeFilterGroup
+        ? JSON.parse(JSON.stringify(this.activeFilterGroup))
+        : null,
       visibleColumnKeys: this.columnas.filter((c) => !c.hidden).map((c) => c.key),
     };
     this.esModificada = false;
@@ -175,8 +218,19 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
       return v !== undefined && v !== null && v !== '';
     });
 
+    const activeConds = this.activeFilterGroup?.conditions || [];
+    const snapshotConds = this.initialSnapshot.advancedFilter?.conditions || [];
+    const hasAdvancedFilterChange =
+      JSON.stringify(activeConds) !== JSON.stringify(snapshotConds) ||
+      (this.activeFilterGroup?.logic !== this.initialSnapshot.advancedFilter?.logic &&
+        activeConds.length > 0);
+
     this.esModificada =
-      hasSearchChange || hasSortChange || hasColumnChange || hasActiveFilters;
+      hasSearchChange ||
+      hasSortChange ||
+      hasColumnChange ||
+      hasActiveFilters ||
+      hasAdvancedFilterChange;
   }
 
   get filtrosActualesParaGuardar(): any {
@@ -184,8 +238,29 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
       searchTerm: this.searchTerm.trim(),
       sort: this.sortState,
       filters: this.columnFilters,
+      advancedFilter: this.activeFilterGroup,
       visibleColumnKeys: this.columnasVisibles.map((c) => c.key),
     };
+  }
+
+  // --- Métodos de Filtros Avanzados (Dynamics 365) ---
+  abrirDrawerFiltros(): void {
+    this.advancedFilterDrawerVisible = true;
+    this.cdr.markForCheck();
+  }
+
+  onAplicarFiltroAvanzado(group: FilterGroup | null): void {
+    this.activeFilterGroup = group;
+    this.advancedFilterChange.emit(group);
+    this.evaluarModificaciones();
+    this.cdr.markForCheck();
+  }
+
+  onLimpiarFiltroAvanzado(): void {
+    this.activeFilterGroup = null;
+    this.advancedFilterChange.emit(null);
+    this.evaluarModificaciones();
+    this.cdr.markForCheck();
   }
 
   // --- Búsqueda ---
@@ -296,6 +371,17 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
       }
     }
 
+    // 2.5 Filtros avanzados estilo Dynamics 365 (Multi-regla AND/OR tipado)
+    if (
+      this.showAdvancedFilter &&
+      this.activeFilterGroup &&
+      this.activeFilterGroup.conditions.length > 0
+    ) {
+      resultado = resultado.filter((row) =>
+        evaluateFilterGroup(row, this.activeFilterGroup, this.columnTypesMap)
+      );
+    }
+
     // 3. Ordenamiento
     if (this.sortState.key && this.sortState.order) {
       const key = this.sortState.key;
@@ -322,8 +408,8 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
     return resultado;
   }
 
-  // --- Modal "Editar Columnas" ---
-  abrirModalEditarColumnas(): void {
+  // --- Drawer "Editar Columnas" Estilo D365 ---
+  abrirDrawerEditarColumnas(): void {
     const visiblesSet = new Set(this.columnasVisibles.map((c) => c.key));
 
     // Mantener las activas en su orden actual, y agregar al final las que estén ocultas
@@ -339,7 +425,22 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
       canHide: c.canHide !== false,
     }));
 
-    this.editColumnsModalVisible = true;
+    this.editColumnsDrawerVisible = true;
+    this.cdr.markForCheck();
+  }
+
+  // Compatibilidad
+  abrirModalEditarColumnas(): void {
+    this.abrirDrawerEditarColumnas();
+  }
+
+  cerrarDrawerEditarColumnas(): void {
+    this.editColumnsDrawerVisible = false;
+    this.cdr.markForCheck();
+  }
+
+  onColumnaDrop(event: CdkDragDrop<any[]>): void {
+    moveItemInArray(this.columnasEdicion, event.previousIndex, event.currentIndex);
     this.cdr.markForCheck();
   }
 
@@ -347,8 +448,8 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
     const nuevoIndice = index + direccion;
     if (nuevoIndice < 0 || nuevoIndice >= this.columnasEdicion.length) return;
 
-    const item = this.columnasEdicion.splice(index, 1)[0];
-    this.columnasEdicion.splice(nuevoIndice, 0, item);
+    moveItemInArray(this.columnasEdicion, index, nuevoIndice);
+    this.cdr.markForCheck();
   }
 
   aplicarColumnasEditadas(): void {
@@ -357,14 +458,14 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
       .filter((c) => c.visible && mapColumnas.has(c.key))
       .map((c) => mapColumnas.get(c.key)!);
 
-    this.editColumnsModalVisible = false;
+    this.editColumnsDrawerVisible = false;
     this.evaluarModificaciones();
     this.cdr.markForCheck();
   }
 
   restablecerColumnasPorDefecto(): void {
     this.columnasVisibles = this.columnas.filter((c) => !c.hidden);
-    this.editColumnsModalVisible = false;
+    this.editColumnsDrawerVisible = false;
     this.evaluarModificaciones();
     this.cdr.markForCheck();
   }
@@ -387,11 +488,15 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
       this.sortState = cfg.sort || { key: null, order: null };
       this.columnFilters = cfg.filters || {};
       this.searchTerm = cfg.searchTerm || '';
+      this.activeFilterGroup = cfg.advancedFilter
+        ? JSON.parse(JSON.stringify(cfg.advancedFilter))
+        : null;
     } else {
       // Estado por defecto de la vista
       this.sortState = { key: null, order: null };
       this.columnFilters = {};
       this.searchTerm = '';
+      this.activeFilterGroup = null;
       this.inicializarColumnas();
     }
 
@@ -404,9 +509,18 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
     this.sortState = { key: null, order: null };
     this.columnFilters = {};
     this.filterTempValues = {};
+    this.activeFilterGroup = this.initialSnapshot?.advancedFilter
+      ? JSON.parse(JSON.stringify(this.initialSnapshot.advancedFilter))
+      : null;
     this.inicializarColumnas();
     this.esModificada = false;
     this.recargar.emit();
+    this.cdr.markForCheck();
+  }
+
+  onGuardarCambiosEnVista(vista: VistaItem): void {
+    this.capturarSnapshotInicial();
+    this.esModificada = false;
     this.cdr.markForCheck();
   }
 

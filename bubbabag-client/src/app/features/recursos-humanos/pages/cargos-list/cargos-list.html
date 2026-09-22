@@ -9,28 +9,10 @@
     [datos]="cargos"
     [loading]="loading"
     [(selectedIds)]="selectedIds"
-    searchPlaceholder="Filtrar por cargo o departamento..."
     (vistaChange)="onVistaChange($event)"
     (recargar)="cargarCargos()"
     (rowDblClick)="abrirModalEditar($event)"
   >
-    <!-- Filtro adicional: Selector de Departamento -->
-    <div extra-filters>
-      <nz-select
-        nzShowSearch
-        nzAllowClear
-        nzPlaceHolder="Todos los departamentos"
-        [(ngModel)]="departamentoFiltroId"
-        (ngModelChange)="onDepartamentoFiltroChange()"
-        class="filtro-depto-select"
-        style="width: 220px;"
-      >
-        @for (depto of departamentos; track depto.id) {
-          <nz-option [nzValue]="depto.id" [nzLabel]="depto.nombre"></nz-option>
-        }
-      </nz-select>
-    </div>
-
     <!-- Celdas personalizadas -->
     <ng-template cellDef="jerarquia" let-cargo>
       <button

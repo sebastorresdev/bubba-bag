@@ -1,120 +1,50 @@
 <app-command-bar [items]="commandBarItems"></app-command-bar>
 
 <div class="ordenes-view-wrapper">
-  <nz-card [nzBordered]="false" class="d365-table-card">
-    <!-- Toolbar de la Vista -->
-    <div class="d365-toolbar-row">
-      <!-- Selector de Vista (Dynamics 365 View Selector) -->
-      <app-view-selector
-        entidad="OrdenesTrabajo"
-        [vistasSistema]="vistasSistema"
-        [(vistaActualKey)]="vistaActual"
-        (vistaChange)="onVistaChange($event)"
-      ></app-view-selector>
+  <app-entity-table
+    entidad="Órdenes de Trabajo"
+    [vistasSistema]="vistasSistema"
+    [(vistaActualKey)]="vistaActual"
+    [columnas]="columnas"
+    [datos]="ordenesFiltradas"
+    [loading]="loading"
+    [(selectedIds)]="selectedIds"
+    (selectedIdsChange)="onSelectedIdsChange($event)"
+    (vistaChange)="onVistaChange($event)"
+    (recargar)="cargarDatos()"
+    (rowDblClick)="editar($event.id)"
+  >
+    <!-- N° Orden -->
+    <ng-template cellDef="numero" let-item>
+      <span class="nombre-link" (click)="editar(item.id)">
+        {{ item.numero }}
+      </span>
+    </ng-template>
 
-      <!-- Buscador Rápido -->
-      <div class="view-tools-group">
-        <div class="d365-search-box">
-          <input
-            type="text"
-            [(ngModel)]="searchTerm"
-            (ngModelChange)="onSearchChange()"
-            placeholder="Buscar por N° OT, cliente, técnico..."
-            class="search-input"
-          />
-          @if (searchTerm) {
-            <button class="search-clear-btn" (click)="limpiarBusqueda()" title="Borrar búsqueda">
-              <nz-icon nzType="close" />
-            </button>
-          }
-          <button class="search-icon-btn" (click)="onSearchChange()" title="Buscar">
-            <nz-icon nzType="search" />
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Técnico -->
+    <ng-template cellDef="tecnico" let-item>
+      <span>{{ item.tecnico || 'Sin asignar' }}</span>
+    </ng-template>
 
-    <!-- Grilla / Tabla Estilo Dynamics 365 -->
-    <div class="d365-grid-container">
-      <nz-table
-        #ordenesTable
-        [nzData]="ordenesFiltradas"
-        [nzLoading]="loading"
-        [nzShowPagination]="true"
-        [nzShowTotal]="totalRangeTpl"
-        [nzPageSize]="15"
-        nzSize="small"
-        class="d365-table"
+    <!-- Prioridad -->
+    <ng-template cellDef="prioridad" let-item>
+      <nz-tag
+        class="d365-priority-tag"
+        [nzColor]="item.prioridad === 'Alta' ? 'red' : item.prioridad === 'Media' ? 'orange' : 'blue'"
       >
-        <ng-template #totalRangeTpl let-range="range" let-total="total">
-          {{ range[0] }} - {{ range[1] }} de {{ total }}
-        </ng-template>
-        <thead>
-          <tr>
-            <th
-              [nzWidth]="'44px'"
-              [nzChecked]="isAllSelected"
-              [nzIndeterminate]="isIndeterminate"
-              (nzCheckedChange)="toggleSelectAll($event)"
-              class="col-checkbox"
-            ></th>
-            <th [nzWidth]="'130px'">N° Orden</th>
-            <th [nzWidth]="'240px'">Cliente</th>
-            <th [nzWidth]="'200px'">Servicio</th>
-            <th>Dirección de Atención</th>
-            <th [nzWidth]="'160px'">Técnico Asignado</th>
-            <th [nzWidth]="'140px'" nzAlign="center">Fecha Prog.</th>
-            <th [nzWidth]="'110px'" nzAlign="center">Prioridad</th>
-            <th [nzWidth]="'120px'" nzAlign="center">Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (item of ordenesTable.data; track item.id) {
-            <tr
-              class="d365-data-row"
-              [class.row-selected]="selectedIds.has(item.id)"
-              (click)="toggleSelect(item.id)"
-              (dblclick)="editar(item.id)"
-            >
-              <td
-                class="col-checkbox"
-                [nzChecked]="selectedIds.has(item.id)"
-                (click)="$event.stopPropagation()"
-                (nzCheckedChange)="toggleSelect(item.id)"
-              ></td>
+        {{ item.prioridad }}
+      </nz-tag>
+    </ng-template>
 
-              <td class="col-primary-text">
-                <span class="nombre-link" (click)="$event.stopPropagation(); editar(item.id)">
-                  {{ item.numero }}
-                </span>
-              </td>
-
-              <td class="col-text">{{ item.cliente }}</td>
-              <td class="col-text">{{ item.servicio }}</td>
-              <td class="col-desc">{{ item.direccion }}</td>
-              <td class="col-text">{{ item.tecnico || 'Sin asignar' }}</td>
-              <td nzAlign="center" class="col-desc">{{ item.fechaProgramada }}</td>
-              <td nzAlign="center">
-                <nz-tag
-                  class="d365-priority-tag"
-                  [nzColor]="item.prioridad === 'Alta' ? 'red' : item.prioridad === 'Media' ? 'orange' : 'blue'"
-                >
-                  {{ item.prioridad }}
-                </nz-tag>
-              </td>
-              <td nzAlign="center">
-                <nz-tag
-                  class="d365-status-tag"
-                  [class.tag-active]="item.estado === 'Completada'"
-                  [class.tag-inactive]="item.estado === 'Cancelada'"
-                >
-                  {{ item.estado }}
-                </nz-tag>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </nz-table>
-    </div>
-  </nz-card>
+    <!-- Estado -->
+    <ng-template cellDef="estado" let-item>
+      <nz-tag
+        class="d365-status-tag"
+        [class.tag-active]="item.estado === 'Completada'"
+        [class.tag-inactive]="item.estado === 'Cancelada'"
+      >
+        {{ item.estado }}
+      </nz-tag>
+    </ng-template>
+  </app-entity-table>
 </div>
