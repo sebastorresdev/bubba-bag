@@ -2,7 +2,7 @@ using BubbaBag.SharedKernel;
 using BubbaBag.Modules.ServicioCampo.Domain.Enums;
 using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 using BubbaBag.Modules.ServicioCampo.Domain.Recursos;
-using BubbaBag.Modules.Crm.Domain.Clientes;
+using BubbaBag.Modules.ServicioCampo.Domain.Clientes;
 
 namespace BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
 
@@ -33,6 +33,7 @@ public class OrdenTrabajo : Entity<Guid>
 
     // Identificadores y referencias del requerimiento
     public string? NumeroOrden { get; private set; }         // "1-86131756103"
+    public string? ReferenciaExterna { get; private set; }   // Referencia externa (ej. Siebel "1-86131756103", SGA)
     public string? CodigoContrato { get; private set; }      // "40757240"
     public string? NumeroPedido { get; private set; }
 
@@ -86,6 +87,18 @@ public class OrdenTrabajo : Entity<Guid>
     private readonly List<OrdenTrabajoTarea> _tareas = new();
     public IReadOnlyCollection<OrdenTrabajoTarea> Tareas => _tareas.AsReadOnly();
 
+    // =========================================================================
+    // TRABAJOS OPERATIVOS (1 a N)
+    // =========================================================================
+    private readonly List<Trabajo> _trabajos = new();
+    public IReadOnlyCollection<Trabajo> Trabajos => _trabajos.OrderBy(t => t.ItemNumero).ToList().AsReadOnly();
+
+    // =========================================================================
+    // LIQUIDACIONES / DESCARGAS FINALES DE MATERIALES (A nivel Orden de Trabajo)
+    // =========================================================================
+    private readonly List<LiquidacionMaterial> _liquidacionesMaterial = new();
+    public IReadOnlyCollection<LiquidacionMaterial> LiquidacionesMaterial => _liquidacionesMaterial.AsReadOnly();
+
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; private set; }
 
@@ -102,8 +115,10 @@ public class OrdenTrabajo : Entity<Guid>
         string? codigoContrato = null,
         string? numeroPedido = null,
         string? estadoOrigen = null,
-        bool descargaMaterialesObligatoria = true)
+        bool descargaMaterialesObligatoria = true,
+        string? referenciaExterna = null)
     {
+        var refExt = referenciaExterna?.Trim() ?? numeroOrden?.Trim();
         var orden = new OrdenTrabajo
         {
             Id = Guid.NewGuid(),
@@ -113,7 +128,8 @@ public class OrdenTrabajo : Entity<Guid>
             ClienteFacturacionId = clienteFacturacionId,
             ClienteServicioId = clienteServicioId,
             ZonaOperativaId = zonaOperativaId,
-            NumeroOrden = numeroOrden?.Trim(),
+            NumeroOrden = refExt,
+            ReferenciaExterna = refExt,
             CodigoContrato = codigoContrato?.Trim(),
             NumeroPedido = numeroPedido?.Trim(),
             EstadoOrigen = estadoOrigen?.Trim(),
@@ -124,6 +140,45 @@ public class OrdenTrabajo : Entity<Guid>
         };
 
         return orden;
+    }
+
+    public Trabajo AgregarTrabajo(
+        string codigoTrabajo,
+        Guid servicioId,
+        int? itemNumero = null,
+        Guid? plantillaTrabajoId = null,
+        decimal tarifaBase = 0m,
+        string? observaciones = null)
+    {
+        var numero = itemNumero ?? (_trabajos.Count + 1);
+        var trabajo = Trabajo.Crear(Id, codigoTrabajo, servicioId, numero, plantillaTrabajoId, tarifaBase, observaciones);
+        _trabajos.Add(trabajo);
+        UpdatedAt = DateTime.UtcNow;
+        return trabajo;
+    }
+
+    public LiquidacionMaterial GenerarLiquidacionMaterial(
+        string numeroLiquidacion,
+        Guid almacenId,
+        Guid responsableId,
+        string? observaciones = null)
+    {
+        var liquidacion = LiquidacionMaterial.Crear(Id, numeroLiquidacion, almacenId, responsableId, observaciones);
+        liquidacion.ConsolidarDesdeOrden(this);
+        _liquidacionesMaterial.Add(liquidacion);
+        UpdatedAt = DateTime.UtcNow;
+        return liquidacion;
+    }
+
+    public void ConfirmarLiquidacionMateriales(Guid liquidacionId, string? observaciones = null)
+    {
+        var liq = _liquidacionesMaterial.FirstOrDefault(l => l.Id == liquidacionId)
+            ?? throw new InvalidOperationException($"No se encontró la liquidación de materiales con ID {liquidacionId}.");
+
+        liq.Confirmar(observaciones);
+        DescargaMaterialesConfirmada = true;
+        FechaDescargaMateriales = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void AsignarZonaOperativa(Guid zonaOperativaId)

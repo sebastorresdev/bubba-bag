@@ -1,4 +1,4 @@
-using BubbaBag.Modules.Crm.Domain.Clientes;
+using BubbaBag.Modules.ServicioCampo.Domain.Clientes;
 using BubbaBag.SharedKernel;
 
 namespace BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;

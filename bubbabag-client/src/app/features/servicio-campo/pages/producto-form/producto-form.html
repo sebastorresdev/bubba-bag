@@ -1,0 +1,230 @@
+<app-command-bar
+  [items]="commandBarItems"
+  [farItems]="commandBarFarItems"
+  [showBack]="true"
+  (back)="volver()"
+></app-command-bar>
+
+<div class="producto-form-view d365-form-view">
+  <!-- Cabecera de Registro Dynamics 365 -->
+  <div class="d365-record-header">
+    <div class="record-header-main">
+      <div class="record-avatar-container">
+        <nz-avatar
+          [nzText]="getIniciales(codigoProducto, nombreProductoEnFormulario)"
+          [nzSize]="56"
+          class="record-avatar producto-avatar"
+        ></nz-avatar>
+      </div>
+
+      <div class="record-title-block">
+        <h1 class="record-title">
+          {{ nombreProductoEnFormulario }}
+        </h1>
+
+        <div class="record-metadata-row">
+          <span class="record-code-tag">{{ isEdit ? (productoActual?.codigo || 'PROD-0000') : 'PROD-NUEVO' }}</span>
+          <nz-divider nzType="vertical" />
+          <span>{{ form.get('categoria')?.value || 'Materiales' }}</span>
+          <nz-divider nzType="vertical" />
+          <span>{{ form.get('unidadMedida')?.value || 'Unidades' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Indicadores Métricos del Encabezado (KPIs estilo D365) -->
+    <div class="record-header-metrics">
+      <div class="metric-item">
+        <span class="metric-label">ESTADO</span>
+        <span
+          class="kpi-value-pill"
+          [class.pill-active]="productoActual ? productoActual.activo : true"
+          [class.pill-inactive]="productoActual ? !productoActual.activo : false"
+        >
+          {{ (productoActual ? (productoActual.activo ? 'ACTIVO' : 'INACTIVO') : (isEdit ? 'ACTIVO' : 'NUEVO')) }}
+        </span>
+      </div>
+
+      <div class="metric-divider"></div>
+
+      <div class="metric-item">
+        <span class="metric-label">TIPO</span>
+        <span class="kpi-value-badge badge-tipo">
+          {{ form.get('tipo')?.value === 'Inventario' ? 'INVENTARIABLE' : (form.get('tipo')?.value === 'Servicio' ? 'SERVICIO' : 'GASTO') }}
+        </span>
+      </div>
+
+      <div class="metric-divider"></div>
+
+      <div class="metric-item">
+        <span class="metric-label">TRAZABILIDAD</span>
+        <span
+          class="kpi-value-badge"
+          [class.badge-series]="form.get('esSerializado')?.value"
+          [class.badge-noseries]="!form.get('esSerializado')?.value"
+        >
+          {{ form.get('esSerializado')?.value ? 'CON SERIES' : 'SIN SERIES' }}
+        </span>
+      </div>
+
+      <div class="metric-divider"></div>
+
+      <div class="metric-item">
+        <span class="metric-label">PRECIO BASE</span>
+        <span class="kpi-value-number">S/ {{ (form.get('precioBase')?.value || 0) | number:'1.2-2' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenedor con Spinner de Carga -->
+  <nz-spin [nzSpinning]="loading || saving" [nzTip]="loadingTip" class="producto-spin-wrapper">
+    <form nz-form [formGroup]="form" nzLayout="vertical" class="d365-form-container">
+      <nz-tabs [(nzSelectedIndex)]="selectedTabIndex" [nzAnimated]="false" class="d365-form-tabs">
+        <!-- =================================================================== -->
+        <!-- TAB 1: INFORMACIÓN GENERAL -->
+        <!-- =================================================================== -->
+        <nz-tab nzTitle="General">
+          <div class="tab-content-container">
+            <div class="form-grid-layout">
+              <!-- Columna Principal -->
+              <div class="form-column">
+                <nz-card [nzBordered]="true" class="d365-card" nzTitle="Identificación del Material / Producto">
+                  <div class="card-form-grid">
+                    <!-- Código -->
+                    <nz-form-item>
+                      <nz-form-label nzRequired>Código del Producto</nz-form-label>
+                      <nz-form-control nzErrorTip="El código es obligatorio (máximo 30 caracteres)">
+                        <input
+                          nz-input
+                          formControlName="codigo"
+                          placeholder="Ej. MAT-FIB-DROP-01, ROUTER-HUAWEI-HG8145"
+                          [readonly]="isEdit"
+                          style="font-family: Consolas, monospace; font-weight: 600; text-transform: uppercase;"
+                        />
+                      </nz-form-control>
+                    </nz-form-item>
+
+                    <!-- Nombre -->
+                    <nz-form-item>
+                      <nz-form-label nzRequired>Nombre / Descripción Principal</nz-form-label>
+                      <nz-form-control nzErrorTip="El nombre del producto es obligatorio">
+                        <input
+                          nz-input
+                          formControlName="nombre"
+                          placeholder="Ej. Cable Drop Fibra Óptica 1 Hilo G657A2"
+                        />
+                      </nz-form-control>
+                    </nz-form-item>
+
+                    <!-- Categoría -->
+                    <nz-form-item>
+                      <nz-form-label nzRequired>Categoría</nz-form-label>
+                      <nz-form-control nzErrorTip="Selecciona una categoría">
+                        <nz-select formControlName="categoria" nzPlaceHolder="Seleccionar categoría" style="width: 100%;">
+                          @for (cat of categorias; track cat) {
+                            <nz-option [nzValue]="cat" [nzLabel]="cat"></nz-option>
+                          }
+                        </nz-select>
+                      </nz-form-control>
+                    </nz-form-item>
+
+                    <!-- Descripción Detallada -->
+                    <nz-form-item>
+                      <nz-form-label>Especificaciones / Notas Técnicas</nz-form-label>
+                      <nz-form-control>
+                        <textarea
+                          nz-input
+                          formControlName="descripcion"
+                          rows="4"
+                          placeholder="Características técnicas, especificaciones del fabricante, aplicaciones recomendadas..."
+                        ></textarea>
+                      </nz-form-control>
+                    </nz-form-item>
+                  </div>
+                </nz-card>
+              </div>
+
+              <!-- Columna Secundaria -->
+              <div class="form-column">
+                <nz-card [nzBordered]="true" class="d365-card" nzTitle="Clasificación Operativa">
+                  <div class="card-form-grid">
+                    <!-- Tipo de Producto -->
+                    <nz-form-item>
+                      <nz-form-label nzRequired>Tipo de Producto</nz-form-label>
+                      <nz-form-control>
+                        <nz-select formControlName="tipo" nzPlaceHolder="Seleccionar tipo" style="width: 100%;">
+                          @for (t of tiposProducto; track t.value) {
+                            <nz-option [nzValue]="t.value" [nzLabel]="t.label"></nz-option>
+                          }
+                        </nz-select>
+                        <div class="field-hint">
+                          @if (form.get('tipo')?.value === 'Inventario') {
+                            <span>📦 Genera movimientos de stock, kardex y conteos físicos.</span>
+                          } @else if (form.get('tipo')?.value === 'Servicio') {
+                            <span>🔧 No maneja existencias; utilizado en órdenes de trabajo y tareas.</span>
+                          } @else {
+                            <span>🏷️ Gasto directo sin control de almacén.</span>
+                          }
+                        </div>
+                      </nz-form-control>
+                    </nz-form-item>
+
+                    <!-- Unidad de Medida -->
+                    <nz-form-item>
+                      <nz-form-label nzRequired>Unidad de Medida Principal</nz-form-label>
+                      <nz-form-control nzErrorTip="Selecciona la unidad de medida">
+                        <nz-select formControlName="unidadMedida" nzPlaceHolder="Seleccionar U.M." style="width: 100%;">
+                          @for (um of unidadesMedida; track um.value) {
+                            <nz-option [nzValue]="um.value" [nzLabel]="um.label"></nz-option>
+                          }
+                        </nz-select>
+                      </nz-form-control>
+                    </nz-form-item>
+
+                    <nz-divider></nz-divider>
+
+                    <!-- Trazabilidad por Serie -->
+                    <div class="switch-field-box">
+                      <div class="switch-field-info">
+                        <span class="switch-field-title">Control Serializado (Series Individuales)</span>
+                        <span class="switch-field-desc">
+                          Activa esta casilla para equipos con número de serie único (Decodificadores, ONUs, Routers, etc.) que requieren trazabilidad unitaria en almacén e instalaciones.
+                        </span>
+                      </div>
+                      <nz-switch
+                        formControlName="esSerializado"
+                        [nzDisabled]="form.get('tipo')?.value === 'Servicio'"
+                      ></nz-switch>
+                    </div>
+                  </div>
+                </nz-card>
+
+                <!-- Tarjeta Comercial y Valorización -->
+                <nz-card [nzBordered]="true" class="d365-card" nzTitle="Valorización Comercial">
+                  <div class="card-form-grid">
+                    <nz-form-item>
+                      <nz-form-label>Precio Base de Referencia (S/.)</nz-form-label>
+                      <nz-form-control nzErrorTip="El precio base debe ser mayor o igual a 0">
+                        <nz-input-number
+                          formControlName="precioBase"
+                          [nzMin]="0"
+                          [nzStep]="0.5"
+                          [nzPrecision]="2"
+                          nzPlaceHolder="0.00"
+                          style="width: 100%;"
+                        ></nz-input-number>
+                        <div class="field-hint">
+                          Precio de lista sugerido antes de impuestos para facturación o valorización de cuadrilla.
+                        </div>
+                      </nz-form-control>
+                    </nz-form-item>
+                  </div>
+                </nz-card>
+              </div>
+            </div>
+          </div>
+        </nz-tab>
+      </nz-tabs>
+    </form>
+  </nz-spin>
+</div>

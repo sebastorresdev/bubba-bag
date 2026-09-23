@@ -56,6 +56,11 @@ public static class CatalogosServicioCampoEndpoints
 {
     public static void MapServicioCampoEndpoints(this IEndpointRouteBuilder app)
     {
+        // Mapear submódulos consolidados en Servicio de Campo
+        app.MapClientesEndpoints();
+        app.MapAlmacenesEndpoints();
+        app.MapProductosEndpoints();
+
         var rootGroup = app.MapGroup("/api/serviciocampo/catalogos")
             .WithTags("Servicio de Campo - Catálogos")
             .RequireAuthorization();

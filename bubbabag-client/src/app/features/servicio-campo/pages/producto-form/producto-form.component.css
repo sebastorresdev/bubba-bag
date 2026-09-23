@@ -1,0 +1,147 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  width: 100%;
+}
+
+.producto-spin-wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+}
+
+:host ::ng-deep .producto-spin-wrapper > .ant-spin-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.d365-form-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.d365-form-tabs {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+:host ::ng-deep .d365-form-tabs > .ant-tabs-content-holder {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.tab-content-container {
+  padding: 20px 24px;
+}
+
+.form-grid-layout {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 992px) {
+  .form-grid-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Tarjetas D365 ── */
+.d365-card {
+  border-radius: 4px;
+  border-color: var(--d365-border-subtle, #edebe9);
+  background-color: var(--d365-card-bg, #ffffff);
+}
+
+.card-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.card-form-grid nz-form-item {
+  margin-bottom: 0 !important;
+}
+
+/* ── Avatar del Material ── */
+.producto-avatar {
+  background-color: #0078d4 !important;
+  color: #ffffff !important;
+  font-weight: 700;
+}
+
+/* ── Badges KPI ── */
+.badge-tipo {
+  background-color: rgba(0, 120, 212, 0.1);
+  color: #0078d4;
+  font-weight: 600;
+}
+
+.badge-series {
+  background-color: rgba(16, 124, 65, 0.1);
+  color: #107c41;
+  font-weight: 600;
+}
+
+.badge-noseries {
+  background-color: rgba(138, 136, 134, 0.12);
+  color: #605e5c;
+  font-weight: 600;
+}
+
+/* ── Cajas Switch ── */
+.switch-field-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border: 1px solid var(--d365-border-subtle, #edebe9);
+  border-radius: 6px;
+  background-color: rgba(0, 0, 0, 0.015);
+  gap: 16px;
+}
+
+.switch-field-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.switch-field-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--d365-text-primary, #201f1e);
+}
+
+.switch-field-desc {
+  font-size: 11.5px;
+  color: var(--d365-text-secondary, #605e5c);
+  line-height: 1.4;
+}
+
+.field-hint {
+  font-size: 11.5px;
+  color: var(--d365-text-muted, #797775);
+  margin-top: 4px;
+}

@@ -1,0 +1,88 @@
+<app-command-bar [items]="commandBarItems" [farItems]="farItems"></app-command-bar>
+
+<div class="productos-view-wrapper">
+  <app-entity-table
+    entidad="Productos"
+    [vistasSistema]="vistasSistema"
+    [(vistaActualKey)]="vistaActual"
+    [columnas]="columnas"
+    [datos]="productosFiltrados"
+    [loading]="loading"
+    [scrollX]="'1300px'"
+    [(selectedIds)]="setOfCheckedId"
+    (selectedIdsChange)="onSelectedIdsChange($event)"
+    (vistaChange)="onVistaChange($event)"
+    (recargar)="cargarProductos()"
+    (rowDblClick)="editarProducto($event.id)"
+  >
+    <!-- Código -->
+    <ng-template cellDef="codigo" let-p>
+      <a (click)="editarProducto(p.id)" class="cell-code" [title]="'Editar ' + p.codigo">
+        {{ p.codigo }}
+      </a>
+    </ng-template>
+
+    <!-- Nombre / Descripción -->
+    <ng-template cellDef="nombre" let-p>
+      <div class="producto-cell">
+        <span class="producto-icon" [class.icon-inventario]="p.tipo === 'Inventario'" [class.icon-servicio]="p.tipo === 'Servicio'">
+          <span nz-icon [nzType]="p.tipo === 'Inventario' ? 'appstore' : (p.tipo === 'Servicio' ? 'tool' : 'file-text')"></span>
+        </span>
+        <div class="producto-info">
+          <a (click)="editarProducto(p.id)" class="cell-link" [title]="p.nombre">
+            {{ p.nombre }}
+          </a>
+          @if (p.descripcion) {
+            <span class="cell-subtext" [title]="p.descripcion">{{ p.descripcion }}</span>
+          }
+        </div>
+      </div>
+    </ng-template>
+
+    <!-- Categoría -->
+    <ng-template cellDef="categoria" let-p>
+      <span class="categoria-tag">{{ p.categoria }}</span>
+    </ng-template>
+
+    <!-- Tipo -->
+    <ng-template cellDef="tipo" let-p>
+      <nz-tag [nzColor]="getTipoColor(p.tipo)" class="tipo-tag">
+        <span nz-icon [nzType]="p.tipo === 'Inventario' ? 'inbox' : (p.tipo === 'Servicio' ? 'tool' : 'tag')"></span>
+        {{ getTipoLabel(p.tipo) }}
+      </nz-tag>
+    </ng-template>
+
+    <!-- Unidad de Medida -->
+    <ng-template cellDef="unidadMedida" let-p>
+      <span class="um-badge">{{ p.unidadMedida }}</span>
+    </ng-template>
+
+    <!-- Serializado -->
+    <ng-template cellDef="esSerializado" let-p>
+      @if (p.esSerializado) {
+        <nz-tag nzColor="processing" class="serie-tag">
+          <span nz-icon nzType="barcode"></span>
+          Series
+        </nz-tag>
+      } @else {
+        <span class="text-muted">—</span>
+      }
+    </ng-template>
+
+    <!-- Precio Base -->
+    <ng-template cellDef="precioBase" let-p>
+      <span class="precio-cell">S/ {{ p.precioBase | number:'1.2-2' }}</span>
+    </ng-template>
+
+    <!-- Estado -->
+    <ng-template cellDef="activo" let-p>
+      <nz-tag
+        class="d365-status-tag"
+        [class.tag-active]="p.activo"
+        [class.tag-inactive]="!p.activo"
+      >
+        {{ p.activo ? 'Activo' : 'Inactivo' }}
+      </nz-tag>
+    </ng-template>
+  </app-entity-table>
+</div>

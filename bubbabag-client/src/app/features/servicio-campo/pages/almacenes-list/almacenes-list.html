@@ -1,0 +1,151 @@
+<app-command-bar [items]="commandBarItems" [farItems]="farItems"></app-command-bar>
+
+<div class="almacenes-view-wrapper">
+  <app-entity-table
+    entidad="Almacenes"
+    [vistasSistema]="vistasSistema"
+    [(vistaActualKey)]="vistaActual"
+    [columnas]="columnas"
+    [datos]="almacenesFiltrados"
+    [loading]="loading"
+    [scrollX]="'1200px'"
+    [(selectedIds)]="setOfCheckedId"
+    (selectedIdsChange)="onSelectedIdsChange($event)"
+    (vistaChange)="onVistaChange($event)"
+    (recargar)="cargarAlmacenes()"
+    (rowDblClick)="abrirModalEditar($event)"
+  >
+    <!-- Código -->
+    <ng-template cellDef="codigo" let-a>
+      <a (click)="abrirModalEditar(a)" class="cell-code">{{ a.codigo }}</a>
+    </ng-template>
+
+    <!-- Nombre -->
+    <ng-template cellDef="nombre" let-a>
+      <div class="almacen-cell">
+        <span class="almacen-icon" [class.icon-fisico]="a.tipo === 'Fisico'" [class.icon-movil]="a.tipo === 'Movil'">
+          <span nz-icon [nzType]="a.tipo === 'Fisico' ? 'home' : 'car'"></span>
+        </span>
+        <a (click)="abrirModalEditar(a)" class="cell-link" [title]="a.nombre">
+          {{ a.nombre }}
+        </a>
+      </div>
+    </ng-template>
+
+    <!-- Tipo -->
+    <ng-template cellDef="tipo" let-a>
+      <nz-tag [nzColor]="getTipoColor(a.tipo)" class="tipo-tag">
+        <span nz-icon [nzType]="a.tipo === 'Fisico' ? 'home' : 'car'"></span>
+        {{ getTipoLabel(a.tipo) }}
+      </nz-tag>
+    </ng-template>
+
+    <!-- Dirección -->
+    <ng-template cellDef="direccion" let-a>
+      @if (a.direccion) {
+        <span class="cell-ellipsis" [title]="a.direccion">{{ a.direccion }}</span>
+      } @else {
+        <span class="text-muted">—</span>
+      }
+    </ng-template>
+
+    <!-- Teléfono -->
+    <ng-template cellDef="telefono" let-a>
+      @if (a.telefono) {
+        <span>{{ a.telefono }}</span>
+      } @else {
+        <span class="text-muted">—</span>
+      }
+    </ng-template>
+
+    <!-- Estado -->
+    <ng-template cellDef="activo" let-a>
+      <nz-tag
+        class="d365-status-tag"
+        [class.tag-active]="a.activo"
+        [class.tag-inactive]="!a.activo"
+      >
+        {{ a.activo ? 'Activo' : 'Inactivo' }}
+      </nz-tag>
+    </ng-template>
+  </app-entity-table>
+</div>
+
+<!-- Modal Crear / Editar -->
+<nz-modal
+  [(nzVisible)]="modalVisible"
+  [nzTitle]="modalTitulo"
+  [nzOkText]="editandoId ? 'Guardar Cambios' : 'Crear Almacén'"
+  [nzOkLoading]="modalLoading"
+  (nzOnOk)="guardar()"
+  (nzOnCancel)="cerrarModal()"
+  nzWidth="540px"
+  nzMaskClosable="false"
+>
+  <ng-container *nzModalContent>
+    <form nz-form [formGroup]="form" nzLayout="vertical" class="almacen-form">
+      <!-- Código -->
+      <nz-form-item>
+        <nz-form-label nzRequired>Código</nz-form-label>
+        <nz-form-control nzErrorTip="El código es obligatorio">
+          <input
+            nz-input
+            formControlName="codigo"
+            placeholder="Ej. ALM-HUZ-01"
+            [disabled]="!!editandoId"
+          />
+        </nz-form-control>
+      </nz-form-item>
+
+      <!-- Nombre -->
+      <nz-form-item>
+        <nz-form-label nzRequired>Nombre / Descripción</nz-form-label>
+        <nz-form-control nzErrorTip="El nombre es obligatorio">
+          <input nz-input formControlName="nombre" placeholder="Ej. Bodega Central Huaraz" />
+        </nz-form-control>
+      </nz-form-item>
+
+      <!-- Tipo -->
+      <nz-form-item>
+        <nz-form-label nzRequired>Tipo de Almacén</nz-form-label>
+        <nz-form-control>
+          <nz-select formControlName="tipo" nzPlaceHolder="Seleccionar tipo" style="width:100%">
+            <nz-option nzValue="Fisico" nzLabel="📦 Físico (Bodega/Sede)"></nz-option>
+            <nz-option nzValue="Movil" nzLabel="🚐 Móvil (Camioneta de técnico)"></nz-option>
+          </nz-select>
+        </nz-form-control>
+      </nz-form-item>
+
+      @if (!esMovil) {
+        <!-- Dirección -->
+        <nz-form-item>
+          <nz-form-label>Dirección</nz-form-label>
+          <nz-form-control>
+            <input nz-input formControlName="direccion" placeholder="Dirección del almacén físico" />
+          </nz-form-control>
+        </nz-form-item>
+
+        <!-- Teléfono -->
+        <nz-form-item>
+          <nz-form-label>Teléfono de contacto</nz-form-label>
+          <nz-form-control>
+            <input nz-input formControlName="telefono" placeholder="Ej. 043-123456" />
+          </nz-form-control>
+        </nz-form-item>
+      }
+
+      @if (esMovil) {
+        <nz-form-item>
+          <nz-form-label nzRequired>ID del Técnico Responsable</nz-form-label>
+          <nz-form-control nzErrorTip="El técnico responsable es obligatorio para almacenes móviles">
+            <input
+              nz-input
+              formControlName="recursoTecnicoId"
+              placeholder="UUID del recurso técnico"
+            />
+          </nz-form-control>
+        </nz-form-item>
+      }
+    </form>
+  </ng-container>
+</nz-modal>

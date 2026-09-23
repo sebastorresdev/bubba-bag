@@ -23,170 +23,6 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("BubbaBag.Modules.Crm.Domain.Clientes.Cliente", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("Activo")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Apellidos")
-                        .HasColumnType("text");
-
-                    b.Property<string>("CodigoCliente")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<decimal?>("CoordenadaLat")
-                        .HasColumnType("numeric");
-
-                    b.Property<decimal?>("CoordenadaLng")
-                        .HasColumnType("numeric");
-
-                    b.Property<string>("Direccion")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("DocumentoIdentidad")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Email")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("EsClienteFacturacion")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("EsClienteServicio")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Nombres")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("RazonSocial")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ReferenciaUbicacion")
-                        .HasColumnType("text");
-
-                    b.Property<string>("TelefonoPrincipal")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("TelefonoSecundario")
-                        .HasColumnType("text");
-
-                    b.Property<string>("TipoDocumento")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("TipoPersona")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("UbigeoCodigo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("clientes", "crm", t =>
-                        {
-                            t.ExcludeFromMigrations();
-                        });
-                });
-
-            modelBuilder.Entity("BubbaBag.Modules.Inventario.Domain.Almacenes.Almacen", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("Activo")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Codigo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Direccion")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid?>("RecursoTecnicoId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("SucursalId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Telefono")
-                        .HasColumnType("text");
-
-                    b.Property<int>("Tipo")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Almacenes", "inventario", t =>
-                        {
-                            t.ExcludeFromMigrations();
-                        });
-                });
-
-            modelBuilder.Entity("BubbaBag.Modules.Inventario.Domain.Productos.Producto", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("Activo")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid?>("CatalogoId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Categoria")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Codigo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Descripcion")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("EsSerializado")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<decimal>("PrecioBase")
-                        .HasColumnType("numeric");
-
-                    b.Property<int>("Tipo")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("UnidadMedida")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Productos", "inventario", t =>
-                        {
-                            t.ExcludeFromMigrations();
-                        });
-                });
-
             modelBuilder.Entity("BubbaBag.Modules.RecursosHumanos.Domain.Organizacion.Sucursal", b =>
                 {
                     b.Property<Guid>("Id")
@@ -222,6 +58,256 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         {
                             t.ExcludeFromMigrations();
                         });
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Almacenes.Almacen", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Activo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Direccion")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid?>("RecursoTecnicoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SucursalId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Telefono")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
+
+                    b.HasIndex("RecursoTecnicoId");
+
+                    b.HasIndex("SucursalId");
+
+                    b.ToTable("Almacenes", "inventario");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Almacenes.MovimientoInventario", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AlmacenDestinoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AlmacenOrigenId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Cantidad")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<Guid?>("ClienteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("FechaMovimiento")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ItemSeriadoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("NumeroDocumento")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("OrdenTrabajoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("UsuarioResponsableId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AlmacenDestinoId");
+
+                    b.HasIndex("AlmacenOrigenId");
+
+                    b.HasIndex("ClienteId");
+
+                    b.HasIndex("FechaMovimiento");
+
+                    b.HasIndex("ItemSeriadoId");
+
+                    b.HasIndex("NumeroDocumento");
+
+                    b.HasIndex("OrdenTrabajoId");
+
+                    b.HasIndex("ProductoId");
+
+                    b.HasIndex("Tipo");
+
+                    b.ToTable("MovimientosInventario", "inventario");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Almacenes.StockAlmacen", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AlmacenId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("CantidadDisponible")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<decimal>("CantidadReservada")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<Guid>("ProductoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductoId");
+
+                    b.HasIndex("AlmacenId", "ProductoId")
+                        .IsUnique();
+
+                    b.ToTable("StocksAlmacen", "inventario");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Clientes.Cliente", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Apellidos")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("CodigoCliente")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<decimal?>("CoordenadaLat")
+                        .HasPrecision(10, 7)
+                        .HasColumnType("numeric(10,7)");
+
+                    b.Property<decimal?>("CoordenadaLng")
+                        .HasPrecision(10, 7)
+                        .HasColumnType("numeric(10,7)");
+
+                    b.Property<string>("Direccion")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("DocumentoIdentidad")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<bool>("EsClienteFacturacion")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EsClienteServicio")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Nombres")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("RazonSocial")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ReferenciaUbicacion")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("TelefonoPrincipal")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("TelefonoSecundario")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("TipoDocumento")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("DNI");
+
+                    b.Property<string>("TipoPersona")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("NATURAL");
+
+                    b.Property<string>("UbigeoCodigo")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodigoCliente")
+                        .IsUnique();
+
+                    b.HasIndex("DocumentoIdentidad");
+
+                    b.HasIndex("UbigeoCodigo");
+
+                    b.ToTable("clientes", "crm");
                 });
 
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos.CampoDefinicion", b =>
@@ -548,6 +634,171 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.ToTable("TiposTareaServicio", "serviciocampo");
                 });
 
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.LiquidacionMaterial", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AlmacenId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Borrador");
+
+                    b.Property<DateTime>("FechaLiquidacion")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NumeroLiquidacion")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("OrdenTrabajoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ResponsableId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AlmacenId");
+
+                    b.HasIndex("NumeroLiquidacion")
+                        .IsUnique();
+
+                    b.HasIndex("OrdenTrabajoId");
+
+                    b.ToTable("LiquidacionesMaterial", "serviciocampo");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.LiquidacionMaterialItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("CantidadConsumida")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("CantidadDevuelta")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<bool>("EsRetiro")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("EsSeriado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid?>("ItemSeriadoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("LiquidacionMaterialId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("NumeroSerie")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("ProductoId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LiquidacionMaterialId");
+
+                    b.HasIndex("NumeroSerie");
+
+                    b.HasIndex("ProductoId");
+
+                    b.ToTable("LiquidacionesMaterialItems", "serviciocampo");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.MaterialTrabajo", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("CantidadPrevista")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("CantidadUtilizada")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<bool>("EsRetiro")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("EsSeriado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime>("FechaRegistro")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ItemSeriadoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("NumeroSerie")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("NumeroSmartCard")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("ProductoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TrabajoId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NumeroSerie");
+
+                    b.HasIndex("ProductoId");
+
+                    b.HasIndex("TrabajoId");
+
+                    b.ToTable("MaterialesTrabajo", "serviciocampo");
+                });
+
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.OrdenTrabajo", b =>
                 {
                     b.Property<Guid>("Id")
@@ -625,6 +876,9 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.Property<string>("ObservacionesCierre")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ReferenciaExterna")
+                        .HasColumnType("text");
 
                     b.Property<Guid>("TipoOrdenId")
                         .HasColumnType("uuid");
@@ -968,6 +1222,425 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.ToTable("OrdenTrabajoVisitaEvidencias", "serviciocampo");
                 });
 
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.TareaTrabajo", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("EsObligatoria")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EvidenciaUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("FechaFin")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FechaInicio")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NombreTarea")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("ObservacionesTecnico")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("OrdenSecuencia")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<Guid?>("PlantillaTareaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("RequiereEvidencia")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid?>("TareaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TrabajoId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TareaId");
+
+                    b.HasIndex("TrabajoId");
+
+                    b.ToTable("TareasTrabajo", "serviciocampo");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.Trabajo", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CodigoTrabajo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("FechaFin")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FechaInicio")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ItemNumero")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("OrdenTrabajoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PlantillaTrabajoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ServicioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TarifaBaseCongelada")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasDefaultValue(0m);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlantillaTrabajoId");
+
+                    b.HasIndex("ServicioId");
+
+                    b.HasIndex("OrdenTrabajoId", "CodigoTrabajo")
+                        .IsUnique();
+
+                    b.ToTable("Trabajos", "serviciocampo");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Plantillas.PlantillaMaterial", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("CantidadPrevista")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<bool>("EsObligatorio")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<Guid>("PlantillaTrabajoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductoId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlantillaTrabajoId");
+
+                    b.HasIndex("ProductoId");
+
+                    b.ToTable("PlantillasMateriales", "serviciocampo");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Plantillas.PlantillaTarea", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("EsObligatoria")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Instrucciones")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("OrdenSecuencia")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<Guid>("PlantillaTrabajoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("RequiereEvidencia")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("TareaId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlantillaTrabajoId");
+
+                    b.HasIndex("TareaId");
+
+                    b.ToTable("PlantillasTareas", "serviciocampo");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Plantillas.PlantillaTrabajo", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Activo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<int>("DuracionEstimadaMinutos")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(60);
+
+                    b.Property<bool>("EsPredeterminada")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid>("ServicioId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
+
+                    b.HasIndex("ServicioId");
+
+                    b.ToTable("PlantillasTrabajo", "serviciocampo");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Plantillas.Tarea", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Activo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<int>("DuracionEstimadaMinutos")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(15);
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<bool>("RequiereEvidenciaFotografica")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
+
+                    b.ToTable("Tareas", "serviciocampo");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Productos.ItemSeriado", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AlmacenActualId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ClienteActualId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("FechaInstalacion")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("MacAddress")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("NumeroSerie")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("NumeroSmartCard")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("OrdenTrabajoInstalacionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AlmacenActualId");
+
+                    b.HasIndex("ClienteActualId");
+
+                    b.HasIndex("Estado");
+
+                    b.HasIndex("MacAddress");
+
+                    b.HasIndex("NumeroSerie")
+                        .IsUnique();
+
+                    b.HasIndex("NumeroSmartCard");
+
+                    b.HasIndex("OrdenTrabajoInstalacionId");
+
+                    b.HasIndex("ProductoId");
+
+                    b.ToTable("ItemsSeriados", "inventario");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Productos.Producto", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("CatalogoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Categoria")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<bool>("EsSerializado")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<decimal>("PrecioBase")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UnidadMedida")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
+
+                    b.ToTable("Productos", "inventario");
+                });
+
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Recursos.RecursoTecnico", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1274,6 +1947,110 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.ToTable("TarifarioReglas", "serviciocampo");
                 });
 
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Ubigeos.Ubigeo", b =>
+                {
+                    b.Property<string>("Codigo")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("CapitalLegal")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("CodigoRegionNatural")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("Departamento")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Distrito")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Provincia")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("RegionNatural")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Codigo");
+
+                    b.HasIndex("Departamento");
+
+                    b.HasIndex("Departamento", "Provincia");
+
+                    b.ToTable("ubigeos", "crm");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Almacenes.MovimientoInventario", b =>
+                {
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Almacenes.Almacen", "AlmacenDestino")
+                        .WithMany()
+                        .HasForeignKey("AlmacenDestinoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Almacenes.Almacen", "AlmacenOrigen")
+                        .WithMany()
+                        .HasForeignKey("AlmacenOrigenId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Productos.ItemSeriado", "ItemSeriado")
+                        .WithMany()
+                        .HasForeignKey("ItemSeriadoId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Productos.Producto", "Producto")
+                        .WithMany()
+                        .HasForeignKey("ProductoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AlmacenDestino");
+
+                    b.Navigation("AlmacenOrigen");
+
+                    b.Navigation("ItemSeriado");
+
+                    b.Navigation("Producto");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Almacenes.StockAlmacen", b =>
+                {
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Almacenes.Almacen", "Almacen")
+                        .WithMany()
+                        .HasForeignKey("AlmacenId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Productos.Producto", "Producto")
+                        .WithMany()
+                        .HasForeignKey("ProductoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Almacen");
+
+                    b.Navigation("Producto");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Clientes.Cliente", b =>
+                {
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Ubigeos.Ubigeo", "Ubigeo")
+                        .WithMany()
+                        .HasForeignKey("UbigeoCodigo")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Ubigeo");
+                });
+
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos.CampoDefinicion", b =>
                 {
                     b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos.TipoOrdenTrabajo", null)
@@ -1285,7 +2062,7 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
 
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos.CatalogoServicio", b =>
                 {
-                    b.HasOne("BubbaBag.Modules.Crm.Domain.Clientes.Cliente", "Cliente")
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Clientes.Cliente", "Cliente")
                         .WithMany()
                         .HasForeignKey("ClienteId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -1333,7 +2110,7 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
 
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos.TipoTareaServicio", b =>
                 {
-                    b.HasOne("BubbaBag.Modules.Crm.Domain.Clientes.Cliente", "ClienteFacturacion")
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Clientes.Cliente", "ClienteFacturacion")
                         .WithMany()
                         .HasForeignKey("ClienteFacturacionId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -1341,15 +2118,72 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.Navigation("ClienteFacturacion");
                 });
 
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.LiquidacionMaterial", b =>
+                {
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Almacenes.Almacen", "Almacen")
+                        .WithMany()
+                        .HasForeignKey("AlmacenId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.OrdenTrabajo", "OrdenTrabajo")
+                        .WithMany("LiquidacionesMaterial")
+                        .HasForeignKey("OrdenTrabajoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Almacen");
+
+                    b.Navigation("OrdenTrabajo");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.LiquidacionMaterialItem", b =>
+                {
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.LiquidacionMaterial", "LiquidacionMaterial")
+                        .WithMany("Items")
+                        .HasForeignKey("LiquidacionMaterialId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Productos.Producto", "Producto")
+                        .WithMany()
+                        .HasForeignKey("ProductoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LiquidacionMaterial");
+
+                    b.Navigation("Producto");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.MaterialTrabajo", b =>
+                {
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Productos.Producto", "Producto")
+                        .WithMany()
+                        .HasForeignKey("ProductoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.Trabajo", "Trabajo")
+                        .WithMany("Materiales")
+                        .HasForeignKey("TrabajoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Producto");
+
+                    b.Navigation("Trabajo");
+                });
+
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.OrdenTrabajo", b =>
                 {
-                    b.HasOne("BubbaBag.Modules.Crm.Domain.Clientes.Cliente", "ClienteFacturacion")
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Clientes.Cliente", "ClienteFacturacion")
                         .WithMany()
                         .HasForeignKey("ClienteFacturacionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("BubbaBag.Modules.Crm.Domain.Clientes.Cliente", "ClienteServicio")
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Clientes.Cliente", "ClienteServicio")
                         .WithMany()
                         .HasForeignKey("ClienteServicioId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1470,6 +2304,117 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.Navigation("OrdenTrabajoVisita");
                 });
 
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.TareaTrabajo", b =>
+                {
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Plantillas.Tarea", "Tarea")
+                        .WithMany()
+                        .HasForeignKey("TareaId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.Trabajo", "Trabajo")
+                        .WithMany("Tareas")
+                        .HasForeignKey("TrabajoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tarea");
+
+                    b.Navigation("Trabajo");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.Trabajo", b =>
+                {
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.OrdenTrabajo", "OrdenTrabajo")
+                        .WithMany("Trabajos")
+                        .HasForeignKey("OrdenTrabajoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Plantillas.PlantillaTrabajo", "PlantillaTrabajo")
+                        .WithMany()
+                        .HasForeignKey("PlantillaTrabajoId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos.Servicio", "Servicio")
+                        .WithMany()
+                        .HasForeignKey("ServicioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("OrdenTrabajo");
+
+                    b.Navigation("PlantillaTrabajo");
+
+                    b.Navigation("Servicio");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Plantillas.PlantillaMaterial", b =>
+                {
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Plantillas.PlantillaTrabajo", "PlantillaTrabajo")
+                        .WithMany("Materiales")
+                        .HasForeignKey("PlantillaTrabajoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Productos.Producto", "Producto")
+                        .WithMany()
+                        .HasForeignKey("ProductoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PlantillaTrabajo");
+
+                    b.Navigation("Producto");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Plantillas.PlantillaTarea", b =>
+                {
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Plantillas.PlantillaTrabajo", "PlantillaTrabajo")
+                        .WithMany("Tareas")
+                        .HasForeignKey("PlantillaTrabajoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Plantillas.Tarea", "Tarea")
+                        .WithMany()
+                        .HasForeignKey("TareaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PlantillaTrabajo");
+
+                    b.Navigation("Tarea");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Plantillas.PlantillaTrabajo", b =>
+                {
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos.Servicio", "Servicio")
+                        .WithMany("Plantillas")
+                        .HasForeignKey("ServicioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Servicio");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Productos.ItemSeriado", b =>
+                {
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Almacenes.Almacen", "AlmacenActual")
+                        .WithMany()
+                        .HasForeignKey("AlmacenActualId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Productos.Producto", "Producto")
+                        .WithMany()
+                        .HasForeignKey("ProductoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AlmacenActual");
+
+                    b.Navigation("Producto");
+                });
+
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Recursos.RecursoTecnico", b =>
                 {
                     b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Recursos.ZonaOperativa", "ZonaOperativa")
@@ -1483,7 +2428,7 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
 
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Tarifarios.TarifaServicio", b =>
                 {
-                    b.HasOne("BubbaBag.Modules.Crm.Domain.Clientes.Cliente", "ClienteFacturacion")
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Clientes.Cliente", "ClienteFacturacion")
                         .WithMany()
                         .HasForeignKey("ClienteFacturacionId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -1500,7 +2445,7 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
 
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Tarifarios.Tarifario", b =>
                 {
-                    b.HasOne("BubbaBag.Modules.Crm.Domain.Clientes.Cliente", "ClienteFacturacion")
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Clientes.Cliente", "ClienteFacturacion")
                         .WithMany()
                         .HasForeignKey("ClienteFacturacionId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1539,6 +2484,8 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
 
                     b.Navigation("Pasos");
 
+                    b.Navigation("Plantillas");
+
                     b.Navigation("SucursalesHabilitadas");
                 });
 
@@ -1547,11 +2494,20 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.Navigation("CamposDefinicion");
                 });
 
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.LiquidacionMaterial", b =>
+                {
+                    b.Navigation("Items");
+                });
+
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.OrdenTrabajo", b =>
                 {
+                    b.Navigation("LiquidacionesMaterial");
+
                     b.Navigation("Materiales");
 
                     b.Navigation("Tareas");
+
+                    b.Navigation("Trabajos");
 
                     b.Navigation("Visitas");
                 });
@@ -1559,6 +2515,20 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.OrdenTrabajoVisita", b =>
                 {
                     b.Navigation("Evidencias");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo.Trabajo", b =>
+                {
+                    b.Navigation("Materiales");
+
+                    b.Navigation("Tareas");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Plantillas.PlantillaTrabajo", b =>
+                {
+                    b.Navigation("Materiales");
+
+                    b.Navigation("Tareas");
                 });
 
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Tarifarios.Tarifario", b =>

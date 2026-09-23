@@ -25,17 +25,11 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Shared\BubbaBag.SharedKernel\BubbaBag.SharedKernel.csproj" />
     <ProjectReference Include="..\..\Modules\RecursosHumanos\BubbaBag.Modules.RecursosHumanos.Api\BubbaBag.Modules.RecursosHumanos.Api.csproj" />
-    <ProjectReference Include="..\..\Modules\Ventas\BubbaBag.Modules.Ventas.Api\BubbaBag.Modules.Ventas.Api.csproj" />
-    <ProjectReference Include="..\..\Modules\Ventas\BubbaBag.Modules.Ventas.Infrastructure\BubbaBag.Modules.Ventas.Infrastructure.csproj" />
     <ProjectReference Include="..\BubbaBag.ServiceDefaults\BubbaBag.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\Modules\Seguridad\BubbaBag.Modules.Seguridad.Api\BubbaBag.Modules.Seguridad.Api.csproj" />
     <ProjectReference Include="..\..\Modules\Seguridad\BubbaBag.Modules.Seguridad.Infrastructure\BubbaBag.Modules.Seguridad.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\Modules\Crm\BubbaBag.Modules.Crm.Api\BubbaBag.Modules.Crm.Api.csproj" />
-    <ProjectReference Include="..\..\Modules\Crm\BubbaBag.Modules.Crm.Infrastructure\BubbaBag.Modules.Crm.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\ServicioCampo\BubbaBag.Modules.ServicioCampo.Infrastructure\BubbaBag.Modules.ServicioCampo.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\ServicioCampo\BubbaBag.Modules.ServicioCampo.Api\BubbaBag.Modules.ServicioCampo.Api.csproj" />
-    <ProjectReference Include="..\..\Modules\Inventario\BubbaBag.Modules.Inventario.Infrastructure\BubbaBag.Modules.Inventario.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\Modules\Inventario\BubbaBag.Modules.Inventario.Api\BubbaBag.Modules.Inventario.Api.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,13 +1,15 @@
 using System.Reflection;
-using BubbaBag.Modules.Crm.Domain.Clientes;
-using BubbaBag.Modules.Inventario.Domain.Almacenes;
-using BubbaBag.Modules.Inventario.Domain.Productos;
 using BubbaBag.Modules.RecursosHumanos.Domain.Organizacion;
+using BubbaBag.Modules.ServicioCampo.Application;
+using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
+using BubbaBag.Modules.ServicioCampo.Domain.Clientes;
 using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 using BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
+using BubbaBag.Modules.ServicioCampo.Domain.Plantillas;
+using BubbaBag.Modules.ServicioCampo.Domain.Productos;
 using BubbaBag.Modules.ServicioCampo.Domain.Recursos;
 using BubbaBag.Modules.ServicioCampo.Domain.Tarifarios;
-using BubbaBag.Modules.ServicioCampo.Application;
+using BubbaBag.Modules.ServicioCampo.Domain.Ubigeos;
 using Microsoft.EntityFrameworkCore;
 
 namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database;
@@ -26,9 +28,13 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public DbSet<ZonaOperativa> ZonasOperativas => Set<ZonaOperativa>();
     public DbSet<RecursoTecnico> RecursosTecnicos => Set<RecursoTecnico>();
     public DbSet<Almacen> Almacenes => Set<Almacen>();
+    public DbSet<StockAlmacen> StocksAlmacen => Set<StockAlmacen>();
+    public DbSet<MovimientoInventario> MovimientosInventario => Set<MovimientoInventario>();
     public DbSet<MotivoIncidencia> MotivosIncidencia => Set<MotivoIncidencia>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
+    public DbSet<Ubigeo> Ubigeos => Set<Ubigeo>();
     public DbSet<Producto> Productos => Set<Producto>();
+    public DbSet<ItemSeriado> ItemsSeriados => Set<ItemSeriado>();
     public DbSet<Sucursal> Sucursales => Set<Sucursal>();
     public DbSet<TipoOrdenTrabajo> TiposOrdenTrabajo => Set<TipoOrdenTrabajo>();
     public DbSet<CampoDefinicion> CamposDefinicion => Set<CampoDefinicion>();
@@ -42,34 +48,25 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public DbSet<TarifarioRegla> TarifarioReglas => Set<TarifarioRegla>();
     public DbSet<TarifaServicio> TarifasServicio => Set<TarifaServicio>();
 
+    // Plantillas y Catálogos de Tareas
+    public DbSet<Tarea> Tareas => Set<Tarea>();
+    public DbSet<PlantillaTrabajo> PlantillasTrabajo => Set<PlantillaTrabajo>();
+    public DbSet<PlantillaTarea> PlantillasTareas => Set<PlantillaTarea>();
+    public DbSet<PlantillaMaterial> PlantillasMateriales => Set<PlantillaMaterial>();
+
+    // Ejecución de Trabajos y Liquidación de Materiales
+    public DbSet<Trabajo> Trabajos => Set<Trabajo>();
+    public DbSet<TareaTrabajo> TareasTrabajo => Set<TareaTrabajo>();
+    public DbSet<MaterialTrabajo> MaterialesTrabajo => Set<MaterialTrabajo>();
+    public DbSet<LiquidacionMaterial> LiquidacionesMaterial => Set<LiquidacionMaterial>();
+    public DbSet<LiquidacionMaterialItem> LiquidacionesMaterialItems => Set<LiquidacionMaterialItem>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("serviciocampo");
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
-        // Referencia a la tabla maestra del módulo CRM
-        modelBuilder.Entity<Cliente>(b =>
-        {
-            b.ToTable("clientes", "crm", t => t.ExcludeFromMigrations());
-            b.HasKey(c => c.Id);
-            b.Ignore(c => c.Ubigeo);
-        });
-
-        // Referencia a la tabla maestra del módulo Inventario
-        modelBuilder.Entity<Producto>(b =>
-        {
-            b.ToTable("Productos", "inventario", t => t.ExcludeFromMigrations());
-            b.HasKey(p => p.Id);
-        });
-
-        // Referencia a la tabla maestra del módulo Inventario (Almacenes)
-        modelBuilder.Entity<Almacen>(b =>
-        {
-            b.ToTable("Almacenes", "inventario", t => t.ExcludeFromMigrations());
-            b.HasKey(a => a.Id);
-        });
-
-        // Referencia a la tabla maestra del módulo Recursos Humanos
+        // Referencia a la tabla maestra del módulo Recursos Humanos (externa)
         modelBuilder.Entity<Sucursal>(b =>
         {
             b.ToTable("Sucursales", "rrhh", t => t.ExcludeFromMigrations());

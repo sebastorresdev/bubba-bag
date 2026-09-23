@@ -1,6 +1,6 @@
 <nz-layout class="erp-layout">
-  <!-- Top Suite Bar (Estilo Microsoft Dynamics 365) -->
-  <nz-header class="erp-suite-bar">
+  <!-- Top Suite Bar (Estilo Microsoft Dynamics 365 con color temático por Aplicación) -->
+  <nz-header class="erp-suite-bar" [style.--erp-suite-bar-bg]="navService.currentModule().themeColor">
     <!-- Izquierda: Menú móvil + Waffle launcher + Brand + Módulo Activo -->
     <div class="erp-suite-bar-brand">
       <button nz-button nzType="text" class="erp-mobile-menu-btn" (click)="toggleMobileSider()" title="Menú del Sistema">
@@ -254,14 +254,16 @@
         </div>
       </a>
 
-      <div class="d365-launcher-section">MÓDULOS DE NEGOCIO</div>
+      <div class="d365-launcher-section">APLICACIONES EMPRESARIALES</div>
 
-      <!-- Lista Amplia de Módulos (Filtrados por Permisos) -->
+      <!-- Lista de Aplicaciones de Negocio estilo Dynamics 365 -->
       <div class="d365-launcher-list">
         @for (mod of navService.visibleModules(); track mod.id) {
         <a class="d365-launcher-item" [class.d365-launcher-item-active]="navService.currentModule().id === mod.id"
           (click)="selectModuleAndClose(mod)">
-          <div class="d365-launcher-badge">{{ mod.shortCode }}</div>
+          <div class="d365-launcher-badge" [style.background-color]="mod.themeColor" style="color: #ffffff; font-weight: 700;">
+            {{ mod.shortCode }}
+          </div>
           <div class="d365-launcher-info">
             <div class="d365-launcher-row">
               <span class="d365-launcher-name">{{ mod.title }}</span>
@@ -269,7 +271,7 @@
               <span class="d365-launcher-tag">Activo</span>
               }
             </div>
-            <span class="d365-launcher-desc">{{ mod.searchPlaceholder }}</span>
+            <span class="d365-launcher-desc">{{ mod.description }}</span>
           </div>
         </a>
         }

@@ -23,27 +23,14 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'ventas',
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['SuperAdmin', 'Gerencia', 'VentasAdmin', 'ServicioCampoAdmin'] },
-    loadChildren: () =>
-      import('./features/ventas/ventas.routes').then((m) => m.VENTAS_ROUTES),
+    path: 'crm',
+    redirectTo: 'servicio-campo/clientes',
+    pathMatch: 'prefix',
   },
   {
-    path: 'crm',
-    canActivate: [authGuard, roleGuard],
-    data: {
-      roles: [
-        'SuperAdmin',
-        'Gerencia',
-        'CrmAdmin',
-        'CrmOperador',
-        'ServicioCampoAdmin',
-        'ServicioCampoBackoffice',
-      ],
-    },
-    loadChildren: () =>
-      import('./features/crm/crm.routes').then((m) => m.CRM_ROUTES),
+    path: 'inventario',
+    redirectTo: 'servicio-campo/materiales',
+    pathMatch: 'prefix',
   },
   {
     path: 'servicio-campo',

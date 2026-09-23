@@ -33,8 +33,8 @@ import { NzMessageService } from 'ng-zorro-antd/message';
 // Shared & Services
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar/command-bar.component';
 import { ServicioCampoService } from '../../services/servicio-campo.service';
-import { ClienteService } from '../../../crm/services/cliente.service';
-import { ClienteListadoItemDto } from '../../../crm/models/cliente.model';
+import { ClienteService } from '../../services/cliente.service';
+import { ClienteListadoItemDto } from '../../models/cliente.model';
 import {
   CatalogoServicioDto,
   CrearCatalogoServicioCommand,

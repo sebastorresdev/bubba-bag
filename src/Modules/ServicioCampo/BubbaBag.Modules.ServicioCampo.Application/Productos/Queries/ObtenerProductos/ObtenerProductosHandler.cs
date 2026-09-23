@@ -1,0 +1,85 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using BubbaBag.Modules.ServicioCampo.Application.Productos.Dtos;
+using BubbaBag.Modules.ServicioCampo.Domain.Productos;
+using BubbaBag.SharedKernel;
+using BubbaBag.SharedKernel.CQRS;
+using Microsoft.EntityFrameworkCore;
+
+namespace BubbaBag.Modules.ServicioCampo.Application.Productos.Queries.ObtenerProductos;
+
+public record ObtenerProductosQuery(
+    string? Search = null,
+    string? Categoria = null,
+    TipoProducto? Tipo = null,
+    Guid? CatalogoId = null,
+    bool? SoloActivos = true
+) : IQuery<Result<List<ProductoDto>>>;
+
+public class ObtenerProductosHandler : IQueryHandler<ObtenerProductosQuery, Result<List<ProductoDto>>>
+{
+    private readonly IServicioCampoDbContext _context;
+
+    public ObtenerProductosHandler(IServicioCampoDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<Result<List<ProductoDto>>> HandleAsync(ObtenerProductosQuery query, CancellationToken cancellationToken = default)
+    {
+        var dbQuery = _context.Productos.AsNoTracking().AsQueryable();
+
+        if (query.SoloActivos.HasValue)
+        {
+            dbQuery = dbQuery.Where(p => p.Activo == query.SoloActivos.Value);
+        }
+
+        if (query.Tipo.HasValue)
+        {
+            dbQuery = dbQuery.Where(p => p.Tipo == query.Tipo.Value);
+        }
+
+        if (query.CatalogoId.HasValue)
+        {
+            dbQuery = dbQuery.Where(p => p.CatalogoId == query.CatalogoId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Categoria))
+        {
+            dbQuery = dbQuery.Where(p => p.Categoria == query.Categoria.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = query.Search.Trim().ToLower();
+            dbQuery = dbQuery.Where(p =>
+                p.Codigo.ToLower().Contains(search) ||
+                p.Nombre.ToLower().Contains(search) ||
+                (p.Descripcion != null && p.Descripcion.ToLower().Contains(search)));
+        }
+
+        var lista = await dbQuery
+            .OrderBy(p => p.Tipo)
+            .ThenBy(p => p.Categoria)
+            .ThenBy(p => p.Nombre)
+            .Select(p => new ProductoDto(
+                p.Id,
+                p.Codigo,
+                p.Nombre,
+                p.Descripcion,
+                p.Tipo,
+                p.PrecioBase,
+                p.CatalogoId,
+                p.Categoria,
+                p.UnidadMedida,
+                p.EsSerializado,
+                p.Activo
+            ))
+            .ToListAsync(cancellationToken);
+
+        return Result<List<ProductoDto>>.Success(lista);
+    }
+}

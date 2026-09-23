@@ -18,29 +18,11 @@
     <Project Path="src/Modules/Seguridad/BubbaBag.Modules.Seguridad.Domain/BubbaBag.Modules.Seguridad.Domain.csproj" />
     <Project Path="src/Modules/Seguridad/BubbaBag.Modules.Seguridad.Infrastructure/BubbaBag.Modules.Seguridad.Infrastructure.csproj" />
   </Folder>
-  <Folder Name="/src/Modules/Inventario/">
-    <Project Path="src/Modules/Inventario/BubbaBag.Modules.Inventario.Api/BubbaBag.Modules.Inventario.Api.csproj" />
-    <Project Path="src/Modules/Inventario/BubbaBag.Modules.Inventario.Application/BubbaBag.Modules.Inventario.Application.csproj" />
-    <Project Path="src/Modules/Inventario/BubbaBag.Modules.Inventario.Domain/BubbaBag.Modules.Inventario.Domain.csproj" />
-    <Project Path="src/Modules/Inventario/BubbaBag.Modules.Inventario.Infrastructure/BubbaBag.Modules.Inventario.Infrastructure.csproj" />
-  </Folder>
-  <Folder Name="/src/Modules/Ventas/">
-    <Project Path="src/Modules/Ventas/BubbaBag.Modules.Ventas.Api/BubbaBag.Modules.Ventas.Api.csproj" />
-    <Project Path="src/Modules/Ventas/BubbaBag.Modules.Ventas.Application/BubbaBag.Modules.Ventas.Application.csproj" />
-    <Project Path="src/Modules/Ventas/BubbaBag.Modules.Ventas.Domain/BubbaBag.Modules.Ventas.Domain.csproj" />
-    <Project Path="src/Modules/Ventas/BubbaBag.Modules.Ventas.Infrastructure/BubbaBag.Modules.Ventas.Infrastructure.csproj" />
-  </Folder>
   <Folder Name="/src/Modules/ServicioCampo/">
     <Project Path="src/Modules/ServicioCampo/BubbaBag.Modules.ServicioCampo.Domain/BubbaBag.Modules.ServicioCampo.Domain.csproj" />
     <Project Path="src/Modules/ServicioCampo/BubbaBag.Modules.ServicioCampo.Application/BubbaBag.Modules.ServicioCampo.Application.csproj" />
     <Project Path="src/Modules/ServicioCampo/BubbaBag.Modules.ServicioCampo.Infrastructure/BubbaBag.Modules.ServicioCampo.Infrastructure.csproj" />
     <Project Path="src/Modules/ServicioCampo/BubbaBag.Modules.ServicioCampo.Api/BubbaBag.Modules.ServicioCampo.Api.csproj" />
-  </Folder>
-  <Folder Name="/src/Modules/Crm/">
-    <Project Path="src/Modules/Crm/BubbaBag.Modules.Crm.Domain/BubbaBag.Modules.Crm.Domain.csproj" />
-    <Project Path="src/Modules/Crm/BubbaBag.Modules.Crm.Application/BubbaBag.Modules.Crm.Application.csproj" />
-    <Project Path="src/Modules/Crm/BubbaBag.Modules.Crm.Infrastructure/BubbaBag.Modules.Crm.Infrastructure.csproj" />
-    <Project Path="src/Modules/Crm/BubbaBag.Modules.Crm.Api/BubbaBag.Modules.Crm.Api.csproj" />
   </Folder>
   <Folder Name="/src/Shared/">
     <Project Path="src/Shared/BubbaBag.SharedKernel/BubbaBag.SharedKernel.csproj" />

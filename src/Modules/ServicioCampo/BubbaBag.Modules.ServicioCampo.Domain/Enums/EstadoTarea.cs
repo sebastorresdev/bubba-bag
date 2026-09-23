@@ -23,5 +23,10 @@ public enum EstadoTarea
     /// <summary>
     /// Rechazada en sitio por inviabilidad técnica o desistimiento puntual del cliente.
     /// </summary>
-    Rechazada = 4
+    Rechazada = 4,
+
+    /// <summary>
+    /// En ejecución activa por el técnico en sitio.
+    /// </summary>
+    EnProgreso = 5
 }

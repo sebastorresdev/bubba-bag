@@ -1,0 +1,130 @@
+<app-command-bar [items]="commandBarItems" [farItems]="farItems"></app-command-bar>
+
+<div class="tecnicos-view-wrapper">
+  <app-entity-table
+    entidad="Saldos de Técnicos"
+    [vistasSistema]="vistasSistema"
+    [(vistaActualKey)]="vistaActual"
+    [columnas]="columnas"
+    [datos]="almacenesFiltrados"
+    [loading]="loading"
+    [scrollX]="'1100px'"
+    [(selectedIds)]="setOfCheckedId"
+    (selectedIdsChange)="onSelectedIdsChange($event)"
+    (vistaChange)="onVistaChange($event)"
+    (recargar)="cargarStockTecnicos()"
+    (rowDblClick)="abrirDetalle($event)"
+  >
+    <!-- Código Almacén Móvil -->
+    <ng-template cellDef="codigoAlmacen" let-t>
+      <a (click)="abrirDetalle(t)" class="cell-code" [title]="'Ver detalle ' + t.codigoAlmacen">
+        {{ t.codigoAlmacen }}
+      </a>
+    </ng-template>
+
+    <!-- Nombre / Técnico -->
+    <ng-template cellDef="nombreAlmacen" let-t>
+      <div class="tecnico-cell">
+        <span class="tecnico-icon">
+          <span nz-icon nzType="car"></span>
+        </span>
+        <a (click)="abrirDetalle(t)" class="cell-link" [title]="t.nombreAlmacen">
+          {{ t.nombreAlmacen }}
+        </a>
+      </div>
+    </ng-template>
+
+    <!-- Tipos de Material -->
+    <ng-template cellDef="totalProductos" let-t>
+      <span class="count-tag">{{ t.totalProductos }} ítems</span>
+    </ng-template>
+
+    <!-- Total Unidades -->
+    <ng-template cellDef="totalUnidades" let-t>
+      <span class="units-badge" [class.badge-positive]="t.totalUnidades > 0" [class.badge-empty]="t.totalUnidades === 0">
+        {{ t.totalUnidades }} und.
+      </span>
+    </ng-template>
+
+    <!-- Equipos Seriados -->
+    <ng-template cellDef="totalSeries" let-t>
+      @if (t.totalSeries > 0) {
+        <nz-tag nzColor="blue" class="series-tag">
+          <span nz-icon nzType="barcode"></span>
+          {{ t.totalSeries }} equipos
+        </nz-tag>
+      } @else {
+        <span class="text-muted">0</span>
+      }
+    </ng-template>
+
+    <!-- Estado -->
+    <ng-template cellDef="activo" let-t>
+      <nz-tag
+        class="d365-status-tag"
+        [class.tag-active]="t.activo"
+        [class.tag-inactive]="!t.activo"
+      >
+        {{ t.activo ? 'Activo' : 'Inactivo' }}
+      </nz-tag>
+    </ng-template>
+  </app-entity-table>
+</div>
+
+<!-- Drawer de Detalle de Saldo del Técnico -->
+<nz-drawer
+  [nzVisible]="drawerVisible"
+  [nzWidth]="480"
+  nzTitle="Custodia de Materiales y Saldo"
+  (nzOnClose)="cerrarDetalle()"
+>
+  <ng-container *nzDrawerContent>
+    @if (tecnicoSeleccionado) {
+      <div class="drawer-content">
+        <!-- Header del Técnico -->
+        <div class="drawer-header-box">
+          <div class="drawer-car-icon">
+            <span nz-icon nzType="car"></span>
+          </div>
+          <div class="drawer-header-text">
+            <h3>{{ tecnicoSeleccionado.nombreAlmacen }}</h3>
+            <span class="drawer-code">{{ tecnicoSeleccionado.codigoAlmacen }}</span>
+          </div>
+        </div>
+
+        <!-- Resumen KPI -->
+        <div class="drawer-kpis">
+          <div class="drawer-kpi-card">
+            <span class="kpi-num">{{ tecnicoSeleccionado.totalUnidades }}</span>
+            <span class="kpi-desc">Total Unidades</span>
+          </div>
+          <div class="drawer-kpi-card">
+            <span class="kpi-num">{{ tecnicoSeleccionado.totalProductos }}</span>
+            <span class="kpi-desc">Materiales Distintos</span>
+          </div>
+          <div class="drawer-kpi-card">
+            <span class="kpi-num">{{ tecnicoSeleccionado.totalSeries }}</span>
+            <span class="kpi-desc">Series en Custodia</span>
+          </div>
+        </div>
+
+        <nz-divider></nz-divider>
+
+        <div class="drawer-info-block">
+          <p>
+            <strong>Almacén Móvil Asignado:</strong> {{ tecnicoSeleccionado.nombreAlmacen }}
+          </p>
+          <p>
+            <strong>Estado Operativo:</strong>
+            <nz-tag [nzColor]="tecnicoSeleccionado.activo ? 'success' : 'default'">
+              {{ tecnicoSeleccionado.activo ? 'OPERATIVO / ACTIVO' : 'INACTIVO' }}
+            </nz-tag>
+          </p>
+          <p class="text-secondary">
+            Los despachos de bodega hacia esta unidad móvil se registran a través del submódulo <strong>Despachos y Transferencias</strong>. Cuando el técnico completa órdenes de trabajo, los materiales consumidos se descargan automáticamente de su saldo móvil.
+          </p>
+        </div>
+      </div>
+    }
+  </ng-container>
+</nz-drawer>

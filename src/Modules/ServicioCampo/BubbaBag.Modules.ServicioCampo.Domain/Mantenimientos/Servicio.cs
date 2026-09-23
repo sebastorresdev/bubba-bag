@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using BubbaBag.SharedKernel;
+using BubbaBag.Modules.ServicioCampo.Domain.Plantillas;
 
 namespace BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 
@@ -45,6 +46,10 @@ public class Servicio : Entity<Guid>
     // Matriz de disponibilidad por sucursales/zonas
     private readonly List<SucursalServicio> _sucursalesHabilitadas = new();
     public IReadOnlyCollection<SucursalServicio> SucursalesHabilitadas => _sucursalesHabilitadas.AsReadOnly();
+
+    // Plantillas de trabajo asociadas a este servicio
+    private readonly List<PlantillaTrabajo> _plantillas = new();
+    public IReadOnlyCollection<PlantillaTrabajo> Plantillas => _plantillas.AsReadOnly();
 
     private Servicio() { }
 

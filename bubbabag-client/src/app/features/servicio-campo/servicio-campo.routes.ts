@@ -22,6 +22,96 @@ export const SERVICIO_CAMPO_ROUTES: Routes = [
         component: OrdenesListComponent,
         title: 'Órdenes de Trabajo - Servicio de Campo',
       },
+      // ── Clientes Operativos ──
+      {
+        path: 'clientes',
+        loadComponent: () =>
+          import('./pages/clientes-list/clientes-list.component').then(
+            (m) => m.ClientesListComponent
+          ),
+        title: 'Directorio de Clientes - Servicio de Campo',
+      },
+      {
+        path: 'clientes/nuevo',
+        loadComponent: () =>
+          import('./pages/cliente-form/cliente-form.component').then(
+            (m) => m.ClienteFormComponent
+          ),
+        title: 'Nuevo Cliente - Servicio de Campo',
+      },
+      {
+        path: 'clientes/editar/:id',
+        loadComponent: () =>
+          import('./pages/cliente-form/cliente-form.component').then(
+            (m) => m.ClienteFormComponent
+          ),
+        title: 'Editar Cliente - Servicio de Campo',
+      },
+      // ── Logística y Materiales de Campo ──
+      {
+        path: 'materiales',
+        loadComponent: () =>
+          import('./pages/productos-list/productos-list.component').then(
+            (m) => m.ProductosListComponent
+          ),
+        title: 'Materiales y Equipos - Servicio de Campo',
+      },
+      {
+        path: 'materiales/nuevo',
+        loadComponent: () =>
+          import('./pages/producto-form/producto-form.component').then(
+            (m) => m.ProductoFormComponent
+          ),
+        title: 'Nuevo Material / Equipo - Servicio de Campo',
+      },
+      {
+        path: 'materiales/editar/:id',
+        loadComponent: () =>
+          import('./pages/producto-form/producto-form.component').then(
+            (m) => m.ProductoFormComponent
+          ),
+        title: 'Editar Material / Equipo - Servicio de Campo',
+      },
+      {
+        path: 'almacenes',
+        loadComponent: () =>
+          import('./pages/almacenes-list/almacenes-list.component').then(
+            (m) => m.AlmacenesListComponent
+          ),
+        title: 'Almacenes y Bodegas - Servicio de Campo',
+      },
+      {
+        path: 'stock-tecnicos',
+        loadComponent: () =>
+          import('./pages/stock-tecnicos-list/stock-tecnicos-list.component').then(
+            (m) => m.StockTecnicosListComponent
+          ),
+        title: 'Saldo de Técnicos (Móviles) - Servicio de Campo',
+      },
+      {
+        path: 'stock',
+        loadComponent: () =>
+          import('./pages/stock-list/stock-list.component').then(
+            (m) => m.StockListComponent
+          ),
+        title: 'Control de Existencias (Stock) - Servicio de Campo',
+      },
+      {
+        path: 'seriados',
+        loadComponent: () =>
+          import('./pages/seriados-list/seriados-list.component').then(
+            (m) => m.SeriadosListComponent
+          ),
+        title: 'Trazabilidad de Series - Servicio de Campo',
+      },
+      {
+        path: 'movimientos',
+        loadComponent: () =>
+          import('./pages/movimientos-list/movimientos-list.component').then(
+            (m) => m.MovimientosListComponent
+          ),
+        title: 'Kardex y Despachos - Servicio de Campo',
+      },
       {
         path: 'tarifas-servicio',
         component: TarifasServicioListComponent,

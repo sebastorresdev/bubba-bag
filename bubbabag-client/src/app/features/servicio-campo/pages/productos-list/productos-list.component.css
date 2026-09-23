@@ -1,0 +1,155 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.productos-view-wrapper {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Código ── */
+.cell-code {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--d365-link-color);
+  cursor: pointer;
+  display: inline-block;
+  transition: color 0.15s ease;
+}
+
+.cell-code:hover {
+  text-decoration: underline;
+  color: var(--d365-link-hover-color);
+}
+
+/* ── Producto Nombre / Subtexto ── */
+.producto-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.producto-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 14px;
+  flex-shrink: 0;
+  background-color: rgba(0, 120, 212, 0.08);
+  color: #0078d4;
+}
+
+.icon-inventario {
+  background-color: rgba(15, 108, 189, 0.1);
+  color: #0f6cbd;
+}
+
+.icon-servicio {
+  background-color: rgba(135, 59, 149, 0.1);
+  color: #873b95;
+}
+
+.producto-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.cell-link {
+  color: var(--d365-link-color) !important;
+  font-weight: 600;
+  cursor: pointer;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.cell-link:hover {
+  text-decoration: underline;
+  color: var(--d365-link-hover-color) !important;
+}
+
+.cell-subtext {
+  font-size: 11px;
+  color: var(--d365-text-muted, #797775);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Tags y Badges ── */
+.categoria-tag {
+  font-size: 12px;
+  color: var(--d365-text-secondary, #484644);
+  font-weight: 500;
+}
+
+.tipo-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  font-size: 11.5px;
+}
+
+.um-badge {
+  font-family: 'Consolas', monospace;
+  font-size: 11.5px;
+  background: var(--d365-tag-bg, #f3f2f1);
+  color: var(--d365-text-primary, #201f1e);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.serie-tag {
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.precio-cell {
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 600;
+  color: var(--d365-text-primary, #201f1e);
+  font-size: 13px;
+}
+
+/* ── Estado ── */
+.d365-status-tag {
+  font-weight: 600;
+  font-size: 12px;
+  border-radius: 3px;
+  padding: 2px 8px;
+  border: none;
+}
+
+.tag-active {
+  background-color: rgba(16, 124, 65, 0.1);
+  color: #107c41;
+}
+
+.tag-inactive {
+  background-color: rgba(138, 136, 134, 0.12);
+  color: #605e5c;
+}
+
+.text-muted {
+  font-size: 12px;
+  opacity: 0.35;
+}

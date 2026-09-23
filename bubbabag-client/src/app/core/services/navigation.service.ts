@@ -23,6 +23,9 @@ export interface ErpModule {
   icon: string;
   basePath: string;
   searchPlaceholder: string;
+  themeColor: string;
+  accentColor: string;
+  description: string;
   requiredRoles?: string[];
   items: NavItem[];
 }
@@ -34,10 +37,66 @@ export class NavigationService {
   private router = inject(Router);
   private authService = inject(AuthService);
 
-  // Catálogo de módulos empresariales:
-  // - Ítem solo (nivel 1): Tiene icono propio.
-  // - Submenú con hijos: El padre tiene icono, y sus hijos dentro NO tienen icono.
+  // Catálogo de aplicaciones empresariales (Apps estilo Microsoft Dynamics 365)
   readonly modules: ErpModule[] = [
+    {
+      id: 'serviciocampo',
+      title: 'Servicio de Campo',
+      shortCode: 'SC',
+      icon: 'car',
+      basePath: '/servicio-campo',
+      searchPlaceholder: 'Buscar órdenes de trabajo, técnicos, clientes, series...',
+      themeColor: '#0b4c8c', // Deep Navy / Ocean Blue
+      accentColor: '#0078d4',
+      description: 'Suite operativa: Órdenes de Trabajo, Cuadrillas, Clientes, Almacenes y Materiales',
+      requiredRoles: [
+        'SuperAdmin',
+        'Gerencia',
+        'ServicioCampoAdmin',
+        'ServicioCampoBackoffice',
+        'ServicioCampoTecnico',
+      ],
+      items: [
+        {
+          title: 'Órdenes de Trabajo',
+          icon: 'solution',
+          path: '/servicio-campo/ordenes',
+          matchPrefix: true,
+        },
+        {
+          title: 'Directorio de Clientes',
+          icon: 'user',
+          path: '/servicio-campo/clientes',
+          matchPrefix: true,
+        },
+        {
+          title: 'Logística y Materiales',
+          icon: 'appstore',
+          open: true,
+          children: [
+            { title: 'Materiales y Equipos', path: '/servicio-campo/materiales' },
+            { title: 'Almacenes y Bodegas', path: '/servicio-campo/almacenes' },
+            { title: 'Saldo de Técnicos (Móviles)', path: '/servicio-campo/stock-tecnicos' },
+            { title: 'Control de Existencias (Stock)', path: '/servicio-campo/stock' },
+            { title: 'Trazabilidad de Series', path: '/servicio-campo/seriados' },
+            { title: 'Kardex y Despachos', path: '/servicio-campo/movimientos' },
+          ],
+        },
+        {
+          title: 'Catálogos Operativos',
+          icon: 'setting',
+          open: false,
+          requiredRoles: ['SuperAdmin', 'Gerencia', 'ServicioCampoAdmin', 'ServicioCampoBackoffice'],
+          children: [
+            { title: 'Catálogos de Servicios', path: '/servicio-campo/catalogos-servicio' },
+            { title: 'Plantillas de Servicios', path: '/servicio-campo/servicios' },
+            { title: 'Tarifario de Liquidación', path: '/servicio-campo/tarifas-servicio' },
+            { title: 'Tipos de Orden (Modalidad)', path: '/servicio-campo/tipos-orden' },
+            { title: 'Motivos de Incidencia', path: '/servicio-campo/motivos-incidencia' },
+          ],
+        },
+      ],
+    },
     {
       id: 'rrhh',
       title: 'Recursos Humanos',
@@ -45,6 +104,9 @@ export class NavigationService {
       icon: 'team',
       basePath: '/rrhh',
       searchPlaceholder: 'Buscar colaboradores, contratos, legajos...',
+      themeColor: '#4a2373', // Deep Imperial Violet
+      accentColor: '#742774',
+      description: 'Gestión de personal: Colaboradores, Planillas, Asistencia, Vacaciones y Legajos',
       requiredRoles: ['SuperAdmin', 'Gerencia', 'RrhhAdmin', 'RrhhAsistente'],
       items: [
         // 1. Ítems solos (con icono)
@@ -104,170 +166,15 @@ export class NavigationService {
       ],
     },
     {
-      id: 'ventas',
-      title: 'Centro de Ventas',
-      shortCode: 'VT',
-      icon: 'shopping-cart',
-      basePath: '/ventas',
-      searchPlaceholder: 'Buscar productos, clientes, pedidos...',
-      requiredRoles: ['SuperAdmin', 'Gerencia', 'VentasAdmin'],
-      items: [
-        { title: 'Catálogos Comerciales', icon: 'appstore', path: '/ventas/catalogos' },
-        { title: 'Punto de Venta (POS)', icon: 'shop', path: '/ventas/pos' },
-        { title: 'Listas de Precios', icon: 'dollar', path: '/ventas/listas-precio' },
-        { title: 'Pedidos y Cotizaciones', icon: 'file-text', path: '/ventas/pedidos' },
-        {
-          title: 'Clientes y Fidelidad',
-          icon: 'user',
-          open: true,
-          children: [
-            { title: 'Directorio de Clientes', path: '/ventas/clientes' },
-            { title: 'Segmentación y Puntos', path: '/ventas/fidelidad' },
-          ],
-        },
-        {
-          title: 'Facturación',
-          icon: 'audit',
-          open: false,
-          children: [
-            { title: 'Comprobantes Emitidos', path: '/ventas/facturacion' },
-            { title: 'Reporte de Ventas', path: '/ventas/reportes' },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'inventario',
-      title: 'Inventario y Almacén',
-      shortCode: 'IN',
-      icon: 'database',
-      basePath: '/inventario',
-      searchPlaceholder: 'Buscar en Inventario...',
-      requiredRoles: ['SuperAdmin', 'Gerencia', 'InventarioAdmin'],
-      items: [
-        { title: 'Control de Stock', icon: 'database', path: '/inventario/stock' },
-        {
-          title: 'Catálogo de Productos',
-          icon: 'tags',
-          open: true,
-          children: [
-            { title: 'Artículos y Variantes', path: '/inventario/productos' },
-            { title: 'Categorías y Familias', path: '/inventario/categorias' },
-          ],
-        },
-        {
-          title: 'Operaciones de Almacén',
-          icon: 'swap',
-          open: false,
-          children: [
-            { title: 'Transferencias', path: '/inventario/movimientos' },
-            { title: 'Ajustes y Mermas', path: '/inventario/ajustes' },
-            { title: 'Proveedores', path: '/inventario/proveedores' },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'finanzas',
-      title: 'Finanzas y Tesorería',
-      shortCode: 'FN',
-      icon: 'dollar',
-      basePath: '/finanzas',
-      searchPlaceholder: 'Buscar cuentas, movimientos...',
-      requiredRoles: ['SuperAdmin', 'Gerencia', 'FinanzasAdmin'],
-      items: [
-        { title: 'Flujo de Caja', icon: 'fund', path: '/finanzas/flujo' },
-        {
-          title: 'Cuentas Corrientes',
-          icon: 'account-book',
-          open: true,
-          children: [
-            { title: 'Cuentas por Cobrar', path: '/finanzas/cobrar' },
-            { title: 'Cuentas por Pagar', path: '/finanzas/pagar' },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'serviciocampo',
-      title: 'Servicio de Campo',
-      shortCode: 'SC',
-      icon: 'car',
-      basePath: '/servicio-campo',
-      searchPlaceholder: 'Buscar órdenes de trabajo, técnicos, clientes...',
-      requiredRoles: [
-        'SuperAdmin',
-        'Gerencia',
-        'ServicioCampoAdmin',
-        'ServicioCampoBackoffice',
-        'ServicioCampoTecnico',
-      ],
-      items: [
-        {
-          title: 'Órdenes de Trabajo',
-          icon: 'solution',
-          path: '/servicio-campo/ordenes',
-          requiredRoles: [
-            'SuperAdmin',
-            'Gerencia',
-            'ServicioCampoAdmin',
-            'ServicioCampoBackoffice',
-            'ServicioCampoTecnico',
-          ],
-        },
-        {
-          title: 'Tarifario de Liquidación',
-          icon: 'dollar',
-          path: '/servicio-campo/tarifas-servicio',
-          requiredRoles: ['SuperAdmin', 'Gerencia', 'ServicioCampoAdmin'],
-        },
-        {
-          title: 'Catálogos Operativos',
-          icon: 'setting',
-          open: true,
-          requiredRoles: ['SuperAdmin', 'Gerencia', 'ServicioCampoAdmin', 'ServicioCampoBackoffice'],
-          children: [
-            { title: 'Catálogos de Servicios', path: '/servicio-campo/catalogos-servicio' },
-            { title: 'Plantillas de Servicios', path: '/servicio-campo/servicios' },
-            { title: 'Tipos de Orden (Modalidad)', path: '/servicio-campo/tipos-orden' },
-            { title: 'Motivos de Incidencia', path: '/servicio-campo/motivos-incidencia' },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'crm',
-      title: 'CRM y Clientes',
-      shortCode: 'CR',
-      icon: 'user',
-      basePath: '/crm',
-      searchPlaceholder: 'Buscar clientes, RUC/DNI, contactos...',
-      requiredRoles: [
-        'SuperAdmin',
-        'Gerencia',
-        'CrmAdmin',
-        'CrmOperador',
-        'ServicioCampoAdmin',
-        'ServicioCampoBackoffice',
-      ],
-      items: [
-        {
-          title: 'Cartera de Clientes',
-          icon: 'user',
-          open: true,
-          children: [
-            { title: 'Directorio de Clientes', path: '/crm/clientes' },
-          ],
-        },
-      ],
-    },
-    {
       id: 'configuracion',
       title: 'Configuración y Seguridad',
       shortCode: 'CF',
       icon: 'setting',
       basePath: '/configuracion',
       searchPlaceholder: 'Buscar usuarios, roles del sistema...',
+      themeColor: '#2d3238', // Slate Charcoal
+      accentColor: '#484644',
+      description: 'Consola de administración: Usuarios, Roles del Sistema, Permisos y Sedes',
       requiredRoles: ['SuperAdmin', 'Gerencia'],
       items: [
         {

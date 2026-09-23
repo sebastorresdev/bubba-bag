@@ -1,6 +1,6 @@
 using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 using BubbaBag.SharedKernel;
-using BubbaBag.Modules.Crm.Domain.Clientes;
+using BubbaBag.Modules.ServicioCampo.Domain.Clientes;
 
 namespace BubbaBag.Modules.ServicioCampo.Domain.Tarifarios;
 
