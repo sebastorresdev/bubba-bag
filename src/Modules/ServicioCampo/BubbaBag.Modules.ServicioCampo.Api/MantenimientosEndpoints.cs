@@ -27,8 +27,6 @@ using BubbaBag.Modules.ServicioCampo.Application.Tarifarios.TarifasServicio.Comm
 using BubbaBag.Modules.ServicioCampo.Application.Tarifarios.TarifasServicio.Commands.CambiarEstadoTarifaServicio;
 using BubbaBag.Modules.ServicioCampo.Application.Tarifarios.TarifasServicio.Queries.ObtenerTarifasServicio;
 using BubbaBag.Modules.ServicioCampo.Application.Tarifarios.TarifasServicio.Queries.ObtenerTarifaServicioPorId;
-using System.Collections.Generic;
-using System.Threading;
 
 using BubbaBag.Modules.ServicioCampo.Domain.Enums;
 using BubbaBag.SharedKernel.Authorization;
@@ -39,19 +37,25 @@ using Microsoft.AspNetCore.Routing;
 
 namespace BubbaBag.Modules.ServicioCampo.Api;
 
-public static class CatalogosServicioCampoEndpoints
+public static class MantenimientosEndpoints
 {
-    public static void MapServicioCampoEndpoints(this IEndpointRouteBuilder app)
+    public static void MapMantenimientosEndpoints(this IEndpointRouteBuilder app)
     {
-        // Mapear submódulos consolidados en Servicio de Campo
-        app.MapClientesEndpoints();
-        app.MapAlmacenesEndpoints();
-        app.MapProductosEndpoints();
-
-        var rootGroup = app.MapGroup("/api/serviciocampo/catalogos")
-            .WithTags("Servicio de Campo - Catálogos")
+        // Mapear tanto /mantenimientos como /catalogos para compatibilidad total con el frontend
+        var mantenimientosGroup = app.MapGroup("/api/serviciocampo/mantenimientos")
+            .WithTags("Servicio de Campo - Mantenimientos")
             .RequireAuthorization();
 
+        var catalogosGroup = app.MapGroup("/api/serviciocampo/catalogos")
+            .WithTags("Servicio de Campo - Mantenimientos (Compatibilidad)")
+            .RequireAuthorization();
+
+        ConfigurarRutasMantenimiento(mantenimientosGroup);
+        ConfigurarRutasMantenimiento(catalogosGroup);
+    }
+
+    private static void ConfigurarRutasMantenimiento(RouteGroupBuilder rootGroup)
+    {
         // =====================================================================
         // MOTIVOS DE INCIDENCIA
         // =====================================================================
@@ -136,7 +140,7 @@ public static class CatalogosServicioCampoEndpoints
     {
         var result = await dispatcher.SendAsync(command);
         return result.IsSuccess
-            ? Results.Created($"/api/serviciocampo/catalogos/motivos-incidencia/{result.Value}", new { id = result.Value, message = "Motivo de incidencia registrado con éxito." })
+            ? Results.Created($"/api/serviciocampo/mantenimientos/motivos-incidencia/{result.Value}", new { id = result.Value, message = "Motivo de incidencia registrado con éxito." })
             : Results.BadRequest(new { message = result.Error });
     }
 
@@ -180,7 +184,7 @@ public static class CatalogosServicioCampoEndpoints
     {
         var result = await dispatcher.SendAsync(command);
         return result.IsSuccess
-            ? Results.Created($"/api/serviciocampo/catalogos/tipos-orden/{result.Value}", new { id = result.Value, message = "Tipo de orden de trabajo registrado con éxito." })
+            ? Results.Created($"/api/serviciocampo/mantenimientos/tipos-orden/{result.Value}", new { id = result.Value, message = "Tipo de orden de trabajo registrado con éxito." })
             : Results.BadRequest(new { message = result.Error });
     }
 
@@ -233,7 +237,7 @@ public static class CatalogosServicioCampoEndpoints
     {
         var result = await dispatcher.SendAsync(command);
         return result.IsSuccess
-            ? Results.Created($"/api/serviciocampo/catalogos/tipos-tarea/{result.Value}", new { id = result.Value, message = "Tipo de tarea de servicio registrado con éxito." })
+            ? Results.Created($"/api/serviciocampo/mantenimientos/tipos-tarea/{result.Value}", new { id = result.Value, message = "Tipo de tarea de servicio registrado con éxito." })
             : Results.BadRequest(new { message = result.Error });
     }
 
@@ -260,6 +264,7 @@ public static class CatalogosServicioCampoEndpoints
             : Results.BadRequest(new { message = result.Error });
     }
 
+    // Handlers - Tarifas de Servicio
     private static async Task<IResult> ObtenerTarifasServicio(
         IDispatcher dispatcher,
         string? empresaContratante,
@@ -284,7 +289,7 @@ public static class CatalogosServicioCampoEndpoints
     {
         var result = await dispatcher.SendAsync(command);
         return result.IsSuccess
-            ? Results.Created($"/api/serviciocampo/catalogos/tarifas-servicio/{result.Value}", new { id = result.Value, message = "Tarifa de servicio registrada con éxito." })
+            ? Results.Created($"/api/serviciocampo/mantenimientos/tarifas-servicio/{result.Value}", new { id = result.Value, message = "Tarifa de servicio registrada con éxito." })
             : Results.BadRequest(new { message = result.Error });
     }
 
