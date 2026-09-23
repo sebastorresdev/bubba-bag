@@ -20,14 +20,6 @@ using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.TiposTareaServic
 using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.TiposTareaServicio.Commands.CambiarEstadoTipoTareaServicio;
 using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.TiposTareaServicio.Queries.ObtenerTiposTareaServicio;
 using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.TiposTareaServicio.Queries.ObtenerTipoTareaServicioPorId;
-
-using BubbaBag.Modules.ServicioCampo.Application.Tarifarios.TarifasServicio.Dtos;
-using BubbaBag.Modules.ServicioCampo.Application.Tarifarios.TarifasServicio.Commands.CrearTarifaServicio;
-using BubbaBag.Modules.ServicioCampo.Application.Tarifarios.TarifasServicio.Commands.ActualizarTarifaServicio;
-using BubbaBag.Modules.ServicioCampo.Application.Tarifarios.TarifasServicio.Commands.CambiarEstadoTarifaServicio;
-using BubbaBag.Modules.ServicioCampo.Application.Tarifarios.TarifasServicio.Queries.ObtenerTarifasServicio;
-using BubbaBag.Modules.ServicioCampo.Application.Tarifarios.TarifasServicio.Queries.ObtenerTarifaServicioPorId;
-
 using BubbaBag.Modules.ServicioCampo.Domain.Enums;
 using BubbaBag.SharedKernel.Authorization;
 using BubbaBag.SharedKernel.CQRS;
@@ -99,21 +91,6 @@ public static class MantenimientosEndpoints
         tiposTareaGroup.MapPut("/{id:guid}", ActualizarTipoTarea)
             .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
         tiposTareaGroup.MapPatch("/{id:guid}/estado", CambiarEstadoTipoTarea)
-            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
-
-        // =====================================================================
-        // TARIFAS DE SERVICIO (DIRECTV, Claro, etc.)
-        // =====================================================================
-        var tarifasGroup = rootGroup.MapGroup("/tarifas-servicio");
-        tarifasGroup.MapGet("/", ObtenerTarifasServicio)
-            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
-        tarifasGroup.MapGet("/{id:guid}", ObtenerTarifaServicioPorId)
-            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
-        tarifasGroup.MapPost("/", CrearTarifaServicio)
-            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
-        tarifasGroup.MapPut("/{id:guid}", ActualizarTarifaServicio)
-            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
-        tarifasGroup.MapPatch("/{id:guid}/estado", CambiarEstadoTarifaServicio)
             .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
     }
 
@@ -263,75 +240,6 @@ public static class MantenimientosEndpoints
             ? Results.Ok(new { message = $"Tipo de tarea {(request.Activo ? "activado" : "desactivado")} correctamente." })
             : Results.BadRequest(new { message = result.Error });
     }
-
-    // Handlers - Tarifas de Servicio
-    private static async Task<IResult> ObtenerTarifasServicio(
-        IDispatcher dispatcher,
-        string? empresaContratante,
-        string? sucursal,
-        bool? soloActivos,
-        string? search,
-        string? tipificacion)
-    {
-        var result = await dispatcher.QueryAsync(new ObtenerTarifasServicioQuery(empresaContratante, sucursal, soloActivos, search, tipificacion));
-        return Results.Ok(result.Value);
-    }
-
-    private static async Task<IResult> ObtenerTarifaServicioPorId(Guid id, IDispatcher dispatcher)
-    {
-        var result = await dispatcher.QueryAsync(new ObtenerTarifaServicioPorIdQuery(id));
-        return result.IsSuccess
-            ? Results.Ok(result.Value)
-            : Results.NotFound(new { message = result.Error });
-    }
-
-    private static async Task<IResult> CrearTarifaServicio(CrearTarifaServicioCommand command, IDispatcher dispatcher)
-    {
-        var result = await dispatcher.SendAsync(command);
-        return result.IsSuccess
-            ? Results.Created($"/api/serviciocampo/mantenimientos/tarifas-servicio/{result.Value}", new { id = result.Value, message = "Tarifa de servicio registrada con éxito." })
-            : Results.BadRequest(new { message = result.Error });
-    }
-
-    private static async Task<IResult> ActualizarTarifaServicio(Guid id, ActualizarTarifaServicioRequest request, IDispatcher dispatcher)
-    {
-        var command = new ActualizarTarifaServicioCommand(
-            id,
-            request.DetalleServicio,
-            request.Tipificacion,
-            request.TipoTareaServicioId,
-            request.EmpresaContratante,
-            request.ClienteFacturacionId,
-            request.Sucursal,
-            request.Puntos,
-            request.FijoBase,
-            request.FijoAdicional,
-            request.VariableTotal,
-            request.Indicador1_CycleTime,
-            request.Indicador2_Agenda,
-            request.Indicador3_Sin30,
-            request.VariableAdicionalTotal,
-            request.Indicador1_Adicional,
-            request.Indicador2_Adicional,
-            request.Indicador3_Adicional,
-            request.MontoTotalTeorico,
-            request.AplicaPago,
-            request.AplicaGarantia);
-
-        var result = await dispatcher.SendAsync(command);
-        return result.IsSuccess
-            ? Results.Ok(new { message = "Tarifa de servicio actualizada correctamente." })
-            : Results.BadRequest(new { message = result.Error });
-    }
-
-    private static async Task<IResult> CambiarEstadoTarifaServicio(Guid id, CambiarEstadoCatalogoRequest request, IDispatcher dispatcher)
-    {
-        var command = new CambiarEstadoTarifaServicioCommand(id, request.Activo);
-        var result = await dispatcher.SendAsync(command);
-        return result.IsSuccess
-            ? Results.Ok(new { message = $"Tarifa de servicio {(request.Activo ? "activada" : "desactivada")} correctamente." })
-            : Results.BadRequest(new { message = result.Error });
-    }
 }
 
 // Request DTOs
@@ -354,25 +262,3 @@ public record ActualizarTipoTareaServicioRequest(
     string Nombre,
     Guid? ClienteFacturacionId,
     int DuracionEstimadaMinutos);
-
-public record ActualizarTarifaServicioRequest(
-    string DetalleServicio,
-    string Tipificacion = "GENERAL",
-    Guid? TipoTareaServicioId = null,
-    string EmpresaContratante = "DIRECTV",
-    Guid? ClienteFacturacionId = null,
-    string? Sucursal = null,
-    int Puntos = 0,
-    decimal FijoBase = 0,
-    decimal FijoAdicional = 0,
-    decimal VariableTotal = 0,
-    decimal Indicador1_CycleTime = 0,
-    decimal Indicador2_Agenda = 0,
-    decimal Indicador3_Sin30 = 0,
-    decimal VariableAdicionalTotal = 0,
-    decimal Indicador1_Adicional = 0,
-    decimal Indicador2_Adicional = 0,
-    decimal Indicador3_Adicional = 0,
-    decimal? MontoTotalTeorico = null,
-    bool AplicaPago = true,
-    bool AplicaGarantia = false);

@@ -3,6 +3,7 @@ using System;
 using BubbaBag.Modules.ServicioCampo.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
 {
     [DbContext(typeof(ServicioCampoDbContext))]
-    partial class ServicioCampoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260923195050_EliminarTarifarios")]
+    partial class EliminarTarifarios
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

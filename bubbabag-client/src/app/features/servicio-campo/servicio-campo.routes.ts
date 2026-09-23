@@ -2,9 +2,6 @@ import { Routes } from '@angular/router';
 import { MainLayoutComponent } from '../../core/layout/main-layout/main-layout.component';
 import { TiposOrdenListComponent } from './pages/tipos-orden-list/tipos-orden-list.component';
 import { MotivosIncidenciaListComponent } from './pages/motivos-incidencia-list/motivos-incidencia-list.component';
-import { TarifasServicioListComponent } from './pages/tarifas-servicio-list/tarifas-servicio-list.component';
-import { TarifaServicioFormComponent } from './pages/tarifa-servicio-form/tarifa-servicio-form.component';
-
 import { TipoOrdenFormComponent } from './pages/tipo-orden-form/tipo-orden-form.component';
 import { MotivoIncidenciaFormComponent } from './pages/motivo-incidencia-form/motivo-incidencia-form.component';
 import { OrdenesListComponent } from './pages/ordenes-list/ordenes-list.component';
@@ -139,22 +136,7 @@ export const SERVICIO_CAMPO_ROUTES: Routes = [
           ),
         title: 'Kardex y Despachos - Servicio de Campo',
       },
-      // ── Tarifarios y Parámetros Operativos ──
-      {
-        path: 'tarifas-servicio',
-        component: TarifasServicioListComponent,
-        title: 'Tarifario de Servicios - Servicio de Campo',
-      },
-      {
-        path: 'tarifas-servicio/nuevo',
-        component: TarifaServicioFormComponent,
-        title: 'Nueva Tarifa de Servicio - Servicio de Campo',
-      },
-      {
-        path: 'tarifas-servicio/editar/:id',
-        component: TarifaServicioFormComponent,
-        title: 'Editar Tarifa de Servicio - Servicio de Campo',
-      },
+      // ── Parámetros Operativos ──
       {
         path: 'tipos-orden',
         component: TiposOrdenListComponent,

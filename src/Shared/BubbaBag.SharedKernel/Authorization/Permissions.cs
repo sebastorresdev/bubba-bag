@@ -17,7 +17,6 @@ public static class Permissions
         public const string OrdenesAsignar = "serviciocampo.ordenes.asignar";
         public const string OrdenesOperarCampo = "serviciocampo.ordenes.operar_campo";
         public const string OrdenesCerrar = "serviciocampo.ordenes.cerrar";
-        public const string TarifariosGestionar = "serviciocampo.tarifarios.gestionar";
         public const string CatalogosGestionar = "serviciocampo.catalogos.gestionar";
     }
 

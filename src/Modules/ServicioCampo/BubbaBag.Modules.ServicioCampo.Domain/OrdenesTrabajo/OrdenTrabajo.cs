@@ -460,7 +460,6 @@ public class OrdenTrabajo : Entity<Guid>
         decimal tarifaBase,
         bool esElegibleBono,
         string? nombreRegla = null,
-        Guid? tarifarioReglaId = null,
         string? numeroWoIbs = null,
         string? descripcion = null)
     {
@@ -472,7 +471,6 @@ public class OrdenTrabajo : Entity<Guid>
             esElegibleBono,
             _tareas.Count + 1,
             nombreRegla,
-            tarifarioReglaId,
             numeroWoIbs,
             descripcion);
 

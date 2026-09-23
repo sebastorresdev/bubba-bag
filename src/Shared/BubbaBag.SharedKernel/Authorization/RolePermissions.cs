@@ -19,7 +19,6 @@ public static class RolePermissions
             Permissions.ServicioCampo.OrdenesCrear,
             Permissions.ServicioCampo.OrdenesAsignar,
             Permissions.ServicioCampo.OrdenesCerrar,
-            Permissions.ServicioCampo.TarifariosGestionar,
             Permissions.ServicioCampo.CatalogosGestionar,
 
             Permissions.Crm.Acceso,
@@ -63,7 +62,6 @@ public static class RolePermissions
             Permissions.ServicioCampo.OrdenesAsignar,
             Permissions.ServicioCampo.OrdenesOperarCampo,
             Permissions.ServicioCampo.OrdenesCerrar,
-            Permissions.ServicioCampo.TarifariosGestionar,
             Permissions.ServicioCampo.CatalogosGestionar,
 
             // También necesita ver y gestionar clientes para el servicio

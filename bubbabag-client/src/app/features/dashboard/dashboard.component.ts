@@ -827,7 +827,7 @@ export class DashboardComponent {
       shortCode: 'SC',
       category: 'operaciones',
       categoryLabel: 'Operaciones & Terreno',
-      description: 'Gestión de órdenes de trabajo (WOs), despacho de cuadrillas técnicas, tarifarios y evidencias en sitio.',
+      description: 'Gestión de órdenes de trabajo (WOs), despacho de cuadrillas técnicas, listas de precios y evidencias en sitio.',
       icon: 'car',
       color: '#e3008c',
       bgColor: 'rgba(227, 0, 140, 0.1)',
@@ -845,7 +845,7 @@ export class DashboardComponent {
         { label: 'Directorio Clientes', route: '/servicio-campo/clientes' },
         { label: 'Productos & Servicios', route: '/servicio-campo/productos' },
         { label: 'Control de Stock', route: '/servicio-campo/stock' },
-        { label: 'Tarifario de Liquidación', route: '/servicio-campo/tarifas-servicio' },
+        { label: 'Motivos de Incidencia', route: '/servicio-campo/motivos-incidencia' },
       ],
     },
     {

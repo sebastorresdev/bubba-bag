@@ -64,11 +64,6 @@ public class OrdenTrabajoTareaConfiguration : IEntityTypeConfiguration<OrdenTrab
             .HasForeignKey(t => t.TipoTareaId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(t => t.TarifarioRegla)
-            .WithMany()
-            .HasForeignKey(t => t.TarifarioReglaId)
-            .OnDelete(DeleteBehavior.SetNull);
-
         builder.HasOne(t => t.MotivoRechazo)
             .WithMany()
             .HasForeignKey(t => t.MotivoRechazoId)

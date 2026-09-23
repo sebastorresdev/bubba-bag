@@ -13,9 +13,6 @@ import {
   CrearTipoTareaServicioCommand,
   ActualizarTipoTareaServicioRequest,
   CambiarEstadoCatalogoRequest,
-  TarifaServicioDto,
-  CrearTarifaServicioCommand,
-  ActualizarTarifaServicioRequest,
   ProductoItemDto,
 } from '../models/servicio-campo-catalogos.model';
 
@@ -136,47 +133,6 @@ export class ServicioCampoService {
     return this.http.patch<{ message: string }>(`${this.baseUrl}/tipos-tarea/${id}/estado`, request);
   }
 
-  // =========================================================================
-  // 4. TARIFAS DE SERVICIO (Matriz Contractual: DIRECTV, CLARO, etc.)
-  // =========================================================================
-  getTarifasServicio(
-    empresaContratante?: string,
-    sucursal?: string,
-    soloActivos?: boolean,
-    search?: string
-  ): Observable<TarifaServicioDto[]> {
-    let params = new HttpParams();
-    if (empresaContratante && empresaContratante.trim() !== '') {
-      params = params.set('empresaContratante', empresaContratante.trim());
-    }
-    if (sucursal && sucursal.trim() !== '') {
-      params = params.set('sucursal', sucursal.trim());
-    }
-    if (soloActivos !== undefined && soloActivos !== null) {
-      params = params.set('soloActivos', soloActivos.toString());
-    }
-    if (search && search.trim() !== '') {
-      params = params.set('search', search.trim());
-    }
-    return this.http.get<TarifaServicioDto[]>(`${this.baseUrl}/tarifas-servicio`, { params });
-  }
-
-  getTarifaServicioPorId(id: string): Observable<TarifaServicioDto> {
-    return this.http.get<TarifaServicioDto>(`${this.baseUrl}/tarifas-servicio/${id}`);
-  }
-
-  crearTarifaServicio(command: CrearTarifaServicioCommand): Observable<{ id: string; message: string }> {
-    return this.http.post<{ id: string; message: string }>(`${this.baseUrl}/tarifas-servicio`, command);
-  }
-
-  actualizarTarifaServicio(id: string, request: ActualizarTarifaServicioRequest): Observable<{ message: string }> {
-    return this.http.put<{ message: string }>(`${this.baseUrl}/tarifas-servicio/${id}`, request);
-  }
-
-  cambiarEstadoTarifaServicio(id: string, activo: boolean): Observable<{ message: string }> {
-    const request: CambiarEstadoCatalogoRequest = { activo };
-    return this.http.patch<{ message: string }>(`${this.baseUrl}/tarifas-servicio/${id}/estado`, request);
-  }
 
   // =========================================================================
   // 5. INVENTARIO / PRODUCTOS LOOKUP

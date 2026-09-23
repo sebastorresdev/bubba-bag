@@ -8,7 +8,6 @@ using BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
 using BubbaBag.Modules.ServicioCampo.Domain.Plantillas;
 using BubbaBag.Modules.ServicioCampo.Domain.Productos;
 using BubbaBag.Modules.ServicioCampo.Domain.Recursos;
-using BubbaBag.Modules.ServicioCampo.Domain.Tarifarios;
 using BubbaBag.Modules.ServicioCampo.Domain.Ubigeos;
 using Microsoft.EntityFrameworkCore;
 
@@ -40,9 +39,6 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public DbSet<CampoDefinicion> CamposDefinicion => Set<CampoDefinicion>();
     public DbSet<ProductoServicio> Servicios => Set<ProductoServicio>();
     public DbSet<TipoTareaServicio> TiposTareaServicio => Set<TipoTareaServicio>();
-    public DbSet<Tarifario> Tarifarios => Set<Tarifario>();
-    public DbSet<TarifarioRegla> TarifarioReglas => Set<TarifarioRegla>();
-    public DbSet<TarifaServicio> TarifasServicio => Set<TarifaServicio>();
 
     // Plantillas y Catálogos de Tareas
     public DbSet<Tarea> Tareas => Set<Tarea>();

@@ -146,7 +146,7 @@ public static class WebApplicationExtensions
             await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.ClienteSeeder.SeedAsync(servicioCampoDbContext, scLogger);
             await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.InventarioSeeder.SeedAsync(servicioCampoDbContext, scLogger, sucursalesMap);
             await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.RecursosYZonasSeeder.SeedAsync(servicioCampoDbContext, scLogger);
-            await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.TarifaServicioSeeder.SeedAsync(servicioCampoDbContext, scLogger);
+            await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.TiposTareaSeeder.SeedAsync(servicioCampoDbContext, scLogger);
         }
     }
 }

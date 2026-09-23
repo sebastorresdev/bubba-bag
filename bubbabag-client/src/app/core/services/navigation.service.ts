@@ -88,7 +88,6 @@ export class NavigationService {
           open: false,
           requiredRoles: ['SuperAdmin', 'Gerencia', 'ServicioCampoAdmin', 'ServicioCampoBackoffice'],
           children: [
-            { title: 'Tarifario de Liquidación', path: '/servicio-campo/tarifas-servicio' },
             { title: 'Tipos de Orden (Modalidad)', path: '/servicio-campo/tipos-orden' },
             { title: 'Motivos de Incidencia', path: '/servicio-campo/motivos-incidencia' },
           ],

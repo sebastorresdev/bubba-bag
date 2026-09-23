@@ -1,13 +1,12 @@
 using BubbaBag.SharedKernel;
 using BubbaBag.Modules.ServicioCampo.Domain.Enums;
 using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
-using BubbaBag.Modules.ServicioCampo.Domain.Tarifarios;
 
 namespace BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
 
 /// <summary>
 /// Subtarea de una Orden de Trabajo (Incident Type de Dynamics 365).
-/// Representa la acción puntual (ej: IB01, PC03) y conserva la foto de la tarifa aplicada.
+/// Representa la acción puntual (ej: IB01, PC03) y conserva la foto del precio/tarifa aplicada.
 /// </summary>
 public class OrdenTrabajoTarea : Entity<Guid>
 {
@@ -28,8 +27,6 @@ public class OrdenTrabajoTarea : Entity<Guid>
     public decimal TarifaBaseCongelada { get; private set; }
     public bool EsElegibleBonoIndicador { get; private set; }
     public string? NombreReglaAplicada { get; private set; }
-    public Guid? TarifarioReglaId { get; private set; }
-    public TarifarioRegla? TarifarioRegla { get; private set; }
 
     // Cierre y liquidación mensual de variables
     public decimal MontoBonoFinal { get; private set; } = 0.00m;
@@ -57,7 +54,6 @@ public class OrdenTrabajoTarea : Entity<Guid>
         bool esElegibleBono,
         int itemNumero,
         string? nombreRegla = null,
-        Guid? tarifarioReglaId = null,
         string? numeroWoIbs = null,
         string? descripcion = null)
     {
@@ -70,7 +66,6 @@ public class OrdenTrabajoTarea : Entity<Guid>
         TarifaBaseCongelada = tarifaBase;
         EsElegibleBonoIndicador = esElegibleBono;
         NombreReglaAplicada = nombreRegla;
-        TarifarioReglaId = tarifarioReglaId;
         ItemNumero = itemNumero;
         NumeroWoIbs = numeroWoIbs?.Trim();
         Descripcion = descripcion?.Trim();
@@ -78,12 +73,11 @@ public class OrdenTrabajoTarea : Entity<Guid>
         CreatedAt = DateTime.UtcNow;
     }
 
-    public void RecalcularTarifa(decimal nuevaTarifa, bool esElegibleBono, string nombreRegla, Guid? reglaId)
+    public void RecalcularTarifa(decimal nuevaTarifa, bool esElegibleBono, string nombreRegla)
     {
         TarifaBaseCongelada = nuevaTarifa;
         EsElegibleBonoIndicador = esElegibleBono;
         NombreReglaAplicada = nombreRegla;
-        TarifarioReglaId = reglaId;
     }
 
     public void Completar(string? observaciones = null)
