@@ -16,15 +16,7 @@ import {
   TarifaServicioDto,
   CrearTarifaServicioCommand,
   ActualizarTarifaServicioRequest,
-  CatalogoServicioDto,
-  CrearCatalogoServicioCommand,
-  ActualizarCatalogoServicioRequest,
-  ServicioItemDto,
-  ServicioDetalleDto,
-  CrearServicioRequest,
-  ActualizarServicioRequest,
   ProductoItemDto,
-  ImportarServiciosResultadoDto,
 } from '../models/servicio-campo-catalogos.model';
 
 @Injectable({
@@ -187,84 +179,7 @@ export class ServicioCampoService {
   }
 
   // =========================================================================
-  // 5. CATÁLOGOS DE SERVICIO (Agrupadores / Contratantes)
-  // =========================================================================
-  getCatalogosServicio(
-    search?: string,
-    contratanteId?: string,
-    soloActivos?: boolean
-  ): Observable<CatalogoServicioDto[]> {
-    let params = new HttpParams();
-    if (search && search.trim() !== '') {
-      params = params.set('search', search.trim());
-    }
-    if (contratanteId && contratanteId.trim() !== '') {
-      params = params.set('contratanteId', contratanteId.trim());
-    }
-    if (soloActivos !== undefined && soloActivos !== null) {
-      params = params.set('soloActivos', soloActivos.toString());
-    }
-    return this.http.get<CatalogoServicioDto[]>(`${this.baseUrl}/catalogos-servicio`, { params });
-  }
-
-  getCatalogoServicioPorId(id: string): Observable<CatalogoServicioDto> {
-    return this.http.get<CatalogoServicioDto>(`${this.baseUrl}/catalogos-servicio/${id}`);
-  }
-
-  crearCatalogoServicio(command: CrearCatalogoServicioCommand): Observable<{ id: string; message: string }> {
-    return this.http.post<{ id: string; message: string }>(`${this.baseUrl}/catalogos-servicio`, command);
-  }
-
-  actualizarCatalogoServicio(id: string, request: ActualizarCatalogoServicioRequest): Observable<{ message: string }> {
-    return this.http.put<{ message: string }>(`${this.baseUrl}/catalogos-servicio/${id}`, request);
-  }
-
-  // =========================================================================
-  // 6. SERVICIOS / PLANTILLAS (Checklist, Fotos, Materiales, Sucursales)
-  // =========================================================================
-  getServicios(
-    catalogoServicioId?: string,
-    soloActivos?: boolean
-  ): Observable<ServicioItemDto[]> {
-    let params = new HttpParams();
-    if (catalogoServicioId && catalogoServicioId.trim() !== '') {
-      params = params.set('catalogoServicioId', catalogoServicioId.trim());
-    }
-    if (soloActivos !== undefined && soloActivos !== null) {
-      params = params.set('soloActivos', soloActivos.toString());
-    }
-    return this.http.get<ServicioItemDto[]>(`${this.baseUrl}/servicios`, { params });
-  }
-
-  getServicioPorId(id: string): Observable<ServicioDetalleDto> {
-    return this.http.get<ServicioDetalleDto>(`${this.baseUrl}/servicios/${id}`);
-  }
-
-  crearServicio(command: CrearServicioRequest): Observable<{ id: string; message: string }> {
-    return this.http.post<{ id: string; message: string }>(`${this.baseUrl}/servicios`, command);
-  }
-
-  actualizarServicio(id: string, request: ActualizarServicioRequest): Observable<{ message: string }> {
-    return this.http.put<{ message: string }>(`${this.baseUrl}/servicios/${id}`, request);
-  }
-
-  descargarPlantillaServiciosExcel(): Observable<Blob> {
-    return this.http.get(`${this.baseUrl}/servicios/plantilla-excel`, {
-      responseType: 'blob',
-    });
-  }
-
-  importarServiciosExcel(file: File): Observable<ImportarServiciosResultadoDto> {
-    const formData = new FormData();
-    formData.append('file', file, file.name);
-    return this.http.post<ImportarServiciosResultadoDto>(
-      `${this.baseUrl}/servicios/importar-excel`,
-      formData
-    );
-  }
-
-  // =========================================================================
-  // 7. INVENTARIO / PRODUCTOS LOOKUP
+  // 5. INVENTARIO / PRODUCTOS LOOKUP
   // =========================================================================
   getProductos(
     search?: string,

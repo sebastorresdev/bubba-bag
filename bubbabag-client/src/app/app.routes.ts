@@ -29,7 +29,7 @@ export const routes: Routes = [
   },
   {
     path: 'inventario',
-    redirectTo: 'servicio-campo/materiales',
+    redirectTo: 'servicio-campo/productos',
     pathMatch: 'prefix',
   },
   {

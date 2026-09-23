@@ -38,11 +38,7 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public DbSet<Sucursal> Sucursales => Set<Sucursal>();
     public DbSet<TipoOrdenTrabajo> TiposOrdenTrabajo => Set<TipoOrdenTrabajo>();
     public DbSet<CampoDefinicion> CamposDefinicion => Set<CampoDefinicion>();
-    public DbSet<CatalogoServicio> CatalogosServicio => Set<CatalogoServicio>();
-    public DbSet<Servicio> Servicios => Set<Servicio>();
-    public DbSet<ServicioPaso> ServicioPasos => Set<ServicioPaso>();
-    public DbSet<ServicioMaterial> ServicioMateriales => Set<ServicioMaterial>();
-    public DbSet<SucursalServicio> SucursalesServicio => Set<SucursalServicio>();
+    public DbSet<ProductoServicio> Servicios => Set<ProductoServicio>();
     public DbSet<TipoTareaServicio> TiposTareaServicio => Set<TipoTareaServicio>();
     public DbSet<Tarifario> Tarifarios => Set<Tarifario>();
     public DbSet<TarifarioRegla> TarifarioReglas => Set<TarifarioRegla>();

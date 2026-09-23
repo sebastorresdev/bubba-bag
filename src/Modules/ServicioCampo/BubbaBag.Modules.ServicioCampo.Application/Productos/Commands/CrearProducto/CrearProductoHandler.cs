@@ -51,6 +51,26 @@ public class CrearProductoHandler : ICommandHandler<CrearProductoCommand, Result
         );
 
         await _context.Productos.AddAsync(producto, cancellationToken);
+
+        // Si el producto es de tipo Servicio, asegurar la existencia de la entidad ProductoServicio operativa
+        if (command.Tipo == TipoProducto.Servicio)
+        {
+            var existeServicio = await _context.Servicios.AnyAsync(s => s.Codigo == codigoUpper, cancellationToken);
+            if (!existeServicio)
+            {
+                var servicio = ProductoServicio.Crear(
+                    codigo: codigoUpper,
+                    nombre: command.Nombre,
+                    duracionEstimadaMinutos: 60,
+                    descripcion: command.Descripcion,
+                    codigoExterno: null,
+                    precioBase: command.PrecioBase,
+                    productoId: producto.Id
+                );
+                await _context.Servicios.AddAsync(servicio, cancellationToken);
+            }
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
 
         return Result<Guid>.Success(producto.Id);

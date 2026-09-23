@@ -74,7 +74,7 @@ export class NavigationService {
           icon: 'appstore',
           open: true,
           children: [
-            { title: 'Materiales y Equipos', path: '/servicio-campo/materiales' },
+            { title: 'Productos y Servicios', path: '/servicio-campo/productos' },
             { title: 'Almacenes y Bodegas', path: '/servicio-campo/almacenes' },
             { title: 'Saldo de Técnicos (Móviles)', path: '/servicio-campo/stock-tecnicos' },
             { title: 'Control de Existencias (Stock)', path: '/servicio-campo/stock' },
@@ -88,8 +88,6 @@ export class NavigationService {
           open: false,
           requiredRoles: ['SuperAdmin', 'Gerencia', 'ServicioCampoAdmin', 'ServicioCampoBackoffice'],
           children: [
-            { title: 'Catálogos de Servicios', path: '/servicio-campo/catalogos-servicio' },
-            { title: 'Plantillas de Servicios', path: '/servicio-campo/servicios' },
             { title: 'Tarifario de Liquidación', path: '/servicio-campo/tarifas-servicio' },
             { title: 'Tipos de Orden (Modalidad)', path: '/servicio-campo/tipos-orden' },
             { title: 'Motivos de Incidencia', path: '/servicio-campo/motivos-incidencia' },

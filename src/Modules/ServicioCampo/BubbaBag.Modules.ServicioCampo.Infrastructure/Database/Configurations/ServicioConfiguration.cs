@@ -1,12 +1,12 @@
-using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
+using BubbaBag.Modules.ServicioCampo.Domain.Productos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Configurations;
 
-public class ServicioConfiguration : IEntityTypeConfiguration<Servicio>
+public class ServicioConfiguration : IEntityTypeConfiguration<ProductoServicio>
 {
-    public void Configure(EntityTypeBuilder<Servicio> builder)
+    public void Configure(EntityTypeBuilder<ProductoServicio> builder)
     {
         builder.ToTable("Servicios", "serviciocampo");
 
@@ -34,19 +34,17 @@ public class ServicioConfiguration : IEntityTypeConfiguration<Servicio>
             .HasPrecision(12, 2)
             .HasDefaultValue(0m);
 
-        builder.HasMany(s => s.Pasos)
-            .WithOne()
+        builder.Property(s => s.DuracionEstimadaMinutos)
+            .IsRequired()
+            .HasDefaultValue(60);
+
+        builder.Property(s => s.Activo)
+            .IsRequired()
+            .HasDefaultValue(true);
+
+        builder.HasMany(s => s.Plantillas)
+            .WithOne(p => p.Servicio)
             .HasForeignKey(p => p.ServicioId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasMany(s => s.MaterialesTeoricos)
-            .WithOne()
-            .HasForeignKey(m => m.ServicioId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasMany(s => s.SucursalesHabilitadas)
-            .WithOne()
-            .HasForeignKey(ss => ss.ServicioId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

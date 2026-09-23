@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using BubbaBag.SharedKernel;
-using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
+using BubbaBag.Modules.ServicioCampo.Domain.Productos;
 using BubbaBag.Modules.ServicioCampo.Domain.Plantillas;
 
 namespace BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
@@ -23,7 +23,7 @@ public class Trabajo : Entity<Guid>
     /// Servicio de catálogo contratado o solicitado en esta línea de trabajo.
     /// </summary>
     public Guid ServicioId { get; private set; }
-    public Servicio Servicio { get; private set; } = default!;
+    public ProductoServicio Servicio { get; private set; } = default!;
 
     /// <summary>
     /// Plantilla de trabajo utilizada como modelo para precargar tareas y materiales teóricos.

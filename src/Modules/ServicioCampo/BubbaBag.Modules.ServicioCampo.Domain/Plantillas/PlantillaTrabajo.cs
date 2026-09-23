@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using BubbaBag.SharedKernel;
-using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
+using BubbaBag.Modules.ServicioCampo.Domain.Productos;
 
 namespace BubbaBag.Modules.ServicioCampo.Domain.Plantillas;
 
@@ -21,7 +21,7 @@ public class PlantillaTrabajo : Entity<Guid>
     /// Servicio de catálogo al cual aplica esta plantilla de trabajo.
     /// </summary>
     public Guid ServicioId { get; private set; }
-    public Servicio Servicio { get; private set; } = default!;
+    public ProductoServicio Servicio { get; private set; } = default!;
 
     /// <summary>
     /// Duración técnica estimada en minutos para la totalidad de tareas de esta plantilla.

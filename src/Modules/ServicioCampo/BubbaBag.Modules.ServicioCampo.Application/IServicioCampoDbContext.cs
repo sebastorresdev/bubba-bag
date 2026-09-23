@@ -34,11 +34,7 @@ public interface IServicioCampoDbContext
     DbSet<Sucursal> Sucursales { get; }
     DbSet<TipoOrdenTrabajo> TiposOrdenTrabajo { get; }
     DbSet<CampoDefinicion> CamposDefinicion { get; }
-    DbSet<CatalogoServicio> CatalogosServicio { get; }
-    DbSet<Servicio> Servicios { get; }
-    DbSet<ServicioPaso> ServicioPasos { get; }
-    DbSet<ServicioMaterial> ServicioMateriales { get; }
-    DbSet<SucursalServicio> SucursalesServicio { get; }
+    DbSet<ProductoServicio> Servicios { get; }
     DbSet<TipoTareaServicio> TiposTareaServicio { get; }
     DbSet<Tarifario> Tarifarios { get; }
     DbSet<TarifarioRegla> TarifarioReglas { get; }

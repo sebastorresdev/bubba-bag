@@ -13,7 +13,6 @@ public static class ServicioCampoModule
     {
         // Infrastructure
         services.AddScoped<IServicioCampoDbContext>(provider => provider.GetRequiredService<ServicioCampoDbContext>());
-        services.AddScoped<BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.Servicios.Services.IServicioExcelService, BubbaBag.Modules.ServicioCampo.Infrastructure.Services.ServicioExcelService>();
 
         // Application Assembly - Registrar dinámicamente todos los ICommandHandler<,>, IQueryHandler<,> y Validators
         var applicationAssembly = typeof(IServicioCampoDbContext).Assembly;

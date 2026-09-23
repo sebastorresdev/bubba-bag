@@ -843,9 +843,9 @@ export class DashboardComponent {
       quickLinks: [
         { label: 'Órdenes de Trabajo', route: '/servicio-campo/ordenes' },
         { label: 'Directorio Clientes', route: '/servicio-campo/clientes' },
-        { label: 'Materiales & Series', route: '/servicio-campo/materiales' },
+        { label: 'Productos & Servicios', route: '/servicio-campo/productos' },
         { label: 'Control de Stock', route: '/servicio-campo/stock' },
-        { label: 'Plantillas y Tarifarios', route: '/servicio-campo/servicios' },
+        { label: 'Tarifario de Liquidación', route: '/servicio-campo/tarifas-servicio' },
       ],
     },
     {

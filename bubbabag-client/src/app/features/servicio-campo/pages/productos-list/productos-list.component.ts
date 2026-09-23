@@ -254,11 +254,11 @@ export class ProductosListComponent implements OnInit, OnDestroy {
 
   // ─── Navegación a páginas dedicadas ───────────────────────────────────────
   crearNuevo(): void {
-    this.router.navigate(['/servicio-campo/materiales/nuevo']);
+    this.router.navigate(['/servicio-campo/productos/nuevo']);
   }
 
   editarProducto(id: string): void {
-    this.router.navigate(['/servicio-campo/materiales/editar', id]);
+    this.router.navigate(['/servicio-campo/productos/editar', id]);
   }
 
   // ─── Toggle Estado ────────────────────────────────────────────────────────

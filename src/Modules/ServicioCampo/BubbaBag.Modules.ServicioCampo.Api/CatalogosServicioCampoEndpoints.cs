@@ -27,19 +27,6 @@ using BubbaBag.Modules.ServicioCampo.Application.Tarifarios.TarifasServicio.Comm
 using BubbaBag.Modules.ServicioCampo.Application.Tarifarios.TarifasServicio.Commands.CambiarEstadoTarifaServicio;
 using BubbaBag.Modules.ServicioCampo.Application.Tarifarios.TarifasServicio.Queries.ObtenerTarifasServicio;
 using BubbaBag.Modules.ServicioCampo.Application.Tarifarios.TarifasServicio.Queries.ObtenerTarifaServicioPorId;
-
-using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.CatalogosServicio.Dtos;
-using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.CatalogosServicio.Commands.CrearCatalogoServicio;
-using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.CatalogosServicio.Commands.ActualizarCatalogoServicio;
-using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.CatalogosServicio.Queries.ObtenerCatalogosServicio;
-using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.CatalogosServicio.Queries.ObtenerCatalogoServicioPorId;
-
-using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.Servicios.Dtos;
-using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.Servicios.Commands.CrearServicio;
-using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.Servicios.Commands.ActualizarServicio;
-using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.Servicios.Queries.ObtenerServicios;
-using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.Servicios.Queries.ObtenerServicioPorId;
-using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.Servicios.Services;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -123,37 +110,6 @@ public static class CatalogosServicioCampoEndpoints
         tarifasGroup.MapPut("/{id:guid}", ActualizarTarifaServicio)
             .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
         tarifasGroup.MapPatch("/{id:guid}/estado", CambiarEstadoTarifaServicio)
-            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
-
-        // =====================================================================
-        // CATÁLOGOS DE SERVICIO (Agrupadores / Contratantes)
-        // =====================================================================
-        var catalogosServicioGroup = rootGroup.MapGroup("/catalogos-servicio");
-        catalogosServicioGroup.MapGet("/", ObtenerCatalogosServicio)
-            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
-        catalogosServicioGroup.MapGet("/{id:guid}", ObtenerCatalogoServicioPorId)
-            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
-        catalogosServicioGroup.MapPost("/", CrearCatalogoServicio)
-            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
-        catalogosServicioGroup.MapPut("/{id:guid}", ActualizarCatalogoServicio)
-            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
-
-        // =====================================================================
-        // SERVICIOS / PLANTILLAS (Checklist, Materiales, Sucursales)
-        // =====================================================================
-        var serviciosGroup = rootGroup.MapGroup("/servicios");
-        serviciosGroup.MapGet("/", ObtenerServicios)
-            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
-        serviciosGroup.MapGet("/{id:guid}", ObtenerServicioPorId)
-            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
-        serviciosGroup.MapGet("/plantilla-excel", DescargarPlantillaExcel)
-            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
-        serviciosGroup.MapPost("/importar-excel", ImportarServiciosExcel)
-            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar)
-            .DisableAntiforgery();
-        serviciosGroup.MapPost("/", CrearServicio)
-            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
-        serviciosGroup.MapPut("/{id:guid}", ActualizarServicio)
             .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
     }
 
@@ -371,144 +327,7 @@ public static class CatalogosServicioCampoEndpoints
             ? Results.Ok(new { message = $"Tarifa de servicio {(request.Activo ? "activada" : "desactivada")} correctamente." })
             : Results.BadRequest(new { message = result.Error });
     }
-
-    // Handlers - Catálogos de Servicio
-    private static async Task<IResult> ObtenerCatalogosServicio(
-        IDispatcher dispatcher,
-        string? search,
-        Guid? clienteId,
-        bool? soloActivos)
-    {
-        var result = await dispatcher.QueryAsync(new ObtenerCatalogosServicioQuery(search, clienteId, soloActivos));
-        return Results.Ok(result.Value);
-    }
-
-    private static async Task<IResult> ObtenerCatalogoServicioPorId(Guid id, IDispatcher dispatcher)
-    {
-        var result = await dispatcher.QueryAsync(new ObtenerCatalogoServicioPorIdQuery(id));
-        return result.IsSuccess && result.Value != null
-            ? Results.Ok(result.Value)
-            : Results.NotFound(new { message = "Catálogo de servicios no encontrado." });
-    }
-
-    private static async Task<IResult> CrearCatalogoServicio(CrearCatalogoServicioCommand command, IDispatcher dispatcher)
-    {
-        var result = await dispatcher.SendAsync(command);
-        return result.IsSuccess
-            ? Results.Created($"/api/serviciocampo/catalogos/catalogos-servicio/{result.Value}", new { id = result.Value, message = "Catálogo creado exitosamente." })
-            : Results.BadRequest(new { message = result.Error });
-    }
-
-    private static async Task<IResult> ActualizarCatalogoServicio(Guid id, ActualizarCatalogoServicioRequest request, IDispatcher dispatcher)
-    {
-        var command = new ActualizarCatalogoServicioCommand(
-            id,
-            request.Nombre,
-            request.ClienteId,
-            request.Descripcion,
-            request.Activo);
-
-        var result = await dispatcher.SendAsync(command);
-        return result.IsSuccess
-            ? Results.Ok(new { message = "Catálogo actualizado exitosamente." })
-            : Results.BadRequest(new { message = result.Error });
-    }
-
-    // Handlers - Servicios
-    private static async Task<IResult> ObtenerServicios(IDispatcher dispatcher, Guid? catalogoServicioId, bool? soloActivos)
-    {
-        var result = await dispatcher.QueryAsync(new ObtenerServiciosQuery(catalogoServicioId, soloActivos));
-        return Results.Ok(result.Value);
-    }
-
-    private static async Task<IResult> ObtenerServicioPorId(Guid id, IDispatcher dispatcher)
-    {
-        var result = await dispatcher.QueryAsync(new ObtenerServicioPorIdQuery(id));
-        return result.IsSuccess && result.Value != null
-            ? Results.Ok(result.Value)
-            : Results.NotFound(new { message = "Servicio no encontrado." });
-    }
-
-    private static async Task<IResult> CrearServicio(CrearServicioCommand command, IDispatcher dispatcher)
-    {
-        var result = await dispatcher.SendAsync(command);
-        return result.IsSuccess
-            ? Results.Created($"/api/serviciocampo/catalogos/servicios/{result.Value}", new { id = result.Value, message = "Servicio registrado exitosamente." })
-            : Results.BadRequest(new { message = result.Error });
-    }
-
-    private static async Task<IResult> ActualizarServicio(Guid id, ActualizarServicioRequest request, IDispatcher dispatcher)
-    {
-        var command = new ActualizarServicioCommand(
-            id,
-            request.Nombre,
-            request.CatalogoServicioId,
-            request.DuracionEstimadaMinutos,
-            request.Descripcion,
-            request.CodigoExterno,
-            request.PrecioBase,
-            request.Activo,
-            request.Pasos,
-            request.MaterialesTeoricos,
-            request.SucursalesHabilitadasIds);
-
-        var result = await dispatcher.SendAsync(command);
-        return result.IsSuccess
-            ? Results.Ok(new { message = "Servicio actualizado exitosamente." })
-            : Results.BadRequest(new { message = result.Error });
-    }
-
-    private static async Task<IResult> DescargarPlantillaExcel(
-        IServicioExcelService excelService,
-        CancellationToken cancellationToken)
-    {
-        var bytes = await excelService.GenerarPlantillaExcelAsync(cancellationToken);
-        return Results.File(
-            bytes,
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "Plantilla_Importacion_Servicios.xlsx"
-        );
-    }
-
-    private static async Task<IResult> ImportarServiciosExcel(
-        Microsoft.AspNetCore.Http.IFormFile file,
-        IServicioExcelService excelService,
-        CancellationToken cancellationToken)
-    {
-        if (file == null || file.Length == 0)
-        {
-            return Results.BadRequest(new { message = "Debe proporcionar un archivo Excel (.xlsx) válido." });
-        }
-
-        var extension = System.IO.Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (extension != ".xlsx" && extension != ".xls")
-        {
-            return Results.BadRequest(new { message = "El formato no es válido. Asegúrese de cargar un archivo con extensión .xlsx." });
-        }
-
-        using var stream = file.OpenReadStream();
-        var resultado = await excelService.ImportarServiciosDesdeExcelAsync(stream, cancellationToken);
-        return Results.Ok(resultado);
-    }
 }
-
-public record ActualizarCatalogoServicioRequest(
-    string Nombre,
-    Guid? ClienteId,
-    string? Descripcion,
-    bool Activo);
-
-public record ActualizarServicioRequest(
-    string Nombre,
-    Guid CatalogoServicioId,
-    int DuracionEstimadaMinutos,
-    string? Descripcion,
-    string? CodigoExterno,
-    decimal PrecioBase,
-    bool Activo,
-    List<ServicioPasoInput>? Pasos,
-    List<ServicioMaterialInput>? MaterialesTeoricos,
-    List<Guid>? SucursalesHabilitadasIds);
 
 // Request DTOs
 public record CambiarEstadoCatalogoRequest(bool Activo);

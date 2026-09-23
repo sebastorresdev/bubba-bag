@@ -7,11 +7,8 @@ import { TarifaServicioFormComponent } from './pages/tarifa-servicio-form/tarifa
 
 import { TipoOrdenFormComponent } from './pages/tipo-orden-form/tipo-orden-form.component';
 import { MotivoIncidenciaFormComponent } from './pages/motivo-incidencia-form/motivo-incidencia-form.component';
-import { ServiciosListComponent } from './pages/servicios-list/servicios-list.component';
-import { ServicioFormComponent } from './pages/servicio-form/servicio-form.component';
-import { CatalogosServicioListComponent } from './pages/catalogos-servicio-list/catalogos-servicio-list.component';
-import { CatalogoServicioFormComponent } from './pages/catalogo-servicio-form/catalogo-servicio-form.component';
 import { OrdenesListComponent } from './pages/ordenes-list/ordenes-list.component';
+
 export const SERVICIO_CAMPO_ROUTES: Routes = [
   {
     path: '',
@@ -47,31 +44,61 @@ export const SERVICIO_CAMPO_ROUTES: Routes = [
           ),
         title: 'Editar Cliente - Servicio de Campo',
       },
-      // ── Logística y Materiales de Campo ──
+      // ── Catálogo Maestro de Productos y Servicios (Unificado) ──
       {
-        path: 'materiales',
+        path: 'productos',
         loadComponent: () =>
           import('./pages/productos-list/productos-list.component').then(
             (m) => m.ProductosListComponent
           ),
-        title: 'Materiales y Equipos - Servicio de Campo',
+        title: 'Productos y Servicios - Servicio de Campo',
+      },
+      {
+        path: 'productos/nuevo',
+        loadComponent: () =>
+          import('./pages/producto-form/producto-form.component').then(
+            (m) => m.ProductoFormComponent
+          ),
+        title: 'Nuevo Producto / Servicio - Servicio de Campo',
+      },
+      {
+        path: 'productos/editar/:id',
+        loadComponent: () =>
+          import('./pages/producto-form/producto-form.component').then(
+            (m) => m.ProductoFormComponent
+          ),
+        title: 'Editar Producto / Servicio - Servicio de Campo',
+      },
+      // ── Redirecciones canónicas de rutas duplicadas/heredadas ──
+      {
+        path: 'materiales',
+        redirectTo: 'productos',
+        pathMatch: 'full',
       },
       {
         path: 'materiales/nuevo',
-        loadComponent: () =>
-          import('./pages/producto-form/producto-form.component').then(
-            (m) => m.ProductoFormComponent
-          ),
-        title: 'Nuevo Material / Equipo - Servicio de Campo',
+        redirectTo: 'productos/nuevo',
+        pathMatch: 'full',
       },
       {
         path: 'materiales/editar/:id',
-        loadComponent: () =>
-          import('./pages/producto-form/producto-form.component').then(
-            (m) => m.ProductoFormComponent
-          ),
-        title: 'Editar Material / Equipo - Servicio de Campo',
+        redirectTo: 'productos/editar/:id',
       },
+      {
+        path: 'servicios',
+        redirectTo: 'productos',
+        pathMatch: 'full',
+      },
+      {
+        path: 'servicios/nuevo',
+        redirectTo: 'productos/nuevo',
+        pathMatch: 'full',
+      },
+      {
+        path: 'servicios/editar/:id',
+        redirectTo: 'productos/editar/:id',
+      },
+      // ── Logística e Inventario ──
       {
         path: 'almacenes',
         loadComponent: () =>
@@ -112,6 +139,7 @@ export const SERVICIO_CAMPO_ROUTES: Routes = [
           ),
         title: 'Kardex y Despachos - Servicio de Campo',
       },
+      // ── Tarifarios y Parámetros Operativos ──
       {
         path: 'tarifas-servicio',
         component: TarifasServicioListComponent,
@@ -126,36 +154,6 @@ export const SERVICIO_CAMPO_ROUTES: Routes = [
         path: 'tarifas-servicio/editar/:id',
         component: TarifaServicioFormComponent,
         title: 'Editar Tarifa de Servicio - Servicio de Campo',
-      },
-      {
-        path: 'catalogos-servicio',
-        component: CatalogosServicioListComponent,
-        title: 'Catálogos de Servicios - Servicio de Campo',
-      },
-      {
-        path: 'catalogos-servicio/nuevo',
-        component: CatalogoServicioFormComponent,
-        title: 'Nuevo Catálogo de Servicios - Servicio de Campo',
-      },
-      {
-        path: 'catalogos-servicio/editar/:id',
-        component: CatalogoServicioFormComponent,
-        title: 'Editar Catálogo de Servicios - Servicio de Campo',
-      },
-      {
-        path: 'servicios',
-        component: ServiciosListComponent,
-        title: 'Plantillas de Servicios - Servicio de Campo',
-      },
-      {
-        path: 'servicios/nuevo',
-        component: ServicioFormComponent,
-        title: 'Nueva Plantilla de Servicio - Servicio de Campo',
-      },
-      {
-        path: 'servicios/editar/:id',
-        component: ServicioFormComponent,
-        title: 'Editar Plantilla de Servicio - Servicio de Campo',
       },
       {
         path: 'tipos-orden',

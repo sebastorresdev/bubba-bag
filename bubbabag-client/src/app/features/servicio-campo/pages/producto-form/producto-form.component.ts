@@ -263,7 +263,7 @@ export class ProductoFormComponent implements OnInit {
   }
 
   volver(): void {
-    this.router.navigate(['/servicio-campo/materiales']);
+    this.router.navigate(['/servicio-campo/productos']);
   }
 
   // ─── Guardar ──────────────────────────────────────────────────────────────
@@ -327,7 +327,7 @@ export class ProductoFormComponent implements OnInit {
             if (cerrarAlFinal) {
               this.volver();
             } else {
-              this.router.navigate(['/servicio-campo/materiales/editar', res.id]);
+              this.router.navigate(['/servicio-campo/productos/editar', res.id]);
             }
           },
           error: (err) => {
