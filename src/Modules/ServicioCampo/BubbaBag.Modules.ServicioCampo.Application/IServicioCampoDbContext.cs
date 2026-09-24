@@ -29,6 +29,8 @@ public interface IServicioCampoDbContext
     DbSet<Cliente> Clientes { get; }
     DbSet<Ubigeo> Ubigeos { get; }
     DbSet<Producto> Productos { get; }
+    DbSet<UnidadMedida> UnidadesMedida { get; }
+    DbSet<CategoriaProducto> CategoriasProducto { get; }
     DbSet<ItemSeriado> ItemsSeriados { get; }
     DbSet<Sucursal> Sucursales { get; }
     DbSet<TipoOrdenTrabajo> TiposOrdenTrabajo { get; }

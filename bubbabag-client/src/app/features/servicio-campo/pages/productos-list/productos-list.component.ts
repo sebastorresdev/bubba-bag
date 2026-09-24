@@ -80,7 +80,8 @@ export class ProductosListComponent implements OnInit, OnDestroy {
   // ─── Columnas ─────────────────────────────────────────────────────────────
   columnas: ColumnDef<ProductoDto>[] = [
     { key: 'codigo', title: 'Código', width: '120px', sortable: true, dataType: 'text', primaryLink: true, canHide: false },
-    { key: 'nombre', title: 'Nombre / Descripción', width: '280px', sortable: true, dataType: 'text', canHide: false },
+    { key: 'nombre', title: 'Nombre del Producto', width: '280px', sortable: true, dataType: 'text', canHide: false },
+    { key: 'descripcion', title: 'Descripción', width: '250px', sortable: true, dataType: 'text', hidden: true },
     { key: 'categoria', title: 'Categoría', width: '140px', sortable: true, dataType: 'text' },
     { key: 'tipo', title: 'Tipo', width: '130px', sortable: true, dataType: 'text' },
     { key: 'unidadMedida', title: 'U.M.', width: '100px', align: 'center', sortable: true, dataType: 'text' },
@@ -135,7 +136,7 @@ export class ProductosListComponent implements OnInit, OnDestroy {
       {
         key: 'toggle',
         label: this.selectedProducto?.activo === false ? 'Activar' : 'Desactivar',
-        icon: this.selectedProducto?.activo === false ? 'check-circle' : 'stop',
+        icon: this.selectedProducto?.activo === false ? 'check-circle' : 'close-circle',
         danger: this.selectedProducto?.activo !== false,
         iconColor: this.selectedProducto?.activo === false ? 'success' : 'danger',
         disabled: this.setOfCheckedId.size !== 1,
@@ -258,7 +259,10 @@ export class ProductosListComponent implements OnInit, OnDestroy {
   }
 
   editarProducto(id: string): void {
-    this.router.navigate(['/servicio-campo/productos/editar', id]);
+    const prod = this.productos.find((p) => p.id === id);
+    this.router.navigate(['/servicio-campo/productos/editar', id], {
+      state: { data: prod },
+    });
   }
 
   // ─── Toggle Estado ────────────────────────────────────────────────────────

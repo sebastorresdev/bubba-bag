@@ -1,19 +1,23 @@
 <nz-layout class="erp-layout">
-  <!-- Top Suite Bar (Estilo Microsoft Dynamics 365 con color temático por Aplicación) -->
+  <!-- Top Suite Bar (Estilo Microsoft Dynamics 365) -->
   <nz-header class="erp-suite-bar" [style.--erp-suite-bar-bg]="navService.currentModule().themeColor">
-    <!-- Izquierda: Menú móvil + Waffle launcher + Brand + Módulo Activo -->
+    <!-- Izquierda: Menú móvil + Waffle launcher + Brand + Módulo Activo + Breadcrumb -->
     <div class="erp-suite-bar-brand">
       <button nz-button nzType="text" class="erp-mobile-menu-btn" (click)="toggleMobileSider()" title="Menú del Sistema">
         <nz-icon [nzType]="isMobileSiderVisible ? 'close' : 'menu'" />
       </button>
 
-      <button nz-button nzType="text" (click)="openAppLauncher()" title="Aplicaciones" class="erp-waffle-btn">
+      <!-- App Launcher Waffle Button -->
+      <button nz-button nzType="text" (click)="openAppLauncher()" title="Selector de Aplicaciones" class="erp-waffle-btn">
         <nz-icon nzType="appstore" />
       </button>
 
-      <span class="erp-brand-title" (click)="goToDashboard()">BubbaBag ERP</span>
+      <span class="erp-brand-title" (click)="goToDashboard()">Dynamics 365</span>
       <span class="erp-brand-sep">|</span>
-      <span class="erp-module-title">{{ navService.currentModule().title }}</span>
+      <span class="erp-module-title" (click)="openAppLauncher()" title="Cambiar Aplicación">{{ navService.currentModule().title }}</span>
+      <span class="d365-top-breadcrumb">
+        {{ navService.currentArea().name }} &gt; {{ navService.activeItemTitle() }}
+      </span>
     </div>
 
     <!-- Centro: Búsqueda Global de Registros (Dynamics 365 Centered Search) -->
@@ -138,6 +142,7 @@
       [nzTheme]="themeService.isDarkMode() ? 'dark' : 'light'" class="d365-sider" [class.d365-collapsed]="isCollapsed"
       [class.d365-sider-mobile-open]="isMobileSiderVisible"
       [class.d365-dark]="themeService.isDarkMode()">
+      
       <!-- Top Trigger Bar: Botón Hamburguesa -->
       <div class="d365-sitemap-top">
         <button nz-button nzType="text" nzSize="small" class="d365-hamburger-btn" (click)="isCollapsed = !isCollapsed"
@@ -150,29 +155,29 @@
       <div class="d365-sitemap-scroll">
         <ul nz-menu nzMode="inline" [nzInlineIndent]="16" [nzTheme]="themeService.isDarkMode() ? 'dark' : 'light'"
           [nzInlineCollapsed]="isCollapsed" class="d365-menu">
-          @for (item of navService.getVisibleItems(navService.currentModule()); track item.title) {
-          <!-- Nivel 1 - Opción A: Ítem directo en raíz -->
-          @if (!item.children || item.children.length === 0) {
-          <li nz-menu-item nz-tooltip nzTooltipPlacement="right" [nzTooltipTitle]="isCollapsed ? item.title : ''"
-            [nzSelected]="isActive(item)" [routerLink]="item.path" (click)="closeMobileSider()">
-            @if (item.icon) {
-            <nz-icon [nzType]="item.icon" />
-            }
-            <span class="d365-menu-title">{{ item.title }}</span>
-          </li>
-          }
-          <!-- Nivel 1 - Opción B: Submenú (el padre tiene icono, los hijos no) -->
-          @else {
-          <li nz-submenu [nzTitle]="item.title" [nzIcon]="item.icon || ''" [(nzOpen)]="item.open">
-            <ul>
-              @for (sub of item.children; track sub.title) {
-              <li nz-menu-item [nzSelected]="isActive(sub)" [routerLink]="sub.path" (click)="closeMobileSider()">
-                <span class="d365-menu-title">{{ sub.title }}</span>
+          @for (item of navService.getVisibleItems(navService.currentArea()); track item.title) {
+            <!-- Nivel 1 - Opción A: Ítem directo en raíz -->
+            @if (!item.children || item.children.length === 0) {
+              <li nz-menu-item nz-tooltip nzTooltipPlacement="right" [nzTooltipTitle]="isCollapsed ? item.title : ''"
+                [nzSelected]="isActive(item)" [routerLink]="item.path" (click)="closeMobileSider()">
+                @if (item.icon) {
+                  <nz-icon [nzType]="item.icon" />
+                }
+                <span class="d365-menu-title">{{ item.title }}</span>
               </li>
-              }
-            </ul>
-          </li>
-          }
+            }
+            <!-- Nivel 1 - Opción B: Submenú (el padre tiene icono, los hijos no) -->
+            @else {
+              <li nz-submenu [nzTitle]="item.title" [nzIcon]="item.icon || ''" [(nzOpen)]="item.open">
+                <ul>
+                  @for (sub of item.children; track sub.title) {
+                    <li nz-menu-item [nzSelected]="isActive(sub)" [routerLink]="sub.path" (click)="closeMobileSider()">
+                      <span class="d365-menu-title">{{ sub.title }}</span>
+                    </li>
+                  }
+                </ul>
+              </li>
+            }
           }
         </ul>
       </div>
@@ -181,38 +186,41 @@
       <div class="d365-sitemap-footer">
         <button nz-button nzType="text" nz-dropdown [nzDropdownMenu]="areaMenu" nzPlacement="topLeft" nzTrigger="click"
           class="d365-area-switcher"
-          [title]="isCollapsed ? 'Cambiar de área (' + navService.currentModule().title + ')' : ''">
-          <div class="d365-area-badge">
-            {{ navService.currentModule().shortCode }}
+          [title]="isCollapsed ? 'Cambiar de área (' + navService.currentArea().name + ')' : ''">
+          <div class="d365-area-badge" [style.background-color]="navService.currentArea().badgeColor || navService.currentModule().accentColor">
+            {{ navService.currentArea().shortCode }}
           </div>
           @if (!isCollapsed) {
-            <span class="d365-area-name">{{ navService.currentModule().title }}</span>
+            <span class="d365-area-name">{{ navService.currentArea().name }}</span>
             <nz-icon nzType="up" class="d365-area-arrow" />
           }
         </button>
 
         <nz-dropdown-menu #areaMenu="nzDropdownMenu">
-          <ul nz-menu class="d365-area-dropdown">
-            <li nz-menu-group nzTitle="Áreas de Trabajo">
-              <ul>
-                @for (mod of navService.visibleModules(); track mod.id) {
-                <li nz-menu-item (click)="selectModule(mod)" [nzSelected]="navService.currentModule().id === mod.id">
-                  <div class="d365-dropdown-item">
-                    <div class="d365-dropdown-badge">{{ mod.shortCode }}</div>
-                    <span>{{ mod.title }}</span>
+          <div class="d365-change-area-dropdown">
+            <div class="d365-change-area-header">Cambiar de área</div>
+            <ul nz-menu class="d365-area-dropdown-list">
+              @for (area of navService.currentModule().areas; track area.id) {
+                <li nz-menu-item (click)="selectArea(area)" [nzSelected]="navService.currentArea().id === area.id"
+                    class="d365-area-popup-item">
+                  <div class="d365-area-popup-row">
+                    <span class="d365-area-popup-check">
+                      @if (navService.currentArea().id === area.id) {
+                        <nz-icon nzType="check" />
+                      }
+                    </span>
+                    <span class="d365-area-popup-label">{{ area.name }}</span>
                   </div>
                 </li>
-                }
-              </ul>
-            </li>
-          </ul>
+              }
+            </ul>
+          </div>
         </nz-dropdown-menu>
       </div>
     </nz-sider>
 
     <!-- Área de Trabajo y Comandos -->
     <nz-layout class="erp-work-layout">
-
       <!-- Contenido Principal de la Página -->
       <nz-content class="erp-content-area">
         <router-outlet></router-outlet>
@@ -221,7 +229,7 @@
   </nz-layout>
 </nz-layout>
 
-<!-- Drawer Selector de Aplicaciones -->
+<!-- Drawer Selector de Aplicaciones (Top-Left Waffle Button) -->
 <nz-drawer [nzClosable]="false" [nzVisible]="isAppLauncherVisible" nzPlacement="left" nzWidth="340px"
   [nzTitle]="launcherTitle" [nzExtra]="launcherCloseTpl" (nzOnClose)="closeAppLauncher()"
   nzWrapClassName="d365-launcher-drawer" class="d365-launcher-drawer">
@@ -231,7 +239,7 @@
         class="d365-launcher-header-waffle">
         <nz-icon nzType="appstore" />
       </button>
-      <span class="d365-launcher-header-title">Aplicaciones ERP</span>
+      <span class="d365-launcher-header-title">Aplicaciones Dynamics 365</span>
     </div>
   </ng-template>
 
@@ -250,13 +258,13 @@
         </div>
         <div class="d365-launcher-info">
           <span class="d365-launcher-name">Panel General</span>
-          <span class="d365-launcher-desc">Vista global del negocio y accesos rápidos</span>
+          <span class="d365-launcher-desc">Vista global del negocio y catálogo de apps</span>
         </div>
       </a>
 
       <div class="d365-launcher-section">APLICACIONES EMPRESARIALES</div>
 
-      <!-- Lista de Aplicaciones de Negocio estilo Dynamics 365 -->
+      <!-- Lista de Aplicaciones Principales estilo Dynamics 365 -->
       <div class="d365-launcher-list">
         @for (mod of navService.visibleModules(); track mod.id) {
         <a class="d365-launcher-item" [class.d365-launcher-item-active]="navService.currentModule().id === mod.id"

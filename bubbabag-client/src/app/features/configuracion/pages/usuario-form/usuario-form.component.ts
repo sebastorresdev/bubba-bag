@@ -251,14 +251,7 @@ export class UsuarioFormComponent implements OnInit {
         this.usuarioId = id;
         this.isEdit = true;
 
-        // Hidratación instantánea desde el state de navegación para eliminar cualquier parpadeo
-        const navState = history.state?.usuario as UsuarioDto | undefined;
-        if (navState && navState.id === id) {
-          this.setUsuario(navState);
-        } else {
-          this.loading = true;
-        }
-
+        this.loading = true;
         this.cargarUsuario(id);
       } else {
         this.isEdit = false;

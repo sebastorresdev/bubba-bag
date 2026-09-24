@@ -55,13 +55,9 @@
       </span>
     </ng-template>
 
-    <!-- Estado con Tag D365 -->
+    <!-- Estado con Tag NG-ZORRO -->
     <ng-template cellDef="activo" let-depto>
-      <nz-tag
-        class="d365-status-tag"
-        [class.tag-active]="depto.activo"
-        [class.tag-inactive]="!depto.activo"
-      >
+      <nz-tag [nzColor]="depto.activo ? 'success' : 'default'">
         {{ depto.activo ? 'Activo' : 'Inactivo' }}
       </nz-tag>
     </ng-template>

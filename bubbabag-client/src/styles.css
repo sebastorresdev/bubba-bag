@@ -4,6 +4,14 @@
 @import './styles/d365-form.css';
 @import './styles/d365-list.css';
 
+/* Prevenir saltos visuales o transiciones desfasadas al cambiar entre modo claro y oscuro */
+.theme-switching,
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
+
 *,
 html,
 body,

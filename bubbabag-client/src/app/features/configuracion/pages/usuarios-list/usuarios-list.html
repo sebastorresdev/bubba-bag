@@ -37,13 +37,9 @@
       </div>
     </ng-template>
 
-    <!-- Estado con Tag D365 -->
+    <!-- Estado con Tag NG-ZORRO -->
     <ng-template cellDef="esActivo" let-data>
-      <nz-tag
-        class="d365-status-tag"
-        [class.tag-active]="data.esActivo"
-        [class.tag-inactive]="!data.esActivo"
-      >
+      <nz-tag [nzColor]="data.esActivo ? 'success' : 'default'">
         {{ data.esActivo ? 'Activo' : 'Inactivo' }}
       </nz-tag>
     </ng-template>

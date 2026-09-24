@@ -91,7 +91,45 @@ public static class WebApplicationExtensions
                           ""SucursalId"" uuid,
                           ""RecursoTecnicoId"" uuid,
                           ""Activo"" boolean NOT NULL DEFAULT true
-                      );");
+                      );
+
+                      CREATE TABLE IF NOT EXISTS inventario.""UnidadesMedida"" (
+                          ""Id"" uuid NOT NULL PRIMARY KEY,
+                          ""Codigo"" character varying(20) NOT NULL,
+                          ""Nombre"" character varying(100) NOT NULL,
+                          ""Abreviatura"" character varying(10) NOT NULL,
+                          ""PermiteDecimales"" boolean NOT NULL DEFAULT false,
+                          ""Descripcion"" character varying(300),
+                          ""Activo"" boolean NOT NULL DEFAULT true
+                      );
+
+                      CREATE TABLE IF NOT EXISTS inventario.""CategoriasProducto"" (
+                          ""Id"" uuid NOT NULL PRIMARY KEY,
+                          ""Codigo"" character varying(20) NOT NULL,
+                          ""Nombre"" character varying(100) NOT NULL,
+                          ""Familia"" character varying(100),
+                          ""Descripcion"" character varying(300),
+                          ""Activo"" boolean NOT NULL DEFAULT true
+                      );
+
+                      INSERT INTO inventario.""UnidadesMedida"" (""Id"", ""Codigo"", ""Nombre"", ""Abreviatura"", ""PermiteDecimales"", ""Descripcion"", ""Activo"")
+                      VALUES 
+                          ('a1111111-1111-1111-1111-111111111111', 'UND', 'Unidades', 'und', false, 'Unidad discreta estándar para equipos, piezas y accesorios', true),
+                          ('a2222222-2222-2222-2222-222222222222', 'MTR', 'Metros', 'm', true, 'Metros lineales de cableado, ductos y canaletas (fraccionable)', true),
+                          ('a3333333-3333-3333-3333-333333333333', 'ROL', 'Rollos', 'rol', false, 'Bobina o rollo completo de cable o cinta', true),
+                          ('a4444444-4444-4444-4444-444444444444', 'CAJ', 'Cajas', 'cj', false, 'Caja de grapas, conectores o insumos al por mayor', true),
+                          ('a5555555-5555-5555-5555-555555555555', 'KGM', 'Kilogramos', 'kg', true, 'Peso en masa o granel (fraccionable)', true),
+                          ('a6666666-6666-6666-6666-666666666666', 'SRV', 'Servicio', 'srv', false, 'Prestación de trabajo u hora técnica de instalación', true)
+                      ON CONFLICT (""Id"") DO NOTHING;
+
+                      INSERT INTO inventario.""CategoriasProducto"" (""Id"", ""Codigo"", ""Nombre"", ""Familia"", ""Descripcion"", ""Activo"")
+                      VALUES 
+                          ('b1111111-1111-1111-1111-111111111111', 'MAT', 'Materiales e Insumos', 'Ferretería y Redes', 'Materiales de fijación, grapas, conectores y selladores', true),
+                          ('b2222222-2222-2222-2222-222222222222', 'EQU', 'Equipos y Terminales', 'Hardware Telecom', 'Equipos receptores, decodificadores, ONTs y routers serializados', true),
+                          ('b3333333-3333-3333-3333-333333333333', 'FIB', 'Conectividad y Fibra', 'Redes Ópticas', 'Cables drop de fibra óptica, splitters, pigtails y rosetas', true),
+                          ('b4444444-4444-4444-4444-444444444444', 'HER', 'Herramientas y Equipamiento', 'Activos de Campo', 'Fusionadoras, OPM, VFL, peladoras y escaleras de técnico', true),
+                          ('b5555555-5555-5555-5555-555555555555', 'SRV', 'Servicios de Campo', 'Mano de Obra', 'Instalación, migración tecnológica y mantenimiento correctivo', true)
+                      ON CONFLICT (""Id"") DO NOTHING;");
             }
             catch { }
 

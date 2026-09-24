@@ -1,0 +1,158 @@
+<!-- Barra de Comandos Superior Dynamics 365 -->
+<app-command-bar
+  [items]="commandBarItems"
+  [showBack]="true"
+  (back)="volver()"
+></app-command-bar>
+
+@if (loading && isEdit) {
+  <div class="d365-form-loading-state">
+    <nz-spin nzSimple [nzSize]="'large'"></nz-spin>
+    <div class="loading-message">Cargando unidad de medida...</div>
+  </div>
+} @else {
+  <div class="unidad-medida-form-view d365-form-view">
+    <!-- Cabecera de Registro (Dynamics 365 Record Header) -->
+    <div class="d365-record-header">
+      <div class="record-header-main">
+        <div class="record-avatar-container">
+          <nz-avatar
+            [nzSize]="56"
+          [nzText]="getIniciales()"
+          class="record-avatar"
+          style="background-color: #5c2d91; font-weight: 700; font-size: 18px;"
+        />
+      </div>
+
+      <div class="record-title-block">
+        <h1 class="record-title">
+          {{ nombreEnFormulario }}
+        </h1>
+
+        <div class="record-metadata-row">
+          <span class="record-code-tag">{{ codigoEnFormulario }}</span>
+          <nz-divider nzType="vertical" />
+          <span>{{ (unidadActual?.abreviatura || form.get('abreviatura')?.value) ? ('Símbolo: ' + (unidadActual?.abreviatura || form.get('abreviatura')?.value)) : (loading ? '...' : 'Sin abreviatura') }}</span>
+          <nz-divider nzType="vertical" />
+          <span>{{ (unidadActual !== undefined ? unidadActual.permiteDecimales : form.get('permiteDecimales')?.value) ? 'Fraccionable (Decimales)' : 'Unidad Discreta (Enteros)' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Indicadores Métricos de Cabecera (KPIs estilo D365 - Texto Puro) -->
+    <div class="record-header-metrics">
+      <div class="metric-item">
+        <span class="metric-label">ESTADO</span>
+        <span
+          class="kpi-value-pill"
+          [class.pill-active]="unidadActual ? unidadActual.activo : true"
+          [class.pill-inactive]="unidadActual ? !unidadActual.activo : false"
+        >
+          {{ (unidadActual ? (unidadActual.activo ? 'ACTIVO' : 'INACTIVO') : (isEdit ? 'ACTIVO' : 'NUEVO')) }}
+        </span>
+      </div>
+
+      <div class="metric-divider"></div>
+
+      <div class="metric-item">
+        <span class="metric-label">PRECISIÓN</span>
+        <span class="kpi-value-pill">
+          {{ form.get('permiteDecimales')?.value ? 'DECIMAL' : 'ENTERO' }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenedor con Spinner durante el guardado -->
+  <nz-spin [nzSpinning]="saving" nzTip="Guardando cambios..." class="unidad-spin-wrapper">
+    <form nz-form [formGroup]="form" nzLayout="horizontal" [nzNoColon]="true" class="d365-form-container">
+      <nz-tabs [(nzSelectedIndex)]="selectedTabIndex" [nzAnimated]="false" class="d365-form-tabs">
+        <nz-tab nzTitle="General">
+          <div class="d365-tab-columns">
+            <!-- Columna Izquierda: Identificación -->
+            <div class="d365-tab-column main-column">
+              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Definición de Unidad">
+                <div class="card-form-grid">
+                  <nz-form-item>
+                    <nz-form-label nzRequired>Código Institucional</nz-form-label>
+                    <nz-form-control nzErrorTip="El código es obligatorio (ej. UND, MTR, KGM)">
+                      <input
+                        nz-input
+                        formControlName="codigo"
+                        placeholder="Ej. UND, MTR, KGM"
+                        style="text-transform: uppercase;"
+                        maxlength="20"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <nz-form-item>
+                    <nz-form-label nzRequired>Símbolo / Abreviatura</nz-form-label>
+                    <nz-form-control nzErrorTip="La abreviatura es requerida (ej. und, m, kg)">
+                      <input
+                        nz-input
+                        formControlName="abreviatura"
+                        placeholder="Ej. und, m, kg, rollo"
+                        maxlength="10"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <nz-form-item>
+                    <nz-form-label nzRequired>Nombre Completo</nz-form-label>
+                    <nz-form-control nzErrorTip="El nombre es obligatorio">
+                      <input
+                        nz-input
+                        formControlName="nombre"
+                        placeholder="Ej. Unidades, Metros lineales, Kilogramos"
+                        maxlength="100"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <nz-form-item>
+                    <nz-form-label>Descripción</nz-form-label>
+                    <nz-form-control>
+                      <textarea
+                        nz-input
+                        formControlName="descripcion"
+                        placeholder="Especificaciones o notas de uso para esta unidad de medida..."
+                        rows="3"
+                        maxlength="300"
+                      ></textarea>
+                    </nz-form-control>
+                  </nz-form-item>
+                </div>
+              </nz-card>
+            </div>
+
+            <!-- Columna Derecha: Precisión -->
+            <div class="d365-tab-column side-column">
+              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Control de Decimales en Inventario">
+                <div class="classification-box mb-3">
+                  <div class="classification-info">
+                    <span class="classification-title">Permite Cantidades Fraccionarias (Decimales)</span>
+                    <span class="classification-desc">
+                      Habilitar para bobinas de cable, peso o fluidos donde se puedan despachar o consumir cantidades fraccionadas (ej. 2.50 metros). Deshabilitar para unidades discretas o equipos seriados que solo se manejan por unidades enteras (1, 2, 3...).
+                    </span>
+                  </div>
+                  <nz-switch formControlName="permiteDecimales"></nz-switch>
+                </div>
+
+                <div class="precision-summary" [class.summary-decimal]="form.get('permiteDecimales')?.value">
+                  <i nz-icon [nzType]="form.get('permiteDecimales')?.value ? 'check-circle' : 'info-circle'" nzTheme="outline"></i>
+                  <span>
+                    {{ form.get('permiteDecimales')?.value 
+                        ? 'Esta unidad permitirá registrar fracciones en órdenes de trabajo, despachos y almacenes.' 
+                        : 'Esta unidad restringirá las operaciones a números enteros estrictos.' }}
+                  </span>
+                </div>
+              </nz-card>
+            </div>
+          </div>
+        </nz-tab>
+      </nz-tabs>
+    </form>
+  </nz-spin>
+</div>
+}

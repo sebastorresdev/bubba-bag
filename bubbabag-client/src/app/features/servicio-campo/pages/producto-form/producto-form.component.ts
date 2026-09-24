@@ -33,6 +33,9 @@ import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 import { ProductoService } from '../../services/producto.service';
 import { ProductoDto, TipoProducto } from '../../models/producto.model';
+import { UnidadMedidaService } from '../../services/unidad-medida.service';
+import { CategoriaProductoService } from '../../services/categoria-producto.service';
+import { UnidadMedidaDto, CategoriaProductoDto } from '../../models/catalogo-producto.model';
 
 @Component({
   selector: 'app-producto-form',
@@ -64,6 +67,8 @@ import { ProductoDto, TipoProducto } from '../../models/producto.model';
 export class ProductoFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private productoService = inject(ProductoService);
+  private unidadMedidaService = inject(UnidadMedidaService);
+  private categoriaProductoService = inject(CategoriaProductoService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private message = inject(NzMessageService);
@@ -77,7 +82,10 @@ export class ProductoFormComponent implements OnInit {
   saving = false;
   selectedTabIndex = 0;
 
-  categorias = [
+  unidadesMedidaList: UnidadMedidaDto[] = [];
+  categoriasList: CategoriaProductoDto[] = [];
+
+  categorias: string[] = [
     'Materiales',
     'Equipos y Terminales',
     'Conectividad y Fibra',
@@ -87,14 +95,24 @@ export class ProductoFormComponent implements OnInit {
     'Otros',
   ];
 
-  unidadesMedida = [
+  unidadesMedida: { label: string; value: string }[] = [
     { label: 'Unidades (UND)', value: 'Unidades' },
-    { label: 'Metros (MTR)', value: 'Metros' },
+    { label: 'Metros (MTR) - Decimal', value: 'Metros' },
     { label: 'Rollos (ROL)', value: 'Rollos' },
     { label: 'Cajas (CAJ)', value: 'Cajas' },
-    { label: 'Kilos (KG)', value: 'Kilos' },
+    { label: 'Kilos (KG) - Decimal', value: 'Kilos' },
     { label: 'Servicio / Mano de Obra (SRV)', value: 'Servicios' },
   ];
+
+  get unidadSeleccionada(): UnidadMedidaDto | undefined {
+    const val = this.form?.get('unidadMedida')?.value;
+    if (!val) return undefined;
+    return this.unidadesMedidaList.find(
+      (u) =>
+        u.nombre.toLowerCase() === val.toLowerCase() ||
+        u.codigo.toLowerCase() === val.toLowerCase()
+    );
+  }
 
   tiposProducto: { label: string; value: TipoProducto; icon: string; desc: string }[] = [
     {
@@ -118,11 +136,23 @@ export class ProductoFormComponent implements OnInit {
   ];
 
   get nombreProductoEnFormulario(): string {
-    return this.form?.get('nombre')?.value?.trim() || (this.isEdit ? 'Producto' : 'Nuevo Producto');
+    if (this.isEdit) {
+      if (this.productoActual?.nombre) return this.productoActual.nombre;
+      const formVal = this.form?.get('nombre')?.value?.trim();
+      if (formVal) return formVal;
+      return this.loading ? 'Cargando producto...' : 'Producto';
+    }
+    return this.form?.get('nombre')?.value?.trim() || 'Nuevo Producto';
   }
 
   get codigoProducto(): string {
-    return this.form?.get('codigo')?.value?.trim() || (this.isEdit ? 'SIN CÓDIGO' : 'NUEVO-PRODUCTO');
+    if (this.isEdit) {
+      if (this.productoActual?.codigo) return this.productoActual.codigo;
+      const formVal = this.form?.get('codigo')?.value?.trim();
+      if (formVal) return formVal;
+      return this.loading ? '...' : '';
+    }
+    return this.form?.get('codigo')?.value?.trim() || 'NUEVO-PRODUCTO';
   }
 
   get loadingTip(): string {
@@ -138,15 +168,16 @@ export class ProductoFormComponent implements OnInit {
         key: 'save',
         label: 'Guardar',
         icon: 'save',
-        iconColor: 'primary',
+        iconColor: 'purple',
         disabled: this.saving,
         tooltip: 'Guardar los cambios del producto (Ctrl+S)',
         execute: () => this.guardar(false),
       },
       {
         key: 'saveAndClose',
-        label: 'Guardar y Cerrar',
-        icon: 'check',
+        label: 'Guardar y cerrar',
+        icon: 'save',
+        iconColor: 'purple',
         disabled: this.saving,
         tooltip: 'Guardar cambios y regresar al catálogo',
         execute: () => this.guardar(true),
@@ -166,7 +197,7 @@ export class ProductoFormComponent implements OnInit {
       items.push({
         key: 'toggle',
         label: this.productoActual?.activo ? 'Desactivar' : 'Activar',
-        icon: this.productoActual?.activo ? 'stop' : 'check-circle',
+        icon: this.productoActual?.activo ? 'close-circle' : 'check-circle',
         danger: this.productoActual?.activo,
         iconColor: this.productoActual?.activo ? 'danger' : 'success',
         tooltip: this.productoActual?.activo ? 'Desactivar producto' : 'Reactivar producto',
@@ -191,12 +222,55 @@ export class ProductoFormComponent implements OnInit {
   // ─── Ciclo de vida ────────────────────────────────────────────────────────
   ngOnInit(): void {
     this.initForm();
+    this.cargarCatalogosMaestros();
     this.productoId = this.route.snapshot.paramMap.get('id');
     this.isEdit = !!this.productoId && this.productoId !== 'nuevo';
 
     if (this.isEdit && this.productoId) {
+      this.loading = true;
       this.cargarProducto(this.productoId);
     }
+  }
+
+  private poblarFormulario(prod: ProductoDto): void {
+    this.form.patchValue({
+      codigo: prod.codigo,
+      nombre: prod.nombre,
+      categoria: prod.categoria || 'Materiales',
+      tipo: prod.tipo || 'Inventario',
+      unidadMedida: prod.unidadMedida || 'Unidades',
+      precioBase: prod.precioBase || 0,
+      esSerializado: prod.esSerializado || false,
+      descripcion: prod.descripcion || '',
+    });
+    this.form.get('codigo')?.disable(); // El código no es modificable en edición
+  }
+
+  cargarCatalogosMaestros(): void {
+    this.unidadMedidaService.getUnidadesMedida(true).subscribe({
+      next: (data) => {
+        if (data && data.length > 0) {
+          this.unidadesMedidaList = data;
+          this.unidadesMedida = data.map((u) => ({
+            label: `${u.nombre} (${u.codigo})${u.permiteDecimales ? ' - Decimal' : ''}`,
+            value: u.nombre,
+          }));
+          this.cdr.markForCheck();
+        }
+      },
+      error: () => {},
+    });
+
+    this.categoriaProductoService.getCategorias(true).subscribe({
+      next: (data) => {
+        if (data && data.length > 0) {
+          this.categoriasList = data;
+          this.categorias = data.map((c) => c.nombre);
+          this.cdr.markForCheck();
+        }
+      },
+      error: () => {},
+    });
   }
 
   private initForm(): void {
@@ -226,17 +300,7 @@ export class ProductoFormComponent implements OnInit {
     this.productoService.getProductoById(id).subscribe({
       next: (prod) => {
         this.productoActual = prod;
-        this.form.patchValue({
-          codigo: prod.codigo,
-          nombre: prod.nombre,
-          categoria: prod.categoria || 'Materiales',
-          tipo: prod.tipo || 'Inventario',
-          unidadMedida: prod.unidadMedida || 'Unidades',
-          precioBase: prod.precioBase || 0,
-          esSerializado: prod.esSerializado || false,
-          descripcion: prod.descripcion || '',
-        });
-        this.form.get('codigo')?.disable(); // El código no es modificable en edición
+        this.poblarFormulario(prod);
         this.loading = false;
         this.cdr.markForCheck();
       },
@@ -356,9 +420,17 @@ export class ProductoFormComponent implements OnInit {
     });
   }
 
-  getIniciales(codigo: string, nombre: string): string {
-    if (codigo && codigo.length >= 2) return codigo.substring(0, 2).toUpperCase();
-    if (nombre && nombre.length >= 2) return nombre.substring(0, 2).toUpperCase();
-    return 'PR';
+  getIniciales(codigo?: string, nombre?: string): string {
+    const nom = nombre || this.productoActual?.nombre || this.form?.get('nombre')?.value;
+    if (nom && nom !== 'Producto' && nom !== 'Nuevo Producto' && nom !== 'Cargando producto...' && nom.trim().length >= 2) {
+      const partes = nom.trim().split(' ').filter(Boolean);
+      if (partes.length === 1) return partes[0].substring(0, 2).toUpperCase();
+      return (partes[0][0] + partes[1][0]).toUpperCase();
+    }
+    const cod = codigo || this.productoActual?.codigo || this.form?.get('codigo')?.value;
+    if (cod && cod !== 'SIN CÓDIGO' && cod !== '...' && cod !== 'NUEVO-PRODUCTO' && cod.trim().length >= 2) {
+      return cod.trim().substring(0, 2).toUpperCase();
+    }
+    return this.isEdit && this.loading ? '' : 'PR';
   }
 }

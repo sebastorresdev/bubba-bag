@@ -39,9 +39,7 @@
     <!-- Estado -->
     <ng-template cellDef="estado" let-item>
       <nz-tag
-        class="d365-status-tag"
-        [class.tag-active]="item.estado === 'Completada'"
-        [class.tag-inactive]="item.estado === 'Cancelada'"
+        [nzColor]="item.estado === 'Completada' ? 'success' : (item.estado === 'Cancelada' ? 'default' : 'processing')"
       >
         {{ item.estado }}
       </nz-tag>

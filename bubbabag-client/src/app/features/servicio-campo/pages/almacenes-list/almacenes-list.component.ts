@@ -162,7 +162,7 @@ export class AlmacenesListComponent implements OnInit, OnDestroy {
       {
         key: 'toggle',
         label: this.selectedAlmacen?.activo === false ? 'Activar' : 'Desactivar',
-        icon: this.selectedAlmacen?.activo === false ? 'check-circle' : 'stop',
+        icon: this.selectedAlmacen?.activo === false ? 'check-circle' : 'close-circle',
         danger: this.selectedAlmacen?.activo !== false,
         iconColor: this.selectedAlmacen?.activo === false ? 'success' : 'danger',
         disabled: this.setOfCheckedId.size !== 1,

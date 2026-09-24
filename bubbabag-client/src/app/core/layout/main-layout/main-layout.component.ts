@@ -17,7 +17,7 @@ import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzAutocompleteModule } from 'ng-zorro-antd/auto-complete';
 import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
-import { NavigationService, ErpModule, ModuleMenuItem } from '../../services/navigation.service';
+import { NavigationService, ErpModule, ModuleMenuItem, NavigationArea } from '../../services/navigation.service';
 
 export interface GlobalSearchItem {
   title: string;
@@ -109,7 +109,7 @@ export class MainLayoutComponent {
 
     // Módulos y submódulos de NavigationService
     for (const mod of this.navService.modules) {
-      for (const item of mod.items) {
+      for (const item of mod.items || []) {
         if (item.path) {
           items.push({
             title: item.title,
@@ -239,5 +239,9 @@ export class MainLayoutComponent {
 
   selectModule(module: ErpModule) {
     this.navService.switchToModule(module);
+  }
+
+  selectArea(area: NavigationArea) {
+    this.navService.switchToArea(area);
   }
 }

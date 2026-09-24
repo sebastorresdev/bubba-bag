@@ -54,11 +54,7 @@
     </ng-template>
 
     <ng-template cellDef="activo" let-cargo>
-      <nz-tag
-        class="d365-status-tag"
-        [class.tag-active]="cargo.activo"
-        [class.tag-inactive]="!cargo.activo"
-      >
+      <nz-tag [nzColor]="cargo.activo ? 'success' : 'default'">
         {{ cargo.activo ? 'Activo' : 'Inactivo' }}
       </nz-tag>
     </ng-template>

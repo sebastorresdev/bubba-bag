@@ -86,9 +86,15 @@ import {
   PushpinOutline,
   PushpinFill,
   UndoOutline,
+  SnippetsOutline,
+  CustomerServiceOutline,
+  BarcodeOutline,
 } from '@ant-design/icons-angular/icons';
 
 export const ICONS: IconDefinition[] = [
+  SnippetsOutline,
+  CustomerServiceOutline,
+  BarcodeOutline,
   UndoOutline,
   PushpinOutline,
   PushpinFill,

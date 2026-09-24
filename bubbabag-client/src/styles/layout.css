@@ -851,9 +851,115 @@
   text-overflow: ellipsis;
 }
 
-.d365-area-arrow {
-  font-size: 11px;
-  opacity: 0.6;
+.d365-area-arrows {
+  font-size: 13px;
+  opacity: 0.7;
+  font-weight: bold;
+}
+
+/* Breadcrumb estilo Dynamics 365 en Suite Bar */
+.d365-top-breadcrumb {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.82);
+  margin-left: 18px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+/* Popup de "Change area" estilo Dynamics 365 */
+.d365-change-area-dropdown {
+  background-color: #ffffff;
+  border-radius: 2px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.1);
+  min-width: 170px;
+  border: 1px solid #edebe9;
+  padding: 4px 0 6px;
+}
+
+[data-theme='dark'] .d365-change-area-dropdown,
+.dark-theme .d365-change-area-dropdown {
+  background-color: #252423;
+  border-color: #3b3a39;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+.d365-change-area-header {
+  font-size: 12px;
+  color: #605e5c;
+  padding: 8px 16px 6px;
+  user-select: none;
+  font-weight: 500;
+}
+
+[data-theme='dark'] .d365-change-area-header,
+.dark-theme .d365-change-area-header {
+  color: #a19f9d;
+}
+
+.d365-area-dropdown-list {
+  padding: 0 !important;
+  margin: 0 !important;
+  list-style: none !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+.d365-area-popup-item {
+  height: 32px !important;
+  line-height: 32px !important;
+  padding: 0 12px !important;
+  margin: 0 !important;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.d365-area-popup-item:hover {
+  background-color: #f3f2f1 !important;
+}
+
+[data-theme='dark'] .d365-area-popup-item:hover,
+.dark-theme .d365-area-popup-item:hover {
+  background-color: #323130 !important;
+}
+
+.d365-area-popup-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #323130;
+}
+
+[data-theme='dark'] .d365-area-popup-row,
+.dark-theme .d365-area-popup-row {
+  color: #f3f2f1;
+}
+
+.d365-area-popup-check {
+  width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #323130;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+[data-theme='dark'] .d365-area-popup-check,
+.dark-theme .d365-area-popup-check {
+  color: #f3f2f1;
+}
+
+.d365-area-popup-label {
+  flex: 1;
+  font-size: 13px;
+  color: #323130;
+}
+
+[data-theme='dark'] .d365-area-popup-label,
+.dark-theme .d365-area-popup-label {
+  color: #f3f2f1;
 }
 
 /* Estilos del Dropdown del Selector de Área */

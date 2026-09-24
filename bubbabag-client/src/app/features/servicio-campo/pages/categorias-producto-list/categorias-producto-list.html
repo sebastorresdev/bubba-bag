@@ -1,0 +1,45 @@
+<app-command-bar [items]="commandBarItems"></app-command-bar>
+
+<div class="catalogo-view-wrapper">
+  <app-entity-table
+    entidad="Categorías de Producto"
+    [vistasSistema]="vistasSistema"
+    [(vistaActualKey)]="vistaActual"
+    [columnas]="columnas"
+    [datos]="categoriasFiltradas"
+    [loading]="loading"
+    [(selectedIds)]="selectedIds"
+    (selectedIdsChange)="onSelectedIdsChange($event)"
+    (vistaChange)="onVistaChange($event)"
+    (recargar)="cargarDatos()"
+    (rowDblClick)="abrirEditar($event)"
+  >
+
+
+    <!-- Nombre con link primario para editar -->
+    <ng-template cellDef="nombre" let-item>
+      <span class="nombre-link" (click)="abrirEditar(item)">
+        {{ item.nombre }}
+      </span>
+    </ng-template>
+
+    <!-- Familia / Grupo -->
+    <ng-template cellDef="familia" let-item>
+      @if (item.familia) {
+        <span class="familia-tag">
+          <i nz-icon nzType="folder" nzTheme="outline"></i>
+          {{ item.familia }}
+        </span>
+      } @else {
+        <span style="color: var(--d365-text-muted, #8a8886); font-style: italic;">Sin familia</span>
+      }
+    </ng-template>
+
+    <!-- Estado -->
+    <ng-template cellDef="activo" let-item>
+      <nz-tag [nzColor]="item.activo ? 'success' : 'default'">
+        {{ item.activo ? 'Activo' : 'Inactivo' }}
+      </nz-tag>
+    </ng-template>
+  </app-entity-table>
+</div>

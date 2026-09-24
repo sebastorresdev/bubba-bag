@@ -1,0 +1,46 @@
+<app-command-bar [items]="commandBarItems"></app-command-bar>
+
+<div class="catalogo-view-wrapper">
+  <app-entity-table
+    entidad="Unidades de Medida"
+    [vistasSistema]="vistasSistema"
+    [(vistaActualKey)]="vistaActual"
+    [columnas]="columnas"
+    [datos]="unidadesFiltradas"
+    [loading]="loading"
+    [(selectedIds)]="selectedIds"
+    (selectedIdsChange)="onSelectedIdsChange($event)"
+    (vistaChange)="onVistaChange($event)"
+    (recargar)="cargarDatos()"
+    (rowDblClick)="abrirEditar($event)"
+  >
+    <!-- Código primario con link para editar -->
+    <ng-template cellDef="codigo" let-item>
+      <span class="nombre-link" (click)="abrirEditar(item)">
+        {{ item.codigo }}
+      </span>
+    </ng-template>
+
+    <!-- Nombre con link primario para editar -->
+    <ng-template cellDef="nombre" let-item>
+      <span class="nombre-link" (click)="abrirEditar(item)">
+        {{ item.nombre }}
+      </span>
+    </ng-template>
+
+    <!-- Indicador de Control de Decimales -->
+    <ng-template cellDef="permiteDecimales" let-item>
+      <nz-tag [nzColor]="item.permiteDecimales ? 'blue' : 'default'">
+        <i nz-icon [nzType]="item.permiteDecimales ? 'check-circle' : 'minus-circle'" nzTheme="outline" style="margin-right: 4px;"></i>
+        {{ item.permiteDecimales ? 'Permite Decimales' : 'Solo Enteros' }}
+      </nz-tag>
+    </ng-template>
+
+    <!-- Estado -->
+    <ng-template cellDef="activo" let-item>
+      <nz-tag [nzColor]="item.activo ? 'success' : 'default'">
+        {{ item.activo ? 'Activo' : 'Inactivo' }}
+      </nz-tag>
+    </ng-template>
+  </app-entity-table>
+</div>

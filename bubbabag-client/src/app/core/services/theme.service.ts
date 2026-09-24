@@ -31,6 +31,9 @@ export class ThemeService {
     const darkThemeId = 'ng-zorro-theme-dark';
     let link = document.getElementById(darkThemeId) as HTMLLinkElement | null;
 
+    // Desactivar temporalmente todas las transiciones para evitar saltos o efectos visuales extraños
+    document.documentElement.classList.add('theme-switching');
+
     if (isDark) {
       localStorage.setItem('theme', 'dark');
       document.documentElement.setAttribute('data-theme', 'dark');
@@ -51,11 +54,16 @@ export class ThemeService {
       document.body.classList.remove('dark-theme');
 
       if (link) {
-        // Remover el nodo del DOM fuerza al navegador a purgar completamente
-        // las reglas CSS cacheadas, eliminando residuos visuales instantáneamente
         link.remove();
       }
     }
+
+    // Restaurar transiciones fluidas en el siguiente repintado
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove('theme-switching');
+      });
+    });
   }
 }
 

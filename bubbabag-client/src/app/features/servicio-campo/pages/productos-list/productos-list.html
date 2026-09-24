@@ -22,21 +22,18 @@
       </a>
     </ng-template>
 
-    <!-- Nombre / Descripción -->
+    <!-- Nombre -->
     <ng-template cellDef="nombre" let-p>
-      <div class="producto-cell">
-        <span class="producto-icon" [class.icon-inventario]="p.tipo === 'Inventario'" [class.icon-servicio]="p.tipo === 'Servicio'">
-          <span nz-icon [nzType]="p.tipo === 'Inventario' ? 'appstore' : (p.tipo === 'Servicio' ? 'tool' : 'file-text')"></span>
-        </span>
-        <div class="producto-info">
-          <a (click)="editarProducto(p.id)" class="cell-link" [title]="p.nombre">
-            {{ p.nombre }}
-          </a>
-          @if (p.descripcion) {
-            <span class="cell-subtext" [title]="p.descripcion">{{ p.descripcion }}</span>
-          }
-        </div>
-      </div>
+      <a (click)="editarProducto(p.id)" class="cell-link" [title]="p.nombre">
+        {{ p.nombre }}
+      </a>
+    </ng-template>
+
+    <!-- Descripción (Columna opcional/oculta por defecto) -->
+    <ng-template cellDef="descripcion" let-p>
+      <span class="cell-descripcion-text" [title]="p.descripcion || ''">
+        {{ p.descripcion || '—' }}
+      </span>
     </ng-template>
 
     <!-- Categoría -->
@@ -76,11 +73,7 @@
 
     <!-- Estado -->
     <ng-template cellDef="activo" let-p>
-      <nz-tag
-        class="d365-status-tag"
-        [class.tag-active]="p.activo"
-        [class.tag-inactive]="!p.activo"
-      >
+      <nz-tag [nzColor]="p.activo ? 'success' : 'default'">
         {{ p.activo ? 'Activo' : 'Inactivo' }}
       </nz-tag>
     </ng-template>

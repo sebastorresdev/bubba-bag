@@ -1,0 +1,108 @@
+<!-- Barra de Comandos Superior Dynamics 365 -->
+<app-command-bar
+  [items]="commandBarItems"
+  [showBack]="true"
+  (back)="volver()"
+></app-command-bar>
+
+@if (loading && isEdit) {
+  <div class="d365-form-loading-state">
+    <nz-spin nzSimple [nzSize]="'large'"></nz-spin>
+    <div class="loading-message">Cargando categoría...</div>
+  </div>
+} @else {
+  <div class="categoria-producto-form-view d365-form-view">
+    <!-- Cabecera de Registro (Dynamics 365 Record Header) -->
+    <div class="d365-record-header">
+      <div class="record-header-main">
+        <div class="record-avatar-container">
+          <nz-avatar
+            [nzSize]="56"
+          [nzText]="getIniciales()"
+          class="record-avatar"
+          style="background-color: #5c2d91; font-weight: 700; font-size: 18px;"
+        />
+      </div>
+
+      <div class="record-title-block">
+        <h1 class="record-title">
+          {{ nombreEnFormulario }}
+        </h1>
+
+        <div class="record-metadata-row">
+          <span>{{ (categoriaActual?.familia || form.get('familia')?.value) ? ('Familia: ' + (categoriaActual?.familia || form.get('familia')?.value)) : (loading ? '...' : 'Sin familia asignada') }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Indicadores Métricos de Cabecera (KPIs estilo D365 - Texto Puro) -->
+    <div class="record-header-metrics">
+      <div class="metric-item">
+        <span class="metric-label">ESTADO</span>
+        <span
+          class="kpi-value-pill"
+          [class.pill-active]="categoriaActual ? categoriaActual.activo : true"
+          [class.pill-inactive]="categoriaActual ? !categoriaActual.activo : false"
+        >
+          {{ (categoriaActual ? (categoriaActual.activo ? 'ACTIVO' : 'INACTIVO') : (isEdit ? 'ACTIVO' : 'NUEVO')) }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenedor con Spinner durante el guardado -->
+  <nz-spin [nzSpinning]="saving" nzTip="Guardando cambios..." class="categoria-spin-wrapper">
+    <form nz-form [formGroup]="form" nzLayout="horizontal" [nzNoColon]="true" class="d365-form-container">
+      <nz-tabs [(nzSelectedIndex)]="selectedTabIndex" [nzAnimated]="false" class="d365-form-tabs">
+        <nz-tab nzTitle="General">
+          <div class="d365-tab-columns">
+            <!-- Tarjeta única: Datos de la Categoría y Alcance -->
+            <div class="d365-tab-column main-column">
+              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Datos de la Categoría">
+                <div class="card-form-grid">
+                  <nz-form-item>
+                    <nz-form-label nzRequired>Nombre</nz-form-label>
+                    <nz-form-control nzErrorTip="El nombre es obligatorio">
+                      <input
+                        nz-input
+                        formControlName="nombre"
+                        placeholder="Ej. Materiales e Insumos, Equipos de Red"
+                        maxlength="100"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <nz-form-item>
+                    <nz-form-label>Familia / Grupo</nz-form-label>
+                    <nz-form-control>
+                      <input
+                        nz-input
+                        formControlName="familia"
+                        placeholder="Ej. Ferretería, Redes Ópticas, Hardware, Mano de Obra"
+                        maxlength="100"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+
+                  <nz-form-item>
+                    <nz-form-label>Descripción</nz-form-label>
+                    <nz-form-control>
+                      <textarea
+                        nz-input
+                        formControlName="descripcion"
+                        placeholder="Detalles sobre los tipos de materiales, equipos o servicios que componen esta categoría..."
+                        rows="3"
+                        maxlength="300"
+                      ></textarea>
+                    </nz-form-control>
+                  </nz-form-item>
+                </div>
+              </nz-card>
+            </div>
+          </div>
+        </nz-tab>
+      </nz-tabs>
+    </form>
+  </nz-spin>
+</div>
+}

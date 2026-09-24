@@ -192,7 +192,7 @@ export class MotivosIncidenciaListComponent implements OnInit {
             ? 'Desactivar'
             : 'Activar'
           : 'Cambiar Estado',
-        icon: esUnicoSeleccionado && itemSeleccionado?.activo ? 'stop' : 'check',
+        icon: esUnicoSeleccionado && itemSeleccionado?.activo ? 'close-circle' : 'check-circle',
         iconColor: esUnicoSeleccionado && itemSeleccionado?.activo ? 'danger' : 'success',
         disabled: !haySeleccion,
         tooltip: 'Activar o desactivar los motivos seleccionados',

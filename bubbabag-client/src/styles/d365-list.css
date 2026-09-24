@@ -51,21 +51,37 @@
    1. Contenedor de Vista de Catálogo (Full-Height Flexbox)
    -------------------------------------------------------------------------- */
 .catalogo-view-wrapper,
-.d365-list-view {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
+.d365-list-view,
+.empleados-view-wrapper,
+.departamentos-view-wrapper,
+.cargos-view-wrapper,
+.usuarios-view-wrapper,
+.sucursales-view-wrapper,
+.ordenes-view-wrapper,
+.clientes-view-wrapper,
+.productos-view-wrapper,
+.almacenes-view-wrapper,
+.tecnicos-view-wrapper,
+.motivos-view-wrapper,
+.stock-view-wrapper,
+.seriados-view-wrapper,
+.movimientos-view-wrapper,
+[class$='-view-wrapper'] {
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
   flex: 1 1 0% !important;
   min-height: 0 !important;
-  height: auto !important;
-  padding: 0;
-  box-sizing: border-box;
-  overflow: hidden;
+  height: 100% !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
   background-color: var(--d365-bg-view);
   font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
 }
 
 .catalogo-view-wrapper > app-entity-table,
+[class$='-view-wrapper'] > app-entity-table,
 app-entity-table {
   width: 100% !important;
   display: flex !important;

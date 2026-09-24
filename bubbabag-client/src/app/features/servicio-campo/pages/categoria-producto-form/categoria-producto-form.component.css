@@ -1,0 +1,36 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  width: 100%;
+}
+
+.categoria-spin-wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+}
+
+:host ::ng-deep .categoria-spin-wrapper > .ant-spin-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.d365-tab-column.main-column {
+  flex: 1;
+  max-width: 720px;
+  min-width: 0;
+}
+
+@media (max-width: 992px) {
+  .d365-tab-column.main-column {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+}

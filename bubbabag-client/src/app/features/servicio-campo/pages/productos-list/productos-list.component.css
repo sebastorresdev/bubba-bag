@@ -30,47 +30,10 @@
 }
 
 /* ── Producto Nombre / Subtexto ── */
-.producto-cell {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-}
 
-.producto-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  font-size: 14px;
-  flex-shrink: 0;
-  background-color: rgba(0, 120, 212, 0.08);
-  color: #0078d4;
-}
-
-.icon-inventario {
-  background-color: rgba(15, 108, 189, 0.1);
-  color: #0f6cbd;
-}
-
-.icon-servicio {
-  background-color: rgba(135, 59, 149, 0.1);
-  color: #873b95;
-}
-
-.producto-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  flex: 1;
-}
 
 .cell-link {
-  color: var(--d365-link-color) !important;
+  color: var(--d365-link-color, #0078d4) !important;
   font-weight: 600;
   cursor: pointer;
   display: block;
@@ -82,15 +45,21 @@
 
 .cell-link:hover {
   text-decoration: underline;
-  color: var(--d365-link-hover-color) !important;
+  color: var(--d365-link-hover-color, #106ebe) !important;
 }
 
-.cell-subtext {
-  font-size: 11px;
-  color: var(--d365-text-muted, #797775);
+.cell-descripcion-text {
+  font-size: 12px;
+  color: var(--d365-text-secondary, #605e5c);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: block;
+}
+
+:host-context([data-theme='dark']) .cell-descripcion-text,
+:host-context(.dark-theme) .cell-descripcion-text {
+  color: #a19f9d;
 }
 
 /* ── Tags y Badges ── */
@@ -98,6 +67,11 @@
   font-size: 12px;
   color: var(--d365-text-secondary, #484644);
   font-weight: 500;
+}
+
+:host-context([data-theme='dark']) .categoria-tag,
+:host-context(.dark-theme) .categoria-tag {
+  color: #c8c6c4;
 }
 
 .tipo-tag {
@@ -111,11 +85,20 @@
 .um-badge {
   font-family: 'Consolas', monospace;
   font-size: 11.5px;
-  background: var(--d365-tag-bg, #f3f2f1);
+  background: rgba(0, 0, 0, 0.05);
   color: var(--d365-text-primary, #201f1e);
-  padding: 2px 6px;
+  padding: 2px 8px;
   border-radius: 4px;
   font-weight: 500;
+  border: 1px solid var(--d365-border-subtle, rgba(0, 0, 0, 0.08));
+  display: inline-block;
+}
+
+:host-context([data-theme='dark']) .um-badge,
+:host-context(.dark-theme) .um-badge {
+  background: rgba(255, 255, 255, 0.06);
+  color: #e1dfdd;
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .serie-tag {
@@ -128,6 +111,11 @@
   font-weight: 600;
   color: var(--d365-text-primary, #201f1e);
   font-size: 13px;
+}
+
+:host-context([data-theme='dark']) .precio-cell,
+:host-context(.dark-theme) .precio-cell {
+  color: #f3f2f1;
 }
 
 /* ── Estado ── */

@@ -2,10 +2,29 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>BubbabagClient</title>
+  <title>BubbaBag</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <!-- Preload para el tema oscuro de NG-ZORRO para eliminar retraso en la carga -->
+  <link rel="preload" href="/themes/ng-zorro-antd.dark.min.css" as="style">
+  <script>
+    (function() {
+      try {
+        var savedTheme = localStorage.getItem('theme');
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          document.documentElement.classList.add('dark-theme');
+          var link = document.createElement('link');
+          link.id = 'ng-zorro-theme-dark';
+          link.rel = 'stylesheet';
+          link.href = '/themes/ng-zorro-antd.dark.min.css';
+          document.head.appendChild(link);
+        }
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
   <app-root></app-root>

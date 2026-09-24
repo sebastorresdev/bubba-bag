@@ -6,12 +6,18 @@
   (back)="volver()"
 ></app-command-bar>
 
-<div class="usuario-form-view d365-form-view">
-  <!-- Cabecera de Registro Dynamics 365 -->
-  <div class="d365-record-header">
-    <div class="record-header-main">
-      <div class="record-avatar-container">
-        <nz-avatar [nzSize]="56" [nzText]="getIniciales()" class="record-avatar"></nz-avatar>
+@if (loading && isEdit) {
+  <div class="d365-form-loading-state">
+    <nz-spin nzSimple [nzSize]="'large'"></nz-spin>
+    <div class="loading-message">Cargando datos del usuario...</div>
+  </div>
+} @else {
+  <div class="usuario-form-view d365-form-view">
+    <!-- Cabecera de Registro Dynamics 365 -->
+    <div class="d365-record-header">
+      <div class="record-header-main">
+        <div class="record-avatar-container">
+          <nz-avatar [nzSize]="56" [nzText]="getIniciales()" class="record-avatar"></nz-avatar>
       </div>
 
       <div class="record-title-block">
@@ -410,7 +416,7 @@
                   </div>
 
                   <div class="policy-card">
-                    <nz-icon nzType="shield" class="policy-icon" />
+                    <nz-icon nzType="safety" class="policy-icon" />
                     <div class="policy-info">
                       <span class="policy-title">Seguridad Criptográfica</span>
                       <span class="policy-desc">Cifrado irreversible de credenciales. Las contraseñas nunca se guardan en texto plano ni se transmiten en respuestas API.</span>
@@ -435,6 +441,7 @@
     </form>
   </nz-spin>
 </div>
+}
 
 <!-- Drawer Lateral Derecho: Restablecer / Cambiar Contraseña (Estilo Microsoft 365 Admin & Dynamics) -->
 <nz-drawer
