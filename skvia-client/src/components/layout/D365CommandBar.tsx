@@ -78,7 +78,7 @@ export const D365CommandBar: React.FC<D365CommandBarProps> = ({
       <Toolbar className={styles.toolbar} size="small">
         <ToolbarButton
           appearance="subtle"
-          icon={<Add16Regular style={{ color: '#107c41' }} />}
+          icon={<Add16Regular style={{ color: tokens.colorPaletteGreenForeground1 }} />}
           onClick={onNew}
           style={{ fontWeight: 600 }}
         >

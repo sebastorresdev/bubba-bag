@@ -161,7 +161,7 @@ export const EntityPlaceholder: React.FC<EntityPlaceholderProps> = ({ item, area
                 <Badge
                   appearance="filled"
                   size="medium"
-                  style={{ backgroundColor: app.color, color: '#ffffff' }}
+                  style={{ backgroundColor: app.color, color: tokens.colorNeutralForegroundOnBrand }}
                 >
                   {app.name}
                 </Badge>

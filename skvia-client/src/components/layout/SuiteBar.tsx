@@ -31,7 +31,7 @@ import type { EnterpriseApp } from '../../types/navigation.types';
 const useStyles = makeStyles({
   root: {
     height: '48px',
-    backgroundColor: '#000000', // Dynamics 365 Top SuiteBar
+    backgroundColor: tokens.colorNeutralBackgroundInverted, // Dynamics 365 Top SuiteBar
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -41,7 +41,7 @@ const useStyles = makeStyles({
     boxSizing: 'border-box',
     flexShrink: 0,
     zIndex: 100,
-    color: '#ffffff',
+    color: tokens.colorNeutralForegroundInverted,
   },
   leftSection: {
     display: 'flex',
@@ -51,7 +51,7 @@ const useStyles = makeStyles({
     width: '48px',
     height: '48px',
     backgroundColor: 'transparent',
-    color: '#ffffff',
+    color: tokens.colorNeutralForegroundInverted,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -59,17 +59,17 @@ const useStyles = makeStyles({
     border: 'none',
     transition: 'background-color 0.15s ease',
     ':hover': {
-      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      backgroundColor: tokens.colorSubtleBackgroundInvertedHover,
     },
     ':active': {
-      backgroundColor: 'rgba(255, 255, 255, 0.25)',
+      backgroundColor: tokens.colorSubtleBackgroundInverted,
     },
   },
   waffleBtn: {
     width: '48px',
     height: '48px',
-    backgroundColor: '#008272', // Microsoft Dynamics 365 Teal Waffle
-    color: '#ffffff',
+    backgroundColor: tokens.colorPaletteTealBackground2, // Microsoft Dynamics 365 Teal Waffle
+    color: tokens.colorNeutralForegroundOnBrand,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -78,14 +78,14 @@ const useStyles = makeStyles({
     border: 'none',
     transition: 'background-color 0.15s ease',
     ':hover': {
-      backgroundColor: '#006a5d',
+      backgroundColor: tokens.colorPaletteTealBorderActive,
     },
   },
   d365BrandBtn: {
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
-    color: '#ffffff',
+    color: tokens.colorNeutralForegroundInverted,
     backgroundColor: 'transparent',
     border: 'none',
     cursor: 'pointer',
@@ -96,17 +96,17 @@ const useStyles = makeStyles({
     fontFamily: '"Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif',
     transition: 'background-color 0.15s ease',
     ':hover': {
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      backgroundColor: tokens.colorSubtleBackgroundInvertedHover,
     },
   },
   divider: {
     width: '1px',
     height: '18px',
-    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+    backgroundColor: tokens.colorNeutralStrokeAlpha2,
     margin: '0 4px',
   },
   appTitle: {
-    color: '#ffffff',
+    color: tokens.colorNeutralForegroundInverted,
     fontSize: '15px',
     fontWeight: '600',
     padding: '0 10px',
@@ -119,8 +119,6 @@ const useStyles = makeStyles({
   },
   searchInput: {
     width: '100%',
-    backgroundColor: '#201f1e',
-    color: '#ffffff',
     borderRadius: '4px',
   },
   rightSection: {
@@ -129,7 +127,7 @@ const useStyles = makeStyles({
     gap: '4px',
   },
   suiteBarIconBtn: {
-    color: '#ffffff',
+    color: tokens.colorNeutralForegroundInverted,
     backgroundColor: 'transparent',
     border: 'none',
     width: '36px',
@@ -140,7 +138,7 @@ const useStyles = makeStyles({
     borderRadius: '4px',
     cursor: 'pointer',
     ':hover': {
-      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      backgroundColor: tokens.colorSubtleBackgroundInvertedHover,
     },
   },
   userProfile: {
@@ -214,7 +212,7 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
                   height: '28px',
                   borderRadius: '4px',
                   backgroundColor: app.color,
-                  color: '#ffffff',
+                  color: tokens.colorNeutralForegroundOnBrand,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -357,10 +355,10 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
             badge={{ status: 'available' }}
           />
           <div className={styles.userInfoText}>
-            <Text weight="semibold" size={200} style={{ color: '#ffffff' }}>
+            <Text weight="semibold" size={200} style={{ color: tokens.colorNeutralForegroundInverted }}>
               Sebastián Torres
             </Text>
-            <Text size={100} style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+            <Text size={100} style={{ color: tokens.colorNeutralForegroundInverted2 }}>
               Administrador
             </Text>
           </div>

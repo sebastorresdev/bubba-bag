@@ -113,7 +113,7 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground1,
   },
   codeLink: {
-    color: '#0078d4', // Dynamics 365 primary link blue
+    color: tokens.colorBrandForegroundLink,
     fontWeight: '500',
     cursor: 'pointer',
     textDecoration: 'none',
@@ -124,7 +124,7 @@ const useStyles = makeStyles({
     maxWidth: '100%',
     ':hover': {
       textDecoration: 'underline',
-      color: '#106ebe',
+      color: tokens.colorBrandForegroundLinkHover,
     },
   },
   noWrapCell: {
@@ -235,7 +235,7 @@ export const ProductosListView: React.FC<ProductosListViewProps> = ({
               title={item.nombre}
               style={{
                 fontWeight: 500,
-                color: '#0078d4',
+                color: tokens.colorBrandForegroundLink,
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -370,7 +370,7 @@ export const ProductosListView: React.FC<ProductosListViewProps> = ({
             {/* + New Button with green + icon */}
             <ToolbarButton
               className={styles.btnPrimary}
-              icon={<Add16Regular style={{ color: '#107c41' }} />}
+              icon={<Add16Regular style={{ color: tokens.colorPaletteGreenForeground1 }} />}
               onClick={onNewProduct}
             >
               Nuevo
@@ -449,13 +449,13 @@ export const ProductosListView: React.FC<ProductosListViewProps> = ({
         {/* Right: Tools & Search Input */}
         <div className={styles.viewToolsRight}>
           <Tooltip content="Modificar orden y visibilidad de columnas" relationship="label">
-            <ToolbarButton icon={<TableEdit16Regular style={{ color: '#0078d4' }} />}>
+            <ToolbarButton icon={<TableEdit16Regular style={{ color: tokens.colorCompoundBrandForeground1 }} />}>
               Editar columnas
             </ToolbarButton>
           </Tooltip>
 
           <Tooltip content="Filtrado avanzado por condiciones" relationship="label">
-            <ToolbarButton icon={<DataFunnel20Regular style={{ color: '#0078d4' }} />}>
+            <ToolbarButton icon={<DataFunnel20Regular style={{ color: tokens.colorCompoundBrandForeground1 }} />}>
               Editar filtros
             </ToolbarButton>
           </Tooltip>
@@ -479,8 +479,8 @@ export const ProductosListView: React.FC<ProductosListViewProps> = ({
           </div>
         ) : error ? (
           <div className={styles.emptyState}>
-            <Warning24Regular style={{ color: '#d83b01', fontSize: 32 }} />
-            <Text weight="semibold" size={400} style={{ color: '#d83b01' }}>
+            <Warning24Regular style={{ color: tokens.colorStatusDangerForeground1, fontSize: 32 }} />
+            <Text weight="semibold" size={400} style={{ color: tokens.colorStatusDangerForeground1 }}>
               {error}
             </Text>
             <ToolbarButton onClick={loadData}>Reintentar conexión</ToolbarButton>

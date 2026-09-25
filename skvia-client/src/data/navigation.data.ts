@@ -1,3 +1,4 @@
+import { tokens } from '@fluentui/react-components';
 import type { EnterpriseApp } from '../types/navigation.types';
 
 export const ENTERPRISE_APPS: EnterpriseApp[] = [
@@ -10,7 +11,7 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
     subtitle: 'Dynamics 365 Field Service',
     shortCode: 'SC',
     iconName: 'Car',
-    color: '#0078d4',
+    color: tokens.colorPaletteBlueBackground2,
     description: 'Suite de operaciones: Órdenes de Trabajo, Despacho, Clientes, Inventarios y Materiales.',
     areas: [
       {
@@ -18,7 +19,7 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
         name: 'Servicio',
         shortCode: 'S',
         iconName: 'Wrench',
-        color: '#0078d4',
+        color: tokens.colorPaletteBlueBackground2,
         defaultPath: '/servicio-campo/ordenes',
         groups: [
           {
@@ -68,7 +69,7 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
         name: 'Inventario',
         shortCode: 'I',
         iconName: 'Box',
-        color: '#107c41',
+        color: tokens.colorPaletteGreenBackground2,
         defaultPath: '/servicio-campo/almacenes',
         groups: [
           {
@@ -119,7 +120,7 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
         name: 'Configuración',
         shortCode: 'C',
         iconName: 'Settings',
-        color: '#5c2d91',
+        color: tokens.colorPaletteBerryBackground2,
         defaultPath: '/servicio-campo/unidades-medida',
         groups: [
           {
@@ -183,7 +184,7 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
     subtitle: 'Gestión de Talento & Nómina',
     shortCode: 'RH',
     iconName: 'People',
-    color: '#5c2d91',
+    color: tokens.colorPaletteBerryBackground2,
     description: 'Gestión integral del talento: Colaboradores, Asistencia, Turnos, Nómina y Planillas.',
     areas: [
       {
@@ -191,7 +192,7 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
         name: 'Personal',
         shortCode: 'P',
         iconName: 'People',
-        color: '#5c2d91',
+        color: tokens.colorPaletteBerryBackground2,
         defaultPath: '/rrhh/empleados',
         groups: [
           {
@@ -214,7 +215,7 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
         name: 'Asistencia',
         shortCode: 'A',
         iconName: 'Clock',
-        color: '#0078d4',
+        color: tokens.colorPaletteBlueBackground2,
         defaultPath: '/rrhh/asistencia',
         groups: [
           {
@@ -237,7 +238,7 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
         name: 'Nómina',
         shortCode: 'N',
         iconName: 'Money',
-        color: '#107c41',
+        color: tokens.colorPaletteGreenBackground2,
         defaultPath: '/rrhh/planilla',
         groups: [
           {
@@ -267,7 +268,7 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
     subtitle: 'Centro de Administración',
     shortCode: 'AC',
     iconName: 'Shield',
-    color: '#d83b01',
+    color: tokens.colorPaletteDarkOrangeBackground2,
     description: 'Configuración global de la plataforma: Usuarios, Roles, Auditoría y Parámetros del Sistema.',
     areas: [
       {
@@ -275,7 +276,7 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
         name: 'Seguridad',
         shortCode: 'SEG',
         iconName: 'Shield',
-        color: '#d83b01',
+        color: tokens.colorPaletteDarkOrangeBackground2,
         defaultPath: '/configuracion/usuarios',
         groups: [
           {
@@ -305,7 +306,7 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
         name: 'Sistema',
         shortCode: 'SYS',
         iconName: 'Settings',
-        color: '#004e8c',
+        color: tokens.colorPaletteNavyBackground2,
         defaultPath: '/configuracion/auditoria',
         groups: [
           {
