@@ -14,5 +14,12 @@ public record ProductoDto(
     string Categoria,
     string UnidadMedida,
     bool EsSerializado,
-    bool Activo
+    bool Activo,
+    bool ConvertirEnActivoCliente = false,
+    string? CodigoBarras = null,
+    string? Notas = null,
+    decimal CostoActual = 0m,
+    decimal CostoEstandar = 0m,
+    bool AfectoImpuesto = true,
+    string? ProveedorDefecto = null
 );

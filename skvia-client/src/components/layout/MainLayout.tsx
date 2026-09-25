@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { makeStyles, tokens } from '@fluentui/react-components';
 import { SuiteBar } from './SuiteBar';
 import { SideNav } from './SideNav';
-import { NotFoundView } from '../common/NotFoundView';
-import { ProductosListPage } from '../../features/inventario/productos';
 import { ENTERPRISE_APPS } from '../../data/navigation.data';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import type { NavArea, NavItem, EnterpriseApp } from '../../types/navigation.types';
@@ -30,15 +29,12 @@ const useStyles = makeStyles({
     overflow: 'hidden',
     backgroundColor: tokens.colorNeutralBackground3,
   },
-  viewport: {
-    flexGrow: 1,
-    overflow: 'hidden',
-    position: 'relative',
-  },
 });
 
 export const MainLayout: React.FC = () => {
   const styles = useStyles();
+  const location = useLocation();
+  const navigate = useNavigate();
   const isMobile = useIsMobile(1024);
   const [navOpen, setNavOpen] = useState<boolean>(() => !isMobile);
 
@@ -51,38 +47,64 @@ export const MainLayout: React.FC = () => {
     }
   }, [isMobile]);
 
-  // Active Enterprise Application (Default: Servicio de Campo)
-  const [activeApp, setActiveApp] = useState<EnterpriseApp>(ENTERPRISE_APPS[0]);
+  // Find matching navigation hierarchy (app, area, item) based on current route path
+  const currentNav = useMemo(() => {
+    const currentPath = location.pathname;
+    for (const app of ENTERPRISE_APPS) {
+      for (const area of app.areas) {
+        for (const group of area.groups) {
+          for (const item of group.items) {
+            if (currentPath === item.path || currentPath.startsWith(item.path + '/')) {
+              return { app, area, item };
+            }
+            if (item.subItems) {
+              for (const subItem of item.subItems) {
+                if (currentPath === subItem.path || currentPath.startsWith(subItem.path + '/')) {
+                  return { app, area, item: subItem };
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }, [location.pathname]);
 
-  // Active Area within the Application (Default: Configuración to see Productos, or Servicio)
-  const [activeArea, setActiveArea] = useState<NavArea>(ENTERPRISE_APPS[0].areas[2]); // Configuración
+  // Active state with fallbacks
+  const [selectedApp, setSelectedApp] = useState<EnterpriseApp>(() => currentNav?.app || ENTERPRISE_APPS[0]);
+  const [selectedArea, setSelectedArea] = useState<NavArea>(() => currentNav?.area || ENTERPRISE_APPS[0].areas[2]);
 
-  // Active Item (Default: Productos y Servicios)
-  const [activeItem, setActiveItem] = useState<NavItem>(() => {
-    const configArea = ENTERPRISE_APPS[0].areas[2];
-    const productosItem = configArea?.groups[0]?.items.find((i) => i.id === 'productos');
-    return productosItem || ENTERPRISE_APPS[0].areas[0].groups[0].items[0];
-  });
+  // Keep selected app and area in sync when route changes
+  useEffect(() => {
+    if (currentNav) {
+      setSelectedApp(currentNav.app);
+      setSelectedArea(currentNav.area);
+    }
+  }, [currentNav]);
+
+  const activeApp = currentNav?.app || selectedApp;
+  const activeArea = currentNav?.area || selectedArea;
+  const activeItem = currentNav?.item;
 
   const handleSelectApp = (app: EnterpriseApp) => {
-    setActiveApp(app);
-    const initialArea = app.areas[0];
-    setActiveArea(initialArea);
-    if (initialArea?.groups[0]?.items[0]) {
-      const preferred = initialArea.groups[1]?.items[0] || initialArea.groups[0].items[0];
-      setActiveItem(preferred);
+    setSelectedApp(app);
+    const targetArea = app.areas[0];
+    setSelectedArea(targetArea);
+    if (targetArea?.defaultPath) {
+      navigate(targetArea.defaultPath);
     }
   };
 
   const handleSelectArea = (area: NavArea) => {
-    setActiveArea(area);
-    if (area.groups[0]?.items[0]) {
-      setActiveItem(area.groups[0].items[0]);
+    setSelectedArea(area);
+    if (area.defaultPath) {
+      navigate(area.defaultPath);
     }
   };
 
   const handleSelectItem = (item: NavItem) => {
-    setActiveItem(item);
+    navigate(item.path);
   };
 
   const handleToggleNav = () => {
@@ -115,37 +137,9 @@ export const MainLayout: React.FC = () => {
           onToggleNav={handleToggleNav}
         />
 
-        {/* Right Content Area */}
+        {/* Right Content Area: Rendered via React Router Outlet */}
         <main className={styles.mainContent}>
-          {!activeItem ? (
-            <NotFoundView
-              title="Ningún módulo seleccionado"
-              message="Selecciona una opción del menú lateral para continuar."
-            />
-          ) : activeItem.id === 'productos' ? (
-            <ProductosListPage
-              onNewProduct={() => alert('Formulario Nuevo Producto en desarrollo')}
-              onSelectProduct={(p) => alert(`Abriendo producto: ${p.codigo} - ${p.nombre}`)}
-            />
-          ) : (
-            <div className={styles.viewport}>
-              <NotFoundView
-                key={activeItem.id}
-                title={`Módulo no implementado: ${activeItem.title}`}
-                message={`La vista para "${activeItem.title}" (${activeItem.path}) aún no ha sido implementada. Puedes volver a la vista principal de Productos.`}
-                onGoHome={() => {
-                  const fieldServiceApp = ENTERPRISE_APPS[0];
-                  const configArea = fieldServiceApp.areas[2];
-                  const productosItem = configArea.groups[0].items.find((i) => i.id === 'productos');
-                  if (productosItem) {
-                    setActiveApp(fieldServiceApp);
-                    setActiveArea(configArea);
-                    setActiveItem(productosItem);
-                  }
-                }}
-              />
-            </div>
-          )}
+          <Outlet />
         </main>
       </div>
     </div>

@@ -61,7 +61,14 @@ public static class ProductosEndpoints
             request.Categoria ?? "Materiales",
             request.UnidadMedida ?? "Unidades",
             request.EsSerializado,
-            request.Descripcion
+            request.Descripcion,
+            request.ConvertirEnActivoCliente,
+            request.CodigoBarras,
+            request.Notas,
+            request.CostoActual ?? 0m,
+            request.CostoEstandar ?? 0m,
+            request.AfectoImpuesto ?? true,
+            request.ProveedorDefecto
         );
 
         var result = await dispatcher.SendAsync(command);
@@ -84,7 +91,14 @@ public static class ProductosEndpoints
             request.Descripcion,
             request.Tipo ?? TipoProducto.Inventario,
             request.PrecioBase ?? 0m,
-            request.CatalogoId
+            request.CatalogoId,
+            request.ConvertirEnActivoCliente,
+            request.CodigoBarras,
+            request.Notas,
+            request.CostoActual ?? 0m,
+            request.CostoEstandar ?? 0m,
+            request.AfectoImpuesto ?? true,
+            request.ProveedorDefecto
         );
 
         var result = await dispatcher.SendAsync(command);
@@ -111,7 +125,14 @@ public record CrearProductoRequest(
     string? Categoria,
     string? UnidadMedida,
     bool EsSerializado,
-    string? Descripcion
+    string? Descripcion,
+    bool ConvertirEnActivoCliente = false,
+    string? CodigoBarras = null,
+    string? Notas = null,
+    decimal? CostoActual = null,
+    decimal? CostoEstandar = null,
+    bool? AfectoImpuesto = null,
+    string? ProveedorDefecto = null
 );
 
 public record ActualizarProductoRequest(
@@ -122,7 +143,14 @@ public record ActualizarProductoRequest(
     string? Categoria,
     string? UnidadMedida,
     bool EsSerializado,
-    string? Descripcion
+    string? Descripcion,
+    bool ConvertirEnActivoCliente = false,
+    string? CodigoBarras = null,
+    string? Notas = null,
+    decimal? CostoActual = null,
+    decimal? CostoEstandar = null,
+    bool? AfectoImpuesto = null,
+    string? ProveedorDefecto = null
 );
 
 public record CambiarEstadoProductoRequest(bool Activo);

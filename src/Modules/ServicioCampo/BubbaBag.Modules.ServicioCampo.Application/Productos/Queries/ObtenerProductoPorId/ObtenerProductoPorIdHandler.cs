@@ -39,7 +39,14 @@ public class ObtenerProductoPorIdHandler : IQueryHandler<ObtenerProductoPorIdQue
             p.Categoria,
             p.UnidadMedida,
             p.EsSerializado,
-            p.Activo
+            p.Activo,
+            p.ConvertirEnActivoCliente,
+            p.CodigoBarras,
+            p.Notas,
+            p.CostoActual,
+            p.CostoEstandar,
+            p.AfectoImpuesto,
+            p.ProveedorDefecto
         );
 
         return Result<ProductoDto>.Success(dto);

@@ -76,7 +76,14 @@ public class ObtenerProductosHandler : IQueryHandler<ObtenerProductosQuery, Resu
                 p.Categoria,
                 p.UnidadMedida,
                 p.EsSerializado,
-                p.Activo
+                p.Activo,
+                p.ConvertirEnActivoCliente,
+                p.CodigoBarras,
+                p.Notas,
+                p.CostoActual,
+                p.CostoEstandar,
+                p.AfectoImpuesto,
+                p.ProveedorDefecto
             ))
             .ToListAsync(cancellationToken);
 

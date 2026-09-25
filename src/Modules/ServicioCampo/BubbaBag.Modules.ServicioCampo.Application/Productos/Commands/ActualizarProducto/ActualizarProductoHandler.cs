@@ -17,7 +17,14 @@ public record ActualizarProductoCommand(
     string? Descripcion = null,
     TipoProducto Tipo = TipoProducto.Inventario,
     decimal PrecioBase = 0m,
-    Guid? CatalogoId = null
+    Guid? CatalogoId = null,
+    bool ConvertirEnActivoCliente = false,
+    string? CodigoBarras = null,
+    string? Notas = null,
+    decimal CostoActual = 0m,
+    decimal CostoEstandar = 0m,
+    bool AfectoImpuesto = true,
+    string? ProveedorDefecto = null
 ) : ICommand<Result>;
 
 public class ActualizarProductoHandler : ICommandHandler<ActualizarProductoCommand, Result>
@@ -43,7 +50,14 @@ public class ActualizarProductoHandler : ICommandHandler<ActualizarProductoComma
             command.Descripcion,
             command.Tipo,
             command.PrecioBase,
-            command.CatalogoId
+            command.CatalogoId,
+            command.ConvertirEnActivoCliente,
+            command.CodigoBarras,
+            command.Notas,
+            command.CostoActual,
+            command.CostoEstandar,
+            command.AfectoImpuesto,
+            command.ProveedorDefecto
         );
 
         // Si el producto es o pasa a ser Servicio, mantener sincronizado el catálogo operativo

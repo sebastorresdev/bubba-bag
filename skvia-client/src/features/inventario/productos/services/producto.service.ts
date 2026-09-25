@@ -1,5 +1,5 @@
 import { apiClient } from '../../../../services/apiClient';
-import type { ProductoDto } from '../types/producto.types';
+import type { ProductoDto, CreateProductoDto, UpdateProductoDto } from '../types/producto.types';
 
 export const ProductoService = {
   async getProductos(search?: string, categoria?: string, soloActivos?: boolean): Promise<ProductoDto[]> {
@@ -16,6 +16,20 @@ export const ProductoService = {
 
   async getProductoById(id: string): Promise<ProductoDto> {
     return apiClient<ProductoDto>(`/api/inventario/productos/${id}`);
+  },
+
+  async createProducto(dto: CreateProductoDto): Promise<{ id: string }> {
+    return apiClient<{ id: string }>('/api/inventario/productos', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  },
+
+  async updateProducto(id: string, dto: UpdateProductoDto): Promise<void> {
+    return apiClient<void>(`/api/inventario/productos/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(dto),
+    });
   },
 
   async cambiarEstado(id: string, activo: boolean): Promise<void> {

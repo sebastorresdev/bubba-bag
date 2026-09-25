@@ -35,6 +35,21 @@ export async function getValidAuthToken(): Promise<string> {
   return '';
 }
 
+async function parseResponseBody<T>(res: Response): Promise<T> {
+  if (res.status === 204 || res.headers.get('content-length') === '0') {
+    return undefined as unknown as T;
+  }
+  const text = await res.text();
+  if (!text || text.trim() === '') {
+    return undefined as unknown as T;
+  }
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return text as unknown as T;
+  }
+}
+
 export async function apiClient<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -68,7 +83,7 @@ export async function apiClient<T>(
       if (!retryResponse.ok) {
         throw new Error(`API Error: ${retryResponse.statusText}`);
       }
-      return retryResponse.json();
+      return parseResponseBody<T>(retryResponse);
     }
   }
 
@@ -76,5 +91,5 @@ export async function apiClient<T>(
     throw new Error(`API Error ${response.status}: ${response.statusText}`);
   }
 
-  return response.json();
+  return parseResponseBody<T>(response);
 }

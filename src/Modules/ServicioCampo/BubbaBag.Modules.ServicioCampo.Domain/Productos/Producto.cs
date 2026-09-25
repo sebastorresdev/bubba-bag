@@ -17,6 +17,13 @@ public class Producto : Entity<Guid>
     public string Categoria { get; private set; } = "Materiales"; // Materiales, Equipos, Insumos, Herramientas, Servicios
     public string UnidadMedida { get; private set; } = "Unidades"; // Unidades, Metros, Rollos, Cajas, Servicios
     public bool EsSerializado { get; private set; } // true para decos/routers con serie
+    public bool ConvertirEnActivoCliente { get; private set; } = false; // Convert to Customer Asset (Field Service)
+    public string? CodigoBarras { get; private set; } // UPC Code / Barcode
+    public string? Notas { get; private set; } // Notas internas y especificaciones
+    public decimal CostoActual { get; private set; } = 0m; // Current Cost
+    public decimal CostoEstandar { get; private set; } = 0m; // Standard Cost
+    public bool AfectoImpuesto { get; private set; } = true; // Taxable / Afecto a IGV
+    public string? ProveedorDefecto { get; private set; } // Default Vendor
     public bool Activo { get; private set; }
 
     private Producto() { }
@@ -30,7 +37,14 @@ public class Producto : Entity<Guid>
         string? descripcion = null,
         TipoProducto tipo = TipoProducto.Inventario,
         decimal precioBase = 0m,
-        Guid? catalogoId = null)
+        Guid? catalogoId = null,
+        bool convertirEnActivoCliente = false,
+        string? codigoBarras = null,
+        string? notas = null,
+        decimal costoActual = 0m,
+        decimal costoEstandar = 0m,
+        bool afectoImpuesto = true,
+        string? proveedorDefecto = null)
     {
         return new Producto
         {
@@ -44,6 +58,13 @@ public class Producto : Entity<Guid>
             Tipo = tipo,
             PrecioBase = Math.Max(0, precioBase),
             CatalogoId = catalogoId,
+            ConvertirEnActivoCliente = convertirEnActivoCliente,
+            CodigoBarras = codigoBarras?.Trim(),
+            Notas = notas?.Trim(),
+            CostoActual = Math.Max(0, costoActual),
+            CostoEstandar = Math.Max(0, costoEstandar),
+            AfectoImpuesto = afectoImpuesto,
+            ProveedorDefecto = proveedorDefecto?.Trim(),
             Activo = true
         };
     }
@@ -56,7 +77,14 @@ public class Producto : Entity<Guid>
         string? descripcion,
         TipoProducto tipo = TipoProducto.Inventario,
         decimal precioBase = 0m,
-        Guid? catalogoId = null)
+        Guid? catalogoId = null,
+        bool convertirEnActivoCliente = false,
+        string? codigoBarras = null,
+        string? notas = null,
+        decimal costoActual = 0m,
+        decimal costoEstandar = 0m,
+        bool afectoImpuesto = true,
+        string? proveedorDefecto = null)
     {
         Nombre = nombre.Trim();
         Categoria = categoria.Trim();
@@ -66,6 +94,13 @@ public class Producto : Entity<Guid>
         Tipo = tipo;
         PrecioBase = Math.Max(0, precioBase);
         CatalogoId = catalogoId;
+        ConvertirEnActivoCliente = convertirEnActivoCliente;
+        CodigoBarras = codigoBarras?.Trim();
+        Notas = notas?.Trim();
+        CostoActual = Math.Max(0, costoActual);
+        CostoEstandar = Math.Max(0, costoEstandar);
+        AfectoImpuesto = afectoImpuesto;
+        ProveedorDefecto = proveedorDefecto?.Trim();
     }
 
     public void ActualizarPrecioBase(decimal nuevoPrecioBase)

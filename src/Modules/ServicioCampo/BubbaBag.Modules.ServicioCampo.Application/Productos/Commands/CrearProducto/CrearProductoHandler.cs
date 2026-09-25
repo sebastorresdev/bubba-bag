@@ -17,7 +17,14 @@ public record CrearProductoCommand(
     string Categoria = "Materiales",
     string UnidadMedida = "Unidades",
     bool EsSerializado = false,
-    string? Descripcion = null
+    string? Descripcion = null,
+    bool ConvertirEnActivoCliente = false,
+    string? CodigoBarras = null,
+    string? Notas = null,
+    decimal CostoActual = 0m,
+    decimal CostoEstandar = 0m,
+    bool AfectoImpuesto = true,
+    string? ProveedorDefecto = null
 ) : ICommand<Result<Guid>>;
 
 public class CrearProductoHandler : ICommandHandler<CrearProductoCommand, Result<Guid>>
@@ -47,7 +54,14 @@ public class CrearProductoHandler : ICommandHandler<CrearProductoCommand, Result
             descripcion: command.Descripcion,
             tipo: command.Tipo,
             precioBase: command.PrecioBase,
-            catalogoId: command.CatalogoId
+            catalogoId: command.CatalogoId,
+            convertirEnActivoCliente: command.ConvertirEnActivoCliente,
+            codigoBarras: command.CodigoBarras,
+            notas: command.Notas,
+            costoActual: command.CostoActual,
+            costoEstandar: command.CostoEstandar,
+            afectoImpuesto: command.AfectoImpuesto,
+            proveedorDefecto: command.ProveedorDefecto
         );
 
         await _context.Productos.AddAsync(producto, cancellationToken);

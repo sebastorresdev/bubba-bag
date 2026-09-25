@@ -2,6 +2,8 @@ import React from 'react';
 import {
   makeStyles,
   tokens,
+  Button,
+  Divider,
   Input,
   Avatar,
   Tooltip,
@@ -31,7 +33,7 @@ import type { EnterpriseApp } from '../../types/navigation.types';
 const useStyles = makeStyles({
   root: {
     height: '48px',
-    backgroundColor: tokens.colorBrandBackground, // Dynamics 365 Field Service Brand Blue
+    backgroundColor: '#0e213f', // Dynamics 365 Deep Navy Blue
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -41,72 +43,62 @@ const useStyles = makeStyles({
     boxSizing: 'border-box',
     flexShrink: 0,
     zIndex: 100,
-    color: tokens.colorNeutralForegroundOnBrand,
+    color: '#ffffff',
   },
   leftSection: {
     display: 'flex',
     alignItems: 'center',
   },
-  hamburgerBtn: {
+  navBtn: {
+    minWidth: '48px',
     width: '48px',
     height: '48px',
+    padding: 0,
     backgroundColor: 'transparent',
-    color: tokens.colorNeutralForegroundOnBrand,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
+    color: '#ffffff',
     border: 'none',
-    transition: 'background-color 0.15s ease',
+    borderRadius: 0,
     ':hover': {
-      backgroundColor: tokens.colorBrandBackgroundHover,
+      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+      color: '#ffffff',
     },
     ':active': {
-      backgroundColor: tokens.colorBrandBackgroundPressed,
+      backgroundColor: 'rgba(255, 255, 255, 0.16)',
+      color: '#ffffff',
     },
   },
-  waffleBtn: {
-    width: '48px',
+  brandBtn: {
+    minWidth: 'auto',
     height: '48px',
-    backgroundColor: tokens.colorPaletteTealBorderActive, // Solid Dynamics 365 Teal (#038387)
-    color: tokens.colorNeutralForegroundOnBrand,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    borderRadius: 0,
-    border: 'none',
-    transition: 'background-color 0.15s ease',
-    ':hover': {
-      backgroundColor: tokens.colorPaletteTealForeground2,
-    },
-  },
-  d365BrandBtn: {
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
-    color: tokens.colorNeutralForegroundOnBrand,
+    color: '#ffffff',
     backgroundColor: 'transparent',
     border: 'none',
-    cursor: 'pointer',
+    borderRadius: 0,
     padding: '0 12px',
-    height: '48px',
     fontSize: '15px',
     fontWeight: '400',
     fontFamily: '"Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif',
-    transition: 'background-color 0.15s ease',
     ':hover': {
-      backgroundColor: tokens.colorBrandBackgroundHover,
+      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+      color: '#ffffff',
+    },
+    ':active': {
+      backgroundColor: 'rgba(255, 255, 255, 0.16)',
+      color: '#ffffff',
     },
   },
   divider: {
-    width: '1px',
     height: '18px',
-    backgroundColor: tokens.colorNeutralStrokeAlpha2,
-    margin: '0 4px',
+    marginLeft: '4px',
+    marginRight: '4px',
+    flexShrink: 0,
+    opacity: 0.35,
   },
   appTitle: {
-    color: tokens.colorNeutralForegroundOnBrand,
+    color: '#ffffff',
     fontSize: '15px',
     fontWeight: '600',
     padding: '0 10px',
@@ -127,31 +119,43 @@ const useStyles = makeStyles({
     alignItems: 'center',
     gap: '4px',
   },
-  suiteBarIconBtn: {
-    color: tokens.colorNeutralForegroundOnBrand,
-    backgroundColor: 'transparent',
-    border: 'none',
+  actionBtn: {
+    minWidth: '36px',
     width: '36px',
     height: '36px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 0,
+    color: '#ffffff',
+    backgroundColor: 'transparent',
+    border: 'none',
     borderRadius: '4px',
-    cursor: 'pointer',
     ':hover': {
-      backgroundColor: tokens.colorBrandBackgroundHover,
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      color: '#ffffff',
+    },
+    ':active': {
+      backgroundColor: 'rgba(255, 255, 255, 0.18)',
+      color: '#ffffff',
     },
   },
   userProfile: {
+    minWidth: 'auto',
+    height: 'auto',
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
     marginLeft: '6px',
     padding: '4px 8px',
     borderRadius: '4px',
-    cursor: 'pointer',
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: '#ffffff',
     ':hover': {
-      backgroundColor: tokens.colorBrandBackgroundHover,
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      color: '#ffffff',
+    },
+    ':active': {
+      backgroundColor: 'rgba(255, 255, 255, 0.18)',
+      color: '#ffffff',
     },
   },
   userInfoText: {
@@ -252,27 +256,27 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
       {/* Left: Hamburger Toggle + Teal Waffle Button + Dynamics 365 dropdown + App Name */}
       <div className={styles.leftSection}>
         {onToggleNav && (
-          <button
-            className={styles.hamburgerBtn}
+          <Button
+            appearance="transparent"
+            className={styles.navBtn}
             onClick={onToggleNav}
             title={isNavOpen ? 'Contraer navegación' : 'Expandir navegación'}
             aria-label={isNavOpen ? 'Contraer navegación' : 'Expandir navegación'}
             aria-expanded={isNavOpen}
-          >
-            <Navigation24Regular />
-          </button>
+            icon={<Navigation24Regular />}
+          />
         )}
 
-        {/* Teal Waffle Launcher */}
+        {/* Waffle Launcher */}
         <Menu>
           <MenuTrigger disableButtonEnhancement>
-            <button
-              className={styles.waffleBtn}
+            <Button
+              appearance="transparent"
+              className={styles.navBtn}
               title="Iniciador de aplicaciones (Apps)"
               aria-label="Iniciador de aplicaciones"
-            >
-              <Apps20Regular />
-            </button>
+              icon={<Apps20Regular />}
+            />
           </MenuTrigger>
           <MenuPopover>{appMenu}</MenuPopover>
         </Menu>
@@ -280,16 +284,21 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
         {/* SKVIA with Chevron Down */}
         <Menu>
           <MenuTrigger disableButtonEnhancement>
-            <button className={styles.d365BrandBtn} title="Cambiar Aplicación">
+            <Button
+              appearance="transparent"
+              className={styles.brandBtn}
+              title="Cambiar Aplicación"
+              icon={<ChevronDown12Regular style={{ opacity: 0.8 }} />}
+              iconPosition="after"
+            >
               <span style={{ fontWeight: 600 }}>SKVIA</span>
-              <ChevronDown12Regular style={{ opacity: 0.8 }} />
-            </button>
+            </Button>
           </MenuTrigger>
           <MenuPopover>{appMenu}</MenuPopover>
         </Menu>
 
         {/* Separator Pipe | */}
-        <div className={styles.divider} />
+        <Divider vertical className={styles.divider} />
 
         {/* Active Application Name */}
         <span className={styles.appTitle}>{activeApp.name}</span>
@@ -312,42 +321,53 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
           content={isDarkMode ? 'Cambiar a modo Claro' : 'Cambiar a modo Oscuro'}
           relationship="label"
         >
-          <button
-            className={styles.suiteBarIconBtn}
+          <Button
+            appearance="transparent"
+            className={styles.actionBtn}
             onClick={toggleDarkMode}
             aria-label="Cambiar tema"
-          >
-            {isDarkMode ? <WeatherSunny20Regular /> : <WeatherMoon20Regular />}
-          </button>
+            icon={isDarkMode ? <WeatherSunny20Regular /> : <WeatherMoon20Regular />}
+          />
         </Tooltip>
 
         <Tooltip content="Notificaciones y alertas" relationship="label">
-          <button className={styles.suiteBarIconBtn} aria-label="Notificaciones">
-            <div style={{ position: 'relative', display: 'flex' }}>
-              <Alert20Regular />
-              <Badge
-                size="extra-small"
-                color="danger"
-                style={{ position: 'absolute', top: -2, right: -2 }}
-              />
-            </div>
-          </button>
+          <Button
+            appearance="transparent"
+            className={styles.actionBtn}
+            aria-label="Notificaciones"
+            icon={
+              <div style={{ position: 'relative', display: 'flex' }}>
+                <Alert20Regular />
+                <Badge
+                  size="extra-small"
+                  color="danger"
+                  style={{ position: 'absolute', top: -2, right: -2 }}
+                />
+              </div>
+            }
+          />
         </Tooltip>
 
         <Tooltip content="Ayuda y soporte" relationship="label">
-          <button className={styles.suiteBarIconBtn} aria-label="Ayuda">
-            <QuestionCircle20Regular />
-          </button>
+          <Button
+            appearance="transparent"
+            className={styles.actionBtn}
+            aria-label="Ayuda"
+            icon={<QuestionCircle20Regular />}
+          />
         </Tooltip>
 
         <Tooltip content="Configuración global" relationship="label">
-          <button className={styles.suiteBarIconBtn} aria-label="Configuración">
-            <Settings20Regular />
-          </button>
+          <Button
+            appearance="transparent"
+            className={styles.actionBtn}
+            aria-label="Configuración"
+            icon={<Settings20Regular />}
+          />
         </Tooltip>
 
         {/* User Persona */}
-        <div className={styles.userProfile}>
+        <Button appearance="transparent" className={styles.userProfile}>
           <Avatar
             name="Sebastián Torres"
             initials="ST"
@@ -356,14 +376,14 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
             badge={{ status: 'available' }}
           />
           <div className={styles.userInfoText}>
-            <Text weight="semibold" size={200} style={{ color: tokens.colorNeutralForegroundOnBrand }}>
+            <Text weight="semibold" size={200} style={{ color: '#ffffff' }}>
               Sebastián Torres
             </Text>
-            <Text size={100} style={{ color: tokens.colorNeutralForegroundOnBrand, opacity: 0.85 }}>
+            <Text size={100} style={{ color: 'rgba(255, 255, 255, 0.85)' }}>
               Administrador
             </Text>
           </div>
-        </div>
+        </Button>
       </div>
     </header>
   );

@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   makeStyles,
   tokens,
   Toolbar,
   ToolbarButton,
   ToolbarDivider,
+  Button,
   Input,
   Spinner,
   Text,
@@ -103,7 +105,7 @@ const useStyles = makeStyles({
     gap: '8px',
   },
   keywordInput: {
-    width: '210px',
+    width: '260px',
   },
   gridContainer: {
     flexGrow: 1,
@@ -162,6 +164,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
   onSelectProduct,
 }) => {
   const styles = useStyles();
+  const navigate = useNavigate();
 
   const [productos, setProductos] = useState<ProductoDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -225,7 +228,13 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
           <TableCellLayout truncate>
             <Link
               as="button"
-              onClick={() => onSelectProduct?.(item)}
+              onClick={() => {
+                if (onSelectProduct) {
+                  onSelectProduct(item);
+                } else {
+                  navigate(`/servicio-campo/productos/${item.id}`);
+                }
+              }}
               title={item.nombre}
               style={{
                 fontWeight: 500,
@@ -326,7 +335,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
         ),
       }),
     ],
-    [styles.codeLink, styles.noWrapCell, onSelectProduct]
+    [styles.codeLink, styles.noWrapCell, onSelectProduct, navigate]
   );
 
   return (
@@ -363,7 +372,13 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
             <ToolbarButton
               className={styles.btnPrimary}
               icon={<Add16Regular style={{ color: tokens.colorPaletteGreenForeground1 }} />}
-              onClick={onNewProduct}
+              onClick={() => {
+                if (onNewProduct) {
+                  onNewProduct();
+                } else {
+                  navigate('/servicio-campo/productos/nuevo');
+                }
+              }}
             >
               Nuevo
             </ToolbarButton>
@@ -439,20 +454,28 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
 
         <div className={styles.viewToolsRight}>
           <Tooltip content="Modificar orden y visibilidad de columnas" relationship="label">
-            <ToolbarButton icon={<TableEdit16Regular style={{ color: tokens.colorCompoundBrandForeground1 }} />}>
+            <Button
+              appearance="subtle"
+              size="medium"
+              icon={<TableEdit16Regular style={{ color: tokens.colorCompoundBrandForeground1 }} />}
+            >
               Editar columnas
-            </ToolbarButton>
+            </Button>
           </Tooltip>
 
           <Tooltip content="Filtrado avanzado por condiciones" relationship="label">
-            <ToolbarButton icon={<DataFunnel20Regular style={{ color: tokens.colorCompoundBrandForeground1 }} />}>
+            <Button
+              appearance="subtle"
+              size="medium"
+              icon={<DataFunnel20Regular style={{ color: tokens.colorCompoundBrandForeground1 }} />}
+            >
               Editar filtros
-            </ToolbarButton>
+            </Button>
           </Tooltip>
 
           <Input
             className={styles.keywordInput}
-            size="small"
+            size="medium"
             placeholder="Filtrar por palabra clave"
             contentBefore={<Search16Regular />}
             value={searchKeyword}

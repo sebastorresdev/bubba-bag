@@ -49,6 +49,33 @@ public class ProductoConfiguration : IEntityTypeConfiguration<Producto>
         builder.Property(p => p.EsSerializado)
             .IsRequired();
 
+        builder.Property(p => p.ConvertirEnActivoCliente)
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.Property(p => p.CodigoBarras)
+            .HasMaxLength(50);
+
+        builder.Property(p => p.Notas)
+            .HasMaxLength(1000);
+
+        builder.Property(p => p.CostoActual)
+            .IsRequired()
+            .HasPrecision(12, 2)
+            .HasDefaultValue(0m);
+
+        builder.Property(p => p.CostoEstandar)
+            .IsRequired()
+            .HasPrecision(12, 2)
+            .HasDefaultValue(0m);
+
+        builder.Property(p => p.AfectoImpuesto)
+            .IsRequired()
+            .HasDefaultValue(true);
+
+        builder.Property(p => p.ProveedorDefecto)
+            .HasMaxLength(150);
+
         builder.Property(p => p.Activo)
             .IsRequired();
     }

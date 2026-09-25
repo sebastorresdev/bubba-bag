@@ -150,7 +150,7 @@ export interface SideNavProps {
   onOpenChange: (open: boolean) => void;
   areas: NavArea[];
   activeArea: NavArea;
-  activeItem: NavItemData;
+  activeItem?: NavItemData;
   onSelectArea: (area: NavArea) => void;
   onSelectItem: (item: NavItemData) => void;
   onToggleNav?: () => void;
@@ -181,13 +181,13 @@ export const SideNav: React.FC<SideNavProps> = ({
       type={type}
       open={open}
       onOpenChange={(_, data) => onOpenChange(data.open)}
-      selectedValue={activeItem.id}
+      selectedValue={activeItem?.id || ''}
       className={styles.navDrawer}
     >
       {/* Body with Fluent UI v9 Nav, Sections, Items and SubItems */}
       <NavDrawerBody className={styles.drawerBody}>
         <Nav
-          selectedValue={activeItem.id}
+          selectedValue={activeItem?.id || ''}
           onNavItemSelect={(_, data) => {
             for (const grp of activeArea.groups) {
               for (const itm of grp.items) {
