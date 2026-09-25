@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { makeStyles, tokens } from '@fluentui/react-components';
 import { SuiteBar } from './SuiteBar';
 import { SideNav } from './SideNav';
-import { D365CommandBar } from './D365CommandBar';
 import { EntityPlaceholder } from '../placeholder/EntityPlaceholder';
 import { ProductosListView } from '../views/ProductosListView';
 import { ENTERPRISE_APPS } from '../../data/navigation.data';
@@ -124,24 +123,14 @@ export const MainLayout: React.FC = () => {
               onSelectProduct={(p) => alert(`Abriendo producto: ${p.codigo} - ${p.nombre}`)}
             />
           ) : (
-            <>
-              {/* Dynamics 365 Command Bar for placeholder views */}
-              <D365CommandBar
-                title={activeItem.title}
-                onRefresh={() => {}}
-                onNew={() => alert(`Acción Nueva entidad para: ${activeItem.title}`)}
+            <div className={styles.viewport}>
+              <EntityPlaceholder
+                key={activeItem.id}
+                item={activeItem}
+                area={activeArea}
+                app={activeApp}
               />
-
-              {/* Viewport with placeholder for each entity */}
-              <div className={styles.viewport}>
-                <EntityPlaceholder
-                  key={activeItem.id}
-                  item={activeItem}
-                  area={activeArea}
-                  app={activeApp}
-                />
-              </div>
-            </>
+            </div>
           )}
         </main>
       </div>
