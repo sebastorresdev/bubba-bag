@@ -11,17 +11,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
-import { NzDrawerModule } from 'ng-zorro-antd/drawer';
-import { NzButtonModule } from 'ng-zorro-antd/button';
-import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzSelectModule } from 'ng-zorro-antd/select';
-import { NzInputModule } from 'ng-zorro-antd/input';
-import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
-import { NzDatePickerModule } from 'ng-zorro-antd/date-picker';
-import { NzRadioModule } from 'ng-zorro-antd/radio';
-import { NzTagModule } from 'ng-zorro-antd/tag';
-import { NzEmptyModule } from 'ng-zorro-antd/empty';
-
+import { AppIconComponent } from '../icon/icon.component';
 import {
   FilterGroup,
   FilterCondition,
@@ -38,16 +28,7 @@ import { ColumnDef } from '../entity-table/entity-table.models';
   imports: [
     CommonModule,
     FormsModule,
-    NzDrawerModule,
-    NzButtonModule,
-    NzIconModule,
-    NzSelectModule,
-    NzInputModule,
-    NzInputNumberModule,
-    NzDatePickerModule,
-    NzRadioModule,
-    NzTagModule,
-    NzEmptyModule,
+    AppIconComponent,
   ],
   templateUrl: './advanced-filter-drawer.component.html',
   styleUrl: './advanced-filter-drawer.component.css',
@@ -81,7 +62,6 @@ export class AdvancedFilterDrawerComponent implements OnInit, OnChanges {
 
   private sincronizarFiltro(): void {
     if (this.currentFilter && this.currentFilter.conditions) {
-      // Clon profundo para edición
       this.localGroup = JSON.parse(JSON.stringify(this.currentFilter));
     } else {
       this.localGroup = {
@@ -168,7 +148,6 @@ export class AdvancedFilterDrawerComponent implements OnInit, OnChanges {
   }
 
   onAplicar(): void {
-    // Filtrar condiciones que tengan campo seleccionado
     const validConditions = this.localGroup.conditions.filter((c) => !!c.field);
 
     if (validConditions.length === 0) {

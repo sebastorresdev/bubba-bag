@@ -1,11 +1,11 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
-import { NzNotificationService } from 'ng-zorro-antd/notification';
+import { NotificationService } from '../services/notification.service';
 import { ErrorResponse } from '../models/error-response.model';
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
-  const notification = inject(NzNotificationService);
+  const notification = inject(NotificationService);
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
@@ -20,7 +20,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   );
 };
 
-function handleHttpError(error: HttpErrorResponse, notification: NzNotificationService): void {
+function handleHttpError(error: HttpErrorResponse, notification: NotificationService): void {
   const errBody = error.error as ErrorResponse | undefined;
 
   switch (error.status) {

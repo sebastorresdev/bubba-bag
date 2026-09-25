@@ -5,112 +5,97 @@ import {
   EventEmitter,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { NgTemplateOutlet } from '@angular/common';
-import { NzButtonModule } from 'ng-zorro-antd/button';
-import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
-import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
+import { CommonModule } from '@angular/common';
+import { CdkMenuModule } from '@angular/cdk/menu';
+import { AppIconComponent, IconName } from '../icon';
 import { CommandBarItem } from './command-bar.model';
 export * from './command-bar.model';
 
 @Component({
   selector: 'app-command-bar',
   standalone: true,
-  imports: [
-    NgTemplateOutlet,
-    NzButtonModule,
-    NzIconModule,
-    NzDropdownModule,
-    NzPopconfirmModule,
-  ],
+  imports: [CommonModule, CdkMenuModule, AppIconComponent],
   templateUrl: './command-bar.component.html',
   styleUrl: './command-bar.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CommandBarComponent {
-  /** Elementos alineados a la izquierda (acciones principales) */
   @Input() items: CommandBarItem[] = [];
-
-  /** Elementos alineados a la derecha (acciones secundarias, actualizar, etc.) */
   @Input() farItems: CommandBarItem[] = [];
-
-  /** Mostrar botón de retroceder (flecha izquierda) */
   @Input() showBack = false;
-
-  /** Título contextual opcional si la barra lo incluye */
   @Input() title?: string;
 
-  /** Evento disparado al hacer clic en el botón atrás */
   @Output() back = new EventEmitter<void>();
-
-  /** Evento disparado al hacer clic en cualquier comando */
   @Output() itemClick = new EventEmitter<CommandBarItem>();
 
   onItemClick(item: CommandBarItem, event?: Event): void {
-    if (event) {
-      event.stopPropagation();
-    }
-    if (item.disabled || item.hidden || item.isDivider) {
-      return;
-    }
-    if (item.action) {
-      item.action(item);
-    }
-    if (item.execute) {
-      item.execute(item);
-    }
+    if (event) event.stopPropagation();
+    if (item.disabled || item.hidden || item.isDivider) return;
+    if (item.action) item.action(item);
+    if (item.execute) item.execute(item);
     this.itemClick.emit(item);
   }
 
-  onBackClick(): void {
-    this.back.emit();
+  getIconName(icon?: string): IconName {
+    if (!icon) return 'info';
+    switch (icon) {
+      case 'plus':
+      case 'plus-circle':
+        return 'plus';
+      case 'edit':
+      case 'form':
+        return 'edit';
+      case 'save':
+        return 'save';
+      case 'reload':
+      case 'sync':
+        return 'reload';
+      case 'check':
+      case 'check-circle':
+        return 'check';
+      case 'close':
+      case 'close-circle':
+      case 'stop':
+        return 'close';
+      case 'delete':
+      case 'trash':
+        return 'trash';
+      case 'search':
+        return 'search';
+      case 'filter':
+        return 'filter';
+      case 'table':
+      case 'columns':
+      case 'bars':
+        return 'columns';
+      case 'folder':
+        return 'folder';
+      case 'file-excel':
+        return 'excel';
+      case 'setting':
+      case 'settings':
+        return 'settings';
+      default:
+        return 'info';
+    }
   }
 
-  getIconColor(item: CommandBarItem): string | null {
-    if (item.disabled) {
-      return null;
+  getIconColorClass(color?: string, danger?: boolean): string {
+    if (danger) return 'text-rose-600 dark:text-rose-400';
+    if (!color) return 'text-neutral-600 dark:text-neutral-300';
+    switch (color) {
+      case 'primary':
+        return 'text-blue-600 dark:text-blue-400';
+      case 'success':
+        return 'text-emerald-600 dark:text-emerald-400';
+      case 'danger':
+        return 'text-rose-600 dark:text-rose-400';
+      case 'purple':
+        return 'text-purple-600 dark:text-purple-400';
+      case 'warning':
+        return 'text-amber-600 dark:text-amber-400';
+      default:
+        return 'text-neutral-600 dark:text-neutral-300';
     }
-
-    // Si es un icono o acción de Excel o CSV, aplicar siempre el verde oficial de Excel (#107c41)
-    if (
-      item.icon === 'file-excel' ||
-      item.key === 'csv' ||
-      item.key?.includes('excel') ||
-      item.key?.includes('csv')
-    ) {
-      return '#107c41';
-    }
-
-    if (item.iconColor) {
-      switch (item.iconColor) {
-        case 'primary':
-          return '#0f6cbd';
-        case 'success':
-        case 'excel':
-          return '#107c41';
-        case 'danger':
-          return '#d13438';
-        case 'warning':
-          return '#ffaa00';
-        case 'purple':
-        case 'save':
-          return '#873999';
-        case 'neutral':
-          return '#605e5c';
-        case 'default':
-          return null;
-        default:
-          return item.iconColor;
-      }
-    }
-
-    if (item.danger) {
-      return '#d13438';
-    }
-    if (item.primary) {
-      return '#0f6cbd';
-    }
-
-    return null;
   }
 }

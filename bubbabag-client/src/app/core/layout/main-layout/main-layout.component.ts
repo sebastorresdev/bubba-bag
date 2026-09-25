@@ -2,22 +2,12 @@ import { Component, inject, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
-import { NzLayoutModule } from 'ng-zorro-antd/layout';
-import { NzMenuModule } from 'ng-zorro-antd/menu';
-import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzButtonModule } from 'ng-zorro-antd/button';
-import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
-import { NzAvatarModule } from 'ng-zorro-antd/avatar';
-import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
-import { NzInputModule } from 'ng-zorro-antd/input';
-import { NzBadgeModule } from 'ng-zorro-antd/badge';
-import { NzDividerModule } from 'ng-zorro-antd/divider';
-import { NzDrawerModule } from 'ng-zorro-antd/drawer';
-import { NzTagModule } from 'ng-zorro-antd/tag';
-import { NzAutocompleteModule } from 'ng-zorro-antd/auto-complete';
+import { CdkMenuModule } from '@angular/cdk/menu';
 import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
 import { NavigationService, ErpModule, ModuleMenuItem, NavigationArea } from '../../services/navigation.service';
+import { AppIconComponent, IconName } from '../../../shared/components/icon';
+import { ToastContainerComponent } from '../../services/toast-container.component';
 
 export interface GlobalSearchItem {
   title: string;
@@ -39,34 +29,19 @@ export interface GlobalSearchGroup {
     CommonModule,
     FormsModule,
     RouterModule,
-    NzLayoutModule,
-    NzMenuModule,
-    NzIconModule,
-    NzButtonModule,
-    NzTooltipModule,
-    NzAvatarModule,
-    NzDropdownModule,
-    NzInputModule,
-    NzBadgeModule,
-    NzDividerModule,
-    NzDrawerModule,
-    NzTagModule,
-    NzAutocompleteModule,
+    CdkMenuModule,
+    AppIconComponent,
+    ToastContainerComponent,
   ],
   templateUrl: './main-layout.html',
-  styles: [
-    `
-      :host {
-        display: block;
-        height: 100%;
-      }
-    `,
-  ],
+  styleUrl: './main-layout.component.css',
 })
 export class MainLayoutComponent {
   isCollapsed = false;
   isAppLauncherVisible = false;
   isMobileSiderVisible = false;
+  isSearchFocused = false;
+
   private router = inject(Router);
   authService = inject(AuthService);
   themeService = inject(ThemeService);
@@ -75,39 +50,33 @@ export class MainLayoutComponent {
   readonly currentUser = this.authService.currentUser;
   readonly userInitials = computed(() => this.authService.getUserInitials());
 
-  // Búsqueda global interactiva estilo Algolia / Dynamics 365
   searchQuery = signal<string>('');
 
-  // Índice completo de rutas y páginas indexables del ERP
   readonly searchIndex = computed<GlobalSearchItem[]>(() => {
-    const items: GlobalSearchItem[] = [];
-
-    // Accesos Rápidos
-    items.push(
+    const items: GlobalSearchItem[] = [
       {
         title: 'Registrar Nuevo Colaborador',
         category: 'Acciones Rápidas',
         path: '/rrhh/empleados/nuevo',
-        icon: 'user-add',
+        icon: 'user',
         keywords: ['nuevo', 'crear', 'empleado', 'colaborador', 'alta'],
       },
       {
         title: 'Registrar Nuevo Usuario',
         category: 'Acciones Rápidas',
         path: '/configuracion/usuarios/nuevo',
-        icon: 'user-add',
+        icon: 'user',
         keywords: ['nuevo', 'crear', 'usuario', 'cuenta', 'acceso'],
       },
       {
         title: 'Centro de Aplicaciones (Dashboard)',
         category: 'Navegación General',
         path: '/dashboard',
-        icon: 'appstore',
+        icon: 'grid',
         keywords: ['inicio', 'home', 'portal', 'dashboard', 'apps'],
-      }
-    );
+      },
+    ];
 
-    // Módulos y submódulos de NavigationService
     for (const mod of this.navService.modules) {
       for (const item of mod.items || []) {
         if (item.path) {
@@ -138,18 +107,15 @@ export class MainLayoutComponent {
     return items;
   });
 
-  // Resultados agrupados en tiempo real según el texto ingresado
   readonly groupedSearchResults = computed<GlobalSearchGroup[]>(() => {
     const query = this.searchQuery().trim().toLowerCase();
     const all = this.searchIndex();
 
     if (!query) {
-      // Sugerencias por defecto si el input está enfocado pero vacío
       const defaults = all.slice(0, 6);
       return this.groupItemsByCategory(defaults);
     }
 
-    // Filtrar por título, categoría o keywords
     const matches = all.filter((item) => {
       const matchTitle = item.title.toLowerCase().includes(query);
       const matchCat = item.category.toLowerCase().includes(query);
@@ -181,6 +147,7 @@ export class MainLayoutComponent {
 
   onSelectSearchResult(item: GlobalSearchItem): void {
     this.searchQuery.set('');
+    this.isSearchFocused = false;
     this.router.navigate([item.path]);
   }
 
@@ -188,6 +155,10 @@ export class MainLayoutComponent {
     this.router.events.subscribe(() => {
       this.closeMobileSider();
     });
+  }
+
+  toggleCollapsed(): void {
+    this.isCollapsed = !this.isCollapsed;
   }
 
   toggleMobileSider(): void {
@@ -224,24 +195,55 @@ export class MainLayoutComponent {
     return this.router.url === item.path;
   }
 
-  logout() {
+  logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
   }
 
-  goToDashboard() {
+  goToDashboard(): void {
     this.router.navigate(['/dashboard']);
   }
 
-  goToConfiguracion() {
+  goToConfiguracion(): void {
     this.router.navigate(['/configuracion/usuarios']);
   }
 
-  selectModule(module: ErpModule) {
+  selectModule(module: ErpModule): void {
     this.navService.switchToModule(module);
   }
 
-  selectArea(area: NavigationArea) {
+  selectArea(area: NavigationArea): void {
     this.navService.switchToArea(area);
+  }
+
+  getNavIcon(iconName?: string): IconName {
+    if (!iconName) return 'file-text';
+    switch (iconName) {
+      case 'dashboard':
+      case 'appstore':
+        return 'grid';
+      case 'team':
+      case 'user':
+        return 'users';
+      case 'folder':
+        return 'folder';
+      case 'tool':
+      case 'wrench':
+        return 'wrench';
+      case 'box':
+      case 'inbox':
+        return 'box';
+      case 'setting':
+      case 'settings':
+        return 'settings';
+      case 'calendar':
+        return 'calendar';
+      case 'clock':
+        return 'clock';
+      case 'tag':
+        return 'tag';
+      default:
+        return 'file-text';
+    }
   }
 }

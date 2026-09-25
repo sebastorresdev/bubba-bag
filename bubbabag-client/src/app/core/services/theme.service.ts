@@ -23,47 +23,19 @@ export class ThemeService {
 
   toggleTheme() {
     this.setDarkMode(!this.isDarkMode());
-    console.log(this.isDarkMode());
   }
 
   setDarkMode(isDark: boolean) {
     this.isDarkMode.set(isDark);
-    const darkThemeId = 'ng-zorro-theme-dark';
-    let link = document.getElementById(darkThemeId) as HTMLLinkElement | null;
-
-    // Desactivar temporalmente todas las transiciones para evitar saltos o efectos visuales extraños
-    document.documentElement.classList.add('theme-switching');
 
     if (isDark) {
       localStorage.setItem('theme', 'dark');
+      document.documentElement.classList.add('dark');
       document.documentElement.setAttribute('data-theme', 'dark');
-      document.body.classList.add('dark-theme');
-
-      if (!link) {
-        link = document.createElement('link');
-        link.id = darkThemeId;
-        link.rel = 'stylesheet';
-        link.href = '/themes/ng-zorro-antd.dark.min.css';
-        document.head.appendChild(link);
-      } else {
-        link.disabled = false;
-      }
     } else {
       localStorage.setItem('theme', 'light');
+      document.documentElement.classList.remove('dark');
       document.documentElement.setAttribute('data-theme', 'light');
-      document.body.classList.remove('dark-theme');
-
-      if (link) {
-        link.remove();
-      }
     }
-
-    // Restaurar transiciones fluidas en el siguiente repintado
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        document.documentElement.classList.remove('theme-switching');
-      });
-    });
   }
 }
-

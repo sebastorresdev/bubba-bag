@@ -1,348 +1,471 @@
-<nz-card [nzBordered]="true" [nzBodyStyle]="{ padding: '0', display: 'flex', 'flex-direction': 'column', flex: '1 1 0%', 'min-height': '0', height: '100%', overflow: 'hidden' }" class="d365-table-card">
-  <!-- Sub-Header / Selector de Vista & Herramientas -->
-  <div class="d365-toolbar-row">
-    <!-- Selector de Vista Dynamics 365 Reutilizable con Asterisco (*) -->
-    @if (showViews) {
+<div class="flex flex-col gap-3">
+  <!-- Barra Superior: Vista, Búsqueda, Filtros y Columnas -->
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <!-- Selector de Vistas -->
+    <div class="flex items-center gap-2">
       <app-view-selector
+        *ngIf="showViews"
         [entidad]="entidad"
         [vistasSistema]="vistasSistema"
         [(vistaActualKey)]="vistaActualKey"
-        [esModificada]="esModificada"
         [filtrosActuales]="filtrosActualesParaGuardar"
+        [esModificada]="esModificada"
         (vistaChange)="onVistaChange($event)"
         (descartarCambios)="descartarCambios()"
         (guardarCambios)="onGuardarCambiosEnVista($event)"
-      ></app-view-selector>
-    } @else {
-      <div class="d365-table-title">{{ entidad }}</div>
-    }
+      />
+    </div>
 
-    <!-- Derecha: Filtros Adicionales, Filtrar, Editar Columnas y Buscador Rápido -->
-    <div class="view-tools-group">
-      <!-- Proyección de Filtros Adicionales (ej. selects específicos) -->
-      <ng-content select="[extra-filters]"></ng-content>
-
-      <!-- Botón Filtros Avanzados Estilo Dynamics 365 -->
-      @if (showAdvancedFilter) {
+    <!-- Acciones Derecha (Búsqueda, Filtros, Editar Columnas) -->
+    <div class="flex items-center gap-2 ml-auto">
+      <!-- Input de Búsqueda Rápida -->
+      <div *ngIf="showSearch" class="relative flex items-center min-w-[220px]">
+        <app-icon
+          name="search"
+          [size]="15"
+          svgClass="absolute left-2.5 text-neutral-400 dark:text-neutral-500 pointer-events-none"
+        />
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onSearchChange()"
+          [placeholder]="searchPlaceholder"
+          class="w-full pl-8 pr-7 py-1.5 text-xs rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-850 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+        />
         <button
+          *ngIf="searchTerm"
           type="button"
-          nz-button
-          nzType="text"
-          class="d365-btn-filter"
-          [class.filter-active]="activeFilterConditionsCount > 0"
-          (click)="abrirDrawerFiltros()"
-          title="Filtros avanzados"
+          (click)="limpiarBusqueda()"
+          class="absolute right-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 cursor-pointer"
         >
-          <nz-icon nzType="filter" class="filter-icon" />
-          <span>Filtrar</span>
-          @if (activeFilterConditionsCount > 0) {
-            <span class="filter-count-pill">{{ activeFilterConditionsCount }}</span>
-          }
+          <app-icon name="close" [size]="12" />
         </button>
-      }
+      </div>
 
-      <!-- Botón Editar Columnas Estilo D365 (a la izquierda de la búsqueda clásica) -->
-      @if (showEditColumns) {
-        <button
-          type="button"
-          nz-button
-          nzType="text"
-          class="d365-btn-edit-cols"
-          (click)="abrirDrawerEditarColumnas()"
-          title="Editar columnas visibles y orden"
+      <!-- Botón Filtros Avanzados -->
+      <button
+        *ngIf="showAdvancedFilter"
+        type="button"
+        (click)="abrirDrawerFiltros()"
+        [class.bg-primary-50]="activeFilterConditionsCount > 0"
+        [class.dark:bg-primary-950/40]="activeFilterConditionsCount > 0"
+        [class.border-primary-300]="activeFilterConditionsCount > 0"
+        [class.dark:border-primary-700]="activeFilterConditionsCount > 0"
+        class="relative inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-850 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+        title="Filtros avanzados"
+      >
+        <app-icon
+          name="filter"
+          [size]="14"
+          [svgClass]="activeFilterConditionsCount > 0 ? 'text-primary-600 dark:text-primary-400' : ''"
+        />
+        <span class="hidden sm:inline">Editar filtros</span>
+        <span
+          *ngIf="activeFilterConditionsCount > 0"
+          class="inline-flex items-center justify-center px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-primary-600 text-white"
         >
-          <nz-icon nzType="column-width" class="edit-cols-icon" />
-          <span>Editar columnas</span>
-        </button>
-      }
+          {{ activeFilterConditionsCount }}
+        </span>
+      </button>
 
-      <!-- Buscador Rápido Fluent UI -->
-      @if (showSearch) {
-        <div class="d365-search-box">
-          <input
-            type="text"
-            [placeholder]="searchPlaceholder"
-            [(ngModel)]="searchTerm"
-            (ngModelChange)="onSearchChange()"
-            class="search-input"
-          />
-          @if (searchTerm) {
-            <button
-              class="search-clear-btn"
-              (click)="limpiarBusqueda()"
-              title="Borrar búsqueda"
-            >
-              <nz-icon nzType="close" />
-            </button>
-          } @else {
-            <span class="search-icon">
-              <nz-icon nzType="search" />
-            </span>
-          }
-        </div>
-      }
+      <!-- Botón Editar Columnas -->
+      <button
+        *ngIf="showEditColumns"
+        type="button"
+        (click)="abrirDrawerEditarColumnas()"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-850 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+        title="Editar columnas visibles"
+      >
+        <app-icon name="columns" [size]="14" />
+        <span class="hidden sm:inline">Editar columnas</span>
+      </button>
     </div>
   </div>
 
-  <!-- Grilla / Tabla Estilo Dynamics 365 -->
-  <div class="d365-grid-container">
-    <nz-table
-      #entityTable
-      [nzData]="datosFiltrados"
-      [nzLoading]="loading"
-      [nzShowPagination]="true"
-      [nzShowTotal]="totalRangeTpl"
-      [nzPageSize]="pageSize"
-      [nzSize]="'small'"
-      [nzBordered]="false"
-      [nzScroll]="scrollX ? { x: scrollX } : {}"
-      class="d365-table"
-    >
-      <ng-template #totalRangeTpl let-range="range" let-total="total">
-        {{ range[0] }} - {{ range[1] }} de {{ total }}
-      </ng-template>
+  <!-- Contenedor Principal de la Tabla -->
+  <div class="border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden bg-white dark:bg-neutral-900 shadow-xs flex flex-col">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs border-collapse">
+        <!-- Header -->
+        <thead class="bg-neutral-50 dark:bg-neutral-800/80 text-neutral-600 dark:text-neutral-300 border-b border-neutral-200 dark:border-neutral-800 select-none">
+          <tr>
+            <!-- Columna Selección Multiple -->
+            <th class="w-10 px-3 py-2.5 text-center">
+              <input
+                type="checkbox"
+                [checked]="isAllSelected"
+                [indeterminate]="isIndeterminate"
+                (change)="toggleSelectAll($any($event.target).checked)"
+                class="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700 text-primary-600 focus:ring-primary-500 cursor-pointer"
+              />
+            </th>
 
-      <thead>
-        <tr>
-          <!-- Checkbox Maestro -->
-          <th
-            [nzWidth]="'44px'"
-            [nzChecked]="isAllSelected"
-            [nzIndeterminate]="isIndeterminate"
-            (nzCheckedChange)="toggleSelectAll($event)"
-            class="col-checkbox"
-          ></th>
-
-          <!-- Columnas Dinámicas -->
-          @for (col of columnasVisibles; track col.key) {
+            <!-- Columnas de Datos -->
             <th
-              [nzWidth]="col.width || null"
-              [nzAlign]="col.align || 'left'"
-              [nzShowSort]="col.sortable !== false"
-              [nzSortOrder]="sortState.key === col.key ? sortState.order : null"
-              (nzSortOrderChange)="onSortChange(col.key, $event)"
+              *ngFor="let col of columnasVisibles"
+              [style.width]="col.width"
               [class]="col.headerClass || ''"
+              class="px-3.5 py-2.5 font-semibold text-neutral-700 dark:text-neutral-200 whitespace-nowrap"
+              [class.text-left]="!col.align || col.align === 'left'"
+              [class.text-center]="col.align === 'center'"
+              [class.text-right]="col.align === 'right'"
             >
-              <div class="th-content-wrapper" [class.th-center]="col.align === 'center'" [class.th-right]="col.align === 'right'">
-                <span class="th-title">{{ col.title }}</span>
+              <div class="inline-flex items-center gap-1.5 group">
+                <!-- Título ordenable -->
+                <button
+                  *ngIf="col.sortable !== false"
+                  type="button"
+                  (click)="onSort(col.key)"
+                  class="inline-flex items-center gap-1 font-semibold text-neutral-700 dark:text-neutral-200 hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer"
+                >
+                  <span>{{ col.title }}</span>
+                  <!-- Flecha de ordenamiento -->
+                  <span *ngIf="sortState.key === col.key" class="text-primary-600 dark:text-primary-400">
+                    <app-icon
+                      name="chevron-down"
+                      [size]="12"
+                      [svgClass]="sortState.order === 'ascend' ? 'rotate-180 transition-transform' : 'transition-transform'"
+                    />
+                  </span>
+                </button>
 
-                <!-- Menú de Filtro Avanzado por Columna -->
-                @if (col.filterType && col.filterType !== 'none') {
+                <span *ngIf="col.sortable === false">
+                  {{ col.title }}
+                </span>
+
+                <!-- Icono de Filtro por Columna -->
+                <div *ngIf="col.filterType && col.filterType !== 'none'" class="relative inline-block">
                   <button
                     type="button"
-                    nz-button
-                    nzType="text"
-                    nzSize="small"
-                    nz-dropdown
-                    [nzDropdownMenu]="colFilterMenu"
-                    nzTrigger="click"
-                    [(nzVisible)]="filterDropdownVisible[col.key]"
-                    (nzVisibleChange)="abrirMenuFiltro(col.key, $event)"
-                    class="th-filter-btn"
-                    [class.filter-active]="tieneFiltroActivo(col.key)"
-                    (click)="$event.stopPropagation()"
-                    title="Filtrar por {{ col.title }}"
+                    (click)="toggleFilterMenu(col.key, $event)"
+                    [class.text-primary-600]="tieneFiltroActivo(col.key)"
+                    [class.dark:text-primary-400]="tieneFiltroActivo(col.key)"
+                    class="p-0.5 rounded text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 cursor-pointer"
                   >
-                    <nz-icon nzType="filter" />
+                    <app-icon name="filter" [size]="11" />
                   </button>
 
-                  <nz-dropdown-menu #colFilterMenu="nzDropdownMenu">
-                    <div class="th-filter-dropdown-panel" (click)="$event.stopPropagation()">
-                      <!-- Filtro tipo Texto -->
-                      @if (col.filterType === 'text') {
-                        <div class="filter-dropdown-content">
-                          <label class="filter-dropdown-label">Filtrar {{ col.title }}:</label>
-                          <input
-                            type="text"
-                            nz-input
-                            [(ngModel)]="filterTempValues[col.key]"
-                            (keydown.enter)="aplicarFiltroTexto(col.key)"
-                            placeholder="Buscar en {{ col.title }}..."
-                            class="filter-text-input"
-                            autofocus
-                          />
-                          <div class="filter-dropdown-actions">
-                            <button
-                              nz-button
-                              nzSize="small"
-                              nzType="default"
-                              (click)="limpiarFiltroTexto(col.key)"
-                            >
-                              Limpiar
-                            </button>
-                            <button
-                              nz-button
-                              nzSize="small"
-                              nzType="primary"
-                              (click)="aplicarFiltroTexto(col.key)"
-                            >
-                              Filtrar
-                            </button>
-                          </div>
-                        </div>
-                      }
-
-                      <!-- Filtro tipo Selección (Checkbox List) -->
-                      @if (col.filterType === 'select') {
-                        <div class="filter-dropdown-content">
-                          <label class="filter-dropdown-label">Opciones:</label>
-                          <ul class="filter-checkbox-list">
-                            @for (opt of col.filterOptions || []; track opt.value) {
-                              <li class="filter-checkbox-item">
-                                <label
-                                  nz-checkbox
-                                  [nzChecked]="(columnFilters[col.key] || []).includes(opt.value)"
-                                  (nzCheckedChange)="toggleFiltroOpcion(col.key, opt.value)"
-                                >
-                                  <span>{{ opt.label }}</span>
-                                </label>
-                              </li>
-                            }
-                          </ul>
-                        </div>
-                      }
+                  <!-- Popover filtro de columna -->
+                  <div
+                    *ngIf="activeFilterColumn === col.key"
+                    (click)="$event.stopPropagation()"
+                    class="absolute top-full left-0 mt-1 w-52 p-2.5 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 z-50 text-xs"
+                  >
+                    <div *ngIf="col.filterType === 'text'" class="space-y-2">
+                      <input
+                        type="text"
+                        [(ngModel)]="filterTempValues[col.key]"
+                        placeholder="Buscar {{ col.title }}..."
+                        class="w-full px-2 py-1 text-xs rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        (keyup.enter)="aplicarFiltroTexto(col.key)"
+                      />
+                      <div class="flex justify-end gap-1.5">
+                        <button
+                          type="button"
+                          (click)="limpiarFiltroTexto(col.key)"
+                          class="px-2 py-0.5 rounded text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer"
+                        >
+                          Limpiar
+                        </button>
+                        <button
+                          type="button"
+                          (click)="aplicarFiltroTexto(col.key)"
+                          class="px-2 py-0.5 rounded bg-primary-600 text-white hover:bg-primary-700 cursor-pointer"
+                        >
+                          Aplicar
+                        </button>
+                      </div>
                     </div>
-                  </nz-dropdown-menu>
-                }
+
+                    <div *ngIf="col.filterType === 'select'" class="space-y-1 max-h-40 overflow-y-auto">
+                      <label
+                        *ngFor="let opt of col.filterOptions"
+                        class="flex items-center gap-2 px-1 py-0.5 hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          [checked]="(columnFilters[col.key] || []).includes(opt.value)"
+                          (change)="toggleFiltroOpcion(col.key, opt.value)"
+                          class="h-3.5 w-3.5 rounded border-neutral-300 dark:border-neutral-700 text-primary-600 focus:ring-primary-500"
+                        />
+                        <span class="truncate">{{ opt.label }}</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
               </div>
             </th>
-          }
-        </tr>
-      </thead>
-
-      <tbody>
-        @for (item of entityTable.data; track item[rowKey]) {
-          <tr
-            class="d365-data-row"
-            [class.row-selected]="selectedIds.has(item[rowKey])"
-            (click)="onRowClick(item)"
-            (dblclick)="onRowDblClick(item)"
-          >
-            <!-- Checkbox de Fila -->
-            <td
-              class="col-checkbox"
-              [nzChecked]="selectedIds.has(item[rowKey])"
-              (click)="$event.stopPropagation()"
-              (nzCheckedChange)="toggleSelect(item[rowKey])"
-            ></td>
-
-            <!-- Celdas de Columnas Visibles -->
-            @for (col of columnasVisibles; track col.key) {
-              <td [nzAlign]="col.align || 'left'" [class]="col.cellClass || ''">
-                @if (getCellTemplate(col.key); as customTpl) {
-                  <ng-container
-                    *ngTemplateOutlet="customTpl; context: { $implicit: item, row: item }"
-                  ></ng-container>
-                } @else if (col.primaryLink) {
-                  <span class="nombre-link" (click)="$event.stopPropagation(); onRowDblClick(item)">
-                    {{ item[col.key] }}
-                  </span>
-                } @else {
-                  <span>{{ item[col.key] }}</span>
-                }
-              </td>
-            }
           </tr>
-        }
-      </tbody>
-    </nz-table>
-  </div>
-</nz-card>
+        </thead>
 
-<!-- Drawer Dynamics 365: "Editar Columnas" Lateral Derecho -->
-<nz-drawer
-  [nzVisible]="editColumnsDrawerVisible"
-  nzPlacement="right"
-  nzTitle="Editar columnas"
-  [nzWidth]="380"
-  [nzFooter]="drawerFooterTpl"
-  (nzOnClose)="cerrarDrawerEditarColumnas()"
->
-  <ng-container *nzDrawerContent>
-    <div class="edit-cols-drawer-content">
-      <p class="edit-cols-subtitle">
-        @if (allowColumnReorder) {
-          Selecciona las columnas visibles y arrastra los elementos para ordenar su posición en la tabla.
-        } @else {
-          Selecciona las columnas visibles que deseas mostrar en la tabla.
-        }
-      </p>
-
-      <div
-        class="edit-cols-list"
-        cdkDropList
-        [cdkDropListDisabled]="!allowColumnReorder"
-        [cdkDropListData]="columnasEdicion"
-        (cdkDropListDropped)="onColumnaDrop($event)"
-      >
-        @for (colItem of columnasEdicion; track colItem.key; let i = $index) {
-          <div class="edit-col-item" cdkDrag [cdkDragDisabled]="!allowColumnReorder">
-            <div class="edit-col-left">
-              <label
-                nz-checkbox
-                [(ngModel)]="colItem.visible"
-                [nzDisabled]="!colItem.canHide"
-                class="edit-col-checkbox"
-              >
-              </label>
-              <span
-                class="edit-col-title"
-                [attr.cdkDragHandle]="allowColumnReorder ? '' : null"
-                [title]="allowColumnReorder ? 'Arrastrar para reordenar columna' : colItem.title"
-              >{{ colItem.title }}</span>
-            </div>
-
-            <!-- Grip / Drag handle visible estilo Dynamics 365 -->
-            @if (allowColumnReorder) {
-              <div class="edit-col-drag-handle" cdkDragHandle title="Arrastrar para reordenar columna">
-                <svg class="grip-svg" width="10" height="16" viewBox="0 0 10 16" fill="currentColor">
-                  <circle cx="2" cy="2.5" r="1.5"/>
-                  <circle cx="8" cy="2.5" r="1.5"/>
-                  <circle cx="2" cy="8" r="1.5"/>
-                  <circle cx="8" cy="8" r="1.5"/>
-                  <circle cx="2" cy="13.5" r="1.5"/>
-                  <circle cx="8" cy="13.5" r="1.5"/>
-                </svg>
+        <!-- Body -->
+        <tbody class="divide-y divide-neutral-100 dark:divide-neutral-800/60">
+          <!-- Estado de Carga -->
+          <tr *ngIf="loading">
+            <td [attr.colspan]="columnasVisibles.length + 1" class="py-12 text-center text-neutral-400">
+              <div class="inline-flex items-center gap-2.5">
+                <div class="w-4 h-4 rounded-full border-2 border-primary-600 border-t-transparent animate-spin"></div>
+                <span class="text-xs">Cargando registros...</span>
               </div>
-            }
-          </div>
-        }
+            </td>
+          </tr>
+
+          <!-- Estado Vacío -->
+          <tr *ngIf="!loading && datosFiltrados.length === 0">
+            <td [attr.colspan]="columnasVisibles.length + 1" class="py-16 text-center">
+              <div class="w-12 h-12 mx-auto rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 mb-2">
+                <app-icon name="folder" [size]="24" />
+              </div>
+              <p class="text-xs font-medium text-neutral-600 dark:text-neutral-400">
+                No se encontraron registros
+              </p>
+              <p class="text-[11px] text-neutral-400 dark:text-neutral-500 mt-0.5">
+                Prueba ajustando los filtros o el término de búsqueda.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Filas de Datos -->
+          <ng-container *ngIf="!loading">
+            <tr
+              *ngFor="let item of datosPaginados"
+              (click)="onRowClick(item)"
+              (dblclick)="onRowDblClick(item)"
+              [class.bg-primary-50/50]="selectedIds.has(item[rowKey])"
+              [class.dark:bg-primary-950/20]="selectedIds.has(item[rowKey])"
+              class="hover:bg-neutral-50/80 dark:hover:bg-neutral-850/80 transition-colors cursor-pointer"
+            >
+              <!-- Checkbox de Fila -->
+              <td class="w-10 px-3 py-2.5 text-center" (click)="$event.stopPropagation()">
+                <input
+                  type="checkbox"
+                  [checked]="selectedIds.has(item[rowKey])"
+                  (change)="toggleSelect(item[rowKey])"
+                  class="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                />
+              </td>
+
+              <!-- Celdas -->
+              <td
+                *ngFor="let col of columnasVisibles"
+                [class]="col.cellClass || ''"
+                class="px-3.5 py-2.5 text-neutral-800 dark:text-neutral-200"
+                [class.text-left]="!col.align || col.align === 'left'"
+                [class.text-center]="col.align === 'center'"
+                [class.text-right]="col.align === 'right'"
+              >
+                <!-- Si hay plantilla personalizada -->
+                <ng-container *ngIf="getCellTemplate(col.key) as tpl; else defaultCell">
+                  <ng-container *ngTemplateOutlet="tpl; context: { $implicit: item, row: item, column: col }"></ng-container>
+                </ng-container>
+
+                <!-- Renderizado por defecto -->
+                <ng-template #defaultCell>
+                  <span
+                    *ngIf="col.primaryLink; else plainCell"
+                    class="font-medium text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
+                  >
+                    {{ item[col.key] ?? '—' }}
+                  </span>
+                  <ng-template #plainCell>
+                    <span>{{ item[col.key] ?? '—' }}</span>
+                  </ng-template>
+                </ng-template>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación y Estadísticas -->
+    <div
+      *ngIf="!loading && datosFiltrados.length > 0"
+      class="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50/40 dark:bg-neutral-800/30 text-xs text-neutral-500 dark:text-neutral-400"
+    >
+      <!-- Contador de registros y selección -->
+      <div class="flex items-center gap-3">
+        <span>
+          Mostrando {{ ((currentPage - 1) * pageSize) + 1 }} a {{ ((currentPage * pageSize) > datosFiltrados.length ? datosFiltrados.length : (currentPage * pageSize)) }} de {{ datosFiltrados.length }} registros
+        </span>
+        <span *ngIf="selectedIds.size > 0" class="font-medium text-primary-600 dark:text-primary-400">
+          ({{ selectedIds.size }} seleccionados)
+        </span>
       </div>
 
-      <div class="edit-cols-footer-link">
+      <!-- Controles de Paginación -->
+      <div class="flex items-center gap-2">
+        <!-- Selector de tamaño de página -->
+        <div class="flex items-center gap-1.5">
+          <span>Filas por pág:</span>
+          <select
+            [ngModel]="pageSize"
+            (ngModelChange)="onPageSizeChange($event)"
+            class="px-2 py-1 text-xs rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-1 focus:ring-primary-500"
+          >
+            <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+          </select>
+        </div>
+
+        <!-- Botones Página Anterior / Siguiente -->
+        <div class="flex items-center gap-1 ml-2">
+          <button
+            type="button"
+            (click)="setPage(currentPage - 1)"
+            [disabled]="currentPage === 1"
+            class="p-1 rounded border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed text-neutral-700 dark:text-neutral-300 cursor-pointer"
+            title="Página anterior"
+          >
+            <app-icon name="chevron-left" [size]="14" />
+          </button>
+
+          <span class="px-2 text-neutral-700 dark:text-neutral-300 font-medium">
+            {{ currentPage }} / {{ totalPages }}
+          </span>
+
+          <button
+            type="button"
+            (click)="setPage(currentPage + 1)"
+            [disabled]="currentPage === totalPages"
+            class="p-1 rounded border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed text-neutral-700 dark:text-neutral-300 cursor-pointer"
+            title="Página siguiente"
+          >
+            <app-icon name="chevron-right" [size]="14" />
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Drawer: Editar Columnas (Slide-over) -->
+<div
+  *ngIf="editColumnsDrawerVisible"
+  class="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs"
+  (click)="cerrarDrawerEditarColumnas()"
+>
+  <div class="fixed inset-y-0 right-0 flex max-w-full pl-10">
+    <div
+      class="w-screen max-w-md bg-white dark:bg-neutral-900 border-l border-neutral-200 dark:border-neutral-800 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-800">
+        <div>
+          <h2 class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+            Editar columnas
+          </h2>
+          <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+            Selecciona qué columnas mostrar y arrastra para reordenarlas.
+          </p>
+        </div>
         <button
           type="button"
-          nz-button
-          nzType="link"
-          (click)="restablecerColumnasPorDefecto()"
+          (click)="cerrarDrawerEditarColumnas()"
+          class="p-1 rounded text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 cursor-pointer"
         >
-          Restablecer columnas predeterminadas
+          <app-icon name="close" [size]="16" />
         </button>
       </div>
+
+      <!-- Lista de Columnas con CDK DragDrop -->
+      <div
+        cdkDropList
+        (cdkDropListDropped)="onColumnaDrop($event)"
+        class="flex-1 overflow-y-auto px-6 py-4 space-y-2"
+      >
+        <div
+          *ngFor="let col of columnasEdicion; let i = index"
+          cdkDrag
+          class="flex items-center justify-between p-2.5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-850 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors shadow-2xs group"
+        >
+          <!-- Handle + Checkbox + Título -->
+          <div class="flex items-center gap-2.5">
+            <span
+              cdkDragHandle
+              class="cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+              title="Arrastrar para reordenar"
+            >
+              <app-icon name="more-vertical" [size]="14" />
+            </span>
+
+            <input
+              type="checkbox"
+              [(ngModel)]="col.visible"
+              [disabled]="!col.canHide"
+              [id]="'col_edit_' + col.key"
+              class="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700 text-primary-600 focus:ring-primary-500 cursor-pointer disabled:opacity-40"
+            />
+
+            <label
+              [for]="'col_edit_' + col.key"
+              class="text-xs font-medium text-neutral-800 dark:text-neutral-200 cursor-pointer select-none"
+            >
+              {{ col.title }}
+            </label>
+          </div>
+
+          <!-- Botones Mover Arriba / Abajo -->
+          <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              type="button"
+              (click)="moverColumna(i, -1)"
+              [disabled]="i === 0"
+              class="p-1 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-30 cursor-pointer text-neutral-500"
+              title="Mover arriba"
+            >
+              <app-icon name="chevron-down" [size]="12" svgClass="rotate-180" />
+            </button>
+            <button
+              type="button"
+              (click)="moverColumna(i, 1)"
+              [disabled]="i === columnasEdicion.length - 1"
+              class="p-1 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:opacity-30 cursor-pointer text-neutral-500"
+              title="Mover abajo"
+            >
+              <app-icon name="chevron-down" [size]="12" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="flex items-center justify-between px-6 py-3 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/30">
+        <button
+          type="button"
+          (click)="restablecerColumnasPorDefecto()"
+          class="text-xs text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 underline cursor-pointer"
+        >
+          Restablecer
+        </button>
+
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            (click)="cerrarDrawerEditarColumnas()"
+            class="px-4 py-1.5 text-xs font-medium rounded-md border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 cursor-pointer transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            (click)="aplicarColumnasEditadas()"
+            class="px-4 py-1.5 text-xs font-medium rounded-md bg-primary-600 hover:bg-primary-700 text-white cursor-pointer transition-colors shadow-xs"
+          >
+            Aplicar
+          </button>
+        </div>
+      </div>
     </div>
-  </ng-container>
+  </div>
+</div>
 
-  <ng-template #drawerFooterTpl>
-    <div class="drawer-footer-actions">
-      <button nz-button nzType="default" (click)="cerrarDrawerEditarColumnas()">
-        Cancelar
-      </button>
-      <button nz-button nzType="primary" (click)="aplicarColumnasEditadas()">
-        Aplicar
-      </button>
-    </div>
-  </ng-template>
-</nz-drawer>
-
-<!-- Drawer de Filtros Avanzados (Dynamics 365) -->
-@if (showAdvancedFilter) {
-  <app-advanced-filter-drawer
-    [(visible)]="advancedFilterDrawerVisible"
-    [entidad]="entidad"
-    [columns]="columnas"
-    [currentFilter]="activeFilterGroup"
-    (applyFilter)="onAplicarFiltroAvanzado($event)"
-    (clearFilter)="onLimpiarFiltroAvanzado()"
-  ></app-advanced-filter-drawer>
-}
-
+<!-- Drawer de Filtros Avanzados -->
+<app-advanced-filter-drawer
+  [(visible)]="advancedFilterDrawerVisible"
+  [entidad]="entidad"
+  [columns]="columnas"
+  [currentFilter]="activeFilterGroup"
+  (applyFilter)="onAplicarFiltroAvanzado($event)"
+  (clearFilter)="onLimpiarFiltroAvanzado()"
+/>

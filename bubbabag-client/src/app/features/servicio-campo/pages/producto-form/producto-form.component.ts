@@ -14,22 +14,8 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 
-import { NzFormModule } from 'ng-zorro-antd/form';
-import { NzInputModule } from 'ng-zorro-antd/input';
-import { NzButtonModule } from 'ng-zorro-antd/button';
-import { NzSelectModule } from 'ng-zorro-antd/select';
-import { NzSwitchModule } from 'ng-zorro-antd/switch';
-import { NzMessageService } from 'ng-zorro-antd/message';
-import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzTagModule } from 'ng-zorro-antd/tag';
-import { NzCardModule } from 'ng-zorro-antd/card';
-import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
-import { NzAvatarModule } from 'ng-zorro-antd/avatar';
-import { NzTabsModule } from 'ng-zorro-antd/tabs';
-import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
-import { NzDividerModule } from 'ng-zorro-antd/divider';
-import { NzSpinModule } from 'ng-zorro-antd/spin';
-
+import { ToastService } from '../../../../core/services/toast.service';
+import { AppIconComponent } from '../../../../shared/components/icon/icon.component';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 import { ProductoService } from '../../services/producto.service';
 import { ProductoDto, TipoProducto } from '../../models/producto.model';
@@ -44,20 +30,6 @@ import { UnidadMedidaDto, CategoriaProductoDto } from '../../models/catalogo-pro
     CommonModule,
     ReactiveFormsModule,
     RouterModule,
-    NzFormModule,
-    NzInputModule,
-    NzButtonModule,
-    NzSelectModule,
-    NzSwitchModule,
-    NzIconModule,
-    NzTagModule,
-    NzCardModule,
-    NzTooltipModule,
-    NzAvatarModule,
-    NzTabsModule,
-    NzInputNumberModule,
-    NzDividerModule,
-    NzSpinModule,
     CommandBarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Default,
@@ -71,7 +43,7 @@ export class ProductoFormComponent implements OnInit {
   private categoriaProductoService = inject(CategoriaProductoService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private message = inject(NzMessageService);
+  private message = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
 
   form!: FormGroup;

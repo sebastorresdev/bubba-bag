@@ -1,289 +1,336 @@
-<nz-layout class="erp-layout">
-  <!-- Top Suite Bar (Estilo Microsoft Dynamics 365) -->
-  <nz-header class="erp-suite-bar" [style.--erp-suite-bar-bg]="navService.currentModule().themeColor">
-    <!-- Izquierda: Menú móvil + Waffle launcher + Brand + Módulo Activo + Breadcrumb -->
-    <div class="erp-suite-bar-brand">
-      <button nz-button nzType="text" class="erp-mobile-menu-btn" (click)="toggleMobileSider()" title="Menú del Sistema">
-        <nz-icon [nzType]="isMobileSiderVisible ? 'close' : 'menu'" />
+<div class="h-screen w-screen flex flex-col overflow-hidden bg-neutral-100 dark:bg-neutral-950 text-neutral-800 dark:text-neutral-100">
+  <!-- Top Suite Bar (Dynamics 365 Top Bar) -->
+  <header class="h-12 bg-[#002050] dark:bg-neutral-950 text-white flex items-center justify-between px-3 select-none shrink-0 border-b border-white/10 z-30">
+    <!-- Izquierda: Mobile Menu + Waffle App Launcher + Título y Breadcrumb -->
+    <div class="flex items-center gap-2 min-w-0">
+      <button
+        type="button"
+        (click)="toggleMobileSider()"
+        class="md:hidden inline-flex items-center justify-center w-8 h-8 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+        title="Menú"
+      >
+        <app-icon name="menu" [size]="18" />
       </button>
 
-      <!-- App Launcher Waffle Button -->
-      <button nz-button nzType="text" (click)="openAppLauncher()" title="Selector de Aplicaciones" class="erp-waffle-btn">
-        <nz-icon nzType="appstore" />
+      <!-- Botón Waffle (App Launcher) -->
+      <button
+        type="button"
+        (click)="openAppLauncher()"
+        class="inline-flex items-center justify-center w-9 h-9 rounded text-white/90 hover:text-white hover:bg-white/10 transition-colors"
+        title="Iniciador de aplicaciones"
+      >
+        <app-icon name="grid" [size]="18" />
       </button>
 
-      <span class="erp-brand-title" (click)="goToDashboard()">Dynamics 365</span>
-      <span class="erp-brand-sep">|</span>
-      <span class="erp-module-title" (click)="openAppLauncher()" title="Cambiar Aplicación">{{ navService.currentModule().title }}</span>
-      <span class="d365-top-breadcrumb">
-        {{ navService.currentArea().name }} &gt; {{ navService.activeItemTitle() }}
+      <span (click)="goToDashboard()" class="font-bold text-sm tracking-wide cursor-pointer hover:text-white/80 hidden sm:inline-block">
+        Dynamics 365
+      </span>
+      <span class="text-white/30 hidden sm:inline-block">|</span>
+      <span (click)="openAppLauncher()" class="font-semibold text-sm cursor-pointer hover:underline truncate max-w-48">
+        {{ navService.currentModule().title }}
+      </span>
+
+      <span class="text-xs text-white/60 hidden lg:inline-flex items-center gap-1 ml-2">
+        <span>{{ navService.currentArea().name }}</span>
+        <span>&gt;</span>
+        <span class="text-white/90">{{ navService.activeItemTitle() }}</span>
       </span>
     </div>
 
-    <!-- Centro: Búsqueda Global de Registros (Dynamics 365 Centered Search) -->
-    <div class="erp-suite-bar-search">
-      <nz-input-wrapper>
-        <span nzInputPrefix>
-          <nz-icon nzType="search" />
+    <!-- Centro: Búsqueda Global -->
+    <div class="relative flex-1 max-w-md mx-4 hidden md:block">
+      <div class="relative flex items-center">
+        <span class="absolute left-3 text-white/60 pointer-events-none">
+          <app-icon name="search" [size]="14" />
         </span>
         <input
           type="text"
-          nz-input
-          nzSize="small"
           [placeholder]="navService.currentModule().searchPlaceholder"
           [ngModel]="searchQuery()"
           (ngModelChange)="onSearchChange($event)"
-          [nzAutocomplete]="autoGlobalSearch"
+          (focus)="isSearchFocused = true"
+          (blur)="isSearchFocused = false"
+          class="w-full h-8 pl-9 pr-3 rounded bg-white/10 hover:bg-white/15 focus:bg-white text-white focus:text-neutral-900 placeholder-white/50 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 transition-colors"
         />
-      </nz-input-wrapper>
+      </div>
 
-      <nz-autocomplete
-        #autoGlobalSearch
-        nzMenuClassName="erp-search-autocomplete-panel"
-        [nzDefaultActiveFirstOption]="true"
-        [nzWidth]="520"
-        nzBackfill
-      >
-        @for (group of groupedSearchResults(); track group.category) {
-          <nz-auto-optgroup [nzLabel]="group.category">
+      <!-- Panel de Resultados de Búsqueda -->
+      @if (searchQuery().trim().length > 0) {
+        <div class="absolute top-10 left-0 right-0 bg-white dark:bg-neutral-900 rounded-md shadow-2xl border border-neutral-200 dark:border-neutral-800 py-2 z-50 max-h-96 overflow-y-auto">
+          @for (group of groupedSearchResults(); track group.category) {
+            <div class="px-3 py-1 text-[11px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">
+              {{ group.category }}
+            </div>
             @for (item of group.items; track item.path) {
-              <nz-auto-option [nzValue]="item.title" (click)="onSelectSearchResult(item)">
-                <div class="erp-search-row">
-                  <span class="erp-search-cat-col">{{ group.category }}</span>
-                  <div class="erp-search-divider-col"></div>
-                  <span class="erp-search-title-col">
-                    <nz-icon [nzType]="item.icon || 'file-text'" class="erp-search-item-icon" />
-                    {{ item.title }}
-                  </span>
-                </div>
-              </nz-auto-option>
+              <div
+                (mousedown)="onSelectSearchResult(item)"
+                class="flex items-center gap-2.5 px-3 py-2 text-xs text-neutral-700 dark:text-neutral-200 hover:bg-blue-50 dark:hover:bg-neutral-800 cursor-pointer transition-colors"
+              >
+                <app-icon [name]="getNavIcon(item.icon)" [size]="14" svgClass="text-neutral-400" />
+                <span class="font-medium flex-1">{{ item.title }}</span>
+                <span class="text-[10px] text-neutral-400 font-mono">{{ item.path }}</span>
+              </div>
             }
-          </nz-auto-optgroup>
-        }
-      </nz-autocomplete>
+          }
+        </div>
+      }
     </div>
 
-    <!-- Derecha: Utilidades globales y Perfil (Estilo Dynamics 365) -->
-    <div class="erp-suite-bar-actions">
-      <!-- Bombilla / Insights -->
-      <button nz-button nzType="text" title="Ideas e Insights" class="erp-tool-btn">
-        <nz-icon nzType="bulb" nzTheme="outline" />
-      </button>
-
-      <!-- Creación Rápida (+) -->
-      <button nz-button nzType="text" title="Creación Rápida" class="erp-tool-btn">
-        <nz-icon nzType="plus" />
-      </button>
-
-      <!-- Selector de Tema Nativo NG-ZORRO -->
-      <button nz-button nzType="text" (click)="themeService.toggleTheme()"
-        [title]="themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro'" class="erp-tool-btn">
-        <nz-icon [nzType]="themeService.isDarkMode() ? 'sun' : 'moon'" />
+    <!-- Derecha: Tema, Configuración, Menú de Usuario -->
+    <div class="flex items-center gap-1">
+      <!-- Selector de Modo Oscuro / Claro -->
+      <button
+        type="button"
+        (click)="themeService.toggleTheme()"
+        [title]="themeService.isDarkMode() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+        class="inline-flex items-center justify-center w-8 h-8 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+      >
+        <app-icon [name]="themeService.isDarkMode() ? 'sun' : 'moon'" [size]="16" />
       </button>
 
       <!-- Configuración -->
-      <button nz-button nzType="text" title="Configuración" class="erp-tool-btn" (click)="goToConfiguracion()">
-        <nz-icon nzType="setting" />
+      <button
+        type="button"
+        (click)="goToConfiguracion()"
+        title="Configuración del sistema"
+        class="inline-flex items-center justify-center w-8 h-8 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors hidden sm:inline-flex"
+      >
+        <app-icon name="settings" [size]="16" />
       </button>
 
-      <!-- Centro de Ayuda -->
-      <button nz-button nzType="text" title="Centro de Ayuda" class="erp-tool-btn">
-        <nz-icon nzType="question-circle" />
-      </button>
+      <div class="h-4 w-px bg-white/20 mx-1"></div>
 
-      <nz-divider nzType="vertical"></nz-divider>
+      <!-- Menú de Usuario -->
+      <div class="relative">
+        <button
+          type="button"
+          [cdkMenuTriggerFor]="userMenu"
+          class="inline-flex items-center gap-2 px-2 py-1 rounded text-white/90 hover:text-white hover:bg-white/10 transition-colors text-xs font-medium"
+        >
+          <div class="w-6 h-6 rounded-full bg-purple-700 flex items-center justify-center text-[10px] font-bold text-white uppercase">
+            {{ userInitials() }}
+          </div>
+          <span class="hidden md:inline-block truncate max-w-32">{{ currentUser()?.nombreCompleto || 'Usuario' }}</span>
+          <app-icon name="chevron-down" [size]="12" />
+        </button>
 
-      <!-- Menú de Usuario con Avatar y Nombre Dinámico -->
-      <a nz-dropdown [nzDropdownMenu]="userMenu" nzTrigger="click" nzPlacement="bottomRight" class="erp-user-dropdown-btn">
-        <nz-avatar [nzText]="userInitials()" nzSize="small" class="erp-user-avatar"></nz-avatar>
-        <span class="erp-user-name">{{ currentUser()?.nombreCompleto || 'Usuario' }}</span>
-        <nz-icon nzType="down" />
-      </a>
-      <nz-dropdown-menu #userMenu="nzDropdownMenu">
-        <div class="fluent-user-dropdown-card">
-          <div class="fluent-user-header">
-            <nz-avatar [nzText]="userInitials()" [nzSize]="42" class="fluent-user-avatar-lg"></nz-avatar>
-            <div class="fluent-user-meta">
-              <span class="fluent-user-fullname">{{ currentUser()?.nombreCompleto || 'Usuario' }}</span>
-              <span class="fluent-user-email">{{ currentUser()?.email }}</span>
-              <div class="fluent-user-roles">
-                @for (role of currentUser()?.roles; track role) {
-                  <nz-tag nzColor="blue" class="fluent-role-tag">{{ role }}</nz-tag>
+        <ng-template #userMenu>
+          <div cdkMenu class="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-xl p-3 z-50 w-72 focus:outline-none text-neutral-800 dark:text-neutral-100">
+            <div class="flex items-center gap-3 pb-3 border-b border-neutral-200 dark:border-neutral-800">
+              <div class="w-10 h-10 rounded-full bg-purple-700 flex items-center justify-center text-sm font-bold text-white uppercase">
+                {{ userInitials() }}
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="font-semibold text-sm truncate">{{ currentUser()?.nombreCompleto || 'Usuario' }}</div>
+                <div class="text-xs text-neutral-500 dark:text-neutral-400 truncate">{{ currentUser()?.email }}</div>
+              </div>
+            </div>
+
+            <div class="py-2">
+              <button
+                cdkMenuItem
+                type="button"
+                (click)="goToConfiguracion()"
+                class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-left"
+              >
+                <app-icon name="settings" [size]="15" svgClass="text-neutral-500" />
+                <span>Configuración de cuenta</span>
+              </button>
+            </div>
+
+            <div class="pt-2 border-t border-neutral-200 dark:border-neutral-800">
+              <button
+                cdkMenuItem
+                type="button"
+                (click)="logout()"
+                class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors text-left font-semibold"
+              >
+                <app-icon name="close" [size]="15" />
+                <span>Cerrar sesión</span>
+              </button>
+            </div>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal: Sidebar + Viewport -->
+  <div class="flex-1 flex overflow-hidden">
+    <!-- Sidebar Navegación Estilo Dynamics 365 -->
+    <aside
+      class="bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 flex flex-col justify-between shrink-0 transition-all duration-200 select-none z-20"
+      [class.w-60]="!isCollapsed"
+      [class.w-12]="isCollapsed"
+    >
+      <!-- Encabezado Sidebar: Botón Colapsar -->
+      <div>
+        <div class="h-10 flex items-center justify-between px-2.5 border-b border-neutral-100 dark:border-neutral-800/60">
+          @if (!isCollapsed) {
+            <span class="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+              Navegación
+            </span>
+          }
+          <button
+            type="button"
+            (click)="toggleCollapsed()"
+            class="inline-flex items-center justify-center w-7 h-7 rounded text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors mx-auto"
+            [title]="isCollapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'"
+          >
+            <app-icon [name]="isCollapsed ? 'chevron-right' : 'chevron-left'" [size]="14" />
+          </button>
+        </div>
+
+        <!-- Lista de Grupos y Enlaces -->
+        <nav class="p-1 space-y-4 overflow-y-auto max-h-[calc(100vh-8.5rem)] no-scrollbar">
+          @for (section of navService.currentArea().items; track section.title) {
+            <div>
+              @if (!isCollapsed && section.children && section.children.length > 0) {
+                <div class="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
+                  {{ section.title }}
+                </div>
+              }
+              <div class="space-y-0.5">
+                @for (item of (section.children || [section]); track item.path || item.title) {
+                  <a
+                    [routerLink]="item.path"
+                    [class.bg-blue-50]="isActive(item)"
+                    [class.dark:bg-blue-950/40]="isActive(item)"
+                    [class.text-blue-700]="isActive(item)"
+                    [class.dark:text-blue-400]="isActive(item)"
+                    [class.border-l-2]="isActive(item)"
+                    [class.border-blue-600]="isActive(item)"
+                    [class.font-semibold]="isActive(item)"
+                    [class.text-neutral-700]="!isActive(item)"
+                    [class.dark:text-neutral-300]="!isActive(item)"
+                    class="flex items-center gap-2.5 px-2.5 py-2 rounded-r text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800/80 transition-colors"
+                    [title]="item.title"
+                  >
+                    <app-icon [name]="getNavIcon(item.icon || section.icon)" [size]="16" svgClass="shrink-0" />
+                    @if (!isCollapsed) {
+                      <span class="truncate">{{ item.title }}</span>
+                    }
+                  </a>
                 }
               </div>
             </div>
-          </div>
-          <nz-divider class="fluent-user-divider"></nz-divider>
-          <ul nz-menu class="fluent-user-actions">
-            <li nz-menu-item (click)="goToDashboard()">
-              <nz-icon nzType="dashboard" />
-              <span>Dashboard Principal</span>
-            </li>
-            <li nz-menu-divider></li>
-            <li nz-menu-item (click)="logout()">
-              <nz-icon nzType="logout" />
-              <span>Cerrar Sesión</span>
-            </li>
-          </ul>
-        </div>
-      </nz-dropdown-menu>
-    </div>
-  </nz-header>
-
-  <!-- Contenedor debajo del Suite Bar (Site Map Lateral + Work Area) -->
-  <nz-layout class="erp-main-body">
-    <!-- Backdrop oscuro cuando el sidebar móvil está abierto por encima -->
-    @if (isMobileSiderVisible) {
-      <div class="d365-mobile-backdrop" (click)="closeMobileSider()"></div>
-    }
-
-    <!-- Barra Lateral Site Map de Dynamics 365 con nz-sider -->
-    <nz-sider nzCollapsible [(nzCollapsed)]="isCollapsed" [nzTrigger]="null" [nzWidth]="250" [nzCollapsedWidth]="48"
-      [nzTheme]="themeService.isDarkMode() ? 'dark' : 'light'" class="d365-sider" [class.d365-collapsed]="isCollapsed"
-      [class.d365-sider-mobile-open]="isMobileSiderVisible"
-      [class.d365-dark]="themeService.isDarkMode()">
-      
-      <!-- Top Trigger Bar: Botón Hamburguesa -->
-      <div class="d365-sitemap-top">
-        <button nz-button nzType="text" nzSize="small" class="d365-hamburger-btn" (click)="isCollapsed = !isCollapsed"
-          [title]="isCollapsed ? 'Expandir mapa del sitio' : 'Contraer mapa del sitio'">
-          <nz-icon class="trigger" [nzType]="isCollapsed ? 'menu-unfold' : 'menu-fold'" />
-        </button>
-      </div>
-
-      <!-- Scrollable Sitemap Body con ul nz-menu (Máximo 2 niveles: ítems o submenús) -->
-      <div class="d365-sitemap-scroll">
-        <ul nz-menu nzMode="inline" [nzInlineIndent]="16" [nzTheme]="themeService.isDarkMode() ? 'dark' : 'light'"
-          [nzInlineCollapsed]="isCollapsed" class="d365-menu">
-          @for (item of navService.getVisibleItems(navService.currentArea()); track item.title) {
-            <!-- Nivel 1 - Opción A: Ítem directo en raíz -->
-            @if (!item.children || item.children.length === 0) {
-              <li nz-menu-item nz-tooltip nzTooltipPlacement="right" [nzTooltipTitle]="isCollapsed ? item.title : ''"
-                [nzSelected]="isActive(item)" [routerLink]="item.path" (click)="closeMobileSider()">
-                @if (item.icon) {
-                  <nz-icon [nzType]="item.icon" />
-                }
-                <span class="d365-menu-title">{{ item.title }}</span>
-              </li>
-            }
-            <!-- Nivel 1 - Opción B: Submenú (el padre tiene icono, los hijos no) -->
-            @else {
-              <li nz-submenu [nzTitle]="item.title" [nzIcon]="item.icon || ''" [(nzOpen)]="item.open">
-                <ul>
-                  @for (sub of item.children; track sub.title) {
-                    <li nz-menu-item [nzSelected]="isActive(sub)" [routerLink]="sub.path" (click)="closeMobileSider()">
-                      <span class="d365-menu-title">{{ sub.title }}</span>
-                    </li>
-                  }
-                </ul>
-              </li>
-            }
           }
-        </ul>
+        </nav>
       </div>
 
-      <!-- Bottom: Selector de Área -->
-      <div class="d365-sitemap-footer">
-        <button nz-button nzType="text" nz-dropdown [nzDropdownMenu]="areaMenu" nzPlacement="topLeft" nzTrigger="click"
-          class="d365-area-switcher"
-          [title]="isCollapsed ? 'Cambiar de área (' + navService.currentArea().name + ')' : ''">
-          <div class="d365-area-badge" [style.background-color]="navService.currentArea().badgeColor || navService.currentModule().accentColor">
-            {{ navService.currentArea().shortCode }}
-          </div>
-          @if (!isCollapsed) {
-            <span class="d365-area-name">{{ navService.currentArea().name }}</span>
-            <nz-icon nzType="up" class="d365-area-arrow" />
-          }
-        </button>
-
-        <nz-dropdown-menu #areaMenu="nzDropdownMenu">
-          <div class="d365-change-area-dropdown">
-            <div class="d365-change-area-header">Cambiar de área</div>
-            <ul nz-menu class="d365-area-dropdown-list">
-              @for (area of navService.currentModule().areas; track area.id) {
-                <li nz-menu-item (click)="selectArea(area)" [nzSelected]="navService.currentArea().id === area.id"
-                    class="d365-area-popup-item">
-                  <div class="d365-area-popup-row">
-                    <span class="d365-area-popup-check">
-                      @if (navService.currentArea().id === area.id) {
-                        <nz-icon nzType="check" />
-                      }
-                    </span>
-                    <span class="d365-area-popup-label">{{ area.name }}</span>
-                  </div>
-                </li>
-              }
-            </ul>
-          </div>
-        </nz-dropdown-menu>
-      </div>
-    </nz-sider>
-
-    <!-- Área de Trabajo y Comandos -->
-    <nz-layout class="erp-work-layout">
-      <!-- Contenido Principal de la Página -->
-      <nz-content class="erp-content-area">
-        <router-outlet></router-outlet>
-      </nz-content>
-    </nz-layout>
-  </nz-layout>
-</nz-layout>
-
-<!-- Drawer Selector de Aplicaciones (Top-Left Waffle Button) -->
-<nz-drawer [nzClosable]="false" [nzVisible]="isAppLauncherVisible" nzPlacement="left" nzWidth="340px"
-  [nzTitle]="launcherTitle" [nzExtra]="launcherCloseTpl" (nzOnClose)="closeAppLauncher()"
-  nzWrapClassName="d365-launcher-drawer" class="d365-launcher-drawer">
-  <ng-template #launcherTitle>
-    <div class="d365-launcher-header">
-      <button nz-button nzType="text" (click)="closeAppLauncher()" title="Cerrar Selector"
-        class="d365-launcher-header-waffle">
-        <nz-icon nzType="appstore" />
-      </button>
-      <span class="d365-launcher-header-title">Aplicaciones Dynamics 365</span>
-    </div>
-  </ng-template>
-
-  <ng-template #launcherCloseTpl>
-    <button nz-button nzType="text" (click)="closeAppLauncher()" class="d365-launcher-close-btn" title="Cerrar">
-      <nz-icon nzType="close" />
-    </button>
-  </ng-template>
-
-  <ng-container *nzDrawerContent>
-    <div class="d365-launcher-body">
-      <!-- Acceso a Panel General -->
-      <a class="d365-launcher-item d365-launcher-dashboard" (click)="goToDashboardAndClose()">
-        <div class="d365-launcher-badge d365-badge-home">
-          <nz-icon nzType="home" />
-        </div>
-        <div class="d365-launcher-info">
-          <span class="d365-launcher-name">Panel General</span>
-          <span class="d365-launcher-desc">Vista global del negocio y catálogo de apps</span>
-        </div>
-      </a>
-
-      <div class="d365-launcher-section">APLICACIONES EMPRESARIALES</div>
-
-      <!-- Lista de Aplicaciones Principales estilo Dynamics 365 -->
-      <div class="d365-launcher-list">
-        @for (mod of navService.visibleModules(); track mod.id) {
-        <a class="d365-launcher-item" [class.d365-launcher-item-active]="navService.currentModule().id === mod.id"
-          (click)="selectModuleAndClose(mod)">
-          <div class="d365-launcher-badge" [style.background-color]="mod.themeColor" style="color: #ffffff; font-weight: 700;">
-            {{ mod.shortCode }}
-          </div>
-          <div class="d365-launcher-info">
-            <div class="d365-launcher-row">
-              <span class="d365-launcher-name">{{ mod.title }}</span>
-              @if (navService.currentModule().id === mod.id) {
-              <span class="d365-launcher-tag">Activo</span>
+      <!-- Pie de Sidebar: Selector de Área (Dynamics 365 Area Switcher) -->
+      @if (navService.currentModule().areas.length > 1) {
+        <div class="p-1 border-t border-neutral-200 dark:border-neutral-800">
+          <button
+            type="button"
+            [cdkMenuTriggerFor]="areaMenu"
+            class="flex items-center justify-between w-full px-2.5 py-2 rounded text-xs font-semibold bg-neutral-50 dark:bg-neutral-800/60 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200 border border-neutral-200/80 dark:border-neutral-700/60 transition-colors"
+          >
+            <div class="flex items-center gap-2 truncate">
+              <app-icon [name]="getNavIcon(navService.currentArea().icon)" [size]="15" svgClass="text-blue-600 dark:text-blue-400 shrink-0" />
+              @if (!isCollapsed) {
+                <span class="truncate">{{ navService.currentArea().name }}</span>
               }
             </div>
-            <span class="d365-launcher-desc">{{ mod.description }}</span>
+            @if (!isCollapsed) {
+              <app-icon name="chevron-down" [size]="12" svgClass="text-neutral-400 shrink-0" />
+            }
+          </button>
+
+          <ng-template #areaMenu>
+            <div cdkMenu class="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md shadow-xl py-1 z-50 min-w-52 focus:outline-none">
+              <div class="px-3 py-1.5 text-[11px] font-bold text-neutral-400 uppercase tracking-wider border-b border-neutral-100 dark:border-neutral-800">
+                Áreas de Trabajo
+              </div>
+              @for (area of navService.currentModule().areas; track area.id) {
+                <button
+                  cdkMenuItem
+                  type="button"
+                  (click)="selectArea(area)"
+                  class="flex items-center justify-between w-full px-3 py-2 text-xs hover:bg-blue-50 dark:hover:bg-neutral-800 text-left transition-colors"
+                  [class.font-semibold]="area.id === navService.currentArea().id"
+                  [class.text-blue-700]="area.id === navService.currentArea().id"
+                  [class.dark:text-blue-400]="area.id === navService.currentArea().id"
+                >
+                  <div class="flex items-center gap-2">
+                    <app-icon [name]="getNavIcon(area.icon)" [size]="15" />
+                    <span>{{ area.name }}</span>
+                  </div>
+                  @if (area.id === navService.currentArea().id) {
+                    <app-icon name="check" [size]="14" svgClass="text-blue-600" />
+                  }
+                </button>
+              }
+            </div>
+          </ng-template>
+        </div>
+      }
+    </aside>
+
+    <!-- Contenido Principal (Viewport de la Aplicación) -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden bg-neutral-50 dark:bg-[#121212]">
+      <router-outlet></router-outlet>
+      <app-toast-container />
+    </main>
+  </div>
+
+  <!-- App Launcher Modal / Drawer (Iniciador de Aplicaciones) -->
+  @if (isAppLauncherVisible) {
+    <div class="fixed inset-0 z-50 flex items-start justify-start">
+      <!-- Backdrop -->
+      <div (click)="closeAppLauncher()" class="absolute inset-0 bg-black/40 backdrop-blur-xs transition-opacity"></div>
+
+      <!-- Panel Lateral Waffle -->
+      <div class="relative w-80 max-w-full h-full bg-white dark:bg-neutral-900 shadow-2xl border-r border-neutral-200 dark:border-neutral-800 p-4 flex flex-col justify-between z-10 animate-in slide-in-from-left duration-200">
+        <div>
+          <div class="flex items-center justify-between pb-3 border-b border-neutral-200 dark:border-neutral-800">
+            <span class="font-bold text-sm tracking-wide text-neutral-800 dark:text-neutral-100">
+              Aplicaciones de Negocio
+            </span>
+            <button
+              type="button"
+              (click)="closeAppLauncher()"
+              class="w-7 h-7 rounded inline-flex items-center justify-center text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            >
+              <app-icon name="close" [size]="16" />
+            </button>
           </div>
-        </a>
-        }
+
+          <!-- Módulos disponibles -->
+          <div class="mt-4 grid grid-cols-2 gap-2.5">
+            @for (mod of navService.modules; track mod.id) {
+              <button
+                type="button"
+                (click)="selectModuleAndClose(mod)"
+                class="flex flex-col items-center justify-center p-3 rounded-lg border border-neutral-200/80 dark:border-neutral-800 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 text-center transition-all group"
+                [class.bg-blue-50]="mod.id === navService.currentModule().id"
+                [class.dark:bg-blue-950/40]="mod.id === navService.currentModule().id"
+                [class.border-blue-500]="mod.id === navService.currentModule().id"
+              >
+                <div class="w-10 h-10 rounded-md flex items-center justify-center text-white mb-2 shadow-xs" [style.backgroundColor]="mod.themeColor">
+                  <app-icon [name]="getNavIcon(mod.icon)" [size]="20" />
+                </div>
+                <span class="text-xs font-semibold text-neutral-800 dark:text-neutral-200 group-hover:text-blue-700 dark:group-hover:text-blue-400 line-clamp-1">
+                  {{ mod.title }}
+                </span>
+                <span class="text-[10px] text-neutral-400 dark:text-neutral-500 line-clamp-1">
+                  {{ mod.description }}
+                </span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-neutral-200 dark:border-neutral-800">
+          <button
+            type="button"
+            (click)="goToDashboardAndClose()"
+            class="w-full py-2 px-3 rounded text-xs font-semibold text-center bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+          >
+            Ir al Portal Principal
+          </button>
+        </div>
       </div>
     </div>
-  </ng-container>
-</nz-drawer>
+  }
+</div>

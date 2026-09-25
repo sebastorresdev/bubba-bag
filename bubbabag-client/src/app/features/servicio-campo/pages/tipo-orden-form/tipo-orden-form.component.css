@@ -1,5 +1,3 @@
-@import '../../../../../styles/d365-form.css';
-
 :host {
   display: flex;
   flex-direction: column;

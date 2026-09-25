@@ -18,19 +18,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
-
-import { NzTableModule } from 'ng-zorro-antd/table';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { NzButtonModule } from 'ng-zorro-antd/button';
-import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzInputModule } from 'ng-zorro-antd/input';
-import { NzDropdownModule } from 'ng-zorro-antd/dropdown';
-import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
-import { NzDrawerModule } from 'ng-zorro-antd/drawer';
-import { NzCardModule } from 'ng-zorro-antd/card';
-import { NzTagModule } from 'ng-zorro-antd/tag';
-import { NzBadgeModule } from 'ng-zorro-antd/badge';
+import { OverlayModule } from '@angular/cdk/overlay';
 
+import { AppIconComponent } from '../icon/icon.component';
 import { ViewSelectorComponent, VistaItem } from '../view-selector';
 import { ColumnDef, TableSortState, TableStateSnapshot } from './entity-table.models';
 import { CellDefDirective } from './cell-def.directive';
@@ -47,17 +38,9 @@ import {
   imports: [
     CommonModule,
     FormsModule,
-    NzTableModule,
-    NzButtonModule,
-    NzIconModule,
-    NzInputModule,
-    NzDropdownModule,
-    NzCheckboxModule,
-    NzDrawerModule,
-    NzCardModule,
-    NzTagModule,
-    NzBadgeModule,
     DragDropModule,
+    OverlayModule,
+    AppIconComponent,
     ViewSelectorComponent,
     AdvancedFilterDrawerComponent,
   ],
@@ -96,10 +79,13 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
 
   @ContentChildren(CellDefDirective) cellDefs!: QueryList<CellDefDirective>;
 
-  // Columnas activas y ordenadas
   columnasVisibles: ColumnDef[] = [];
 
-  // Filtros avanzados estilo Dynamics 365
+  // Paginación
+  currentPage: number = 1;
+  pageSizeOptions: number[] = [10, 15, 25, 50, 100];
+
+  // Filtros avanzados
   advancedFilterDrawerVisible: boolean = false;
   activeFilterGroup: FilterGroup | null = null;
 
@@ -121,10 +107,10 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
   searchTerm: string = '';
   private searchSubject = new Subject<string>();
 
-  // Filtros avanzados por columna
+  // Filtros por columna
   columnFilters: Record<string, any> = {};
   filterTempValues: Record<string, any> = {};
-  filterDropdownVisible: Record<string, boolean> = {};
+  activeFilterColumn: string | null = null;
 
   // Ordenamiento
   sortState: TableSortState = { key: null, order: null };
@@ -135,12 +121,6 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
 
   // Drawer "Editar Columnas"
   editColumnsDrawerVisible: boolean = false;
-  get editColumnsModalVisible(): boolean {
-    return this.editColumnsDrawerVisible;
-  }
-  set editColumnsModalVisible(val: boolean) {
-    this.editColumnsDrawerVisible = val;
-  }
   columnasEdicion: {
     key: string;
     title: string;
@@ -154,6 +134,7 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
     this.searchSubject
       .pipe(debounceTime(300), distinctUntilChanged())
       .subscribe((term) => {
+        this.currentPage = 1;
         this.searchChange.emit(term);
         this.evaluarModificaciones();
         this.cdr.markForCheck();
@@ -166,13 +147,17 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
     if (changes['columnas']) {
       this.inicializarColumnas();
     }
+    if (changes['datos']) {
+      if (this.currentPage > this.totalPages) {
+        this.currentPage = Math.max(1, this.totalPages);
+      }
+    }
   }
 
   ngOnDestroy(): void {
     this.searchSubject.complete();
   }
 
-  // --- Inicialización y Columnas ---
   private inicializarColumnas(): void {
     this.columnasVisibles = this.columnas.filter((c) => !c.hidden);
   }
@@ -183,7 +168,6 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
     return match ? match.templateRef : null;
   }
 
-  // --- Snapshot y Detección de Asterisco (*) ---
   private capturarSnapshotInicial(): void {
     this.initialSnapshot = {
       searchTerm: '',
@@ -243,7 +227,6 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
     };
   }
 
-  // --- Métodos de Filtros Avanzados (Dynamics 365) ---
   abrirDrawerFiltros(): void {
     this.advancedFilterDrawerVisible = true;
     this.cdr.markForCheck();
@@ -251,6 +234,7 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
 
   onAplicarFiltroAvanzado(group: FilterGroup | null): void {
     this.activeFilterGroup = group;
+    this.currentPage = 1;
     this.advancedFilterChange.emit(group);
     this.evaluarModificaciones();
     this.cdr.markForCheck();
@@ -258,12 +242,12 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
 
   onLimpiarFiltroAvanzado(): void {
     this.activeFilterGroup = null;
+    this.currentPage = 1;
     this.advancedFilterChange.emit(null);
     this.evaluarModificaciones();
     this.cdr.markForCheck();
   }
 
-  // --- Búsqueda ---
   onSearchChange(): void {
     this.searchSubject.next(this.searchTerm);
   }
@@ -273,22 +257,37 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
     this.onSearchChange();
   }
 
-  // --- Ordenamiento ---
-  onSortChange(key: string, order: string | null): void {
-    this.sortState = {
-      key: order ? key : null,
-      order: (order as 'ascend' | 'descend' | null) || null,
-    };
+  onSort(key: string): void {
+    if (this.sortState.key === key) {
+      if (this.sortState.order === 'ascend') {
+        this.sortState.order = 'descend';
+      } else if (this.sortState.order === 'descend') {
+        this.sortState = { key: null, order: null };
+      } else {
+        this.sortState.order = 'ascend';
+      }
+    } else {
+      this.sortState = { key, order: 'ascend' };
+    }
     this.evaluarModificaciones();
     this.cdr.markForCheck();
   }
 
-  // --- Filtros Avanzados por Columna ---
-  abrirMenuFiltro(colKey: string, visible: boolean): void {
-    this.filterDropdownVisible[colKey] = visible;
-    if (visible && this.filterTempValues[colKey] === undefined) {
+  // --- Filtros de Columna Popover ---
+  toggleFilterMenu(colKey: string, event: MouseEvent): void {
+    event.stopPropagation();
+    if (this.activeFilterColumn === colKey) {
+      this.activeFilterColumn = null;
+    } else {
+      this.activeFilterColumn = colKey;
       this.filterTempValues[colKey] = this.columnFilters[colKey] || '';
     }
+    this.cdr.markForCheck();
+  }
+
+  closeFilterMenu(): void {
+    this.activeFilterColumn = null;
+    this.cdr.markForCheck();
   }
 
   aplicarFiltroTexto(colKey: string): void {
@@ -298,7 +297,8 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
     } else {
       delete this.columnFilters[colKey];
     }
-    this.filterDropdownVisible[colKey] = false;
+    this.activeFilterColumn = null;
+    this.currentPage = 1;
     this.evaluarModificaciones();
     this.cdr.markForCheck();
   }
@@ -306,7 +306,8 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
   limpiarFiltroTexto(colKey: string): void {
     this.filterTempValues[colKey] = '';
     delete this.columnFilters[colKey];
-    this.filterDropdownVisible[colKey] = false;
+    this.activeFilterColumn = null;
+    this.currentPage = 1;
     this.evaluarModificaciones();
     this.cdr.markForCheck();
   }
@@ -328,6 +329,7 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
       delete this.columnFilters[colKey];
     }
 
+    this.currentPage = 1;
     this.evaluarModificaciones();
     this.cdr.markForCheck();
   }
@@ -338,11 +340,10 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
     return v !== undefined && v !== null && v !== '';
   }
 
-  // --- Datos Procesados (Búsqueda + Filtros + Orden) ---
+  // --- Datos Filtrados y Paginados ---
   get datosFiltrados(): any[] {
     let resultado = [...this.datos];
 
-    // 1. Búsqueda rápida
     if (this.searchTerm && this.searchTerm.trim()) {
       const q = this.searchTerm.trim().toLowerCase();
       resultado = resultado.filter((row) => {
@@ -354,7 +355,6 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
       });
     }
 
-    // 2. Filtros avanzados por columna
     for (const [colKey, filterVal] of Object.entries(this.columnFilters)) {
       if (!filterVal && filterVal !== false && filterVal !== 0) continue;
 
@@ -371,7 +371,6 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
       }
     }
 
-    // 2.5 Filtros avanzados estilo Dynamics 365 (Multi-regla AND/OR tipado)
     if (
       this.showAdvancedFilter &&
       this.activeFilterGroup &&
@@ -382,7 +381,6 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
       );
     }
 
-    // 3. Ordenamiento
     if (this.sortState.key && this.sortState.order) {
       const key = this.sortState.key;
       const asc = this.sortState.order === 'ascend';
@@ -408,11 +406,32 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
     return resultado;
   }
 
-  // --- Drawer "Editar Columnas" Estilo D365 ---
+  get totalPages(): number {
+    return Math.ceil(this.datosFiltrados.length / this.pageSize) || 1;
+  }
+
+  get datosPaginados(): any[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.datosFiltrados.slice(start, start + this.pageSize);
+  }
+
+  setPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      this.cdr.markForCheck();
+    }
+  }
+
+  onPageSizeChange(newSize: number): void {
+    this.pageSize = newSize;
+    this.currentPage = 1;
+    this.cdr.markForCheck();
+  }
+
+  // --- Drawer Editar Columnas ---
   abrirDrawerEditarColumnas(): void {
     const visiblesSet = new Set(this.columnasVisibles.map((c) => c.key));
 
-    // Mantener las activas en su orden actual, y agregar al final las que estén ocultas
     const listaOrdenada: ColumnDef[] = [
       ...this.columnasVisibles,
       ...this.columnas.filter((c) => !visiblesSet.has(c.key)),
@@ -427,11 +446,6 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
 
     this.editColumnsDrawerVisible = true;
     this.cdr.markForCheck();
-  }
-
-  // Compatibilidad
-  abrirModalEditarColumnas(): void {
-    this.abrirDrawerEditarColumnas();
   }
 
   cerrarDrawerEditarColumnas(): void {
@@ -470,13 +484,12 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
     this.cdr.markForCheck();
   }
 
-  // --- Gestión de Vistas (Cambiar, Descartar, Guardar) ---
+  // --- Gestión de Vistas ---
   onVistaChange(vista: VistaItem): void {
     this.vistaActualKey = vista.key;
     this.vistaActualKeyChange.emit(vista.key);
     this.vistaChange.emit(vista);
 
-    // Cargar configuración guardada de la vista si existe
     if (vista.configuracion) {
       const cfg = vista.configuracion;
       if (cfg.visibleColumnKeys && Array.isArray(cfg.visibleColumnKeys)) {
@@ -492,7 +505,6 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
         ? JSON.parse(JSON.stringify(cfg.advancedFilter))
         : null;
     } else {
-      // Estado por defecto de la vista
       this.sortState = { key: null, order: null };
       this.columnFilters = {};
       this.searchTerm = '';
@@ -500,6 +512,7 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
       this.inicializarColumnas();
     }
 
+    this.currentPage = 1;
     this.capturarSnapshotInicial();
     this.recargar.emit();
   }
@@ -514,6 +527,7 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
       : null;
     this.inicializarColumnas();
     this.esModificada = false;
+    this.currentPage = 1;
     this.recargar.emit();
     this.cdr.markForCheck();
   }
@@ -524,7 +538,7 @@ export class EntityTableComponent implements OnInit, OnDestroy, OnChanges {
     this.cdr.markForCheck();
   }
 
-  // --- Selección de Filas ---
+  // --- Selección ---
   toggleSelect(id: string): void {
     const nextSet = new Set(this.selectedIds);
     if (nextSet.has(id)) {

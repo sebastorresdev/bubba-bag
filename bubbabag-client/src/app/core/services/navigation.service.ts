@@ -106,22 +106,6 @@ export class NavigationService {
                   path: '/servicio-campo/ordenes',
                   matchPrefix: true,
                 },
-                {
-                  title: 'Tablero de Programación',
-                  path: '/servicio-campo/schedule-board',
-                },
-                {
-                  title: 'Reservas (Bookings)',
-                  path: '/servicio-campo/bookings',
-                },
-                {
-                  title: 'Requisitos de Recursos',
-                  path: '/servicio-campo/resource-requirements',
-                },
-                {
-                  title: 'Solicitudes de Ausencia',
-                  path: '/servicio-campo/time-off-requests',
-                },
               ],
             },
             {
@@ -134,131 +118,13 @@ export class NavigationService {
                   path: '/servicio-campo/clientes',
                   matchPrefix: true,
                 },
-                {
-                  title: 'Contactos',
-                  path: '/servicio-campo/contactos',
-                },
-              ],
-            },
-            {
-              title: 'Prestación de Servicios',
-              icon: 'snippets',
-              open: false,
-              children: [
-                {
-                  title: 'Casos e Incidencias',
-                  path: '/servicio-campo/cases',
-                },
-                {
-                  title: 'Acuerdos de Servicio (SLA)',
-                  path: '/servicio-campo/agreements',
-                },
-              ],
-            },
-            {
-              title: 'Activos y Dispositivos',
-              icon: 'database',
-              open: false,
-              children: [
-                {
-                  title: 'Activos del Cliente',
-                  path: '/servicio-campo/assets',
-                },
-                {
-                  title: 'Alertas IoT',
-                  path: '/servicio-campo/iot-alerts',
-                },
-                {
-                  title: 'Dispositivos',
-                  path: '/servicio-campo/devices',
-                },
               ],
             },
           ],
         },
 
         // ---------------------------------------------------------------------
-        // Área 2: Recursos (Resources)
-        // ---------------------------------------------------------------------
-        {
-          id: 'resources',
-          name: 'Recursos',
-          shortCode: 'R',
-          icon: 'team',
-          badgeColor: '#004e8c',
-          defaultPath: '/servicio-campo/resources',
-          items: [
-            {
-              title: 'Recursos',
-              icon: 'idcard',
-              open: true,
-              children: [
-                {
-                  title: 'Recursos Reservables',
-                  path: '/servicio-campo/resources',
-                  matchPrefix: true,
-                },
-                {
-                  title: 'Habilidades (Characteristics)',
-                  path: '/servicio-campo/characteristics',
-                },
-                {
-                  title: 'Categorías de Recursos',
-                  path: '/servicio-campo/resource-categories',
-                },
-                {
-                  title: 'Tipos de Pago',
-                  path: '/servicio-campo/pay-types',
-                },
-                {
-                  title: 'Modelos de Competencia',
-                  path: '/servicio-campo/proficiency-models',
-                },
-                {
-                  title: 'Plantillas de Horas',
-                  path: '/servicio-campo/workhour-templates',
-                },
-              ],
-            },
-            {
-              title: 'Configuración de Reservas',
-              icon: 'calendar',
-              open: false,
-              children: [
-                {
-                  title: 'Estados de Reserva',
-                  path: '/servicio-campo/booking-statuses',
-                },
-                {
-                  title: 'Reglas de Reserva',
-                  path: '/servicio-campo/booking-rules',
-                },
-                {
-                  title: 'Preferencias de Cumplimiento',
-                  path: '/servicio-campo/fulfillment-preferences',
-                },
-              ],
-            },
-            {
-              title: 'Administración de Programación',
-              icon: 'setting',
-              open: false,
-              children: [
-                {
-                  title: 'Metadatos de Configuración',
-                  path: '/servicio-campo/booking-setup-metadata',
-                },
-                {
-                  title: 'Parámetros de Programación',
-                  path: '/servicio-campo/scheduling-parameters',
-                },
-              ],
-            },
-          ],
-        },
-
-        // ---------------------------------------------------------------------
-        // Área 3: Inventario (Inventory)
+        // Área 2: Inventario (Inventory)
         // ---------------------------------------------------------------------
         {
           id: 'inventory',
@@ -301,7 +167,7 @@ export class NavigationService {
         },
 
         // ---------------------------------------------------------------------
-        // Área 4: Configuración (Settings)
+        // Área 3: Configuración (Settings)
         // ---------------------------------------------------------------------
         {
           id: 'settings',
@@ -347,10 +213,6 @@ export class NavigationService {
                   title: 'Motivos de Incidencia',
                   path: '/servicio-campo/motivos-incidencia',
                   matchPrefix: true,
-                },
-                {
-                  title: 'Prioridades',
-                  path: '/servicio-campo/prioridades',
                 },
               ],
             },

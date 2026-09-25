@@ -14,19 +14,8 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 
-// NG-ZORRO Modules
-import { NzCardModule } from 'ng-zorro-antd/card';
-import { NzFormModule } from 'ng-zorro-antd/form';
-import { NzInputModule } from 'ng-zorro-antd/input';
-import { NzButtonModule } from 'ng-zorro-antd/button';
-import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzTabsModule } from 'ng-zorro-antd/tabs';
-import { NzSpinModule } from 'ng-zorro-antd/spin';
-import { NzAvatarModule } from 'ng-zorro-antd/avatar';
-import { NzDividerModule } from 'ng-zorro-antd/divider';
-import { NzMessageService } from 'ng-zorro-antd/message';
-
-// Shared Components & Services
+import { ToastService } from '../../../../core/services/toast.service';
+import { AppIconComponent } from '../../../../shared/components/icon/icon.component';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar/command-bar.component';
 import { CategoriaProductoService } from '../../services/categoria-producto.service';
 import { CategoriaProductoDto } from '../../models/catalogo-producto.model';
@@ -38,15 +27,6 @@ import { CategoriaProductoDto } from '../../models/catalogo-producto.model';
     CommonModule,
     ReactiveFormsModule,
     RouterModule,
-    NzCardModule,
-    NzFormModule,
-    NzInputModule,
-    NzButtonModule,
-    NzIconModule,
-    NzTabsModule,
-    NzSpinModule,
-    NzAvatarModule,
-    NzDividerModule,
     CommandBarComponent,
   ],
   templateUrl: './categoria-producto-form.html',
@@ -58,7 +38,7 @@ export class CategoriaProductoFormComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private categoriaService = inject(CategoriaProductoService);
-  private message = inject(NzMessageService);
+  private message = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
 
   form!: FormGroup;

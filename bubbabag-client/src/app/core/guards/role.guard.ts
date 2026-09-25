@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { NzMessageService } from 'ng-zorro-antd/message';
+import { ToastService } from '../services/toast.service';
 
 /**
  * Guard para validar que el usuario cuente con los roles requeridos para una ruta.
@@ -12,7 +12,7 @@ import { NzMessageService } from 'ng-zorro-antd/message';
 export const roleGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
-  const message = inject(NzMessageService);
+  const message = inject(ToastService);
 
   const requiredRoles = route.data?.['roles'] as string[] | undefined;
 

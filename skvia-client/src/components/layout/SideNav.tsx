@@ -8,17 +8,20 @@ import {
   MenuList,
   MenuItem,
   MenuPopover,
-  Tooltip,
   NavDrawer,
-  NavDrawerHeader,
   NavDrawerBody,
   NavDrawerFooter,
+  Nav,
   NavItem,
+  NavSubItem,
+  NavCategory,
+  NavCategoryItem,
+  NavSubItemGroup,
   NavSectionHeader,
-  NavDivider,
-  Hamburger,
 } from '@fluentui/react-components';
 import {
+  ChevronUpDown20Regular,
+  Checkmark20Regular,
   bundleIcon,
   Box20Filled,
   Box20Regular,
@@ -54,8 +57,6 @@ import {
   Clock20Regular,
   Money20Filled,
   Money20Regular,
-  ChevronUpDown20Regular,
-  Checkmark20Regular,
 } from '@fluentui/react-icons';
 import type { NavArea, NavItem as NavItemData } from '../../types/navigation.types';
 
@@ -85,82 +86,20 @@ const ICONS_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 const useStyles = makeStyles({
   navDrawer: {
     height: '100%',
-    transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-    overflowX: 'hidden',
     boxSizing: 'border-box',
-    flexShrink: 0,
+    borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
   },
-  expanded: {
-    width: '240px',
-    minWidth: '240px',
-  },
-  collapsed: {
-    width: '48px',
-    minWidth: '48px',
-    maxWidth: '48px',
-  },
-  headerExpanded: {
-    display: 'flex',
-    alignItems: 'center',
-    paddingInlineStart: '8px',
-    paddingBlock: '8px',
-  },
-  headerCollapsed: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
+  drawerBody: {
     paddingInlineStart: '0px',
     paddingInlineEnd: '0px',
-    paddingBlock: '8px',
-    width: '100%',
   },
-  bodyExpanded: {
-    overflowX: 'hidden',
+  sectionHeader: {
+    marginTop: '8px',
+    marginBottom: '4px',
   },
-  bodyCollapsed: {
-    paddingInlineStart: '0px',
-    paddingInlineEnd: '0px',
-    paddingLeft: '0px',
-    paddingRight: '0px',
-    overflowX: 'hidden',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  collapsedNavItem: {
-    minWidth: '36px',
-    maxWidth: '36px',
-    width: '36px',
-    height: '36px',
-    paddingLeft: '0px',
-    paddingRight: '0px',
-    paddingTop: '0px',
-    paddingBottom: '0px',
-    marginTop: '2px',
-    marginBottom: '2px',
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    justifyContent: 'center',
-    alignItems: 'center',
-    boxSizing: 'border-box',
-  },
-  divider: {
-    margin: '6px 0',
-    width: '32px',
-  },
-  footerExpanded: {
-    paddingInlineStart: '8px',
-    paddingInlineEnd: '8px',
-  },
-  footerCollapsed: {
-    paddingInlineStart: '0px',
-    paddingInlineEnd: '0px',
-    paddingLeft: '0px',
-    paddingRight: '0px',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
+  drawerFooter: {
+    padding: '8px 12px',
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   bottomAreaSwitcher: {
     height: '40px',
@@ -170,22 +109,6 @@ const useStyles = makeStyles({
     padding: '0 8px',
     cursor: 'pointer',
     width: '100%',
-    boxSizing: 'border-box',
-    borderRadius: tokens.borderRadiusMedium,
-    transition: 'background-color 0.12s ease',
-    ':hover': {
-      backgroundColor: tokens.colorNeutralBackground1Hover,
-    },
-  },
-  bottomAreaSwitcherCollapsed: {
-    height: '36px',
-    width: '36px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '0',
-    margin: '0 auto',
-    cursor: 'pointer',
     boxSizing: 'border-box',
     borderRadius: tokens.borderRadiusMedium,
     transition: 'background-color 0.12s ease',
@@ -217,151 +140,145 @@ const useStyles = makeStyles({
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    color: tokens.colorNeutralForeground1,
   },
 });
 
-interface SideNavProps {
-  collapsed: boolean;
+export interface SideNavProps {
+  open: boolean;
+  type: 'inline' | 'overlay';
+  onOpenChange: (open: boolean) => void;
   areas: NavArea[];
   activeArea: NavArea;
   activeItem: NavItemData;
   onSelectArea: (area: NavArea) => void;
   onSelectItem: (item: NavItemData) => void;
-  onToggleCollapse: () => void;
+  onToggleNav?: () => void;
 }
 
 export const SideNav: React.FC<SideNavProps> = ({
-  collapsed,
+  open,
+  type,
+  onOpenChange,
   areas,
   activeArea,
   activeItem,
   onSelectArea,
   onSelectItem,
-  onToggleCollapse,
 }) => {
   const styles = useStyles();
 
+  const handleItemClick = (item: NavItemData) => {
+    onSelectItem(item);
+    // On overlay / mobile mode, close drawer after selecting item
+    if (type === 'overlay') {
+      onOpenChange(false);
+    }
+  };
+
   return (
     <NavDrawer
-      type="inline"
-      separator
-      open={true}
+      type={type}
+      open={open}
+      onOpenChange={(_, data) => onOpenChange(data.open)}
       selectedValue={activeItem.id}
-      onNavItemSelect={(_, data) => {
-        for (const grp of activeArea.groups) {
-          const found = grp.items.find((i) => i.id === data.value);
-          if (found) {
-            onSelectItem(found);
-            break;
-          }
-        }
-      }}
-      className={`${styles.navDrawer} ${collapsed ? styles.collapsed : styles.expanded}`}
+      className={styles.navDrawer}
     >
-      {/* Header with Hamburger button */}
-      <NavDrawerHeader className={collapsed ? styles.headerCollapsed : styles.headerExpanded}>
-        <Tooltip
-          content={collapsed ? 'Expandir mapa del sitio' : 'Contraer mapa del sitio'}
-          relationship="label"
-          positioning={collapsed ? 'after' : 'above'}
-        >
-          <Hamburger
-            onClick={onToggleCollapse}
-            aria-label={collapsed ? 'Expandir navegación' : 'Contraer navegación'}
-            aria-expanded={!collapsed}
-          />
-        </Tooltip>
-      </NavDrawerHeader>
-
-      {/* Body with Sections and Items */}
-      <NavDrawerBody className={collapsed ? styles.bodyCollapsed : styles.bodyExpanded}>
-        {activeArea.groups.map((group, groupIdx) => (
-          <React.Fragment key={group.id}>
-            {/* Show section title when expanded, or a subtle divider between groups when collapsed */}
-            {!collapsed ? (
-              <NavSectionHeader>{group.title}</NavSectionHeader>
-            ) : (
-              groupIdx > 0 && <NavDivider className={styles.divider} />
-            )}
-
-            {group.items.map((item) => {
-              const IconComponent = ICONS_MAP[item.iconName] || ICONS_MAP.Box;
-
-              const navItemElement = (
-                <NavItem
-                  key={item.id}
-                  value={item.id}
-                  icon={<IconComponent />}
-                  onClick={() => onSelectItem(item)}
-                  className={collapsed ? styles.collapsedNavItem : undefined}
-                >
-                  {!collapsed && item.title}
-                </NavItem>
-              );
-
-              // In collapsed mode, wrap in Tooltip so hovering reveals item title
-              if (collapsed) {
-                return (
-                  <Tooltip
-                    key={item.id}
-                    content={item.title}
-                    relationship="label"
-                    positioning="after"
-                  >
-                    {navItemElement}
-                  </Tooltip>
-                );
+      {/* Body with Fluent UI v9 Nav, Sections, Items and SubItems */}
+      <NavDrawerBody className={styles.drawerBody}>
+        <Nav
+          selectedValue={activeItem.id}
+          onNavItemSelect={(_, data) => {
+            for (const grp of activeArea.groups) {
+              for (const itm of grp.items) {
+                if (itm.id === data.value) {
+                  handleItemClick(itm);
+                  return;
+                }
+                if (itm.subItems) {
+                  const foundSub = itm.subItems.find((s) => s.id === data.value);
+                  if (foundSub) {
+                    handleItemClick(foundSub);
+                    return;
+                  }
+                }
               }
+            }
+          }}
+        >
+          {activeArea.groups.map((group) => (
+            <React.Fragment key={group.id}>
+              <NavSectionHeader className={styles.sectionHeader}>
+                {group.title}
+              </NavSectionHeader>
 
-              return navItemElement;
-            })}
-          </React.Fragment>
-        ))}
+              {group.items.map((item) => {
+                const IconComponent = ICONS_MAP[item.iconName] || ICONS_MAP.Box;
+
+                // If item has sub-items, render as NavCategory + NavSubItem
+                if (item.subItems && item.subItems.length > 0) {
+                  return (
+                    <NavCategory key={item.id} value={item.id}>
+                      <NavCategoryItem icon={<IconComponent />}>
+                        {item.title}
+                      </NavCategoryItem>
+                      <NavSubItemGroup>
+                        {item.subItems.map((subItem) => (
+                          <NavSubItem
+                            key={subItem.id}
+                            value={subItem.id}
+                            onClick={() => handleItemClick(subItem)}
+                          >
+                            {subItem.title}
+                          </NavSubItem>
+                        ))}
+                      </NavSubItemGroup>
+                    </NavCategory>
+                  );
+                }
+
+                // Standard NavItem
+                return (
+                  <NavItem
+                    key={item.id}
+                    value={item.id}
+                    icon={<IconComponent />}
+                    onClick={() => handleItemClick(item)}
+                  >
+                    {item.title}
+                  </NavItem>
+                );
+              })}
+            </React.Fragment>
+          ))}
+        </Nav>
       </NavDrawerBody>
 
-      {/* Footer with Area Switcher */}
-      <NavDrawerFooter className={collapsed ? styles.footerCollapsed : styles.footerExpanded}>
+      {/* Footer with clean Area Switcher Menu */}
+      <NavDrawerFooter className={styles.drawerFooter}>
         <Menu>
           <MenuTrigger disableButtonEnhancement>
-            {collapsed ? (
-              <Tooltip
-                content={`Área: ${activeArea.name}`}
-                relationship="label"
-                positioning="after"
-              >
+            <div
+              className={styles.bottomAreaSwitcher}
+              title={`Área activa: ${activeArea.name}`}
+              role="button"
+              tabIndex={0}
+            >
+              <div className={styles.areaNameGroup}>
                 <div
-                  className={styles.bottomAreaSwitcherCollapsed}
-                  aria-label={`Área activa: ${activeArea.name}`}
+                  className={styles.areaBadge}
+                  style={{ backgroundColor: activeArea.color }}
                 >
-                  <div
-                    className={styles.areaBadge}
-                    style={{ backgroundColor: activeArea.color }}
-                  >
-                    {activeArea.shortCode}
-                  </div>
+                  {activeArea.shortCode}
                 </div>
-              </Tooltip>
-            ) : (
-              <div
-                className={styles.bottomAreaSwitcher}
-                title={`Área activa: ${activeArea.name}`}
-              >
-                <div className={styles.areaNameGroup}>
-                  <div
-                    className={styles.areaBadge}
-                    style={{ backgroundColor: activeArea.color }}
-                  >
-                    {activeArea.shortCode}
-                  </div>
-                  <span className={styles.areaText}>{activeArea.name}</span>
-                </div>
-                <ChevronUpDown20Regular />
+                <span className={styles.areaText}>{activeArea.name}</span>
               </div>
-            )}
+              <ChevronUpDown20Regular />
+            </div>
           </MenuTrigger>
 
           <MenuPopover>
-            <MenuList style={{ minWidth: '210px' }}>
+            <MenuList style={{ minWidth: '220px' }}>
               <div style={{ padding: '8px 12px 4px 12px' }}>
                 <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground4 }}>
                   CAMBIAR ÁREA
@@ -409,5 +326,3 @@ export const SideNav: React.FC<SideNavProps> = ({
     </NavDrawer>
   );
 };
-
-

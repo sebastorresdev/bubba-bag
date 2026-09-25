@@ -22,11 +22,6 @@
               {
                 "glob": "**/*",
                 "input": "public"
-              },
-              {
-                "glob": "ng-zorro-antd.dark.min.css",
-                "input": "node_modules/ng-zorro-antd",
-                "output": "themes"
               }
             ],
             "styles": [

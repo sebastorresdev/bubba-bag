@@ -1,222 +1,141 @@
-<nav class="fluent-command-bar" aria-label="Barra de Comandos">
-  <!-- Grupo Izquierdo: Acciones Principales -->
-  <div class="fluent-command-bar-group fluent-command-bar-left">
+<div class="flex items-center justify-between px-2 h-11 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 text-sm select-none shrink-0 w-full">
+  <!-- Izquierda: Botón Atrás + Acciones Principales -->
+  <div class="flex items-center gap-1 overflow-x-auto no-scrollbar">
     @if (showBack) {
       <button
         type="button"
-        nz-button
-        nzType="text"
-        class="fluent-cmd-btn fluent-cmd-back-btn"
-        (click)="onBackClick()"
-        title="Volver"
-        aria-label="Volver">
-        <nz-icon nzType="arrow-left" />
+        (click)="back.emit()"
+        class="inline-flex items-center justify-center w-8 h-8 rounded text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+        title="Regresar"
+      >
+        <app-icon name="arrow-left" [size]="16" />
       </button>
-      <div class="fluent-cmd-divider" role="separator"></div>
+      <div class="h-4 w-px bg-neutral-200 dark:bg-neutral-800 mx-1"></div>
     }
 
     @if (title) {
-      <span class="fluent-cmd-title">{{ title }}</span>
-      <div class="fluent-cmd-divider" role="separator"></div>
+      <span class="font-semibold text-neutral-800 dark:text-neutral-100 px-2 text-sm">
+        {{ title }}
+      </span>
+      <div class="h-4 w-px bg-neutral-200 dark:bg-neutral-800 mx-1"></div>
     }
 
     @for (item of items; track item.key) {
-      <ng-container
-        *ngTemplateOutlet="commandTpl; context: { item: item, placement: 'bottomLeft' }">
-      </ng-container>
-    }
-  </div>
+      @if (!item.hidden) {
+        @if (item.isDivider) {
+          <div class="h-4 w-px bg-neutral-200 dark:bg-neutral-800 mx-1"></div>
+        } @else if (item.children && item.children.length > 0) {
+          <!-- Menú Desplegable con CDK Menu -->
+          <div class="relative inline-flex items-center">
+            @if (item.split) {
+              <button
+                type="button"
+                [disabled]="item.disabled"
+                (click)="onItemClick(item, $event)"
+                class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-l text-xs font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-40 transition-colors"
+                [title]="item.tooltip || item.label || ''"
+              >
+                @if (item.icon) {
+                  <app-icon [name]="getIconName(item.icon)" [size]="15" [svgClass]="getIconColorClass(item.iconColor, item.danger)" />
+                }
+                @if (item.label && !item.iconOnly) {
+                  <span>{{ item.label }}</span>
+                }
+              </button>
+              <button
+                type="button"
+                [cdkMenuTriggerFor]="itemMenu"
+                [disabled]="item.disabled"
+                class="inline-flex items-center justify-center px-1.5 py-1.5 rounded-r border-l border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-40 transition-colors"
+              >
+                <app-icon name="chevron-down" [size]="12" />
+              </button>
+            } @else {
+              <button
+                type="button"
+                [cdkMenuTriggerFor]="itemMenu"
+                [disabled]="item.disabled"
+                class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-40 transition-colors"
+                [title]="item.tooltip || item.label || ''"
+              >
+                @if (item.icon) {
+                  <app-icon [name]="getIconName(item.icon)" [size]="15" [svgClass]="getIconColorClass(item.iconColor, item.danger)" />
+                }
+                @if (item.label && !item.iconOnly) {
+                  <span>{{ item.label }}</span>
+                }
+                <app-icon name="chevron-down" [size]="12" />
+              </button>
+            }
 
-  <!-- Grupo Derecho: Acciones Secundarias / Far Items -->
-  <div class="fluent-command-bar-group fluent-command-bar-right">
-    @for (item of farItems; track item.key) {
-      <ng-container
-        *ngTemplateOutlet="commandTpl; context: { item: item, placement: 'bottomRight' }">
-      </ng-container>
-    }
-
-    <!-- Proyección opcional de contenido personalizado -->
-    <ng-content></ng-content>
-  </div>
-</nav>
-
-<!-- Template Reutilizable de Comando -->
-<ng-template #commandTpl let-item="item" let-placement="placement">
-  @if (!item.hidden) {
-    @if (item.isDivider) {
-      <div class="fluent-cmd-divider" role="separator"></div>
-    } @else if (item.children && item.children.length > 0) {
-      @if (item.split) {
-        <!-- Split Button: Acción Principal + Trigger Dropdown Independiente -->
-        <div
-          class="fluent-cmd-split"
-          [class.fluent-cmd-split-primary]="item.primary"
-          [class.fluent-cmd-split-danger]="item.danger"
-          [class.fluent-cmd-split-solid]="item.appearance === 'primary'"
-          [class.fluent-cmd-split-disabled]="item.disabled">
+            <ng-template #itemMenu>
+              <div cdkMenu class="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md shadow-lg py-1 z-50 min-w-44 focus:outline-none">
+                @for (sub of item.children; track sub.key) {
+                  @if (sub.isDivider) {
+                    <div class="h-px bg-neutral-200 dark:bg-neutral-800 my-1"></div>
+                  } @else {
+                    <button
+                      cdkMenuItem
+                      type="button"
+                      [disabled]="sub.disabled"
+                      (click)="onItemClick(sub, $event)"
+                      class="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-40 text-left transition-colors"
+                    >
+                      @if (sub.icon) {
+                        <app-icon [name]="getIconName(sub.icon)" [size]="14" [svgClass]="getIconColorClass(sub.iconColor, sub.danger)" />
+                      }
+                      <span>{{ sub.label }}</span>
+                    </button>
+                  }
+                }
+              </div>
+            </ng-template>
+          </div>
+        } @else {
+          <!-- Botón Simple -->
           <button
             type="button"
-            nz-button
-            nzType="text"
-            class="fluent-cmd-btn fluent-cmd-split-main"
-            [class.fluent-cmd-btn-primary]="item.primary"
-            [class.fluent-cmd-btn-danger]="item.danger"
-            [class.fluent-cmd-btn-solid]="item.appearance === 'primary'"
             [disabled]="item.disabled"
             (click)="onItemClick(item, $event)"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-40 transition-colors"
+            [class.text-rose-600]="item.danger"
             [title]="item.tooltip || item.label || ''"
-            [attr.aria-label]="item.tooltip || item.label || 'Comando principal'">
+          >
             @if (item.icon) {
-              <nz-icon [nzType]="item.icon" class="fluent-cmd-icon" [style.color]="getIconColor(item)" />
+              <app-icon [name]="getIconName(item.icon)" [size]="15" [svgClass]="getIconColorClass(item.iconColor, item.danger)" />
             }
-            @if (!item.iconOnly && item.label) {
-              <span class="fluent-cmd-label">{{ item.label }}</span>
+            @if (item.label && !item.iconOnly) {
+              <span>{{ item.label }}</span>
             }
           </button>
-
-          <span class="fluent-cmd-split-divider" aria-hidden="true"></span>
-
-          <button
-            type="button"
-            nz-button
-            nzType="text"
-            class="fluent-cmd-btn fluent-cmd-split-trigger"
-            [class.fluent-cmd-btn-primary]="item.primary"
-            [class.fluent-cmd-btn-danger]="item.danger"
-            [class.fluent-cmd-btn-solid]="item.appearance === 'primary'"
-            [disabled]="item.disabled"
-            nz-dropdown
-            [nzDropdownMenu]="splitMenu"
-            nzPlacement="bottomRight"
-            nzTrigger="click"
-            [title]="'Más opciones para ' + (item.label || '')"
-            aria-label="Más opciones">
-            <nz-icon nzType="down" class="fluent-dropdown-arrow" />
-          </button>
-        </div>
-
-        <nz-dropdown-menu #splitMenu="nzDropdownMenu">
-          <ul nz-menu class="fluent-sub-menu">
-            @for (sub of item.children; track sub.key) {
-              @if (!sub.hidden) {
-                @if (sub.isDivider) {
-                  <li nz-menu-divider role="separator"></li>
-                } @else {
-                  <li
-                    nz-menu-item
-                    [nzDisabled]="sub.disabled"
-                    (click)="onItemClick(sub, $event)"
-                    [class.fluent-menu-item-danger]="sub.danger"
-                    [title]="sub.tooltip || sub.label || ''">
-                    @if (sub.icon) {
-                      <nz-icon [nzType]="sub.icon" [style.color]="getIconColor(sub)" />
-                    }
-                    <span>{{ sub.label }}</span>
-                  </li>
-                }
-              }
-            }
-          </ul>
-        </nz-dropdown-menu>
-      } @else {
-        <!-- Botón con Menú Desplegable Completo (Dropdown Clásico) -->
-        <button
-          type="button"
-          nz-button
-          nzType="text"
-          class="fluent-cmd-btn"
-          [class.fluent-cmd-btn-primary]="item.primary"
-          [class.fluent-cmd-btn-danger]="item.danger"
-          [class.fluent-cmd-btn-solid]="item.appearance === 'primary'"
-          [disabled]="item.disabled"
-          nz-dropdown
-          [nzDropdownMenu]="dropdownMenu"
-          [nzPlacement]="placement"
-          nzTrigger="click"
-          [title]="item.tooltip || item.label || ''"
-          [attr.aria-label]="item.tooltip || item.label || 'Opciones'">
-          @if (item.icon) {
-            <nz-icon [nzType]="item.icon" class="fluent-cmd-icon" [style.color]="getIconColor(item)" />
-          }
-          @if (!item.iconOnly && item.label) {
-            <span class="fluent-cmd-label">{{ item.label }}</span>
-          }
-          <nz-icon nzType="down" class="fluent-dropdown-arrow" />
-        </button>
-
-        <nz-dropdown-menu #dropdownMenu="nzDropdownMenu">
-          <ul nz-menu class="fluent-sub-menu">
-            @for (sub of item.children; track sub.key) {
-              @if (!sub.hidden) {
-                @if (sub.isDivider) {
-                  <li nz-menu-divider role="separator"></li>
-                } @else {
-                  <li
-                    nz-menu-item
-                    [nzDisabled]="sub.disabled"
-                    (click)="onItemClick(sub, $event)"
-                    [class.fluent-menu-item-danger]="sub.danger"
-                    [title]="sub.tooltip || sub.label || ''">
-                    @if (sub.icon) {
-                      <nz-icon [nzType]="sub.icon" [style.color]="getIconColor(sub)" />
-                    }
-                    <span>{{ sub.label }}</span>
-                  </li>
-                }
-              }
-            }
-          </ul>
-        </nz-dropdown-menu>
-      }
-    } @else {
-      <!-- Botón de Comando Normal (con soporte opcional de nz-popconfirm) -->
-      @if (item.popconfirm) {
-        <button
-          type="button"
-          nz-button
-          nzType="text"
-          class="fluent-cmd-btn"
-          [class.fluent-cmd-btn-primary]="item.primary"
-          [class.fluent-cmd-btn-danger]="item.danger"
-          [class.fluent-cmd-btn-solid]="item.appearance === 'primary'"
-          [disabled]="item.disabled"
-          nz-popconfirm
-          [nzPopconfirmTitle]="item.popconfirm.title"
-          [nzOkText]="item.popconfirm.okText || 'Aceptar'"
-          [nzCancelText]="item.popconfirm.cancelText || 'Cancelar'"
-          [nzOkDanger]="item.popconfirm.okDanger"
-          (nzOnConfirm)="item.popconfirm.onConfirm()"
-          [title]="item.tooltip || item.label || ''"
-          [attr.aria-label]="item.tooltip || item.label || 'Comando'">
-          @if (item.icon) {
-            <nz-icon [nzType]="item.icon" class="fluent-cmd-icon" [style.color]="getIconColor(item)" />
-          }
-          @if (!item.iconOnly && item.label) {
-            <span class="fluent-cmd-label">{{ item.label }}</span>
-          }
-        </button>
-      } @else {
-        <button
-          type="button"
-          nz-button
-          nzType="text"
-          class="fluent-cmd-btn"
-          [class.fluent-cmd-btn-primary]="item.primary"
-          [class.fluent-cmd-btn-danger]="item.danger"
-          [class.fluent-cmd-btn-solid]="item.appearance === 'primary'"
-          [disabled]="item.disabled"
-          (click)="onItemClick(item, $event)"
-          [title]="item.tooltip || item.label || ''"
-          [attr.aria-label]="item.tooltip || item.label || 'Comando'">
-          @if (item.icon) {
-            <nz-icon [nzType]="item.icon" class="fluent-cmd-icon" [style.color]="getIconColor(item)" />
-          }
-          @if (!item.iconOnly && item.label) {
-            <span class="fluent-cmd-label">{{ item.label }}</span>
-          }
-        </button>
+        }
       }
     }
-  }
-</ng-template>
+  </div>
 
+  <!-- Derecha: Acciones Secundarias (farItems) -->
+  <div class="flex items-center gap-1">
+    @for (item of farItems; track item.key) {
+      @if (!item.hidden) {
+        @if (item.isDivider) {
+          <div class="h-4 w-px bg-neutral-200 dark:bg-neutral-800 mx-1"></div>
+        } @else {
+          <button
+            type="button"
+            [disabled]="item.disabled"
+            (click)="onItemClick(item, $event)"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-semibold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-40 transition-colors"
+            [title]="item.tooltip || item.label || ''"
+          >
+            @if (item.icon) {
+              <app-icon [name]="getIconName(item.icon)" [size]="15" [svgClass]="getIconColorClass(item.iconColor, item.danger)" />
+            }
+            @if (item.label && !item.iconOnly) {
+              <span>{{ item.label }}</span>
+            }
+          </button>
+        }
+      }
+    }
+  </div>
+</div>

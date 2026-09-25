@@ -1,266 +1,328 @@
-<div class="view-selector-container">
-  <!-- Disparador con Estilo de Botón Dynamics 365 (Sombra y Fondo suave al pasar el cursor) -->
+<div class="relative inline-block">
+  <!-- Botón disparador de Vistas -->
   <button
     type="button"
-    nz-button
-    nzType="text"
-    nz-dropdown
-    [nzDropdownMenu]="viewsMenu"
-    [(nzVisible)]="dropdownVisible"
-    nzTrigger="click"
-    nzPlacement="bottomLeft"
-    class="view-title-btn d365-view-trigger"
+    (click)="toggleDropdown()"
+    cdkOverlayOrigin
+    #trigger="cdkOverlayOrigin"
+    class="group flex items-center gap-1.5 px-2 py-1 -ml-2 rounded text-base font-semibold text-neutral-900 dark:text-neutral-100 hover:bg-neutral-200/60 dark:hover:bg-neutral-800/80 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/30"
     title="Cambiar vista o administrar vistas"
   >
-    <span class="view-title-text trigger-label">
-      {{ vistaActualNombre }}<span *ngIf="esModificada" class="view-dirty-asterisk" title="Vista con cambios sin guardar">*</span>
+    <span class="truncate max-w-[280px]">
+      {{ vistaActualNombre }}<span *ngIf="esModificada" class="text-amber-500 ml-0.5" title="Vista con cambios sin guardar">*</span>
     </span>
-    <nz-icon nzType="down" class="view-title-icon trigger-chevron" />
+    <app-icon
+      name="chevron-down"
+      [size]="14"
+      [svgClass]="'text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300 transition-transform ' + (dropdownOpen ? 'rotate-180' : '')"
+    />
   </button>
 
-  <!-- Panel Desplegable de Vistas Estilo Dynamics 365 -->
-  <nz-dropdown-menu #viewsMenu="nzDropdownMenu">
-    <div class="d365-views-dropdown-panel" (click)="$event.stopPropagation()">
-      <!-- Buscador de Vistas ("Search views") -->
-      <div class="search-views-wrapper">
-        <nz-input-group nzPrefixIcon="search">
+  <!-- Panel Desplegable (CDK Connected Overlay) -->
+  <ng-template
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="trigger"
+    [cdkConnectedOverlayOpen]="dropdownOpen"
+    (overlayOutsideClick)="closeDropdown()"
+  >
+    <div class="w-80 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 py-1 text-sm text-neutral-800 dark:text-neutral-200 z-50">
+      <!-- Buscador -->
+      <div class="p-2 border-b border-neutral-100 dark:border-neutral-800/80">
+        <div class="relative flex items-center">
+          <app-icon
+            name="search"
+            [size]="15"
+            svgClass="absolute left-2.5 text-neutral-400 dark:text-neutral-500 pointer-events-none"
+          />
           <input
             type="text"
-            nz-input
             [(ngModel)]="busqueda"
             placeholder="Buscar vistas..."
-            class="search-views-input"
+            class="w-full pl-8 pr-3 py-1.5 text-xs rounded border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/60 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
             (click)="$event.stopPropagation()"
           />
-        </nz-input-group>
+        </div>
       </div>
 
-      <!-- Lista de Vistas con Scroll -->
-      <ul nz-menu class="views-menu-list">
-        @if (vistasFiltradas.length === 0) {
-          <li nz-menu-item nzDisabled class="empty-views-item">
-            <span>No se encontraron vistas</span>
-          </li>
-        }
+      <!-- Lista con Scroll -->
+      <div class="max-h-60 overflow-y-auto py-1">
+        <div *ngIf="vistasFiltradas.length === 0" class="px-4 py-3 text-xs text-neutral-400 text-center">
+          No se encontraron vistas
+        </div>
 
-        @for (vista of vistasFiltradas; track vista.key) {
-          <li
-            nz-menu-item
-            (click)="seleccionarVista(vista)"
-            [nzSelected]="vista.key === vistaActualKey || vista.id === vistaActualKey"
-            class="view-menu-row"
-          >
-            <!-- Checkmark discreto estilo Dynamics 365 pegado al texto -->
-            <div class="check-col">
-              @if (vista.key === vistaActualKey || vista.id === vistaActualKey) {
-                <nz-icon nzType="check" class="row-check-icon" />
-              }
-            </div>
-
-            <!-- Nombre de la Vista -->
-            <span class="view-name-text" [title]="vista.descripcion || vista.nombre">
-              {{ vista.nombre }}
-            </span>
-
-            <!-- Texto si es predeterminada estilo D365 -->
-            @if (vista.esPredeterminada) {
-              <span class="default-badge-text">Predeterminada</span>
-            }
-          </li>
-        }
-
-        <!-- Separador -->
-        <li nz-menu-divider class="d365-menu-divider"></li>
-
-        <!-- Opciones de Guardar/Descartar: Solo si la vista ha sido modificada -->
-        @if (esModificada) {
-          <li
-            nz-menu-item
-            (click)="onGuardarCambios($event)"
-            class="action-menu-row"
-          >
-            <div class="check-col">
-              <nz-icon nzType="save" class="action-row-icon" />
-            </div>
-            <span class="action-row-text">Guardar cambios en esta vista</span>
-          </li>
-
-          <li
-            nz-menu-item
-            (click)="onDescartarCambios($event)"
-            class="action-menu-row text-danger"
-          >
-            <div class="check-col">
-              <nz-icon nzType="undo" class="action-row-icon" />
-            </div>
-            <span class="action-row-text">Descartar cambios</span>
-          </li>
-
-          <li nz-menu-divider class="d365-menu-divider"></li>
-        }
-
-        <!-- Acción: Administrar y compartir vistas (Siempre disponible) -->
-        <li
-          nz-menu-item
-          (click)="abrirModalAdministrarVistas($event)"
-          class="action-menu-row manage-views-row"
+        <button
+          *ngFor="let vista of vistasFiltradas"
+          type="button"
+          (click)="seleccionarVista(vista)"
+          [class.bg-primary-50]="vista.key === vistaActualKey || vista.id === vistaActualKey"
+          [class.dark:bg-primary-950/40]="vista.key === vistaActualKey || vista.id === vistaActualKey"
+          class="w-full flex items-center px-3 py-2 text-left hover:bg-neutral-100 dark:hover:bg-neutral-800/70 transition-colors group cursor-pointer"
         >
-          <div class="check-col">
-            <nz-icon nzType="appstore" class="action-row-icon manage-icon-primary" />
+          <!-- Columna Checkmark -->
+          <div class="w-5 flex items-center justify-start text-primary-600 dark:text-primary-400">
+            <app-icon
+              *ngIf="vista.key === vistaActualKey || vista.id === vistaActualKey"
+              name="check"
+              [size]="15"
+            />
           </div>
-          <span class="action-row-text">Administrar y compartir vistas</span>
-        </li>
-      </ul>
+
+          <!-- Nombre de Vista -->
+          <span
+            class="flex-1 truncate text-xs"
+            [class.font-medium]="vista.key === vistaActualKey || vista.id === vistaActualKey"
+            [title]="vista.descripcion || vista.nombre"
+          >
+            {{ vista.nombre }}
+          </span>
+
+          <!-- Badge si es predeterminada -->
+          <span
+            *ngIf="vista.esPredeterminada"
+            class="text-[10px] text-neutral-400 dark:text-neutral-500 font-normal px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800"
+          >
+            Predeterminada
+          </span>
+        </button>
+      </div>
+
+      <!-- Opciones dinámicas para cambios no guardados -->
+      <div *ngIf="esModificada" class="border-t border-neutral-100 dark:border-neutral-800/80 py-1">
+        <button
+          type="button"
+          (click)="onGuardarCambios($event)"
+          class="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 cursor-pointer transition-colors"
+        >
+          <app-icon name="save" [size]="14" />
+          <span>Guardar cambios en esta vista</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="onDescartarCambios($event)"
+          class="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer transition-colors"
+        >
+          <app-icon name="undo" [size]="14" />
+          <span>Descartar cambios</span>
+        </button>
+      </div>
+
+      <!-- Pie del menú: Administrar vistas -->
+      <div class="border-t border-neutral-100 dark:border-neutral-800/80 pt-1">
+        <button
+          type="button"
+          (click)="abrirModalAdministrarVistas($event)"
+          class="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer transition-colors"
+        >
+          <app-icon name="layers" [size]="14" svgClass="text-primary-600 dark:text-primary-400" />
+          <span class="font-medium">Administrar y compartir vistas</span>
+        </button>
+      </div>
     </div>
-  </nz-dropdown-menu>
+  </ng-template>
 </div>
 
-<!-- Modal Dynamics 365: Administrar y compartir vistas -->
-<nz-modal
-  [(nzVisible)]="modalAdminVisible"
-  nzTitle="Administrar y compartir vistas"
-  (nzOnCancel)="cerrarModalAdministrarVistas()"
-  [nzFooter]="modalAdminFooterTpl"
-  [nzWidth]="680"
-  [nzMaskClosable]="false"
-  [nzCentered]="true"
+<!-- Modal: Administrar y compartir vistas -->
+<div
+  *ngIf="modalAdminVisible"
+  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+  (click)="cerrarModalAdministrarVistas()"
 >
-  <ng-container *nzModalContent>
-    <div class="manage-views-modal-body">
-      <p class="modal-subtitle">
+  <div
+    class="w-full max-w-2xl rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-2xl flex flex-col max-h-[85vh] overflow-hidden animate-in fade-in zoom-in-95"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Modal Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-800">
+      <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+        Administrar y compartir vistas
+      </h3>
+      <button
+        type="button"
+        (click)="cerrarModalAdministrarVistas()"
+        class="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 rounded p-1"
+      >
+        <app-icon name="close" [size]="16" />
+      </button>
+    </div>
+
+    <!-- Modal Content -->
+    <div class="px-6 py-4 overflow-y-auto space-y-4">
+      <p class="text-xs text-neutral-500 dark:text-neutral-400">
         Administra tus vistas guardadas, define cuál será la predeterminada al ingresar o elimina vistas personalizadas que ya no utilices.
       </p>
 
-      <nz-table
-        #manageTable
-        [nzData]="todasLasVistas"
-        [nzShowPagination]="false"
-        [nzSize]="'small'"
-        class="manage-views-table"
-      >
-        <thead>
-          <tr>
-            <th nzWidth="44%">Nombre de la vista</th>
-            <th nzWidth="18%">Tipo</th>
-            <th nzWidth="24%" nzAlign="center">Predeterminada</th>
-            <th nzWidth="14%" nzAlign="right">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (vista of manageTable.data; track vista.key) {
-            <tr>
-              <td>
-                <div class="manage-view-name-cell">
-                  <span class="manage-view-title">{{ vista.nombre }}</span>
-                  @if (vista.descripcion) {
-                    <span class="manage-view-desc">{{ vista.descripcion }}</span>
-                  }
-                </div>
+      <div class="border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-neutral-50 dark:bg-neutral-800/80 text-neutral-600 dark:text-neutral-300 border-b border-neutral-200 dark:border-neutral-800">
+              <th class="py-2.5 px-4 font-semibold w-1/2">Nombre de la vista</th>
+              <th class="py-2.5 px-4 font-semibold w-1/5">Tipo</th>
+              <th class="py-2.5 px-4 font-semibold text-center w-1/5">Predeterminada</th>
+              <th class="py-2.5 px-4 font-semibold text-right w-1/10">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-neutral-100 dark:divide-neutral-800/60">
+            <tr *ngFor="let vista of todasLasVistas" class="hover:bg-neutral-50/60 dark:hover:bg-neutral-800/40 transition-colors">
+              <td class="py-2.5 px-4 font-medium text-neutral-900 dark:text-neutral-100">
+                {{ vista.nombre }}
               </td>
-              <td>
-                @if (vista.esSistema) {
-                  <nz-tag class="tag-d365-system">Sistema</nz-tag>
-                } @else {
-                  <nz-tag class="tag-d365-custom">Personalizada</nz-tag>
-                }
+              <td class="py-2.5 px-4">
+                <span
+                  [class]="vista.esSistema
+                    ? 'inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
+                    : 'inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800/40'"
+                >
+                  {{ vista.esSistema ? 'Sistema' : 'Personalizada' }}
+                </span>
               </td>
-              <td nzAlign="center">
-                @if (vista.esPredeterminada) {
-                  <span class="default-indicator">
-                    <nz-icon nzType="check" class="default-check-icon" />
-                    <span>Predeterminada</span>
-                  </span>
-                } @else {
-                  <button
-                    type="button"
-                    nz-button
-                    nzType="link"
-                    nzSize="small"
-                    class="btn-make-default"
-                    (click)="establecerPredeterminada(vista)"
-                    title="Establecer como vista predeterminada"
-                  >
-                    Hacer predeterminada
-                  </button>
-                }
+              <td class="py-2.5 px-4 text-center">
+                <button
+                  type="button"
+                  (click)="establecerPredeterminada(vista)"
+                  [title]="vista.esPredeterminada ? 'Es la vista predeterminada' : 'Establecer como predeterminada'"
+                  class="cursor-pointer inline-flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors"
+                  [class.text-amber-500]="vista.esPredeterminada"
+                  [class.text-neutral-400]="!vista.esPredeterminada"
+                  [class.hover:text-amber-500]="!vista.esPredeterminada"
+                >
+                  <app-icon name="star" [size]="14" />
+                  <span *ngIf="vista.esPredeterminada" class="text-[11px] font-medium text-neutral-700 dark:text-neutral-300">Sí</span>
+                </button>
               </td>
-              <td nzAlign="right">
-                @if (!vista.esSistema && vista.id) {
-                  <button
-                    type="button"
-                    nz-button
-                    nzType="text"
-                    nzDanger
-                    nzSize="small"
-                    (click)="confirmarEliminarVista(vista)"
-                    title="Eliminar vista personalizada"
-                  >
-                    <nz-icon nzType="delete" />
-                  </button>
-                } @else {
-                  <span class="text-muted text-xs">—</span>
-                }
+              <td class="py-2.5 px-4 text-right">
+                <button
+                  *ngIf="!vista.esSistema"
+                  type="button"
+                  (click)="confirmarEliminarVista(vista, $event)"
+                  title="Eliminar vista personalizada"
+                  class="cursor-pointer text-neutral-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded transition-colors"
+                >
+                  <app-icon name="trash" [size]="14" />
+                </button>
               </td>
             </tr>
-          }
-        </tbody>
-      </nz-table>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Cuadro de confirmación de eliminación embebido -->
+      <div *ngIf="vistaAEliminar" class="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 flex items-center justify-between">
+        <div class="text-xs text-rose-800 dark:text-rose-300">
+          ¿Eliminar la vista <strong>"{{ vistaAEliminar.nombre }}"</strong>?
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            (click)="cancelarEliminar()"
+            class="px-2.5 py-1 text-xs font-medium rounded border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            (click)="ejecutarEliminarVista()"
+            class="px-2.5 py-1 text-xs font-medium rounded bg-rose-600 hover:bg-rose-700 text-white cursor-pointer"
+          >
+            Eliminar
+          </button>
+        </div>
+      </div>
     </div>
-  </ng-container>
 
-  <ng-template #modalAdminFooterTpl>
-    <button nz-button nzType="primary" (click)="cerrarModalAdministrarVistas()">
-      Cerrar
-    </button>
-  </ng-template>
-</nz-modal>
+    <!-- Modal Footer -->
+    <div class="flex justify-end px-6 py-3 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/30">
+      <button
+        type="button"
+        (click)="cerrarModalAdministrarVistas()"
+        class="px-4 py-1.5 text-xs font-medium rounded-md bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 cursor-pointer transition-colors"
+      >
+        Cerrar
+      </button>
+    </div>
+  </div>
+</div>
 
-<!-- Modal Dynamics 365: Guardar como nueva vista -->
-<nz-modal
-  [(nzVisible)]="modalVisible"
-  nzTitle="Guardar como nueva vista"
-  (nzOnCancel)="cerrarModal()"
-  (nzOnOk)="guardarNuevaVista()"
-  [nzOkLoading]="guardandoVista"
-  [nzOkText]="'Guardar'"
-  [nzCancelText]="'Cancelar'"
-  [nzWidth]="480"
-  [nzMaskClosable]="false"
+<!-- Modal: Guardar como nueva vista -->
+<div
+  *ngIf="modalVisible"
+  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+  (click)="cerrarModal()"
 >
-  <ng-container *nzModalContent>
-    <p class="modal-subtitle">
-      La vista se almacenará en la lista de vistas guardadas
-    </p>
-
-    <div class="modal-form-group">
-      <label class="form-label required">Nombre</label>
-      <input
-        type="text"
-        nz-input
-        [(ngModel)]="nuevoNombre"
-        placeholder="Ej. Mis Órdenes Prioritarias"
-        class="form-control"
-        maxlength="100"
-        autofocus
-      />
+  <div
+    class="w-full max-w-md rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-800">
+      <h3 class="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+        Guardar como nueva vista
+      </h3>
+      <button
+        type="button"
+        (click)="cerrarModal()"
+        class="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 rounded p-1"
+      >
+        <app-icon name="close" [size]="16" />
+      </button>
     </div>
 
-    <div class="modal-form-group">
-      <label class="form-label">Descripción</label>
-      <textarea
-        nz-input
-        [(ngModel)]="nuevaDescripcion"
-        placeholder="Opcional: detalla el propósito de esta vista..."
-        rows="3"
-        class="form-control"
-        maxlength="300"
-      ></textarea>
+    <!-- Body -->
+    <div class="px-6 py-4 space-y-4">
+      <div>
+        <label class="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+          Nombre de la vista <span class="text-rose-500">*</span>
+        </label>
+        <input
+          type="text"
+          [(ngModel)]="nuevoNombre"
+          placeholder="Ej: Mis clientes de Lima"
+          class="w-full px-3 py-2 text-xs rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+        />
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+          Descripción (opcional)
+        </label>
+        <textarea
+          [(ngModel)]="nuevaDescripcion"
+          rows="3"
+          placeholder="Describe el propósito o filtros de esta vista..."
+          class="w-full px-3 py-2 text-xs rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 resize-none"
+        ></textarea>
+      </div>
+
+      <div class="flex items-center gap-2 pt-1">
+        <input
+          type="checkbox"
+          id="marcarPredeterminada"
+          [(ngModel)]="marcarComoPredeterminada"
+          class="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700 text-primary-600 focus:ring-primary-500"
+        />
+        <label for="marcarPredeterminada" class="text-xs text-neutral-700 dark:text-neutral-300 cursor-pointer select-none">
+          Establecer como mi vista predeterminada para {{ entidad }}
+        </label>
+      </div>
     </div>
 
-    <div class="modal-checkbox-group">
-      <label nz-checkbox [(ngModel)]="marcarComoPredeterminada">
-        <span>Establecer como vista predeterminada</span>
-      </label>
+    <!-- Footer -->
+    <div class="flex justify-end gap-2 px-6 py-3 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/30">
+      <button
+        type="button"
+        (click)="cerrarModal()"
+        class="px-4 py-1.5 text-xs font-medium rounded-md border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 cursor-pointer transition-colors"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        (click)="guardarNuevaVista()"
+        [disabled]="guardandoVista"
+        class="px-4 py-1.5 text-xs font-medium rounded-md bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white cursor-pointer transition-colors shadow-xs"
+      >
+        {{ guardandoVista ? 'Guardando...' : 'Guardar' }}
+      </button>
     </div>
-  </ng-container>
-</nz-modal>
+  </div>
+</div>

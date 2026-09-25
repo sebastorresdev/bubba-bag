@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { makeStyles, tokens } from '@fluentui/react-components';
 import { SuiteBar } from './SuiteBar';
 import { SideNav } from './SideNav';
@@ -6,6 +6,7 @@ import { D365CommandBar } from './D365CommandBar';
 import { EntityPlaceholder } from '../placeholder/EntityPlaceholder';
 import { ProductosListView } from '../views/ProductosListView';
 import { ENTERPRISE_APPS } from '../../data/navigation.data';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 import type { NavArea, NavItem, EnterpriseApp } from '../../types/navigation.types';
 
 const useStyles = makeStyles({
@@ -39,7 +40,17 @@ const useStyles = makeStyles({
 
 export const MainLayout: React.FC = () => {
   const styles = useStyles();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
+  const isMobile = useIsMobile(1024);
+  const [navOpen, setNavOpen] = useState<boolean>(() => !isMobile);
+
+  // Sync default state when breakpoint changes
+  useEffect(() => {
+    if (isMobile) {
+      setNavOpen(false);
+    } else {
+      setNavOpen(true);
+    }
+  }, [isMobile]);
 
   // Active Enterprise Application (Default: Servicio de Campo)
   const [activeApp, setActiveApp] = useState<EnterpriseApp>(ENTERPRISE_APPS[0]);
@@ -49,7 +60,6 @@ export const MainLayout: React.FC = () => {
 
   // Active Item (Default: Productos y Servicios)
   const [activeItem, setActiveItem] = useState<NavItem>(() => {
-    // Select 'productos' by default to fulfill user request directly
     const configArea = ENTERPRISE_APPS[0].areas[2];
     const productosItem = configArea?.groups[0]?.items.find((i) => i.id === 'productos');
     return productosItem || ENTERPRISE_APPS[0].areas[0].groups[0].items[0];
@@ -76,26 +86,34 @@ export const MainLayout: React.FC = () => {
     setActiveItem(item);
   };
 
+  const handleToggleNav = () => {
+    setNavOpen((prev) => !prev);
+  };
+
   return (
     <div className={styles.root}>
-      {/* Top SuiteBar: App Launcher (Waffle) with enterprise apps list */}
+      {/* Top SuiteBar: App Launcher (Waffle) + Hamburger Toggle + Enterprise apps */}
       <SuiteBar
         apps={ENTERPRISE_APPS}
         activeApp={activeApp}
         onSelectApp={handleSelectApp}
+        isNavOpen={navOpen}
+        onToggleNav={handleToggleNav}
       />
 
       {/* Main Body */}
       <div className={styles.body}>
-        {/* Left SideNav with bottom Hamburger Collapse + Area Switcher */}
+        {/* Left SideNav: Responsive Fluent UI v9 NavDrawer */}
         <SideNav
-          collapsed={sidebarCollapsed}
+          open={navOpen}
+          type={isMobile ? 'overlay' : 'inline'}
+          onOpenChange={setNavOpen}
           areas={activeApp.areas}
           activeArea={activeArea}
           activeItem={activeItem}
           onSelectArea={handleSelectArea}
           onSelectItem={handleSelectItem}
-          onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+          onToggleNav={handleToggleNav}
         />
 
         {/* Right Content Area */}

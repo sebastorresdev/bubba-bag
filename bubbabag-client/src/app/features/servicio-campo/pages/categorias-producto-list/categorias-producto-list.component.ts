@@ -11,13 +11,8 @@ import { FormsModule } from '@angular/forms';
 import { CategoriaProductoService } from '../../services/categoria-producto.service';
 import { CategoriaProductoDto } from '../../models/catalogo-producto.model';
 
-import { NzTableModule } from 'ng-zorro-antd/table';
-import { NzButtonModule } from 'ng-zorro-antd/button';
-import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzMessageService } from 'ng-zorro-antd/message';
-import { NzTagModule } from 'ng-zorro-antd/tag';
-import { NzCardModule } from 'ng-zorro-antd/card';
-import { NzEmptyModule } from 'ng-zorro-antd/empty';
+import { ToastService } from '../../../../core/services/toast.service';
+import { AppIconComponent } from '../../../../shared/components/icon/icon.component';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 import { VistaItem } from '../../../../shared/components/view-selector';
 import { EntityTableComponent, CellDefDirective, ColumnDef } from '../../../../shared/components/entity-table';
@@ -29,12 +24,7 @@ import { EntityTableComponent, CellDefDirective, ColumnDef } from '../../../../s
     CommonModule,
     RouterModule,
     FormsModule,
-    NzTableModule,
-    NzButtonModule,
-    NzIconModule,
-    NzTagModule,
-    NzCardModule,
-    NzEmptyModule,
+    AppIconComponent,
     CommandBarComponent,
     EntityTableComponent,
     CellDefDirective,
@@ -46,7 +36,7 @@ import { EntityTableComponent, CellDefDirective, ColumnDef } from '../../../../s
 export class CategoriasProductoListComponent implements OnInit {
   private router = inject(Router);
   private categoriaService = inject(CategoriaProductoService);
-  private message = inject(NzMessageService);
+  private message = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
 
   // Datos

@@ -5,154 +5,127 @@
   (back)="volver()"
 ></app-command-bar>
 
-@if (loading && isEdit) {
-  <div class="d365-form-loading-state">
-    <nz-spin nzSimple [nzSize]="'large'"></nz-spin>
-    <div class="loading-message">Cargando unidad de medida...</div>
-  </div>
-} @else {
-  <div class="unidad-medida-form-view d365-form-view">
-    <!-- Cabecera de Registro (Dynamics 365 Record Header) -->
-    <div class="d365-record-header">
-      <div class="record-header-main">
-        <div class="record-avatar-container">
-          <nz-avatar
-            [nzSize]="56"
-          [nzText]="getIniciales()"
-          class="record-avatar"
-          style="background-color: #5c2d91; font-weight: 700; font-size: 18px;"
-        />
+<!-- Estado de carga inicial -->
+<div *ngIf="loading && isEdit" class="flex flex-col items-center justify-center py-24 gap-3">
+  <div class="w-8 h-8 rounded-full border-3 border-primary-600 border-t-transparent animate-spin"></div>
+  <span class="text-xs text-neutral-500 dark:text-neutral-400">Cargando unidad de medida...</span>
+</div>
+
+<!-- Contenido del Formulario -->
+<div *ngIf="!loading || !isEdit" class="flex flex-col min-h-[calc(100vh-100px)] bg-neutral-50 dark:bg-neutral-950">
+  <!-- Record Header D365 -->
+  <div class="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-3.5">
+      <div class="w-12 h-12 rounded-lg bg-primary-700 text-white font-bold text-base flex items-center justify-center shadow-xs">
+        {{ getIniciales() }}
       </div>
 
-      <div class="record-title-block">
-        <h1 class="record-title">
+      <div>
+        <h1 class="text-base font-bold text-neutral-900 dark:text-neutral-100">
           {{ nombreEnFormulario }}
         </h1>
-
-        <div class="record-metadata-row">
-          <span class="record-code-tag">{{ codigoEnFormulario }}</span>
-          <nz-divider nzType="vertical" />
-          <span>{{ (unidadActual?.abreviatura || form.get('abreviatura')?.value) ? ('Símbolo: ' + (unidadActual?.abreviatura || form.get('abreviatura')?.value)) : (loading ? '...' : 'Sin abreviatura') }}</span>
-          <nz-divider nzType="vertical" />
-          <span>{{ (unidadActual !== undefined ? unidadActual.permiteDecimales : form.get('permiteDecimales')?.value) ? 'Fraccionable (Decimales)' : 'Unidad Discreta (Enteros)' }}</span>
+        <div class="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+          {{ (unidadActual?.codigo || form.get('codigo')?.value) ? ('Código: ' + (unidadActual?.codigo || form.get('codigo')?.value)) : 'Sin código asignado' }}
         </div>
       </div>
     </div>
 
-    <!-- Indicadores Métricos de Cabecera (KPIs estilo D365 - Texto Puro) -->
-    <div class="record-header-metrics">
-      <div class="metric-item">
-        <span class="metric-label">ESTADO</span>
+    <!-- Indicador KPI Estado -->
+    <div class="flex items-center gap-2">
+      <div class="flex flex-col items-end">
+        <span class="text-[10px] uppercase tracking-wider font-semibold text-neutral-400">ESTADO</span>
         <span
-          class="kpi-value-pill"
-          [class.pill-active]="unidadActual ? unidadActual.activo : true"
-          [class.pill-inactive]="unidadActual ? !unidadActual.activo : false"
+          [class]="unidadActual ? (unidadActual.activo ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800/40' : 'text-neutral-500 bg-neutral-100 dark:bg-neutral-800') : 'text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-950/60 border-primary-200 dark:border-primary-800/40'"
+          class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border"
         >
-          {{ (unidadActual ? (unidadActual.activo ? 'ACTIVO' : 'INACTIVO') : (isEdit ? 'ACTIVO' : 'NUEVO')) }}
-        </span>
-      </div>
-
-      <div class="metric-divider"></div>
-
-      <div class="metric-item">
-        <span class="metric-label">PRECISIÓN</span>
-        <span class="kpi-value-pill">
-          {{ form.get('permiteDecimales')?.value ? 'DECIMAL' : 'ENTERO' }}
+          {{ (unidadActual ? (unidadActual.activo ? 'ACTIVO' : 'INACTIVO') : 'NUEVO') }}
         </span>
       </div>
     </div>
   </div>
 
-  <!-- Contenedor con Spinner durante el guardado -->
-  <nz-spin [nzSpinning]="saving" nzTip="Guardando cambios..." class="unidad-spin-wrapper">
-    <form nz-form [formGroup]="form" nzLayout="horizontal" [nzNoColon]="true" class="d365-form-container">
-      <nz-tabs [(nzSelectedIndex)]="selectedTabIndex" [nzAnimated]="false" class="d365-form-tabs">
-        <nz-tab nzTitle="General">
-          <div class="d365-tab-columns">
-            <!-- Columna Izquierda: Identificación -->
-            <div class="d365-tab-column main-column">
-              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Definición de Unidad">
-                <div class="card-form-grid">
-                  <nz-form-item>
-                    <nz-form-label nzRequired>Código Institucional</nz-form-label>
-                    <nz-form-control nzErrorTip="El código es obligatorio (ej. UND, MTR, KGM)">
-                      <input
-                        nz-input
-                        formControlName="codigo"
-                        placeholder="Ej. UND, MTR, KGM"
-                        style="text-transform: uppercase;"
-                        maxlength="20"
-                      />
-                    </nz-form-control>
-                  </nz-form-item>
+  <!-- Form Body -->
+  <form [formGroup]="form" class="p-6 max-w-4xl space-y-6">
+    <div class="bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800 shadow-xs overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-neutral-100 dark:border-neutral-800 font-semibold text-xs text-neutral-800 dark:text-neutral-200 uppercase tracking-wide">
+        Datos de la Unidad de Medida
+      </div>
 
-                  <nz-form-item>
-                    <nz-form-label nzRequired>Símbolo / Abreviatura</nz-form-label>
-                    <nz-form-control nzErrorTip="La abreviatura es requerida (ej. und, m, kg)">
-                      <input
-                        nz-input
-                        formControlName="abreviatura"
-                        placeholder="Ej. und, m, kg, rollo"
-                        maxlength="10"
-                      />
-                    </nz-form-control>
-                  </nz-form-item>
-
-                  <nz-form-item>
-                    <nz-form-label nzRequired>Nombre Completo</nz-form-label>
-                    <nz-form-control nzErrorTip="El nombre es obligatorio">
-                      <input
-                        nz-input
-                        formControlName="nombre"
-                        placeholder="Ej. Unidades, Metros lineales, Kilogramos"
-                        maxlength="100"
-                      />
-                    </nz-form-control>
-                  </nz-form-item>
-
-                  <nz-form-item>
-                    <nz-form-label>Descripción</nz-form-label>
-                    <nz-form-control>
-                      <textarea
-                        nz-input
-                        formControlName="descripcion"
-                        placeholder="Especificaciones o notas de uso para esta unidad de medida..."
-                        rows="3"
-                        maxlength="300"
-                      ></textarea>
-                    </nz-form-control>
-                  </nz-form-item>
-                </div>
-              </nz-card>
-            </div>
-
-            <!-- Columna Derecha: Precisión -->
-            <div class="d365-tab-column side-column">
-              <nz-card [nzBordered]="true" class="d365-card" nzTitle="Control de Decimales en Inventario">
-                <div class="classification-box mb-3">
-                  <div class="classification-info">
-                    <span class="classification-title">Permite Cantidades Fraccionarias (Decimales)</span>
-                    <span class="classification-desc">
-                      Habilitar para bobinas de cable, peso o fluidos donde se puedan despachar o consumir cantidades fraccionadas (ej. 2.50 metros). Deshabilitar para unidades discretas o equipos seriados que solo se manejan por unidades enteras (1, 2, 3...).
-                    </span>
-                  </div>
-                  <nz-switch formControlName="permiteDecimales"></nz-switch>
-                </div>
-
-                <div class="precision-summary" [class.summary-decimal]="form.get('permiteDecimales')?.value">
-                  <i nz-icon [nzType]="form.get('permiteDecimales')?.value ? 'check-circle' : 'info-circle'" nzTheme="outline"></i>
-                  <span>
-                    {{ form.get('permiteDecimales')?.value 
-                        ? 'Esta unidad permitirá registrar fracciones en órdenes de trabajo, despachos y almacenes.' 
-                        : 'Esta unidad restringirá las operaciones a números enteros estrictos.' }}
-                  </span>
-                </div>
-              </nz-card>
+      <div class="p-5 space-y-4">
+        <!-- Campo: Código -->
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 items-center">
+          <label class="text-xs font-medium text-neutral-700 dark:text-neutral-300 sm:text-right">
+            Código <span class="text-rose-500">*</span>
+          </label>
+          <div class="sm:col-span-3">
+            <input
+              type="text"
+              formControlName="codigo"
+              placeholder="Ej. NIU, KGM, MTR, LTR"
+              maxlength="20"
+              class="w-full sm:w-64 px-3 py-1.5 text-xs font-mono rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 uppercase"
+            />
+            <div *ngIf="form.get('codigo')?.invalid && form.get('codigo')?.touched" class="text-[11px] text-rose-500 mt-1">
+              El código es obligatorio (máx 20 caracteres).
             </div>
           </div>
-        </nz-tab>
-      </nz-tabs>
-    </form>
-  </nz-spin>
+        </div>
+
+        <!-- Campo: Nombre -->
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 items-center">
+          <label class="text-xs font-medium text-neutral-700 dark:text-neutral-300 sm:text-right">
+            Nombre <span class="text-rose-500">*</span>
+          </label>
+          <div class="sm:col-span-3">
+            <input
+              type="text"
+              formControlName="nombre"
+              placeholder="Ej. Unidad, Kilogramos, Metros, Litros"
+              maxlength="100"
+              class="w-full px-3 py-1.5 text-xs rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+            />
+            <div *ngIf="form.get('nombre')?.invalid && form.get('nombre')?.touched" class="text-[11px] text-rose-500 mt-1">
+              El nombre es obligatorio.
+            </div>
+          </div>
+        </div>
+
+        <!-- Campo: Permite Decimales (Switch) -->
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 items-center">
+          <label class="text-xs font-medium text-neutral-700 dark:text-neutral-300 sm:text-right">
+            Control de Decimales
+          </label>
+          <div class="sm:col-span-3 flex items-center gap-3">
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                formControlName="permiteDecimales"
+                class="sr-only peer"
+              />
+              <div class="w-9 h-5 bg-neutral-200 peer-focus:outline-none rounded-full peer dark:bg-neutral-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-neutral-600 peer-checked:bg-primary-600"></div>
+            </label>
+            <span class="text-xs text-neutral-600 dark:text-neutral-400">
+              {{ form.get('permiteDecimales')?.value ? 'Permite cantidades fraccionadas (ej. 1.50)' : 'Solo cantidades enteras' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Campo: Descripción -->
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 items-start">
+          <label class="text-xs font-medium text-neutral-700 dark:text-neutral-300 sm:text-right pt-2">
+            Descripción
+          </label>
+          <div class="sm:col-span-3">
+            <textarea
+              formControlName="descripcion"
+              rows="3"
+              placeholder="Detalles sobre el uso de esta unidad en inventario o compras..."
+              maxlength="300"
+              class="w-full px-3 py-1.5 text-xs rounded border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 resize-none"
+            ></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
 </div>
-}

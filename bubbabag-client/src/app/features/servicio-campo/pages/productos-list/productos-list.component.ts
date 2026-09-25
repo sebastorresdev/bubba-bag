@@ -11,14 +11,8 @@ import { Router } from '@angular/router';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
-import { NzMessageService } from 'ng-zorro-antd/message';
-import { NzTagModule } from 'ng-zorro-antd/tag';
-import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzButtonModule } from 'ng-zorro-antd/button';
-import { NzDividerModule } from 'ng-zorro-antd/divider';
-import { NzSpinModule } from 'ng-zorro-antd/spin';
-import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
-
+import { ToastService } from '../../../../core/services/toast.service';
+import { AppIconComponent } from '../../../../shared/components/icon/icon.component';
 import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
 import {
   EntityTableComponent,
@@ -35,12 +29,7 @@ import { ProductoDto, TipoProducto } from '../../models/producto.model';
   standalone: true,
   imports: [
     CommonModule,
-    NzTagModule,
-    NzIconModule,
-    NzButtonModule,
-    NzDividerModule,
-    NzSpinModule,
-    NzTooltipModule,
+    AppIconComponent,
     CommandBarComponent,
     EntityTableComponent,
     CellDefDirective,
@@ -52,7 +41,7 @@ import { ProductoDto, TipoProducto } from '../../models/producto.model';
 })
 export class ProductosListComponent implements OnInit, OnDestroy {
   private productoService = inject(ProductoService);
-  private message = inject(NzMessageService);
+  private message = inject(ToastService);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
   private decimalPipe = inject(DecimalPipe);

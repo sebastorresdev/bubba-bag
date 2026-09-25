@@ -13,6 +13,7 @@ import {
   MenuItem,
   MenuPopover,
 } from '@fluentui/react-components';
+import { Navigation24Regular } from '@fluentui/react-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { FluentIcon } from '../common/FluentIcon';
 import type { EnterpriseApp } from '../../types/navigation.types';
@@ -35,6 +36,24 @@ const useStyles = makeStyles({
   leftSection: {
     display: 'flex',
     alignItems: 'center',
+  },
+  hamburgerBtn: {
+    width: '48px',
+    height: '48px',
+    backgroundColor: 'transparent',
+    color: '#ffffff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    border: 'none',
+    transition: 'background-color 0.15s ease',
+    ':hover': {
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    },
+    ':active': {
+      backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    },
   },
   waffleBtn: {
     width: '48px',
@@ -151,12 +170,16 @@ interface SuiteBarProps {
   apps: EnterpriseApp[];
   activeApp: EnterpriseApp;
   onSelectApp: (app: EnterpriseApp) => void;
+  isNavOpen?: boolean;
+  onToggleNav?: () => void;
 }
 
 export const SuiteBar: React.FC<SuiteBarProps> = ({
   apps,
   activeApp,
   onSelectApp,
+  isNavOpen,
+  onToggleNav,
 }) => {
   const styles = useStyles();
   const { isDarkMode, toggleDarkMode } = useTheme();
@@ -219,8 +242,20 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
 
   return (
     <header className={styles.root}>
-      {/* Left: Teal Waffle Button + Dynamics 365 dropdown + App Name */}
+      {/* Left: Hamburger Toggle + Teal Waffle Button + Dynamics 365 dropdown + App Name */}
       <div className={styles.leftSection}>
+        {onToggleNav && (
+          <button
+            className={styles.hamburgerBtn}
+            onClick={onToggleNav}
+            title={isNavOpen ? 'Contraer navegación' : 'Expandir navegación'}
+            aria-label={isNavOpen ? 'Contraer navegación' : 'Expandir navegación'}
+            aria-expanded={isNavOpen}
+          >
+            <Navigation24Regular />
+          </button>
+        )}
+
         {/* Teal Waffle Launcher */}
         <Menu>
           <MenuTrigger disableButtonEnhancement>
