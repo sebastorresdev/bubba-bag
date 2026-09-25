@@ -13,9 +13,19 @@ import {
   MenuItem,
   MenuPopover,
 } from '@fluentui/react-components';
-import { Navigation24Regular } from '@fluentui/react-icons';
+import {
+  Navigation24Regular,
+  Apps20Regular,
+  ChevronDown12Regular,
+  Search16Regular,
+  WeatherSunny20Regular,
+  WeatherMoon20Regular,
+  Alert20Regular,
+  QuestionCircle20Regular,
+  Settings20Regular,
+  Checkmark16Regular,
+} from '@fluentui/react-icons';
 import { useTheme } from '../../context/ThemeContext';
-import { FluentIcon } from '../common/FluentIcon';
 import type { EnterpriseApp } from '../../types/navigation.types';
 
 const useStyles = makeStyles({
@@ -217,9 +227,7 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
             }
             secondaryContent={
               isSelected ? (
-                <FluentIcon
-                  name="Checkmark"
-                  fontSize={16}
+                <Checkmark16Regular
                   style={{ color: tokens.colorCompoundBrandForeground1 }}
                 />
               ) : undefined
@@ -264,7 +272,7 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
               title="Iniciador de aplicaciones (Apps)"
               aria-label="Iniciador de aplicaciones"
             >
-              <FluentIcon name="Apps" fontSize={20} />
+              <Apps20Regular />
             </button>
           </MenuTrigger>
           <MenuPopover>{appMenu}</MenuPopover>
@@ -275,7 +283,7 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
           <MenuTrigger disableButtonEnhancement>
             <button className={styles.d365BrandBtn} title="Cambiar Aplicación">
               <span style={{ fontWeight: 600 }}>SKVIA</span>
-              <FluentIcon name="ChevronDown" fontSize={12} style={{ opacity: 0.8 }} />
+              <ChevronDown12Regular style={{ opacity: 0.8 }} />
             </button>
           </MenuTrigger>
           <MenuPopover>{appMenu}</MenuPopover>
@@ -293,7 +301,7 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
         <Input
           className={styles.searchInput}
           placeholder={`Buscar en ${activeApp.name}...`}
-          contentBefore={<FluentIcon name="Search" fontSize={16} />}
+          contentBefore={<Search16Regular />}
           appearance="outline"
           size="medium"
         />
@@ -310,14 +318,14 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
             onClick={toggleDarkMode}
             aria-label="Cambiar tema"
           >
-            <FluentIcon name={isDarkMode ? 'WeatherSunny' : 'WeatherMoon'} fontSize={18} />
+            {isDarkMode ? <WeatherSunny20Regular /> : <WeatherMoon20Regular />}
           </button>
         </Tooltip>
 
         <Tooltip content="Notificaciones y alertas" relationship="label">
           <button className={styles.suiteBarIconBtn} aria-label="Notificaciones">
             <div style={{ position: 'relative', display: 'flex' }}>
-              <FluentIcon name="Alert" fontSize={18} />
+              <Alert20Regular />
               <Badge
                 size="extra-small"
                 color="danger"
@@ -329,13 +337,13 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
 
         <Tooltip content="Ayuda y soporte" relationship="label">
           <button className={styles.suiteBarIconBtn} aria-label="Ayuda">
-            <FluentIcon name="QuestionCircle" fontSize={18} />
+            <QuestionCircle20Regular />
           </button>
         </Tooltip>
 
         <Tooltip content="Configuración global" relationship="label">
           <button className={styles.suiteBarIconBtn} aria-label="Configuración">
-            <FluentIcon name="Settings" fontSize={18} />
+            <Settings20Regular />
           </button>
         </Tooltip>
 

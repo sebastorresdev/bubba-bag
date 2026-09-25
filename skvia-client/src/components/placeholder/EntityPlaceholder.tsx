@@ -9,6 +9,7 @@ import {
   ProgressBar,
 } from '@fluentui/react-components';
 import type { NavItem, NavArea, EnterpriseApp } from '../../types/navigation.types';
+import { ArrowClockwise16Regular, Add16Regular } from '@fluentui/react-icons';
 import { FluentIcon } from '../common/FluentIcon';
 
 const useStyles = makeStyles({
@@ -267,12 +268,12 @@ export const EntityPlaceholder: React.FC<EntityPlaceholderProps> = ({ item, area
 
         {/* Action row */}
         <div className={styles.actionRow}>
-          <Button appearance="secondary" icon={<FluentIcon name="ArrowClockwise" fontSize={16} />} onClick={onRefresh}>
+          <Button appearance="secondary" icon={<ArrowClockwise16Regular />} onClick={onRefresh}>
             Recargar
           </Button>
           <Button
             appearance="primary"
-            icon={<FluentIcon name="Add" fontSize={16} />}
+            icon={<Add16Regular />}
             onClick={() => alert(`Listo para codificar la vista completa de ${item.title} (${item.path})`)}
           >
             Comenzar implementación de esta vista

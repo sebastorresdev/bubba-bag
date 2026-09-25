@@ -6,7 +6,15 @@ import {
   ToolbarButton,
   ToolbarDivider,
 } from '@fluentui/react-components';
-import { FluentIcon } from '../common/FluentIcon';
+import {
+  ArrowLeft16Regular,
+  Add16Regular,
+  Edit16Regular,
+  Delete16Regular,
+  ArrowClockwise16Regular,
+  ArrowDownload16Regular,
+  DataFunnel20Regular,
+} from '@fluentui/react-icons';
 
 const useStyles = makeStyles({
   root: {
@@ -31,11 +39,10 @@ const useStyles = makeStyles({
     justifyContent: 'center',
   },
   toolbar: {
-    backgroundColor: 'transparent',
-    padding: 0,
     display: 'flex',
     alignItems: 'center',
-    gap: '2px',
+    gap: '4px',
+    padding: 0,
   },
 });
 
@@ -60,7 +67,7 @@ export const D365CommandBar: React.FC<D365CommandBarProps> = ({
       {showBackButton && (
         <ToolbarButton
           className={styles.backButton}
-          icon={<FluentIcon name="ArrowLeft" fontSize={16} />}
+          icon={<ArrowLeft16Regular />}
           onClick={onBack}
           title="Atrás"
           aria-label="Volver atrás"
@@ -71,35 +78,35 @@ export const D365CommandBar: React.FC<D365CommandBarProps> = ({
       <Toolbar className={styles.toolbar} size="small">
         <ToolbarButton
           appearance="subtle"
-          icon={<FluentIcon name="Add" fontSize={16} style={{ color: '#107c41' }} />}
+          icon={<Add16Regular style={{ color: '#107c41' }} />}
           onClick={onNew}
           style={{ fontWeight: 600 }}
         >
           Nuevo
         </ToolbarButton>
 
-        <ToolbarButton icon={<FluentIcon name="Edit" fontSize={16} />}>
+        <ToolbarButton icon={<Edit16Regular />}>
           Editar
         </ToolbarButton>
 
-        <ToolbarButton icon={<FluentIcon name="Delete" fontSize={16} />}>
+        <ToolbarButton icon={<Delete16Regular />}>
           Eliminar
         </ToolbarButton>
 
         <ToolbarDivider />
 
         <ToolbarButton
-          icon={<FluentIcon name="ArrowClockwise" fontSize={16} />}
+          icon={<ArrowClockwise16Regular />}
           onClick={onRefresh}
         >
           Actualizar
         </ToolbarButton>
 
-        <ToolbarButton icon={<FluentIcon name="ArrowDownload" fontSize={16} />}>
+        <ToolbarButton icon={<ArrowDownload16Regular />}>
           Exportar a Excel
         </ToolbarButton>
 
-        <ToolbarButton icon={<FluentIcon name="Filter" fontSize={16} />}>
+        <ToolbarButton icon={<DataFunnel20Regular />}>
           Editar Filtros
         </ToolbarButton>
       </Toolbar>

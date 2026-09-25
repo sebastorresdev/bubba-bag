@@ -25,7 +25,25 @@ import {
   createTableColumn,
 } from '@fluentui/react-components';
 import type { TableColumnDefinition, SelectionItemId } from '@fluentui/react-components';
-import { FluentIcon } from '../common/FluentIcon';
+import {
+  Add16Regular,
+  ArrowClockwise16Regular,
+  ArrowDownload16Regular,
+  Board16Regular,
+  Box24Regular,
+  Checkmark16Regular,
+  ChevronDown12Regular,
+  ChevronDown16Regular,
+  DataFunnel20Regular,
+  DataPie16Regular,
+  Eye16Regular,
+  Grid16Regular,
+  Search16Regular,
+  Share16Regular,
+  Table16Regular,
+  TableEdit16Regular,
+  Warning24Regular,
+} from '@fluentui/react-icons';
 import { ProductoService, type ProductoDto } from '../../services/producto.service';
 
 const useStyles = makeStyles({
@@ -326,24 +344,24 @@ export const ProductosListView: React.FC<ProductosListViewProps> = ({
           <Toolbar size="small" style={{ backgroundColor: 'transparent', padding: 0 }}>
             <Menu>
               <MenuTrigger disableButtonEnhancement>
-                <ToolbarButton icon={<FluentIcon name="Grid" fontSize={16} />}>
+                <ToolbarButton icon={<Grid16Regular />}>
                   Mostrar como
-                  <FluentIcon name="ChevronDown" fontSize={12} style={{ marginLeft: 4 }} />
+                  <ChevronDown12Regular style={{ marginLeft: 4 }} />
                 </ToolbarButton>
               </MenuTrigger>
               <MenuPopover>
                 <MenuList>
-                  <MenuItem icon={<FluentIcon name="Table" fontSize={16} />}>
+                  <MenuItem icon={<Table16Regular />}>
                     Cuadrícula de solo lectura
                   </MenuItem>
-                  <MenuItem icon={<FluentIcon name="Board" fontSize={16} />}>
+                  <MenuItem icon={<Board16Regular />}>
                     Vista Kanban / Tarjetas
                   </MenuItem>
                 </MenuList>
               </MenuPopover>
             </Menu>
 
-            <ToolbarButton icon={<FluentIcon name="Chart" fontSize={16} />}>
+            <ToolbarButton icon={<DataPie16Regular />}>
               Mostrar gráfico
             </ToolbarButton>
 
@@ -352,26 +370,26 @@ export const ProductosListView: React.FC<ProductosListViewProps> = ({
             {/* + New Button with green + icon */}
             <ToolbarButton
               className={styles.btnPrimary}
-              icon={<FluentIcon name="Add" fontSize={16} style={{ color: '#107c41' }} />}
+              icon={<Add16Regular style={{ color: '#107c41' }} />}
               onClick={onNewProduct}
             >
               Nuevo
             </ToolbarButton>
 
             <ToolbarButton
-              icon={<FluentIcon name="ArrowClockwise" fontSize={16} />}
+              icon={<ArrowClockwise16Regular />}
               onClick={loadData}
             >
               Actualizar
             </ToolbarButton>
 
-            <ToolbarButton icon={<FluentIcon name="Eye" fontSize={16} />}>
+            <ToolbarButton icon={<Eye16Regular />}>
               Visualizar esta vista
             </ToolbarButton>
 
-            <ToolbarButton icon={<FluentIcon name="ArrowDownload" fontSize={16} />}>
+            <ToolbarButton icon={<ArrowDownload16Regular />}>
               Exportar a Excel
-              <FluentIcon name="ChevronDown" fontSize={12} style={{ marginLeft: 4 }} />
+              <ChevronDown12Regular style={{ marginLeft: 4 }} />
             </ToolbarButton>
           </Toolbar>
         </div>
@@ -380,10 +398,10 @@ export const ProductosListView: React.FC<ProductosListViewProps> = ({
         <div>
           <ToolbarButton
             appearance="primary"
-            icon={<FluentIcon name="Share" fontSize={16} />}
+            icon={<Share16Regular />}
           >
             Compartir
-            <FluentIcon name="ChevronDown" fontSize={12} style={{ marginLeft: 4 }} />
+            <ChevronDown12Regular style={{ marginLeft: 4 }} />
           </ToolbarButton>
         </div>
       </div>
@@ -401,25 +419,25 @@ export const ProductosListView: React.FC<ProductosListViewProps> = ({
                     ? 'Productos Inactivos'
                     : 'Todos los Productos'}
               </span>
-              <FluentIcon name="ChevronDown" fontSize={14} />
+              <ChevronDown16Regular />
             </div>
           </MenuTrigger>
           <MenuPopover>
             <MenuList style={{ minWidth: '220px' }}>
               <MenuItem
-                icon={activeView === 'activos' ? <FluentIcon name="Checkmark" fontSize={16} /> : undefined}
+                icon={activeView === 'activos' ? <Checkmark16Regular /> : undefined}
                 onClick={() => setActiveView('activos')}
               >
                 Productos Activos
               </MenuItem>
               <MenuItem
-                icon={activeView === 'todos' ? <FluentIcon name="Checkmark" fontSize={16} /> : undefined}
+                icon={activeView === 'todos' ? <Checkmark16Regular /> : undefined}
                 onClick={() => setActiveView('todos')}
               >
                 Todos los Productos
               </MenuItem>
               <MenuItem
-                icon={activeView === 'inactivos' ? <FluentIcon name="Checkmark" fontSize={16} /> : undefined}
+                icon={activeView === 'inactivos' ? <Checkmark16Regular /> : undefined}
                 onClick={() => setActiveView('inactivos')}
               >
                 Productos Inactivos
@@ -431,13 +449,13 @@ export const ProductosListView: React.FC<ProductosListViewProps> = ({
         {/* Right: Tools & Search Input */}
         <div className={styles.viewToolsRight}>
           <Tooltip content="Modificar orden y visibilidad de columnas" relationship="label">
-            <ToolbarButton icon={<FluentIcon name="TableEdit" fontSize={16} style={{ color: '#0078d4' }} />}>
+            <ToolbarButton icon={<TableEdit16Regular style={{ color: '#0078d4' }} />}>
               Editar columnas
             </ToolbarButton>
           </Tooltip>
 
           <Tooltip content="Filtrado avanzado por condiciones" relationship="label">
-            <ToolbarButton icon={<FluentIcon name="Funnel" fontSize={16} style={{ color: '#0078d4' }} />}>
+            <ToolbarButton icon={<DataFunnel20Regular style={{ color: '#0078d4' }} />}>
               Editar filtros
             </ToolbarButton>
           </Tooltip>
@@ -446,7 +464,7 @@ export const ProductosListView: React.FC<ProductosListViewProps> = ({
             className={styles.keywordInput}
             size="small"
             placeholder="Filtrar por palabra clave"
-            contentBefore={<FluentIcon name="Search" fontSize={14} />}
+            contentBefore={<Search16Regular />}
             value={searchKeyword}
             onChange={(_, data) => setSearchKeyword(data.value)}
           />
@@ -461,7 +479,7 @@ export const ProductosListView: React.FC<ProductosListViewProps> = ({
           </div>
         ) : error ? (
           <div className={styles.emptyState}>
-            <FluentIcon name="Warning" fontSize={32} style={{ color: '#d83b01' }} />
+            <Warning24Regular style={{ color: '#d83b01', fontSize: 32 }} />
             <Text weight="semibold" size={400} style={{ color: '#d83b01' }}>
               {error}
             </Text>
@@ -469,7 +487,7 @@ export const ProductosListView: React.FC<ProductosListViewProps> = ({
           </div>
         ) : filteredProductos.length === 0 ? (
           <div className={styles.emptyState}>
-            <FluentIcon name="Box" fontSize={36} style={{ color: tokens.colorNeutralForeground4 }} />
+            <Box24Regular style={{ color: tokens.colorNeutralForeground4, fontSize: 36 }} />
             <Text weight="semibold" size={300}>
               No se encontraron productos registrados.
             </Text>
