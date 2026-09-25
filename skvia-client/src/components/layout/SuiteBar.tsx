@@ -31,7 +31,7 @@ import type { EnterpriseApp } from '../../types/navigation.types';
 const useStyles = makeStyles({
   root: {
     height: '48px',
-    backgroundColor: tokens.colorNeutralBackgroundInverted, // Dynamics 365 Top SuiteBar
+    backgroundColor: tokens.colorBrandBackground, // Dynamics 365 Field Service Brand Blue
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -41,7 +41,7 @@ const useStyles = makeStyles({
     boxSizing: 'border-box',
     flexShrink: 0,
     zIndex: 100,
-    color: tokens.colorNeutralForegroundInverted,
+    color: tokens.colorNeutralForegroundOnBrand,
   },
   leftSection: {
     display: 'flex',
@@ -51,7 +51,7 @@ const useStyles = makeStyles({
     width: '48px',
     height: '48px',
     backgroundColor: 'transparent',
-    color: tokens.colorNeutralForegroundInverted,
+    color: tokens.colorNeutralForegroundOnBrand,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -59,10 +59,10 @@ const useStyles = makeStyles({
     border: 'none',
     transition: 'background-color 0.15s ease',
     ':hover': {
-      backgroundColor: tokens.colorSubtleBackgroundInvertedHover,
+      backgroundColor: tokens.colorBrandBackgroundHover,
     },
     ':active': {
-      backgroundColor: tokens.colorSubtleBackgroundInverted,
+      backgroundColor: tokens.colorBrandBackgroundPressed,
     },
   },
   waffleBtn: {
@@ -85,7 +85,7 @@ const useStyles = makeStyles({
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
-    color: tokens.colorNeutralForegroundInverted,
+    color: tokens.colorNeutralForegroundOnBrand,
     backgroundColor: 'transparent',
     border: 'none',
     cursor: 'pointer',
@@ -96,7 +96,7 @@ const useStyles = makeStyles({
     fontFamily: '"Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif',
     transition: 'background-color 0.15s ease',
     ':hover': {
-      backgroundColor: tokens.colorSubtleBackgroundInvertedHover,
+      backgroundColor: tokens.colorBrandBackgroundHover,
     },
   },
   divider: {
@@ -106,7 +106,7 @@ const useStyles = makeStyles({
     margin: '0 4px',
   },
   appTitle: {
-    color: tokens.colorNeutralForegroundInverted,
+    color: tokens.colorNeutralForegroundOnBrand,
     fontSize: '15px',
     fontWeight: '600',
     padding: '0 10px',
@@ -120,6 +120,7 @@ const useStyles = makeStyles({
   searchInput: {
     width: '100%',
     borderRadius: '4px',
+    backgroundColor: tokens.colorNeutralBackground1,
   },
   rightSection: {
     display: 'flex',
@@ -127,7 +128,7 @@ const useStyles = makeStyles({
     gap: '4px',
   },
   suiteBarIconBtn: {
-    color: tokens.colorNeutralForegroundInverted,
+    color: tokens.colorNeutralForegroundOnBrand,
     backgroundColor: 'transparent',
     border: 'none',
     width: '36px',
@@ -138,7 +139,7 @@ const useStyles = makeStyles({
     borderRadius: '4px',
     cursor: 'pointer',
     ':hover': {
-      backgroundColor: tokens.colorSubtleBackgroundInvertedHover,
+      backgroundColor: tokens.colorBrandBackgroundHover,
     },
   },
   userProfile: {
@@ -150,7 +151,7 @@ const useStyles = makeStyles({
     borderRadius: '4px',
     cursor: 'pointer',
     ':hover': {
-      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      backgroundColor: tokens.colorBrandBackgroundHover,
     },
   },
   userInfoText: {
@@ -355,10 +356,10 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
             badge={{ status: 'available' }}
           />
           <div className={styles.userInfoText}>
-            <Text weight="semibold" size={200} style={{ color: tokens.colorNeutralForegroundInverted }}>
+            <Text weight="semibold" size={200} style={{ color: tokens.colorNeutralForegroundOnBrand }}>
               Sebastián Torres
             </Text>
-            <Text size={100} style={{ color: tokens.colorNeutralForegroundInverted2 }}>
+            <Text size={100} style={{ color: tokens.colorNeutralForegroundOnBrand, opacity: 0.85 }}>
               Administrador
             </Text>
           </div>

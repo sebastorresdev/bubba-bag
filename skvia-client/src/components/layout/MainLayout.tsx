@@ -3,7 +3,8 @@ import { makeStyles, tokens } from '@fluentui/react-components';
 import { SuiteBar } from './SuiteBar';
 import { SideNav } from './SideNav';
 import { EntityPlaceholder } from '../placeholder/EntityPlaceholder';
-import { ProductosListView } from '../views/ProductosListView';
+import { NotFoundView } from '../common/NotFoundView';
+import { ProductosListPage } from '../../features/inventario/productos';
 import { ENTERPRISE_APPS } from '../../data/navigation.data';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import type { NavArea, NavItem, EnterpriseApp } from '../../types/navigation.types';
@@ -117,8 +118,13 @@ export const MainLayout: React.FC = () => {
 
         {/* Right Content Area */}
         <main className={styles.mainContent}>
-          {activeItem.id === 'productos' ? (
-            <ProductosListView
+          {!activeItem ? (
+            <NotFoundView
+              title="Ningún módulo seleccionado"
+              message="Selecciona una opción del menú lateral para continuar."
+            />
+          ) : activeItem.id === 'productos' ? (
+            <ProductosListPage
               onNewProduct={() => alert('Formulario Nuevo Producto en desarrollo')}
               onSelectProduct={(p) => alert(`Abriendo producto: ${p.codigo} - ${p.nombre}`)}
             />
