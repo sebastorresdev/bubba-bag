@@ -1,0 +1,536 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  makeStyles,
+  tokens,
+  Toolbar,
+  ToolbarButton,
+  ToolbarDivider,
+  Input,
+  Spinner,
+  Text,
+  Link,
+  Menu,
+  MenuTrigger,
+  MenuList,
+  MenuItem,
+  MenuPopover,
+  Tooltip,
+  DataGrid,
+  DataGridHeader,
+  DataGridHeaderCell,
+  DataGridBody,
+  DataGridRow,
+  DataGridCell,
+  TableCellLayout,
+  createTableColumn,
+} from '@fluentui/react-components';
+import type { TableColumnDefinition, SelectionItemId } from '@fluentui/react-components';
+import { FluentIcon } from '../common/FluentIcon';
+import { ProductoService, type ProductoDto } from '../../services/producto.service';
+
+const useStyles = makeStyles({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    width: '100%',
+    backgroundColor: tokens.colorNeutralBackground1,
+    overflow: 'hidden',
+    userSelect: 'none',
+  },
+  // Top Command Bar (matches Image 2 - buttons start immediately from left)
+  commandBar: {
+    height: '44px',
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: '8px',
+    paddingRight: '16px',
+    flexShrink: 0,
+  },
+  toolbarLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '2px',
+  },
+  btnPrimary: {
+    fontWeight: '600',
+  },
+  // View Header row with View Selector (left) and Column/Filter/Search tools (right)
+  viewHeader: {
+    height: '48px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: '16px',
+    paddingRight: '16px',
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    flexShrink: 0,
+  },
+  viewSelectorTab: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    cursor: 'pointer',
+    padding: '8px 4px',
+    borderBottom: `2px solid ${tokens.colorCompoundBrandStroke}`,
+    color: tokens.colorNeutralForeground1,
+    fontWeight: '700',
+    fontSize: tokens.fontSizeBase400,
+  },
+  viewToolsRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  keywordInput: {
+    width: '210px',
+  },
+  // DataGrid Container
+  gridContainer: {
+    flexGrow: 1,
+    overflow: 'auto',
+    backgroundColor: tokens.colorNeutralBackground1,
+  },
+  codeLink: {
+    color: '#0078d4', // Dynamics 365 primary link blue
+    fontWeight: '500',
+    cursor: 'pointer',
+    textDecoration: 'none',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    display: 'block',
+    maxWidth: '100%',
+    ':hover': {
+      textDecoration: 'underline',
+      color: '#106ebe',
+    },
+  },
+  noWrapCell: {
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  // Bottom Footer
+  footer: {
+    height: '32px',
+    borderTop: `1px solid ${tokens.colorNeutralStroke1}`,
+    backgroundColor: tokens.colorNeutralBackground2,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '0 16px',
+    fontSize: '12px',
+    color: tokens.colorNeutralForeground3,
+    flexShrink: 0,
+  },
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '48px 16px',
+    gap: '12px',
+  },
+});
+
+interface ProductosListViewProps {
+  onNewProduct?: () => void;
+  onSelectProduct?: (product: ProductoDto) => void;
+}
+
+export const ProductosListView: React.FC<ProductosListViewProps> = ({
+  onNewProduct,
+  onSelectProduct,
+}) => {
+  const styles = useStyles();
+
+  const [productos, setProductos] = useState<ProductoDto[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Filters & Search
+  const [searchKeyword, setSearchKeyword] = useState<string>('');
+  const [activeView, setActiveView] = useState<'activos' | 'todos' | 'inactivos'>('activos');
+
+  // Fluent UI v9 DataGrid Selection
+  const [selectedIds, setSelectedIds] = useState<Set<SelectionItemId>>(new Set());
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await ProductoService.getProductos();
+      setProductos(data);
+    } catch (err: any) {
+      console.error('Error loading productos:', err);
+      setError(err?.message || 'Error al conectar con el backend');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Filtered items
+  const filteredProductos = useMemo(() => {
+    let result = [...productos];
+
+    if (activeView === 'activos') {
+      result = result.filter((p) => p.activo);
+    } else if (activeView === 'inactivos') {
+      result = result.filter((p) => !p.activo);
+    }
+
+    if (searchKeyword.trim()) {
+      const q = searchKeyword.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.codigo.toLowerCase().includes(q) ||
+          p.nombre.toLowerCase().includes(q) ||
+          p.categoria?.toLowerCase().includes(q) ||
+          p.unidadMedida?.toLowerCase().includes(q)
+      );
+    }
+
+    return result;
+  }, [productos, activeView, searchKeyword]);
+
+  // Fluent UI v9 DataGrid Columns Definition
+  const columns: TableColumnDefinition<ProductoDto>[] = useMemo(
+    () => [
+      // 1. Nombre / Producto: Primary blue clickable link using Fluent UI Link component
+      createTableColumn<ProductoDto>({
+        columnId: 'nombre',
+        compare: (a, b) => a.nombre.localeCompare(b.nombre),
+        renderHeaderCell: () => 'Nombre',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Link
+              as="button"
+              onClick={() => onSelectProduct?.(item)}
+              title={item.nombre}
+              style={{
+                fontWeight: 500,
+                color: '#0078d4',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: 'block',
+                textAlign: 'left',
+              }}
+            >
+              {item.nombre}
+            </Link>
+          </TableCellLayout>
+        ),
+      }),
+      // 2. Código / ID de Producto: Normal text without blue link
+      createTableColumn<ProductoDto>({
+        columnId: 'codigo',
+        compare: (a, b) => a.codigo.localeCompare(b.codigo),
+        renderHeaderCell: () => 'Código',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Text wrap={false} className={styles.noWrapCell}>
+              {item.codigo}
+            </Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ProductoDto>({
+        columnId: 'categoria',
+        compare: (a, b) => (a.categoria || '').localeCompare(b.categoria || ''),
+        renderHeaderCell: () => 'Categoría',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Text wrap={false} className={styles.noWrapCell}>{item.categoria || '—'}</Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ProductoDto>({
+        columnId: 'tipo',
+        renderHeaderCell: () => 'Tipo',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Text wrap={false} className={styles.noWrapCell}>
+              {item.tipo === 1 || item.tipo === 'Inventario'
+                ? 'Inventario'
+                : item.tipo === 2 || item.tipo === 'Servicio'
+                  ? 'Servicio'
+                  : 'No Inventariable'}
+            </Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ProductoDto>({
+        columnId: 'unidadMedida',
+        renderHeaderCell: () => 'Unidad de Medida',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Text wrap={false} className={styles.noWrapCell}>{item.unidadMedida || 'UND'}</Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ProductoDto>({
+        columnId: 'precioBase',
+        compare: (a, b) => (a.precioBase || 0) - (b.precioBase || 0),
+        renderHeaderCell: () => 'Precio Base',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Text wrap={false} className={styles.noWrapCell}>
+              {new Intl.NumberFormat('es-PE', {
+                style: 'currency',
+                currency: 'PEN',
+              }).format(item.precioBase || 0)}
+            </Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ProductoDto>({
+        columnId: 'esSerializado',
+        renderHeaderCell: () => 'Serializado',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Text wrap={false} className={styles.noWrapCell}>
+              {item.esSerializado ? 'Sí' : '—'}
+            </Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ProductoDto>({
+        columnId: 'activo',
+        renderHeaderCell: () => 'Estado',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Text wrap={false} className={styles.noWrapCell}>
+              {item.activo ? 'Activo' : 'Inactivo'}
+            </Text>
+          </TableCellLayout>
+        ),
+      }),
+    ],
+    [styles.codeLink, styles.noWrapCell, onSelectProduct]
+  );
+
+  return (
+    <div className={styles.root}>
+      {/* 1. TOP COMMAND BAR (Matches Image 2 - Starts from extreme left) */}
+      <div className={styles.commandBar}>
+        <div className={styles.toolbarLeft}>
+          <Toolbar size="small" style={{ backgroundColor: 'transparent', padding: 0 }}>
+            <Menu>
+              <MenuTrigger disableButtonEnhancement>
+                <ToolbarButton icon={<FluentIcon name="Grid" fontSize={16} />}>
+                  Mostrar como
+                  <FluentIcon name="ChevronDown" fontSize={12} style={{ marginLeft: 4 }} />
+                </ToolbarButton>
+              </MenuTrigger>
+              <MenuPopover>
+                <MenuList>
+                  <MenuItem icon={<FluentIcon name="Table" fontSize={16} />}>
+                    Cuadrícula de solo lectura
+                  </MenuItem>
+                  <MenuItem icon={<FluentIcon name="Board" fontSize={16} />}>
+                    Vista Kanban / Tarjetas
+                  </MenuItem>
+                </MenuList>
+              </MenuPopover>
+            </Menu>
+
+            <ToolbarButton icon={<FluentIcon name="Chart" fontSize={16} />}>
+              Mostrar gráfico
+            </ToolbarButton>
+
+            <ToolbarDivider />
+
+            {/* + New Button with green + icon */}
+            <ToolbarButton
+              className={styles.btnPrimary}
+              icon={<FluentIcon name="Add" fontSize={16} style={{ color: '#107c41' }} />}
+              onClick={onNewProduct}
+            >
+              Nuevo
+            </ToolbarButton>
+
+            <ToolbarButton
+              icon={<FluentIcon name="ArrowClockwise" fontSize={16} />}
+              onClick={loadData}
+            >
+              Actualizar
+            </ToolbarButton>
+
+            <ToolbarButton icon={<FluentIcon name="Eye" fontSize={16} />}>
+              Visualizar esta vista
+            </ToolbarButton>
+
+            <ToolbarButton icon={<FluentIcon name="ArrowDownload" fontSize={16} />}>
+              Exportar a Excel
+              <FluentIcon name="ChevronDown" fontSize={12} style={{ marginLeft: 4 }} />
+            </ToolbarButton>
+          </Toolbar>
+        </div>
+
+        {/* Right side: Share */}
+        <div>
+          <ToolbarButton
+            appearance="primary"
+            icon={<FluentIcon name="Share" fontSize={16} />}
+          >
+            Compartir
+            <FluentIcon name="ChevronDown" fontSize={12} style={{ marginLeft: 4 }} />
+          </ToolbarButton>
+        </div>
+      </div>
+
+      {/* 2. VIEW HEADER ROW (View Selector + Column/Filter/Search) */}
+      <div className={styles.viewHeader}>
+        {/* Left: View Selector Dropdown */}
+        <Menu>
+          <MenuTrigger disableButtonEnhancement>
+            <div className={styles.viewSelectorTab} title="Seleccionar vista">
+              <span>
+                {activeView === 'activos'
+                  ? 'Productos Activos'
+                  : activeView === 'inactivos'
+                    ? 'Productos Inactivos'
+                    : 'Todos los Productos'}
+              </span>
+              <FluentIcon name="ChevronDown" fontSize={14} />
+            </div>
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList style={{ minWidth: '220px' }}>
+              <MenuItem
+                icon={activeView === 'activos' ? <FluentIcon name="Checkmark" fontSize={16} /> : undefined}
+                onClick={() => setActiveView('activos')}
+              >
+                Productos Activos
+              </MenuItem>
+              <MenuItem
+                icon={activeView === 'todos' ? <FluentIcon name="Checkmark" fontSize={16} /> : undefined}
+                onClick={() => setActiveView('todos')}
+              >
+                Todos los Productos
+              </MenuItem>
+              <MenuItem
+                icon={activeView === 'inactivos' ? <FluentIcon name="Checkmark" fontSize={16} /> : undefined}
+                onClick={() => setActiveView('inactivos')}
+              >
+                Productos Inactivos
+              </MenuItem>
+            </MenuList>
+          </MenuPopover>
+        </Menu>
+
+        {/* Right: Tools & Search Input */}
+        <div className={styles.viewToolsRight}>
+          <Tooltip content="Modificar orden y visibilidad de columnas" relationship="label">
+            <ToolbarButton icon={<FluentIcon name="TableEdit" fontSize={16} style={{ color: '#0078d4' }} />}>
+              Editar columnas
+            </ToolbarButton>
+          </Tooltip>
+
+          <Tooltip content="Filtrado avanzado por condiciones" relationship="label">
+            <ToolbarButton icon={<FluentIcon name="Funnel" fontSize={16} style={{ color: '#0078d4' }} />}>
+              Editar filtros
+            </ToolbarButton>
+          </Tooltip>
+
+          <Input
+            className={styles.keywordInput}
+            size="small"
+            placeholder="Filtrar por palabra clave"
+            contentBefore={<FluentIcon name="Search" fontSize={14} />}
+            value={searchKeyword}
+            onChange={(_, data) => setSearchKeyword(data.value)}
+          />
+        </div>
+      </div>
+
+      {/* 3. FLUENT UI V9 NATIVE DATAGRID */}
+      <div className={styles.gridContainer}>
+        {loading ? (
+          <div className={styles.emptyState}>
+            <Spinner label="Cargando productos desde el backend..." size="medium" />
+          </div>
+        ) : error ? (
+          <div className={styles.emptyState}>
+            <FluentIcon name="Warning" fontSize={32} style={{ color: '#d83b01' }} />
+            <Text weight="semibold" size={400} style={{ color: '#d83b01' }}>
+              {error}
+            </Text>
+            <ToolbarButton onClick={loadData}>Reintentar conexión</ToolbarButton>
+          </div>
+        ) : filteredProductos.length === 0 ? (
+          <div className={styles.emptyState}>
+            <FluentIcon name="Box" fontSize={36} style={{ color: tokens.colorNeutralForeground4 }} />
+            <Text weight="semibold" size={300}>
+              No se encontraron productos registrados.
+            </Text>
+          </div>
+        ) : (
+          <DataGrid
+            items={filteredProductos}
+            columns={columns}
+            sortable
+            selectionMode="multiselect"
+            selectedItems={selectedIds}
+            onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
+            getRowId={(item) => item.id}
+            focusMode="composite"
+            size="medium"
+            style={{ minWidth: '100%' }}
+          >
+            <DataGridHeader>
+              <DataGridRow>
+                {({ renderHeaderCell, columnId }) => (
+                  <DataGridHeaderCell
+                    style={{
+                      whiteSpace: 'nowrap',
+                      minWidth: columnId === 'nombre' ? '320px' : '90px',
+                      flex: columnId === 'nombre' ? '3 1 320px' : '1 1 110px',
+                    }}
+                  >
+                    {renderHeaderCell()}
+                  </DataGridHeaderCell>
+                )}
+              </DataGridRow>
+            </DataGridHeader>
+            <DataGridBody<ProductoDto>>
+              {({ item, rowId }) => (
+                <DataGridRow<ProductoDto> key={rowId}>
+                  {({ renderCell, columnId }) => (
+                    <DataGridCell
+                      style={{
+                        whiteSpace: 'nowrap',
+                        minWidth: columnId === 'nombre' ? '320px' : '90px',
+                        flex: columnId === 'nombre' ? '3 1 320px' : '1 1 110px',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {renderCell(item)}
+                    </DataGridCell>
+                  )}
+                </DataGridRow>
+              )}
+            </DataGridBody>
+          </DataGrid>
+        )}
+      </div>
+
+      {/* 4. BOTTOM STATUS BAR (Matches Image 2) */}
+      <footer className={styles.footer}>
+        <div>
+          1-{filteredProductos.length} de {filteredProductos.length} ({selectedIds.size} seleccionados)
+        </div>
+        <div>Página 1</div>
+      </footer>
+    </div>
+  );
+};
