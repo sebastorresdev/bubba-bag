@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { makeStyles, tokens } from '@fluentui/react-components';
 import { SuiteBar } from './SuiteBar';
 import { SideNav } from './SideNav';
-import { EntityPlaceholder } from '../placeholder/EntityPlaceholder';
 import { NotFoundView } from '../common/NotFoundView';
 import { ProductosListPage } from '../../features/inventario/productos';
 import { ENTERPRISE_APPS } from '../../data/navigation.data';
@@ -130,11 +129,20 @@ export const MainLayout: React.FC = () => {
             />
           ) : (
             <div className={styles.viewport}>
-              <EntityPlaceholder
+              <NotFoundView
                 key={activeItem.id}
-                item={activeItem}
-                area={activeArea}
-                app={activeApp}
+                title={`Módulo no implementado: ${activeItem.title}`}
+                message={`La vista para "${activeItem.title}" (${activeItem.path}) aún no ha sido implementada. Puedes volver a la vista principal de Productos.`}
+                onGoHome={() => {
+                  const fieldServiceApp = ENTERPRISE_APPS[0];
+                  const configArea = fieldServiceApp.areas[2];
+                  const productosItem = configArea.groups[0].items.find((i) => i.id === 'productos');
+                  if (productosItem) {
+                    setActiveApp(fieldServiceApp);
+                    setActiveArea(configArea);
+                    setActiveItem(productosItem);
+                  }
+                }}
               />
             </div>
           )}

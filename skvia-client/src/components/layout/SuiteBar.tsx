@@ -68,7 +68,7 @@ const useStyles = makeStyles({
   waffleBtn: {
     width: '48px',
     height: '48px',
-    backgroundColor: tokens.colorPaletteTealBackground2, // Microsoft Dynamics 365 Teal Waffle
+    backgroundColor: tokens.colorPaletteTealBorderActive, // Solid Dynamics 365 Teal (#038387)
     color: tokens.colorNeutralForegroundOnBrand,
     display: 'flex',
     alignItems: 'center',
@@ -78,7 +78,7 @@ const useStyles = makeStyles({
     border: 'none',
     transition: 'background-color 0.15s ease',
     ':hover': {
-      backgroundColor: tokens.colorPaletteTealBorderActive,
+      backgroundColor: tokens.colorPaletteTealForeground2,
     },
   },
   d365BrandBtn: {
