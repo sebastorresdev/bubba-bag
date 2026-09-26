@@ -227,7 +227,13 @@ export const SideNav: React.FC<SideNavProps> = ({
                           <NavSubItem
                             key={subItem.id}
                             value={subItem.id}
-                            onClick={() => handleItemClick(subItem)}
+                            href={subItem.path}
+                            onClick={(e: React.MouseEvent) => {
+                              if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                                e.preventDefault();
+                                handleItemClick(subItem);
+                              }
+                            }}
                           >
                             {subItem.title}
                           </NavSubItem>
@@ -243,7 +249,13 @@ export const SideNav: React.FC<SideNavProps> = ({
                     key={item.id}
                     value={item.id}
                     icon={<IconComponent />}
-                    onClick={() => handleItemClick(item)}
+                    href={item.path}
+                    onClick={(e: React.MouseEvent) => {
+                      if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        handleItemClick(item);
+                      }
+                    }}
                   >
                     {item.title}
                   </NavItem>

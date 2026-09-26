@@ -22,10 +22,38 @@ public static class ProductosEndpoints
             .RequireAuthorization();
 
         group.MapGet("/", ObtenerProductos);
+        group.MapGet("/plantilla-excel", DescargarPlantillaProductos);
+        group.MapPost("/importar-excel", ImportarProductosExcel).DisableAntiforgery();
         group.MapGet("/{id:guid}", ObtenerProductoPorId);
         group.MapPost("/", CrearProducto);
         group.MapPut("/{id:guid}", ActualizarProducto);
         group.MapPatch("/{id:guid}/estado", CambiarEstadoProducto);
+    }
+
+    private static async Task<IResult> DescargarPlantillaProductos(
+        BubbaBag.Modules.ServicioCampo.Application.Productos.Services.IInventarioExcelService excelService,
+        System.Threading.CancellationToken cancellationToken)
+    {
+        var bytes = await excelService.GenerarPlantillaProductosAsync(cancellationToken);
+        return Results.File(
+            bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "Plantilla_Productos.xlsx");
+    }
+
+    private static async Task<IResult> ImportarProductosExcel(
+        IFormFile file,
+        BubbaBag.Modules.ServicioCampo.Application.Productos.Services.IInventarioExcelService excelService,
+        System.Threading.CancellationToken cancellationToken)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return Results.BadRequest(new { mensaje = "Debe proporcionar un archivo de Excel válido (.xlsx)." });
+        }
+
+        using var stream = file.OpenReadStream();
+        var resultado = await excelService.ImportarProductosAsync(stream, cancellationToken);
+        return Results.Ok(resultado);
     }
 
     private static async Task<IResult> ObtenerProductos(

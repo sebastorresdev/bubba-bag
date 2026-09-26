@@ -25,6 +25,8 @@ public static class CatalogosProductoEndpoints
             .RequireAuthorization();
 
         umGroup.MapGet("/", ObtenerUnidadesMedida);
+        umGroup.MapGet("/plantilla-excel", DescargarPlantillaUnidadesMedida);
+        umGroup.MapPost("/importar-excel", ImportarUnidadesMedidaExcel).DisableAntiforgery();
         umGroup.MapGet("/{id:guid}", ObtenerUnidadMedidaPorId);
         umGroup.MapPost("/", CrearUnidadMedida);
         umGroup.MapPut("/{id:guid}", ActualizarUnidadMedida);
@@ -36,10 +38,64 @@ public static class CatalogosProductoEndpoints
             .RequireAuthorization();
 
         catGroup.MapGet("/", ObtenerCategoriasProducto);
+        catGroup.MapGet("/plantilla-excel", DescargarPlantillaCategorias);
+        catGroup.MapPost("/importar-excel", ImportarCategoriasExcel).DisableAntiforgery();
         catGroup.MapGet("/{id:guid}", ObtenerCategoriaProductoPorId);
         catGroup.MapPost("/", CrearCategoriaProducto);
         catGroup.MapPut("/{id:guid}", ActualizarCategoriaProducto);
         catGroup.MapPatch("/{id:guid}/estado", CambiarEstadoCategoriaProducto);
+    }
+
+    private static async Task<IResult> DescargarPlantillaUnidadesMedida(
+        BubbaBag.Modules.ServicioCampo.Application.Productos.Services.IInventarioExcelService excelService,
+        System.Threading.CancellationToken cancellationToken)
+    {
+        var bytes = await excelService.GenerarPlantillaUnidadesMedidaAsync(cancellationToken);
+        return Results.File(
+            bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "Plantilla_Unidades_Medida.xlsx");
+    }
+
+    private static async Task<IResult> ImportarUnidadesMedidaExcel(
+        IFormFile file,
+        BubbaBag.Modules.ServicioCampo.Application.Productos.Services.IInventarioExcelService excelService,
+        System.Threading.CancellationToken cancellationToken)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return Results.BadRequest(new { mensaje = "Debe proporcionar un archivo de Excel válido (.xlsx)." });
+        }
+
+        using var stream = file.OpenReadStream();
+        var resultado = await excelService.ImportarUnidadesMedidaAsync(stream, cancellationToken);
+        return Results.Ok(resultado);
+    }
+
+    private static async Task<IResult> DescargarPlantillaCategorias(
+        BubbaBag.Modules.ServicioCampo.Application.Productos.Services.IInventarioExcelService excelService,
+        System.Threading.CancellationToken cancellationToken)
+    {
+        var bytes = await excelService.GenerarPlantillaCategoriasAsync(cancellationToken);
+        return Results.File(
+            bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "Plantilla_Categorias.xlsx");
+    }
+
+    private static async Task<IResult> ImportarCategoriasExcel(
+        IFormFile file,
+        BubbaBag.Modules.ServicioCampo.Application.Productos.Services.IInventarioExcelService excelService,
+        System.Threading.CancellationToken cancellationToken)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return Results.BadRequest(new { mensaje = "Debe proporcionar un archivo de Excel válido (.xlsx)." });
+        }
+
+        using var stream = file.OpenReadStream();
+        var resultado = await excelService.ImportarCategoriasAsync(stream, cancellationToken);
+        return Results.Ok(resultado);
     }
 
     private static async Task<IResult> ObtenerUnidadMedidaPorId(

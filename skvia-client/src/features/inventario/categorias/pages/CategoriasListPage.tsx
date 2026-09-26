@@ -32,7 +32,6 @@ import {
   ArrowClockwise16Regular,
   ArrowDownload16Regular,
   ArrowUpload16Regular,
-  Box24Regular,
   Checkmark16Regular,
   ChevronDown12Regular,
   ChevronDown16Regular,
@@ -41,9 +40,10 @@ import {
   Share16Regular,
   TableEdit16Regular,
   Warning24Regular,
+  FolderOpen24Regular,
 } from '@fluentui/react-icons';
-import { ProductoService } from '../services/producto.service';
-import type { ProductoDto } from '../types/producto.types';
+import { CategoriaService } from '../services/categoria.service';
+import type { CategoriaProductoDto } from '../types/categoria.types';
 import { ImportarExcelDialog } from '../../../../components/common/ImportarExcelDialog';
 
 const useStyles = makeStyles({
@@ -56,16 +56,17 @@ const useStyles = makeStyles({
     overflow: 'hidden',
     userSelect: 'none',
   },
+  // 1. Dynamics 365 Standard Top Command Bar
   commandBar: {
     height: '44px',
     backgroundColor: tokens.colorNeutralBackground1,
-    borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingLeft: '8px',
-    paddingRight: '16px',
+    padding: '0 8px',
     flexShrink: 0,
+    zIndex: 10,
   },
   toolbarLeft: {
     display: 'flex',
@@ -73,8 +74,10 @@ const useStyles = makeStyles({
     gap: '2px',
   },
   btnPrimary: {
-    fontWeight: '600',
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground1,
   },
+  // 2. View Header Row (Selector + Search)
   viewHeader: {
     height: '42px',
     backgroundColor: tokens.colorNeutralBackground2,
@@ -107,14 +110,15 @@ const useStyles = makeStyles({
   searchBox: {
     width: '240px',
   },
-  gridContainer: {
+  // 3. Grid Container
+  gridWrapper: {
     flexGrow: 1,
     overflow: 'auto',
     backgroundColor: tokens.colorNeutralBackground1,
   },
   table: {
     width: '100%',
-    minWidth: '900px',
+    minWidth: '700px',
     userSelect: 'text',
   },
   dataRow: {
@@ -127,40 +131,30 @@ const useStyles = makeStyles({
     userSelect: 'text',
     cursor: 'text',
   },
-  codeLink: {
-    color: tokens.colorBrandForegroundLink,
-    fontWeight: '500',
-    cursor: 'pointer',
-    textDecoration: 'none',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    display: 'block',
-    maxWidth: '100%',
-    ':hover': {
-      textDecoration: 'underline',
-      color: tokens.colorBrandForegroundLinkHover,
-    },
-  },
   noWrapCell: {
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     userSelect: 'text',
   },
-  footer: {
-    height: '32px',
-    borderTop: `1px solid ${tokens.colorNeutralStroke1}`,
-    backgroundColor: tokens.colorNeutralBackground2,
+  loadingContainer: {
     display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 16px',
-    fontSize: '12px',
-    color: tokens.colorNeutralForeground3,
-    flexShrink: 0,
+    justifyContent: 'center',
+    height: '100%',
+    gap: '12px',
   },
-  emptyState: {
+  emptyContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '60%',
+    gap: '12px',
+    color: tokens.colorNeutralForeground3,
+  },
+  errorContainer: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -170,19 +164,19 @@ const useStyles = makeStyles({
   },
 });
 
-export interface ProductosListPageProps {
-  onNewProduct?: () => void;
-  onSelectProduct?: (product: ProductoDto) => void;
+export interface CategoriasListPageProps {
+  onNew?: () => void;
+  onSelect?: (item: CategoriaProductoDto) => void;
 }
 
-export const ProductosListPage: React.FC<ProductosListPageProps> = ({
-  onNewProduct,
-  onSelectProduct,
+export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
+  onNew,
+  onSelect,
 }) => {
   const styles = useStyles();
   const navigate = useNavigate();
 
-  const [productos, setProductos] = useState<ProductoDto[]>([]);
+  const [items, setItems] = useState<CategoriaProductoDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [importDialogOpen, setImportDialogOpen] = useState<boolean>(false);
@@ -190,18 +184,16 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
   // Filters & Search
   const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [activeView, setActiveView] = useState<'activos' | 'todos' | 'inactivos'>('activos');
-
-  // Fluent UI v9 DataGrid Selection
   const [selectedIds, setSelectedIds] = useState<Set<SelectionItemId>>(new Set());
 
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await ProductoService.getProductos();
-      setProductos(data);
+      const data = await CategoriaService.getCategorias();
+      setItems(data);
     } catch (err: any) {
-      console.error('Error loading productos:', err);
+      console.error('Error loading categorias:', err);
       setError(err?.message || 'Error al conectar con el backend');
     } finally {
       setLoading(false);
@@ -212,46 +204,42 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
     loadData();
   }, []);
 
-  const filteredProductos = useMemo(() => {
-    let result = [...productos];
+  const filteredItems = useMemo(() => {
+    let result = [...items];
 
     if (activeView === 'activos') {
-      result = result.filter((p) => p.activo);
+      result = result.filter((i) => i.activo);
     } else if (activeView === 'inactivos') {
-      result = result.filter((p) => !p.activo);
+      result = result.filter((i) => !i.activo);
     }
 
     if (searchKeyword.trim()) {
       const q = searchKeyword.toLowerCase();
       result = result.filter(
-        (p) =>
-          p.codigo.toLowerCase().includes(q) ||
-          p.nombre.toLowerCase().includes(q) ||
-          p.categoria?.toLowerCase().includes(q) ||
-          p.unidadMedida?.toLowerCase().includes(q)
+        (i) =>
+          i.nombre.toLowerCase().includes(q) ||
+          (i.familia && i.familia.toLowerCase().includes(q)) ||
+          (i.descripcion && i.descripcion.toLowerCase().includes(q))
       );
     }
 
     return result;
-  }, [productos, activeView, searchKeyword]);
+  }, [items, activeView, searchKeyword]);
 
-  const columns: TableColumnDefinition<ProductoDto>[] = useMemo(
+  const columns: TableColumnDefinition<CategoriaProductoDto>[] = useMemo(
     () => [
-      createTableColumn<ProductoDto>({
+      createTableColumn<CategoriaProductoDto>({
         columnId: 'nombre',
         compare: (a, b) => a.nombre.localeCompare(b.nombre),
-        renderHeaderCell: () => 'Nombre',
+        renderHeaderCell: () => 'Nombre de la Categoría',
         renderCell: (item) => (
           <TableCellLayout truncate>
             <Link
               as="button"
               onClick={(e) => {
                 e.stopPropagation();
-                if (onSelectProduct) {
-                  onSelectProduct(item);
-                } else {
-                  navigate(`/servicio-campo/productos/${item.id}`);
-                }
+                if (onSelect) onSelect(item);
+                else navigate(`/servicio-campo/categorias-producto/${item.id}`);
               }}
               title={item.nombre}
               style={{
@@ -269,79 +257,30 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
           </TableCellLayout>
         ),
       }),
-      createTableColumn<ProductoDto>({
-        columnId: 'codigo',
-        compare: (a, b) => a.codigo.localeCompare(b.codigo),
-        renderHeaderCell: () => 'Código',
+      createTableColumn<CategoriaProductoDto>({
+        columnId: 'familia',
+        compare: (a, b) => (a.familia || '').localeCompare(b.familia || ''),
+        renderHeaderCell: () => 'Familia / Grupo',
         renderCell: (item) => (
           <TableCellLayout truncate>
             <Text wrap={false} className={styles.noWrapCell}>
-              {item.codigo}
+              {item.familia || '—'}
             </Text>
           </TableCellLayout>
         ),
       }),
-      createTableColumn<ProductoDto>({
-        columnId: 'categoria',
-        compare: (a, b) => (a.categoria || '').localeCompare(b.categoria || ''),
-        renderHeaderCell: () => 'Categoría',
-        renderCell: (item) => (
-          <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>{item.categoria || '—'}</Text>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<ProductoDto>({
-        columnId: 'tipo',
-        renderHeaderCell: () => 'Tipo',
+      createTableColumn<CategoriaProductoDto>({
+        columnId: 'descripcion',
+        renderHeaderCell: () => 'Descripción',
         renderCell: (item) => (
           <TableCellLayout truncate>
             <Text wrap={false} className={styles.noWrapCell}>
-              {item.tipo === 1 || item.tipo === 'Inventario'
-                ? 'Inventario'
-                : item.tipo === 2 || item.tipo === 'Servicio'
-                  ? 'Servicio'
-                  : 'No Inventariable'}
+              {item.descripcion || '—'}
             </Text>
           </TableCellLayout>
         ),
       }),
-      createTableColumn<ProductoDto>({
-        columnId: 'unidadMedida',
-        renderHeaderCell: () => 'Unidad de Medida',
-        renderCell: (item) => (
-          <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>{item.unidadMedida || 'UND'}</Text>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<ProductoDto>({
-        columnId: 'precioBase',
-        compare: (a, b) => (a.precioBase || 0) - (b.precioBase || 0),
-        renderHeaderCell: () => 'Precio Base',
-        renderCell: (item) => (
-          <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>
-              {new Intl.NumberFormat('es-PE', {
-                style: 'currency',
-                currency: 'PEN',
-              }).format(item.precioBase || 0)}
-            </Text>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<ProductoDto>({
-        columnId: 'esSerializado',
-        renderHeaderCell: () => 'Serializado',
-        renderCell: (item) => (
-          <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>
-              {item.esSerializado ? 'Sí' : '—'}
-            </Text>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<ProductoDto>({
+      createTableColumn<CategoriaProductoDto>({
         columnId: 'activo',
         renderHeaderCell: () => 'Estado',
         renderCell: (item) => (
@@ -353,7 +292,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
         ),
       }),
     ],
-    [styles.codeLink, styles.noWrapCell, onSelectProduct, navigate]
+    [styles.noWrapCell, onSelect, navigate]
   );
 
   return (
@@ -366,11 +305,8 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
               className={styles.btnPrimary}
               icon={<Add16Regular style={{ color: tokens.colorPaletteGreenForeground1 }} />}
               onClick={() => {
-                if (onNewProduct) {
-                  onNewProduct();
-                } else {
-                  navigate('/servicio-campo/productos/nuevo');
-                }
+                if (onNew) onNew();
+                else navigate('/servicio-campo/categorias-producto/nuevo');
               }}
             >
               Nuevo
@@ -399,7 +335,6 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
           </Toolbar>
         </div>
 
-        {/* Right side: Share */}
         <div>
           <ToolbarButton
             appearance="primary"
@@ -411,40 +346,40 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
         </div>
       </div>
 
-      {/* 2. VIEW HEADER ROW (View Selector + Column/Filter/Search) */}
+      {/* 2. VIEW HEADER ROW */}
       <div className={styles.viewHeader}>
         <Menu>
           <MenuTrigger disableButtonEnhancement>
             <div className={styles.viewSelectorTab} title="Seleccionar vista">
-              <Text weight="semibold" size={400}>
+              <span>
                 {activeView === 'activos'
-                  ? 'Productos Activos'
+                  ? 'Categorías Activas'
                   : activeView === 'inactivos'
-                    ? 'Productos Inactivos'
-                    : 'Todos los Productos'}
-              </Text>
+                    ? 'Categorías Inactivas'
+                    : 'Todas las Categorías'}
+              </span>
               <ChevronDown16Regular />
             </div>
           </MenuTrigger>
           <MenuPopover>
-            <MenuList style={{ minWidth: '220px' }}>
+            <MenuList style={{ minWidth: '240px' }}>
               <MenuItem
                 icon={activeView === 'activos' ? <Checkmark16Regular /> : undefined}
                 onClick={() => setActiveView('activos')}
               >
-                Productos Activos
+                Categorías Activas
               </MenuItem>
               <MenuItem
                 icon={activeView === 'todos' ? <Checkmark16Regular /> : undefined}
                 onClick={() => setActiveView('todos')}
               >
-                Todos los Productos
+                Todas las Categorías
               </MenuItem>
               <MenuItem
                 icon={activeView === 'inactivos' ? <Checkmark16Regular /> : undefined}
                 onClick={() => setActiveView('inactivos')}
               >
-                Productos Inactivos
+                Categorías Inactivas
               </MenuItem>
             </MenuList>
           </MenuPopover>
@@ -477,43 +412,47 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
             contentBefore={<Search16Regular />}
             placeholder="Buscar en esta vista..."
             value={searchKeyword}
-            onChange={(_, data) => setSearchKeyword(data.value)}
+            onChange={(_, d) => setSearchKeyword(d.value)}
           />
         </div>
       </div>
 
-      {/* 3. FLUENT UI V9 NATIVE DATAGRID */}
-      <div className={styles.gridContainer}>
+      {/* 3. GRID BODY */}
+      <div className={styles.gridWrapper}>
         {loading ? (
-          <div className={styles.emptyState}>
-            <Spinner label="Cargando productos desde el backend..." size="medium" />
+          <div className={styles.loadingContainer}>
+            <Spinner size="medium" label="Cargando categorías..." />
           </div>
         ) : error ? (
-          <div className={styles.emptyState}>
-            <Warning24Regular style={{ color: tokens.colorStatusDangerForeground1, fontSize: 32 }} />
-            <Text weight="semibold" size={400} style={{ color: tokens.colorStatusDangerForeground1 }}>
+          <div className={styles.errorContainer}>
+            <Warning24Regular style={{ color: tokens.colorStatusDangerForeground1 }} />
+            <Text weight="semibold" style={{ color: tokens.colorStatusDangerForeground1 }}>
               {error}
             </Text>
-            <ToolbarButton onClick={loadData}>Reintentar conexión</ToolbarButton>
+            <Button appearance="outline" onClick={loadData}>
+              Reintentar
+            </Button>
           </div>
-        ) : filteredProductos.length === 0 ? (
-          <div className={styles.emptyState}>
-            <Box24Regular style={{ color: tokens.colorNeutralForeground4, fontSize: 36 }} />
-            <Text weight="semibold" size={300}>
-              No se encontraron productos registrados.
+        ) : filteredItems.length === 0 ? (
+          <div className={styles.emptyContainer}>
+            <FolderOpen24Regular style={{ fontSize: 40 }} />
+            <Text size={400} weight="semibold">
+              No se encontraron registros
+            </Text>
+            <Text size={200}>
+              {searchKeyword
+                ? 'No hay categorías que coincidan con la búsqueda.'
+                : 'Crea tu primera categoría pulsando el botón "+ Nuevo".'}
             </Text>
           </div>
         ) : (
           <DataGrid
-            items={filteredProductos}
+            items={filteredItems}
             columns={columns}
-            sortable
+            getRowId={(item) => item.id}
             selectionMode="multiselect"
             selectedItems={selectedIds}
             onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
-            getRowId={(item) => item.id}
-            focusMode="composite"
-            size="medium"
             className={styles.table}
           >
             <DataGridHeader>
@@ -525,17 +464,14 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
                 )}
               </DataGridRow>
             </DataGridHeader>
-            <DataGridBody<ProductoDto>>
+            <DataGridBody<CategoriaProductoDto>>
               {({ item, rowId }) => (
-                <DataGridRow<ProductoDto>
+                <DataGridRow<CategoriaProductoDto>
                   key={rowId}
                   className={styles.dataRow}
                   onDoubleClick={() => {
-                    if (onSelectProduct) {
-                      onSelectProduct(item);
-                    } else {
-                      navigate(`/servicio-campo/productos/${item.id}`);
-                    }
+                    if (onSelect) onSelect(item);
+                    else navigate(`/servicio-campo/categorias-producto/${item.id}`);
                   }}
                 >
                   {({ renderCell }) => (
@@ -548,24 +484,18 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
         )}
       </div>
 
-      {/* 4. BOTTOM STATUS BAR */}
-      <footer className={styles.footer}>
-        <div>
-          1-{filteredProductos.length} de {filteredProductos.length} ({selectedIds.size} seleccionados)
-        </div>
-        <div>Página 1</div>
-      </footer>
-
-      {/* 5. IMPORT EXCEL DIALOG */}
+      {/* 4. IMPORT EXCEL DIALOG */}
       <ImportarExcelDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
-        title="Importar Catálogo de Productos desde Excel"
-        entityName="Productos"
-        onDownloadTemplate={() => ProductoService.descargarPlantillaExcel()}
-        onUploadFile={(file) => ProductoService.importarExcel(file)}
+        title="Importar Categorías de Producto desde Excel"
+        entityName="Categorías"
+        onDownloadTemplate={() => CategoriaService.descargarPlantillaExcel()}
+        onUploadFile={(file) => CategoriaService.importarExcel(file)}
         onSuccess={loadData}
       />
     </div>
   );
 };
+
+export default CategoriasListPage;

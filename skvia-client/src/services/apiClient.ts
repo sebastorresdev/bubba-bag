@@ -93,3 +93,48 @@ export async function apiClient<T>(
 
   return parseResponseBody<T>(response);
 }
+
+export async function apiClientDownload(endpoint: string, defaultFilename: string): Promise<void> {
+  const token = await getValidAuthToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Error al descargar archivo: ${response.statusText}`);
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = defaultFilename;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+
+export async function apiClientUpload<T>(endpoint: string, formData: FormData): Promise<T> {
+  const token = await getValidAuthToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await parseResponseBody<any>(response);
+    throw new Error(errorData?.mensaje || errorData?.message || `Error al subir archivo: ${response.statusText}`);
+  }
+
+  return parseResponseBody<T>(response);
+}
+
