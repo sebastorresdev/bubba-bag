@@ -77,7 +77,7 @@ public class InventarioExcelService : IInventarioExcelService
             "Código*",
             "Nombre del Producto*",
             "Tipo*",
-            "Categoría*",
+            "Categoría",
             "Unidad de Medida*",
             "Precio Base (S/)",
             "Costo Actual (S/)",
@@ -225,17 +225,19 @@ public class InventarioExcelService : IInventarioExcelService
                     tipo = TipoProducto.NoInventario;
             }
 
-            // Categoría
+            // Categoría (Opcional)
             var categoriaStr = row.Cell(4).GetString()?.Trim();
-            if (string.IsNullOrWhiteSpace(categoriaStr)) categoriaStr = "Materiales";
-
-            var catExistente = categoriasDb.FirstOrDefault(c => c.Nombre.Equals(categoriaStr, StringComparison.OrdinalIgnoreCase));
-            if (catExistente == null)
+            string? categoriaFinal = null;
+            if (!string.IsNullOrWhiteSpace(categoriaStr))
             {
-                // Auto-crear la categoría para garantizar que no falle la importación
-                catExistente = CategoriaProducto.Crear(categoriaStr);
-                _context.CategoriasProducto.Add(catExistente);
-                categoriasDb.Add(catExistente);
+                var catExistente = categoriasDb.FirstOrDefault(c => c.Nombre.Equals(categoriaStr, StringComparison.OrdinalIgnoreCase));
+                if (catExistente == null)
+                {
+                    catExistente = CategoriaProducto.Crear(categoriaStr);
+                    _context.CategoriasProducto.Add(catExistente);
+                    categoriasDb.Add(catExistente);
+                }
+                categoriaFinal = catExistente.Nombre;
             }
 
             // Unidad de Medida
@@ -276,7 +278,7 @@ public class InventarioExcelService : IInventarioExcelService
             {
                 productoExistente.Actualizar(
                     nombre: nombre,
-                    categoria: catExistente.Nombre,
+                    categoria: categoriaFinal,
                     unidadMedida: umExistente.Nombre,
                     esSerializado: esSerializado,
                     descripcion: descripcion,
@@ -298,7 +300,7 @@ public class InventarioExcelService : IInventarioExcelService
                 var nuevoProducto = Producto.Crear(
                     codigo: codigo,
                     nombre: nombre,
-                    categoria: catExistente.Nombre,
+                    categoria: categoriaFinal,
                     unidadMedida: umExistente.Nombre,
                     esSerializado: esSerializado,
                     descripcion: descripcion,
@@ -319,7 +321,24 @@ public class InventarioExcelService : IInventarioExcelService
             }
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException dbEx)
+        {
+            var detalle = dbEx.InnerException?.Message ?? dbEx.Message;
+            if (dbEx.InnerException is Npgsql.PostgresException pgEx)
+            {
+                if (pgEx.SqlState == "23502")
+                    detalle = $"Falta un campo obligatorio en la base de datos: columna '{pgEx.ColumnName ?? "desconocida"}' en tabla '{pgEx.TableName ?? "desconocida"}'.";
+                else if (pgEx.SqlState == "23505")
+                    detalle = $"Ya existe un registro con clave única duplicada ({pgEx.ConstraintName}).";
+            }
+            resultado.Errores.Add(new ImportarErrorDto { Fila = 0, Mensaje = $"Error al guardar en base de datos: {detalle}" });
+            resultado.Creados = 0;
+            resultado.Actualizados = 0;
+        }
         return resultado;
     }
 
@@ -335,7 +354,7 @@ public class InventarioExcelService : IInventarioExcelService
         string[] headers =
         {
             "Nombre de la Categoría*",
-            "Familia / Grupo",
+            "Categoría Padre",
             "Descripción"
         };
 
@@ -353,13 +372,13 @@ public class InventarioExcelService : IInventarioExcelService
         ws.Row(1).Height = 26;
 
         // Filas de ejemplo
-        ws.Cell(2, 1).Value = "Equipos de Telecomunicación";
-        ws.Cell(2, 2).Value = "Equipos y Terminales";
-        ws.Cell(2, 3).Value = "Decodificadores, routers, módems y terminales de abonado";
+        ws.Cell(2, 1).Value = "Equipos y Terminales";
+        ws.Cell(2, 2).Value = ""; // Raíz
+        ws.Cell(2, 3).Value = "Categoría principal de hardware telecom";
 
-        ws.Cell(3, 1).Value = "Cables y Conectores";
-        ws.Cell(3, 2).Value = "Materiales de Instalación";
-        ws.Cell(3, 3).Value = "Cables coaxiales RG6, conectores de compresión y empalmes";
+        ws.Cell(3, 1).Value = "Decodificadores HD";
+        ws.Cell(3, 2).Value = "Equipos y Terminales";
+        ws.Cell(3, 3).Value = "Receptores satelitales con decodificación de alta definición";
 
         ws.SheetView.FreezeRows(1);
         ws.Columns().AdjustToContents(18, 50);
@@ -389,35 +408,58 @@ public class InventarioExcelService : IInventarioExcelService
         {
             var row = ws.Row(rowNum);
             var nombre = row.Cell(1).GetString()?.Trim();
-            var familia = row.Cell(2).GetString()?.Trim();
+            var padreStr = row.Cell(2).GetString()?.Trim();
             var descripcion = row.Cell(3).GetString()?.Trim();
 
             if (string.IsNullOrWhiteSpace(nombre))
             {
                 // Si la fila está totalmente vacía la ignoramos
-                if (string.IsNullOrWhiteSpace(familia) && string.IsNullOrWhiteSpace(descripcion))
+                if (string.IsNullOrWhiteSpace(padreStr) && string.IsNullOrWhiteSpace(descripcion))
                     continue;
 
                 resultado.Errores.Add(new ImportarErrorDto { Fila = rowNum, Mensaje = "El Nombre de la categoría es obligatorio." });
                 continue;
             }
 
+            Guid? categoriaPadreId = null;
+            if (!string.IsNullOrWhiteSpace(padreStr))
+            {
+                var padreExistente = categoriasDb.FirstOrDefault(c => c.Nombre.Equals(padreStr, StringComparison.OrdinalIgnoreCase));
+                if (padreExistente == null)
+                {
+                    padreExistente = CategoriaProducto.Crear(padreStr);
+                    _context.CategoriasProducto.Add(padreExistente);
+                    categoriasDb.Add(padreExistente);
+                }
+                categoriaPadreId = padreExistente.Id;
+            }
+
             var existente = categoriasDb.FirstOrDefault(c => c.Nombre.Equals(nombre, StringComparison.OrdinalIgnoreCase));
             if (existente != null)
             {
-                existente.Actualizar(nombre, familia, descripcion);
+                existente.Actualizar(nombre, categoriaPadreId, descripcion);
                 resultado.Actualizados++;
             }
             else
             {
-                var nueva = CategoriaProducto.Crear(nombre, familia, descripcion);
+                var nueva = CategoriaProducto.Crear(nombre, categoriaPadreId, descripcion);
                 _context.CategoriasProducto.Add(nueva);
                 categoriasDb.Add(nueva);
                 resultado.Creados++;
             }
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException dbEx)
+        {
+            var detalle = dbEx.InnerException?.Message ?? dbEx.Message;
+            resultado.Errores.Add(new ImportarErrorDto { Fila = 0, Mensaje = $"Error al guardar categorías en base de datos: {detalle}" });
+            resultado.Creados = 0;
+            resultado.Actualizados = 0;
+        }
         return resultado;
     }
 

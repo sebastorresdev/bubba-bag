@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   makeStyles,
@@ -25,6 +25,22 @@ import {
   MessageBarActions,
   Skeleton,
   SkeletonItem,
+  TagPicker,
+  TagPickerControl,
+  TagPickerGroup,
+  TagPickerInput,
+  TagPickerList,
+  TagPickerOption,
+  TagPickerOptionGroup,
+  Tag,
+  Link,
+  Dialog,
+  DialogSurface,
+  DialogTitle,
+  DialogBody,
+  DialogContent,
+  DialogActions,
+  type TagPickerProps,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -32,13 +48,19 @@ import {
   SaveMultiple16Regular,
   Add16Regular,
   ArrowClockwise16Regular,
-  Box24Regular,
+  Box16Regular,
   Wrench16Regular,
   DocumentText16Regular,
   DismissRegular,
+  Cube16Regular,
+  Folder16Regular,
 } from '@fluentui/react-icons';
 import { ProductoService } from '../services/producto.service';
 import type { CreateProductoDto, TipoProducto } from '../types/producto.types';
+import { CategoriaService } from '../../categorias/services/categoria.service';
+import type { CategoriaProductoDto } from '../../categorias/types/categoria.types';
+import { UnidadMedidaService } from '../../unidades-medida/services/unidadMedida.service';
+import type { UnidadMedidaDto } from '../../unidades-medida/types/unidadMedida.types';
 
 const useStyles = makeStyles({
   root: {
@@ -236,6 +258,47 @@ const useStyles = makeStyles({
   d365ControlFull: {
     width: '100%',
   },
+  tagPickerControl: {
+    width: '100%',
+    minHeight: '32px',
+    height: '32px',
+    boxSizing: 'border-box',
+    display: 'flex',
+    alignItems: 'center',
+    paddingTop: '0px',
+    paddingBottom: '0px',
+    flexWrap: 'nowrap',
+  },
+  tagPickerGroup: {
+    paddingTop: '0px',
+    paddingBottom: '0px',
+    display: 'flex',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  tagPickerInput: {
+    paddingTop: '0px',
+    paddingBottom: '0px',
+    minHeight: '28px',
+  },
+  unitIcon: {
+    color: tokens.colorBrandForeground1,
+  },
+  categoryIcon: {
+    color: tokens.colorBrandForeground1,
+  },
+  secondaryOptionText: {
+    fontSize: tokens.fontSizeBase100,
+    color: tokens.colorNeutralForeground4,
+    lineHeight: tokens.lineHeightBase100,
+  },
+  quickCreateFooter: {
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+    padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   fieldErrorText: {
     fontSize: tokens.fontSizeBase100,
     color: tokens.colorStatusDangerForeground1,
@@ -322,6 +385,158 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Catálogos dinámicos
+  const [categoriasList, setCategoriasList] = useState<CategoriaProductoDto[]>([]);
+  const [unidadesList, setUnidadesList] = useState<UnidadMedidaDto[]>([]);
+
+  const cargarCatalogos = useCallback(() => {
+    CategoriaService.getCategorias(undefined, true)
+      .then((cats) => setCategoriasList(cats))
+      .catch((err) => console.error('Error al cargar catálogo de categorías:', err));
+
+    UnidadMedidaService.getUnidadesMedida(undefined, true)
+      .then((ums) => setUnidadesList(ums))
+      .catch((err) => console.error('Error al cargar catálogo de unidades de medida:', err));
+  }, []);
+
+  useEffect(() => {
+    cargarCatalogos();
+  }, [cargarCatalogos]);
+
+  // Estado y lógica para TagPicker de Unidad de Medida (Estilo Dynamics 365)
+  const [unidadQuery, setUnidadQuery] = useState('');
+  const [quickCreateUnidadOpen, setQuickCreateUnidadOpen] = useState(false);
+  const [quickUnidadData, setQuickUnidadData] = useState({
+    nombre: '',
+    codigo: '',
+    abreviatura: '',
+    permiteDecimales: false,
+  });
+  const [quickUnidadError, setQuickUnidadError] = useState('');
+  const [quickUnidadSaving, setQuickUnidadSaving] = useState(false);
+
+  const filteredUnidades = useMemo(() => {
+    const q = unidadQuery.trim().toLowerCase();
+    if (!q) return unidadesList;
+    return unidadesList.filter(
+      (u) =>
+        u.nombre.toLowerCase().includes(q) ||
+        (u.codigo && u.codigo.toLowerCase().includes(q)) ||
+        (u.abreviatura && u.abreviatura.toLowerCase().includes(q))
+    );
+  }, [unidadesList, unidadQuery]);
+
+  const selectedUnidadOptions = useMemo(
+    () => (formData.unidadMedida ? [formData.unidadMedida] : []),
+    [formData.unidadMedida]
+  );
+
+  const onUnidadOptionSelect: TagPickerProps['onOptionSelect'] = (_e, data) => {
+    setFormData((prev) => ({
+      ...prev,
+      unidadMedida: prev.unidadMedida === data.value ? '' : data.value,
+    }));
+    setUnidadQuery('');
+    if (errors.unidadMedida) {
+      setErrors((prev) => ({ ...prev, unidadMedida: '' }));
+    }
+  };
+
+  // Estado y lógica para TagPicker de Categoría (Estilo Dynamics 365)
+  const [categoriaQuery, setCategoriaQuery] = useState('');
+  const [quickCreateCatOpen, setQuickCreateCatOpen] = useState(false);
+  const [quickCatData, setQuickCatData] = useState({
+    nombre: '',
+    descripcion: '',
+  });
+  const [quickCatError, setQuickCatError] = useState('');
+  const [quickCatSaving, setQuickCatSaving] = useState(false);
+
+  const categoriaSeleccionadaObj = useMemo(
+    () => categoriasList.find((c) => c.nombre === formData.categoria),
+    [categoriasList, formData.categoria]
+  );
+
+  const selectedCategoriaOptions = useMemo(
+    () => (formData.categoria ? [formData.categoria] : []),
+    [formData.categoria]
+  );
+
+  const filteredCategoriasList = useMemo(() => {
+    const q = categoriaQuery.trim().toLowerCase();
+    if (!q) return categoriasList;
+    return categoriasList.filter(
+      (c) =>
+        c.nombre.toLowerCase().includes(q) ||
+        (c.categoriaPadreNombre && c.categoriaPadreNombre.toLowerCase().includes(q))
+    );
+  }, [categoriasList, categoriaQuery]);
+
+  const onCategoriaOptionSelect: TagPickerProps['onOptionSelect'] = (_e, data) => {
+    setFormData((prev) => ({
+      ...prev,
+      categoria: prev.categoria === data.value ? '' : data.value,
+    }));
+    setCategoriaQuery('');
+  };
+
+  const handleGuardarCategoriaRapida = async () => {
+    if (!quickCatData.nombre.trim()) {
+      setQuickCatError('El nombre de la categoría es obligatorio.');
+      return;
+    }
+    try {
+      setQuickCatSaving(true);
+      setQuickCatError('');
+      await CategoriaService.createCategoria({
+        nombre: quickCatData.nombre.trim(),
+        categoriaPadreId: null,
+        descripcion: quickCatData.descripcion.trim() || null,
+      });
+      await cargarCatalogos();
+      setFormData((prev) => ({ ...prev, categoria: quickCatData.nombre.trim() }));
+      setQuickCreateCatOpen(false);
+      setQuickCatData({ nombre: '', descripcion: '' });
+    } catch (err: any) {
+      setQuickCatError(err?.message || 'Error al crear la categoría.');
+    } finally {
+      setQuickCatSaving(false);
+    }
+  };
+
+  const handleGuardarUnidadRapida = async () => {
+    if (!quickUnidadData.nombre.trim() || !quickUnidadData.codigo.trim() || !quickUnidadData.abreviatura.trim()) {
+      setQuickUnidadError('Nombre, código y abreviatura son obligatorios.');
+      return;
+    }
+    try {
+      setQuickUnidadSaving(true);
+      setQuickUnidadError('');
+      await UnidadMedidaService.createUnidadMedida({
+        nombre: quickUnidadData.nombre.trim(),
+        codigo: quickUnidadData.codigo.trim().toUpperCase(),
+        abreviatura: quickUnidadData.abreviatura.trim(),
+        permiteDecimales: quickUnidadData.permiteDecimales,
+      });
+      cargarCatalogos();
+      setFormData((prev) => ({ ...prev, unidadMedida: quickUnidadData.nombre.trim() }));
+      setQuickCreateUnidadOpen(false);
+      setQuickUnidadData({
+        nombre: '',
+        codigo: '',
+        abreviatura: '',
+        permiteDecimales: false,
+      });
+      if (errors.unidadMedida) {
+        setErrors((prev) => ({ ...prev, unidadMedida: '' }));
+      }
+    } catch (err: any) {
+      setQuickUnidadError(err?.message || 'Error al crear la unidad de medida.');
+    } finally {
+      setQuickUnidadSaving(false);
+    }
+  };
+
   // Cargar producto si estamos en modo edición
   useEffect(() => {
     if (effectiveId) {
@@ -350,10 +565,10 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
             p.tipo === 1 || p.tipo === 'Inventario'
               ? 'Inventario'
               : p.tipo === 2 || p.tipo === 'Servicio'
-              ? 'Servicio'
-              : p.tipo === 3 || p.tipo === 'NoInventariable'
-              ? 'NoInventariable'
-              : String(p.tipo || 'Inventario');
+                ? 'Servicio'
+                : p.tipo === 3 || p.tipo === 'NoInventariable'
+                  ? 'NoInventariable'
+                  : String(p.tipo || 'Inventario');
 
           setSavedHeader({
             nombre: p.nombre,
@@ -499,6 +714,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
   const handleNew = () => {
     navigate('/servicio-campo/productos/nuevo');
     handleResetForm();
+    cargarCatalogos();
   };
 
   const getInitials = (text: string) =>
@@ -517,8 +733,8 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
   const headerSubtitle = loading
     ? 'Obteniendo detalles del servidor...'
     : savedHeader.codigo
-    ? `Producto · Código: ${savedHeader.codigo.toUpperCase()}`
-    : 'Producto sin guardar';
+      ? `Producto · Código: ${savedHeader.codigo.toUpperCase()}`
+      : 'Producto sin guardar';
 
   const headerInitials = savedHeader.nombre ? getInitials(savedHeader.nombre) : 'NP';
 
@@ -677,7 +893,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
           selectedValue={selectedTab}
           onTabSelect={(_, data) => setSelectedTab(data.value as string)}
         >
-          <Tab value="detalles" icon={<Box24Regular style={{ fontSize: 16 }} />}>
+          <Tab value="detalles" icon={<Box16Regular />}>
             Detalles del Producto
           </Tab>
           <Tab value="field-service" icon={<Wrench16Regular />}>
@@ -781,7 +997,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                 </div>
 
 
-                {/* Categoría (Opcional - con opción '---') */}
+                {/* Categoría (TagPicker Estilo Dynamics 365 con Quick Create) */}
                 <div className={styles.d365FieldRow}>
                   <div className={styles.d365LabelCol}>
                     <Label size="medium" htmlFor="prod-categoria">
@@ -789,21 +1005,83 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                     </Label>
                   </div>
                   <div className={styles.d365ControlCol}>
-                    <Select
-                      id="prod-categoria"
-                      appearance="outline"
-                      size="medium"
-                      className={styles.d365ControlFull}
-                      value={formData.categoria || ''}
-                      onChange={(_, data) => setFormData({ ...formData, categoria: data.value })}
+                    <TagPicker
+                      onOptionSelect={onCategoriaOptionSelect}
+                      selectedOptions={selectedCategoriaOptions}
                     >
-                      <option value="">---</option>
-                      <option value="Materiales">Materiales e Insumos</option>
-                      <option value="Equipos">Equipos y Terminales</option>
-                      <option value="Insumos">Insumos y Accesorios</option>
-                      <option value="Herramientas">Herramientas y Equipamiento</option>
-                      <option value="Servicios">Servicios de Campo</option>
-                    </Select>
+                      <TagPickerControl className={styles.tagPickerControl}>
+                        {formData.categoria && (
+                          <TagPickerGroup className={styles.tagPickerGroup} aria-label="Categoría seleccionada">
+                            <Tag
+                              key={formData.categoria}
+                              shape="rounded"
+                              size="small"
+                              media={<Folder16Regular className={styles.categoryIcon} />}
+                              value={formData.categoria}
+                            >
+                              <Link
+                                as="span"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (categoriaSeleccionadaObj) {
+                                    window.open(
+                                      `/servicio-campo/categorias-producto/${categoriaSeleccionadaObj.id}`,
+                                      '_blank'
+                                    );
+                                  }
+                                }}
+                                title="Ver detalles de la categoría"
+                              >
+                                {formData.categoria}
+                              </Link>
+                            </Tag>
+                          </TagPickerGroup>
+                        )}
+                        <TagPickerInput
+                          id="prod-categoria"
+                          className={styles.tagPickerInput}
+                          value={categoriaQuery}
+                          onChange={(e) => setCategoriaQuery(e.target.value)}
+                          placeholder={formData.categoria ? '' : 'Buscar categoría'}
+                          clearable
+                        />
+                      </TagPickerControl>
+                      <TagPickerList>
+                        <TagPickerOptionGroup label="Categorías">
+                          {filteredCategoriasList
+                            .filter((c) => c.nombre !== formData.categoria)
+                            .map((c) => (
+                              <TagPickerOption
+                                key={c.id}
+                                value={c.nombre}
+                                media={<Folder16Regular className={styles.categoryIcon} />}
+                                secondaryContent={
+                                  c.categoriaPadreNombre ? (
+                                    <span className={styles.secondaryOptionText}>
+                                      Padre: {c.categoriaPadreNombre}
+                                    </span>
+                                  ) : undefined
+                                }
+                              >
+                                {c.nombre}
+                              </TagPickerOption>
+                            ))}
+                        </TagPickerOptionGroup>
+                        <div className={styles.quickCreateFooter}>
+                          <Button
+                            appearance="subtle"
+                            size="small"
+                            icon={<Add16Regular />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setQuickCreateCatOpen(true);
+                            }}
+                          >
+                            Nuevo
+                          </Button>
+                        </div>
+                      </TagPickerList>
+                    </TagPicker>
                   </div>
                 </div>
 
@@ -841,21 +1119,83 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                     </Label>
                   </div>
                   <div className={styles.d365ControlCol}>
-                    <Select
-                      id="prod-unidad"
-                      appearance="outline"
-                      size="medium"
-                      className={styles.d365ControlFull}
-                      value={formData.unidadMedida}
-                      onChange={(_, data) => setFormData({ ...formData, unidadMedida: data.value })}
+                    <TagPicker
+                      onOptionSelect={onUnidadOptionSelect}
+                      selectedOptions={selectedUnidadOptions}
                     >
-                      <option value="Unidades">Unidades (UND)</option>
-                      <option value="Metros">Metros (MTR)</option>
-                      <option value="Rollos">Rollos (ROL)</option>
-                      <option value="Cajas">Cajas (CAJ)</option>
-                      <option value="Kilogramos">Kilogramos (KGM)</option>
-                      <option value="Servicios">Servicio (SRV)</option>
-                    </Select>
+                      <TagPickerControl className={styles.tagPickerControl}>
+                        {formData.unidadMedida && (
+                          <TagPickerGroup className={styles.tagPickerGroup} aria-label="Unidad seleccionada">
+                            <Tag
+                              key={formData.unidadMedida}
+                              shape="rounded"
+                              size="small"
+                              media={<Cube16Regular className={styles.unitIcon} />}
+                              value={formData.unidadMedida}
+                            >
+                              <Link
+                                as="span"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const foundUnit = unidadesList.find(
+                                    (u) => u.nombre === formData.unidadMedida
+                                  );
+                                  if (foundUnit) {
+                                    window.open(
+                                      `/servicio-campo/unidades-medida/${foundUnit.id}`,
+                                      '_blank'
+                                    );
+                                  }
+                                }}
+                                title="Ver detalles de la unidad de medida"
+                              >
+                                {formData.unidadMedida}
+                              </Link>
+                            </Tag>
+                          </TagPickerGroup>
+                        )}
+                        <TagPickerInput
+                          id="prod-unidad"
+                          className={styles.tagPickerInput}
+                          value={unidadQuery}
+                          onChange={(e) => setUnidadQuery(e.target.value)}
+                          placeholder={formData.unidadMedida ? '' : 'Buscar Unidad predeterminada'}
+                          clearable
+                        />
+                      </TagPickerControl>
+                      <TagPickerList>
+                        <TagPickerOptionGroup label="Unidades">
+                          {filteredUnidades
+                            .filter((u) => u.nombre !== formData.unidadMedida)
+                            .map((u) => (
+                              <TagPickerOption
+                                key={u.id}
+                                value={u.nombre}
+                                media={<Cube16Regular className={styles.unitIcon} />}
+                                secondaryContent={u.codigo ? `(${u.codigo})` : undefined}
+                              >
+                                {u.nombre}
+                              </TagPickerOption>
+                            ))}
+                        </TagPickerOptionGroup>
+                        <div className={styles.quickCreateFooter}>
+                          <Button
+                            appearance="subtle"
+                            size="small"
+                            icon={<Add16Regular />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setQuickCreateUnidadOpen(true);
+                            }}
+                          >
+                            Nuevo
+                          </Button>
+                        </div>
+                      </TagPickerList>
+                    </TagPicker>
+                    {errors.unidadMedida && (
+                      <span className={styles.fieldErrorText}>{errors.unidadMedida}</span>
+                    )}
                   </div>
                 </div>
 
@@ -1122,6 +1462,139 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
           )}
         </div>
       )}
+
+      {/* Diálogo de Creación Rápida de Unidad de Medida (Quick Create Estilo Dynamics) */}
+      <Dialog open={quickCreateUnidadOpen} onOpenChange={(_, data) => setQuickCreateUnidadOpen(data.open)}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Creación rápida: Unidad de Medida</DialogTitle>
+            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '12px' }}>
+              {quickUnidadError && (
+                <MessageBar intent="error">
+                  <MessageBarBody>{quickUnidadError}</MessageBarBody>
+                </MessageBar>
+              )}
+              <div>
+                <Label required size="small" style={{ marginBottom: '4px', display: 'block' }}>
+                  Nombre
+                </Label>
+                <Input
+                  size="medium"
+                  style={{ width: '100%' }}
+                  placeholder="Ej: Caja, Bobina, Kilogramo..."
+                  value={quickUnidadData.nombre}
+                  onChange={(_, d) => setQuickUnidadData((prev) => ({ ...prev, nombre: d.value }))}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ flex: 1 }}>
+                  <Label required size="small" style={{ marginBottom: '4px', display: 'block' }}>
+                    Código
+                  </Label>
+                  <Input
+                    size="medium"
+                    style={{ width: '100%' }}
+                    placeholder="Ej: CAJ, BOB, KGM"
+                    value={quickUnidadData.codigo}
+                    onChange={(_, d) => setQuickUnidadData((prev) => ({ ...prev, codigo: d.value }))}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Label required size="small" style={{ marginBottom: '4px', display: 'block' }}>
+                    Abreviatura
+                  </Label>
+                  <Input
+                    size="medium"
+                    style={{ width: '100%' }}
+                    placeholder="Ej: cja, bob, kg"
+                    value={quickUnidadData.abreviatura}
+                    onChange={(_, d) => setQuickUnidadData((prev) => ({ ...prev, abreviatura: d.value }))}
+                  />
+                </div>
+              </div>
+              <div style={{ paddingTop: '4px' }}>
+                <Switch
+                  label="Permite Decimales (fraccionable)"
+                  checked={quickUnidadData.permiteDecimales}
+                  onChange={(_, d) => setQuickUnidadData((prev) => ({ ...prev, permiteDecimales: d.checked }))}
+                />
+              </div>
+            </DialogContent>
+            <DialogActions>
+              <Button
+                appearance="secondary"
+                disabled={quickUnidadSaving}
+                onClick={() => setQuickCreateUnidadOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                appearance="primary"
+                disabled={quickUnidadSaving}
+                onClick={handleGuardarUnidadRapida}
+              >
+                {quickUnidadSaving ? 'Guardando...' : 'Guardar y seleccionar'}
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+      {/* Diálogo de Creación Rápida de Categoría (Quick Create Estilo Dynamics) */}
+      <Dialog open={quickCreateCatOpen} onOpenChange={(_, data) => setQuickCreateCatOpen(data.open)}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Creación rápida: Categoría de Producto</DialogTitle>
+            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '12px' }}>
+              {quickCatError && (
+                <MessageBar intent="error">
+                  <MessageBarBody>{quickCatError}</MessageBarBody>
+                </MessageBar>
+              )}
+              <div>
+                <Label required size="small" style={{ marginBottom: '4px', display: 'block' }}>
+                  Nombre de la Categoría
+                </Label>
+                <Input
+                  size="medium"
+                  style={{ width: '100%' }}
+                  placeholder="Ej: Materiales de Red, Equipos Decodificadores..."
+                  value={quickCatData.nombre}
+                  onChange={(_, d) => setQuickCatData((prev) => ({ ...prev, nombre: d.value }))}
+                />
+              </div>
+              <div>
+                <Label size="small" style={{ marginBottom: '4px', display: 'block' }}>
+                  Descripción (opcional)
+                </Label>
+                <Textarea
+                  size="medium"
+                  rows={3}
+                  style={{ width: '100%' }}
+                  placeholder="Descripción de la categoría..."
+                  value={quickCatData.descripcion}
+                  onChange={(_, d) => setQuickCatData((prev) => ({ ...prev, descripcion: d.value }))}
+                />
+              </div>
+            </DialogContent>
+            <DialogActions>
+              <Button
+                appearance="secondary"
+                disabled={quickCatSaving}
+                onClick={() => setQuickCreateCatOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                appearance="primary"
+                disabled={quickCatSaving}
+                onClick={handleGuardarCategoriaRapida}
+              >
+                {quickCatSaving ? 'Guardando...' : 'Guardar y seleccionar'}
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
     </div>
   );
 };

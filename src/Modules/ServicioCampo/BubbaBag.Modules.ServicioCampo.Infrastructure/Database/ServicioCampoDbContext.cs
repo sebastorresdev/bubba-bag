@@ -35,6 +35,8 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public DbSet<Producto> Productos => Set<Producto>();
     public DbSet<UnidadMedida> UnidadesMedida => Set<UnidadMedida>();
     public DbSet<CategoriaProducto> CategoriasProducto => Set<CategoriaProducto>();
+    public DbSet<ListaPrecios> ListasPrecios => Set<ListaPrecios>();
+    public DbSet<ElementoListaPrecios> ElementosListaPrecios => Set<ElementoListaPrecios>();
     public DbSet<ItemSeriado> ItemsSeriados => Set<ItemSeriado>();
     public DbSet<Sucursal> Sucursales => Set<Sucursal>();
     public DbSet<TipoOrdenTrabajo> TiposOrdenTrabajo => Set<TipoOrdenTrabajo>();

@@ -23,6 +23,7 @@ public class ObtenerCategoriaProductoPorIdHandler : IQueryHandler<ObtenerCategor
     {
         var c = await _context.CategoriasProducto
             .AsNoTracking()
+            .Include(x => x.CategoriaPadre)
             .FirstOrDefaultAsync(x => x.Id == query.Id, cancellationToken);
 
         if (c is null)
@@ -31,7 +32,8 @@ public class ObtenerCategoriaProductoPorIdHandler : IQueryHandler<ObtenerCategor
         var dto = new CategoriaProductoDto(
             c.Id,
             c.Nombre,
-            c.Familia,
+            c.CategoriaPadreId,
+            c.CategoriaPadre?.Nombre,
             c.Descripcion,
             c.Activo
         );

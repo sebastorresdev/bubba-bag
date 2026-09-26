@@ -31,6 +31,8 @@ public interface IServicioCampoDbContext
     DbSet<Producto> Productos { get; }
     DbSet<UnidadMedida> UnidadesMedida { get; }
     DbSet<CategoriaProducto> CategoriasProducto { get; }
+    DbSet<ListaPrecios> ListasPrecios { get; }
+    DbSet<ElementoListaPrecios> ElementosListaPrecios { get; }
     DbSet<ItemSeriado> ItemsSeriados { get; }
     DbSet<Sucursal> Sucursales { get; }
     DbSet<TipoOrdenTrabajo> TiposOrdenTrabajo { get; }

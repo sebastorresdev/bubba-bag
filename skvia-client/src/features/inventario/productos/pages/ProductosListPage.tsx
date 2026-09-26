@@ -32,7 +32,6 @@ import {
   ArrowClockwise16Regular,
   ArrowDownload16Regular,
   ArrowUpload16Regular,
-  Box24Regular,
   Checkmark16Regular,
   ChevronDown12Regular,
   ChevronDown16Regular,
@@ -71,9 +70,6 @@ const useStyles = makeStyles({
     display: 'flex',
     alignItems: 'center',
     gap: '2px',
-  },
-  btnPrimary: {
-    fontWeight: '600',
   },
   viewHeader: {
     height: '42px',
@@ -126,21 +122,6 @@ const useStyles = makeStyles({
   dataCell: {
     userSelect: 'text',
     cursor: 'text',
-  },
-  codeLink: {
-    color: tokens.colorBrandForegroundLink,
-    fontWeight: '500',
-    cursor: 'pointer',
-    textDecoration: 'none',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    display: 'block',
-    maxWidth: '100%',
-    ':hover': {
-      textDecoration: 'underline',
-      color: tokens.colorBrandForegroundLinkHover,
-    },
   },
   noWrapCell: {
     whiteSpace: 'nowrap',
@@ -254,15 +235,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
                 }
               }}
               title={item.nombre}
-              style={{
-                fontWeight: 500,
-                color: tokens.colorBrandForegroundLink,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                display: 'block',
-                textAlign: 'left',
-              }}
+              className={styles.noWrapCell}
             >
               {item.nombre}
             </Link>
@@ -353,7 +326,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
         ),
       }),
     ],
-    [styles.codeLink, styles.noWrapCell, onSelectProduct, navigate]
+    [styles.noWrapCell, onSelectProduct, navigate]
   );
 
   return (
@@ -363,7 +336,6 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
         <div className={styles.toolbarLeft}>
           <Toolbar size="medium" style={{ backgroundColor: 'transparent', padding: 0 }}>
             <ToolbarButton
-              className={styles.btnPrimary}
               icon={<Add16Regular style={{ color: tokens.colorPaletteGreenForeground1 }} />}
               onClick={() => {
                 if (onNewProduct) {
@@ -497,11 +469,8 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
             <ToolbarButton onClick={loadData}>Reintentar conexión</ToolbarButton>
           </div>
         ) : filteredProductos.length === 0 ? (
-          <div className={styles.emptyState}>
-            <Box24Regular style={{ color: tokens.colorNeutralForeground4, fontSize: 36 }} />
-            <Text weight="semibold" size={300}>
-              No se encontraron productos registrados.
-            </Text>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '64px 16px', color: tokens.colorNeutralForeground3 }}>
+            <Text size={300}>No hay datos</Text>
           </div>
         ) : (
           <DataGrid

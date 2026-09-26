@@ -46,6 +46,13 @@ public class GlobalExceptionHandler : IExceptionHandler
                 null
             ),
 
+            DbUpdateException dbEx when dbEx.InnerException is Npgsql.PostgresException pgEx && pgEx.SqlState == "23502" => (
+                StatusCodes.Status400BadRequest,
+                "Campo obligatorio faltante",
+                $"Uno o más campos obligatorios no fueron proporcionados: columna '{(pgEx.ColumnName ?? "desconocida")}' en la tabla '{(pgEx.TableName ?? "desconocida")}'.",
+                null
+            ),
+
             DbUpdateException dbEx when dbEx.InnerException is Npgsql.PostgresException pgEx && pgEx.SqlState == "23505" =>
                 ResolverErrorDuplicado(pgEx),
 

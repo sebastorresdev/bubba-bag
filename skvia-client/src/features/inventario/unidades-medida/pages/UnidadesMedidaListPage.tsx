@@ -73,10 +73,6 @@ const useStyles = makeStyles({
     alignItems: 'center',
     gap: '2px',
   },
-  btnPrimary: {
-    fontWeight: tokens.fontWeightSemibold,
-    color: tokens.colorNeutralForeground1,
-  },
   // 2. View Header Row (Selector + Search)
   viewHeader: {
     height: '42px',
@@ -243,15 +239,7 @@ export const UnidadesMedidaListPage: React.FC<UnidadesMedidaListPageProps> = ({
                 else navigate(`/servicio-campo/unidades-medida/${item.id}`);
               }}
               title={item.nombre}
-              style={{
-                fontWeight: 500,
-                color: tokens.colorBrandForegroundLink,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                display: 'block',
-                textAlign: 'left',
-              }}
+              className={styles.noWrapCell}
             >
               {item.nombre}
             </Link>
@@ -325,7 +313,6 @@ export const UnidadesMedidaListPage: React.FC<UnidadesMedidaListPageProps> = ({
         <div className={styles.toolbarLeft}>
           <Toolbar size="medium" style={{ backgroundColor: 'transparent', padding: 0 }}>
             <ToolbarButton
-              className={styles.btnPrimary}
               icon={<Add16Regular style={{ color: tokens.colorPaletteGreenForeground1 }} />}
               onClick={() => {
                 if (onNew) onNew();
@@ -457,16 +444,8 @@ export const UnidadesMedidaListPage: React.FC<UnidadesMedidaListPageProps> = ({
             </Button>
           </div>
         ) : filteredItems.length === 0 ? (
-          <div className={styles.emptyContainer}>
-            <Ruler24Regular style={{ fontSize: 40 }} />
-            <Text size={400} weight="semibold">
-              No se encontraron registros
-            </Text>
-            <Text size={200}>
-              {searchKeyword
-                ? 'No hay unidades de medida que coincidan con la búsqueda.'
-                : 'Crea tu primera unidad de medida pulsando el botón "+ Nuevo".'}
-            </Text>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '64px 16px', color: tokens.colorNeutralForeground3 }}>
+            <Text size={300}>No hay datos</Text>
           </div>
         ) : (
           <DataGrid

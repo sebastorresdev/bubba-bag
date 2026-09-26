@@ -38,7 +38,7 @@ public class ObtenerCategoriasProductoHandler : IQueryHandler<ObtenerCategoriasP
             var search = query.Search.Trim().ToLower();
             dbQuery = dbQuery.Where(c =>
                 c.Nombre.ToLower().Contains(search) ||
-                (c.Familia != null && c.Familia.ToLower().Contains(search)) ||
+                (c.CategoriaPadre != null && c.CategoriaPadre.Nombre.ToLower().Contains(search)) ||
                 (c.Descripcion != null && c.Descripcion.ToLower().Contains(search)));
         }
 
@@ -47,7 +47,8 @@ public class ObtenerCategoriasProductoHandler : IQueryHandler<ObtenerCategoriasP
             .Select(c => new CategoriaProductoDto(
                 c.Id,
                 c.Nombre,
-                c.Familia,
+                c.CategoriaPadreId,
+                c.CategoriaPadre != null ? c.CategoriaPadre.Nombre : null,
                 c.Descripcion,
                 c.Activo
             ))

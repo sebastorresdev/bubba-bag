@@ -1,13 +1,20 @@
 using System;
 using System.Threading.Tasks;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.ActualizarCategoriaProducto;
+using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.ActualizarListaPrecios;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.ActualizarUnidadMedida;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.CambiarEstadoCategoriaProducto;
+using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.CambiarEstadoListaPrecios;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.CambiarEstadoUnidadMedida;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.CrearCategoriaProducto;
+using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.CrearListaPrecios;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.CrearUnidadMedida;
+using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.GestionarElementoListaPrecios;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Queries.ObtenerCategoriasProducto;
+using BubbaBag.Modules.ServicioCampo.Application.Productos.Queries.ObtenerListaPreciosPorId;
+using BubbaBag.Modules.ServicioCampo.Application.Productos.Queries.ObtenerListasPrecios;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Queries.ObtenerUnidadesMedida;
+using BubbaBag.Modules.ServicioCampo.Domain.Productos;
 using BubbaBag.SharedKernel.CQRS;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -44,6 +51,19 @@ public static class CatalogosProductoEndpoints
         catGroup.MapPost("/", CrearCategoriaProducto);
         catGroup.MapPut("/{id:guid}", ActualizarCategoriaProducto);
         catGroup.MapPatch("/{id:guid}/estado", CambiarEstadoCategoriaProducto);
+
+        // ── Listas de Precios (Price Lists) ──
+        var lpGroup = app.MapGroup("/api/inventario/listas-precios")
+            .WithTags("Servicio de Campo - Listas de Precios")
+            .RequireAuthorization();
+
+        lpGroup.MapGet("/", ObtenerListasPrecios);
+        lpGroup.MapGet("/{id:guid}", ObtenerListaPreciosPorId);
+        lpGroup.MapPost("/", CrearListaPrecios);
+        lpGroup.MapPut("/{id:guid}", ActualizarListaPrecios);
+        lpGroup.MapPatch("/{id:guid}/estado", CambiarEstadoListaPrecios);
+        lpGroup.MapPost("/{id:guid}/elementos", GuardarElementoListaPrecios);
+        lpGroup.MapDelete("/elementos/{elementoId:guid}", EliminarElementoListaPrecios);
     }
 
     private static async Task<IResult> DescargarPlantillaUnidadesMedida(
@@ -185,7 +205,7 @@ public static class CatalogosProductoEndpoints
     {
         var command = new CrearCategoriaProductoCommand(
             request.Nombre,
-            request.Familia,
+            request.CategoriaPadreId,
             request.Descripcion
         );
 
@@ -203,7 +223,7 @@ public static class CatalogosProductoEndpoints
         var command = new ActualizarCategoriaProductoCommand(
             id,
             request.Nombre,
-            request.Familia,
+            request.CategoriaPadreId,
             request.Descripcion
         );
 
@@ -217,6 +237,97 @@ public static class CatalogosProductoEndpoints
         IDispatcher dispatcher)
     {
         var command = new CambiarEstadoCategoriaProductoCommand(id, request.Activo);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess ? Results.NoContent() : Results.BadRequest(result.Error);
+    }
+
+    // ── Handlers para Listas de Precios ──
+    private static async Task<IResult> ObtenerListasPrecios(
+        string? search,
+        bool? soloActivos,
+        IDispatcher dispatcher)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerListasPreciosQuery(search, soloActivos));
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
+    }
+
+    private static async Task<IResult> ObtenerListaPreciosPorId(
+        Guid id,
+        IDispatcher dispatcher)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerListaPreciosPorIdQuery(id));
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.NotFound(result.Error);
+    }
+
+    private static async Task<IResult> CrearListaPrecios(
+        CrearListaPreciosRequest request,
+        IDispatcher dispatcher)
+    {
+        var command = new CrearListaPreciosCommand(
+            request.Codigo,
+            request.Nombre,
+            request.Moneda ?? "PEN",
+            request.Descripcion,
+            request.FechaInicio,
+            request.FechaFin
+        );
+
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Created($"/api/inventario/listas-precios/{result.Value}", new { Id = result.Value })
+            : Results.BadRequest(result.Error);
+    }
+
+    private static async Task<IResult> ActualizarListaPrecios(
+        Guid id,
+        ActualizarListaPreciosRequest request,
+        IDispatcher dispatcher)
+    {
+        var command = new ActualizarListaPreciosCommand(
+            id,
+            request.Nombre,
+            request.Moneda ?? "PEN",
+            request.Descripcion,
+            request.FechaInicio,
+            request.FechaFin
+        );
+
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess ? Results.NoContent() : Results.BadRequest(result.Error);
+    }
+
+    private static async Task<IResult> CambiarEstadoListaPrecios(
+        Guid id,
+        CambiarEstadoCatalogoRequest request,
+        IDispatcher dispatcher)
+    {
+        var command = new CambiarEstadoListaPreciosCommand(id, request.Activo);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess ? Results.NoContent() : Results.BadRequest(result.Error);
+    }
+
+    private static async Task<IResult> GuardarElementoListaPrecios(
+        Guid id,
+        GuardarElementoListaPreciosRequest request,
+        IDispatcher dispatcher)
+    {
+        var command = new GuardarElementoListaPreciosCommand(
+            id,
+            request.ProductoId,
+            request.Monto,
+            request.UnidadMedidaId,
+            request.MetodoFijacion ?? MetodoFijacionPrecio.ImporteDivisa
+        );
+
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess ? Results.Ok(new { Id = result.Value }) : Results.BadRequest(result.Error);
+    }
+
+    private static async Task<IResult> EliminarElementoListaPrecios(
+        Guid elementoId,
+        IDispatcher dispatcher)
+    {
+        var command = new EliminarElementoListaPreciosCommand(elementoId);
         var result = await dispatcher.SendAsync(command);
         return result.IsSuccess ? Results.NoContent() : Results.BadRequest(result.Error);
     }
@@ -239,12 +350,36 @@ public record ActualizarUnidadMedidaRequest(
 
 public record CrearCategoriaProductoRequest(
     string Nombre,
-    string? Familia,
+    Guid? CategoriaPadreId,
     string? Descripcion
 );
 
 public record ActualizarCategoriaProductoRequest(
     string Nombre,
-    string? Familia,
+    Guid? CategoriaPadreId,
     string? Descripcion
+);
+
+public record CrearListaPreciosRequest(
+    string Codigo,
+    string Nombre,
+    string? Moneda,
+    string? Descripcion,
+    DateTime? FechaInicio,
+    DateTime? FechaFin
+);
+
+public record ActualizarListaPreciosRequest(
+    string Nombre,
+    string? Moneda,
+    string? Descripcion,
+    DateTime? FechaInicio,
+    DateTime? FechaFin
+);
+
+public record GuardarElementoListaPreciosRequest(
+    Guid ProductoId,
+    decimal Monto,
+    Guid? UnidadMedidaId = null,
+    MetodoFijacionPrecio? MetodoFijacion = null
 );

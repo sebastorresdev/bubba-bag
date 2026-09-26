@@ -14,7 +14,7 @@ public record CrearProductoCommand(
     TipoProducto Tipo = TipoProducto.Inventario,
     decimal PrecioBase = 0m,
     Guid? CatalogoId = null,
-    string Categoria = "Materiales",
+    string? Categoria = null,
     string UnidadMedida = "Unidades",
     bool EsSerializado = false,
     string? Descripcion = null,
@@ -24,7 +24,8 @@ public record CrearProductoCommand(
     decimal CostoActual = 0m,
     decimal CostoEstandar = 0m,
     bool AfectoImpuesto = true,
-    string? ProveedorDefecto = null
+    string? ProveedorDefecto = null,
+    Guid? ListaPreciosPredeterminadaId = null
 ) : ICommand<Result<Guid>>;
 
 public class CrearProductoHandler : ICommandHandler<CrearProductoCommand, Result<Guid>>
@@ -61,10 +62,24 @@ public class CrearProductoHandler : ICommandHandler<CrearProductoCommand, Result
             costoActual: command.CostoActual,
             costoEstandar: command.CostoEstandar,
             afectoImpuesto: command.AfectoImpuesto,
-            proveedorDefecto: command.ProveedorDefecto
+            proveedorDefecto: command.ProveedorDefecto,
+            listaPreciosPredeterminadaId: command.ListaPreciosPredeterminadaId
         );
 
         await _context.Productos.AddAsync(producto, cancellationToken);
+
+        // Si se especificó una lista de precios predeterminada, crear el elemento de lista de precios inicial
+        if (command.ListaPreciosPredeterminadaId.HasValue)
+        {
+            var unidad = await _context.UnidadesMedida.FirstOrDefaultAsync(u => u.Nombre == command.UnidadMedida, cancellationToken);
+            var elemento = ElementoListaPrecios.Crear(
+                listaPreciosId: command.ListaPreciosPredeterminadaId.Value,
+                productoId: producto.Id,
+                monto: command.PrecioBase,
+                unidadMedidaId: unidad?.Id
+            );
+            await _context.ElementosListaPrecios.AddAsync(elemento, cancellationToken);
+        }
 
         // Si el producto es de tipo Servicio, asegurar la existencia de la entidad ProductoServicio operativa
         if (command.Tipo == TipoProducto.Servicio)

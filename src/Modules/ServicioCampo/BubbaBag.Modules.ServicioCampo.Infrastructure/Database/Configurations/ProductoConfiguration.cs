@@ -35,8 +35,16 @@ public class ProductoConfiguration : IEntityTypeConfiguration<Producto>
         builder.Property(p => p.CatalogoId)
             .IsRequired(false);
 
+        builder.Property(p => p.ListaPreciosPredeterminadaId)
+            .IsRequired(false);
+
+        builder.HasOne(p => p.ListaPreciosPredeterminada)
+            .WithMany()
+            .HasForeignKey(p => p.ListaPreciosPredeterminadaId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.Property(p => p.Categoria)
-            .IsRequired()
+            .IsRequired(false)
             .HasMaxLength(50);
 
         builder.Property(p => p.UnidadMedida)

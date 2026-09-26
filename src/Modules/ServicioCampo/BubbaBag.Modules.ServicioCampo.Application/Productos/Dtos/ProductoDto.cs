@@ -11,7 +11,7 @@ public record ProductoDto(
     TipoProducto Tipo,
     decimal PrecioBase,
     Guid? CatalogoId,
-    string Categoria,
+    string? Categoria,
     string UnidadMedida,
     bool EsSerializado,
     bool Activo,
@@ -21,5 +21,7 @@ public record ProductoDto(
     decimal CostoActual = 0m,
     decimal CostoEstandar = 0m,
     bool AfectoImpuesto = true,
-    string? ProveedorDefecto = null
+    string? ProveedorDefecto = null,
+    Guid? ListaPreciosPredeterminadaId = null,
+    string? ListaPreciosPredeterminadaNombre = null
 );

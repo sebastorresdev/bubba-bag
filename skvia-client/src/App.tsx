@@ -29,6 +29,9 @@ export default function App() {
             <Route path="servicio-campo/productos/nuevo" element={<ProductoFormPage />} />
             <Route path="servicio-campo/productos/:id" element={<ProductoFormPage />} />
 
+            {/* 4. Catálogo General - Listas de Precios (Módulo en preparación) */}
+            <Route path="servicio-campo/listas-precios" element={<PlaceholderPage />} />
+
             {/* Vistas en construcción o rutas no mapeadas */}
             <Route path="*" element={<PlaceholderPage />} />
           </Route>

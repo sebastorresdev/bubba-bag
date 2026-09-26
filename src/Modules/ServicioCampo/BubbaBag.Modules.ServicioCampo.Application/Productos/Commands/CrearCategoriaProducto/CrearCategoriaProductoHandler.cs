@@ -10,7 +10,7 @@ namespace BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.CrearCat
 
 public record CrearCategoriaProductoCommand(
     string Nombre,
-    string? Familia = null,
+    Guid? CategoriaPadreId = null,
     string? Descripcion = null
 ) : ICommand<Result<Guid>>;
 
@@ -35,9 +35,17 @@ public class CrearCategoriaProductoHandler : ICommandHandler<CrearCategoriaProdu
         if (existe)
             return Result<Guid>.Failure($"Ya existe una categoría con el nombre '{nombreNormalizado}'.");
 
+        if (command.CategoriaPadreId.HasValue)
+        {
+            var existePadre = await _context.CategoriasProducto
+                .AnyAsync(c => c.Id == command.CategoriaPadreId.Value, cancellationToken);
+            if (!existePadre)
+                return Result<Guid>.Failure("La categoría padre seleccionada no existe.");
+        }
+
         var categoria = CategoriaProducto.Crear(
             nombreNormalizado,
-            command.Familia,
+            command.CategoriaPadreId,
             command.Descripcion
         );
 

@@ -14,7 +14,10 @@ public class Producto : Entity<Guid>
     public TipoProducto Tipo { get; private set; } = TipoProducto.Inventario;
     public decimal PrecioBase { get; private set; } = 0m;
     public Guid? CatalogoId { get; private set; } // Vinculación opcional a Empresa Contratante (DIRECTV, Claro, etc.)
-    public string Categoria { get; private set; } = "Materiales"; // Materiales, Equipos, Insumos, Herramientas, Servicios
+    public Guid? ListaPreciosPredeterminadaId { get; private set; } // Default Price List (Field Service / Sales)
+    public virtual ListaPrecios? ListaPreciosPredeterminada { get; private set; }
+    public virtual ICollection<ElementoListaPrecios> PreciosEnListas { get; private set; } = new List<ElementoListaPrecios>();
+    public string? Categoria { get; private set; } // Materiales, Equipos, Insumos, Herramientas, Servicios
     public string UnidadMedida { get; private set; } = "Unidades"; // Unidades, Metros, Rollos, Cajas, Servicios
     public bool EsSerializado { get; private set; } // true para decos/routers con serie
     public bool ConvertirEnActivoCliente { get; private set; } = false; // Convert to Customer Asset (Field Service)
@@ -31,7 +34,7 @@ public class Producto : Entity<Guid>
     public static Producto Crear(
         string codigo,
         string nombre,
-        string categoria = "Materiales",
+        string? categoria = null,
         string unidadMedida = "Unidades",
         bool esSerializado = false,
         string? descripcion = null,
@@ -44,20 +47,22 @@ public class Producto : Entity<Guid>
         decimal costoActual = 0m,
         decimal costoEstandar = 0m,
         bool afectoImpuesto = true,
-        string? proveedorDefecto = null)
+        string? proveedorDefecto = null,
+        Guid? listaPreciosPredeterminadaId = null)
     {
         return new Producto
         {
             Id = Guid.NewGuid(),
             Codigo = codigo.Trim().ToUpperInvariant(),
             Nombre = nombre.Trim(),
-            Categoria = categoria.Trim(),
+            Categoria = string.IsNullOrWhiteSpace(categoria) ? null : categoria.Trim(),
             UnidadMedida = unidadMedida.Trim(),
             EsSerializado = esSerializado,
             Descripcion = descripcion?.Trim(),
             Tipo = tipo,
             PrecioBase = Math.Max(0, precioBase),
             CatalogoId = catalogoId,
+            ListaPreciosPredeterminadaId = listaPreciosPredeterminadaId,
             ConvertirEnActivoCliente = convertirEnActivoCliente,
             CodigoBarras = codigoBarras?.Trim(),
             Notas = notas?.Trim(),
@@ -71,7 +76,7 @@ public class Producto : Entity<Guid>
 
     public void Actualizar(
         string nombre,
-        string categoria,
+        string? categoria,
         string unidadMedida,
         bool esSerializado,
         string? descripcion,
@@ -84,16 +89,18 @@ public class Producto : Entity<Guid>
         decimal costoActual = 0m,
         decimal costoEstandar = 0m,
         bool afectoImpuesto = true,
-        string? proveedorDefecto = null)
+        string? proveedorDefecto = null,
+        Guid? listaPreciosPredeterminadaId = null)
     {
         Nombre = nombre.Trim();
-        Categoria = categoria.Trim();
+        Categoria = string.IsNullOrWhiteSpace(categoria) ? null : categoria.Trim();
         UnidadMedida = unidadMedida.Trim();
         EsSerializado = esSerializado;
         Descripcion = descripcion?.Trim();
         Tipo = tipo;
         PrecioBase = Math.Max(0, precioBase);
         CatalogoId = catalogoId;
+        ListaPreciosPredeterminadaId = listaPreciosPredeterminadaId;
         ConvertirEnActivoCliente = convertirEnActivoCliente;
         CodigoBarras = codigoBarras?.Trim();
         Notas = notas?.Trim();

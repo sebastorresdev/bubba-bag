@@ -32,7 +32,7 @@ import {
   Add16Regular,
   ArrowClockwise16Regular,
   DismissRegular,
-  Box24Regular,
+  Box16Regular,
 } from '@fluentui/react-icons';
 import { UnidadMedidaService } from '../services/unidadMedida.service';
 import type { CreateUnidadMedidaDto } from '../types/unidadMedida.types';
@@ -102,7 +102,7 @@ const useStyles = makeStyles({
   headerAvatar: {
     backgroundColor: tokens.colorPaletteBerryBackground2,
     color: tokens.colorPaletteBerryForeground2,
-    fontWeight: 'bold',
+    fontWeight: tokens.fontWeightBold,
   },
   titleSection: {
     display: 'flex',
@@ -565,7 +565,7 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
           className={styles.tabList}
           selectedValue="detalles"
         >
-          <Tab value="detalles" icon={<Box24Regular style={{ fontSize: 16 }} />}>
+          <Tab value="detalles" icon={<Box16Regular />}>
             General
           </Tab>
         </TabList>

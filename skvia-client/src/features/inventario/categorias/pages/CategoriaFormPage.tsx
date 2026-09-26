@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   makeStyles,
@@ -8,6 +8,7 @@ import {
   ToolbarDivider,
   Button,
   Input,
+  Select,
   Textarea,
   TabList,
   Tab,
@@ -22,6 +23,22 @@ import {
   MessageBarActions,
   Skeleton,
   SkeletonItem,
+  TagPicker,
+  TagPickerControl,
+  TagPickerGroup,
+  TagPickerInput,
+  TagPickerList,
+  TagPickerOption,
+  TagPickerOptionGroup,
+  Tag,
+  Link,
+  Dialog,
+  DialogSurface,
+  DialogTitle,
+  DialogBody,
+  DialogContent,
+  DialogActions,
+  type TagPickerProps,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -30,10 +47,11 @@ import {
   Add16Regular,
   ArrowClockwise16Regular,
   DismissRegular,
-  Box24Regular,
+  Box16Regular,
+  Folder16Regular,
 } from '@fluentui/react-icons';
 import { CategoriaService } from '../services/categoria.service';
-import type { CreateCategoriaProductoDto } from '../types/categoria.types';
+import type { CreateCategoriaProductoDto, CategoriaProductoDto } from '../types/categoria.types';
 
 const useStyles = makeStyles({
   root: {
@@ -100,7 +118,7 @@ const useStyles = makeStyles({
   headerAvatar: {
     backgroundColor: tokens.colorPaletteDarkOrangeBackground2,
     color: tokens.colorPaletteDarkOrangeForeground2,
-    fontWeight: 'bold',
+    fontWeight: tokens.fontWeightBold,
   },
   titleSection: {
     display: 'flex',
@@ -225,6 +243,44 @@ const useStyles = makeStyles({
   d365ControlFull: {
     width: '100%',
   },
+  tagPickerControl: {
+    width: '100%',
+    minHeight: '32px',
+    height: '32px',
+    boxSizing: 'border-box',
+    display: 'flex',
+    alignItems: 'center',
+    paddingTop: '0px',
+    paddingBottom: '0px',
+    flexWrap: 'nowrap',
+  },
+  tagPickerGroup: {
+    paddingTop: '0px',
+    paddingBottom: '0px',
+    display: 'flex',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  tagPickerInput: {
+    paddingTop: '0px',
+    paddingBottom: '0px',
+    minHeight: '28px',
+  },
+  categoryIcon: {
+    color: tokens.colorBrandForeground1,
+  },
+  secondaryOptionText: {
+    fontSize: tokens.fontSizeBase100,
+    color: tokens.colorNeutralForeground4,
+    lineHeight: tokens.lineHeightBase100,
+  },
+  quickCreateFooter: {
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+    padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   fieldErrorText: {
     fontSize: tokens.fontSizeBase100,
     color: tokens.colorStatusDangerForeground1,
@@ -256,19 +312,21 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
   const [currentId, setCurrentId] = useState<string | null>(effectiveId);
   const isEditMode = Boolean(currentId);
 
+  const [categoriasDisponibles, setCategoriasDisponibles] = useState<CategoriaProductoDto[]>([]);
+
   const [formData, setFormData] = useState<CreateCategoriaProductoDto>({
     nombre: '',
-    familia: '',
+    categoriaPadreId: null,
     descripcion: '',
   });
 
   const [savedHeader, setSavedHeader] = useState<{
     nombre: string;
-    familia: string;
+    categoriaPadreNombre: string;
     activo: boolean;
   }>({
     nombre: '',
-    familia: '',
+    categoriaPadreNombre: '',
     activo: true,
   });
 
@@ -277,23 +335,97 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const cargarCategoriasDisponibles = useCallback(async () => {
+    try {
+      const data = await CategoriaService.getCategorias(undefined, true);
+      setCategoriasDisponibles(data);
+    } catch (err) {
+      console.error('Error al cargar catálogo de categorías padre:', err);
+    }
+  }, []);
+
   const handleResetForm = () => {
     setCurrentId(null);
     setFormData({
       nombre: '',
-      familia: '',
+      categoriaPadreId: null,
       descripcion: '',
     });
     setSavedHeader({
       nombre: '',
-      familia: '',
+      categoriaPadreNombre: '',
       activo: true,
     });
     setErrors({});
     setStatusMessage(null);
   };
 
+  // Estado y lógica para TagPicker de Categoría Padre (Estilo Dynamics 365)
+  const [categoriaPadreQuery, setCategoriaPadreQuery] = useState('');
+  const [quickCreateCatOpen, setQuickCreateCatOpen] = useState(false);
+  const [quickCatData, setQuickCatData] = useState({
+    nombre: '',
+    descripcion: '',
+  });
+  const [quickCatError, setQuickCatError] = useState('');
+  const [quickCatSaving, setQuickCatSaving] = useState(false);
+
+  const categoriaPadreSeleccionada = useMemo(
+    () => categoriasDisponibles.find((c) => c.id === formData.categoriaPadreId),
+    [categoriasDisponibles, formData.categoriaPadreId]
+  );
+
+  const selectedPadreOptions = useMemo(
+    () => (formData.categoriaPadreId ? [formData.categoriaPadreId] : []),
+    [formData.categoriaPadreId]
+  );
+
+  const filteredCategorias = useMemo(() => {
+    const disponibles = categoriasDisponibles.filter((c) => c.id !== currentId);
+    const q = categoriaPadreQuery.trim().toLowerCase();
+    if (!q) return disponibles.filter((c) => c.id !== formData.categoriaPadreId);
+    return disponibles.filter(
+      (c) =>
+        c.id !== formData.categoriaPadreId &&
+        (c.nombre.toLowerCase().includes(q) ||
+          (c.categoriaPadreNombre && c.categoriaPadreNombre.toLowerCase().includes(q)))
+    );
+  }, [categoriasDisponibles, currentId, formData.categoriaPadreId, categoriaPadreQuery]);
+
+  const onCategoriaPadreOptionSelect: TagPickerProps['onOptionSelect'] = (_e, data) => {
+    setFormData((prev) => ({
+      ...prev,
+      categoriaPadreId: prev.categoriaPadreId === data.value ? null : data.value,
+    }));
+    setCategoriaPadreQuery('');
+  };
+
+  const handleGuardarCategoriaRapida = async () => {
+    if (!quickCatData.nombre.trim()) {
+      setQuickCatError('El nombre de la categoría es obligatorio.');
+      return;
+    }
+    try {
+      setQuickCatSaving(true);
+      setQuickCatError('');
+      const res = await CategoriaService.createCategoria({
+        nombre: quickCatData.nombre.trim(),
+        categoriaPadreId: null,
+        descripcion: quickCatData.descripcion.trim() || null,
+      });
+      await cargarCategoriasDisponibles();
+      setFormData((prev) => ({ ...prev, categoriaPadreId: res.id }));
+      setQuickCreateCatOpen(false);
+      setQuickCatData({ nombre: '', descripcion: '' });
+    } catch (err: any) {
+      setQuickCatError(err?.message || 'Error al crear la categoría.');
+    } finally {
+      setQuickCatSaving(false);
+    }
+  };
+
   useEffect(() => {
+    cargarCategoriasDisponibles();
     if (effectiveId) {
       setCurrentId(effectiveId);
       setLoading(true);
@@ -301,12 +433,12 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
         .then((c) => {
           setFormData({
             nombre: c.nombre,
-            familia: c.familia || '',
+            categoriaPadreId: c.categoriaPadreId || null,
             descripcion: c.descripcion || '',
           });
           setSavedHeader({
             nombre: c.nombre,
-            familia: c.familia || '',
+            categoriaPadreNombre: c.categoriaPadreNombre || '',
             activo: c.activo,
           });
         })
@@ -323,7 +455,7 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
       handleResetForm();
       setLoading(false);
     }
-  }, [effectiveId]);
+  }, [effectiveId, cargarCategoriasDisponibles]);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -348,16 +480,21 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
       setStatusMessage(null);
       let savedId = currentId;
 
+      const padreSeleccionado = categoriasDisponibles.find(
+        (c) => c.id === formData.categoriaPadreId
+      );
+
       if (currentId) {
         await CategoriaService.updateCategoria(currentId, {
           nombre: formData.nombre,
-          familia: formData.familia,
+          categoriaPadreId: formData.categoriaPadreId,
           descripcion: formData.descripcion,
         });
         setStatusMessage({
           type: 'success',
           text: `Categoría "${formData.nombre}" actualizada con éxito.`,
         });
+        await cargarCategoriasDisponibles();
       } else {
         const res = await CategoriaService.createCategoria(formData);
         savedId = res.id;
@@ -366,6 +503,7 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
           type: 'success',
           text: `Categoría "${formData.nombre}" creada con éxito.`,
         });
+        await cargarCategoriasDisponibles();
         if (!closeAfter) {
           navigate(`/servicio-campo/categorias-producto/${res.id}`, { replace: true });
         }
@@ -373,7 +511,7 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
 
       setSavedHeader({
         nombre: formData.nombre,
-        familia: formData.familia || '',
+        categoriaPadreNombre: padreSeleccionado ? padreSeleccionado.nombre : '',
         activo: true,
       });
 
@@ -402,6 +540,7 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
   const handleNew = () => {
     navigate('/servicio-campo/categorias-producto/nuevo');
     handleResetForm();
+    cargarCategoriasDisponibles();
   };
 
   const headerTitle = loading
@@ -516,9 +655,9 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
               <div className={styles.titleSection}>
                 <Text className={styles.mainTitle}>{headerTitle}</Text>
                 <Text className={styles.subTitle}>
-                  {savedHeader.familia
-                    ? `Familia: ${savedHeader.familia}`
-                    : 'Categoría taxonómica • Catálogo de inventario'}
+                  {savedHeader.categoriaPadreNombre
+                    ? `Categoría Padre: ${savedHeader.categoriaPadreNombre}`
+                    : 'Categoría principal / raíz • Catálogo de inventario'}
                 </Text>
               </div>
             </div>
@@ -538,7 +677,7 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
           className={styles.tabList}
           selectedValue="detalles"
         >
-          <Tab value="detalles" icon={<Box24Regular style={{ fontSize: 16 }} />}>
+          <Tab value="detalles" icon={<Box16Regular />}>
             General
           </Tab>
         </TabList>
@@ -594,25 +733,93 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
                 </div>
               </div>
 
-              {/* Familia / Grupo */}
+              {/* Categoría Padre (TagPicker Estilo Dynamics 365 con Quick Create) */}
               <div className={styles.d365FieldRow}>
                 <div className={styles.d365LabelCol}>
-                  <Label size="medium" htmlFor="cat-familia">
-                    Familia / Grupo
+                  <Label size="medium" htmlFor="cat-padre">
+                    Categoría Padre
                   </Label>
                 </div>
                 <div className={styles.d365ControlCol}>
-                  <Input
-                    id="cat-familia"
-                    appearance="outline"
-                    size="medium"
-                    className={styles.d365ControlFull}
-                    value={formData.familia || ''}
-                    placeholder="Ej: Telecomunicaciones, Herramientas, Ferretería, Insumos..."
-                    onChange={(_, data) =>
-                      setFormData({ ...formData, familia: data.value })
-                    }
-                  />
+                  <TagPicker
+                    onOptionSelect={onCategoriaPadreOptionSelect}
+                    selectedOptions={selectedPadreOptions}
+                  >
+                    <TagPickerControl className={styles.tagPickerControl}>
+                      {categoriaPadreSeleccionada && (
+                        <TagPickerGroup className={styles.tagPickerGroup} aria-label="Categoría padre seleccionada">
+                          <Tag
+                            key={categoriaPadreSeleccionada.id}
+                            shape="rounded"
+                            size="small"
+                            media={<Folder16Regular className={styles.categoryIcon} />}
+                            value={categoriaPadreSeleccionada.id}
+                          >
+                            <Link
+                              as="span"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(
+                                  `/servicio-campo/categorias-producto/${categoriaPadreSeleccionada.id}`,
+                                  '_blank'
+                                );
+                              }}
+                              title="Ver detalles de la categoría padre"
+                            >
+                              {categoriaPadreSeleccionada.nombre}
+                            </Link>
+                          </Tag>
+                        </TagPickerGroup>
+                      )}
+                      <TagPickerInput
+                        id="cat-padre"
+                        className={styles.tagPickerInput}
+                        value={categoriaPadreQuery}
+                        onChange={(e) => setCategoriaPadreQuery(e.target.value)}
+                        placeholder={formData.categoriaPadreId ? '' : 'Buscar categoría padre (o dejar vacío para principal)'}
+                        clearable
+                      />
+                    </TagPickerControl>
+                    <TagPickerList>
+                      <TagPickerOptionGroup label="Categorías">
+                        {filteredCategorias.length > 0 ? (
+                          filteredCategorias.map((c) => (
+                            <TagPickerOption
+                              key={c.id}
+                              value={c.id}
+                              media={<Folder16Regular className={styles.categoryIcon} />}
+                              secondaryContent={
+                                c.categoriaPadreNombre ? (
+                                  <span className={styles.secondaryOptionText}>
+                                    Padre: {c.categoriaPadreNombre}
+                                  </span>
+                                ) : undefined
+                              }
+                            >
+                              {c.nombre}
+                            </TagPickerOption>
+                          ))
+                        ) : (
+                          <div style={{ padding: '8px 12px', color: tokens.colorNeutralForeground4, fontSize: '13px' }}>
+                            No se encontraron categorías
+                          </div>
+                        )}
+                      </TagPickerOptionGroup>
+                      <div className={styles.quickCreateFooter}>
+                        <Button
+                          appearance="subtle"
+                          size="small"
+                          icon={<Add16Regular />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setQuickCreateCatOpen(true);
+                          }}
+                        >
+                          Nuevo
+                        </Button>
+                      </div>
+                    </TagPickerList>
+                  </TagPicker>
                 </div>
               </div>
             </Card>
@@ -646,6 +853,63 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
           </div>
         </div>
       )}
+
+      {/* Diálogo de Creación Rápida de Categoría Padre (Quick Create Estilo Dynamics) */}
+      <Dialog open={quickCreateCatOpen} onOpenChange={(_, data) => setQuickCreateCatOpen(data.open)}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Creación rápida: Categoría de Producto</DialogTitle>
+            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '12px' }}>
+              {quickCatError && (
+                <MessageBar intent="error">
+                  <MessageBarBody>{quickCatError}</MessageBarBody>
+                </MessageBar>
+              )}
+              <div>
+                <Label required size="small" style={{ marginBottom: '4px', display: 'block' }}>
+                  Nombre de la Categoría
+                </Label>
+                <Input
+                  size="medium"
+                  style={{ width: '100%' }}
+                  placeholder="Ej: Materiales de Red, Equipos Decodificadores..."
+                  value={quickCatData.nombre}
+                  onChange={(_, d) => setQuickCatData((prev) => ({ ...prev, nombre: d.value }))}
+                />
+              </div>
+              <div>
+                <Label size="small" style={{ marginBottom: '4px', display: 'block' }}>
+                  Descripción (opcional)
+                </Label>
+                <Textarea
+                  size="medium"
+                  rows={3}
+                  style={{ width: '100%' }}
+                  placeholder="Descripción de la categoría..."
+                  value={quickCatData.descripcion}
+                  onChange={(_, d) => setQuickCatData((prev) => ({ ...prev, descripcion: d.value }))}
+                />
+              </div>
+            </DialogContent>
+            <DialogActions>
+              <Button
+                appearance="secondary"
+                disabled={quickCatSaving}
+                onClick={() => setQuickCreateCatOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                appearance="primary"
+                disabled={quickCatSaving}
+                onClick={handleGuardarCategoriaRapida}
+              >
+                {quickCatSaving ? 'Guardando...' : 'Guardar y seleccionar'}
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
     </div>
   );
 };

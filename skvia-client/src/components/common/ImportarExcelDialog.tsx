@@ -86,6 +86,23 @@ const useStyles = makeStyles({
     border: `1px solid ${tokens.colorNeutralStroke2}`,
     borderRadius: tokens.borderRadiusMedium,
   },
+  dialogActions: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: '12px',
+    marginTop: '16px',
+  },
+  actionButton: {
+    whiteSpace: 'nowrap',
+    minWidth: '96px',
+    height: '32px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
 });
 
 export interface ImportarExcelDialogProps {
@@ -228,7 +245,7 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
               <MessageBar
                 intent={result.exitoso ? 'success' : result.creados > 0 || result.actualizados > 0 ? 'warning' : 'error'}
                 shape="square"
-                style={{ marginBottom: 12 }}
+                style={{ marginBottom: 14 }}
               >
                 <MessageBarBody>
                   <MessageBarTitle>
@@ -236,10 +253,12 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
                       ? 'Importación completada con éxito'
                       : 'Importación procesada con observaciones'}
                   </MessageBarTitle>
-                  <Text size={200}>
-                    Registros creados: <strong>{result.creados}</strong> | Registros actualizados: <strong>{result.actualizados}</strong>
-                    {result.errores.length > 0 && ` | Filas con error: ${result.errores.length}`}
-                  </Text>
+                  <div style={{ marginTop: 4 }}>
+                    <Text size={200}>
+                      Registros creados: <strong>{result.creados}</strong> | Registros actualizados: <strong>{result.actualizados}</strong>
+                      {result.errores.length > 0 && ` | Filas con error: ${result.errores.length}`}
+                    </Text>
+                  </div>
                 </MessageBarBody>
               </MessageBar>
             )}
@@ -347,8 +366,8 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
             )}
           </DialogContent>
 
-          <DialogActions>
-            <Button appearance="secondary" onClick={handleClose}>
+          <DialogActions className={styles.dialogActions}>
+            <Button appearance="secondary" onClick={handleClose} className={styles.actionButton}>
               {result ? 'Cerrar' : 'Cancelar'}
             </Button>
             {!result ? (
@@ -357,11 +376,12 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
                 onClick={handleImport}
                 disabled={!selectedFile || uploading}
                 icon={uploading ? <Spinner size="tiny" /> : undefined}
+                className={styles.actionButton}
               >
                 {uploading ? 'Importando registros...' : 'Iniciar Importación'}
               </Button>
             ) : (
-              <Button appearance="primary" onClick={handleReset}>
+              <Button appearance="primary" onClick={handleReset} className={styles.actionButton}>
                 Importar otro archivo
               </Button>
             )}

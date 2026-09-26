@@ -16,8 +16,13 @@ public class CategoriaProductoConfiguration : IEntityTypeConfiguration<Categoria
             .IsRequired()
             .HasMaxLength(100);
 
-        builder.Property(c => c.Familia)
-            .HasMaxLength(100);
+        builder.Property(c => c.CategoriaPadreId)
+            .IsRequired(false);
+
+        builder.HasOne(c => c.CategoriaPadre)
+            .WithMany(p => p.Subcategorias)
+            .HasForeignKey(c => c.CategoriaPadreId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(c => c.Descripcion)
             .HasMaxLength(300);

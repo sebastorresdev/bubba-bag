@@ -105,12 +105,40 @@ public static class WebApplicationExtensions
 
                       CREATE TABLE IF NOT EXISTS inventario.""CategoriasProducto"" (
                           ""Id"" uuid NOT NULL PRIMARY KEY,
-                          ""Codigo"" character varying(20) NOT NULL,
                           ""Nombre"" character varying(100) NOT NULL,
-                          ""Familia"" character varying(100),
+                          ""CategoriaPadreId"" uuid,
                           ""Descripcion"" character varying(300),
                           ""Activo"" boolean NOT NULL DEFAULT true
                       );
+
+                      -- Asegurar compatibilidad de esquema
+                      ALTER TABLE inventario.""CategoriasProducto"" DROP COLUMN IF EXISTS ""Codigo"";
+                      ALTER TABLE inventario.""CategoriasProducto"" DROP COLUMN IF EXISTS ""Familia"";
+                      ALTER TABLE inventario.""CategoriasProducto"" ADD COLUMN IF NOT EXISTS ""CategoriaPadreId"" uuid;
+                      ALTER TABLE inventario.""Productos"" ALTER COLUMN ""Categoria"" DROP NOT NULL;
+
+                      CREATE TABLE IF NOT EXISTS inventario.""ListasPrecios"" (
+                          ""Id"" uuid NOT NULL PRIMARY KEY,
+                          ""Codigo"" character varying(50) NOT NULL UNIQUE,
+                          ""Nombre"" character varying(150) NOT NULL,
+                          ""Moneda"" character varying(10) NOT NULL DEFAULT 'PEN',
+                          ""Descripcion"" character varying(300),
+                          ""FechaInicio"" timestamp with time zone,
+                          ""FechaFin"" timestamp with time zone,
+                          ""Activo"" boolean NOT NULL DEFAULT true
+                      );
+
+                      CREATE TABLE IF NOT EXISTS inventario.""ElementosListaPrecios"" (
+                          ""Id"" uuid NOT NULL PRIMARY KEY,
+                          ""ListaPreciosId"" uuid NOT NULL REFERENCES inventario.""ListasPrecios""(""Id"") ON DELETE CASCADE,
+                          ""ProductoId"" uuid NOT NULL REFERENCES inventario.""Productos""(""Id"") ON DELETE CASCADE,
+                          ""UnidadMedidaId"" uuid REFERENCES inventario.""UnidadesMedida""(""Id"") ON DELETE SET NULL,
+                          ""Monto"" numeric(12,2) NOT NULL DEFAULT 0,
+                          ""MetodoFijacion"" integer NOT NULL DEFAULT 1,
+                          CONSTRAINT ""UQ_Lista_Producto_Unidad"" UNIQUE (""ListaPreciosId"", ""ProductoId"", ""UnidadMedidaId"")
+                      );
+
+                      ALTER TABLE inventario.""Productos"" ADD COLUMN IF NOT EXISTS ""ListaPreciosPredeterminadaId"" uuid;
 
                       INSERT INTO inventario.""UnidadesMedida"" (""Id"", ""Codigo"", ""Nombre"", ""Abreviatura"", ""PermiteDecimales"", ""Descripcion"", ""Activo"")
                       VALUES 
@@ -122,13 +150,9 @@ public static class WebApplicationExtensions
                           ('a6666666-6666-6666-6666-666666666666', 'SRV', 'Servicio', 'srv', false, 'Prestación de trabajo u hora técnica de instalación', true)
                       ON CONFLICT (""Id"") DO NOTHING;
 
-                      INSERT INTO inventario.""CategoriasProducto"" (""Id"", ""Codigo"", ""Nombre"", ""Familia"", ""Descripcion"", ""Activo"")
+                      INSERT INTO inventario.""ListasPrecios"" (""Id"", ""Codigo"", ""Nombre"", ""Moneda"", ""Descripcion"", ""Activo"")
                       VALUES 
-                          ('b1111111-1111-1111-1111-111111111111', 'MAT', 'Materiales e Insumos', 'Ferretería y Redes', 'Materiales de fijación, grapas, conectores y selladores', true),
-                          ('b2222222-2222-2222-2222-222222222222', 'EQU', 'Equipos y Terminales', 'Hardware Telecom', 'Equipos receptores, decodificadores, ONTs y routers serializados', true),
-                          ('b3333333-3333-3333-3333-333333333333', 'FIB', 'Conectividad y Fibra', 'Redes Ópticas', 'Cables drop de fibra óptica, splitters, pigtails y rosetas', true),
-                          ('b4444444-4444-4444-4444-444444444444', 'HER', 'Herramientas y Equipamiento', 'Activos de Campo', 'Fusionadoras, OPM, VFL, peladoras y escaleras de técnico', true),
-                          ('b5555555-5555-5555-5555-555555555555', 'SRV', 'Servicios de Campo', 'Mano de Obra', 'Instalación, migración tecnológica y mantenimiento correctivo', true)
+                          ('b1111111-1111-1111-1111-111111111111', 'LP-ESTANDAR', 'Tarifa General', 'PEN', 'Lista de precios estándar predeterminada para productos y servicios', true)
                       ON CONFLICT (""Id"") DO NOTHING;");
             }
             catch { }

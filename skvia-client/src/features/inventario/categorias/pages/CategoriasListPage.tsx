@@ -73,10 +73,6 @@ const useStyles = makeStyles({
     alignItems: 'center',
     gap: '2px',
   },
-  btnPrimary: {
-    fontWeight: tokens.fontWeightSemibold,
-    color: tokens.colorNeutralForeground1,
-  },
   // 2. View Header Row (Selector + Search)
   viewHeader: {
     height: '42px',
@@ -218,7 +214,7 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
       result = result.filter(
         (i) =>
           i.nombre.toLowerCase().includes(q) ||
-          (i.familia && i.familia.toLowerCase().includes(q)) ||
+          (i.categoriaPadreNombre && i.categoriaPadreNombre.toLowerCase().includes(q)) ||
           (i.descripcion && i.descripcion.toLowerCase().includes(q))
       );
     }
@@ -242,15 +238,7 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
                 else navigate(`/servicio-campo/categorias-producto/${item.id}`);
               }}
               title={item.nombre}
-              style={{
-                fontWeight: 500,
-                color: tokens.colorBrandForegroundLink,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                display: 'block',
-                textAlign: 'left',
-              }}
+              className={styles.noWrapCell}
             >
               {item.nombre}
             </Link>
@@ -258,16 +246,39 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
         ),
       }),
       createTableColumn<CategoriaProductoDto>({
-        columnId: 'familia',
-        compare: (a, b) => (a.familia || '').localeCompare(b.familia || ''),
-        renderHeaderCell: () => 'Familia / Grupo',
-        renderCell: (item) => (
-          <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>
-              {item.familia || '—'}
-            </Text>
-          </TableCellLayout>
-        ),
+        columnId: 'categoriaPadreNombre',
+        compare: (a, b) => (a.categoriaPadreNombre || '').localeCompare(b.categoriaPadreNombre || ''),
+        renderHeaderCell: () => 'Categoría Padre',
+        renderCell: (item) => {
+          const padreId = item.categoriaPadreId || items.find((c) => c.nombre === item.categoriaPadreNombre)?.id;
+          return (
+            <TableCellLayout truncate>
+              {item.categoriaPadreNombre ? (
+                padreId ? (
+                  <Link
+                    as="button"
+                    className={styles.noWrapCell}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/servicio-campo/categorias-producto/${padreId}`);
+                    }}
+                    title={`Ir a categoría padre: ${item.categoriaPadreNombre}`}
+                  >
+                    {item.categoriaPadreNombre}
+                  </Link>
+                ) : (
+                  <Text wrap={false} className={styles.noWrapCell}>
+                    {item.categoriaPadreNombre}
+                  </Text>
+                )
+              ) : (
+                <Text wrap={false} className={styles.noWrapCell}>
+                  ---
+                </Text>
+              )}
+            </TableCellLayout>
+          );
+        },
       }),
       createTableColumn<CategoriaProductoDto>({
         columnId: 'descripcion',
@@ -302,7 +313,6 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
         <div className={styles.toolbarLeft}>
           <Toolbar size="medium" style={{ backgroundColor: 'transparent', padding: 0 }}>
             <ToolbarButton
-              className={styles.btnPrimary}
               icon={<Add16Regular style={{ color: tokens.colorPaletteGreenForeground1 }} />}
               onClick={() => {
                 if (onNew) onNew();
@@ -434,16 +444,8 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
             </Button>
           </div>
         ) : filteredItems.length === 0 ? (
-          <div className={styles.emptyContainer}>
-            <FolderOpen24Regular style={{ fontSize: 40 }} />
-            <Text size={400} weight="semibold">
-              No se encontraron registros
-            </Text>
-            <Text size={200}>
-              {searchKeyword
-                ? 'No hay categorías que coincidan con la búsqueda.'
-                : 'Crea tu primera categoría pulsando el botón "+ Nuevo".'}
-            </Text>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '64px 16px', color: tokens.colorNeutralForeground3 }}>
+            <Text size={300}>No hay datos</Text>
           </div>
         ) : (
           <DataGrid

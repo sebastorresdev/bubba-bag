@@ -50,6 +50,20 @@ async function parseResponseBody<T>(res: Response): Promise<T> {
   }
 }
 
+function extractApiErrorMessage(errorData: any, fallbackText: string, status?: number): string {
+  if (!errorData) return fallbackText;
+  if (typeof errorData === 'string') return errorData;
+  if (errorData.detail) return errorData.detail;
+  if (errorData.mensaje) return errorData.mensaje;
+  if (errorData.message) return errorData.message;
+  if (errorData.title) return errorData.title;
+  if (errorData.errors && typeof errorData.errors === 'object') {
+    const list = Object.values(errorData.errors).flat().filter(Boolean);
+    if (list.length > 0) return list.join(', ');
+  }
+  return fallbackText;
+}
+
 export async function apiClient<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -81,14 +95,16 @@ export async function apiClient<T>(
         headers,
       });
       if (!retryResponse.ok) {
-        throw new Error(`API Error: ${retryResponse.statusText}`);
+        const errData = await parseResponseBody<any>(retryResponse);
+        throw new Error(extractApiErrorMessage(errData, `API Error: ${retryResponse.statusText}`, retryResponse.status));
       }
       return parseResponseBody<T>(retryResponse);
     }
   }
 
   if (!response.ok) {
-    throw new Error(`API Error ${response.status}: ${response.statusText}`);
+    const errData = await parseResponseBody<any>(response);
+    throw new Error(extractApiErrorMessage(errData, `API Error ${response.status}: ${response.statusText}`, response.status));
   }
 
   return parseResponseBody<T>(response);
@@ -105,7 +121,8 @@ export async function apiClientDownload(endpoint: string, defaultFilename: strin
   });
 
   if (!response.ok) {
-    throw new Error(`Error al descargar archivo: ${response.statusText}`);
+    const errData = await parseResponseBody<any>(response);
+    throw new Error(extractApiErrorMessage(errData, `Error al descargar archivo: ${response.statusText}`, response.status));
   }
 
   const blob = await response.blob();
@@ -132,7 +149,7 @@ export async function apiClientUpload<T>(endpoint: string, formData: FormData): 
 
   if (!response.ok) {
     const errorData = await parseResponseBody<any>(response);
-    throw new Error(errorData?.mensaje || errorData?.message || `Error al subir archivo: ${response.statusText}`);
+    throw new Error(extractApiErrorMessage(errorData, `Error al subir archivo (${response.status}): ${response.statusText}`, response.status));
   }
 
   return parseResponseBody<T>(response);

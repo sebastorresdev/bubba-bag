@@ -23,6 +23,7 @@ public class ObtenerProductoPorIdHandler : IQueryHandler<ObtenerProductoPorIdQue
     {
         var p = await _context.Productos
             .AsNoTracking()
+            .Include(x => x.ListaPreciosPredeterminada)
             .FirstOrDefaultAsync(x => x.Id == query.Id, cancellationToken);
 
         if (p is null)
@@ -46,7 +47,9 @@ public class ObtenerProductoPorIdHandler : IQueryHandler<ObtenerProductoPorIdQue
             p.CostoActual,
             p.CostoEstandar,
             p.AfectoImpuesto,
-            p.ProveedorDefecto
+            p.ProveedorDefecto,
+            p.ListaPreciosPredeterminadaId,
+            p.ListaPreciosPredeterminada?.Nombre
         );
 
         return Result<ProductoDto>.Success(dto);

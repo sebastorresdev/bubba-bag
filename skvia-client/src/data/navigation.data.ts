@@ -148,6 +148,13 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
                 iconName: 'Box',
                 description: 'Maestro de productos y control de inventario.',
               },
+              {
+                id: 'listas-precios',
+                title: 'Listas de Precios',
+                path: '/servicio-campo/listas-precios',
+                iconName: 'Money',
+                description: 'Gestión de listas y niveles de precios para productos y servicios.',
+              },
             ],
           },
           {

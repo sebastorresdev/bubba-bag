@@ -19,6 +19,8 @@ export interface ProductoDto {
   costoEstandar?: number;
   afectoImpuesto?: boolean;
   proveedorDefecto?: string;
+  listaPreciosPredeterminadaId?: string | null;
+  listaPreciosPredeterminadaNombre?: string | null;
 }
 
 export interface CreateProductoDto {
@@ -38,6 +40,7 @@ export interface CreateProductoDto {
   costoEstandar?: number;
   afectoImpuesto?: boolean;
   proveedorDefecto?: string;
+  listaPreciosPredeterminadaId?: string | null;
 }
 
 export interface UpdateProductoDto {
@@ -56,4 +59,5 @@ export interface UpdateProductoDto {
   costoEstandar?: number;
   afectoImpuesto?: boolean;
   proveedorDefecto?: string;
+  listaPreciosPredeterminadaId?: string | null;
 }

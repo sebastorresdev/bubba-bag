@@ -83,7 +83,9 @@ public class ObtenerProductosHandler : IQueryHandler<ObtenerProductosQuery, Resu
                 p.CostoActual,
                 p.CostoEstandar,
                 p.AfectoImpuesto,
-                p.ProveedorDefecto
+                p.ProveedorDefecto,
+                p.ListaPreciosPredeterminadaId,
+                p.ListaPreciosPredeterminada != null ? p.ListaPreciosPredeterminada.Nombre : null
             ))
             .ToListAsync(cancellationToken);
 

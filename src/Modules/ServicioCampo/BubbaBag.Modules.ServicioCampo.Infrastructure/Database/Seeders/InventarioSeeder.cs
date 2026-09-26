@@ -13,12 +13,10 @@ public static class InventarioSeeder
 {
     public static async Task SeedAsync(ServicioCampoDbContext context, ILogger logger, Dictionary<string, Guid>? sucursalesMap = null)
     {
-        await SeedProductosAsync(context, logger);
         if (sucursalesMap != null && sucursalesMap.Count > 0)
         {
             await SeedAlmacenesAsync(context, sucursalesMap, logger);
         }
-        await SeedStockYSeriadosAsync(context, logger);
     }
 
     private static async Task SeedProductosAsync(ServicioCampoDbContext context, ILogger logger)
