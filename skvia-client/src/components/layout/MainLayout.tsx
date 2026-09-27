@@ -27,6 +27,7 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     flexGrow: 1,
     overflow: 'hidden',
+    minWidth: 0,
     backgroundColor: tokens.colorNeutralBackground3,
   },
 });

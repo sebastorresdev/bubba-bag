@@ -921,7 +921,7 @@ export const ListaPreciosFormPage: React.FC = () => {
                 <div className={localStyles.subgridTools}>
                   <Input
                     size="small"
-                    placeholder="Filtrar por producto o código..."
+                    placeholder="Filtrar por palabra clave"
                     contentBefore={<Search16Regular />}
                     value={elementosSearch}
                     onChange={(_, d) => setElementosSearch(d.value)}
@@ -929,23 +929,23 @@ export const ListaPreciosFormPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Subgrid DataGrid or Empty State */}
-              {filteredElementos.length === 0 ? (
-                <TableEmptyState />
-              ) : (
-                <DataGrid
-                  items={filteredElementos}
-                  columns={elementoColumns}
-                  getRowId={(item) => item.id}
-                  className={localStyles.subgridTable}
-                >
-                  <DataGridHeader>
-                    <DataGridRow>
-                      {({ renderHeaderCell }) => (
-                        <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
-                      )}
-                    </DataGridRow>
-                  </DataGridHeader>
+              {/* Subgrid DataGrid con cabeceras siempre visibles y Empty State */}
+              <DataGrid
+                items={filteredElementos}
+                columns={elementoColumns}
+                getRowId={(item) => item.id}
+                className={localStyles.subgridTable}
+              >
+                <DataGridHeader>
+                  <DataGridRow>
+                    {({ renderHeaderCell }) => (
+                      <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
+                    )}
+                  </DataGridRow>
+                </DataGridHeader>
+                {filteredElementos.length === 0 ? (
+                  <TableEmptyState />
+                ) : (
                   <DataGridBody<ElementoListaPreciosDto>>
                     {({ item, rowId }) => (
                       <DataGridRow<ElementoListaPreciosDto>
@@ -959,8 +959,8 @@ export const ListaPreciosFormPage: React.FC = () => {
                       </DataGridRow>
                     )}
                   </DataGridBody>
-                </DataGrid>
-              )}
+                )}
+              </DataGrid>
             </div>
           </Card>
         )}

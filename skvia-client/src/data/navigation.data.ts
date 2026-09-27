@@ -177,6 +177,19 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
               },
             ],
           },
+          {
+            id: 'data-management',
+            title: 'Administración de Datos',
+            items: [
+              {
+                id: 'imports',
+                title: 'Importaciones y Cargas',
+                path: '/configuracion/data-management/imports',
+                iconName: 'ArrowUpload',
+                description: 'Auditoría, historial y asistente de importación inteligente de datos.',
+              },
+            ],
+          },
         ],
       },
     ],

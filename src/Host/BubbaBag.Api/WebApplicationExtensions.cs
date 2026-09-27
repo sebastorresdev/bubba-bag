@@ -153,11 +153,50 @@ public static class WebApplicationExtensions
                       INSERT INTO inventario.""ListasPrecios"" (""Id"", ""Codigo"", ""Nombre"", ""Moneda"", ""Descripcion"", ""Activo"")
                       VALUES 
                           ('b1111111-1111-1111-1111-111111111111', 'LP-ESTANDAR', 'Tarifa General', 'PEN', 'Lista de precios estándar predeterminada para productos y servicios', true)
-                      ON CONFLICT (""Id"") DO NOTHING;");
+                      ON CONFLICT (""Id"") DO NOTHING;
+
+                      CREATE TABLE IF NOT EXISTS serviciocampo.""DataImportJobs"" (
+                          ""Id"" uuid NOT NULL PRIMARY KEY,
+                          ""NombreArchivo"" character varying(250) NOT NULL,
+                          ""TipoRegistro"" character varying(100) NOT NULL,
+                          ""TamanoBytes"" bigint NOT NULL DEFAULT 0,
+                          ""Estado"" character varying(50) NOT NULL DEFAULT 'Completado',
+                          ""ModoDuplicados"" character varying(50) NOT NULL DEFAULT 'Upsert',
+                          ""PermitirDuplicados"" boolean NOT NULL DEFAULT false,
+                          ""CreadoPor"" character varying(150) NOT NULL DEFAULT 'Usuario Actual',
+                          ""FechaCreacion"" timestamp with time zone NOT NULL DEFAULT NOW(),
+                          ""FechaFinalizacion"" timestamp with time zone,
+                          ""TotalProcesados"" integer NOT NULL DEFAULT 0,
+                          ""TotalExitosos"" integer NOT NULL DEFAULT 0,
+                          ""TotalFallidos"" integer NOT NULL DEFAULT 0,
+                          ""TotalParciales"" integer NOT NULL DEFAULT 0,
+                          ""MapeoCamposJson"" text,
+                          ""ParametrosDelimitadorJson"" text
+                      );
+
+                      CREATE TABLE IF NOT EXISTS serviciocampo.""DataImportJobErrors"" (
+                          ""Id"" uuid NOT NULL PRIMARY KEY,
+                          ""DataImportJobId"" uuid NOT NULL REFERENCES serviciocampo.""DataImportJobs""(""Id"") ON DELETE CASCADE,
+                          ""Fila"" integer NOT NULL,
+                          ""ClaveIdentificador"" character varying(150),
+                          ""Columna"" character varying(150),
+                          ""Mensaje"" character varying(1000) NOT NULL,
+                          ""ValorOriginal"" character varying(1000)
+                      );
+
+                      UPDATE serviciocampo.""DataImportJobs"" SET ""Estado"" = 'Fallido' WHERE ""Estado"" = 'Procesando';");
             }
             catch { }
 
             await servicioCampoDbContext.Database.MigrateAsync();
+            try
+            {
+                await servicioCampoDbContext.Database.ExecuteSqlRawAsync(
+                    @"UPDATE serviciocampo.""DataImportJobs"" 
+                      SET ""CreadoPor"" = 'Sebastián Torres' 
+                      WHERE ""CreadoPor"" = 'Usuario del Sistema' OR ""CreadoPor"" IS NULL;");
+            }
+            catch { }
         }
 
         // 2. Ejecutar sembradores modulares en orden de dependencias

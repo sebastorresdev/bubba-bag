@@ -57,6 +57,8 @@ import {
   Clock20Regular,
   Money20Filled,
   Money20Regular,
+  ArrowUpload20Filled,
+  ArrowUpload20Regular,
 } from '@fluentui/react-icons';
 import type { NavArea, NavItem as NavItemData } from '../../types/navigation.types';
 
@@ -81,6 +83,7 @@ const ICONS_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Barcode: bundleIcon(Tag20Filled, Tag20Regular),
   Clock: bundleIcon(Clock20Filled, Clock20Regular),
   Money: bundleIcon(Money20Filled, Money20Regular),
+  ArrowUpload: bundleIcon(ArrowUpload20Filled, ArrowUpload20Regular),
 };
 
 const useStyles = makeStyles({
@@ -88,6 +91,7 @@ const useStyles = makeStyles({
     height: '100%',
     boxSizing: 'border-box',
     borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
+    flexShrink: 0,
   },
   drawerBody: {
     paddingInlineStart: '0px',

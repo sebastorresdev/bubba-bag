@@ -41,7 +41,7 @@ import {
 } from '@fluentui/react-icons';
 import { UnidadMedidaService } from '../services/unidadMedida.service';
 import type { UnidadMedidaDto } from '../types/unidadMedida.types';
-import { ImportarExcelDialog } from '../../../../components/common/ImportarExcelDialog';
+import { ImportDataDrawer } from '../../../../components/common/ImportDataDrawer';
 import { TableEmptyState } from '../../../../components/common/TableEmptyState';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 
@@ -371,14 +371,12 @@ export const UnidadesMedidaListPage: React.FC<UnidadesMedidaListPageProps> = ({
         )}
       </div>
 
-      {/* 4. IMPORT EXCEL DIALOG */}
-      <ImportarExcelDialog
+      {/* 4. IMPORT DATA DRAWER LATERAL DERECHO (DYNAMICS 365) */}
+      <ImportDataDrawer
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
-        title="Importar Unidades de Medida desde Excel"
-        entityName="Unidades de Medida"
+        targetEntityName="UnidadMedida"
         onDownloadTemplate={() => UnidadMedidaService.descargarPlantillaExcel()}
-        onUploadFile={(file) => UnidadMedidaService.importarExcel(file)}
         onSuccess={loadData}
       />
     </div>

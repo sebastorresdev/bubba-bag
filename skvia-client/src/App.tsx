@@ -5,6 +5,7 @@ import { ProductosListPage, ProductoFormPage } from './features/inventario/produ
 import { UnidadesMedidaListPage, UnidadMedidaFormPage } from './features/inventario/unidades-medida';
 import { CategoriasListPage, CategoriaFormPage } from './features/inventario/categorias';
 import { ListasPreciosListPage, ListaPreciosFormPage } from './features/inventario/listas-precios';
+import { ImportsListPage, ImportJobDetailPage } from './features/data-management';
 import { PlaceholderPage } from './components/common/PlaceholderPage';
 
 export default function App() {
@@ -34,6 +35,10 @@ export default function App() {
             <Route path="servicio-campo/listas-precios" element={<ListasPreciosListPage />} />
             <Route path="servicio-campo/listas-precios/nuevo" element={<ListaPreciosFormPage />} />
             <Route path="servicio-campo/listas-precios/:id" element={<ListaPreciosFormPage />} />
+
+            {/* 5. Data Management / Imports (Auditoría e Importaciones D365) */}
+            <Route path="configuracion/data-management/imports" element={<ImportsListPage />} />
+            <Route path="configuracion/data-management/imports/:id" element={<ImportJobDetailPage />} />
 
             {/* Vistas en construcción o rutas no mapeadas */}
             <Route path="*" element={<PlaceholderPage />} />

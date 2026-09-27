@@ -6,6 +6,7 @@ export const useD365FormStyles = makeStyles({
     flexDirection: 'column',
     height: '100%',
     width: '100%',
+    minWidth: 0,
     backgroundColor: tokens.colorNeutralBackground2,
     overflow: 'hidden',
     userSelect: 'none',
@@ -135,6 +136,7 @@ export const useD365FormStyles = makeStyles({
   contentBody: {
     flexGrow: 1,
     overflowY: 'auto',
+    overflowX: 'hidden',
     padding: '20px 24px 36px 24px',
     display: 'flex',
     flexDirection: 'column',
@@ -142,6 +144,7 @@ export const useD365FormStyles = makeStyles({
     width: '100%',
     boxSizing: 'border-box',
     margin: '0',
+    minWidth: 0,
   },
   grid2Cols: {
     display: 'grid',

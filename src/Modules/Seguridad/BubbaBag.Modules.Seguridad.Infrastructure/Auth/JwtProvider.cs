@@ -27,6 +27,7 @@ public class JwtProvider : IJwtProvider
             new Claim(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()),
             new Claim(ClaimTypes.Email, usuario.Email ?? string.Empty),
             new Claim(JwtRegisteredClaimNames.Email, usuario.Email ?? string.Empty),
+            new Claim(ClaimTypes.Name, usuario.NombreCompleto),
             new Claim("nombre_completo", usuario.NombreCompleto)
         };
 

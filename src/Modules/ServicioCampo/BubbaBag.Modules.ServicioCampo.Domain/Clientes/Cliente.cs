@@ -100,6 +100,32 @@ public class Cliente : Entity<Guid>
         CoordenadaLng = lng;
     }
 
+    public void Actualizar(
+        string nombres,
+        string? apellidos,
+        string telefonoPrincipal,
+        string direccion,
+        string ubigeoCodigo,
+        string tipoDocumento = "DNI",
+        string tipoPersona = "NATURAL",
+        string? razonSocial = null,
+        string? telefonoSecundario = null,
+        string? email = null,
+        string? referencia = null)
+    {
+        Nombres = nombres.Trim();
+        Apellidos = apellidos?.Trim();
+        TelefonoPrincipal = telefonoPrincipal.Trim();
+        Direccion = direccion.Trim();
+        UbigeoCodigo = ubigeoCodigo.Trim();
+        TipoDocumento = tipoDocumento.Trim().ToUpperInvariant();
+        TipoPersona = tipoPersona.Trim().ToUpperInvariant();
+        RazonSocial = razonSocial?.Trim();
+        TelefonoSecundario = telefonoSecundario?.Trim();
+        Email = email?.Trim().ToLowerInvariant();
+        ReferenciaUbicacion = referencia?.Trim();
+    }
+
     public void ActualizarClasificacion(bool esClienteFacturacion, bool esClienteServicio)
     {
         EsClienteFacturacion = esClienteFacturacion;

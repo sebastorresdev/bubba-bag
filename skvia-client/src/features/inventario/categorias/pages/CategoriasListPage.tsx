@@ -41,7 +41,7 @@ import {
 } from '@fluentui/react-icons';
 import { CategoriaService } from '../services/categoria.service';
 import type { CategoriaProductoDto } from '../types/categoria.types';
-import { ImportarExcelDialog } from '../../../../components/common/ImportarExcelDialog';
+import { ImportDataDrawer } from '../../../../components/common/ImportDataDrawer';
 import { TableEmptyState } from '../../../../components/common/TableEmptyState';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 
@@ -371,14 +371,12 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
         )}
       </div>
 
-      {/* 4. IMPORT EXCEL DIALOG */}
-      <ImportarExcelDialog
+      {/* 4. IMPORT DATA DRAWER LATERAL DERECHO (DYNAMICS 365) */}
+      <ImportDataDrawer
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
-        title="Importar Categorías de Producto desde Excel"
-        entityName="Categorías"
+        targetEntityName="Categoria"
         onDownloadTemplate={() => CategoriaService.descargarPlantillaExcel()}
-        onUploadFile={(file) => CategoriaService.importarExcel(file)}
         onSuccess={loadData}
       />
     </div>

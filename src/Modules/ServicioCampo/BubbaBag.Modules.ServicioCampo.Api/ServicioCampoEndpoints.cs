@@ -12,5 +12,6 @@ public static class ServicioCampoEndpoints
         app.MapProductosEndpoints();
         app.MapCatalogosProductoEndpoints();
         app.MapMantenimientosEndpoints();
+        app.MapDataManagementEndpoints();
     }
 }

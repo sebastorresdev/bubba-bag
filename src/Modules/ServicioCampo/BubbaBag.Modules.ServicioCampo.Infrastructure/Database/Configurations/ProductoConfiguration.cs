@@ -11,6 +11,8 @@ public class ProductoConfiguration : IEntityTypeConfiguration<Producto>
         builder.ToTable("Productos", "inventario");
 
         builder.HasKey(p => p.Id);
+        builder.Property(p => p.Id)
+            .ValueGeneratedNever();
 
         builder.Property(p => p.Codigo)
             .IsRequired()

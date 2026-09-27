@@ -14,6 +14,8 @@ public static class ServicioCampoModule
         // Infrastructure
         services.AddScoped<IServicioCampoDbContext>(provider => provider.GetRequiredService<ServicioCampoDbContext>());
         services.AddScoped<BubbaBag.Modules.ServicioCampo.Application.Productos.Services.IInventarioExcelService, BubbaBag.Modules.ServicioCampo.Infrastructure.Services.InventarioExcelService>();
+        services.AddSingleton<BubbaBag.Modules.ServicioCampo.Application.DataManagement.Services.IEntityImportMetadataService, BubbaBag.Modules.ServicioCampo.Infrastructure.Services.EntityImportMetadataService>();
+        services.AddScoped<BubbaBag.Modules.ServicioCampo.Application.DataManagement.Services.IDataImportEngineService, BubbaBag.Modules.ServicioCampo.Infrastructure.Services.DataImportEngineService>();
 
         // Application Assembly - Registrar dinámicamente todos los ICommandHandler<,>, IQueryHandler<,> y Validators
         var applicationAssembly = typeof(IServicioCampoDbContext).Assembly;

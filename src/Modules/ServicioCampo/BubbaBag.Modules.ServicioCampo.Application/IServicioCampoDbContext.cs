@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using BubbaBag.Modules.RecursosHumanos.Domain.Organizacion;
 using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
 using BubbaBag.Modules.ServicioCampo.Domain.Clientes;
+using BubbaBag.Modules.ServicioCampo.Domain.Importaciones;
 using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 using BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
 using BubbaBag.Modules.ServicioCampo.Domain.Plantillas;
@@ -52,6 +53,10 @@ public interface IServicioCampoDbContext
     DbSet<MaterialTrabajo> MaterialesTrabajo { get; }
     DbSet<LiquidacionMaterial> LiquidacionesMaterial { get; }
     DbSet<LiquidacionMaterialItem> LiquidacionesMaterialItems { get; }
+
+    // Gestión de Importación Masiva (Data Management)
+    DbSet<DataImportJob> DataImportJobs { get; }
+    DbSet<DataImportJobError> DataImportJobErrors { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
