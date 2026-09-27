@@ -12,7 +12,6 @@ export interface ProductoDto {
   unidadMedida: string;
   esSerializado: boolean;
   activo: boolean;
-  convertirEnActivoCliente?: boolean;
   codigoBarras?: string;
   notas?: string;
   costoActual?: number;
@@ -33,7 +32,6 @@ export interface CreateProductoDto {
   unidadMedida?: string;
   esSerializado?: boolean;
   descripcion?: string;
-  convertirEnActivoCliente?: boolean;
   codigoBarras?: string;
   notas?: string;
   costoActual?: number;
@@ -52,7 +50,6 @@ export interface UpdateProductoDto {
   unidadMedida?: string;
   esSerializado?: boolean;
   descripcion?: string;
-  convertirEnActivoCliente?: boolean;
   codigoBarras?: string;
   notas?: string;
   costoActual?: number;

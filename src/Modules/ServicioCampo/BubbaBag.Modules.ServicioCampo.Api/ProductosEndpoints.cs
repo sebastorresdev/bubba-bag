@@ -42,17 +42,30 @@ public static class ProductosEndpoints
     }
 
     private static async Task<IResult> ImportarProductosExcel(
-        IFormFile file,
+        HttpRequest request,
         BubbaBag.Modules.ServicioCampo.Application.Productos.Services.IInventarioExcelService excelService,
         System.Threading.CancellationToken cancellationToken)
     {
+        if (!request.HasFormContentType)
+        {
+            return Results.BadRequest(new { mensaje = "Tipo de contenido inválido. Se esperaba multipart/form-data." });
+        }
+
+        var form = await request.ReadFormAsync(cancellationToken);
+        var file = form.Files.GetFile("file") ?? form.Files.FirstOrDefault();
         if (file == null || file.Length == 0)
         {
             return Results.BadRequest(new { mensaje = "Debe proporcionar un archivo de Excel válido (.xlsx)." });
         }
 
+        bool actualizarExistentes = false;
+        if (form.TryGetValue("actualizarExistentes", out var actVal))
+        {
+            _ = bool.TryParse(actVal.ToString(), out actualizarExistentes);
+        }
+
         using var stream = file.OpenReadStream();
-        var resultado = await excelService.ImportarProductosAsync(stream, cancellationToken);
+        var resultado = await excelService.ImportarProductosAsync(stream, actualizarExistentes, cancellationToken);
         return Results.Ok(resultado);
     }
 
@@ -90,7 +103,6 @@ public static class ProductosEndpoints
             request.UnidadMedida ?? "Unidades",
             request.EsSerializado,
             request.Descripcion,
-            request.ConvertirEnActivoCliente,
             request.CodigoBarras,
             request.Notas,
             request.CostoActual ?? 0m,
@@ -121,7 +133,6 @@ public static class ProductosEndpoints
             request.Tipo ?? TipoProducto.Inventario,
             request.PrecioBase ?? 0m,
             request.CatalogoId,
-            request.ConvertirEnActivoCliente,
             request.CodigoBarras,
             request.Notas,
             request.CostoActual ?? 0m,
@@ -156,7 +167,6 @@ public record CrearProductoRequest(
     string? UnidadMedida,
     bool EsSerializado,
     string? Descripcion,
-    bool ConvertirEnActivoCliente = false,
     string? CodigoBarras = null,
     string? Notas = null,
     decimal? CostoActual = null,
@@ -175,7 +185,6 @@ public record ActualizarProductoRequest(
     string? UnidadMedida,
     bool EsSerializado,
     string? Descripcion,
-    bool ConvertirEnActivoCliente = false,
     string? CodigoBarras = null,
     string? Notas = null,
     decimal? CostoActual = null,

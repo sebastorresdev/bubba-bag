@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  makeStyles,
-  tokens,
   Toolbar,
   ToolbarButton,
   ToolbarDivider,
@@ -40,125 +38,12 @@ import {
   Share16Regular,
   TableEdit16Regular,
   Warning24Regular,
-  FolderOpen24Regular,
 } from '@fluentui/react-icons';
 import { CategoriaService } from '../services/categoria.service';
 import type { CategoriaProductoDto } from '../types/categoria.types';
 import { ImportarExcelDialog } from '../../../../components/common/ImportarExcelDialog';
-
-const useStyles = makeStyles({
-  root: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%',
-    width: '100%',
-    backgroundColor: tokens.colorNeutralBackground1,
-    overflow: 'hidden',
-    userSelect: 'none',
-  },
-  // 1. Dynamics 365 Standard Top Command Bar
-  commandBar: {
-    height: '44px',
-    backgroundColor: tokens.colorNeutralBackground1,
-    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 8px',
-    flexShrink: 0,
-    zIndex: 10,
-  },
-  toolbarLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '2px',
-  },
-  // 2. View Header Row (Selector + Search)
-  viewHeader: {
-    height: '42px',
-    backgroundColor: tokens.colorNeutralBackground2,
-    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 16px',
-    flexShrink: 0,
-  },
-  viewSelectorTab: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    cursor: 'pointer',
-    fontSize: tokens.fontSizeBase400,
-    fontWeight: tokens.fontWeightSemibold,
-    color: tokens.colorNeutralForeground1,
-    padding: '4px 8px',
-    borderRadius: tokens.borderRadiusMedium,
-    ':hover': {
-      backgroundColor: tokens.colorNeutralBackground1Hover,
-    },
-  },
-  viewToolsRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  searchBox: {
-    width: '240px',
-  },
-  // 3. Grid Container
-  gridWrapper: {
-    flexGrow: 1,
-    overflow: 'auto',
-    backgroundColor: tokens.colorNeutralBackground1,
-  },
-  table: {
-    width: '100%',
-    minWidth: '700px',
-    userSelect: 'text',
-  },
-  dataRow: {
-    userSelect: 'text',
-    ':hover': {
-      backgroundColor: tokens.colorNeutralBackground1Hover,
-    },
-  },
-  dataCell: {
-    userSelect: 'text',
-    cursor: 'text',
-  },
-  noWrapCell: {
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    userSelect: 'text',
-  },
-  loadingContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-    gap: '12px',
-  },
-  emptyContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '60%',
-    gap: '12px',
-    color: tokens.colorNeutralForeground3,
-  },
-  errorContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '48px 16px',
-    gap: '12px',
-  },
-});
+import { TableEmptyState } from '../../../../components/common/TableEmptyState';
+import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 
 export interface CategoriasListPageProps {
   onNew?: () => void;
@@ -169,7 +54,7 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
   onNew,
   onSelect,
 }) => {
-  const styles = useStyles();
+  const styles = useD365ListStyles();
   const navigate = useNavigate();
 
   const [items, setItems] = useState<CategoriaProductoDto[]>([]);
@@ -238,7 +123,7 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
                 else navigate(`/servicio-campo/categorias-producto/${item.id}`);
               }}
               title={item.nombre}
-              className={styles.noWrapCell}
+              className={styles.primaryLink}
             >
               {item.nombre}
             </Link>
@@ -311,9 +196,9 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
       {/* 1. TOP COMMAND BAR */}
       <div className={styles.commandBar}>
         <div className={styles.toolbarLeft}>
-          <Toolbar size="medium" style={{ backgroundColor: 'transparent', padding: 0 }}>
+          <Toolbar size="medium" className={styles.transparentToolbar}>
             <ToolbarButton
-              icon={<Add16Regular style={{ color: tokens.colorPaletteGreenForeground1 }} />}
+              icon={<Add16Regular className={styles.iconNewGreen} />}
               onClick={() => {
                 if (onNew) onNew();
                 else navigate('/servicio-campo/categorias-producto/nuevo');
@@ -333,7 +218,7 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
 
             <ToolbarButton icon={<ArrowDownload16Regular />}>
               Exportar a Excel
-              <ChevronDown12Regular style={{ marginLeft: 4 }} />
+              <ChevronDown12Regular className={styles.iconChevronMargin} />
             </ToolbarButton>
 
             <ToolbarButton
@@ -351,7 +236,7 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
             icon={<Share16Regular />}
           >
             Compartir
-            <ChevronDown12Regular style={{ marginLeft: 4 }} />
+            <ChevronDown12Regular className={styles.iconChevronMargin} />
           </ToolbarButton>
         </div>
       </div>
@@ -361,18 +246,18 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
         <Menu>
           <MenuTrigger disableButtonEnhancement>
             <div className={styles.viewSelectorTab} title="Seleccionar vista">
-              <span>
+              <Text weight="semibold" size={400}>
                 {activeView === 'activos'
                   ? 'Categorías Activas'
                   : activeView === 'inactivos'
                     ? 'Categorías Inactivas'
                     : 'Todas las Categorías'}
-              </span>
+              </Text>
               <ChevronDown16Regular />
             </div>
           </MenuTrigger>
           <MenuPopover>
-            <MenuList style={{ minWidth: '240px' }}>
+            <MenuList className={styles.viewMenuPopover}>
               <MenuItem
                 icon={activeView === 'activos' ? <Checkmark16Regular /> : undefined}
                 onClick={() => setActiveView('activos')}
@@ -400,7 +285,7 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
             <Button
               appearance="subtle"
               size="medium"
-              icon={<TableEdit16Regular style={{ color: tokens.colorCompoundBrandForeground1 }} />}
+              icon={<TableEdit16Regular className={styles.iconBrand} />}
             >
               Editar columnas
             </Button>
@@ -410,7 +295,7 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
             <Button
               appearance="subtle"
               size="medium"
-              icon={<DataFunnel20Regular style={{ color: tokens.colorCompoundBrandForeground1 }} />}
+              icon={<DataFunnel20Regular className={styles.iconBrand} />}
             >
               Editar filtros
             </Button>
@@ -431,21 +316,17 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
       <div className={styles.gridWrapper}>
         {loading ? (
           <div className={styles.loadingContainer}>
-            <Spinner size="medium" label="Cargando categorías..." />
+            <Spinner size="medium" label="Cargando..." />
           </div>
         ) : error ? (
           <div className={styles.errorContainer}>
-            <Warning24Regular style={{ color: tokens.colorStatusDangerForeground1 }} />
-            <Text weight="semibold" style={{ color: tokens.colorStatusDangerForeground1 }}>
+            <Warning24Regular className={styles.iconDanger} />
+            <Text weight="semibold" className={styles.dangerText}>
               {error}
             </Text>
             <Button appearance="outline" onClick={loadData}>
               Reintentar
             </Button>
-          </div>
-        ) : filteredItems.length === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '64px 16px', color: tokens.colorNeutralForeground3 }}>
-            <Text size={300}>No hay datos</Text>
           </div>
         ) : (
           <DataGrid
@@ -466,22 +347,26 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
                 )}
               </DataGridRow>
             </DataGridHeader>
-            <DataGridBody<CategoriaProductoDto>>
-              {({ item, rowId }) => (
-                <DataGridRow<CategoriaProductoDto>
-                  key={rowId}
-                  className={styles.dataRow}
-                  onDoubleClick={() => {
-                    if (onSelect) onSelect(item);
-                    else navigate(`/servicio-campo/categorias-producto/${item.id}`);
-                  }}
-                >
-                  {({ renderCell }) => (
-                    <DataGridCell className={styles.dataCell}>{renderCell(item)}</DataGridCell>
-                  )}
-                </DataGridRow>
-              )}
-            </DataGridBody>
+            {filteredItems.length === 0 ? (
+              <TableEmptyState />
+            ) : (
+              <DataGridBody<CategoriaProductoDto>>
+                {({ item, rowId }) => (
+                  <DataGridRow<CategoriaProductoDto>
+                    key={rowId}
+                    className={styles.dataRow}
+                    onDoubleClick={() => {
+                      if (onSelect) onSelect(item);
+                      else navigate(`/servicio-campo/categorias-producto/${item.id}`);
+                    }}
+                  >
+                    {({ renderCell }) => (
+                      <DataGridCell className={styles.dataCell}>{renderCell(item)}</DataGridCell>
+                    )}
+                  </DataGridRow>
+                )}
+              </DataGridBody>
+            )}
           </DataGrid>
         )}
       </div>

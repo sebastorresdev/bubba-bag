@@ -41,7 +41,6 @@ public class ObtenerProductoPorIdHandler : IQueryHandler<ObtenerProductoPorIdQue
             p.UnidadMedida,
             p.EsSerializado,
             p.Activo,
-            p.ConvertirEnActivoCliente,
             p.CodigoBarras,
             p.Notas,
             p.CostoActual,

@@ -20,7 +20,6 @@ public class Producto : Entity<Guid>
     public string? Categoria { get; private set; } // Materiales, Equipos, Insumos, Herramientas, Servicios
     public string UnidadMedida { get; private set; } = "Unidades"; // Unidades, Metros, Rollos, Cajas, Servicios
     public bool EsSerializado { get; private set; } // true para decos/routers con serie
-    public bool ConvertirEnActivoCliente { get; private set; } = false; // Convert to Customer Asset (Field Service)
     public string? CodigoBarras { get; private set; } // UPC Code / Barcode
     public string? Notas { get; private set; } // Notas internas y especificaciones
     public decimal CostoActual { get; private set; } = 0m; // Current Cost
@@ -41,7 +40,6 @@ public class Producto : Entity<Guid>
         TipoProducto tipo = TipoProducto.Inventario,
         decimal precioBase = 0m,
         Guid? catalogoId = null,
-        bool convertirEnActivoCliente = false,
         string? codigoBarras = null,
         string? notas = null,
         decimal costoActual = 0m,
@@ -63,7 +61,6 @@ public class Producto : Entity<Guid>
             PrecioBase = Math.Max(0, precioBase),
             CatalogoId = catalogoId,
             ListaPreciosPredeterminadaId = listaPreciosPredeterminadaId,
-            ConvertirEnActivoCliente = convertirEnActivoCliente,
             CodigoBarras = codigoBarras?.Trim(),
             Notas = notas?.Trim(),
             CostoActual = Math.Max(0, costoActual),
@@ -83,7 +80,6 @@ public class Producto : Entity<Guid>
         TipoProducto tipo = TipoProducto.Inventario,
         decimal precioBase = 0m,
         Guid? catalogoId = null,
-        bool convertirEnActivoCliente = false,
         string? codigoBarras = null,
         string? notas = null,
         decimal costoActual = 0m,
@@ -101,7 +97,6 @@ public class Producto : Entity<Guid>
         PrecioBase = Math.Max(0, precioBase);
         CatalogoId = catalogoId;
         ListaPreciosPredeterminadaId = listaPreciosPredeterminadaId;
-        ConvertirEnActivoCliente = convertirEnActivoCliente;
         CodigoBarras = codigoBarras?.Trim();
         Notas = notas?.Trim();
         CostoActual = Math.Max(0, costoActual);

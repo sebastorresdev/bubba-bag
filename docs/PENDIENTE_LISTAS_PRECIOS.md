@@ -60,16 +60,21 @@
   - Botón para agregar el producto a otra lista con un precio específico.
   - Acciones para editar precio o eliminar el producto de esa lista.
 
-### Tarea 3: Módulo Frontend de Listas de Precios
-- [ ] **`ListasPreciosListPage.tsx`:**
+### Tarea 3: Módulo Frontend de Listas de Precios (COMPLETADO)
+- [x] **`ListasPreciosListPage.tsx`:**
   - Tabla de listas de precios (Nombre, Código, Moneda, Fechas de Vigencia, Cantidad de productos, Estado).
-  - Vistas filtradas (Activas / Inactivas).
-  - Búsqueda en tiempo real.
-- [ ] **`ListaPreciosFormPage.tsx`:**
-  - Cabecera: Nombre, Código, Moneda (PEN/USD), Fechas Desde/Hasta, Descripción.
-  - Subcuadrícula: Tabla con todos los productos asignados a esta lista, sus unidades y montos, con opción de agregar productos rápidamente.
-- [ ] **Rutas en `App.tsx`:**
-  - Reemplazar el `PlaceholderPage` por las nuevas páginas:
+  - Vistas filtradas (Activas / Inactivas / Todas).
+  - Búsqueda en tiempo real por nombre, código o moneda.
+  - Multi-selección con activación/desactivación por lotes.
+- [x] **`ListaPreciosFormPage.tsx`:**
+  - Cabecera estilo Dynamics 365: Nombre, Código, Moneda (PEN/USD), Estado, Artículos vinculados.
+  - Pestaña General: Código, Nombre, Moneda (PEN/USD), Fechas Desde/Hasta y Descripción.
+  - Pestaña Elementos de Lista de Precios: Subcuadrícula con productos asignados, importes/porcentajes, unidades y métodos de fijación.
+  - Diálogo modal para agregar productos al vuelo con validación de tarifas y unidades.
+  - Eliminación de productos de la lista con confirmación interactiva.
+- [x] **Rutas en `App.tsx` y Exports en `index.ts`:**
+  - Reemplazado el `PlaceholderPage` por las nuevas páginas funcionales:
     - `/servicio-campo/listas-precios` -> `ListasPreciosListPage`
     - `/servicio-campo/listas-precios/nuevo` -> `ListaPreciosFormPage`
     - `/servicio-campo/listas-precios/:id` -> `ListaPreciosFormPage`
+

@@ -50,7 +50,7 @@ async function parseResponseBody<T>(res: Response): Promise<T> {
   }
 }
 
-function extractApiErrorMessage(errorData: any, fallbackText: string, status?: number): string {
+function extractApiErrorMessage(errorData: any, fallbackText: string, _status?: number): string {
   if (!errorData) return fallbackText;
   if (typeof errorData === 'string') return errorData;
   if (errorData.detail) return errorData.detail;

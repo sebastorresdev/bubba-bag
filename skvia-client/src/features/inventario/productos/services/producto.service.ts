@@ -44,9 +44,10 @@ export const ProductoService = {
     return apiClientDownload('/api/inventario/productos/plantilla-excel', 'Plantilla_Productos.xlsx');
   },
 
-  async importarExcel(file: File): Promise<ImportarExcelResultadoDto> {
+  async importarExcel(file: File, actualizarExistentes: boolean = false): Promise<ImportarExcelResultadoDto> {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('actualizarExistentes', String(actualizarExistentes));
     return apiClientUpload<ImportarExcelResultadoDto>('/api/inventario/productos/importar-excel', formData);
   },
 };

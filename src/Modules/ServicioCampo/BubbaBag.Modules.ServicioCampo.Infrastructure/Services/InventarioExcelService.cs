@@ -29,28 +29,18 @@ public class InventarioExcelService : IInventarioExcelService
     {
         using var workbook = new XLWorkbook();
 
-        // 1. Obtener datos de soporte de la BD
+        // 1. Obtener datos reales de la BD
         var categorias = await _context.CategoriasProducto
             .Where(c => c.Activo)
             .OrderBy(c => c.Nombre)
             .Select(c => c.Nombre)
             .ToListAsync(cancellationToken);
 
-        if (categorias.Count == 0)
-        {
-            categorias = new List<string> { "Materiales", "Equipos", "Insumos", "Herramientas", "Servicios" };
-        }
-
         var unidades = await _context.UnidadesMedida
             .Where(u => u.Activo)
             .OrderBy(u => u.Nombre)
             .Select(u => u.Nombre)
             .ToListAsync(cancellationToken);
-
-        if (unidades.Count == 0)
-        {
-            unidades = new List<string> { "Unidades", "Metros", "Kilogramos", "Cajas", "Rollos", "Servicios" };
-        }
 
         var tipos = new List<string> { "Inventario", "Servicio", "No Inventariable" };
         var booleanos = new List<string> { "SI", "NO" };
@@ -83,7 +73,6 @@ public class InventarioExcelService : IInventarioExcelService
             "Costo Actual (S/)",
             "Costo Estándar (S/)",
             "Es Serializado",
-            "Activo de Cliente",
             "Código de Barras",
             "Afecto a Impuesto",
             "Proveedor por Defecto",
@@ -114,49 +103,50 @@ public class InventarioExcelService : IInventarioExcelService
         dvTipo.ErrorTitle = "Valor Inválido";
         dvTipo.ErrorMessage = "Debe elegir uno de los tipos permitidos.";
 
-        // Categoría: Columna D (4)
-        var dvCat = ws.Range(2, 4, maxRows, 4).CreateDataValidation();
-        dvCat.List(wsCatalogos.Range(2, 1, categorias.Count + 1, 1), true);
-        dvCat.InputTitle = "Categoría";
-        dvCat.InputMessage = "Seleccione una categoría existente del catálogo.";
-        dvCat.ErrorTitle = "Categoría no válida";
-        dvCat.ErrorMessage = "Por favor elija una categoría de la lista desplegable.";
+        // Categoría: Columna D (4) - Solo si existen categorías reales en BD
+        if (categorias.Count > 0)
+        {
+            var dvCat = ws.Range(2, 4, maxRows, 4).CreateDataValidation();
+            dvCat.List(wsCatalogos.Range(2, 1, categorias.Count + 1, 1), true);
+            dvCat.InputTitle = "Categoría";
+            dvCat.InputMessage = "Seleccione una categoría existente del catálogo.";
+            dvCat.ErrorTitle = "Categoría no válida";
+            dvCat.ErrorMessage = "Por favor elija una categoría de la lista desplegable.";
+        }
 
-        // Unidad de Medida: Columna E (5)
-        var dvUm = ws.Range(2, 5, maxRows, 5).CreateDataValidation();
-        dvUm.List(wsCatalogos.Range(2, 2, unidades.Count + 1, 2), true);
-        dvUm.InputTitle = "Unidad de Medida";
-        dvUm.InputMessage = "Seleccione una unidad de medida del catálogo.";
-        dvUm.ErrorTitle = "Unidad no válida";
-        dvUm.ErrorMessage = "Por favor elija una unidad de la lista desplegable.";
+        // Unidad de Medida: Columna E (5) - Solo si existen unidades reales en BD
+        if (unidades.Count > 0)
+        {
+            var dvUm = ws.Range(2, 5, maxRows, 5).CreateDataValidation();
+            dvUm.List(wsCatalogos.Range(2, 2, unidades.Count + 1, 2), true);
+            dvUm.InputTitle = "Unidad de Medida";
+            dvUm.InputMessage = "Seleccione una unidad de medida del catálogo.";
+            dvUm.ErrorTitle = "Unidad no válida";
+            dvUm.ErrorMessage = "Por favor elija una unidad de la lista desplegable.";
+        }
 
         // Es Serializado: Columna I (9)
         var dvSerial = ws.Range(2, 9, maxRows, 9).CreateDataValidation();
         dvSerial.List("\"SI,NO\"", true);
 
-        // Convertir en Activo de Cliente: Columna J (10)
-        var dvActivo = ws.Range(2, 10, maxRows, 10).CreateDataValidation();
-        dvActivo.List("\"SI,NO\"", true);
-
-        // Afecto a Impuesto: Columna L (12)
-        var dvImpuesto = ws.Range(2, 12, maxRows, 12).CreateDataValidation();
+        // Afecto a Impuesto: Columna K (11)
+        var dvImpuesto = ws.Range(2, 11, maxRows, 11).CreateDataValidation();
         dvImpuesto.List("\"SI,NO\"", true);
 
-        // 5. Fila de ejemplo ilustrativa
-        ws.Cell(2, 1).Value = "EQ-DEC-4K";
-        ws.Cell(2, 2).Value = "Decodificador 4K Ultra HD";
+        // 5. Fila de ejemplo ilustrativa (usando únicamente datos reales si existen en la BD)
+        ws.Cell(2, 1).Value = "PROD-001";
+        ws.Cell(2, 2).Value = "Producto de Ejemplo";
         ws.Cell(2, 3).Value = "Inventario";
-        ws.Cell(2, 4).Value = categorias[0];
-        ws.Cell(2, 5).Value = unidades[0];
+        ws.Cell(2, 4).Value = categorias.Count > 0 ? categorias[0] : "";
+        ws.Cell(2, 5).Value = unidades.Count > 0 ? unidades[0] : "";
         ws.Cell(2, 6).Value = 180.00;
         ws.Cell(2, 7).Value = 95.00;
         ws.Cell(2, 8).Value = 90.00;
         ws.Cell(2, 9).Value = "SI";
-        ws.Cell(2, 10).Value = "SI";
-        ws.Cell(2, 11).Value = "775987654321";
-        ws.Cell(2, 12).Value = "SI";
-        ws.Cell(2, 13).Value = "Distribuidora Tech S.A.C.";
-        ws.Cell(2, 14).Value = "Decodificador para instalaciones de TV satelital con soporte 4K";
+        ws.Cell(2, 10).Value = "775987654321";
+        ws.Cell(2, 11).Value = "SI";
+        ws.Cell(2, 12).Value = "Distribuidora Tech S.A.C.";
+        ws.Cell(2, 13).Value = "Descripción de ejemplo";
 
         // Formatos de celdas
         ws.Range("F2:H500").Style.NumberFormat.Format = "#,##0.00";
@@ -170,7 +160,10 @@ public class InventarioExcelService : IInventarioExcelService
         return memoryStream.ToArray();
     }
 
-    public async Task<ImportarExcelResultadoDto> ImportarProductosAsync(Stream stream, CancellationToken cancellationToken = default)
+    public async Task<ImportarExcelResultadoDto> ImportarProductosAsync(
+        Stream stream,
+        bool actualizarExistentes = false,
+        CancellationToken cancellationToken = default)
     {
         var resultado = new ImportarExcelResultadoDto();
         using var workbook = new XLWorkbook(stream);
@@ -225,7 +218,7 @@ public class InventarioExcelService : IInventarioExcelService
                     tipo = TipoProducto.NoInventario;
             }
 
-            // Categoría (Opcional)
+            // Categoría (Opcional pero debe existir si se especifica)
             var categoriaStr = row.Cell(4).GetString()?.Trim();
             string? categoriaFinal = null;
             if (!string.IsNullOrWhiteSpace(categoriaStr))
@@ -233,16 +226,29 @@ public class InventarioExcelService : IInventarioExcelService
                 var catExistente = categoriasDb.FirstOrDefault(c => c.Nombre.Equals(categoriaStr, StringComparison.OrdinalIgnoreCase));
                 if (catExistente == null)
                 {
-                    catExistente = CategoriaProducto.Crear(categoriaStr);
-                    _context.CategoriasProducto.Add(catExistente);
-                    categoriasDb.Add(catExistente);
+                    resultado.Errores.Add(new ImportarErrorDto
+                    {
+                        Fila = rowNum,
+                        Codigo = codigo,
+                        Mensaje = $"La categoría '{categoriaStr}' no existe en el catálogo. Debe crearla previamente."
+                    });
+                    continue;
                 }
                 categoriaFinal = catExistente.Nombre;
             }
 
-            // Unidad de Medida
+            // Unidad de Medida (Obligatoria y debe existir en el catálogo)
             var unidadStr = row.Cell(5).GetString()?.Trim();
-            if (string.IsNullOrWhiteSpace(unidadStr)) unidadStr = "Unidades";
+            if (string.IsNullOrWhiteSpace(unidadStr))
+            {
+                resultado.Errores.Add(new ImportarErrorDto
+                {
+                    Fila = rowNum,
+                    Codigo = codigo,
+                    Mensaje = "La Unidad de Medida es obligatoria."
+                });
+                continue;
+            }
 
             var umExistente = unidadesDb.FirstOrDefault(u =>
                 u.Nombre.Equals(unidadStr, StringComparison.OrdinalIgnoreCase) ||
@@ -251,11 +257,13 @@ public class InventarioExcelService : IInventarioExcelService
 
             if (umExistente == null)
             {
-                // Auto-crear la unidad de medida si no existe
-                string umCod = unidadStr.Length > 6 ? unidadStr.Substring(0, 6).ToUpperInvariant() : unidadStr.ToUpperInvariant();
-                umExistente = UnidadMedida.Crear(umCod, unidadStr, unidadStr.ToLowerInvariant());
-                _context.UnidadesMedida.Add(umExistente);
-                unidadesDb.Add(umExistente);
+                resultado.Errores.Add(new ImportarErrorDto
+                {
+                    Fila = rowNum,
+                    Codigo = codigo,
+                    Mensaje = $"La unidad de medida '{unidadStr}' no existe en el catálogo. Debe crearla previamente."
+                });
+                continue;
             }
 
             // Numéricos
@@ -263,19 +271,49 @@ public class InventarioExcelService : IInventarioExcelService
             decimal costoActual = ParseDecimal(row.Cell(7));
             decimal costoEstandar = ParseDecimal(row.Cell(8));
 
-            // Booleans
+            // Booleans y Strings con soporte retrocompatible
+            bool formatoAntiguoConActivo = ws.Cell(1, 10).GetString()?.Trim().Contains("Activo", StringComparison.OrdinalIgnoreCase) ?? false;
+
             bool esSerializado = ParseBoolean(row.Cell(9).GetString());
-            bool convertirActivo = ParseBoolean(row.Cell(10).GetString());
-            var codigoBarras = row.Cell(11).GetString()?.Trim();
-            bool afectoImpuesto = !row.Cell(12).IsEmpty() ? ParseBoolean(row.Cell(12).GetString()) : true;
-            var proveedorDefecto = row.Cell(13).GetString()?.Trim();
-            var descripcion = row.Cell(14).GetString()?.Trim();
+            string? codigoBarras;
+            bool afectoImpuesto;
+            string? proveedorDefecto;
+            string? descripcion;
+
+            if (formatoAntiguoConActivo)
+            {
+                // Formato antiguo de 14 columnas
+                codigoBarras = row.Cell(11).GetString()?.Trim();
+                afectoImpuesto = !row.Cell(12).IsEmpty() ? ParseBoolean(row.Cell(12).GetString()) : true;
+                proveedorDefecto = row.Cell(13).GetString()?.Trim();
+                descripcion = row.Cell(14).GetString()?.Trim();
+            }
+            else
+            {
+                // Formato estándar limpio de 13 columnas
+                codigoBarras = row.Cell(10).GetString()?.Trim();
+                afectoImpuesto = !row.Cell(11).IsEmpty() ? ParseBoolean(row.Cell(11).GetString()) : true;
+                proveedorDefecto = row.Cell(12).GetString()?.Trim();
+                descripcion = row.Cell(13).GetString()?.Trim();
+            }
 
             // Buscar producto por código
             var productoExistente = productosDb.FirstOrDefault(p => p.Codigo.Equals(codigo, StringComparison.OrdinalIgnoreCase));
 
             if (productoExistente != null)
             {
+                if (!actualizarExistentes)
+                {
+                    resultado.Omitidos++;
+                    resultado.Errores.Add(new ImportarErrorDto
+                    {
+                        Fila = rowNum,
+                        Codigo = codigo,
+                        Mensaje = $"El producto '{codigo}' ya existe en el sistema. Se omitió porque no se seleccionó 'Actualizar existentes'."
+                    });
+                    continue;
+                }
+
                 productoExistente.Actualizar(
                     nombre: nombre,
                     categoria: categoriaFinal,
@@ -285,7 +323,6 @@ public class InventarioExcelService : IInventarioExcelService
                     tipo: tipo,
                     precioBase: precioBase,
                     catalogoId: null,
-                    convertirEnActivoCliente: convertirActivo,
                     codigoBarras: codigoBarras,
                     notas: null,
                     costoActual: costoActual,
@@ -307,7 +344,6 @@ public class InventarioExcelService : IInventarioExcelService
                     tipo: tipo,
                     precioBase: precioBase,
                     catalogoId: null,
-                    convertirEnActivoCliente: convertirActivo,
                     codigoBarras: codigoBarras,
                     notas: null,
                     costoActual: costoActual,

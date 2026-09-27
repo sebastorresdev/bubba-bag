@@ -4,6 +4,7 @@ import { MainLayout } from './components/layout/MainLayout';
 import { ProductosListPage, ProductoFormPage } from './features/inventario/productos';
 import { UnidadesMedidaListPage, UnidadMedidaFormPage } from './features/inventario/unidades-medida';
 import { CategoriasListPage, CategoriaFormPage } from './features/inventario/categorias';
+import { ListasPreciosListPage, ListaPreciosFormPage } from './features/inventario/listas-precios';
 import { PlaceholderPage } from './components/common/PlaceholderPage';
 
 export default function App() {
@@ -29,8 +30,10 @@ export default function App() {
             <Route path="servicio-campo/productos/nuevo" element={<ProductoFormPage />} />
             <Route path="servicio-campo/productos/:id" element={<ProductoFormPage />} />
 
-            {/* 4. Catálogo General - Listas de Precios (Módulo en preparación) */}
-            <Route path="servicio-campo/listas-precios" element={<PlaceholderPage />} />
+            {/* 4. Catálogo General - Listas de Precios */}
+            <Route path="servicio-campo/listas-precios" element={<ListasPreciosListPage />} />
+            <Route path="servicio-campo/listas-precios/nuevo" element={<ListaPreciosFormPage />} />
+            <Route path="servicio-campo/listas-precios/:id" element={<ListaPreciosFormPage />} />
 
             {/* Vistas en construcción o rutas no mapeadas */}
             <Route path="*" element={<PlaceholderPage />} />

@@ -8,7 +8,7 @@ namespace BubbaBag.Modules.ServicioCampo.Application.Productos.Services;
 public interface IInventarioExcelService
 {
     Task<byte[]> GenerarPlantillaProductosAsync(CancellationToken cancellationToken = default);
-    Task<ImportarExcelResultadoDto> ImportarProductosAsync(Stream stream, CancellationToken cancellationToken = default);
+    Task<ImportarExcelResultadoDto> ImportarProductosAsync(Stream stream, bool actualizarExistentes = false, CancellationToken cancellationToken = default);
 
     Task<byte[]> GenerarPlantillaCategoriasAsync(CancellationToken cancellationToken = default);
     Task<ImportarExcelResultadoDto> ImportarCategoriasAsync(Stream stream, CancellationToken cancellationToken = default);

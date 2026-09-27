@@ -20,6 +20,7 @@ import {
   TableHeaderCell,
   TableBody,
   TableCell,
+  Switch,
 } from '@fluentui/react-components';
 import {
   ArrowDownload16Regular,
@@ -32,7 +33,7 @@ import type { ImportarExcelResultadoDto } from '../../types/excelImport.types';
 
 const useStyles = makeStyles({
   dialogSurface: {
-    maxWidth: '580px',
+    maxWidth: '620px',
     width: '100%',
   },
   stepContainer: {
@@ -80,9 +81,9 @@ const useStyles = makeStyles({
     border: `1px solid ${tokens.colorNeutralStroke1}`,
   },
   errorTableContainer: {
-    maxHeight: '180px',
+    maxHeight: '220px',
     overflowY: 'auto',
-    marginTop: '10px',
+    marginTop: '8px',
     border: `1px solid ${tokens.colorNeutralStroke2}`,
     borderRadius: tokens.borderRadiusMedium,
   },
@@ -111,8 +112,9 @@ export interface ImportarExcelDialogProps {
   title: string;
   entityName: string;
   onDownloadTemplate: () => Promise<void>;
-  onUploadFile: (file: File) => Promise<ImportarExcelResultadoDto>;
+  onUploadFile: (file: File, actualizarExistentes: boolean) => Promise<ImportarExcelResultadoDto>;
   onSuccess: () => void;
+  allowUpsert?: boolean;
 }
 
 export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
@@ -123,11 +125,13 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
   onDownloadTemplate,
   onUploadFile,
   onSuccess,
+  allowUpsert = false,
 }) => {
   const styles = useStyles();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [actualizarExistentes, setActualizarExistentes] = useState<boolean>(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState<boolean>(false);
   const [uploading, setUploading] = useState<boolean>(false);
   const [result, setResult] = useState<ImportarExcelResultadoDto | null>(null);
@@ -136,6 +140,7 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
 
   const handleReset = () => {
     setSelectedFile(null);
+    setActualizarExistentes(false);
     setResult(null);
     setErrorMessage(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -202,7 +207,7 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
       setUploading(true);
       setErrorMessage(null);
       setResult(null);
-      const res = await onUploadFile(selectedFile);
+      const res = await onUploadFile(selectedFile, actualizarExistentes);
       setResult(res);
       if (res.creados > 0 || res.actualizados > 0) {
         onSuccess();
@@ -242,47 +247,92 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
             )}
 
             {result && (
-              <MessageBar
-                intent={result.exitoso ? 'success' : result.creados > 0 || result.actualizados > 0 ? 'warning' : 'error'}
-                shape="square"
-                style={{ marginBottom: 14 }}
-              >
-                <MessageBarBody>
-                  <MessageBarTitle>
-                    {result.exitoso
-                      ? 'Importación completada con éxito'
-                      : 'Importación procesada con observaciones'}
-                  </MessageBarTitle>
-                  <div style={{ marginTop: 4 }}>
-                    <Text size={200}>
-                      Registros creados: <strong>{result.creados}</strong> | Registros actualizados: <strong>{result.actualizados}</strong>
-                      {result.errores.length > 0 && ` | Filas con error: ${result.errores.length}`}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '14px' }}>
+                <MessageBar
+                  intent={
+                    result.errores.length === 0
+                      ? 'success'
+                      : result.creados > 0 || result.actualizados > 0
+                      ? 'warning'
+                      : 'error'
+                  }
+                  shape="square"
+                >
+                  <MessageBarBody>
+                    <MessageBarTitle>
+                      {result.errores.length === 0
+                        ? 'Importación completada con éxito'
+                        : result.creados > 0 || result.actualizados > 0
+                        ? 'Importación procesada con observaciones'
+                        : 'La importación no pudo registrar los datos'}
+                    </MessageBarTitle>
+                    <Text size={200} style={{ color: tokens.colorNeutralForeground2 }}>
+                      {result.errores.length === 0
+                        ? 'Todos los registros del archivo fueron validados y procesados correctamente.'
+                        : 'Se procesaron las filas válidas y se generó un informe detallado con las filas observadas.'}
                     </Text>
+                  </MessageBarBody>
+                </MessageBar>
+
+                {/* Resumen numérico tipo SAP / Dynamics */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                  gap: '8px',
+                  padding: '10px 14px',
+                  backgroundColor: tokens.colorNeutralBackground2,
+                  borderRadius: tokens.borderRadiusMedium,
+                  border: `1px solid ${tokens.colorNeutralStroke2}`
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Total Filas</Text>
+                    <Text size={400} weight="bold">{result.totalFilas}</Text>
                   </div>
-                </MessageBarBody>
-              </MessageBar>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <Text size={100} style={{ color: tokens.colorPaletteGreenForeground1 }}>Creados</Text>
+                    <Text size={400} weight="bold" style={{ color: tokens.colorPaletteGreenForeground1 }}>{result.creados}</Text>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <Text size={100} style={{ color: tokens.colorBrandForeground1 }}>Actualizados</Text>
+                    <Text size={400} weight="bold" style={{ color: tokens.colorBrandForeground1 }}>{result.actualizados}</Text>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Omitidos</Text>
+                    <Text size={400} weight="bold" style={{ color: tokens.colorNeutralForeground2 }}>{result.omitidos ?? 0}</Text>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <Text size={100} style={{ color: tokens.colorPaletteRedForeground1 }}>Incidencias</Text>
+                    <Text size={400} weight="bold" style={{ color: tokens.colorPaletteRedForeground1 }}>{result.errores.length}</Text>
+                  </div>
+                </div>
+              </div>
             )}
 
             {result && result.errores.length > 0 && (
-              <div className={styles.errorTableContainer}>
-                <Table size="small">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHeaderCell style={{ width: '60px' }}>Fila</TableHeaderCell>
-                      <TableHeaderCell style={{ width: '100px' }}>Código</TableHeaderCell>
-                      <TableHeaderCell>Detalle del error</TableHeaderCell>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {result.errores.map((err, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell>{err.fila}</TableCell>
-                        <TableCell>{err.codigo || '—'}</TableCell>
-                        <TableCell>{err.mensaje}</TableCell>
+              <div>
+                <Text weight="semibold" size={200} style={{ display: 'block', marginBottom: '6px' }}>
+                  Informe de incidencias ({result.errores.length} fila{result.errores.length > 1 ? 's' : ''}):
+                </Text>
+                <div className={styles.errorTableContainer}>
+                  <Table size="small">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHeaderCell style={{ width: '50px' }}>Fila</TableHeaderCell>
+                        <TableHeaderCell style={{ width: '120px' }}>Código</TableHeaderCell>
+                        <TableHeaderCell>Motivo / Observación</TableHeaderCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {result.errores.map((err, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell>{err.fila}</TableCell>
+                          <TableCell style={{ fontFamily: 'monospace', fontWeight: 600 }}>{err.codigo || '—'}</TableCell>
+                          <TableCell>{err.mensaje}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             )}
 
@@ -312,8 +362,36 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
                 {/* Paso 2: Subir Archivo */}
                 <div className={styles.stepCard}>
                   <Text weight="semibold" size={300}>
-                    Paso 2: Cargar archivo completado
+                    Paso 2: Cargar archivo y opciones
                   </Text>
+
+                  {allowUpsert && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 12px',
+                      backgroundColor: tokens.colorNeutralBackground1,
+                      borderRadius: tokens.borderRadiusMedium,
+                      border: `1px solid ${tokens.colorNeutralStroke2}`,
+                    }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <Text weight="semibold" size={200}>
+                          Actualizar registros si el código ya existe
+                        </Text>
+                        <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
+                          {actualizarExistentes
+                            ? 'Los productos existentes serán actualizados con la información del Excel.'
+                            : 'Modo seguro: si un código ya existe se omitirá sin sobrescribir datos existentes.'}
+                        </Text>
+                      </div>
+                      <Switch
+                        checked={actualizarExistentes}
+                        onChange={(_, data) => setActualizarExistentes(data.checked)}
+                        disabled={uploading}
+                      />
+                    </div>
+                  )}
 
                   <input
                     ref={fileInputRef}

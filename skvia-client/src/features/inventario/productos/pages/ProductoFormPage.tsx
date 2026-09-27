@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  makeStyles,
-  tokens,
   Toolbar,
   ToolbarButton,
   ToolbarDivider,
@@ -54,6 +52,7 @@ import {
   DismissRegular,
   Cube16Regular,
   Folder16Regular,
+  Money16Regular,
 } from '@fluentui/react-icons';
 import { ProductoService } from '../services/producto.service';
 import type { CreateProductoDto, TipoProducto } from '../types/producto.types';
@@ -61,262 +60,9 @@ import { CategoriaService } from '../../categorias/services/categoria.service';
 import type { CategoriaProductoDto } from '../../categorias/types/categoria.types';
 import { UnidadMedidaService } from '../../unidades-medida/services/unidadMedida.service';
 import type { UnidadMedidaDto } from '../../unidades-medida/types/unidadMedida.types';
-
-const useStyles = makeStyles({
-  root: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%',
-    width: '100%',
-    backgroundColor: tokens.colorNeutralBackground2,
-    overflow: 'hidden',
-    userSelect: 'none',
-  },
-  // 0. Full Width Top Notification Banner (Above Command Bar)
-  messageBarContainer: {
-    width: '100%',
-    borderRadius: 0,
-    borderLeft: 'none',
-    borderRight: 'none',
-    borderTop: 'none',
-    flexShrink: 0,
-    zIndex: 100,
-  },
-  // 1. D365 Top Command Bar
-  commandBar: {
-    height: '44px',
-    backgroundColor: tokens.colorNeutralBackground1,
-    borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingLeft: '8px',
-    paddingRight: '16px',
-    flexShrink: 0,
-  },
-  toolbarLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '2px',
-  },
-  // Icon colors using Fluent UI design tokens
-  iconPrimary: {
-    color: tokens.colorBrandForeground1,
-  },
-  iconSaveLilac: {
-    color: tokens.colorPaletteLilacBorderActive,
-  },
-  iconNewGreen: {
-    color: tokens.colorPaletteGreenForeground1,
-  },
-  // 2. Entity Header Summary
-  headerContainer: {
-    backgroundColor: tokens.colorNeutralBackground1,
-    padding: '16px 24px 0px 24px',
-    borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
-    flexShrink: 0,
-  },
-  headerTopRow: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: '16px',
-  },
-  headerLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-  },
-  avatar: {
-    backgroundColor: tokens.colorBrandBackground,
-    color: tokens.colorNeutralForegroundOnBrand,
-  },
-  titleSection: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  title: {
-    fontSize: tokens.fontSizeHero700,
-    fontWeight: tokens.fontWeightBold,
-    color: tokens.colorNeutralForeground1,
-    lineHeight: '1.2',
-  },
-  subtitle: {
-    fontSize: tokens.fontSizeBase300,
-    color: tokens.colorNeutralForeground3,
-    marginTop: '2px',
-  },
-  // Header Meta Information (Label on top, Value on bottom, with divider line)
-  headerMetaRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '24px',
-  },
-  metaItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    gap: '2px',
-  },
-  metaLabel: {
-    fontSize: tokens.fontSizeBase100,
-    color: tokens.colorNeutralForeground4,
-    textTransform: 'uppercase',
-    fontWeight: tokens.fontWeightSemibold,
-    letterSpacing: '0.5px',
-  },
-  metaValue: {
-    fontSize: tokens.fontSizeBase300,
-    fontWeight: tokens.fontWeightSemibold,
-    color: tokens.colorNeutralForeground1,
-    lineHeight: '1.2',
-  },
-  metaDivider: {
-    height: '28px',
-  },
-  tabList: {
-    marginTop: '8px',
-  },
-  // 3. Form Content Body (Full-width, left to right, non-centered)
-  contentBody: {
-    flexGrow: 1,
-    overflowY: 'auto',
-    padding: '20px 24px 36px 24px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px',
-    width: '100%',
-    maxWidth: '100%',
-    boxSizing: 'border-box',
-    margin: '0',
-  },
-  grid2Cols: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-    gap: '20px',
-    width: '100%',
-    '@media (max-width: 900px)': {
-      gridTemplateColumns: '1fr',
-    },
-  },
-  card: {
-    padding: '20px 24px',
-    backgroundColor: tokens.colorNeutralBackground1,
-    borderRadius: tokens.borderRadiusMedium,
-    boxShadow: tokens.shadow2,
-    border: `1px solid ${tokens.colorNeutralStroke2}`,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-    width: '100%',
-    boxSizing: 'border-box',
-  },
-  cardSectionTitle: {
-    fontSize: tokens.fontSizeBase200,
-    fontWeight: tokens.fontWeightSemibold,
-    color: tokens.colorNeutralForeground2,
-    textTransform: 'uppercase',
-    letterSpacing: '0.6px',
-    paddingBottom: '10px',
-    marginBottom: '6px',
-    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-  },
-  // Dynamics 365 Horizontal Form Row Layout using Fluent UI Label (Clean, borderless)
-  d365FieldRow: {
-    display: 'flex',
-    alignItems: 'center',
-    minHeight: '44px',
-    padding: '2px 0',
-    gap: '16px',
-  },
-  d365FieldRowTop: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    minHeight: '76px',
-    padding: '4px 0',
-    gap: '16px',
-  },
-  d365LabelCol: {
-    width: '160px',
-    flexShrink: 0,
-    display: 'flex',
-    alignItems: 'center',
-  },
-  d365LabelColTop: {
-    width: '160px',
-    flexShrink: 0,
-    display: 'flex',
-    alignItems: 'center',
-    paddingTop: '6px',
-  },
-  d365ControlCol: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-  },
-  d365ControlFull: {
-    width: '100%',
-  },
-  tagPickerControl: {
-    width: '100%',
-    minHeight: '32px',
-    height: '32px',
-    boxSizing: 'border-box',
-    display: 'flex',
-    alignItems: 'center',
-    paddingTop: '0px',
-    paddingBottom: '0px',
-    flexWrap: 'nowrap',
-  },
-  tagPickerGroup: {
-    paddingTop: '0px',
-    paddingBottom: '0px',
-    display: 'flex',
-    alignItems: 'center',
-    flexShrink: 0,
-  },
-  tagPickerInput: {
-    paddingTop: '0px',
-    paddingBottom: '0px',
-    minHeight: '28px',
-  },
-  unitIcon: {
-    color: tokens.colorBrandForeground1,
-  },
-  categoryIcon: {
-    color: tokens.colorBrandForeground1,
-  },
-  secondaryOptionText: {
-    fontSize: tokens.fontSizeBase100,
-    color: tokens.colorNeutralForeground4,
-    lineHeight: tokens.lineHeightBase100,
-  },
-  quickCreateFooter: {
-    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
-    padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  fieldErrorText: {
-    fontSize: tokens.fontSizeBase100,
-    color: tokens.colorStatusDangerForeground1,
-    marginTop: '2px',
-  },
-  // Loading Container (Prevents empty default data flash during fetch)
-  loadingContainer: {
-    flexGrow: 1,
-    overflowY: 'auto',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '100px 24px',
-    gap: '16px',
-    width: '100%',
-  },
-});
+import { ListaPreciosService } from '../../listas-precios/services/listaPrecios.service';
+import type { ListaPreciosDto } from '../../listas-precios/types/listaPrecios.types';
+import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 
 export interface ProductoFormPageProps {
   productoId?: string | null;
@@ -331,7 +77,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
   onSaved: propOnSaved,
   onCreated: propOnCreated,
 }) => {
-  const styles = useStyles();
+  const styles = useD365FormStyles();
   const { id: routeId } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -359,12 +105,16 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
     costoEstandar: 0,
     afectoImpuesto: true,
     esSerializado: false,
-    convertirEnActivoCliente: false,
     codigoBarras: '',
     proveedorDefecto: '',
     descripcion: '',
-    notas: '',
+    listaPreciosPredeterminadaId: null,
   });
+
+  // String states para inputs numéricos (permite ingresar 0, decimales y limpiar sin comportamientos extraños)
+  const [precioBaseStr, setPrecioBaseStr] = useState<string>('0');
+  const [costoActualStr, setCostoActualStr] = useState<string>('0');
+  const [costoEstandarStr, setCostoEstandarStr] = useState<string>('0');
 
   // Header State (Solo se actualiza al cargar o al pulsar Guardar con éxito)
   const [savedHeader, setSavedHeader] = useState<{
@@ -388,6 +138,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
   // Catálogos dinámicos
   const [categoriasList, setCategoriasList] = useState<CategoriaProductoDto[]>([]);
   const [unidadesList, setUnidadesList] = useState<UnidadMedidaDto[]>([]);
+  const [listasPreciosList, setListasPreciosList] = useState<ListaPreciosDto[]>([]);
 
   const cargarCatalogos = useCallback(() => {
     CategoriaService.getCategorias(undefined, true)
@@ -397,6 +148,10 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
     UnidadMedidaService.getUnidadesMedida(undefined, true)
       .then((ums) => setUnidadesList(ums))
       .catch((err) => console.error('Error al cargar catálogo de unidades de medida:', err));
+
+    ListaPreciosService.getListasPrecios(undefined, true)
+      .then((lps) => setListasPreciosList(lps))
+      .catch((err) => console.error('Error al cargar listas de precios:', err));
   }, []);
 
   useEffect(() => {
@@ -480,6 +235,38 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
     setCategoriaQuery('');
   };
 
+  // Estado y lógica para TagPicker de Lista de Precios Predeterminada (Estilo Dynamics 365)
+  const [listaPreciosQuery, setListaPreciosQuery] = useState('');
+
+  const listaPreciosSeleccionadaObj = useMemo(
+    () => listasPreciosList.find((lp) => lp.id === formData.listaPreciosPredeterminadaId),
+    [listasPreciosList, formData.listaPreciosPredeterminadaId]
+  );
+
+  const selectedListaPreciosOptions = useMemo(
+    () => (formData.listaPreciosPredeterminadaId ? [formData.listaPreciosPredeterminadaId] : []),
+    [formData.listaPreciosPredeterminadaId]
+  );
+
+  const filteredListasPrecios = useMemo(() => {
+    const q = listaPreciosQuery.trim().toLowerCase();
+    if (!q) return listasPreciosList;
+    return listasPreciosList.filter(
+      (lp) =>
+        lp.nombre.toLowerCase().includes(q) ||
+        (lp.codigo && lp.codigo.toLowerCase().includes(q)) ||
+        (lp.moneda && lp.moneda.toLowerCase().includes(q))
+    );
+  }, [listasPreciosList, listaPreciosQuery]);
+
+  const onListaPreciosOptionSelect: TagPickerProps['onOptionSelect'] = (_e, data) => {
+    setFormData((prev) => ({
+      ...prev,
+      listaPreciosPredeterminadaId: prev.listaPreciosPredeterminadaId === data.value ? null : data.value,
+    }));
+    setListaPreciosQuery('');
+  };
+
   const handleGuardarCategoriaRapida = async () => {
     if (!quickCatData.nombre.trim()) {
       setQuickCatError('El nombre de la categoría es obligatorio.');
@@ -555,12 +342,15 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
             costoEstandar: p.costoEstandar ?? 0,
             afectoImpuesto: p.afectoImpuesto ?? true,
             esSerializado: p.esSerializado ?? false,
-            convertirEnActivoCliente: p.convertirEnActivoCliente ?? false,
             codigoBarras: p.codigoBarras ?? '',
             proveedorDefecto: p.proveedorDefecto ?? '',
             descripcion: p.descripcion ?? '',
             notas: p.notas ?? '',
+            listaPreciosPredeterminadaId: p.listaPreciosPredeterminadaId ?? null,
           });
+          setPrecioBaseStr(p.precioBase !== undefined && p.precioBase !== null ? p.precioBase.toString() : '0');
+          setCostoActualStr(p.costoActual !== undefined && p.costoActual !== null ? p.costoActual.toString() : '0');
+          setCostoEstandarStr(p.costoEstandar !== undefined && p.costoEstandar !== null ? p.costoEstandar.toString() : '0');
           const tipoStr =
             p.tipo === 1 || p.tipo === 'Inventario'
               ? 'Inventario'
@@ -600,10 +390,6 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
     if (!formData.nombre.trim()) {
       newErrors.nombre = 'El nombre del producto es obligatorio';
     }
-    // Precio unitario es obligatorio y debe ser mayor a 0
-    if (formData.precioBase === undefined || formData.precioBase === null || formData.precioBase <= 0) {
-      newErrors.precioBase = 'El precio unitario es obligatorio y debe ser mayor a 0';
-    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -629,13 +415,13 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
           descripcion: formData.descripcion,
           tipo: formData.tipo,
           precioBase: formData.precioBase,
-          convertirEnActivoCliente: formData.convertirEnActivoCliente,
           codigoBarras: formData.codigoBarras,
           notas: formData.notas,
           costoActual: formData.costoActual,
           costoEstandar: formData.costoEstandar,
           afectoImpuesto: formData.afectoImpuesto,
           proveedorDefecto: formData.proveedorDefecto,
+          listaPreciosPredeterminadaId: formData.listaPreciosPredeterminadaId,
         });
         setStatusMessage({ type: 'success', text: `Producto "${formData.nombre}" actualizado exitosamente.` });
       } else {
@@ -687,12 +473,15 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
       costoEstandar: 0,
       afectoImpuesto: true,
       esSerializado: false,
-      convertirEnActivoCliente: false,
       codigoBarras: '',
       proveedorDefecto: '',
       descripcion: '',
       notas: '',
+      listaPreciosPredeterminadaId: null,
     });
+    setPrecioBaseStr('0');
+    setCostoActualStr('0');
+    setCostoEstandarStr('0');
     setSavedHeader({
       nombre: '',
       codigo: '',
@@ -727,11 +516,11 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
       .toUpperCase();
 
   const headerTitle = loading
-    ? 'Cargando producto...'
-    : savedHeader.nombre || (isEditMode ? 'Cargando producto...' : 'Nuevo producto');
+    ? 'Cargando...'
+    : savedHeader.nombre || (isEditMode ? 'Cargando...' : 'Nuevo producto');
 
   const headerSubtitle = loading
-    ? 'Obteniendo detalles del servidor...'
+    ? 'Cargando...'
     : savedHeader.codigo
       ? `Producto · Código: ${savedHeader.codigo.toUpperCase()}`
       : 'Producto sin guardar';
@@ -819,7 +608,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
         </div>
 
         {(saving || loading) && (
-          <Spinner size="tiny" label={loading ? 'Cargando producto...' : 'Guardando...'} />
+          <Spinner size="tiny" label={loading ? 'Cargando...' : 'Guardando...'} />
         )}
       </Toolbar>
 
@@ -833,8 +622,8 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
               </Skeleton>
               <div className={styles.titleSection}>
                 <Skeleton animation="pulse">
-                  <SkeletonItem size={24} style={{ width: '280px', marginBottom: '8px' }} />
-                  <SkeletonItem size={16} style={{ width: '180px' }} />
+                  <SkeletonItem size={24} className={styles.skeletonTitle} />
+                  <SkeletonItem size={16} className={styles.skeletonSub} />
                 </Skeleton>
               </div>
             </div>
@@ -843,14 +632,14 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
               <div className={styles.metaItem}>
                 <Text className={styles.metaLabel}>Estado</Text>
                 <Skeleton animation="pulse">
-                  <SkeletonItem size={16} style={{ width: '60px', marginTop: '4px' }} />
+                  <SkeletonItem size={16} className={styles.skeletonBadge60} />
                 </Skeleton>
               </div>
               <Divider vertical className={styles.metaDivider} />
               <div className={styles.metaItem}>
                 <Text className={styles.metaLabel}>Tipo de Producto</Text>
                 <Skeleton animation="pulse">
-                  <SkeletonItem size={16} style={{ width: '80px', marginTop: '4px' }} />
+                  <SkeletonItem size={16} className={styles.skeletonBadge80} />
                 </Skeleton>
               </div>
             </div>
@@ -911,23 +700,23 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
           <div className={styles.grid2Cols}>
             <Card className={styles.card}>
               <Skeleton animation="pulse">
-                <SkeletonItem size={16} style={{ width: '120px', marginBottom: '16px' }} />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <SkeletonItem size={32} style={{ width: '100%' }} />
-                  <SkeletonItem size={32} style={{ width: '100%' }} />
-                  <SkeletonItem size={32} style={{ width: '100%' }} />
-                  <SkeletonItem size={72} style={{ width: '100%' }} />
+                <SkeletonItem size={16} className={styles.skeletonHeader} />
+                <div className={styles.fieldColumnFlex}>
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={72} className={styles.skeletonTextarea72} />
                 </div>
               </Skeleton>
             </Card>
             <Card className={styles.card}>
               <Skeleton animation="pulse">
-                <SkeletonItem size={16} style={{ width: '140px', marginBottom: '16px' }} />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <SkeletonItem size={32} style={{ width: '100%' }} />
-                  <SkeletonItem size={32} style={{ width: '100%' }} />
-                  <SkeletonItem size={32} style={{ width: '100%' }} />
-                  <SkeletonItem size={32} style={{ width: '100%' }} />
+                <SkeletonItem size={16} className={styles.skeletonSub140} />
+                <div className={styles.fieldColumnFlex}>
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
                 </div>
               </Skeleton>
             </Card>
@@ -938,9 +727,9 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
           {/* TAB 1: DETALLES DEL PRODUCTO (GENERAL) */}
           {selectedTab === 'detalles' && (
             <div className={styles.grid2Cols}>
-              {/* Sección Izquierda: GENERAL */}
+              {/* Sección Izquierda: DETALLES DEL PRODUCTO */}
               <Card className={styles.card}>
-                <Text className={styles.cardSectionTitle}>General</Text>
+                <Text className={styles.cardSectionTitle}>Detalles del Producto</Text>
 
                 {/* Nombre (Obligatorio) */}
                 <div className={styles.d365FieldRow}>
@@ -964,7 +753,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                         }
                       }}
                     />
-                    {errors.nombre && <span className={styles.fieldErrorText}>{errors.nombre}</span>}
+                    {errors.nombre && <Text size={100} className={styles.fieldErrorText}>{errors.nombre}</Text>}
                   </div>
                 </div>
 
@@ -992,7 +781,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                         }
                       }}
                     />
-                    {errors.codigo && <span className={styles.fieldErrorText}>{errors.codigo}</span>}
+                    {errors.codigo && <Text size={100} className={styles.fieldErrorText}>{errors.codigo}</Text>}
                   </div>
                 </div>
 
@@ -1000,7 +789,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                 {/* Categoría (TagPicker Estilo Dynamics 365 con Quick Create) */}
                 <div className={styles.d365FieldRow}>
                   <div className={styles.d365LabelCol}>
-                    <Label size="medium" htmlFor="prod-categoria">
+                    <Label size="medium">
                       Categoría
                     </Label>
                   </div>
@@ -1021,6 +810,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                             >
                               <Link
                                 as="span"
+                                className={styles.primaryLink}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (categoriaSeleccionadaObj) {
@@ -1057,9 +847,9 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                                 media={<Folder16Regular className={styles.categoryIcon} />}
                                 secondaryContent={
                                   c.categoriaPadreNombre ? (
-                                    <span className={styles.secondaryOptionText}>
+                                    <Text size={100} className={styles.secondaryOptionText}>
                                       Padre: {c.categoriaPadreNombre}
-                                    </span>
+                                    </Text>
                                   ) : undefined
                                 }
                               >
@@ -1085,6 +875,26 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                   </div>
                 </div>
 
+                {/* Control Serializado */}
+                <div className={styles.d365FieldRow}>
+                  <div className={styles.d365LabelCol}>
+                    <Label size="medium">Es Serializado</Label>
+                  </div>
+                  <div className={styles.d365ControlCol}>
+                    <div className={styles.fieldRowFlex}>
+                      <Switch
+                        checked={formData.esSerializado || false}
+                        onChange={(_, data) =>
+                          setFormData({ ...formData, esSerializado: data.checked })
+                        }
+                      />
+                      <Text size={200} className={styles.fieldHint}>
+                        {formData.esSerializado ? 'Sí (Exige serie/MAC individual)' : 'No'}
+                      </Text>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Descripción */}
                 <div className={styles.d365FieldRowTop}>
                   <div className={styles.d365LabelColTop}>
@@ -1107,14 +917,14 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                 </div>
               </Card>
 
-              {/* Sección Derecha: PRECIOS Y UNIDADES */}
+              {/* Sección Derecha: UNIDADES Y LISTA DE PRECIOS */}
               <Card className={styles.card}>
-                <Text className={styles.cardSectionTitle}>Precios y Unidades</Text>
+                <Text className={styles.cardSectionTitle}>Unidades y Lista de Precios</Text>
 
                 {/* Unidad de Medida (Obligatorio) */}
                 <div className={styles.d365FieldRow}>
                   <div className={styles.d365LabelCol}>
-                    <Label required size="medium" htmlFor="prod-unidad">
+                    <Label required size="medium">
                       Unidad Predeterminada
                     </Label>
                   </div>
@@ -1135,6 +945,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                             >
                               <Link
                                 as="span"
+                                className={styles.primaryLink}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   const foundUnit = unidadesList.find(
@@ -1194,42 +1005,89 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                       </TagPickerList>
                     </TagPicker>
                     {errors.unidadMedida && (
-                      <span className={styles.fieldErrorText}>{errors.unidadMedida}</span>
+                      <Text size={100} className={styles.fieldErrorText}>{errors.unidadMedida}</Text>
                     )}
                   </div>
                 </div>
 
-                {/* Precio Unitario / Base (OBLIGATORIO) */}
+                {/* Lista de Precios Predeterminada (TagPicker Estilo Dynamics 365) */}
                 <div className={styles.d365FieldRow}>
                   <div className={styles.d365LabelCol}>
-                    <Label required size="medium" htmlFor="prod-precio">
-                      Precio de Lista
+                    <Label size="medium">
+                      Lista de Precios Predeterminada
                     </Label>
                   </div>
                   <div className={styles.d365ControlCol}>
-                    <Input
-                      id="prod-precio"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      appearance="outline"
-                      size="medium"
-                      contentBefore="S/."
-                      className={styles.d365ControlFull}
-                      value={formData.precioBase !== undefined && formData.precioBase !== 0 ? formData.precioBase.toString() : ''}
-                      placeholder="0.00"
-                      onChange={(_, data) => {
-                        const val = parseFloat(data.value);
-                        const num = isNaN(val) ? 0 : val;
-                        setFormData({ ...formData, precioBase: num });
-                        if (errors.precioBase && num > 0) {
-                          setErrors((prev) => ({ ...prev, precioBase: '' }));
-                        }
-                      }}
-                    />
-                    {errors.precioBase && (
-                      <span className={styles.fieldErrorText}>{errors.precioBase}</span>
-                    )}
+                    <TagPicker
+                      onOptionSelect={onListaPreciosOptionSelect}
+                      selectedOptions={selectedListaPreciosOptions}
+                    >
+                      <TagPickerControl className={styles.tagPickerControl}>
+                        {listaPreciosSeleccionadaObj && (
+                          <TagPickerGroup className={styles.tagPickerGroup} aria-label="Lista de precios seleccionada">
+                            <Tag
+                              key={listaPreciosSeleccionadaObj.id}
+                              shape="rounded"
+                              size="small"
+                              media={<Money16Regular className={styles.iconBrand} />}
+                              value={listaPreciosSeleccionadaObj.id}
+                            >
+                              <Link
+                                as="span"
+                                className={styles.primaryLink}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(
+                                    `/servicio-campo/listas-precios/${listaPreciosSeleccionadaObj.id}`,
+                                    '_blank'
+                                  );
+                                }}
+                                title="Ver detalles de la lista de precios"
+                              >
+                                {listaPreciosSeleccionadaObj.nombre} ({listaPreciosSeleccionadaObj.moneda})
+                              </Link>
+                            </Tag>
+                          </TagPickerGroup>
+                        )}
+                        <TagPickerInput
+                          id="prod-lista-precios"
+                          className={styles.tagPickerInput}
+                          value={listaPreciosQuery}
+                          onChange={(e) => setListaPreciosQuery(e.target.value)}
+                          placeholder={formData.listaPreciosPredeterminadaId ? '' : 'Buscar lista de precios predeterminada...'}
+                          clearable
+                        />
+                      </TagPickerControl>
+                      <TagPickerList>
+                        <TagPickerOptionGroup label="Listas de Precios">
+                          {filteredListasPrecios
+                            .filter((lp) => lp.id !== formData.listaPreciosPredeterminadaId)
+                            .map((lp) => (
+                              <TagPickerOption
+                                key={lp.id}
+                                value={lp.id}
+                                media={<Money16Regular className={styles.iconBrand} />}
+                                secondaryContent={lp.codigo ? `[${lp.codigo}] • ${lp.moneda}` : lp.moneda}
+                              >
+                                {lp.nombre}
+                              </TagPickerOption>
+                            ))}
+                        </TagPickerOptionGroup>
+                        <div className={styles.quickCreateFooter}>
+                          <Button
+                            appearance="subtle"
+                            size="small"
+                            icon={<Add16Regular />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open('/servicio-campo/listas-precios/nuevo', '_blank');
+                            }}
+                          >
+                            Nueva Lista de Precios
+                          </Button>
+                        </div>
+                      </TagPickerList>
+                    </TagPicker>
                   </div>
                 </div>
 
@@ -1239,71 +1097,17 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                     <Label size="medium">Afecto a Impuestos (IGV)</Label>
                   </div>
                   <div className={styles.d365ControlCol}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div className={styles.fieldRowFlex}>
                       <Switch
                         checked={formData.afectoImpuesto !== false}
                         onChange={(_, data) =>
                           setFormData({ ...formData, afectoImpuesto: data.checked })
                         }
                       />
-                      <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                      <Text size={200} className={styles.fieldHint}>
                         {formData.afectoImpuesto !== false ? 'Sí (Afecto a IGV)' : 'No (Exonerado)'}
                       </Text>
                     </div>
-                  </div>
-                </div>
-
-                {/* Costo Actual */}
-                <div className={styles.d365FieldRow}>
-                  <div className={styles.d365LabelCol}>
-                    <Label size="medium" htmlFor="prod-costo-actual">
-                      Costo Actual
-                    </Label>
-                  </div>
-                  <div className={styles.d365ControlCol}>
-                    <Input
-                      id="prod-costo-actual"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      appearance="outline"
-                      size="medium"
-                      contentBefore="S/."
-                      className={styles.d365ControlFull}
-                      value={formData.costoActual !== undefined ? formData.costoActual.toString() : '0'}
-                      placeholder="0.00"
-                      onChange={(_, data) => {
-                        const val = parseFloat(data.value);
-                        setFormData({ ...formData, costoActual: isNaN(val) ? 0 : val });
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Costo Estándar */}
-                <div className={styles.d365FieldRow}>
-                  <div className={styles.d365LabelCol}>
-                    <Label size="medium" htmlFor="prod-costo-estandar">
-                      Costo Estándar
-                    </Label>
-                  </div>
-                  <div className={styles.d365ControlCol}>
-                    <Input
-                      id="prod-costo-estandar"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      appearance="outline"
-                      size="medium"
-                      contentBefore="S/."
-                      className={styles.d365ControlFull}
-                      value={formData.costoEstandar !== undefined ? formData.costoEstandar.toString() : '0'}
-                      placeholder="0.00"
-                      onChange={(_, data) => {
-                        const val = parseFloat(data.value);
-                        setFormData({ ...formData, costoEstandar: isNaN(val) ? 0 : val });
-                      }}
-                    />
                   </div>
                 </div>
               </Card>
@@ -1342,45 +1146,31 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                   </div>
                 </div>
 
-                {/* Convertir en Activo de Cliente */}
+                {/* Precio de Lista (Field Service) */}
                 <div className={styles.d365FieldRow}>
                   <div className={styles.d365LabelCol}>
-                    <Label size="medium">Convertir en Activo del Cliente</Label>
+                    <Label size="medium" htmlFor="prod-precio">
+                      Precio de Lista
+                    </Label>
                   </div>
                   <div className={styles.d365ControlCol}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Switch
-                        checked={formData.convertirEnActivoCliente || false}
-                        onChange={(_, data) =>
-                          setFormData({ ...formData, convertirEnActivoCliente: data.checked })
-                        }
-                      />
-                      <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                        {formData.convertirEnActivoCliente
-                          ? 'Sí (Se registrará como activo al instalar en la orden)'
-                          : 'No'}
-                      </Text>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Control Serializado */}
-                <div className={styles.d365FieldRow}>
-                  <div className={styles.d365LabelCol}>
-                    <Label size="medium">Es Serializado</Label>
-                  </div>
-                  <div className={styles.d365ControlCol}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Switch
-                        checked={formData.esSerializado || false}
-                        onChange={(_, data) =>
-                          setFormData({ ...formData, esSerializado: data.checked })
-                        }
-                      />
-                      <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                        {formData.esSerializado ? 'Sí (Exige serie/MAC individual)' : 'No'}
-                      </Text>
-                    </div>
+                    <Input
+                      id="prod-precio"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      appearance="outline"
+                      size="medium"
+                      contentBefore="S/."
+                      className={styles.d365ControlFull}
+                      value={precioBaseStr}
+                      placeholder="0.00 (Precio base si no está en lista de precios)"
+                      onChange={(_, data) => {
+                        setPrecioBaseStr(data.value);
+                        const val = parseFloat(data.value);
+                        setFormData((prev) => ({ ...prev, precioBase: isNaN(val) ? 0 : val }));
+                      }}
+                    />
                   </div>
                 </div>
 
@@ -1405,9 +1195,9 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                 </div>
               </Card>
 
-              {/* Sección Derecha: PROVEEDOR Y COMPRAS */}
+              {/* Sección Derecha: COSTOS Y PROVEEDOR */}
               <Card className={styles.card}>
-                <Text className={styles.cardSectionTitle}>Proveedor</Text>
+                <Text className={styles.cardSectionTitle}>Costos y Proveedor</Text>
 
                 {/* Proveedor por Defecto */}
                 <div className={styles.d365FieldRow}>
@@ -1427,6 +1217,62 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                       onChange={(_, data) =>
                         setFormData({ ...formData, proveedorDefecto: data.value })
                       }
+                    />
+                  </div>
+                </div>
+
+                {/* Costo Actual */}
+                <div className={styles.d365FieldRow}>
+                  <div className={styles.d365LabelCol}>
+                    <Label size="medium" htmlFor="prod-costo-actual">
+                      Costo Actual
+                    </Label>
+                  </div>
+                  <div className={styles.d365ControlCol}>
+                    <Input
+                      id="prod-costo-actual"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      appearance="outline"
+                      size="medium"
+                      contentBefore="S/."
+                      className={styles.d365ControlFull}
+                      value={costoActualStr}
+                      placeholder="0.00"
+                      onChange={(_, data) => {
+                        setCostoActualStr(data.value);
+                        const val = parseFloat(data.value);
+                        setFormData((prev) => ({ ...prev, costoActual: isNaN(val) ? 0 : val }));
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Costo Estándar */}
+                <div className={styles.d365FieldRow}>
+                  <div className={styles.d365LabelCol}>
+                    <Label size="medium" htmlFor="prod-costo-estandar">
+                      Costo Estándar
+                    </Label>
+                  </div>
+                  <div className={styles.d365ControlCol}>
+                    <Input
+                      id="prod-costo-estandar"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      appearance="outline"
+                      size="medium"
+                      contentBefore="S/."
+                      className={styles.d365ControlFull}
+                      value={costoEstandarStr}
+                      placeholder="0.00"
+                      onChange={(_, data) => {
+                        setCostoEstandarStr(data.value);
+                        const val = parseFloat(data.value);
+                        setFormData((prev) => ({ ...prev, costoEstandar: isNaN(val) ? 0 : val }));
+                      }}
                     />
                   </div>
                 </div>
@@ -1468,51 +1314,51 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
         <DialogSurface>
           <DialogBody>
             <DialogTitle>Creación rápida: Unidad de Medida</DialogTitle>
-            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '12px' }}>
+            <DialogContent className={styles.dialogForm}>
               {quickUnidadError && (
                 <MessageBar intent="error">
                   <MessageBarBody>{quickUnidadError}</MessageBarBody>
                 </MessageBar>
               )}
-              <div>
-                <Label required size="small" style={{ marginBottom: '4px', display: 'block' }}>
+              <div className={styles.dialogRow}>
+                <Label required size="small" className={styles.labelSmallBlock}>
                   Nombre
                 </Label>
                 <Input
                   size="medium"
-                  style={{ width: '100%' }}
+                  className={styles.d365ControlFull}
                   placeholder="Ej: Caja, Bobina, Kilogramo..."
                   value={quickUnidadData.nombre}
                   onChange={(_, d) => setQuickUnidadData((prev) => ({ ...prev, nombre: d.value }))}
                 />
               </div>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <div style={{ flex: 1 }}>
-                  <Label required size="small" style={{ marginBottom: '4px', display: 'block' }}>
+              <div className={styles.dialogGrid2}>
+                <div>
+                  <Label required size="small" className={styles.labelSmallBlock}>
                     Código
                   </Label>
                   <Input
                     size="medium"
-                    style={{ width: '100%' }}
+                    className={styles.d365ControlFull}
                     placeholder="Ej: CAJ, BOB, KGM"
                     value={quickUnidadData.codigo}
                     onChange={(_, d) => setQuickUnidadData((prev) => ({ ...prev, codigo: d.value }))}
                   />
                 </div>
-                <div style={{ flex: 1 }}>
-                  <Label required size="small" style={{ marginBottom: '4px', display: 'block' }}>
+                <div>
+                  <Label required size="small" className={styles.labelSmallBlock}>
                     Abreviatura
                   </Label>
                   <Input
                     size="medium"
-                    style={{ width: '100%' }}
+                    className={styles.d365ControlFull}
                     placeholder="Ej: cja, bob, kg"
                     value={quickUnidadData.abreviatura}
                     onChange={(_, d) => setQuickUnidadData((prev) => ({ ...prev, abreviatura: d.value }))}
                   />
                 </div>
               </div>
-              <div style={{ paddingTop: '4px' }}>
+              <div className={styles.paddingTop4}>
                 <Switch
                   label="Permite Decimales (fraccionable)"
                   checked={quickUnidadData.permiteDecimales}
@@ -1544,32 +1390,32 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
         <DialogSurface>
           <DialogBody>
             <DialogTitle>Creación rápida: Categoría de Producto</DialogTitle>
-            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '12px' }}>
+            <DialogContent className={styles.dialogForm}>
               {quickCatError && (
                 <MessageBar intent="error">
                   <MessageBarBody>{quickCatError}</MessageBarBody>
                 </MessageBar>
               )}
-              <div>
-                <Label required size="small" style={{ marginBottom: '4px', display: 'block' }}>
+              <div className={styles.dialogRow}>
+                <Label required size="small" className={styles.labelSmallBlock}>
                   Nombre de la Categoría
                 </Label>
                 <Input
                   size="medium"
-                  style={{ width: '100%' }}
+                  className={styles.d365ControlFull}
                   placeholder="Ej: Materiales de Red, Equipos Decodificadores..."
                   value={quickCatData.nombre}
                   onChange={(_, d) => setQuickCatData((prev) => ({ ...prev, nombre: d.value }))}
                 />
               </div>
-              <div>
-                <Label size="small" style={{ marginBottom: '4px', display: 'block' }}>
+              <div className={styles.dialogRow}>
+                <Label size="small" className={styles.labelSmallBlock}>
                   Descripción (opcional)
                 </Label>
                 <Textarea
                   size="medium"
                   rows={3}
-                  style={{ width: '100%' }}
+                  className={styles.d365ControlFull}
                   placeholder="Descripción de la categoría..."
                   value={quickCatData.descripcion}
                   onChange={(_, d) => setQuickCatData((prev) => ({ ...prev, descripcion: d.value }))}

@@ -57,10 +57,6 @@ public class ProductoConfiguration : IEntityTypeConfiguration<Producto>
         builder.Property(p => p.EsSerializado)
             .IsRequired();
 
-        builder.Property(p => p.ConvertirEnActivoCliente)
-            .IsRequired()
-            .HasDefaultValue(false);
-
         builder.Property(p => p.CodigoBarras)
             .HasMaxLength(50);
 

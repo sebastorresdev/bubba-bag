@@ -8,6 +8,7 @@ export interface ImportarExcelResultadoDto {
   totalFilas: number;
   creados: number;
   actualizados: number;
+  omitidos: number;
   errores: ImportarErrorDto[];
   exitoso: boolean;
 }

@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  makeStyles,
-  tokens,
   Toolbar,
   ToolbarButton,
   ToolbarDivider,
@@ -44,112 +42,8 @@ import {
 import { ProductoService } from '../services/producto.service';
 import type { ProductoDto } from '../types/producto.types';
 import { ImportarExcelDialog } from '../../../../components/common/ImportarExcelDialog';
-
-const useStyles = makeStyles({
-  root: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%',
-    width: '100%',
-    backgroundColor: tokens.colorNeutralBackground1,
-    overflow: 'hidden',
-    userSelect: 'none',
-  },
-  commandBar: {
-    height: '44px',
-    backgroundColor: tokens.colorNeutralBackground1,
-    borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingLeft: '8px',
-    paddingRight: '16px',
-    flexShrink: 0,
-  },
-  toolbarLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '2px',
-  },
-  viewHeader: {
-    height: '42px',
-    backgroundColor: tokens.colorNeutralBackground2,
-    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 16px',
-    flexShrink: 0,
-  },
-  viewSelectorTab: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    cursor: 'pointer',
-    fontSize: tokens.fontSizeBase400,
-    fontWeight: tokens.fontWeightSemibold,
-    color: tokens.colorNeutralForeground1,
-    padding: '4px 8px',
-    borderRadius: tokens.borderRadiusMedium,
-    ':hover': {
-      backgroundColor: tokens.colorNeutralBackground1Hover,
-    },
-  },
-  viewToolsRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  searchBox: {
-    width: '240px',
-  },
-  gridContainer: {
-    flexGrow: 1,
-    overflow: 'auto',
-    backgroundColor: tokens.colorNeutralBackground1,
-  },
-  table: {
-    width: '100%',
-    minWidth: '900px',
-    userSelect: 'text',
-  },
-  dataRow: {
-    userSelect: 'text',
-    ':hover': {
-      backgroundColor: tokens.colorNeutralBackground1Hover,
-    },
-  },
-  dataCell: {
-    userSelect: 'text',
-    cursor: 'text',
-  },
-  noWrapCell: {
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    userSelect: 'text',
-  },
-  footer: {
-    height: '32px',
-    borderTop: `1px solid ${tokens.colorNeutralStroke1}`,
-    backgroundColor: tokens.colorNeutralBackground2,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 16px',
-    fontSize: '12px',
-    color: tokens.colorNeutralForeground3,
-    flexShrink: 0,
-  },
-  emptyState: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '48px 16px',
-    gap: '12px',
-  },
-});
+import { TableEmptyState } from '../../../../components/common/TableEmptyState';
+import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 
 export interface ProductosListPageProps {
   onNewProduct?: () => void;
@@ -160,7 +54,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
   onNewProduct,
   onSelectProduct,
 }) => {
-  const styles = useStyles();
+  const styles = useD365ListStyles();
   const navigate = useNavigate();
 
   const [productos, setProductos] = useState<ProductoDto[]>([]);
@@ -235,7 +129,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
                 }
               }}
               title={item.nombre}
-              className={styles.noWrapCell}
+              className={styles.primaryLink}
             >
               {item.nombre}
             </Link>
@@ -334,9 +228,9 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
       {/* 1. TOP COMMAND BAR */}
       <div className={styles.commandBar}>
         <div className={styles.toolbarLeft}>
-          <Toolbar size="medium" style={{ backgroundColor: 'transparent', padding: 0 }}>
+          <Toolbar size="medium" className={styles.transparentToolbar}>
             <ToolbarButton
-              icon={<Add16Regular style={{ color: tokens.colorPaletteGreenForeground1 }} />}
+              icon={<Add16Regular className={styles.iconNewGreen} />}
               onClick={() => {
                 if (onNewProduct) {
                   onNewProduct();
@@ -359,7 +253,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
 
             <ToolbarButton icon={<ArrowDownload16Regular />}>
               Exportar a Excel
-              <ChevronDown12Regular style={{ marginLeft: 4 }} />
+              <ChevronDown12Regular className={styles.iconChevronMargin} />
             </ToolbarButton>
 
             <ToolbarButton
@@ -378,7 +272,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
             icon={<Share16Regular />}
           >
             Compartir
-            <ChevronDown12Regular style={{ marginLeft: 4 }} />
+            <ChevronDown12Regular className={styles.iconChevronMargin} />
           </ToolbarButton>
         </div>
       </div>
@@ -399,7 +293,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
             </div>
           </MenuTrigger>
           <MenuPopover>
-            <MenuList style={{ minWidth: '220px' }}>
+            <MenuList className={styles.viewMenuPopover}>
               <MenuItem
                 icon={activeView === 'activos' ? <Checkmark16Regular /> : undefined}
                 onClick={() => setActiveView('activos')}
@@ -427,7 +321,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
             <Button
               appearance="subtle"
               size="medium"
-              icon={<TableEdit16Regular style={{ color: tokens.colorCompoundBrandForeground1 }} />}
+              icon={<TableEdit16Regular className={styles.iconBrand} />}
             >
               Editar columnas
             </Button>
@@ -437,7 +331,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
             <Button
               appearance="subtle"
               size="medium"
-              icon={<DataFunnel20Regular style={{ color: tokens.colorCompoundBrandForeground1 }} />}
+              icon={<DataFunnel20Regular className={styles.iconBrand} />}
             >
               Editar filtros
             </Button>
@@ -458,19 +352,15 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
       <div className={styles.gridContainer}>
         {loading ? (
           <div className={styles.emptyState}>
-            <Spinner label="Cargando productos desde el backend..." size="medium" />
+            <Spinner label="Cargando..." size="medium" />
           </div>
         ) : error ? (
           <div className={styles.emptyState}>
-            <Warning24Regular style={{ color: tokens.colorStatusDangerForeground1, fontSize: 32 }} />
-            <Text weight="semibold" size={400} style={{ color: tokens.colorStatusDangerForeground1 }}>
+            <Warning24Regular className={styles.dangerIcon32} />
+            <Text weight="semibold" size={400} className={styles.dangerText}>
               {error}
             </Text>
             <ToolbarButton onClick={loadData}>Reintentar conexión</ToolbarButton>
-          </div>
-        ) : filteredProductos.length === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '64px 16px', color: tokens.colorNeutralForeground3 }}>
-            <Text size={300}>No hay datos</Text>
           </div>
         ) : (
           <DataGrid
@@ -494,25 +384,29 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
                 )}
               </DataGridRow>
             </DataGridHeader>
-            <DataGridBody<ProductoDto>>
-              {({ item, rowId }) => (
-                <DataGridRow<ProductoDto>
-                  key={rowId}
-                  className={styles.dataRow}
-                  onDoubleClick={() => {
-                    if (onSelectProduct) {
-                      onSelectProduct(item);
-                    } else {
-                      navigate(`/servicio-campo/productos/${item.id}`);
-                    }
-                  }}
-                >
-                  {({ renderCell }) => (
-                    <DataGridCell className={styles.dataCell}>{renderCell(item)}</DataGridCell>
-                  )}
-                </DataGridRow>
-              )}
-            </DataGridBody>
+            {filteredProductos.length === 0 ? (
+              <TableEmptyState />
+            ) : (
+              <DataGridBody<ProductoDto>>
+                {({ item, rowId }) => (
+                  <DataGridRow<ProductoDto>
+                    key={rowId}
+                    className={styles.dataRow}
+                    onDoubleClick={() => {
+                      if (onSelectProduct) {
+                        onSelectProduct(item);
+                      } else {
+                        navigate(`/servicio-campo/productos/${item.id}`);
+                      }
+                    }}
+                  >
+                    {({ renderCell }) => (
+                      <DataGridCell className={styles.dataCell}>{renderCell(item)}</DataGridCell>
+                    )}
+                  </DataGridRow>
+                )}
+              </DataGridBody>
+            )}
           </DataGrid>
         )}
       </div>
@@ -531,8 +425,9 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
         onOpenChange={setImportDialogOpen}
         title="Importar Catálogo de Productos desde Excel"
         entityName="Productos"
+        allowUpsert={true}
         onDownloadTemplate={() => ProductoService.descargarPlantillaExcel()}
-        onUploadFile={(file) => ProductoService.importarExcel(file)}
+        onUploadFile={(file, actualizarExistentes) => ProductoService.importarExcel(file, actualizarExistentes)}
         onSuccess={loadData}
       />
     </div>

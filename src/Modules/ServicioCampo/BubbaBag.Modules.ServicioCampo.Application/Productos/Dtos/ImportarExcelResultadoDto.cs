@@ -7,6 +7,7 @@ public class ImportarExcelResultadoDto
     public int TotalFilas { get; set; }
     public int Creados { get; set; }
     public int Actualizados { get; set; }
+    public int Omitidos { get; set; }
     public List<ImportarErrorDto> Errores { get; set; } = new();
     public bool Exitoso => Errores.Count == 0;
 }
