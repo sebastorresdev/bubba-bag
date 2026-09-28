@@ -15,6 +15,8 @@ import {
   Spinner,
   MessageBar,
   MessageBarBody,
+  MessageBarTitle,
+  MessageBarActions,
   Tag,
   Link,
 } from '@fluentui/react-components';
@@ -28,6 +30,7 @@ import {
   Checkmark16Regular,
   DismissCircle16Regular,
   Dismiss12Regular,
+  DismissRegular,
   Search16Regular,
   Box16Regular,
   Person16Regular,
@@ -120,9 +123,9 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   );
 
   useEffect(() => {
-    if (effectiveId) {
+    if (effectiveId && effectiveId !== currentId) {
       cargarAlmacen(effectiveId);
-    } else {
+    } else if (!effectiveId) {
       setCurrentId(null);
       setFormData({
         nombre: '',
@@ -134,7 +137,17 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
       });
       setLoading(false);
     }
-  }, [effectiveId, cargarAlmacen]);
+  }, [effectiveId, currentId, cargarAlmacen]);
+
+  // Auto-cerrar mensaje de éxito tras 5 segundos
+  useEffect(() => {
+    if (statusMessage?.type === 'success') {
+      const timer = setTimeout(() => {
+        setStatusMessage(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [statusMessage]);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -173,7 +186,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
 
         setStatusMessage({
           type: 'success',
-          text: 'Almacén actualizado correctamente.',
+          text: `Almacén "${formData.nombre.trim()}" actualizado correctamente.`,
         });
 
         if (propOnSaved) propOnSaved(currentId);
@@ -198,7 +211,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
 
         setStatusMessage({
           type: 'success',
-          text: 'Almacén guardado exitosamente.',
+          text: `Almacén "${formData.nombre.trim()}" creado exitosamente.`,
         });
 
         if (propOnCreated) propOnCreated(res.id);
@@ -259,6 +272,32 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
 
   return (
     <div className={styles.root}>
+      {/* 0. Fluent UI MessageBar para notificaciones */}
+      {statusMessage && (
+        <MessageBar
+          intent={statusMessage.type}
+          shape="square"
+          className={styles.messageBarContainer}
+        >
+          <MessageBarBody>
+            <MessageBarTitle>
+              {statusMessage.type === 'success' ? 'Éxito' : 'Atención'}
+            </MessageBarTitle>
+            {statusMessage.text}
+          </MessageBarBody>
+          <MessageBarActions
+            containerAction={
+              <Button
+                appearance="transparent"
+                aria-label="Cerrar notificación"
+                icon={<DismissRegular />}
+                onClick={() => setStatusMessage(null)}
+              />
+            }
+          />
+        </MessageBar>
+      )}
+
       {/* 1. D365 Standard Command Bar */}
       <Toolbar className={styles.commandBar} aria-label="Comandos de Almacén">
         <div className={styles.toolbarLeft}>
@@ -333,16 +372,6 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
         )}
       </Toolbar>
 
-      {/* Mensajes de Feedback */}
-      {statusMessage && (
-        <MessageBar
-          intent={statusMessage.type}
-          className={styles.messageBarContainer}
-        >
-          <MessageBarBody>{statusMessage.text}</MessageBarBody>
-        </MessageBar>
-      )}
-
       {loading ? (
         <div className={styles.loadingContainer}>
           <Spinner label="Cargando almacén..." size="large" />
@@ -362,7 +391,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
                 <div className={styles.titleSection}>
                   <Text className={styles.mainTitle}>
                     {isEditMode
-                      ? `${savedHeader.nombre || 'Almacén'} - Guardado`
+                      ? savedHeader.nombre || 'Almacén'
                       : 'Nuevo Almacén'}
                   </Text>
                   <Text className={styles.subTitle}>Almacén</Text>
