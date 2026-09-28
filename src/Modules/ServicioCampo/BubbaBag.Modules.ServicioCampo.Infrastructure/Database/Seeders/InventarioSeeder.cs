@@ -13,10 +13,8 @@ public static class InventarioSeeder
 {
     public static async Task SeedAsync(ServicioCampoDbContext context, ILogger logger, Dictionary<string, Guid>? sucursalesMap = null)
     {
-        if (sucursalesMap != null && sucursalesMap.Count > 0)
-        {
-            await SeedAlmacenesAsync(context, sucursalesMap, logger);
-        }
+        // Se omiten almacenes de prueba automáticos para mantener el inventario limpio y gestionado por el usuario.
+        await Task.CompletedTask;
     }
 
     private static async Task SeedProductosAsync(ServicioCampoDbContext context, ILogger logger)

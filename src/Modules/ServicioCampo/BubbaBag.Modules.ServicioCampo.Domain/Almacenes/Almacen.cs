@@ -10,6 +10,7 @@ public class Almacen : Entity<Guid>
 {
     public string Codigo { get; private set; } = default!;
     public string Nombre { get; private set; } = default!;
+    public string? Descripcion { get; private set; }
     public TipoAlmacen Tipo { get; private set; }
     public string? Direccion { get; private set; }
     public string? Telefono { get; private set; }
@@ -24,6 +25,27 @@ public class Almacen : Entity<Guid>
     public bool Activo { get; private set; }
 
     private Almacen() { }
+
+    /// <summary>
+    /// Creación estándar estilo Dynamics 365 (solo requiere Nombre y opcionalmente Descripción).
+    /// </summary>
+    public static Almacen Crear(
+        string nombre,
+        string? descripcion = null,
+        string? codigo = null)
+    {
+        return new Almacen
+        {
+            Id = Guid.NewGuid(),
+            Codigo = !string.IsNullOrWhiteSpace(codigo)
+                ? codigo.Trim().ToUpperInvariant()
+                : $"ALM-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}",
+            Nombre = nombre.Trim(),
+            Descripcion = descripcion?.Trim(),
+            Tipo = TipoAlmacen.Fisico,
+            Activo = true
+        };
+    }
 
     public static Almacen CrearFisico(
         string codigo,
@@ -63,16 +85,24 @@ public class Almacen : Entity<Guid>
         };
     }
 
+    public void Actualizar(string nombre, string? descripcion = null)
+    {
+        Nombre = nombre.Trim();
+        Descripcion = descripcion?.Trim();
+    }
+
     public void Actualizar(
         string nombre,
         string? direccion,
         string? telefono,
-        Guid? sucursalId)
+        Guid? sucursalId,
+        string? descripcion = null)
     {
         Nombre = nombre.Trim();
         Direccion = direccion?.Trim();
         Telefono = telefono?.Trim();
         SucursalId = sucursalId;
+        Descripcion = descripcion?.Trim();
     }
 
     public void VincularRecurso(Guid? recursoId)

@@ -1,36 +1,21 @@
-export type TipoAlmacen = 'Fisico' | 'Movil';
-
 export interface AlmacenDto {
   id: string;
-  codigo: string;
+  codigo?: string | null;
   nombre: string;
-  tipo: TipoAlmacen | number;
-  direccion?: string | null;
-  telefono?: string | null;
-  sucursalId?: string | null;
-  recursoId?: string | null;
-  recursoTecnicoId?: string | null;
+  descripcion?: string | null;
   activo: boolean;
-  nombreSucursal?: string | null;
-  nombreRecurso?: string | null;
+  propietario?: string | null;
+  fechaCreacion?: string | null;
 }
 
 export interface CreateAlmacenDto {
-  codigo: string;
   nombre: string;
-  tipo: TipoAlmacen | number;
-  sucursalId?: string | null;
-  direccion?: string | null;
-  telefono?: string | null;
-  recursoId?: string | null;
+  descripcion?: string | null;
 }
 
 export interface UpdateAlmacenDto {
   nombre: string;
-  direccion?: string | null;
-  telefono?: string | null;
-  sucursalId?: string | null;
-  recursoId?: string | null;
+  descripcion?: string | null;
 }
 
 export interface RecursoLookupDto {

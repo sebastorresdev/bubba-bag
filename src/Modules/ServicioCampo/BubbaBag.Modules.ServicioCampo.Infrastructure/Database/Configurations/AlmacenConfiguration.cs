@@ -23,6 +23,9 @@ public class AlmacenConfiguration : IEntityTypeConfiguration<Almacen>
             .IsRequired()
             .HasMaxLength(150);
 
+        builder.Property(a => a.Descripcion)
+            .HasMaxLength(500);
+
         builder.Property(a => a.Tipo)
             .IsRequired()
             .HasConversion<int>();

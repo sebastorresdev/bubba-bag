@@ -78,15 +78,10 @@ public static class AlmacenesEndpoints
         CrearAlmacenRequest request,
         IDispatcher dispatcher)
     {
-        var recursoId = request.RecursoId ?? request.RecursoTecnicoId;
         var command = new CrearAlmacenCommand(
-            request.Codigo,
             request.Nombre,
-            request.Tipo,
-            request.SucursalId,
-            request.Direccion,
-            request.Telefono,
-            recursoId
+            request.Descripcion,
+            request.Codigo
         );
 
         var result = await dispatcher.SendAsync(command);
@@ -100,8 +95,7 @@ public static class AlmacenesEndpoints
         ActualizarAlmacenRequest request,
         IDispatcher dispatcher)
     {
-        var recursoId = request.RecursoId ?? request.RecursoTecnicoId;
-        var command = new ActualizarAlmacenCommand(id, request.Nombre, request.Direccion, request.Telefono, request.SucursalId, recursoId);
+        var command = new ActualizarAlmacenCommand(id, request.Nombre, request.Descripcion);
         var result = await dispatcher.SendAsync(command);
         return result.IsSuccess ? Results.NoContent() : Results.BadRequest(result.Error);
     }
@@ -118,23 +112,14 @@ public static class AlmacenesEndpoints
 }
 
 public record CrearAlmacenRequest(
-    string Codigo,
     string Nombre,
-    TipoAlmacen Tipo,
-    Guid? SucursalId,
-    string? Direccion,
-    string? Telefono,
-    Guid? RecursoId = null,
-    Guid? RecursoTecnicoId = null
+    string? Descripcion = null,
+    string? Codigo = null
 );
 
 public record ActualizarAlmacenRequest(
     string Nombre,
-    string? Direccion,
-    string? Telefono,
-    Guid? SucursalId,
-    Guid? RecursoId = null,
-    Guid? RecursoTecnicoId = null
+    string? Descripcion = null
 );
 
 public record CambiarEstadoRequest(bool Activo);

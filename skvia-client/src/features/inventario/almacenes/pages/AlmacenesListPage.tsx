@@ -23,27 +23,23 @@ import {
   DataGridCell,
   TableCellLayout,
   createTableColumn,
-  Badge,
 } from '@fluentui/react-components';
 import type { TableColumnDefinition, SelectionItemId } from '@fluentui/react-components';
 import {
   Add16Regular,
   ArrowClockwise16Regular,
   Checkmark16Regular,
-  ChevronDown12Regular,
   ChevronDown16Regular,
   DataFunnel20Regular,
   Search16Regular,
   TableEdit16Regular,
-  VehicleTruckProfile16Regular,
-  Building16Regular,
-  DismissCircle16Regular,
   Warning24Regular,
 } from '@fluentui/react-icons';
 import { AlmacenService } from '../services/almacen.service';
 import type { AlmacenDto } from '../types/almacen.types';
 import { TableEmptyState } from '../../../../components/common/TableEmptyState';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
+import { getCurrentUserSession } from '../../../../services/sessionService';
 
 export interface AlmacenesListPageProps {
   onNewAlmacen?: () => void;
@@ -56,6 +52,7 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
 }) => {
   const styles = useD365ListStyles();
   const navigate = useNavigate();
+  const currentUser = useMemo(() => getCurrentUserSession(), []);
 
   const [almacenes, setAlmacenes] = useState<AlmacenDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -64,7 +61,6 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
   // Filters & Search
   const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [activeView, setActiveView] = useState<'activos' | 'todos' | 'inactivos'>('activos');
-  const [tipoFiltro, setTipoFiltro] = useState<'todos' | 'Fisico' | 'Movil'>('todos');
 
   // Fluent UI v9 DataGrid Selection
   const [selectedIds, setSelectedIds] = useState<Set<SelectionItemId>>(new Set());
@@ -97,35 +93,25 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
       result = result.filter((a) => !a.activo);
     }
 
-    // Filtro Tipo
-    if (tipoFiltro === 'Fisico') {
-      result = result.filter((a) => a.tipo === 'Fisico' || a.tipo === 1);
-    } else if (tipoFiltro === 'Movil') {
-      result = result.filter((a) => a.tipo === 'Movil' || a.tipo === 2);
-    }
-
     // Búsqueda
     if (searchKeyword.trim()) {
       const q = searchKeyword.toLowerCase();
       result = result.filter(
         (a) =>
-          a.codigo.toLowerCase().includes(q) ||
           a.nombre.toLowerCase().includes(q) ||
-          a.direccion?.toLowerCase().includes(q) ||
-          a.nombreSucursal?.toLowerCase().includes(q) ||
-          a.nombreRecurso?.toLowerCase().includes(q)
+          (a.descripcion && a.descripcion.toLowerCase().includes(q))
       );
     }
 
     return result;
-  }, [almacenes, activeView, tipoFiltro, searchKeyword]);
+  }, [almacenes, activeView, searchKeyword]);
 
   const columns: TableColumnDefinition<AlmacenDto>[] = useMemo(
     () => [
       createTableColumn<AlmacenDto>({
         columnId: 'nombre',
         compare: (a, b) => a.nombre.localeCompare(b.nombre),
-        renderHeaderCell: () => 'Nombre del Almacén',
+        renderHeaderCell: () => 'Nombre',
         renderCell: (item) => (
           <TableCellLayout truncate>
             <Link
@@ -147,102 +133,57 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
         ),
       }),
       createTableColumn<AlmacenDto>({
-        columnId: 'codigo',
-        compare: (a, b) => a.codigo.localeCompare(b.codigo),
-        renderHeaderCell: () => 'Código',
+        columnId: 'descripcion',
+        compare: (a, b) => (a.descripcion || '').localeCompare(b.descripcion || ''),
+        renderHeaderCell: () => 'Descripción',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text font="monospace" size={200} weight="semibold">
-              {item.codigo}
+            <Text size={200} style={{ color: item.descripcion ? 'inherit' : '#8a8886' }}>
+              {item.descripcion || '—'}
             </Text>
           </TableCellLayout>
         ),
       }),
       createTableColumn<AlmacenDto>({
-        columnId: 'tipo',
+        columnId: 'propietario',
         compare: (a, b) => {
-          const tA = a.tipo === 'Movil' || a.tipo === 2 ? 'Móvil' : 'Físico';
-          const tB = b.tipo === 'Movil' || b.tipo === 2 ? 'Móvil' : 'Físico';
-          return tA.localeCompare(tB);
+          const pA = a.propietario || currentUser.nombre;
+          const pB = b.propietario || currentUser.nombre;
+          return pA.localeCompare(pB);
         },
-        renderHeaderCell: () => 'Tipo',
+        renderHeaderCell: () => 'Propietario',
         renderCell: (item) => {
-          const esMovil = item.tipo === 'Movil' || item.tipo === 2;
+          const ownerName = item.propietario || currentUser.nombre;
           return (
-            <TableCellLayout>
-              <Badge
-                appearance="tint"
-                color={esMovil ? 'informative' : 'subtle'}
-                icon={esMovil ? <VehicleTruckProfile16Regular /> : <Building16Regular />}
+            <TableCellLayout truncate>
+              <Link
+                as="button"
+                className={styles.primaryLink}
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+                title={`Propietario: ${ownerName} (${currentUser.username})`}
               >
-                {esMovil ? 'Móvil (Vehículo)' : 'Físico (Sede)'}
-              </Badge>
+                {ownerName}
+              </Link>
             </TableCellLayout>
           );
         },
-      }),
-      createTableColumn<AlmacenDto>({
-        columnId: 'sucursal',
-        compare: (a, b) => (a.nombreSucursal || '').localeCompare(b.nombreSucursal || ''),
-        renderHeaderCell: () => 'Sucursal / Sede',
-        renderCell: (item) => (
-          <TableCellLayout truncate>
-            <Text size={200} style={{ color: item.nombreSucursal ? 'inherit' : '#8a8886' }}>
-              {item.nombreSucursal || '—'}
-            </Text>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<AlmacenDto>({
-        columnId: 'responsable',
-        compare: (a, b) => (a.nombreRecurso || '').localeCompare(b.nombreRecurso || ''),
-        renderHeaderCell: () => 'Técnico / Responsable',
-        renderCell: (item) => (
-          <TableCellLayout truncate>
-            <Text size={200} weight={item.nombreRecurso ? 'medium' : 'regular'}>
-              {item.nombreRecurso || '—'}
-            </Text>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<AlmacenDto>({
-        columnId: 'direccion',
-        renderHeaderCell: () => 'Dirección / Ubicación',
-        renderCell: (item) => (
-          <TableCellLayout truncate>
-            <Text size={200} title={item.direccion || ''}>
-              {item.direccion || '—'}
-            </Text>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<AlmacenDto>({
-        columnId: 'telefono',
-        renderHeaderCell: () => 'Teléfono',
-        renderCell: (item) => (
-          <TableCellLayout truncate>
-            <Text size={200}>{item.telefono || '—'}</Text>
-          </TableCellLayout>
-        ),
       }),
       createTableColumn<AlmacenDto>({
         columnId: 'activo',
         compare: (a, b) => Number(b.activo) - Number(a.activo),
         renderHeaderCell: () => 'Estado',
         renderCell: (item) => (
-          <TableCellLayout>
-            <Badge
-              appearance="filled"
-              color={item.activo ? 'success' : 'informative'}
-              icon={item.activo ? <Checkmark16Regular /> : <DismissCircle16Regular />}
-            >
+          <TableCellLayout truncate>
+            <Text wrap={false} className={styles.noWrapCell}>
               {item.activo ? 'Activo' : 'Inactivo'}
-            </Badge>
+            </Text>
           </TableCellLayout>
         ),
       }),
     ],
-    [navigate, onSelectAlmacen, styles.primaryLink]
+    [navigate, onSelectAlmacen, styles.primaryLink, styles.noWrapCell]
   );
 
   const handleEditSelected = () => {
@@ -289,25 +230,6 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
             >
               Actualizar
             </ToolbarButton>
-
-            <ToolbarDivider />
-
-            {/* Selector de Tipo */}
-            <Menu>
-              <MenuTrigger disableButtonEnhancement>
-                <ToolbarButton icon={<DataFunnel20Regular />}>
-                  Tipo: {tipoFiltro === 'todos' ? 'Todos' : tipoFiltro === 'Fisico' ? 'Físicos' : 'Móviles'}
-                  <ChevronDown12Regular className={styles.iconChevronMargin} />
-                </ToolbarButton>
-              </MenuTrigger>
-              <MenuPopover>
-                <MenuList>
-                  <MenuItem onClick={() => setTipoFiltro('todos')}>Todos los Tipos</MenuItem>
-                  <MenuItem onClick={() => setTipoFiltro('Fisico')}>Solo Almacenes Físicos</MenuItem>
-                  <MenuItem onClick={() => setTipoFiltro('Movil')}>Solo Almacenes Móviles</MenuItem>
-                </MenuList>
-              </MenuPopover>
-            </Menu>
           </Toolbar>
         </div>
       </div>
@@ -366,7 +288,7 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
             className={styles.searchBox}
             size="medium"
             contentBefore={<Search16Regular />}
-            placeholder="Buscar por código, nombre, sede o técnico..."
+            placeholder="Buscar por nombre o descripción..."
             value={searchKeyword}
             onChange={(_, data) => setSearchKeyword(data.value)}
           />
@@ -377,7 +299,7 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
       <div className={styles.gridContainer}>
         {loading ? (
           <div className={styles.emptyState}>
-            <Spinner label="Cargando almacenes y bodegas..." size="medium" />
+            <Spinner label="Cargando almacenes..." size="medium" />
           </div>
         ) : error ? (
           <div className={styles.emptyState}>

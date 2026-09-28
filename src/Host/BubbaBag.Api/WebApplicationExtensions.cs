@@ -285,6 +285,9 @@ public static class WebApplicationExtensions
                           END IF;
                       END $$;
 
+                      ALTER TABLE inventario.""Almacenes"" ADD COLUMN IF NOT EXISTS ""Descripcion"" character varying(500);
+                      DELETE FROM inventario.""Almacenes"" WHERE ""Codigo"" LIKE 'ALM-BASE-%';
+
                       ALTER TABLE serviciocampo.""PlantillasTrabajo"" ADD COLUMN IF NOT EXISTS ""ProductoId"" uuid;
                       DO $$
                       BEGIN

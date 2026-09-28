@@ -40,18 +40,18 @@ public class ObtenerAlmacenesHandler : IQueryHandler<ObtenerAlmacenesQuery, Resu
             dbQuery = dbQuery.Where(a => a.SucursalId == query.SucursalId.Value);
 
         var lista = await dbQuery
-            .OrderBy(a => a.Tipo)
-            .ThenBy(a => a.Nombre)
+            .OrderBy(a => a.Nombre)
             .Select(a => new AlmacenDto(
                 a.Id,
                 a.Codigo,
                 a.Nombre,
+                a.Descripcion,
+                a.Activo,
                 a.Tipo,
                 a.Direccion,
                 a.Telefono,
                 a.SucursalId,
                 a.RecursoId,
-                a.Activo,
                 a.SucursalId != null ? _context.Sucursales.Where(s => s.Id == a.SucursalId).Select(s => s.Nombre).FirstOrDefault() : null,
                 a.RecursoId != null ? _context.Recursos.Where(r => r.Id == a.RecursoId).Select(r => r.NombreCompleto).FirstOrDefault() : null,
                 a.RecursoId

@@ -9,9 +9,10 @@ using Microsoft.EntityFrameworkCore;
 namespace BubbaBag.Modules.ServicioCampo.Application.Almacenes.Commands.CrearAlmacen;
 
 public record CrearAlmacenCommand(
-    string Codigo,
     string Nombre,
-    TipoAlmacen Tipo,
+    string? Descripcion = null,
+    string? Codigo = null,
+    TipoAlmacen Tipo = TipoAlmacen.Fisico,
     Guid? SucursalId = null,
     string? Direccion = null,
     string? Telefono = null,
@@ -30,19 +31,18 @@ public class CrearAlmacenHandler : ICommandHandler<CrearAlmacenCommand, Result<G
 
     public async Task<Result<Guid>> HandleAsync(CrearAlmacenCommand command, CancellationToken cancellationToken = default)
     {
-        var codigoUpper = command.Codigo.Trim().ToUpperInvariant();
-        var recursoId = command.RecursoId ?? command.RecursoTecnicoId;
+        if (string.IsNullOrWhiteSpace(command.Nombre))
+            return Result<Guid>.Failure("El nombre del almacén es obligatorio.");
+
+        var codigoUpper = !string.IsNullOrWhiteSpace(command.Codigo)
+            ? command.Codigo.Trim().ToUpperInvariant()
+            : $"ALM-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
 
         var existe = await _context.Almacenes.AnyAsync(a => a.Codigo == codigoUpper, cancellationToken);
         if (existe)
             return Result<Guid>.Failure($"Ya existe un almacén con el código '{codigoUpper}'.");
 
-        if (command.Tipo == TipoAlmacen.Movil && !recursoId.HasValue)
-            return Result<Guid>.Failure("El almacén móvil debe tener un técnico responsable asignado.");
-
-        Almacen almacen = command.Tipo == TipoAlmacen.Movil
-            ? Almacen.CrearMovil(codigoUpper, command.Nombre, recursoId!.Value, command.SucursalId)
-            : Almacen.CrearFisico(codigoUpper, command.Nombre, command.SucursalId, command.Direccion, command.Telefono);
+        var almacen = Almacen.Crear(command.Nombre, command.Descripcion, codigoUpper);
 
         await _context.Almacenes.AddAsync(almacen, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);

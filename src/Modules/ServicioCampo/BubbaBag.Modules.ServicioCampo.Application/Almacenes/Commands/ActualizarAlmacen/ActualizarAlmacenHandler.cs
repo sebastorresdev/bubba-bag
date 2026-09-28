@@ -11,9 +11,10 @@ namespace BubbaBag.Modules.ServicioCampo.Application.Almacenes.Commands.Actualiz
 public record ActualizarAlmacenCommand(
     Guid Id,
     string Nombre,
-    string? Direccion,
-    string? Telefono,
-    Guid? SucursalId,
+    string? Descripcion = null,
+    string? Direccion = null,
+    string? Telefono = null,
+    Guid? SucursalId = null,
     Guid? RecursoId = null
 ) : ICommand<Result>;
 
@@ -32,13 +33,7 @@ public class ActualizarAlmacenHandler : ICommandHandler<ActualizarAlmacenCommand
         if (almacen is null)
             return Result.Failure($"No se encontró el almacén con ID '{command.Id}'.");
 
-        almacen.Actualizar(command.Nombre, command.Direccion, command.Telefono, command.SucursalId);
-        
-        if (command.RecursoId.HasValue || almacen.Tipo == TipoAlmacen.Movil)
-        {
-            almacen.VincularRecurso(command.RecursoId);
-        }
-
+        almacen.Actualizar(command.Nombre, command.Descripcion);
         await _context.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
