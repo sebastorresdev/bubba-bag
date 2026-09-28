@@ -288,6 +288,14 @@ public static class WebApplicationExtensions
                       ALTER TABLE inventario.""Almacenes"" ADD COLUMN IF NOT EXISTS ""Descripcion"" character varying(500);
                       DELETE FROM inventario.""Almacenes"" WHERE ""Codigo"" LIKE 'ALM-BASE-%';
 
+                      UPDATE seguridad.""AspNetUsers""
+                      SET ""UserName"" = 'admin@skvia.com',
+                          ""NormalizedUserName"" = 'ADMIN@SKVIA.COM',
+                          ""Email"" = 'admin@skvia.com',
+                          ""NormalizedEmail"" = 'ADMIN@SKVIA.COM',
+                          ""NombreCompleto"" = 'Sebastian Torres'
+                      WHERE ""Email"" = 'admin@bubbabag.com' OR ""UserName"" = 'admin@bubbabag.com' OR ""Id"" = '00000000-0000-0000-0000-000000000001';
+
                       ALTER TABLE serviciocampo.""PlantillasTrabajo"" ADD COLUMN IF NOT EXISTS ""ProductoId"" uuid;
                       DO $$
                       BEGIN

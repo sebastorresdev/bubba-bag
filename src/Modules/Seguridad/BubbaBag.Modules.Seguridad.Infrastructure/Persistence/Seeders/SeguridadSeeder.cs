@@ -107,25 +107,46 @@ public static class SeguridadSeeder
             await roleManager.DeleteAsync(rolViejoAdmin);
         }
 
-        // 3. Sembrar usuario inicial SuperAdmin
-        var admin = await userManager.FindByEmailAsync("admin@bubbabag.com");
+        // 3. Sembrar usuario inicial SuperAdmin (Sebastian Torres)
+        var admin = await userManager.FindByEmailAsync("admin@skvia.com")
+                    ?? await userManager.FindByEmailAsync("admin@bubbabag.com")
+                    ?? await userManager.FindByIdAsync("00000000-0000-0000-0000-000000000001");
+
         if (admin == null)
         {
             admin = new Usuario
             {
                 Id = Guid.Parse("00000000-0000-0000-0000-000000000001"),
-                UserName = "admin@bubbabag.com",
-                Email = "admin@bubbabag.com",
-                NombreCompleto = "SuperAdmin"
+                UserName = "admin@skvia.com",
+                Email = "admin@skvia.com",
+                NombreCompleto = "Sebastian Torres"
             };
             await userManager.CreateAsync(admin, "Admin123!");
             await userManager.AddToRoleAsync(admin, Roles.SuperAdmin);
         }
         else
         {
-            if (admin.NombreCompleto != "SuperAdmin")
+            bool modificado = false;
+            if (admin.Email != "admin@skvia.com")
             {
-                admin.NombreCompleto = "SuperAdmin";
+                admin.Email = "admin@skvia.com";
+                admin.NormalizedEmail = "ADMIN@SKVIA.COM";
+                modificado = true;
+            }
+            if (admin.UserName != "admin@skvia.com")
+            {
+                admin.UserName = "admin@skvia.com";
+                admin.NormalizedUserName = "ADMIN@SKVIA.COM";
+                modificado = true;
+            }
+            if (admin.NombreCompleto != "Sebastian Torres")
+            {
+                admin.NombreCompleto = "Sebastian Torres";
+                modificado = true;
+            }
+
+            if (modificado)
+            {
                 await userManager.UpdateAsync(admin);
             }
 

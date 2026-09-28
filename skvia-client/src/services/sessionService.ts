@@ -11,9 +11,9 @@ export interface UserSession {
 
 export function getCurrentUserSession(): UserSession {
   const token = localStorage.getItem('skvia_auth_token');
-  let nombre = 'Sebastián Torres';
-  let username = 'storres';
-  let email = 'admin@bubbabag.com';
+  let nombre = 'Sebastian Torres';
+  let username = 'admin@skvia.com';
+  let email = 'admin@skvia.com';
 
   if (token) {
     try {
@@ -28,10 +28,9 @@ export function getCurrentUserSession(): UserSession {
             .join('')
         );
         const payload = JSON.parse(jsonPayload);
-        if (payload.name) nombre = payload.name;
-        else if (payload.unique_name) nombre = payload.unique_name;
-        else if (payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name']) {
-          nombre = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'];
+        const resolvedName = payload.nombre_completo || payload.name || payload.unique_name || payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'];
+        if (resolvedName && resolvedName !== 'SuperAdmin') {
+          nombre = resolvedName;
         }
 
         if (payload.email) email = payload.email;

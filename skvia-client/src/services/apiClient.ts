@@ -5,7 +5,19 @@ const TOKEN_KEY = 'skvia_auth_token';
 export async function getValidAuthToken(): Promise<string> {
   let token = localStorage.getItem(TOKEN_KEY);
   if (token) {
-    return token;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      if (payload.email === 'admin@bubbabag.com' || payload.nombre_completo === 'SuperAdmin' || payload.unique_name === 'admin@bubbabag.com') {
+        localStorage.removeItem(TOKEN_KEY);
+        token = null;
+      }
+    } catch {
+      localStorage.removeItem(TOKEN_KEY);
+      token = null;
+    }
+    if (token) {
+      return token;
+    }
   }
 
   // Automatic authentication with system credentials for seamless development experience
@@ -16,7 +28,7 @@ export async function getValidAuthToken(): Promise<string> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        email: 'admin@bubbabag.com',
+        email: 'admin@skvia.com',
         password: 'Admin123!',
       }),
     });
