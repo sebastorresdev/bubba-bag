@@ -2,6 +2,7 @@ using BubbaBag.Api;
 using BubbaBag.Modules.Seguridad.Api;
 using BubbaBag.Modules.RecursosHumanos.Api;
 using BubbaBag.Modules.ServicioCampo.Api;
+using BubbaBag.Modules.GestionDatos.Api;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 
@@ -34,10 +35,12 @@ builder.AddNpgsqlDbContext<BubbaBag.Modules.ServicioCampo.Infrastructure.Databas
 {
     options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 });
+builder.AddNpgsqlDbContext<BubbaBag.Modules.GestionDatos.Infrastructure.Database.GestionDatosDbContext>("sqldb");
 builder.Services.AddBubbaBagServices(builder.Configuration);
 
 BubbaBag.Modules.RecursosHumanos.Api.RecursosHumanosModule.AddRecursosHumanosModule(builder.Services);
 builder.Services.AddServicioCampoModule();
+builder.Services.AddGestionDatosModule();
 
 var app = builder.Build();
 
@@ -63,5 +66,7 @@ app.MapSeguridadEndpoints();
 app.MapRecursosHumanosEndpoints();
 app.MapSucursalesEndpoints();
 app.MapServicioCampoEndpoints();
+app.MapGestionDatosEndpoints();
 
 app.Run();
+

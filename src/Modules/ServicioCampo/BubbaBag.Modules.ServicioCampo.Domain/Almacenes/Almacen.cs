@@ -17,8 +17,9 @@ public class Almacen : Entity<Guid>
     // Vinculación opcional a una sede física de la empresa
     public Guid? SucursalId { get; private set; }
 
-    // Vinculación opcional al técnico propietario de la camioneta (si Tipo == Movil)
-    public Guid? RecursoTecnicoId { get; private set; }
+    // Vinculación opcional al recurso propietario de la camioneta (si Tipo == Movil)
+    public Guid? RecursoId { get; private set; }
+    public Guid? RecursoTecnicoId => RecursoId;
 
     public bool Activo { get; private set; }
 
@@ -47,7 +48,7 @@ public class Almacen : Entity<Guid>
     public static Almacen CrearMovil(
         string codigo,
         string nombre,
-        Guid recursoTecnicoId,
+        Guid recursoId,
         Guid? sucursalId = null)
     {
         return new Almacen
@@ -56,7 +57,7 @@ public class Almacen : Entity<Guid>
             Codigo = codigo.Trim().ToUpperInvariant(),
             Nombre = nombre.Trim(),
             Tipo = TipoAlmacen.Movil,
-            RecursoTecnicoId = recursoTecnicoId,
+            RecursoId = recursoId,
             SucursalId = sucursalId,
             Activo = true
         };
@@ -74,10 +75,12 @@ public class Almacen : Entity<Guid>
         SucursalId = sucursalId;
     }
 
-    public void VincularRecursoTecnico(Guid? recursoTecnicoId)
+    public void VincularRecurso(Guid? recursoId)
     {
-        RecursoTecnicoId = recursoTecnicoId;
+        RecursoId = recursoId;
     }
+
+    public void VincularRecursoTecnico(Guid? recursoTecnicoId) => VincularRecurso(recursoTecnicoId);
 
     public void Desactivar() => Activo = false;
     public void Activar() => Activo = true;

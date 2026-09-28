@@ -5,8 +5,10 @@ using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Commands.CambiarEstad
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Commands.CrearAlmacen;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerAlmacenPorId;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerAlmacenes;
+using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerRecursosLookup;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerStockTecnicos;
 using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
+using BubbaBag.Modules.ServicioCampo.Domain.Recursos;
 using BubbaBag.SharedKernel.CQRS;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -23,6 +25,7 @@ public static class AlmacenesEndpoints
             .RequireAuthorization();
 
         group.MapGet("/", ObtenerAlmacenes);
+        group.MapGet("/recursos-disponibles", ObtenerRecursosDisponibles);
         group.MapGet("/{id:guid}", ObtenerAlmacenPorId);
         group.MapPost("/", CrearAlmacen);
         group.MapPut("/{id:guid}", ActualizarAlmacen);
@@ -34,6 +37,15 @@ public static class AlmacenesEndpoints
             .RequireAuthorization();
 
         stockGroup.MapGet("/tecnicos", ObtenerStockTecnicos);
+    }
+
+    private static async Task<IResult> ObtenerRecursosDisponibles(
+        TipoRecurso? tipo,
+        bool? soloActivos,
+        IDispatcher dispatcher)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerRecursosLookupQuery(tipo, soloActivos ?? true));
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 
     private static async Task<IResult> ObtenerStockTecnicos(
@@ -66,6 +78,7 @@ public static class AlmacenesEndpoints
         CrearAlmacenRequest request,
         IDispatcher dispatcher)
     {
+        var recursoId = request.RecursoId ?? request.RecursoTecnicoId;
         var command = new CrearAlmacenCommand(
             request.Codigo,
             request.Nombre,
@@ -73,7 +86,7 @@ public static class AlmacenesEndpoints
             request.SucursalId,
             request.Direccion,
             request.Telefono,
-            request.RecursoTecnicoId
+            recursoId
         );
 
         var result = await dispatcher.SendAsync(command);
@@ -87,7 +100,8 @@ public static class AlmacenesEndpoints
         ActualizarAlmacenRequest request,
         IDispatcher dispatcher)
     {
-        var command = new ActualizarAlmacenCommand(id, request.Nombre, request.Direccion, request.Telefono, request.SucursalId);
+        var recursoId = request.RecursoId ?? request.RecursoTecnicoId;
+        var command = new ActualizarAlmacenCommand(id, request.Nombre, request.Direccion, request.Telefono, request.SucursalId, recursoId);
         var result = await dispatcher.SendAsync(command);
         return result.IsSuccess ? Results.NoContent() : Results.BadRequest(result.Error);
     }
@@ -110,14 +124,17 @@ public record CrearAlmacenRequest(
     Guid? SucursalId,
     string? Direccion,
     string? Telefono,
-    Guid? RecursoTecnicoId
+    Guid? RecursoId = null,
+    Guid? RecursoTecnicoId = null
 );
 
 public record ActualizarAlmacenRequest(
     string Nombre,
     string? Direccion,
     string? Telefono,
-    Guid? SucursalId
+    Guid? SucursalId,
+    Guid? RecursoId = null,
+    Guid? RecursoTecnicoId = null
 );
 
 public record CambiarEstadoRequest(bool Activo);

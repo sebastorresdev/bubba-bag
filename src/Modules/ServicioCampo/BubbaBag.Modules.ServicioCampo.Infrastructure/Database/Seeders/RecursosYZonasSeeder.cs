@@ -104,23 +104,24 @@ public static class RecursosYZonasSeeder
                 continue;
             }
 
-            if (!await context.RecursosTecnicos.AnyAsync(r => r.Codigo == t.Codigo))
+            if (!await context.Recursos.AnyAsync(r => r.Codigo == t.Codigo))
             {
-                var recurso = RecursoTecnico.Crear(
+                var recurso = Recurso.Crear(
                     t.Codigo,
                     t.Nombre,
+                    TipoRecurso.Tecnico,
                     zona.Id,
                     almBase.Id,
                     almacenMovilId: null,
                     usuarioId: null,
                     empleadoId: null,
-                    documentoIdentidad: t.Documento,
                     telefono: t.Telefono,
+                    documentoIdentidad: t.Documento,
                     email: t.Email,
                     capacidadMaximaOrdenesPorDia: t.Capacidad,
                     colorHex: t.ColorHex);
 
-                await context.RecursosTecnicos.AddAsync(recurso);
+                await context.Recursos.AddAsync(recurso);
                 huboCambios = true;
             }
         }

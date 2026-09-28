@@ -73,11 +73,10 @@ public static class ProductosEndpoints
         string? search,
         string? categoria,
         TipoProducto? tipo,
-        Guid? catalogoId,
         bool? soloActivos,
         IDispatcher dispatcher)
     {
-        var result = await dispatcher.QueryAsync(new ObtenerProductosQuery(search, categoria, tipo, catalogoId, soloActivos));
+        var result = await dispatcher.QueryAsync(new ObtenerProductosQuery(search, categoria, tipo, soloActivos));
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 
@@ -98,7 +97,6 @@ public static class ProductosEndpoints
             request.Nombre,
             request.Tipo ?? TipoProducto.Inventario,
             request.PrecioBase ?? 0m,
-            request.CatalogoId,
             request.Categoria ?? "Materiales",
             request.UnidadMedida ?? "Unidades",
             request.EsSerializado,
@@ -132,7 +130,6 @@ public static class ProductosEndpoints
             request.Descripcion,
             request.Tipo ?? TipoProducto.Inventario,
             request.PrecioBase ?? 0m,
-            request.CatalogoId,
             request.CodigoBarras,
             request.Notas,
             request.CostoActual ?? 0m,
@@ -162,7 +159,6 @@ public record CrearProductoRequest(
     string Nombre,
     TipoProducto? Tipo,
     decimal? PrecioBase,
-    Guid? CatalogoId,
     string? Categoria,
     string? UnidadMedida,
     bool EsSerializado,
@@ -180,7 +176,6 @@ public record ActualizarProductoRequest(
     string Nombre,
     TipoProducto? Tipo,
     decimal? PrecioBase,
-    Guid? CatalogoId,
     string? Categoria,
     string? UnidadMedida,
     bool EsSerializado,

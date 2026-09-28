@@ -13,7 +13,6 @@ public record CrearProductoCommand(
     string Nombre,
     TipoProducto Tipo = TipoProducto.Inventario,
     decimal PrecioBase = 0m,
-    Guid? CatalogoId = null,
     string? Categoria = null,
     string UnidadMedida = "Unidades",
     bool EsSerializado = false,
@@ -54,7 +53,6 @@ public class CrearProductoHandler : ICommandHandler<CrearProductoCommand, Result
             descripcion: command.Descripcion,
             tipo: command.Tipo,
             precioBase: command.PrecioBase,
-            catalogoId: command.CatalogoId,
             codigoBarras: command.CodigoBarras,
             notas: command.Notas,
             costoActual: command.CostoActual,
@@ -77,25 +75,6 @@ public class CrearProductoHandler : ICommandHandler<CrearProductoCommand, Result
                 unidadMedidaId: unidad?.Id
             );
             await _context.ElementosListaPrecios.AddAsync(elemento, cancellationToken);
-        }
-
-        // Si el producto es de tipo Servicio, asegurar la existencia de la entidad ProductoServicio operativa
-        if (command.Tipo == TipoProducto.Servicio)
-        {
-            var existeServicio = await _context.Servicios.AnyAsync(s => s.Codigo == codigoUpper, cancellationToken);
-            if (!existeServicio)
-            {
-                var servicio = ProductoServicio.Crear(
-                    codigo: codigoUpper,
-                    nombre: command.Nombre,
-                    duracionEstimadaMinutos: 60,
-                    descripcion: command.Descripcion,
-                    codigoExterno: null,
-                    precioBase: command.PrecioBase,
-                    productoId: producto.Id
-                );
-                await _context.Servicios.AddAsync(servicio, cancellationToken);
-            }
         }
 
         await _context.SaveChangesAsync(cancellationToken);

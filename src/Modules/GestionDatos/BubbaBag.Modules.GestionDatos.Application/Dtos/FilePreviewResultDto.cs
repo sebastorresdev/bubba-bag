@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace BubbaBag.Modules.ServicioCampo.Application.DataManagement.Dtos;
+namespace BubbaBag.Modules.GestionDatos.Application.Dtos;
 
 public class FilePreviewResultDto
 {
@@ -20,3 +20,4 @@ public class PreviewFileRequest
     public string? QuoteChar { get; set; }
     public bool HasHeader { get; set; } = true;
 }
+

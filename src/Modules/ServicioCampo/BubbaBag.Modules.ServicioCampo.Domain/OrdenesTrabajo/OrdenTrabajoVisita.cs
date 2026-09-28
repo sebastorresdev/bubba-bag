@@ -21,9 +21,10 @@ public class OrdenTrabajoVisita : Entity<Guid>
     public string? NumeroVisitaOrigen { get; private set; } // '1-142O8E0U'
     public string? NumeroCita { get; private set; }         // '1730748'
 
-    // Asignación de Técnico / Cuadrilla y Agenda
-    public Guid RecursoTecnicoId { get; private set; }
-    public RecursoTecnico RecursoTecnico { get; private set; } = default!;
+    // Asignación de Recurso (Técnico, Cuadrilla, etc.) y Agenda
+    public Guid RecursoId { get; private set; }
+    public Recurso Recurso { get; private set; } = default!;
+    public Guid RecursoTecnicoId => RecursoId; // Retrocompatibilidad
     public DateOnly FechaProgramada { get; private set; }
     public string? BloqueHorario { get; private set; } // 'MAÑANA', 'TARDE', '09:00 - 13:00'
     public DateTime? InicioAgendado { get; private set; }
@@ -64,7 +65,7 @@ public class OrdenTrabajoVisita : Entity<Guid>
         Guid ordenTrabajoId,
         string codigoVisita,
         int numeroVisita,
-        Guid recursoTecnicoId,
+        Guid recursoId,
         DateOnly fechaProgramada,
         string? bloqueHorario,
         DateTime? inicioAgendado = null,
@@ -78,7 +79,7 @@ public class OrdenTrabajoVisita : Entity<Guid>
             ? throw new ArgumentException("El código de visita es obligatorio.", nameof(codigoVisita))
             : codigoVisita.Trim().ToUpperInvariant();
         NumeroVisita = numeroVisita;
-        RecursoTecnicoId = recursoTecnicoId;
+        RecursoId = recursoId;
         FechaProgramada = fechaProgramada;
         BloqueHorario = bloqueHorario?.Trim().ToUpperInvariant();
         InicioAgendado = inicioAgendado;
@@ -89,11 +90,13 @@ public class OrdenTrabajoVisita : Entity<Guid>
         CreatedAt = DateTime.UtcNow;
     }
 
-    public void ReasignarTecnico(Guid recursoTecnicoId)
+    public void ReasignarRecurso(Guid recursoId)
     {
-        RecursoTecnicoId = recursoTecnicoId;
+        RecursoId = recursoId;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void ReasignarTecnico(Guid recursoTecnicoId) => ReasignarRecurso(recursoTecnicoId);
 
     public void MarcarEnCamino(DateTime? fechaSalida = null)
     {

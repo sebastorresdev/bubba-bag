@@ -1,12 +1,13 @@
 using System;
 using BubbaBag.SharedKernel;
 
-namespace BubbaBag.Modules.ServicioCampo.Domain.Importaciones;
+namespace BubbaBag.Modules.GestionDatos.Domain;
 
 public class DataImportJobError : Entity<Guid>
 {
     public Guid DataImportJobId { get; private set; }
-    public virtual DataImportJob? DataImportJob { get; private set; }
+    public virtual DataImportJob DataImportJob { get; private set; } = default!;
+
     public int Fila { get; private set; }
     public string? ClaveIdentificador { get; private set; }
     public string? Columna { get; private set; }
@@ -32,3 +33,4 @@ public class DataImportJobError : Entity<Guid>
         ValorOriginal = valorOriginal;
     }
 }
+

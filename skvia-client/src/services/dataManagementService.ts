@@ -62,7 +62,7 @@ export interface DataImportJob {
 export const dataManagementService = {
   // 1. Obtener catálogo de entidades importables
   async getImportableEntities(): Promise<EntityImportDescriptor[]> {
-    return apiClient<EntityImportDescriptor[]>('/api/servicio-campo/data-management/entities');
+    return apiClient<EntityImportDescriptor[]>('/api/data-management/entities');
   },
 
   // 2. Previsualizar archivo y detectar delimitadores
@@ -79,7 +79,7 @@ export const dataManagementService = {
     if (options?.quoteChar) queryParams.append('quoteChar', options.quoteChar);
     if (options?.hasHeader !== undefined) queryParams.append('hasHeader', String(options.hasHeader));
 
-    const url = `/api/servicio-campo/data-management/preview?${queryParams.toString()}`;
+    const url = `/api/data-management/preview?${queryParams.toString()}`;
     const res = await fetch(url, {
       method: 'POST',
       headers: {
@@ -118,7 +118,7 @@ export const dataManagementService = {
     formData.append('columnMappingJson', JSON.stringify(params.columnMapping));
 
     const queryParams = new URLSearchParams({ entityName: params.entityName });
-    const url = `/api/servicio-campo/data-management/execute?${queryParams.toString()}`;
+    const url = `/api/data-management/execute?${queryParams.toString()}`;
 
     const res = await fetch(url, {
       method: 'POST',
@@ -138,16 +138,16 @@ export const dataManagementService = {
 
   // 4. Historial de importaciones
   async getImportJobs(limit: number = 50): Promise<DataImportJob[]> {
-    return apiClient<DataImportJob[]>(`/api/servicio-campo/data-management/imports?limit=${limit}`, { method: 'GET' });
+    return apiClient<DataImportJob[]>(`/api/data-management/imports?limit=${limit}`, { method: 'GET' });
   },
 
   // 5. Detalle de una importación
   async getImportJobById(id: string): Promise<DataImportJob> {
-    return apiClient<DataImportJob>(`/api/servicio-campo/data-management/imports/${id}`, { method: 'GET' });
+    return apiClient<DataImportJob>(`/api/data-management/imports/${id}`, { method: 'GET' });
   },
 
   // 6. Eliminar registro de importación
   async deleteImportJob(id: string): Promise<void> {
-    return apiClient<void>(`/api/servicio-campo/data-management/imports/${id}`, { method: 'DELETE' });
+    return apiClient<void>(`/api/data-management/imports/${id}`, { method: 'DELETE' });
   },
 };

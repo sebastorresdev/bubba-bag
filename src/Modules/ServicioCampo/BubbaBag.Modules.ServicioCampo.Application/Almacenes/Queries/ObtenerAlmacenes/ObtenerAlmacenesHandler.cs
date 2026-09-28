@@ -50,8 +50,11 @@ public class ObtenerAlmacenesHandler : IQueryHandler<ObtenerAlmacenesQuery, Resu
                 a.Direccion,
                 a.Telefono,
                 a.SucursalId,
-                a.RecursoTecnicoId,
-                a.Activo
+                a.RecursoId,
+                a.Activo,
+                a.SucursalId != null ? _context.Sucursales.Where(s => s.Id == a.SucursalId).Select(s => s.Nombre).FirstOrDefault() : null,
+                a.RecursoId != null ? _context.Recursos.Where(r => r.Id == a.RecursoId).Select(r => r.NombreCompleto).FirstOrDefault() : null,
+                a.RecursoId
             ))
             .ToListAsync(cancellationToken);
 

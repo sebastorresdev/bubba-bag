@@ -36,7 +36,6 @@ public class ObtenerProductoPorIdHandler : IQueryHandler<ObtenerProductoPorIdQue
             p.Descripcion,
             p.Tipo,
             p.PrecioBase,
-            p.CatalogoId,
             p.Categoria,
             p.UnidadMedida,
             p.EsSerializado,

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace BubbaBag.Modules.ServicioCampo.Application.DataManagement.Dtos;
+namespace BubbaBag.Modules.GestionDatos.Application.Dtos;
 
 public class DataImportJobDto
 {
@@ -41,3 +41,4 @@ public class ExecuteImportRequestDto
     public string? QuoteChar { get; set; }
     public Dictionary<string, string> ColumnMapping { get; set; } = new();
 }
+

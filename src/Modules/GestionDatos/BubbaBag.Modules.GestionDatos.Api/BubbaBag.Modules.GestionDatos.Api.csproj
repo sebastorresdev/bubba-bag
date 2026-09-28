@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\BubbaBag.Modules.GestionDatos.Application\BubbaBag.Modules.GestionDatos.Application.csproj" />
+    <ProjectReference Include="..\BubbaBag.Modules.GestionDatos.Infrastructure\BubbaBag.Modules.GestionDatos.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\Shared\BubbaBag.SharedKernel\BubbaBag.SharedKernel.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
+

@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using BubbaBag.Modules.RecursosHumanos.Domain.Organizacion;
 using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
 using BubbaBag.Modules.ServicioCampo.Domain.Clientes;
-using BubbaBag.Modules.ServicioCampo.Domain.Importaciones;
 using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 using BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
 using BubbaBag.Modules.ServicioCampo.Domain.Plantillas;
@@ -22,7 +21,7 @@ public interface IServicioCampoDbContext
     DbSet<OrdenTrabajoTarea> OrdenTrabajoTareas { get; }
     DbSet<OrdenTrabajoMaterial> OrdenTrabajoMateriales { get; }
     DbSet<ZonaOperativa> ZonasOperativas { get; }
-    DbSet<RecursoTecnico> RecursosTecnicos { get; }
+    DbSet<Recurso> Recursos { get; }
     DbSet<Almacen> Almacenes { get; }
     DbSet<StockAlmacen> StocksAlmacen { get; }
     DbSet<MovimientoInventario> MovimientosInventario { get; }
@@ -38,7 +37,6 @@ public interface IServicioCampoDbContext
     DbSet<Sucursal> Sucursales { get; }
     DbSet<TipoOrdenTrabajo> TiposOrdenTrabajo { get; }
     DbSet<CampoDefinicion> CamposDefinicion { get; }
-    DbSet<ProductoServicio> Servicios { get; }
     DbSet<TipoTareaServicio> TiposTareaServicio { get; }
 
     // Plantillas y Catálogos de Tareas
@@ -53,10 +51,6 @@ public interface IServicioCampoDbContext
     DbSet<MaterialTrabajo> MaterialesTrabajo { get; }
     DbSet<LiquidacionMaterial> LiquidacionesMaterial { get; }
     DbSet<LiquidacionMaterialItem> LiquidacionesMaterialItems { get; }
-
-    // Gestión de Importación Masiva (Data Management)
-    DbSet<DataImportJob> DataImportJobs { get; }
-    DbSet<DataImportJobError> DataImportJobErrors { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

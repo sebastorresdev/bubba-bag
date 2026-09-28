@@ -5,29 +5,53 @@ using System.Security.Claims;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using BubbaBag.Modules.ServicioCampo.Application.DataManagement.Dtos;
-using BubbaBag.Modules.ServicioCampo.Application.DataManagement.Services;
+using BubbaBag.Modules.GestionDatos.Application;
+using BubbaBag.Modules.GestionDatos.Application.Dtos;
+using BubbaBag.Modules.GestionDatos.Application.Services;
+using BubbaBag.Modules.GestionDatos.Infrastructure.Database;
+using BubbaBag.Modules.GestionDatos.Infrastructure.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace BubbaBag.Modules.ServicioCampo.Api;
+namespace BubbaBag.Modules.GestionDatos.Api;
 
-public static class DataManagementEndpoints
+public static class GestionDatosModule
 {
-    public static void MapDataManagementEndpoints(this IEndpointRouteBuilder app)
+    public static IServiceCollection AddGestionDatosModule(this IServiceCollection services)
     {
-        var group = app.MapGroup("/api/servicio-campo/data-management")
-            .WithTags("Data Management - Importaciones");
+        services.AddScoped<IGestionDatosDbContext>(sp => sp.GetRequiredService<GestionDatosDbContext>());
+        services.AddScoped<IEntityImportMetadataService, EntityImportMetadataService>();
+        services.AddScoped<IDataImportEngineService, DataImportEngineService>();
 
-        // 1. Obtener catálogo de entidades importables y sus metadatos
+        return services;
+    }
+
+    public static void MapGestionDatosEndpoints(this IEndpointRouteBuilder app)
+    {
+        // 1. Mapeo Canónico en Español
+        MapRoutes(app, "/api/gestion-datos");
+
+        // 2. Mapeos de Retrocompatibilidad
+        MapRoutes(app, "/api/data-management");
+        MapRoutes(app, "/api/servicio-campo/data-management");
+    }
+
+    private static void MapRoutes(IEndpointRouteBuilder app, string prefix)
+    {
+        var group = app.MapGroup(prefix)
+            .WithTags("Gestión de Datos - Importaciones Masivas")
+            .RequireAuthorization();
+
+        // 1. Obtener catálogo de entidades importables
         group.MapGet("/entities", (IEntityImportMetadataService metadataService) =>
         {
             var entities = metadataService.GetAvailableEntities();
             return Results.Ok(entities);
         });
 
-        // 2. Previsualizar archivo (XLSX o CSV) y detectar delimitadores/encabezados
+        // 2. Previsualizar archivo
         group.MapPost("/preview", async (
             IFormFile file,
             string? delimiter,
@@ -54,7 +78,7 @@ public static class DataManagementEndpoints
             return Results.Ok(preview);
         }).DisableAntiforgery();
 
-        // 3. Ejecutar importación con mapeo dinámico de campos
+        // 3. Ejecutar importación con mapeo dinámico
         group.MapPost("/execute", async (
             HttpRequest httpRequest,
             HttpContext httpContext,
@@ -125,7 +149,7 @@ public static class DataManagementEndpoints
             return Results.Ok(job);
         }).DisableAntiforgery();
 
-        // 4. Historial de importaciones (My Imports / All Imports)
+        // 4. Historial de importaciones
         group.MapGet("/imports", async (
             int? limit,
             IDataImportEngineService engineService,
@@ -135,7 +159,7 @@ public static class DataManagementEndpoints
             return Results.Ok(jobs);
         });
 
-        // 5. Detalle de una importación específica (con pestaña General y Fallos)
+        // 5. Detalle de una importación
         group.MapGet("/imports/{id:guid}", async (
             Guid id,
             IDataImportEngineService engineService,
@@ -158,3 +182,4 @@ public static class DataManagementEndpoints
         });
     }
 }
+

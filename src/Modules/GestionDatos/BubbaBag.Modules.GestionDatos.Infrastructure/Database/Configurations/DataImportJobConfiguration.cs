@@ -1,14 +1,14 @@
-using BubbaBag.Modules.ServicioCampo.Domain.Importaciones;
+using BubbaBag.Modules.GestionDatos.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Configurations;
+namespace BubbaBag.Modules.GestionDatos.Infrastructure.Database.Configurations;
 
 public class DataImportJobConfiguration : IEntityTypeConfiguration<DataImportJob>
 {
     public void Configure(EntityTypeBuilder<DataImportJob> builder)
     {
-        builder.ToTable("DataImportJobs", "serviciocampo");
+        builder.ToTable("DataImportJobs", "GestionDatos");
 
         builder.HasKey(j => j.Id);
         builder.Property(j => j.Id)
@@ -64,3 +64,4 @@ public class DataImportJobConfiguration : IEntityTypeConfiguration<DataImportJob
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
+

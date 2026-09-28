@@ -34,9 +34,6 @@ public class ProductoConfiguration : IEntityTypeConfiguration<Producto>
             .HasPrecision(12, 2)
             .HasDefaultValue(0m);
 
-        builder.Property(p => p.CatalogoId)
-            .IsRequired(false);
-
         builder.Property(p => p.ListaPreciosPredeterminadaId)
             .IsRequired(false);
 

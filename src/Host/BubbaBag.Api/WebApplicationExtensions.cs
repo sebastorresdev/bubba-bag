@@ -34,6 +34,7 @@ public static class WebApplicationExtensions
                     @"CREATE SCHEMA IF NOT EXISTS crm;
                       CREATE SCHEMA IF NOT EXISTS inventario;
                       CREATE SCHEMA IF NOT EXISTS serviciocampo;
+                      CREATE SCHEMA IF NOT EXISTS GestionDatos;
 
                       CREATE TABLE IF NOT EXISTS crm.ubigeos (
                           ""Codigo"" character varying(10) NOT NULL PRIMARY KEY,
@@ -218,28 +219,143 @@ public static class WebApplicationExtensions
                     @"UPDATE crm.clientes SET ""EsClienteFacturacion"" = TRUE WHERE ""TipoPersona"" = 'JURIDICA' AND ""EsClienteFacturacion"" = FALSE;
                       ALTER TABLE inventario.""Productos"" ADD COLUMN IF NOT EXISTS ""Tipo"" integer NOT NULL DEFAULT 1;
                       ALTER TABLE inventario.""Productos"" ADD COLUMN IF NOT EXISTS ""PrecioBase"" numeric(12,2) NOT NULL DEFAULT 0;
-                      ALTER TABLE inventario.""Productos"" ADD COLUMN IF NOT EXISTS ""CatalogoId"" uuid;");
+                      ALTER TABLE inventario.""Productos"" DROP COLUMN IF EXISTS ""CatalogoId"";");
             }
             catch { }
 
             try
             {
                 await servicioCampoDbContext.Database.ExecuteSqlRawAsync(
-                    @"ALTER TABLE serviciocampo.""Servicios"" ADD COLUMN IF NOT EXISTS ""PrecioBase"" numeric(12,2) NOT NULL DEFAULT 0;
-                      ALTER TABLE serviciocampo.""Servicios"" ADD COLUMN IF NOT EXISTS ""ProductoComercialId"" uuid;
+                    @"DO $$
+                      BEGIN
+                          IF EXISTS (
+                              SELECT 1 FROM information_schema.tables 
+                              WHERE table_schema = 'serviciocampo' AND table_name = 'RecursosTecnicos'
+                          ) AND NOT EXISTS (
+                              SELECT 1 FROM information_schema.tables 
+                              WHERE table_schema = 'serviciocampo' AND table_name = 'Recursos'
+                          ) THEN
+                              ALTER TABLE serviciocampo.""RecursosTecnicos"" RENAME TO ""Recursos"";
+                          END IF;
+                      END $$;
+
+                      CREATE TABLE IF NOT EXISTS serviciocampo.""Recursos"" (
+                          ""Id"" uuid NOT NULL PRIMARY KEY,
+                          ""Codigo"" character varying(50) NOT NULL UNIQUE,
+                          ""NombreCompleto"" character varying(150) NOT NULL,
+                          ""Tipo"" integer NOT NULL DEFAULT 1,
+                          ""DocumentoIdentidad"" character varying(30),
+                          ""Telefono"" character varying(50),
+                          ""Email"" character varying(150),
+                          ""ZonaOperativaId"" uuid,
+                          ""AlmacenBaseId"" uuid,
+                          ""AlmacenMovilId"" uuid,
+                          ""UsuarioId"" uuid,
+                          ""EmpleadoId"" uuid,
+                          ""CapacidadMaximaOrdenesPorDia"" integer NOT NULL DEFAULT 6,
+                          ""ColorHex"" character varying(20) DEFAULT '#0078d4',
+                          ""Notas"" character varying(500),
+                          ""Activo"" boolean NOT NULL DEFAULT true
+                      );
+
+                      ALTER TABLE serviciocampo.""Recursos"" ADD COLUMN IF NOT EXISTS ""Tipo"" integer NOT NULL DEFAULT 1;
+                      ALTER TABLE serviciocampo.""Recursos"" ADD COLUMN IF NOT EXISTS ""Notas"" character varying(500);
+                      ALTER TABLE serviciocampo.""Recursos"" ALTER COLUMN ""ZonaOperativaId"" DROP NOT NULL;
+                      ALTER TABLE serviciocampo.""Recursos"" ALTER COLUMN ""AlmacenBaseId"" DROP NOT NULL;
+
+                      ALTER TABLE serviciocampo.""OrdenTrabajoVisitas"" ADD COLUMN IF NOT EXISTS ""RecursoId"" uuid;
                       DO $$
                       BEGIN
                           IF EXISTS (
                               SELECT 1 FROM information_schema.columns 
-                              WHERE table_schema = 'serviciocampo' AND table_name = 'CatalogosServicio' AND column_name = 'ContratanteId'
-                          ) AND NOT EXISTS (
-                              SELECT 1 FROM information_schema.columns 
-                              WHERE table_schema = 'serviciocampo' AND table_name = 'CatalogosServicio' AND column_name = 'ClienteId'
+                              WHERE table_schema = 'serviciocampo' AND table_name = 'OrdenTrabajoVisitas' AND column_name = 'RecursoTecnicoId'
                           ) THEN
-                              ALTER TABLE serviciocampo.""CatalogosServicio"" RENAME COLUMN ""ContratanteId"" TO ""ClienteId"";
+                              UPDATE serviciocampo.""OrdenTrabajoVisitas"" SET ""RecursoId"" = ""RecursoTecnicoId"" WHERE ""RecursoId"" IS NULL;
                           END IF;
                       END $$;
-                      ALTER TABLE serviciocampo.""CatalogosServicio"" ADD COLUMN IF NOT EXISTS ""ClienteId"" uuid;");
+
+                      ALTER TABLE inventario.""Almacenes"" ADD COLUMN IF NOT EXISTS ""RecursoId"" uuid;
+                      DO $$
+                      BEGIN
+                          IF EXISTS (
+                              SELECT 1 FROM information_schema.columns 
+                              WHERE table_schema = 'inventario' AND table_name = 'Almacenes' AND column_name = 'RecursoTecnicoId'
+                          ) THEN
+                              UPDATE inventario.""Almacenes"" SET ""RecursoId"" = ""RecursoTecnicoId"" WHERE ""RecursoId"" IS NULL;
+                          END IF;
+                      END $$;
+
+                      ALTER TABLE serviciocampo.""PlantillasTrabajo"" ADD COLUMN IF NOT EXISTS ""ProductoId"" uuid;
+                      DO $$
+                      BEGIN
+                          IF EXISTS (
+                              SELECT 1 FROM information_schema.columns 
+                              WHERE table_schema = 'serviciocampo' AND table_name = 'PlantillasTrabajo' AND column_name = 'ServicioId'
+                          ) THEN
+                              UPDATE serviciocampo.""PlantillasTrabajo"" SET ""ProductoId"" = ""ServicioId"" WHERE ""ProductoId"" IS NULL;
+                          END IF;
+                      END $$;
+
+                      ALTER TABLE serviciocampo.""Trabajos"" ADD COLUMN IF NOT EXISTS ""ProductoId"" uuid;
+                      DO $$
+                      BEGIN
+                          IF EXISTS (
+                              SELECT 1 FROM information_schema.columns 
+                              WHERE table_schema = 'serviciocampo' AND table_name = 'Trabajos' AND column_name = 'ServicioId'
+                          ) THEN
+                              UPDATE serviciocampo.""Trabajos"" SET ""ProductoId"" = ""ServicioId"" WHERE ""ProductoId"" IS NULL;
+                          END IF;
+                      END $$;
+
+                      DO $$
+                      BEGIN
+                          IF EXISTS (
+                              SELECT 1 FROM information_schema.tables 
+                              WHERE table_schema = 'serviciocampo' AND table_name = 'DataImportJobs'
+                          ) AND NOT EXISTS (
+                              SELECT 1 FROM information_schema.tables 
+                              WHERE table_schema = 'GestionDatos' AND table_name = 'DataImportJobs'
+                          ) THEN
+                              ALTER TABLE serviciocampo.""DataImportJobs"" SET SCHEMA GestionDatos;
+                          END IF;
+
+                          IF EXISTS (
+                              SELECT 1 FROM information_schema.tables 
+                              WHERE table_schema = 'serviciocampo' AND table_name = 'DataImportJobErrors'
+                          ) AND NOT EXISTS (
+                              SELECT 1 FROM information_schema.tables 
+                              WHERE table_schema = 'GestionDatos' AND table_name = 'DataImportJobErrors'
+                          ) THEN
+                              ALTER TABLE serviciocampo.""DataImportJobErrors"" SET SCHEMA GestionDatos;
+                          END IF;
+                      END $$;
+
+                      CREATE TABLE IF NOT EXISTS GestionDatos.""DataImportJobs"" (
+                          ""Id"" uuid NOT NULL PRIMARY KEY,
+                          ""NombreArchivo"" character varying(250) NOT NULL,
+                          ""TipoRegistro"" character varying(100) NOT NULL,
+                          ""Estado"" character varying(50) NOT NULL,
+                          ""ModoDuplicados"" character varying(50) NOT NULL,
+                          ""CreadoPor"" character varying(150) NOT NULL,
+                          ""FechaCreacion"" timestamp with time zone NOT NULL,
+                          ""FechaFinalizacion"" timestamp with time zone,
+                          ""TotalProcesados"" integer NOT NULL DEFAULT 0,
+                          ""TotalExitosos"" integer NOT NULL DEFAULT 0,
+                          ""TotalFallidos"" integer NOT NULL DEFAULT 0,
+                          ""TotalParciales"" integer NOT NULL DEFAULT 0,
+                          ""MapeoCamposJson"" text,
+                          ""ParametrosDelimitadorJson"" text
+                      );
+
+                      CREATE TABLE IF NOT EXISTS GestionDatos.""DataImportJobErrors"" (
+                          ""Id"" uuid NOT NULL PRIMARY KEY,
+                          ""DataImportJobId"" uuid NOT NULL,
+                          ""Fila"" integer NOT NULL,
+                          ""ClaveIdentificador"" character varying(150),
+                          ""Columna"" character varying(150),
+                          ""Mensaje"" character varying(1000) NOT NULL,
+                          ""ValorOriginal"" character varying(1000)
+                      );");
             }
             catch { }
 
@@ -251,3 +367,4 @@ public static class WebApplicationExtensions
         }
     }
 }
+

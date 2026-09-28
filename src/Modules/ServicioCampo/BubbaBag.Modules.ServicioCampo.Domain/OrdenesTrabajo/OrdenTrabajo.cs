@@ -72,7 +72,8 @@ public class OrdenTrabajo : Entity<Guid>
     public OrdenTrabajoVisita? VisitaActual => _visitas.OrderByDescending(v => v.NumeroVisita).FirstOrDefault();
 
     // Propiedades delegadas de la Visita Actual (para consulta ágil de lectura)
-    public Guid? RecursoTecnicoId => VisitaActual?.RecursoTecnicoId;
+    public Guid? RecursoId => VisitaActual?.RecursoId;
+    public Guid? RecursoTecnicoId => RecursoId;
     public DateOnly? FechaProgramada => VisitaActual?.FechaProgramada;
     public string? BloqueHorario => VisitaActual?.BloqueHorario;
     public DateTime? FechaInicioReal => VisitaActual?.FechaInicioReal;

@@ -18,10 +18,10 @@ public class PlantillaTrabajo : Entity<Guid>
     public string? Descripcion { get; private set; }
 
     /// <summary>
-    /// Servicio de catálogo al cual aplica esta plantilla de trabajo.
+    /// Producto/Servicio de catálogo al cual aplica esta plantilla de trabajo.
     /// </summary>
-    public Guid ServicioId { get; private set; }
-    public ProductoServicio Servicio { get; private set; } = default!;
+    public Guid ProductoId { get; private set; }
+    public Producto Producto { get; private set; } = default!;
 
     /// <summary>
     /// Duración técnica estimada en minutos para la totalidad de tareas de esta plantilla.
@@ -49,7 +49,7 @@ public class PlantillaTrabajo : Entity<Guid>
     public static PlantillaTrabajo Crear(
         string codigo,
         string nombre,
-        Guid servicioId,
+        Guid productoId,
         int duracionEstimadaMinutos = 60,
         string? descripcion = null,
         bool esPredeterminada = false)
@@ -65,7 +65,7 @@ public class PlantillaTrabajo : Entity<Guid>
             Id = Guid.NewGuid(),
             Codigo = codigo.Trim().ToUpperInvariant(),
             Nombre = nombre.Trim(),
-            ServicioId = servicioId,
+            ProductoId = productoId,
             DuracionEstimadaMinutos = Math.Max(1, duracionEstimadaMinutos),
             Descripcion = descripcion?.Trim(),
             EsPredeterminada = esPredeterminada,

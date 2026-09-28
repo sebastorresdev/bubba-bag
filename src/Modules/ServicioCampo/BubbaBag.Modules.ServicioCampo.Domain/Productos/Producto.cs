@@ -13,7 +13,6 @@ public class Producto : Entity<Guid>
     public string? Descripcion { get; private set; }
     public TipoProducto Tipo { get; private set; } = TipoProducto.Inventario;
     public decimal PrecioBase { get; private set; } = 0m;
-    public Guid? CatalogoId { get; private set; } // Vinculación opcional a Empresa Contratante (DIRECTV, Claro, etc.)
     public Guid? ListaPreciosPredeterminadaId { get; private set; } // Default Price List (Field Service / Sales)
     public virtual ListaPrecios? ListaPreciosPredeterminada { get; private set; }
     public virtual ICollection<ElementoListaPrecios> PreciosEnListas { get; private set; } = new List<ElementoListaPrecios>();
@@ -39,7 +38,6 @@ public class Producto : Entity<Guid>
         string? descripcion = null,
         TipoProducto tipo = TipoProducto.Inventario,
         decimal precioBase = 0m,
-        Guid? catalogoId = null,
         string? codigoBarras = null,
         string? notas = null,
         decimal costoActual = 0m,
@@ -59,7 +57,6 @@ public class Producto : Entity<Guid>
             Descripcion = descripcion?.Trim(),
             Tipo = tipo,
             PrecioBase = Math.Max(0, precioBase),
-            CatalogoId = catalogoId,
             ListaPreciosPredeterminadaId = listaPreciosPredeterminadaId,
             CodigoBarras = codigoBarras?.Trim(),
             Notas = notas?.Trim(),
@@ -79,7 +76,6 @@ public class Producto : Entity<Guid>
         string? descripcion,
         TipoProducto tipo = TipoProducto.Inventario,
         decimal precioBase = 0m,
-        Guid? catalogoId = null,
         string? codigoBarras = null,
         string? notas = null,
         decimal costoActual = 0m,
@@ -95,7 +91,6 @@ public class Producto : Entity<Guid>
         Descripcion = descripcion?.Trim();
         Tipo = tipo;
         PrecioBase = Math.Max(0, precioBase);
-        CatalogoId = catalogoId;
         ListaPreciosPredeterminadaId = listaPreciosPredeterminadaId;
         CodigoBarras = codigoBarras?.Trim();
         Notas = notas?.Trim();

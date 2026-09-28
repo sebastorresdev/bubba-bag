@@ -7,7 +7,6 @@ export interface ProductoDto {
   descripcion?: string;
   tipo: TipoProducto | number;
   precioBase: number;
-  catalogoId?: string;
   categoria: string;
   unidadMedida: string;
   esSerializado: boolean;
@@ -27,7 +26,6 @@ export interface CreateProductoDto {
   nombre: string;
   tipo?: TipoProducto | number;
   precioBase?: number;
-  catalogoId?: string;
   categoria?: string;
   unidadMedida?: string;
   esSerializado?: boolean;
@@ -45,7 +43,6 @@ export interface UpdateProductoDto {
   nombre: string;
   tipo?: TipoProducto | number;
   precioBase?: number;
-  catalogoId?: string;
   categoria?: string;
   unidadMedida?: string;
   esSerializado?: boolean;

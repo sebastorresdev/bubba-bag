@@ -17,7 +17,6 @@ public record ActualizarProductoCommand(
     string? Descripcion = null,
     TipoProducto Tipo = TipoProducto.Inventario,
     decimal PrecioBase = 0m,
-    Guid? CatalogoId = null,
     string? CodigoBarras = null,
     string? Notas = null,
     decimal CostoActual = 0m,
@@ -50,7 +49,6 @@ public class ActualizarProductoHandler : ICommandHandler<ActualizarProductoComma
             command.Descripcion,
             command.Tipo,
             command.PrecioBase,
-            command.CatalogoId,
             command.CodigoBarras,
             command.Notas,
             command.CostoActual,
@@ -59,39 +57,6 @@ public class ActualizarProductoHandler : ICommandHandler<ActualizarProductoComma
             command.ProveedorDefecto,
             command.ListaPreciosPredeterminadaId
         );
-
-        // Si el producto es o pasa a ser Servicio, mantener sincronizado el catálogo operativo
-        if (command.Tipo == TipoProducto.Servicio)
-        {
-            var servicio = await _context.Servicios.FirstOrDefaultAsync(
-                s => s.Codigo == producto.Codigo || s.ProductoId == producto.Id,
-                cancellationToken);
-
-            if (servicio != null)
-            {
-                servicio.Actualizar(
-                    nombre: command.Nombre,
-                    duracionEstimadaMinutos: servicio.DuracionEstimadaMinutos,
-                    descripcion: command.Descripcion,
-                    codigoExterno: servicio.CodigoExterno,
-                    precioBase: command.PrecioBase,
-                    productoId: producto.Id
-                );
-            }
-            else
-            {
-                var nuevoServicio = ProductoServicio.Crear(
-                    codigo: producto.Codigo,
-                    nombre: command.Nombre,
-                    duracionEstimadaMinutos: 60,
-                    descripcion: command.Descripcion,
-                    codigoExterno: null,
-                    precioBase: command.PrecioBase,
-                    productoId: producto.Id
-                );
-                await _context.Servicios.AddAsync(nuevoServicio, cancellationToken);
-            }
-        }
 
         await _context.SaveChangesAsync(cancellationToken);
 

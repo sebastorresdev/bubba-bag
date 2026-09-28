@@ -10,7 +10,6 @@ public record ProductoDto(
     string? Descripcion,
     TipoProducto Tipo,
     decimal PrecioBase,
-    Guid? CatalogoId,
     string? Categoria,
     string UnidadMedida,
     bool EsSerializado,

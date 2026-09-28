@@ -3,7 +3,6 @@ using BubbaBag.Modules.RecursosHumanos.Domain.Organizacion;
 using BubbaBag.Modules.ServicioCampo.Application;
 using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
 using BubbaBag.Modules.ServicioCampo.Domain.Clientes;
-using BubbaBag.Modules.ServicioCampo.Domain.Importaciones;
 using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 using BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
 using BubbaBag.Modules.ServicioCampo.Domain.Plantillas;
@@ -26,7 +25,7 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public DbSet<OrdenTrabajoTarea> OrdenTrabajoTareas => Set<OrdenTrabajoTarea>();
     public DbSet<OrdenTrabajoMaterial> OrdenTrabajoMateriales => Set<OrdenTrabajoMaterial>();
     public DbSet<ZonaOperativa> ZonasOperativas => Set<ZonaOperativa>();
-    public DbSet<RecursoTecnico> RecursosTecnicos => Set<RecursoTecnico>();
+    public DbSet<Recurso> Recursos => Set<Recurso>();
     public DbSet<Almacen> Almacenes => Set<Almacen>();
     public DbSet<StockAlmacen> StocksAlmacen => Set<StockAlmacen>();
     public DbSet<MovimientoInventario> MovimientosInventario => Set<MovimientoInventario>();
@@ -42,7 +41,6 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public DbSet<Sucursal> Sucursales => Set<Sucursal>();
     public DbSet<TipoOrdenTrabajo> TiposOrdenTrabajo => Set<TipoOrdenTrabajo>();
     public DbSet<CampoDefinicion> CamposDefinicion => Set<CampoDefinicion>();
-    public DbSet<ProductoServicio> Servicios => Set<ProductoServicio>();
     public DbSet<TipoTareaServicio> TiposTareaServicio => Set<TipoTareaServicio>();
 
     // Plantillas y Catálogos de Tareas
@@ -57,8 +55,6 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public DbSet<MaterialTrabajo> MaterialesTrabajo => Set<MaterialTrabajo>();
     public DbSet<LiquidacionMaterial> LiquidacionesMaterial => Set<LiquidacionMaterial>();
     public DbSet<LiquidacionMaterialItem> LiquidacionesMaterialItems => Set<LiquidacionMaterialItem>();
-    public DbSet<DataImportJob> DataImportJobs => Set<DataImportJob>();
-    public DbSet<DataImportJobError> DataImportJobErrors => Set<DataImportJobError>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -20,10 +20,10 @@ public class Trabajo : Entity<Guid>
     public string CodigoTrabajo { get; private set; } = default!;
 
     /// <summary>
-    /// Servicio de catálogo contratado o solicitado en esta línea de trabajo.
+    /// Producto/Servicio de catálogo contratado o solicitado en esta línea de trabajo.
     /// </summary>
-    public Guid ServicioId { get; private set; }
-    public ProductoServicio Servicio { get; private set; } = default!;
+    public Guid ProductoId { get; private set; }
+    public Producto Producto { get; private set; } = default!;
 
     /// <summary>
     /// Plantilla de trabajo utilizada como modelo para precargar tareas y materiales teóricos.
@@ -58,7 +58,7 @@ public class Trabajo : Entity<Guid>
     public static Trabajo Crear(
         Guid ordenTrabajoId,
         string codigoTrabajo,
-        Guid servicioId,
+        Guid productoId,
         int itemNumero = 1,
         Guid? plantillaTrabajoId = null,
         decimal tarifaBaseCongelada = 0m,
@@ -72,7 +72,7 @@ public class Trabajo : Entity<Guid>
             Id = Guid.NewGuid(),
             OrdenTrabajoId = ordenTrabajoId,
             CodigoTrabajo = codigoTrabajo.Trim().ToUpperInvariant(),
-            ServicioId = servicioId,
+            ProductoId = productoId,
             ItemNumero = Math.Max(1, itemNumero),
             PlantillaTrabajoId = plantillaTrabajoId,
             TarifaBaseCongelada = Math.Max(0, tarifaBaseCongelada),

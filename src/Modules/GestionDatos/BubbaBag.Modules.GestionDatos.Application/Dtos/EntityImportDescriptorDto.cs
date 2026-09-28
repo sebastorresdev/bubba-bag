@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace BubbaBag.Modules.ServicioCampo.Application.DataManagement.Dtos;
+namespace BubbaBag.Modules.GestionDatos.Application.Dtos;
 
 public class EntityImportDescriptorDto
 {
@@ -48,3 +48,4 @@ public class EntityFieldDescriptorDto
         }
     }
 }
+

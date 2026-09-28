@@ -11,6 +11,9 @@ public record AlmacenDto(
     string? Direccion,
     string? Telefono,
     Guid? SucursalId,
-    Guid? RecursoTecnicoId,
-    bool Activo
+    Guid? RecursoId,
+    bool Activo,
+    string? NombreSucursal = null,
+    string? NombreRecurso = null,
+    Guid? RecursoTecnicoId = null
 );

@@ -15,7 +15,6 @@ public record ObtenerProductosQuery(
     string? Search = null,
     string? Categoria = null,
     TipoProducto? Tipo = null,
-    Guid? CatalogoId = null,
     bool? SoloActivos = true
 ) : IQuery<Result<List<ProductoDto>>>;
 
@@ -40,11 +39,6 @@ public class ObtenerProductosHandler : IQueryHandler<ObtenerProductosQuery, Resu
         if (query.Tipo.HasValue)
         {
             dbQuery = dbQuery.Where(p => p.Tipo == query.Tipo.Value);
-        }
-
-        if (query.CatalogoId.HasValue)
-        {
-            dbQuery = dbQuery.Where(p => p.CatalogoId == query.CatalogoId.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(query.Categoria))
@@ -72,7 +66,6 @@ public class ObtenerProductosHandler : IQueryHandler<ObtenerProductosQuery, Resu
                 p.Descripcion,
                 p.Tipo,
                 p.PrecioBase,
-                p.CatalogoId,
                 p.Categoria,
                 p.UnidadMedida,
                 p.EsSerializado,

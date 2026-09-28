@@ -38,9 +38,12 @@ public class PlantillaTrabajoConfiguration : IEntityTypeConfiguration<PlantillaT
             .IsRequired()
             .HasDefaultValue(true);
 
-        builder.HasOne(p => p.Servicio)
-            .WithMany(s => s.Plantillas)
-            .HasForeignKey(p => p.ServicioId)
+        builder.Property(p => p.ProductoId)
+            .IsRequired();
+
+        builder.HasOne(p => p.Producto)
+            .WithMany()
+            .HasForeignKey(p => p.ProductoId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(p => p.Tareas)

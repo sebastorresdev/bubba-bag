@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using BubbaBag.SharedKernel;
 
-namespace BubbaBag.Modules.ServicioCampo.Domain.Importaciones;
+namespace BubbaBag.Modules.GestionDatos.Domain;
 
 public class DataImportJob : Entity<Guid>
 {
@@ -79,3 +79,4 @@ public class DataImportJob : Entity<Guid>
         Errores.Add(new DataImportJobError(Id, fila, mensaje, claveIdentificador, columna, valorOriginal));
     }
 }
+

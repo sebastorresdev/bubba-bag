@@ -35,14 +35,14 @@ public class OrdenTrabajoVisitaConfiguration : IEntityTypeConfiguration<OrdenTra
 
         builder.HasIndex(v => v.NumeroCita);
 
-        builder.Property(v => v.RecursoTecnicoId)
+        builder.Property(v => v.RecursoId)
             .IsRequired();
 
-        builder.HasIndex(v => v.RecursoTecnicoId);
+        builder.HasIndex(v => v.RecursoId);
 
-        builder.HasOne(v => v.RecursoTecnico)
+        builder.HasOne(v => v.Recurso)
             .WithMany()
-            .HasForeignKey(v => v.RecursoTecnicoId)
+            .HasForeignKey(v => v.RecursoId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(v => v.FechaProgramada)

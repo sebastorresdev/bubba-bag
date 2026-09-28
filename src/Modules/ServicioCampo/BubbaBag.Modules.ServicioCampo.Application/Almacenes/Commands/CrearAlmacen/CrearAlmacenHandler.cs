@@ -15,6 +15,7 @@ public record CrearAlmacenCommand(
     Guid? SucursalId = null,
     string? Direccion = null,
     string? Telefono = null,
+    Guid? RecursoId = null,
     Guid? RecursoTecnicoId = null
 ) : ICommand<Result<Guid>>;
 
@@ -30,16 +31,17 @@ public class CrearAlmacenHandler : ICommandHandler<CrearAlmacenCommand, Result<G
     public async Task<Result<Guid>> HandleAsync(CrearAlmacenCommand command, CancellationToken cancellationToken = default)
     {
         var codigoUpper = command.Codigo.Trim().ToUpperInvariant();
+        var recursoId = command.RecursoId ?? command.RecursoTecnicoId;
 
         var existe = await _context.Almacenes.AnyAsync(a => a.Codigo == codigoUpper, cancellationToken);
         if (existe)
             return Result<Guid>.Failure($"Ya existe un almacén con el código '{codigoUpper}'.");
 
-        if (command.Tipo == TipoAlmacen.Movil && !command.RecursoTecnicoId.HasValue)
+        if (command.Tipo == TipoAlmacen.Movil && !recursoId.HasValue)
             return Result<Guid>.Failure("El almacén móvil debe tener un técnico responsable asignado.");
 
         Almacen almacen = command.Tipo == TipoAlmacen.Movil
-            ? Almacen.CrearMovil(codigoUpper, command.Nombre, command.RecursoTecnicoId!.Value, command.SucursalId)
+            ? Almacen.CrearMovil(codigoUpper, command.Nombre, recursoId!.Value, command.SucursalId)
             : Almacen.CrearFisico(codigoUpper, command.Nombre, command.SucursalId, command.Direccion, command.Telefono);
 
         await _context.Almacenes.AddAsync(almacen, cancellationToken);

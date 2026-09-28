@@ -80,6 +80,7 @@ public class OrdenTrabajoConfiguration : IEntityTypeConfiguration<OrdenTrabajo>
 
         // Ignorar propiedades calculadas de conveniencia delegadas a VisitaActual
         builder.Ignore(w => w.VisitaActual);
+        builder.Ignore(w => w.RecursoId);
         builder.Ignore(w => w.RecursoTecnicoId);
         builder.Ignore(w => w.FechaProgramada);
         builder.Ignore(w => w.BloqueHorario);

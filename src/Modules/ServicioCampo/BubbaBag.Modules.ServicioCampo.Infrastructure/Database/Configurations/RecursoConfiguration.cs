@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Configurations;
 
-public class RecursoTecnicoConfiguration : IEntityTypeConfiguration<RecursoTecnico>
+public class RecursoConfiguration : IEntityTypeConfiguration<Recurso>
 {
-    public void Configure(EntityTypeBuilder<RecursoTecnico> builder)
+    public void Configure(EntityTypeBuilder<Recurso> builder)
     {
-        builder.ToTable("RecursosTecnicos", "serviciocampo");
+        builder.ToTable("Recursos", "serviciocampo");
 
         builder.HasKey(r => r.Id);
 
@@ -23,6 +23,11 @@ public class RecursoTecnicoConfiguration : IEntityTypeConfiguration<RecursoTecni
             .IsRequired()
             .HasMaxLength(150);
 
+        builder.Property(r => r.Tipo)
+            .IsRequired()
+            .HasConversion<int>()
+            .HasDefaultValue(TipoRecurso.Tecnico);
+
         builder.Property(r => r.DocumentoIdentidad)
             .HasMaxLength(30);
 
@@ -33,7 +38,7 @@ public class RecursoTecnicoConfiguration : IEntityTypeConfiguration<RecursoTecni
             .HasMaxLength(150);
 
         builder.Property(r => r.ZonaOperativaId)
-            .IsRequired();
+            .IsRequired(false);
 
         builder.HasOne(r => r.ZonaOperativa)
             .WithMany()
@@ -41,7 +46,7 @@ public class RecursoTecnicoConfiguration : IEntityTypeConfiguration<RecursoTecni
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(r => r.AlmacenBaseId)
-            .IsRequired();
+            .IsRequired(false);
         builder.HasIndex(r => r.AlmacenBaseId);
 
         builder.Property(r => r.AlmacenMovilId);
@@ -58,8 +63,11 @@ public class RecursoTecnicoConfiguration : IEntityTypeConfiguration<RecursoTecni
             .HasDefaultValue(6);
 
         builder.Property(r => r.ColorHex)
-            .HasMaxLength(10)
+            .HasMaxLength(20)
             .HasDefaultValue("#0078d4");
+
+        builder.Property(r => r.Notas)
+            .HasMaxLength(500);
 
         builder.Property(r => r.Activo)
             .IsRequired()

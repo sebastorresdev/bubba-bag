@@ -36,8 +36,9 @@ public class AlmacenConfiguration : IEntityTypeConfiguration<Almacen>
         builder.Property(a => a.SucursalId);
         builder.HasIndex(a => a.SucursalId);
 
-        builder.Property(a => a.RecursoTecnicoId);
-        builder.HasIndex(a => a.RecursoTecnicoId);
+        builder.Property(a => a.RecursoId);
+        builder.HasIndex(a => a.RecursoId);
+        builder.Ignore(a => a.RecursoTecnicoId);
 
         builder.Property(a => a.Activo)
             .IsRequired()

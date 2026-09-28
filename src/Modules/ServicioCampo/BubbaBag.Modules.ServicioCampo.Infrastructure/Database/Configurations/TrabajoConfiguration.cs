@@ -40,9 +40,12 @@ public class TrabajoConfiguration : IEntityTypeConfiguration<Trabajo>
             .HasForeignKey(t => t.OrdenTrabajoId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne(t => t.Servicio)
+        builder.Property(t => t.ProductoId)
+            .IsRequired();
+
+        builder.HasOne(t => t.Producto)
             .WithMany()
-            .HasForeignKey(t => t.ServicioId)
+            .HasForeignKey(t => t.ProductoId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(t => t.PlantillaTrabajo)

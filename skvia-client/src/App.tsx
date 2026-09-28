@@ -2,10 +2,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { MainLayout } from './components/layout/MainLayout';
 import { ProductosListPage, ProductoFormPage } from './features/inventario/productos';
+import { AlmacenesListPage, AlmacenFormPage } from './features/inventario/almacenes';
 import { UnidadesMedidaListPage, UnidadMedidaFormPage } from './features/inventario/unidades-medida';
 import { CategoriasListPage, CategoriaFormPage } from './features/inventario/categorias';
 import { ListasPreciosListPage, ListaPreciosFormPage } from './features/inventario/listas-precios';
-import { ImportsListPage, ImportJobDetailPage } from './features/data-management';
+import { ImportsListPage, ImportJobDetailPage } from './features/gestion-datos';
 import { PlaceholderPage } from './components/common/PlaceholderPage';
 
 export default function App() {
@@ -36,7 +37,14 @@ export default function App() {
             <Route path="servicio-campo/listas-precios/nuevo" element={<ListaPreciosFormPage />} />
             <Route path="servicio-campo/listas-precios/:id" element={<ListaPreciosFormPage />} />
 
-            {/* 5. Data Management / Imports (Auditoría e Importaciones D365) */}
+            {/* 5. Inventario - Almacenes y Bodegas */}
+            <Route path="servicio-campo/almacenes" element={<AlmacenesListPage />} />
+            <Route path="servicio-campo/almacenes/nuevo" element={<AlmacenFormPage />} />
+            <Route path="servicio-campo/almacenes/:id" element={<AlmacenFormPage />} />
+
+            {/* 6. Gestión de Datos / Importaciones D365 */}
+            <Route path="configuracion/gestion-datos/imports" element={<ImportsListPage />} />
+            <Route path="configuracion/gestion-datos/imports/:id" element={<ImportJobDetailPage />} />
             <Route path="configuracion/data-management/imports" element={<ImportsListPage />} />
             <Route path="configuracion/data-management/imports/:id" element={<ImportJobDetailPage />} />
 
