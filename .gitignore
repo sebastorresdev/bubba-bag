@@ -19,6 +19,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+## pnpm
+.pnpm-store/
+pnpm-debug.log*
+
 ## IDEs & OS
 .idea/
 .vscode/*
