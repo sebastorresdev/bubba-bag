@@ -50,7 +50,6 @@ public class ObtenerUnidadesMedidaHandler : IQueryHandler<ObtenerUnidadesMedidaQ
                 u.Codigo,
                 u.Nombre,
                 u.Abreviatura,
-                u.PermiteDecimales,
                 u.Descripcion,
                 u.Activo
             ))

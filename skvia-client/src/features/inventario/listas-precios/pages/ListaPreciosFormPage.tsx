@@ -3,9 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   makeStyles,
   tokens,
-  Toolbar,
-  ToolbarButton,
-  ToolbarDivider,
   Button,
   Input,
   Select,
@@ -15,13 +12,6 @@ import {
   Card,
   Text,
   Label,
-  Avatar,
-  Spinner,
-  MessageBar,
-  MessageBarBody,
-  MessageBarTitle,
-  MessageBarActions,
-  Badge,
   DataGrid,
   DataGridHeader,
   DataGridHeaderCell,
@@ -51,7 +41,6 @@ import {
   Money24Regular,
   Checkmark16Regular,
   Delete16Regular,
-  Box16Regular,
   Search16Regular,
 } from '@fluentui/react-icons';
 import { ListaPreciosService } from '../services/listaPrecios.service';
@@ -67,6 +56,9 @@ import type { UnidadMedidaDto } from '../../unidades-medida/types/unidadMedida.t
 import { TableEmptyState } from '../../../../components/common/TableEmptyState';
 import { DatePicker } from '@fluentui/react-datepicker-compat';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
+import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
+import { D365MessageBar } from '../../../../components/common/D365MessageBar';
+import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
 
 const useLocalStyles = makeStyles({
   subgridHeader: {
@@ -95,22 +87,6 @@ const useLocalStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     gap: '4px',
-  },
-  priceCell: {
-    fontWeight: tokens.fontWeightSemibold,
-    fontFamily: 'Consolas, monospace',
-    fontSize: tokens.fontSizeBase300,
-  },
-  mutedCode: {
-    fontSize: tokens.fontSizeBase100,
-    color: tokens.colorNeutralForeground4,
-    marginLeft: '22px',
-  },
-  infoBox: {
-    marginTop: '12px',
-    padding: '14px',
-    backgroundColor: tokens.colorNeutralBackground2,
-    borderRadius: tokens.borderRadiusMedium,
   },
 });
 
@@ -148,7 +124,6 @@ export const ListaPreciosFormPage: React.FC = () => {
 
   // Form Fields
   const [formData, setFormData] = useState<{
-    codigo: string;
     nombre: string;
     moneda: string;
     descripcion: string;
@@ -156,7 +131,6 @@ export const ListaPreciosFormPage: React.FC = () => {
     fechaFin: string;
     activo: boolean;
   }>({
-    codigo: '',
     nombre: '',
     moneda: 'PEN',
     descripcion: '',
@@ -188,7 +162,6 @@ export const ListaPreciosFormPage: React.FC = () => {
       setLoading(true);
       const data = await ListaPreciosService.getListaPreciosById(id!);
       setFormData({
-        codigo: data.codigo || '',
         nombre: data.nombre || '',
         moneda: data.moneda || 'PEN',
         descripcion: data.descripcion || '',
@@ -241,18 +214,12 @@ export const ListaPreciosFormPage: React.FC = () => {
       setBanner({ text: 'El campo "Nombre de la lista" es obligatorio.', intent: 'error' });
       return;
     }
-    if (isNew && !formData.codigo.trim()) {
-      setBanner({ text: 'El campo "Código" es obligatorio.', intent: 'error' });
-      return;
-    }
-
     try {
       setSaving(true);
       setBanner(null);
 
       if (isNew) {
         const createDto: CreateListaPreciosDto = {
-          codigo: formData.codigo.trim(),
           nombre: formData.nombre.trim(),
           moneda: formData.moneda,
           descripcion: formData.descripcion.trim() || null,
@@ -467,20 +434,13 @@ export const ListaPreciosFormPage: React.FC = () => {
         renderCell: (item) => (
           <TableCellLayout truncate>
             <div className={styles.dialogRow}>
-              <div className={styles.fieldRowFlex}>
-                <Box16Regular className={styles.iconBrand} />
-                <Link
-                  as="button"
-                  className={styles.primaryLink}
-                  onClick={() => navigate(`/servicio-campo/productos/${item.productoId}`)}
-                  title="Ver ficha de producto"
-                >
-                  {item.productoNombre}
-                </Link>
-              </div>
-              <Text className={localStyles.mutedCode}>
-                Código: {item.productoCodigo}
-              </Text>
+              <Link
+                as="button"
+                onClick={() => navigate(`/servicio-campo/productos/${item.productoId}`)}
+                title="Ver ficha de producto"
+              >
+                {item.productoNombre}
+              </Link>
             </div>
           </TableCellLayout>
         ),
@@ -490,7 +450,7 @@ export const ListaPreciosFormPage: React.FC = () => {
         renderHeaderCell: () => 'Unidad de Medida',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text size={200}>{item.unidadMedidaNombre || 'Unidad predeterminada'}</Text>
+            <Text>{item.unidadMedidaNombre || 'Unidad predeterminada'}</Text>
           </TableCellLayout>
         ),
       }),
@@ -499,9 +459,9 @@ export const ListaPreciosFormPage: React.FC = () => {
         renderHeaderCell: () => 'Método de Fijación',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Badge appearance="tint" color="informative" shape="rounded">
+            <Text>
               {getMetodoFijacionLabel(item.metodoFijacion)}
-            </Badge>
+            </Text>
           </TableCellLayout>
         ),
       }),
@@ -513,7 +473,7 @@ export const ListaPreciosFormPage: React.FC = () => {
           const isPorcentaje = item.metodoFijacion === 2 || item.metodoFijacion === 3;
           return (
             <TableCellLayout truncate>
-              <Text className={localStyles.priceCell}>
+              <Text>
                 {isPorcentaje ? `${item.monto.toFixed(2)} %` : `${currencySymbol} ${item.monto.toFixed(2)}`}
               </Text>
             </TableCellLayout>
@@ -544,64 +504,68 @@ export const ListaPreciosFormPage: React.FC = () => {
     <div className={styles.root}>
       {/* 0. Notification Banner */}
       {banner && (
-        <MessageBar intent={banner.intent} className={styles.messageBarContainer}>
-          <MessageBarBody>
-            <MessageBarTitle>{banner.intent === 'success' ? 'Éxito' : banner.intent === 'error' ? 'Error' : 'Aviso'}</MessageBarTitle>
-            {banner.text}
-          </MessageBarBody>
-          <MessageBarActions
-            containerAction={
-              <Button appearance="transparent" icon={<DismissRegular />} onClick={() => setBanner(null)} />
-            }
-          />
-        </MessageBar>
+        <D365MessageBar
+          intent={banner.intent}
+          className={styles.messageBarContainer}
+          onDismiss={() => setBanner(null)}
+        >
+          {banner.text}
+        </D365MessageBar>
       )}
 
       {/* 1. Dynamics 365 Standard Top Command Bar */}
-      <Toolbar size="medium" aria-label="Comandos de lista de precios" className={styles.commandBar}>
+      <D365CommandBar
+        ariaLabel="Comandos de lista de precios"
+
+        busy={saving || loading}
+        busyLabel={loading ? 'Cargando...' : 'Guardando...'}
+      >
         <div className={styles.toolbarLeft}>
-          <ToolbarButton
-            icon={<ArrowLeft16Regular className={styles.iconPrimary} />}
+          <D365CommandButton
+            icon={<ArrowLeft16Regular />}
+            tone="brand"
             onClick={() => navigate('/servicio-campo/listas-precios')}
             title="Volver al listado"
             aria-label="Volver"
           />
 
-          <ToolbarDivider />
+          <D365CommandDivider />
 
-          <ToolbarButton
-            icon={<Save16Regular className={styles.iconSaveLilac} />}
+          <D365CommandButton
+            icon={<Save16Regular />}
+            tone="save"
             disabled={saving || loading}
             onClick={() => handleSave(false)}
             appearance="subtle"
           >
             Guardar
-          </ToolbarButton>
+          </D365CommandButton>
 
-          <ToolbarButton
-            icon={<SaveMultiple16Regular className={styles.iconSaveLilac} />}
+          <D365CommandButton
+            icon={<SaveMultiple16Regular />}
+            tone="save"
             disabled={saving || loading}
             onClick={() => handleSave(true)}
             appearance="subtle"
           >
             Guardar y cerrar
-          </ToolbarButton>
+          </D365CommandButton>
 
-          <ToolbarButton
-            icon={<Add16Regular className={styles.iconNewGreen} />}
+          <D365CommandButton
+            icon={<Add16Regular />}
+            tone="create"
             onClick={() => navigate('/servicio-campo/listas-precios/nuevo')}
             disabled={saving || loading}
             appearance="subtle"
           >
             Nuevo
-          </ToolbarButton>
+          </D365CommandButton>
 
-          <ToolbarButton
+          <D365CommandButton
             icon={<ArrowClockwise16Regular />}
             disabled={saving || loading}
             onClick={isNew ? () => {
               setFormData({
-                codigo: '',
                 nombre: '',
                 moneda: 'PEN',
                 descripcion: '',
@@ -613,12 +577,12 @@ export const ListaPreciosFormPage: React.FC = () => {
             appearance="subtle"
           >
             Deshacer
-          </ToolbarButton>
+          </D365CommandButton>
 
           {!isNew && (
             <>
-              <ToolbarDivider />
-              <ToolbarButton
+              <D365CommandDivider />
+              <D365CommandButton
                 icon={
                   formData.activo ? (
                     <DismissRegular className={styles.iconDanger} />
@@ -626,103 +590,37 @@ export const ListaPreciosFormPage: React.FC = () => {
                     <Checkmark16Regular className={styles.iconNewGreen} />
                   )
                 }
+                tone={formData.activo ? 'danger' : 'create'}
                 onClick={handleToggleEstado}
                 appearance="subtle"
               >
                 {formData.activo ? 'Desactivar' : 'Activar'}
-              </ToolbarButton>
+              </D365CommandButton>
             </>
           )}
         </div>
-
-        {(saving || loading) && (
-          <Spinner size="tiny" label={loading ? 'Cargando...' : 'Guardando...'} />
-        )}
-      </Toolbar>
+      </D365CommandBar>
 
       {/* 2. Dynamics 365 Entity Header Summary */}
-      <div className={styles.headerContainer}>
-        {loading ? (
-          <div className={styles.headerTopRow}>
-            <div className={styles.headerLeft}>
-              <Skeleton animation="pulse">
-                <SkeletonItem shape="circle" size={56} />
-              </Skeleton>
-              <div className={styles.titleSection}>
-                <Skeleton animation="pulse">
-                  <SkeletonItem size={24} className={styles.skeletonTitle} />
-                  <SkeletonItem size={16} className={styles.skeletonSub} />
-                </Skeleton>
-              </div>
-            </div>
-            <div className={styles.headerMetaRight}>
-              <div className={styles.metaItem}>
-                <Text className={styles.metaLabel}>Estado</Text>
-                <Skeleton animation="pulse">
-                  <SkeletonItem size={16} className={styles.skeletonBadge60} />
-                </Skeleton>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className={styles.headerTopRow}>
-            <div className={styles.headerLeft}>
-              <Avatar
-                icon={<Money24Regular />}
-                size={48}
-                className={styles.headerAvatar}
-              />
-              <div className={styles.titleSection}>
-                <Text className={styles.mainTitle}>
-                  {formData.nombre || (isNew ? 'Nueva Lista de Precios' : 'Sin Nombre')}
-                </Text>
-                <Text className={styles.subTitle}>
-                  Lista de Precios • {formData.codigo || (isNew ? 'Borrador' : 'Sin código')}
-                </Text>
-              </div>
-            </div>
-
-            <div className={styles.headerMetaRight}>
-              <div className={styles.metaItem}>
-                <Text className={styles.metaLabel}>Moneda</Text>
-                <Text className={styles.metaValue}>
-                  {formData.moneda === 'USD' ? 'USD ($)' : 'PEN (S/)'}
-                </Text>
-              </div>
-
-              <div className={styles.metaDivider} />
-
-              <div className={styles.metaItem}>
-                <Text className={styles.metaLabel}>Estado</Text>
-                <Text className={styles.metaValue}>
-                  <span className={formData.activo ? styles.statusDotActive : styles.statusDotInactive} />
-                  {formData.activo ? 'Activo' : 'Inactivo'}
-                </Text>
-              </div>
-
-              {!isNew && (
-                <>
-                  <div className={styles.metaDivider} />
-                  <div className={styles.metaItem}>
-                    <Text className={styles.metaLabel}>Artículos</Text>
-                    <Text className={styles.metaValue}>{elementos.length} asignados</Text>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+      <D365EntityHeader
+        title={formData.nombre || (isNew ? 'Nueva Lista de Precios' : 'Sin Nombre')}
+        subtitle="Lista de Precios"
+        avatarName={formData.nombre || 'Lista de Precios'}
+        avatarIcon={<Money24Regular />}
+        avatarSize={48}
+        loading={loading}
+        metadata={[
+          { label: 'Moneda', value: formData.moneda === 'USD' ? 'USD ($)' : 'PEN (S/)' },
+          { label: 'Estado', value: <><span className={formData.activo ? styles.statusDotActive : styles.statusDotInactive} />{formData.activo ? 'Activo' : 'Inactivo'}</> },
+          ...(!isNew ? [{ label: 'Artículos', value: `${elementos.length} asignados` }] : []),
+        ]}
+        tabs={(
+          <TabList selectedValue={selectedTab} onTabSelect={(_, d) => setSelectedTab(d.value as any)}>
+            <Tab value="general">General</Tab>
+            <Tab value="elementos">Elementos de Lista de Precios</Tab>
+          </TabList>
         )}
-
-        {/* Tabs */}
-        <TabList
-          selectedValue={selectedTab}
-          onTabSelect={(_, d) => setSelectedTab(d.value as any)}
-          className={styles.tabList}
-        >
-          <Tab value="general">General</Tab>
-          <Tab value="elementos">Elementos de Lista de Precios</Tab>
-        </TabList>
-      </div>
+      />
 
       {/* 3. Form Content Body */}
       <div className={styles.contentBody}>
@@ -771,26 +669,6 @@ export const ListaPreciosFormPage: React.FC = () => {
                     placeholder="Ej. Tarifa General 2026, Mayoristas..."
                     value={formData.nombre}
                     onChange={(_, d) => setFormData({ ...formData, nombre: d.value })}
-                  />
-                </div>
-              </div>
-
-              {/* Código */}
-              <div className={styles.d365FieldRow}>
-                <div className={styles.d365LabelCol}>
-                  <Label size="medium" required htmlFor="lp-codigo">
-                    Código
-                  </Label>
-                </div>
-                <div className={styles.d365ControlCol}>
-                  <Input
-                    id="lp-codigo"
-                    size="medium"
-                    className={styles.d365ControlFull}
-                    disabled={!isNew}
-                    placeholder="Ej. LP-GENERAL, LP-VIP..."
-                    value={formData.codigo}
-                    onChange={(_, d) => setFormData({ ...formData, codigo: d.value.toUpperCase() })}
                   />
                 </div>
               </div>
@@ -881,17 +759,6 @@ export const ListaPreciosFormPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Resumen de Vigencia */}
-              <div className={localStyles.infoBox}>
-                <Text size={200} weight="semibold" className={styles.labelSmallBlock}>
-                  Estado de Vigencia:
-                </Text>
-                <Text size={200} className={styles.fieldHint}>
-                  {!formData.fechaInicio && !formData.fechaFin
-                    ? 'Esta lista es permanente y no tiene restricción de fecha.'
-                    : `Válida ${formData.fechaInicio ? `desde el ${formData.fechaInicio}` : 'desde el inicio'} ${formData.fechaFin ? `hasta el ${formData.fechaFin}` : 'indefinidamente'}.`}
-                </Text>
-              </div>
             </Card>
           </div>
         ) : (
@@ -899,26 +766,10 @@ export const ListaPreciosFormPage: React.FC = () => {
           <Card className={styles.card}>
             <div>
               {/* Subgrid Toolbar */}
-              <div className={localStyles.subgridHeader}>
-                <div className={styles.fieldRowFlex}>
-                  <Button
-                    appearance="primary"
-                    size="small"
-                    icon={<Add16Regular />}
-                    onClick={handleOpenItemDialog}
-                  >
-                    Agregar producto
-                  </Button>
-                  <Button
-                    size="small"
-                    icon={<ArrowClockwise16Regular />}
-                    onClick={isNew ? undefined : loadData}
-                  >
-                    Actualizar
-                  </Button>
-                </div>
-
-                <div className={localStyles.subgridTools}>
+              <D365CommandBar
+                ariaLabel="Acciones de elementos de la lista"
+                className={localStyles.subgridHeader}
+                trailing={
                   <Input
                     size="small"
                     placeholder="Filtrar por palabra clave"
@@ -926,8 +777,24 @@ export const ListaPreciosFormPage: React.FC = () => {
                     value={elementosSearch}
                     onChange={(_, d) => setElementosSearch(d.value)}
                   />
-                </div>
-              </div>
+                }
+              >
+                <D365CommandButton
+                  tone="create"
+                  size="small"
+                  icon={<Add16Regular />}
+                  onClick={handleOpenItemDialog}
+                >
+                  Agregar producto
+                </D365CommandButton>
+                <D365CommandButton
+                  size="small"
+                  icon={<ArrowClockwise16Regular />}
+                  onClick={isNew ? undefined : loadData}
+                >
+                  Actualizar
+                </D365CommandButton>
+              </D365CommandBar>
 
               {/* Subgrid DataGrid con cabeceras siempre visibles y Empty State */}
               <DataGrid

@@ -1,6 +1,6 @@
 import { apiClient, getValidAuthToken } from './apiClient';
 
-export interface EntityFieldDescriptor {
+export interface CampoImportacionDto {
   systemName: string;
   displayName: string;
   isRequired: boolean;
@@ -11,16 +11,16 @@ export interface EntityFieldDescriptor {
   synonyms: string[];
 }
 
-export interface EntityImportDescriptor {
+export interface EntidadImportableDto {
   entityName: string;
   displayName: string;
   description: string;
   iconName: string;
   primaryKeyField: string;
-  fields: EntityFieldDescriptor[];
+  fields: CampoImportacionDto[];
 }
 
-export interface FilePreviewResult {
+export interface VistaPreviaImportacionDto {
   fileName: string;
   fileSizeBytes: number;
   detectedDelimiter: string;
@@ -31,7 +31,7 @@ export interface FilePreviewResult {
   totalEstimatedRows: number;
 }
 
-export interface DataImportJobError {
+export interface ErrorImportacionDto {
   id: string;
   fila: number;
   claveIdentificador?: string;
@@ -40,7 +40,7 @@ export interface DataImportJobError {
   valorOriginal?: string;
 }
 
-export interface DataImportJob {
+export interface TrabajoImportacionDto {
   id: string;
   nombreArchivo: string;
   tipoRegistro: string;
@@ -56,20 +56,20 @@ export interface DataImportJob {
   totalFallidos: number;
   totalParciales: number;
   mapeoCampos?: Record<string, string>;
-  errores: DataImportJobError[];
+  errores: ErrorImportacionDto[];
 }
 
-export const dataManagementService = {
+export const ImportacionService = {
   // 1. Obtener catálogo de entidades importables
-  async getImportableEntities(): Promise<EntityImportDescriptor[]> {
-    return apiClient<EntityImportDescriptor[]>('/api/data-management/entities');
+  async getImportableEntities(): Promise<EntidadImportableDto[]> {
+    return apiClient<EntidadImportableDto[]>('/api/data-management/entities');
   },
 
   // 2. Previsualizar archivo y detectar delimitadores
   async previewImportFile(
     file: File,
     options?: { delimiter?: string; quoteChar?: string; hasHeader?: boolean }
-  ): Promise<FilePreviewResult> {
+  ): Promise<VistaPreviaImportacionDto> {
     const token = await getValidAuthToken();
     const formData = new FormData();
     formData.append('file', file);
@@ -106,7 +106,7 @@ export const dataManagementService = {
       quoteChar?: string;
       columnMapping: Record<string, string>;
     }
-  ): Promise<DataImportJob> {
+  ): Promise<TrabajoImportacionDto> {
     const token = await getValidAuthToken();
     const formData = new FormData();
     formData.append('file', file);
@@ -114,7 +114,6 @@ export const dataManagementService = {
     formData.append('duplicateMode', params.duplicateMode);
     if (params.delimiter) formData.append('delimiter', params.delimiter);
     if (params.quoteChar) formData.append('quoteChar', params.quoteChar);
-    formData.append('creadoPor', 'Sebastián Torres');
     formData.append('columnMappingJson', JSON.stringify(params.columnMapping));
 
     const queryParams = new URLSearchParams({ entityName: params.entityName });
@@ -137,13 +136,13 @@ export const dataManagementService = {
   },
 
   // 4. Historial de importaciones
-  async getImportJobs(limit: number = 50): Promise<DataImportJob[]> {
-    return apiClient<DataImportJob[]>(`/api/data-management/imports?limit=${limit}`, { method: 'GET' });
+  async getImportJobs(limit: number = 50): Promise<TrabajoImportacionDto[]> {
+    return apiClient<TrabajoImportacionDto[]>(`/api/data-management/imports?limit=${limit}`, { method: 'GET' });
   },
 
   // 5. Detalle de una importación
-  async getImportJobById(id: string): Promise<DataImportJob> {
-    return apiClient<DataImportJob>(`/api/data-management/imports/${id}`, { method: 'GET' });
+  async getImportJobById(id: string): Promise<TrabajoImportacionDto> {
+    return apiClient<TrabajoImportacionDto>(`/api/data-management/imports/${id}`, { method: 'GET' });
   },
 
   // 6. Eliminar registro de importación

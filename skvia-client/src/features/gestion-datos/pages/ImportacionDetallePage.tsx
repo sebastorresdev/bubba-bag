@@ -1,22 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Toolbar,
-  ToolbarButton,
-  ToolbarDivider,
   TabList,
   Tab,
   Text,
   Badge,
   Spinner,
-  Avatar,
-  Divider,
   Label,
   Input,
   Card,
   Button,
-  MessageBar,
-  MessageBarBody,
-  MessageBarTitle,
   Link,
   Tag,
   DataGrid,
@@ -43,14 +35,18 @@ import {
   LockClosed16Regular,
   Search16Regular,
 } from '@fluentui/react-icons';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useD365FormStyles } from '../../../styles/d365FormStyles';
 import { TableEmptyState } from '../../../components/common/TableEmptyState';
+import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../components/common/D365CommandBar';
+import { D365MessageBar } from '../../../components/common/D365MessageBar';
+import { D365EntityHeader } from '../../../components/common/D365EntityHeader';
+import { semanticTokens } from '../../../styles/semanticTokens';
 import {
-  dataManagementService,
-  type DataImportJob,
-  type DataImportJobError,
-} from '../../../services/dataManagementService';
+  ImportacionService,
+  type TrabajoImportacionDto,
+  type ErrorImportacionDto,
+} from '../../../services/importacion.service';
 import { ProductoService } from '../../inventario/productos/services/producto.service';
 import type { ProductoDto } from '../../inventario/productos/types/producto.types';
 
@@ -69,8 +65,8 @@ const useLocalStyles = makeStyles({
   },
   // Candado al costado del control (estilo D365)
   lockInline: {
-    color: '#797775',
-    fontSize: '14px',
+    color: semanticTokens.text.muted,
+    fontSize: tokens.fontSizeBase200,
     flexShrink: 0,
     marginRight: '6px',
   },
@@ -88,18 +84,44 @@ const useLocalStyles = makeStyles({
       textDecoration: 'underline',
     },
   },
+  notFoundContent: { padding: tokens.spacingVerticalXXL },
+  spacedTop: { marginTop: tokens.spacingVerticalM },
+  metaValueContent: { marginTop: tokens.spacingVerticalXXS },
+  fieldColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalS,
+  },
+  pageColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalXXL,
+    minWidth: 0,
+    width: '100%',
+  },
+  dateIcon: { color: semanticTokens.text.muted },
+  subgridActions: { display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS },
+  subgridSearch: { width: '260px' },
+  searchInput: { width: '100%' },
+  tableOverflow: { width: '100%', overflowX: 'auto' },
+  loadingProducts: { padding: tokens.spacingVerticalXXL, textAlign: 'center' },
 });
 
-export const ImportJobDetailPage: React.FC = () => {
+export const ImportacionDetallePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const styles = useD365FormStyles();
   const localStyles = useLocalStyles();
 
-  const [job, setJob] = useState<DataImportJob | null>(null);
+  const [job, setJob] = useState<TrabajoImportacionDto | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<string>('general');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setActiveTab(searchParams.get('tab') === 'errores' ? 'failures' : 'general');
+  }, [id, searchParams]);
 
   // Filtros de búsqueda para las sub-tablas
   const [errorSearch, setErrorSearch] = useState<string>('');
@@ -114,7 +136,7 @@ export const ImportJobDetailPage: React.FC = () => {
     try {
       setLoading(true);
       setErrorMessage(null);
-      const data = await dataManagementService.getImportJobById(id);
+      const data = await ImportacionService.getImportJobById(id);
       setJob(data);
 
       if (data.tipoRegistro.toLowerCase().includes('prod')) {
@@ -154,8 +176,8 @@ export const ImportJobDetailPage: React.FC = () => {
     }
 
     try {
-      await dataManagementService.deleteImportJob(job.id);
-      navigate('/configuracion/data-management/imports');
+      await ImportacionService.deleteImportJob(job.id);
+      navigate('/gestion-datos/importaciones');
     } catch (err: any) {
       alert(err?.message || 'Error al eliminar el registro.');
     }
@@ -208,32 +230,28 @@ export const ImportJobDetailPage: React.FC = () => {
   }, [job, errorSearch]);
 
   // Columnas DataGrid para la pestaña ERRORES
-  const errorColumns: TableColumnDefinition<DataImportJobError>[] = useMemo(
+  const errorColumns: TableColumnDefinition<ErrorImportacionDto>[] = useMemo(
     () => [
-      createTableColumn<DataImportJobError>({
+      createTableColumn<ErrorImportacionDto>({
         columnId: 'fila',
         compare: (a, b) => a.fila - b.fila,
         renderHeaderCell: () => 'Fila',
         renderCell: (item) => (
-          <TableCellLayout truncate>
-            <Badge appearance="tint" color="danger">
-              Fila {item.fila}
-            </Badge>
-          </TableCellLayout>
+          <TableCellLayout truncate><Text>{item.fila}</Text></TableCellLayout>
         ),
       }),
-      createTableColumn<DataImportJobError>({
+      createTableColumn<ErrorImportacionDto>({
         columnId: 'identificador',
         compare: (a, b) =>
           (a.claveIdentificador || '').localeCompare(b.claveIdentificador || ''),
         renderHeaderCell: () => 'Identificador',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text weight="semibold">{item.claveIdentificador || '─'}</Text>
+            <Text>{item.claveIdentificador || '─'}</Text>
           </TableCellLayout>
         ),
       }),
-      createTableColumn<DataImportJobError>({
+      createTableColumn<ErrorImportacionDto>({
         columnId: 'columna',
         compare: (a, b) => (a.columna || '').localeCompare(b.columna || ''),
         renderHeaderCell: () => 'Columna',
@@ -243,22 +261,22 @@ export const ImportJobDetailPage: React.FC = () => {
           </TableCellLayout>
         ),
       }),
-      createTableColumn<DataImportJobError>({
+      createTableColumn<ErrorImportacionDto>({
         columnId: 'mensaje',
         compare: (a, b) => a.mensaje.localeCompare(b.mensaje),
         renderHeaderCell: () => 'Mensaje de Error / Rechazo',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <span style={{ color: '#d13438' }}>{item.mensaje}</span>
+            <Text>{item.mensaje}</Text>
           </TableCellLayout>
         ),
       }),
-      createTableColumn<DataImportJobError>({
+      createTableColumn<ErrorImportacionDto>({
         columnId: 'valorOriginal',
         renderHeaderCell: () => 'Valor Original',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <code>{item.valorOriginal || '─'}</code>
+            <Text>{item.valorOriginal || '─'}</Text>
           </TableCellLayout>
         ),
       }),
@@ -294,7 +312,6 @@ export const ImportJobDetailPage: React.FC = () => {
                 navigate(`/servicio-campo/productos/${item.id}`);
               }}
               title={item.nombre}
-              className={styles.primaryLink}
             >
               {item.nombre}
             </Link>
@@ -375,20 +392,17 @@ export const ImportJobDetailPage: React.FC = () => {
   if (!job) {
     return (
       <div className={styles.root}>
-        <div style={{ padding: '24px' }}>
-          <MessageBar intent="error">
-            <MessageBarBody>
-              <MessageBarTitle>Registro no encontrado</MessageBarTitle>
-              {errorMessage || 'El registro de importación solicitado no existe o fue eliminado.'}
-            </MessageBarBody>
-          </MessageBar>
+        <div className={localStyles.notFoundContent}>
+          <D365MessageBar intent="error" title="Importación no encontrada">
+            {errorMessage || 'La importación solicitada no existe o fue eliminada.'}
+          </D365MessageBar>
           <Button
             appearance="primary"
-            style={{ marginTop: '16px' }}
+            className={localStyles.spacedTop}
             icon={<ArrowLeft16Regular />}
-            onClick={() => navigate('/configuracion/data-management/imports')}
+            onClick={() => navigate('/gestion-datos/importaciones')}
           >
-            Volver a Importaciones
+            Volver a importaciones
           </Button>
         </div>
       </div>
@@ -398,294 +412,95 @@ export const ImportJobDetailPage: React.FC = () => {
   return (
     <div className={styles.root}>
       {/* 1. DYNAMICS 365 TOP COMMAND BAR */}
-      <Toolbar size="medium" aria-label="Comandos de importación" className={styles.commandBar}>
+      <D365CommandBar ariaLabel="Comandos de importación">
         <div className={styles.toolbarLeft}>
-          <ToolbarButton
-            icon={<ArrowLeft16Regular className={styles.iconPrimary} />}
-            onClick={() => navigate('/configuracion/data-management/imports')}
-            title="Volver al listado"
+          <D365CommandButton
+            icon={<ArrowLeft16Regular />}
+            tone="brand"
+            onClick={() => navigate('/gestion-datos/importaciones')}
+            title="Volver al historial"
             aria-label="Volver"
           />
-          <ToolbarDivider />
+          <D365CommandDivider />
 
-          <ToolbarButton
+          <D365CommandButton
             icon={<ArrowClockwise16Regular />}
             onClick={fetchJob}
           >
             Actualizar
-          </ToolbarButton>
+          </D365CommandButton>
 
-          <ToolbarButton
-            icon={<Delete16Regular className={styles.iconDanger} />}
+          <D365CommandButton
+            icon={<Delete16Regular />}
+            tone="danger"
             onClick={handleDelete}
           >
             Eliminar
-          </ToolbarButton>
+          </D365CommandButton>
         </div>
-      </Toolbar>
+      </D365CommandBar>
 
       {/* 2. DYNAMICS 365 ENTITY HEADER */}
-      <div className={styles.headerContainer}>
-        <div className={styles.headerTopRow}>
-          <div className={styles.headerLeft}>
-            <Avatar
-              name={job.nombreArchivo}
-              initials="IM"
-              size={56}
-              className={styles.avatar}
-            />
-            <div className={styles.titleSection}>
-              <Text className={styles.title}>{job.nombreArchivo}</Text>
-              <Text className={styles.subtitle}>
-                Import Source File · Entidad: {job.tipoRegistro}
-              </Text>
-            </div>
-          </div>
-
-          <div className={styles.headerMetaRight}>
-            <div className={styles.metaItem}>
-              <Text className={styles.metaLabel}>Estado</Text>
-              <div style={{ marginTop: '2px' }}>{getStatusBadge(job.estado)}</div>
-            </div>
-            <Divider vertical className={styles.metaDivider} />
-            <div className={styles.metaItem}>
-              <Text className={styles.metaLabel}>Tipo de Registro</Text>
-              <Text className={styles.metaValue}>{job.tipoRegistro}</Text>
-            </div>
-            <Divider vertical className={styles.metaDivider} />
-            <div className={styles.metaItem}>
-              <Text className={styles.metaLabel}>Iniciado Por</Text>
-              <div style={{ marginTop: '2px' }}>
-                <Tag
-                  appearance="brand"
-                  shape="rounded"
-                  size="small"
-                  media={<Person16Regular />}
-                  value={job.creadoPor}
-                >
-                  <Link as="span" className={localStyles.userTagLink}>
-                    {job.creadoPor}
-                  </Link>
-                </Tag>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 3. TABS DE DYNAMICS 365 */}
-        <TabList
-          className={styles.tabList}
-          selectedValue={activeTab}
-          onTabSelect={(_, data) => setActiveTab(data.value as string)}
-        >
-          <Tab value="general" icon={<DocumentText16Regular />}>
-            General
-          </Tab>
-          <Tab value="failures" icon={<ErrorCircle16Regular />}>
-            Errores
-          </Tab>
-          <Tab value="success" icon={<CheckmarkCircle16Regular />}>
-            Completados
-          </Tab>
-        </TabList>
-      </div>
+      <D365EntityHeader
+        className={styles.headerContainer}
+        title={job.nombreArchivo}
+        subtitle={`Archivo de importación · Entidad: ${job.tipoRegistro}`}
+        avatarInitials="IM"
+        metadata={[
+          { label: 'Estado', value: getStatusBadge(job.estado) },
+          { label: 'Entidad', value: job.tipoRegistro },
+          {
+            label: 'Iniciado por',
+            value: (
+              <Tag appearance="brand" shape="rounded" size="small" media={<Person16Regular />} value={job.creadoPor}>
+                <Link as="span" className={localStyles.userTagLink}>{job.creadoPor}</Link>
+              </Tag>
+            ),
+          },
+        ]}
+        tabs={(
+          <TabList selectedValue={activeTab} onTabSelect={(_, data) => setActiveTab(data.value as string)}>
+            <Tab value="general" icon={<DocumentText16Regular />}>General</Tab>
+            <Tab value="failures" icon={<ErrorCircle16Regular />}>Errores</Tab>
+            <Tab value="success" icon={<CheckmarkCircle16Regular />}>Completados</Tab>
+          </TabList>
+        )}
+      />
 
       {/* 4. CONTENIDO DE LAS PESTAÑAS (ESTRUCTURA IDÉNTICA A DYNAMICS 365) */}
       <div className={styles.contentBody}>
         {/* PESTAÑA GENERAL */}
         {activeTab === 'general' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0, width: '100%' }}>
+          <div className={localStyles.pageColumn}>
 
-            {/* SECCIÓN 1: IDENTIFICACIÓN PRINCIPAL */}
+            {/* SECCIÓN 1: DETALLES DE IMPORTACIÓN */}
             <Card className={styles.card}>
+              <Text className={styles.cardSectionTitle}>Detalles de importación</Text>
               <div className={styles.grid2Cols}>
                 {/* Columna Izquierda */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {/* Nombre */}
+                <div className={localStyles.fieldColumn}>
                   <div className={styles.d365FieldRow}>
-                    <div className={styles.d365LabelCol}>
-                      <Label size="medium">Nombre</Label>
-                    </div>
+                    <div className={styles.d365LabelCol}><Label size="medium">Fecha de creación</Label></div>
                     <div className={styles.d365ControlCol}>
                       <div className={localStyles.controlWithLock}>
-                        <LockClosed16Regular className={localStyles.lockInline} title="Campo de sólo lectura" />
-                        <Input
-                          readOnly
-                          size="medium"
-                          value={job.nombreArchivo}
-                          className={styles.d365ControlFull}
-                        />
+                        <LockClosed16Regular className={localStyles.lockInline} title="Campo de solo lectura" />
+                        <Input readOnly size="medium" contentAfter={<Calendar16Regular className={localStyles.dateIcon} />} value={new Date(job.fechaCreacion).toLocaleString('es-PE')} className={styles.d365ControlFull} />
                       </div>
                     </div>
                   </div>
-
-                  {/* Creado Por */}
                   <div className={styles.d365FieldRow}>
-                    <div className={styles.d365LabelCol}>
-                      <Label size="medium">Creado Por</Label>
-                    </div>
+                    <div className={styles.d365LabelCol}><Label size="medium">Fecha de finalización</Label></div>
                     <div className={styles.d365ControlCol}>
                       <div className={localStyles.controlWithLock}>
-                        <LockClosed16Regular className={localStyles.lockInline} title="Campo de sólo lectura" />
-                        <Tag
-                          appearance="brand"
-                          shape="rounded"
-                          size="medium"
-                          media={<Person16Regular />}
-                          value={job.creadoPor}
-                        >
-                          <Link as="span" className={localStyles.userTagLink}>
-                            {job.creadoPor}
-                          </Link>
-                        </Tag>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Fecha de Creación */}
-                  <div className={styles.d365FieldRow}>
-                    <div className={styles.d365LabelCol}>
-                      <Label size="medium">Fecha de Creación</Label>
-                    </div>
-                    <div className={styles.d365ControlCol}>
-                      <div className={localStyles.controlWithLock}>
-                        <LockClosed16Regular className={localStyles.lockInline} title="Campo de sólo lectura" />
-                        <Input
-                          readOnly
-                          size="medium"
-                          contentAfter={<Calendar16Regular style={{ color: '#797775' }} />}
-                          value={new Date(job.fechaCreacion).toLocaleString('es-PE')}
-                          className={styles.d365ControlFull}
-                        />
+                        <LockClosed16Regular className={localStyles.lockInline} title="Campo de solo lectura" />
+                        <Input readOnly size="medium" contentAfter={<Calendar16Regular className={localStyles.dateIcon} />} value={job.fechaFinalizacion ? new Date(job.fechaFinalizacion).toLocaleString('es-PE') : '—'} className={styles.d365ControlFull} />
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Columna Derecha */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {/* Estado */}
-                  <div className={styles.d365FieldRow}>
-                    <div className={styles.d365LabelCol}>
-                      <Label size="medium">Estado</Label>
-                    </div>
-                    <div className={styles.d365ControlCol}>
-                      <div className={localStyles.controlWithLock}>
-                        <LockClosed16Regular className={localStyles.lockInline} title="Campo de sólo lectura" />
-                        <Input
-                          readOnly
-                          size="medium"
-                          value={job.estado}
-                          className={styles.d365ControlFull}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Espacio reservado para alineación exacta de D365 */}
-                  <div className={styles.d365FieldRow} style={{ visibility: 'hidden' }}>
-                    <div className={styles.d365LabelCol}>
-                      <Label size="medium">Espacio</Label>
-                    </div>
-                    <div className={styles.d365ControlCol}>
-                      <Input size="medium" />
-                    </div>
-                  </div>
-
-                  {/* Fecha de Finalización */}
-                  <div className={styles.d365FieldRow}>
-                    <div className={styles.d365LabelCol}>
-                      <Label size="medium">Finalizado El</Label>
-                    </div>
-                    <div className={styles.d365ControlCol}>
-                      <div className={localStyles.controlWithLock}>
-                        <LockClosed16Regular className={localStyles.lockInline} title="Campo de sólo lectura" />
-                        <Input
-                          readOnly
-                          size="medium"
-                          contentAfter={<Calendar16Regular style={{ color: '#797775' }} />}
-                          value={
-                            job.fechaFinalizacion
-                              ? new Date(job.fechaFinalizacion).toLocaleString('es-PE')
-                              : '—'
-                          }
-                          className={styles.d365ControlFull}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            {/* SECCIÓN 2: PROPIEDADES (PROPERTIES) */}
-            <Card className={styles.card}>
-              <Text className={styles.cardSectionTitle}>Propiedades</Text>
-              <div className={styles.grid2Cols}>
-                {/* Columna Izquierda */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {/* Archivo */}
-                  <div className={styles.d365FieldRow}>
-                    <div className={styles.d365LabelCol}>
-                      <Label size="medium">Archivo</Label>
-                    </div>
-                    <div className={styles.d365ControlCol}>
-                      <div className={localStyles.controlWithLock}>
-                        <LockClosed16Regular className={localStyles.lockInline} title="Campo de sólo lectura" />
-                        <Input
-                          readOnly
-                          size="medium"
-                          value={job.nombreArchivo}
-                          className={styles.d365ControlFull}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tipo de Registro */}
-                  <div className={styles.d365FieldRow}>
-                    <div className={styles.d365LabelCol}>
-                      <Label size="medium">Tipo de Registro</Label>
-                    </div>
-                    <div className={styles.d365ControlCol}>
-                      <div className={localStyles.controlWithLock}>
-                        <LockClosed16Regular className={localStyles.lockInline} title="Campo de sólo lectura" />
-                        <Input
-                          readOnly
-                          size="medium"
-                          value={job.tipoRegistro}
-                          className={styles.d365ControlFull}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Propietario de Registros */}
-                  <div className={styles.d365FieldRow}>
-                    <div className={styles.d365LabelCol}>
-                      <Label size="medium">Propietario de Registros</Label>
-                    </div>
-                    <div className={styles.d365ControlCol}>
-                      <div className={localStyles.controlWithLock}>
-                        <LockClosed16Regular className={localStyles.lockInline} title="Campo de sólo lectura" />
-                        <Tag
-                          appearance="brand"
-                          shape="rounded"
-                          size="medium"
-                          media={<Person16Regular />}
-                          value={job.creadoPor}
-                        >
-                          <Link as="span" className={localStyles.userTagLink}>
-                            {job.creadoPor}
-                          </Link>
-                        </Tag>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Columna Derecha */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div className={localStyles.fieldColumn}>
                   {/* Tamaño */}
                   <div className={styles.d365FieldRow}>
                     <div className={styles.d365LabelCol}>
@@ -707,7 +522,7 @@ export const ImportJobDetailPage: React.FC = () => {
                   {/* Mapeo */}
                   <div className={styles.d365FieldRow}>
                     <div className={styles.d365LabelCol}>
-                      <Label size="medium">Mapa</Label>
+                      <Label size="medium">Campos mapeados</Label>
                     </div>
                     <div className={styles.d365ControlCol}>
                       <div className={localStyles.controlWithLock}>
@@ -715,17 +530,17 @@ export const ImportJobDetailPage: React.FC = () => {
                         <Input
                           readOnly
                           size="medium"
-                          value="---"
+                          value={`${Object.keys(job.mapeoCampos ?? {}).length} campos mapeados`}
                           className={styles.d365ControlFull}
                         />
                       </div>
                     </div>
                   </div>
 
-                  {/* Detección de Duplicados */}
+                  {/* Tratamiento de duplicados */}
                   <div className={styles.d365FieldRow}>
                     <div className={styles.d365LabelCol}>
-                      <Label size="medium">Detección de Duplicados</Label>
+                      <Label size="medium">Tratamiento de duplicados</Label>
                     </div>
                     <div className={styles.d365ControlCol}>
                       <div className={localStyles.controlWithLock}>
@@ -735,10 +550,10 @@ export const ImportJobDetailPage: React.FC = () => {
                           size="medium"
                           value={
                             job.modoDuplicados === 'Upsert'
-                              ? 'Sí (Actualizar existentes)'
+                              ? 'Actualizar los registros existentes'
                               : job.modoDuplicados === 'Skip'
-                                ? 'Sí (Omitir existentes)'
-                                : 'Sí (Rechazar duplicados)'
+                                ? 'Omitir los registros existentes'
+                                : 'Rechazar los duplicados'
                           }
                           className={styles.d365ControlFull}
                         />
@@ -749,16 +564,16 @@ export const ImportJobDetailPage: React.FC = () => {
               </div>
             </Card>
 
-            {/* SECCIÓN 3: RESULTADOS (RESULTS) */}
+            {/* SECCIÓN 2: RESULTADOS */}
             <Card className={styles.card}>
               <Text className={styles.cardSectionTitle}>Resultados</Text>
               <div className={styles.grid2Cols}>
                 {/* Columna Izquierda */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {/* Registros Correctos */}
+                <div className={localStyles.fieldColumn}>
+                  {/* Registros Importados correctamente */}
                   <div className={styles.d365FieldRow}>
                     <div className={styles.d365LabelCol}>
-                      <Label size="medium">Correctos</Label>
+                      <Label size="medium">Importados correctamente</Label>
                     </div>
                     <div className={styles.d365ControlCol}>
                       <div className={localStyles.controlWithLock}>
@@ -776,7 +591,7 @@ export const ImportJobDetailPage: React.FC = () => {
                   {/* Parciales / Omitidos */}
                   <div className={styles.d365FieldRow}>
                     <div className={styles.d365LabelCol}>
-                      <Label size="medium">Errores Parciales</Label>
+                      <Label size="medium">Errores parciales</Label>
                     </div>
                     <div className={styles.d365ControlCol}>
                       <div className={localStyles.controlWithLock}>
@@ -793,7 +608,7 @@ export const ImportJobDetailPage: React.FC = () => {
                 </div>
 
                 {/* Columna Derecha */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div className={localStyles.fieldColumn}>
                   {/* Errores / Fallos */}
                   <div className={styles.d365FieldRow}>
                     <div className={styles.d365LabelCol}>
@@ -842,7 +657,7 @@ export const ImportJobDetailPage: React.FC = () => {
             <div>
               {/* Subgrid Toolbar */}
               <div className={localStyles.subgridHeader}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className={localStyles.subgridActions}>
                   <Button
                     size="small"
                     icon={<ArrowClockwise16Regular />}
@@ -852,20 +667,20 @@ export const ImportJobDetailPage: React.FC = () => {
                   </Button>
                 </div>
 
-                <div style={{ width: '260px' }}>
+                <div className={localStyles.subgridSearch}>
                   <Input
                     size="small"
-                    placeholder="Filtrar por palabra clave"
+                    placeholder="Buscar en los registros..."
                     contentBefore={<Search16Regular />}
                     value={errorSearch}
                     onChange={(_, d) => setErrorSearch(d.value)}
-                    style={{ width: '100%' }}
+                    className={localStyles.searchInput}
                   />
                 </div>
               </div>
 
               {/* DataGrid mostrando siempre la cabecera, y TableEmptyState dentro cuando no hay filas */}
-              <div style={{ width: '100%', overflowX: 'auto' }}>
+              <div className={localStyles.tableOverflow}>
                 <DataGrid
                   items={filteredErrores}
                   columns={errorColumns}
@@ -882,9 +697,9 @@ export const ImportJobDetailPage: React.FC = () => {
                   {filteredErrores.length === 0 ? (
                     <TableEmptyState />
                   ) : (
-                    <DataGridBody<DataImportJobError>>
+                    <DataGridBody<ErrorImportacionDto>>
                       {({ item, rowId }) => (
-                        <DataGridRow<DataImportJobError>
+                        <DataGridRow<ErrorImportacionDto>
                           key={rowId}
                           className={styles.dataRow}
                         >
@@ -909,7 +724,7 @@ export const ImportJobDetailPage: React.FC = () => {
             <div>
               {/* Subgrid Toolbar */}
               <div className={localStyles.subgridHeader}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className={localStyles.subgridActions}>
                   <Button
                     size="small"
                     icon={<ArrowClockwise16Regular />}
@@ -919,24 +734,24 @@ export const ImportJobDetailPage: React.FC = () => {
                   </Button>
                 </div>
 
-                <div style={{ width: '260px' }}>
+                <div className={localStyles.subgridSearch}>
                   <Input
                     size="small"
-                    placeholder="Filtrar por palabra clave"
+                    placeholder="Buscar en los registros..."
                     contentBefore={<Search16Regular />}
                     value={productSearch}
                     onChange={(_, d) => setProductSearch(d.value)}
-                    style={{ width: '100%' }}
+                    className={localStyles.searchInput}
                   />
                 </div>
               </div>
 
               {loadingProducts ? (
-                <div style={{ padding: '32px', textAlign: 'center' }}>
+                <div className={localStyles.loadingProducts}>
                   <Spinner size="medium" label="Cargando registros importados..." />
                 </div>
               ) : (
-                <div style={{ width: '100%', overflowX: 'auto' }}>
+                <div className={localStyles.tableOverflow}>
                   <DataGrid
                     items={filteredProducts}
                     columns={productColumns}

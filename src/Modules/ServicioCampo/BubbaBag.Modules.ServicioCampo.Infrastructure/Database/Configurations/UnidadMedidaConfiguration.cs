@@ -27,10 +27,6 @@ public class UnidadMedidaConfiguration : IEntityTypeConfiguration<UnidadMedida>
             .IsRequired()
             .HasMaxLength(10);
 
-        builder.Property(u => u.PermiteDecimales)
-            .IsRequired()
-            .HasDefaultValue(false);
-
         builder.Property(u => u.Descripcion)
             .HasMaxLength(300);
 

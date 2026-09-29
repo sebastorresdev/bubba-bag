@@ -14,12 +14,12 @@ public class LiquidacionMaterialItemConfiguration : IEntityTypeConfiguration<Liq
 
         builder.Property(i => i.CantidadConsumida)
             .IsRequired()
-            .HasPrecision(12, 2)
+            .HasPrecision(14, 5)
             .HasDefaultValue(0m);
 
         builder.Property(i => i.CantidadDevuelta)
             .IsRequired()
-            .HasPrecision(12, 2)
+            .HasPrecision(14, 5)
             .HasDefaultValue(0m);
 
         builder.Property(i => i.EsSeriado)

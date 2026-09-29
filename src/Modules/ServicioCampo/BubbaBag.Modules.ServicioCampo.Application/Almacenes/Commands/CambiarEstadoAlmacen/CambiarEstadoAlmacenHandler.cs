@@ -15,10 +15,12 @@ public record CambiarEstadoAlmacenCommand(
 public class CambiarEstadoAlmacenHandler : ICommandHandler<CambiarEstadoAlmacenCommand, Result>
 {
     private readonly IServicioCampoDbContext _context;
+    private readonly ICurrentUser _currentUser;
 
-    public CambiarEstadoAlmacenHandler(IServicioCampoDbContext context)
+    public CambiarEstadoAlmacenHandler(IServicioCampoDbContext context, ICurrentUser currentUser)
     {
         _context = context;
+        _currentUser = currentUser;
     }
 
     public async Task<Result> HandleAsync(CambiarEstadoAlmacenCommand command, CancellationToken cancellationToken = default)
@@ -27,10 +29,7 @@ public class CambiarEstadoAlmacenHandler : ICommandHandler<CambiarEstadoAlmacenC
         if (almacen is null)
             return Result.Failure($"No se encontró el almacén con ID '{command.Id}'.");
 
-        if (command.Activo)
-            almacen.Activar();
-        else
-            almacen.Desactivar();
+        almacen.CambiarEstado(command.Activo, _currentUser.Id == Guid.Empty ? null : _currentUser.Id);
 
         await _context.SaveChangesAsync(cancellationToken);
 

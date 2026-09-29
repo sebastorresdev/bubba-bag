@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Dtos;
-using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
 using BubbaBag.SharedKernel;
 using BubbaBag.SharedKernel.CQRS;
 using Microsoft.EntityFrameworkCore;
@@ -12,8 +11,6 @@ using Microsoft.EntityFrameworkCore;
 namespace BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerAlmacenes;
 
 public record ObtenerAlmacenesQuery(
-    TipoAlmacen? Tipo = null,
-    Guid? SucursalId = null,
     bool? SoloActivos = true
 ) : IQuery<Result<List<AlmacenDto>>>;
 
@@ -33,28 +30,18 @@ public class ObtenerAlmacenesHandler : IQueryHandler<ObtenerAlmacenesQuery, Resu
         if (query.SoloActivos.HasValue)
             dbQuery = dbQuery.Where(a => a.Activo == query.SoloActivos.Value);
 
-        if (query.Tipo.HasValue)
-            dbQuery = dbQuery.Where(a => a.Tipo == query.Tipo.Value);
-
-        if (query.SucursalId.HasValue)
-            dbQuery = dbQuery.Where(a => a.SucursalId == query.SucursalId.Value);
-
         var lista = await dbQuery
             .OrderBy(a => a.Nombre)
             .Select(a => new AlmacenDto(
                 a.Id,
-                a.Codigo,
                 a.Nombre,
                 a.Descripcion,
                 a.Activo,
-                a.Tipo,
-                a.Direccion,
-                a.Telefono,
-                a.SucursalId,
-                a.RecursoId,
-                a.SucursalId != null ? _context.Sucursales.Where(s => s.Id == a.SucursalId).Select(s => s.Nombre).FirstOrDefault() : null,
-                a.RecursoId != null ? _context.Recursos.Where(r => r.Id == a.RecursoId).Select(r => r.NombreCompleto).FirstOrDefault() : null,
-                a.RecursoId
+                a.CreadoPorId,
+                a.CreadoPorNombre,
+                a.CreatedAt,
+                a.ActualizadoPorId,
+                a.UpdatedAt
             ))
             .ToListAsync(cancellationToken);
 

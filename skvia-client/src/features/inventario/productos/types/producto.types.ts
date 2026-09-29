@@ -9,6 +9,7 @@ export interface ProductoDto {
   precioBase: number;
   categoria: string;
   unidadMedida: string;
+  decimalesCantidad: number;
   esSerializado: boolean;
   activo: boolean;
   codigoBarras?: string;
@@ -28,6 +29,7 @@ export interface CreateProductoDto {
   precioBase?: number;
   categoria?: string;
   unidadMedida?: string;
+  decimalesCantidad?: number;
   esSerializado?: boolean;
   descripcion?: string;
   codigoBarras?: string;
@@ -45,6 +47,7 @@ export interface UpdateProductoDto {
   precioBase?: number;
   categoria?: string;
   unidadMedida?: string;
+  decimalesCantidad?: number;
   esSerializado?: boolean;
   descripcion?: string;
   codigoBarras?: string;

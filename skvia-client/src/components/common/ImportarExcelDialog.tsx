@@ -9,9 +9,6 @@ import {
   Button,
   Spinner,
   Text,
-  MessageBar,
-  MessageBarBody,
-  MessageBarTitle,
   tokens,
   makeStyles,
   Table,
@@ -22,6 +19,8 @@ import {
   TableCell,
   Switch,
 } from '@fluentui/react-components';
+import { D365MessageBar } from './D365MessageBar';
+import { useD365ImportStyles } from '../../styles/d365ImportStyles';
 import {
   ArrowDownload16Regular,
   ArrowUpload24Regular,
@@ -36,6 +35,7 @@ const useStyles = makeStyles({
     maxWidth: '620px',
     width: '100%',
   },
+  messageBarSpacing: { marginBottom: tokens.spacingVerticalM },
   stepContainer: {
     display: 'flex',
     flexDirection: 'column',
@@ -128,6 +128,7 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
   allowUpsert = false,
 }) => {
   const styles = useStyles();
+  const importStyles = useD365ImportStyles();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -238,17 +239,14 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
         <DialogBody>
           <DialogContent>
             {errorMessage && (
-              <MessageBar intent="error" shape="square" style={{ marginBottom: 12 }}>
-                <MessageBarBody>
-                  <MessageBarTitle>Error</MessageBarTitle>
-                  {errorMessage}
-                </MessageBarBody>
-              </MessageBar>
+              <D365MessageBar intent="error" title="Error" className={styles.messageBarSpacing}>
+                {errorMessage}
+              </D365MessageBar>
             )}
 
             {result && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '14px' }}>
-                <MessageBar
+              <div className={importStyles.resultColumn}>
+                <D365MessageBar
                   intent={
                     result.errores.length === 0
                       ? 'success'
@@ -256,53 +254,44 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
                       ? 'warning'
                       : 'error'
                   }
-                  shape="square"
+                  title={
+                    result.errores.length === 0
+                      ? 'Importación completada con éxito'
+                      : result.creados > 0 || result.actualizados > 0
+                      ? 'Importación procesada con observaciones'
+                      : 'La importación no pudo registrar los datos'
+                  }
                 >
-                  <MessageBarBody>
-                    <MessageBarTitle>
-                      {result.errores.length === 0
-                        ? 'Importación completada con éxito'
-                        : result.creados > 0 || result.actualizados > 0
-                        ? 'Importación procesada con observaciones'
-                        : 'La importación no pudo registrar los datos'}
-                    </MessageBarTitle>
-                    <Text size={200} style={{ color: tokens.colorNeutralForeground2 }}>
+                  <>
+                    <Text size={200} className={importStyles.neutral}>
                       {result.errores.length === 0
                         ? 'Todos los registros del archivo fueron validados y procesados correctamente.'
                         : 'Se procesaron las filas válidas y se generó un informe detallado con las filas observadas.'}
                     </Text>
-                  </MessageBarBody>
-                </MessageBar>
+                  </>
+                </D365MessageBar>
 
                 {/* Resumen numérico tipo SAP / Dynamics */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
-                  gap: '8px',
-                  padding: '10px 14px',
-                  backgroundColor: tokens.colorNeutralBackground2,
-                  borderRadius: tokens.borderRadiusMedium,
-                  border: `1px solid ${tokens.colorNeutralStroke2}`
-                }}>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Total Filas</Text>
+                <div className={importStyles.metricsGrid}>
+                  <div className={importStyles.column}>
+                    <Text size={100} className={importStyles.muted}>Total Filas</Text>
                     <Text size={400} weight="bold">{result.totalFilas}</Text>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <Text size={100} style={{ color: tokens.colorPaletteGreenForeground1 }}>Creados</Text>
-                    <Text size={400} weight="bold" style={{ color: tokens.colorPaletteGreenForeground1 }}>{result.creados}</Text>
+                  <div className={importStyles.column}>
+                    <Text size={100} className={importStyles.success}>Creados</Text>
+                    <Text size={400} weight="bold" className={importStyles.success}>{result.creados}</Text>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <Text size={100} style={{ color: tokens.colorBrandForeground1 }}>Actualizados</Text>
-                    <Text size={400} weight="bold" style={{ color: tokens.colorBrandForeground1 }}>{result.actualizados}</Text>
+                  <div className={importStyles.column}>
+                    <Text size={100} className={importStyles.brand}>Actualizados</Text>
+                    <Text size={400} weight="bold" className={importStyles.brand}>{result.actualizados}</Text>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Omitidos</Text>
-                    <Text size={400} weight="bold" style={{ color: tokens.colorNeutralForeground2 }}>{result.omitidos ?? 0}</Text>
+                  <div className={importStyles.column}>
+                    <Text size={100} className={importStyles.muted}>Omitidos</Text>
+                    <Text size={400} weight="bold" className={importStyles.neutral}>{result.omitidos ?? 0}</Text>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <Text size={100} style={{ color: tokens.colorPaletteRedForeground1 }}>Incidencias</Text>
-                    <Text size={400} weight="bold" style={{ color: tokens.colorPaletteRedForeground1 }}>{result.errores.length}</Text>
+                  <div className={importStyles.column}>
+                    <Text size={100} className={importStyles.danger}>Incidencias</Text>
+                    <Text size={400} weight="bold" className={importStyles.danger}>{result.errores.length}</Text>
                   </div>
                 </div>
               </div>
@@ -310,15 +299,15 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
 
             {result && result.errores.length > 0 && (
               <div>
-                <Text weight="semibold" size={200} style={{ display: 'block', marginBottom: '6px' }}>
+                <Text weight="semibold" size={200} className={importStyles.resultHeading}>
                   Informe de incidencias ({result.errores.length} fila{result.errores.length > 1 ? 's' : ''}):
                 </Text>
                 <div className={styles.errorTableContainer}>
                   <Table size="small">
                     <TableHeader>
                       <TableRow>
-                        <TableHeaderCell style={{ width: '50px' }}>Fila</TableHeaderCell>
-                        <TableHeaderCell style={{ width: '120px' }}>Código</TableHeaderCell>
+                        <TableHeaderCell className={importStyles.tableRowNumber}>Fila</TableHeaderCell>
+                        <TableHeaderCell className={importStyles.tableCode}>Código</TableHeaderCell>
                         <TableHeaderCell>Motivo / Observación</TableHeaderCell>
                       </TableRow>
                     </TableHeader>
@@ -326,7 +315,7 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
                       {result.errores.map((err, idx) => (
                         <TableRow key={idx}>
                           <TableCell>{err.fila}</TableCell>
-                          <TableCell style={{ fontFamily: 'monospace', fontWeight: 600 }}>{err.codigo || '—'}</TableCell>
+                          <TableCell className={importStyles.codeCell}>{err.codigo || '—'}</TableCell>
                           <TableCell>{err.mensaje}</TableCell>
                         </TableRow>
                       ))}
@@ -343,7 +332,7 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
                   <Text weight="semibold" size={300}>
                     Paso 1: Descargar plantilla con listas desplegables
                   </Text>
-                  <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                  <Text size={200} className={importStyles.muted}>
                     Descarga la plantilla oficial configurada para {entityName}. Incluye listas de validación y selectores desplegables para evitar errores de escritura.
                   </Text>
                   <div>
@@ -366,20 +355,12 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
                   </Text>
 
                   {allowUpsert && (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '10px 12px',
-                      backgroundColor: tokens.colorNeutralBackground1,
-                      borderRadius: tokens.borderRadiusMedium,
-                      border: `1px solid ${tokens.colorNeutralStroke2}`,
-                    }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div className={importStyles.upsertContainer}>
+                      <div className={importStyles.upsertCopy}>
                         <Text weight="semibold" size={200}>
                           Actualizar registros si el código ya existe
                         </Text>
-                        <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
+                        <Text size={100} className={importStyles.muted}>
                           {actualizarExistentes
                             ? 'Los productos existentes serán actualizados con la información del Excel.'
                             : 'Modo seguro: si un código ya existe se omitirá sin sobrescribir datos existentes.'}
@@ -397,7 +378,7 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
                     ref={fileInputRef}
                     type="file"
                     accept=".xlsx,.xls"
-                    style={{ display: 'none' }}
+                    className={importStyles.hiddenInput}
                     onChange={handleFileChange}
                   />
 
@@ -409,23 +390,23 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
                     >
-                      <ArrowUpload24Regular style={{ color: tokens.colorCompoundBrandForeground1, fontSize: 32 }} />
+                      <ArrowUpload24Regular className={importStyles.brandIcon} />
                       <Text weight="semibold" size={300}>
                         Haz clic aquí o arrastra tu archivo Excel
                       </Text>
-                      <Text size={200} style={{ color: tokens.colorNeutralForeground4 }}>
+                      <Text size={200} className={importStyles.mutedSubtle}>
                         Archivos compatibles: .xlsx o .xls
                       </Text>
                     </div>
                   ) : (
                     <div className={styles.fileSelectedInfo}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <DocumentCheckmark24Regular style={{ color: tokens.colorPaletteGreenForeground1 }} />
+                      <div className={importStyles.filenameRow}>
+                        <DocumentCheckmark24Regular className={importStyles.successIcon} />
                         <div>
                           <Text weight="semibold" size={300} block>
                             {selectedFile.name}
                           </Text>
-                          <Text size={100} style={{ color: tokens.colorNeutralForeground4 }}>
+                          <Text size={100} className={importStyles.mutedSubtle}>
                             {(selectedFile.size / 1024).toFixed(1)} KB
                           </Text>
                         </div>

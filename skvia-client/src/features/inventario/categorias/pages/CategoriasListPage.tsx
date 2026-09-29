@@ -1,12 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Toolbar,
-  ToolbarButton,
-  ToolbarDivider,
   Button,
   Input,
-  Spinner,
   Text,
   Link,
   Menu,
@@ -37,13 +33,14 @@ import {
   Search16Regular,
   Share16Regular,
   TableEdit16Regular,
-  Warning24Regular,
 } from '@fluentui/react-icons';
 import { CategoriaService } from '../services/categoria.service';
 import type { CategoriaProductoDto } from '../types/categoria.types';
-import { ImportDataDrawer } from '../../../../components/common/ImportDataDrawer';
+import { ImportacionDrawer } from '../../../../components/common/ImportacionDrawer';
 import { TableEmptyState } from '../../../../components/common/TableEmptyState';
+import { D365ListState } from '../../../../components/common/D365ListState';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
+import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 
 export interface CategoriasListPageProps {
   onNew?: () => void;
@@ -123,7 +120,6 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
                 else navigate(`/servicio-campo/categorias-producto/${item.id}`);
               }}
               title={item.nombre}
-              className={styles.primaryLink}
             >
               {item.nombre}
             </Link>
@@ -142,7 +138,6 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
                 padreId ? (
                   <Link
                     as="button"
-                    className={styles.noWrapCell}
                     onClick={(e) => {
                       e.stopPropagation();
                       navigate(`/servicio-campo/categorias-producto/${padreId}`);
@@ -152,12 +147,12 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
                     {item.categoriaPadreNombre}
                   </Link>
                 ) : (
-                  <Text wrap={false} className={styles.noWrapCell}>
+                  <Text>
                     {item.categoriaPadreNombre}
                   </Text>
                 )
               ) : (
-                <Text wrap={false} className={styles.noWrapCell}>
+                <Text>
                   ---
                 </Text>
               )}
@@ -170,7 +165,7 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
         renderHeaderCell: () => 'Descripción',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>
+            <Text>
               {item.descripcion || '—'}
             </Text>
           </TableCellLayout>
@@ -181,65 +176,62 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
         renderHeaderCell: () => 'Estado',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>
+            <Text>
               {item.activo ? 'Activo' : 'Inactivo'}
             </Text>
           </TableCellLayout>
         ),
       }),
     ],
-    [styles.noWrapCell, onSelect, navigate]
+    [items, onSelect, navigate]
   );
 
   return (
     <div className={styles.root}>
       {/* 1. TOP COMMAND BAR */}
-      <div className={styles.commandBar}>
+      <D365CommandBar
+        ariaLabel="Comandos de categorías"
+        trailing={
+          <D365CommandButton appearance="primary" icon={<Share16Regular />}>
+            Compartir
+            <ChevronDown12Regular className={styles.iconChevronMargin} />
+          </D365CommandButton>
+        }
+      >
         <div className={styles.toolbarLeft}>
-          <Toolbar size="medium" className={styles.transparentToolbar}>
-            <ToolbarButton
-              icon={<Add16Regular className={styles.iconNewGreen} />}
+            <D365CommandButton
+              icon={<Add16Regular />}
+              tone="create"
               onClick={() => {
                 if (onNew) onNew();
                 else navigate('/servicio-campo/categorias-producto/nuevo');
               }}
             >
               Nuevo
-            </ToolbarButton>
+            </D365CommandButton>
 
-            <ToolbarButton
+            <D365CommandButton
               icon={<ArrowClockwise16Regular />}
               onClick={loadData}
             >
               Actualizar
-            </ToolbarButton>
+            </D365CommandButton>
 
-            <ToolbarDivider />
+            <D365CommandDivider />
 
-            <ToolbarButton icon={<ArrowDownload16Regular />}>
+            <D365CommandButton icon={<ArrowDownload16Regular />}>
               Exportar a Excel
               <ChevronDown12Regular className={styles.iconChevronMargin} />
-            </ToolbarButton>
+            </D365CommandButton>
 
-            <ToolbarButton
+            <D365CommandButton
               icon={<ArrowUpload16Regular />}
               onClick={() => setImportDialogOpen(true)}
             >
               Importar de Excel
-            </ToolbarButton>
-          </Toolbar>
+            </D365CommandButton>
         </div>
-
-        <div>
-          <ToolbarButton
-            appearance="primary"
-            icon={<Share16Regular />}
-          >
-            Compartir
-            <ChevronDown12Regular className={styles.iconChevronMargin} />
-          </ToolbarButton>
-        </div>
-      </div>
+      </D365CommandBar>
 
       {/* 2. VIEW HEADER ROW */}
       <div className={styles.viewHeader}>
@@ -314,21 +306,7 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
 
       {/* 3. GRID BODY */}
       <div className={styles.gridWrapper}>
-        {loading ? (
-          <div className={styles.loadingContainer}>
-            <Spinner size="medium" label="Cargando..." />
-          </div>
-        ) : error ? (
-          <div className={styles.errorContainer}>
-            <Warning24Regular className={styles.iconDanger} />
-            <Text weight="semibold" className={styles.dangerText}>
-              {error}
-            </Text>
-            <Button appearance="outline" onClick={loadData}>
-              Reintentar
-            </Button>
-          </div>
-        ) : (
+        <D365ListState loading={loading} error={error} onRetry={loadData} loadingLabel="Cargando categorías...">
           <DataGrid
             items={filteredItems}
             columns={columns}
@@ -368,11 +346,11 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
               </DataGridBody>
             )}
           </DataGrid>
-        )}
+        </D365ListState>
       </div>
 
       {/* 4. IMPORT DATA DRAWER LATERAL DERECHO (DYNAMICS 365) */}
-      <ImportDataDrawer
+      <ImportacionDrawer
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         targetEntityName="Categoria"

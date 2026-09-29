@@ -12,7 +12,6 @@ public record CrearUnidadMedidaCommand(
     string Codigo,
     string Nombre,
     string Abreviatura,
-    bool PermiteDecimales = false,
     string? Descripcion = null
 ) : ICommand<Result<Guid>>;
 
@@ -47,7 +46,6 @@ public class CrearUnidadMedidaHandler : ICommandHandler<CrearUnidadMedidaCommand
             codigoNormalizado,
             command.Nombre,
             command.Abreviatura,
-            command.PermiteDecimales,
             command.Descripcion
         );
 

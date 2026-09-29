@@ -61,6 +61,7 @@ import {
   ArrowUpload20Regular,
 } from '@fluentui/react-icons';
 import type { NavArea, NavItem as NavItemData } from '../../types/navigation.types';
+import { semanticTokens } from '../../styles/semanticTokens';
 
 // Bundled Fluent UI v9 icons: switches between Filled and Regular automatically on active state
 const ICONS_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -130,22 +131,41 @@ const useStyles = makeStyles({
     width: '22px',
     height: '22px',
     borderRadius: '2px',
+    backgroundColor: semanticTokens.navigation.background,
     color: tokens.colorNeutralForegroundOnBrand,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontWeight: '700',
-    fontSize: '11px',
+    fontWeight: semanticTokens.typography.bold,
+    fontSize: semanticTokens.typography.caption,
     flexShrink: 0,
   },
   areaText: {
-    fontSize: '13px',
-    fontWeight: '600',
+    fontSize: semanticTokens.typography.bodySmall,
+    fontWeight: semanticTokens.typography.semibold,
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     color: tokens.colorNeutralForeground1,
   },
+  areaMenu: { minWidth: '220px' },
+  areaMenuHeader: {
+    padding: '8px 12px 4px 12px',
+    color: semanticTokens.text.muted,
+  },
+  areaMenuBadge: {
+    width: '20px',
+    height: '20px',
+    borderRadius: tokens.borderRadiusSmall,
+    backgroundColor: semanticTokens.navigation.background,
+    color: semanticTokens.navigation.foreground,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: semanticTokens.typography.bold,
+    fontSize: semanticTokens.typography.caption,
+  },
+  selectedCheck: { color: tokens.colorCompoundBrandForeground1 },
 });
 
 export interface SideNavProps {
@@ -175,6 +195,14 @@ export const SideNav: React.FC<SideNavProps> = ({
   const handleItemClick = (item: NavItemData) => {
     onSelectItem(item);
     // On overlay / mobile mode, close drawer after selecting item
+    if (type === 'overlay') {
+      onOpenChange(false);
+    }
+  };
+
+  const handleAreaSelect = (area: NavArea) => {
+    onSelectArea(area);
+    // Changing areas navigates too, so close the modal drawer on compact screens.
     if (type === 'overlay') {
       onOpenChange(false);
     }
@@ -283,7 +311,6 @@ export const SideNav: React.FC<SideNavProps> = ({
               <div className={styles.areaNameGroup}>
                 <div
                   className={styles.areaBadge}
-                  style={{ backgroundColor: activeArea.color }}
                 >
                   {activeArea.shortCode}
                 </div>
@@ -294,9 +321,9 @@ export const SideNav: React.FC<SideNavProps> = ({
           </MenuTrigger>
 
           <MenuPopover>
-            <MenuList style={{ minWidth: '220px' }}>
-              <div style={{ padding: '8px 12px 4px 12px' }}>
-                <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground4 }}>
+            <MenuList className={styles.areaMenu}>
+              <div>
+                <Text size={200} weight="semibold" className={styles.areaMenuHeader}>
                   CAMBIAR ÁREA
                 </Text>
               </div>
@@ -304,31 +331,18 @@ export const SideNav: React.FC<SideNavProps> = ({
                 <MenuItem
                   key={area.id}
                   icon={
-                    <div
-                      style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '2px',
-                        backgroundColor: area.color,
-                        color: tokens.colorNeutralForegroundOnBrand,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 'bold',
-                        fontSize: '11px',
-                      }}
-                    >
+                    <div className={styles.areaMenuBadge}>
                       {area.shortCode}
                     </div>
                   }
                   secondaryContent={
                     area.id === activeArea.id ? (
                       <Checkmark20Regular
-                        style={{ color: tokens.colorCompoundBrandForeground1 }}
+                        className={styles.selectedCheck}
                       />
                     ) : undefined
                   }
-                  onClick={() => onSelectArea(area)}
+                  onClick={() => handleAreaSelect(area)}
                 >
                   <Text weight={area.id === activeArea.id ? 'semibold' : 'regular'}>
                     {area.name}

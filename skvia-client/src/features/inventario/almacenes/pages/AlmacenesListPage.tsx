@@ -1,12 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  Toolbar,
-  ToolbarButton,
-  ToolbarDivider,
-  Button,
   Input,
-  Spinner,
   Text,
   Link,
   Menu,
@@ -14,7 +9,6 @@ import {
   MenuList,
   MenuItem,
   MenuPopover,
-  Tooltip,
   DataGrid,
   DataGridHeader,
   DataGridHeaderCell,
@@ -30,16 +24,16 @@ import {
   ArrowClockwise16Regular,
   Checkmark16Regular,
   ChevronDown16Regular,
-  DataFunnel20Regular,
   Search16Regular,
   TableEdit16Regular,
-  Warning24Regular,
 } from '@fluentui/react-icons';
 import { AlmacenService } from '../services/almacen.service';
 import type { AlmacenDto } from '../types/almacen.types';
 import { TableEmptyState } from '../../../../components/common/TableEmptyState';
+import { D365ListState } from '../../../../components/common/D365ListState';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
-import { getCurrentUserSession } from '../../../../services/sessionService';
+import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
+import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 
 export interface AlmacenesListPageProps {
   onNewAlmacen?: () => void;
@@ -52,11 +46,12 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
 }) => {
   const styles = useD365ListStyles();
   const navigate = useNavigate();
-  const currentUser = useMemo(() => getCurrentUserSession(), []);
+  const location = useLocation();
 
   const [almacenes, setAlmacenes] = useState<AlmacenDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Filters & Search
   const [searchKeyword, setSearchKeyword] = useState<string>('');
@@ -82,6 +77,14 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    const flashMessage = (location.state as { successMessage?: string } | null)?.successMessage;
+    if (!flashMessage) return;
+
+    setSuccessMessage(flashMessage);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.key, location.pathname, location.state, navigate]);
 
   const filteredAlmacenes = useMemo(() => {
     let result = [...almacenes];
@@ -125,7 +128,6 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
                 }
               }}
               title={item.nombre}
-              className={styles.primaryLink}
             >
               {item.nombre}
             </Link>
@@ -138,37 +140,35 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
         renderHeaderCell: () => 'Descripción',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text size={200} style={{ color: item.descripcion ? 'inherit' : '#8a8886' }}>
+            <Text>
               {item.descripcion || '—'}
             </Text>
           </TableCellLayout>
         ),
       }),
       createTableColumn<AlmacenDto>({
-        columnId: 'propietario',
-        compare: (a, b) => {
-          const pA = a.propietario || currentUser.nombre;
-          const pB = b.propietario || currentUser.nombre;
-          return pA.localeCompare(pB);
-        },
-        renderHeaderCell: () => 'Propietario',
-        renderCell: (item) => {
-          const ownerName = item.propietario || currentUser.nombre;
-          return (
-            <TableCellLayout truncate>
-              <Link
-                as="button"
-                className={styles.primaryLink}
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
-                title={`Propietario: ${ownerName} (${currentUser.username})`}
-              >
-                {ownerName}
-              </Link>
-            </TableCellLayout>
-          );
-        },
+        columnId: 'createdAt',
+        compare: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        renderHeaderCell: () => 'Fecha de creación',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Text>
+              {new Date(item.createdAt).toLocaleDateString('es-PE')}
+            </Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<AlmacenDto>({
+        columnId: 'creadoPorNombre',
+        compare: (a, b) => (a.creadoPorNombre || '').localeCompare(b.creadoPorNombre || ''),
+        renderHeaderCell: () => 'Creado por',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Text title={item.creadoPorNombre || undefined}>
+              {item.creadoPorNombre || '—'}
+            </Text>
+          </TableCellLayout>
+        ),
       }),
       createTableColumn<AlmacenDto>({
         columnId: 'activo',
@@ -176,14 +176,14 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
         renderHeaderCell: () => 'Estado',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>
+            <Text>
               {item.activo ? 'Activo' : 'Inactivo'}
             </Text>
           </TableCellLayout>
         ),
       }),
     ],
-    [navigate, onSelectAlmacen, styles.primaryLink, styles.noWrapCell]
+    [navigate, onSelectAlmacen]
   );
 
   const handleEditSelected = () => {
@@ -195,12 +195,18 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
 
   return (
     <div className={styles.root}>
+      {successMessage && (
+        <D365MessageBar intent="success" onDismiss={() => setSuccessMessage(null)}>
+          {successMessage}
+        </D365MessageBar>
+      )}
+
       {/* 1. TOP COMMAND BAR */}
-      <div className={styles.commandBar}>
+      <D365CommandBar ariaLabel="Comandos de almacenes">
         <div className={styles.toolbarLeft}>
-          <Toolbar size="medium" className={styles.transparentToolbar}>
-            <ToolbarButton
-              icon={<Add16Regular className={styles.iconNewGreen} />}
+            <D365CommandButton
+              icon={<Add16Regular />}
+              tone="create"
               onClick={() => {
                 if (onNewAlmacen) {
                   onNewAlmacen();
@@ -210,29 +216,28 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
               }}
             >
               Nuevo
-            </ToolbarButton>
+            </D365CommandButton>
 
             {selectedIds.size === 1 && (
-              <ToolbarButton
+              <D365CommandButton
                 icon={<TableEdit16Regular />}
                 onClick={handleEditSelected}
               >
                 Editar
-              </ToolbarButton>
+              </D365CommandButton>
             )}
 
-            <ToolbarDivider />
+            <D365CommandDivider />
 
-            <ToolbarButton
+            <D365CommandButton
               icon={<ArrowClockwise16Regular />}
               onClick={loadData}
               title="Actualizar datos"
             >
               Actualizar
-            </ToolbarButton>
-          </Toolbar>
+            </D365CommandButton>
         </div>
-      </div>
+      </D365CommandBar>
 
       {/* 2. VIEW HEADER ROW (Selector de Vista + Filtros + Búsqueda) */}
       <div className={styles.viewHeader}>
@@ -274,16 +279,6 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
         </Menu>
 
         <div className={styles.viewToolsRight}>
-          <Tooltip content="Editar filtros de la consulta" relationship="label">
-            <Button
-              appearance="subtle"
-              size="medium"
-              icon={<DataFunnel20Regular className={styles.iconBrand} />}
-            >
-              Filtros
-            </Button>
-          </Tooltip>
-
           <Input
             className={styles.searchBox}
             size="medium"
@@ -297,19 +292,7 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
 
       {/* 3. FLUENT UI V9 NATIVE DATAGRID */}
       <div className={styles.gridContainer}>
-        {loading ? (
-          <div className={styles.emptyState}>
-            <Spinner label="Cargando almacenes..." size="medium" />
-          </div>
-        ) : error ? (
-          <div className={styles.emptyState}>
-            <Warning24Regular className={styles.dangerIcon32} />
-            <Text weight="semibold" size={400} className={styles.dangerText}>
-              {error}
-            </Text>
-            <ToolbarButton onClick={loadData}>Reintentar conexión</ToolbarButton>
-          </div>
-        ) : (
+        <D365ListState loading={loading} error={error} onRetry={loadData} loadingLabel="Cargando almacenes...">
           <DataGrid
             items={filteredAlmacenes}
             columns={columns}
@@ -358,15 +341,14 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
               </DataGridBody>
             )}
           </DataGrid>
-        )}
+        </D365ListState>
       </div>
 
       {/* 4. BOTTOM STATUS BAR */}
       <footer className={styles.footer}>
         <div>
-          1-{filteredAlmacenes.length} de {filteredAlmacenes.length} ({selectedIds.size} seleccionados)
+          {filteredAlmacenes.length} almacenes ({selectedIds.size} seleccionados)
         </div>
-        <div>Página 1</div>
       </footer>
     </div>
   );

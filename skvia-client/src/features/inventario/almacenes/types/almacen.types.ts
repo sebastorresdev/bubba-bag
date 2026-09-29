@@ -1,11 +1,13 @@
 export interface AlmacenDto {
   id: string;
-  codigo?: string | null;
   nombre: string;
   descripcion?: string | null;
   activo: boolean;
-  propietario?: string | null;
-  fechaCreacion?: string | null;
+  creadoPorId?: string | null;
+  creadoPorNombre?: string | null;
+  createdAt: string;
+  actualizadoPorId?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface CreateAlmacenDto {
@@ -18,20 +20,11 @@ export interface UpdateAlmacenDto {
   descripcion?: string | null;
 }
 
-export interface RecursoLookupDto {
-  id: string;
-  codigo: string;
-  nombreCompleto: string;
-  tipo: string | number;
-  telefono?: string | null;
+export interface ResumenStockAlmacenDto {
+  almacenId: string;
+  nombreAlmacen: string;
   activo: boolean;
-}
-
-export interface SucursalLookupDto {
-  id: string;
-  codigo: string;
-  nombre: string;
-  ciudad?: string | null;
-  direccion?: string | null;
-  activo: boolean;
+  totalProductos: number;
+  totalUnidades: number;
+  totalSeries: number;
 }

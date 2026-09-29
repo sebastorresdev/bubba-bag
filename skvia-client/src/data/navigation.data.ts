@@ -84,18 +84,11 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
                 description: 'Centros logísticos, bodegas físicas y zonas de almacenamiento.',
               },
               {
-                id: 'stock-tecnicos',
-                title: 'Saldo de Técnicos (Móviles)',
-                path: '/servicio-campo/stock-tecnicos',
-                iconName: 'PersonToolbox',
-                description: 'Existencias asignadas a vehículos y mochilas de técnicos en ruta.',
-              },
-              {
                 id: 'stock',
-                title: 'Control de Existencias (Stock)',
+                title: 'Existencias por Almacén',
                 path: '/servicio-campo/stock',
                 iconName: 'BoxCheckmark',
-                description: 'Monitoreo global de stock disponible, reservado y en tránsito.',
+                description: 'Resumen de productos y equipos seriados custodiados en cada ubicación.',
               },
               {
                 id: 'seriados',
@@ -174,19 +167,6 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
                 path: '/servicio-campo/motivos-incidencia',
                 iconName: 'Warning',
                 description: 'Catálogo de causas de falla, problemas y motivos de reclamo.',
-              },
-            ],
-          },
-          {
-            id: 'data-management',
-            title: 'Administración de Datos',
-            items: [
-              {
-                id: 'imports',
-                title: 'Importaciones y Cargas',
-                path: '/configuracion/data-management/imports',
-                iconName: 'ArrowUpload',
-                description: 'Auditoría, historial y asistente de importación inteligente de datos.',
               },
             ],
           },
@@ -284,12 +264,12 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
   // =========================================================================
   {
     id: 'admin-center',
-    name: 'Admin Center',
+    name: 'Centro de administración',
     subtitle: 'Centro de Administración',
     shortCode: 'AC',
     iconName: 'Shield',
     color: tokens.colorPaletteDarkOrangeBorderActive,
-    description: 'Configuración global de la plataforma: Usuarios, Roles, Auditoría y Parámetros del Sistema.',
+    description: 'Administración global de usuarios, seguridad, auditoría y gestión de datos.',
     areas: [
       {
         id: 'security',
@@ -339,6 +319,29 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
                 path: '/configuracion/auditoria',
                 iconName: 'ClipboardTask',
                 description: 'Trazabilidad de acciones, inicios de sesión y modificaciones críticas.',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: 'data-management',
+        name: 'Gestión de datos',
+        shortCode: 'GD',
+        iconName: 'ArrowUpload',
+        color: tokens.colorPaletteNavyBorderActive,
+        defaultPath: '/gestion-datos/importaciones',
+        groups: [
+          {
+            id: 'data-imports',
+            title: 'Importación de datos',
+            items: [
+              {
+                id: 'importaciones',
+                title: 'Historial de importaciones',
+                path: '/gestion-datos/importaciones',
+                iconName: 'ArrowUpload',
+                description: 'Cargas de datos de todos los módulos, estado de procesamiento y errores por corregir.',
               },
             ],
           },

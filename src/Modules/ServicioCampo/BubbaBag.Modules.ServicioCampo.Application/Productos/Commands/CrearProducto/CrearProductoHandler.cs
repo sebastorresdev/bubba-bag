@@ -23,7 +23,8 @@ public record CrearProductoCommand(
     decimal CostoEstandar = 0m,
     bool AfectoImpuesto = true,
     string? ProveedorDefecto = null,
-    Guid? ListaPreciosPredeterminadaId = null
+    Guid? ListaPreciosPredeterminadaId = null,
+    int DecimalesCantidad = 0
 ) : ICommand<Result<Guid>>;
 
 public class CrearProductoHandler : ICommandHandler<CrearProductoCommand, Result<Guid>>
@@ -37,6 +38,9 @@ public class CrearProductoHandler : ICommandHandler<CrearProductoCommand, Result
 
     public async Task<Result<Guid>> HandleAsync(CrearProductoCommand command, CancellationToken cancellationToken = default)
     {
+        if (command.DecimalesCantidad is < 0 or > 5)
+            return Result<Guid>.Failure("Los decimales de cantidad deben estar entre 0 y 5.");
+
         var codigoUpper = command.Codigo.Trim().ToUpperInvariant();
         var existe = await _context.Productos.AnyAsync(p => p.Codigo == codigoUpper, cancellationToken);
         if (existe)
@@ -59,7 +63,8 @@ public class CrearProductoHandler : ICommandHandler<CrearProductoCommand, Result
             costoEstandar: command.CostoEstandar,
             afectoImpuesto: command.AfectoImpuesto,
             proveedorDefecto: command.ProveedorDefecto,
-            listaPreciosPredeterminadaId: command.ListaPreciosPredeterminadaId
+            listaPreciosPredeterminadaId: command.ListaPreciosPredeterminadaId,
+            decimalesCantidad: command.DecimalesCantidad
         );
 
         await _context.Productos.AddAsync(producto, cancellationToken);

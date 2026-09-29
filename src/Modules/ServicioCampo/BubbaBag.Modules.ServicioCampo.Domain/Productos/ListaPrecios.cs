@@ -11,7 +11,6 @@ namespace BubbaBag.Modules.ServicioCampo.Domain.Productos;
 public class ListaPrecios : Entity<Guid>
 {
     public string Nombre { get; private set; } = default!;
-    public string Codigo { get; private set; } = default!;
     public string Moneda { get; private set; } = "PEN"; // PEN, USD, COP, etc.
     public string? Descripcion { get; private set; }
     public DateTime? FechaInicio { get; private set; }
@@ -24,7 +23,6 @@ public class ListaPrecios : Entity<Guid>
 
     public static ListaPrecios Crear(
         string nombre,
-        string codigo,
         string moneda = "PEN",
         string? descripcion = null,
         DateTime? fechaInicio = null,
@@ -34,7 +32,6 @@ public class ListaPrecios : Entity<Guid>
         {
             Id = Guid.NewGuid(),
             Nombre = nombre.Trim(),
-            Codigo = codigo.Trim().ToUpperInvariant(),
             Moneda = string.IsNullOrWhiteSpace(moneda) ? "PEN" : moneda.Trim().ToUpperInvariant(),
             Descripcion = descripcion?.Trim(),
             FechaInicio = fechaInicio,

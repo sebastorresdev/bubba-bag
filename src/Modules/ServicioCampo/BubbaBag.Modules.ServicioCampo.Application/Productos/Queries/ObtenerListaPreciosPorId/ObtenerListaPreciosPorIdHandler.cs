@@ -12,7 +12,6 @@ namespace BubbaBag.Modules.ServicioCampo.Application.Productos.Queries.ObtenerLi
 
 public record DetalleListaPreciosDto(
     Guid Id,
-    string Codigo,
     string Nombre,
     string Moneda,
     string? Descripcion,
@@ -65,7 +64,6 @@ public class ObtenerListaPreciosPorIdHandler : IQueryHandler<ObtenerListaPrecios
 
         var detalle = new DetalleListaPreciosDto(
             lista.Id,
-            lista.Codigo,
             lista.Nombre,
             lista.Moneda,
             lista.Descripcion,

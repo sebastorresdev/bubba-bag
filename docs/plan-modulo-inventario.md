@@ -6,7 +6,7 @@ Este documento registra la arquitectura y el plan de desarrollo para el **Módul
 
 ## 1. Alcance General
 1. **Catálogo de Productos** (CRUD, tipificación, unidad de medida, serializado y **Carga Masiva vía Excel/lote**).
-2. **Gestión de Almacenes** (CRUD de bodegas físicas por sede/sucursal y almacenes móviles de cuadrillas).
+2. **Gestión de Almacenes** (CRUD de ubicaciones de inventario identificadas por nombre y descripción; el nombre puede representar una bodega, unidad o vehículo).
 3. **Ingresos de Mercadería** (Entradas por Guía de Remisión, Comprobante de Compra o Remisión DIRECTV con registro de series).
 4. **Despachos y Transferencias entre Almacenes** (Abastecimiento de camionetas de técnicos con selección/escaneo de series y metraje de cable).
 5. **Consulta de Existencias y Trazabilidad de Series** (Búsqueda por almacén, sede o consulta de hoja de vida de un decodificador).
@@ -55,10 +55,10 @@ Este documento registra la arquitectura y el plan de desarrollo para el **Módul
 - `ObtenerProductoPorIdQuery`.
 
 #### 2. Almacenes
-- `CrearAlmacenCommand`: Registro de almacén físico o móvil vinculado a sucursal y técnico.
-- `ActualizarAlmacenCommand`: Edición de nombre, dirección, teléfono y responsable.
+- `CrearAlmacenCommand`: Registro de ubicación con nombre y descripción, más auditoría de usuario y fecha.
+- `ActualizarAlmacenCommand`: Edición de nombre y descripción, conservando auditoría de cambios.
 - `CambiarEstadoAlmacenCommand`: Activar / desactivar almacén.
-- `ObtenerAlmacenesQuery`: Listado con filtros por tipo (`Fisico`, `Movil`), sucursal y estado activo.
+- `ObtenerAlmacenesQuery`: Listado con filtro opcional por estado activo.
 - `ObtenerAlmacenPorIdQuery`.
 
 #### 3. Existencias y Trazabilidad de Series
@@ -120,7 +120,7 @@ Este documento registra la arquitectura y el plan de desarrollo para el **Módul
    - Modal de carga masiva con drag & drop de Excel y descarga de plantilla.
 
 2. **`pages/almacenes-list`**:
-   - Listado de almacenes con badge de tipo (`Físico` vs `Móvil`), sucursal/sede vinculada y técnico responsable.
+   - Listado de ubicaciones con nombre, descripción y estado.
    - Modal de creación y edición de almacenes.
 
 3. **`pages/stock-list`**:

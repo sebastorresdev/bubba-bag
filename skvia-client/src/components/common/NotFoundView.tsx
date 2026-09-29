@@ -43,7 +43,7 @@ const useStyles = makeStyles({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '32px',
+    fontSize: tokens.fontSizeHero700,
     marginBottom: '20px',
   },
   errorCode: {
@@ -90,7 +90,7 @@ export const NotFoundView: React.FC<NotFoundViewProps> = ({
     <div className={styles.container}>
       <Card className={styles.card}>
         <div className={styles.iconWrapper}>
-          <DocumentSearch24Regular style={{ fontSize: 32 }} />
+          <DocumentSearch24Regular />
         </div>
 
         <span className={styles.errorCode}>404</span>

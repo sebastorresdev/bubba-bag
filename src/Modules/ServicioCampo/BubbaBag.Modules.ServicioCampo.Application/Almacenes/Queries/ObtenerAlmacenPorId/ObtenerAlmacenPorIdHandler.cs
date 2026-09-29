@@ -27,18 +27,14 @@ public class ObtenerAlmacenPorIdHandler : IQueryHandler<ObtenerAlmacenPorIdQuery
             .Where(a => a.Id == query.Id)
             .Select(a => new AlmacenDto(
                 a.Id,
-                a.Codigo,
                 a.Nombre,
                 a.Descripcion,
                 a.Activo,
-                a.Tipo,
-                a.Direccion,
-                a.Telefono,
-                a.SucursalId,
-                a.RecursoId,
-                a.SucursalId != null ? _context.Sucursales.Where(s => s.Id == a.SucursalId).Select(s => s.Nombre).FirstOrDefault() : null,
-                a.RecursoId != null ? _context.Recursos.Where(r => r.Id == a.RecursoId).Select(r => r.NombreCompleto).FirstOrDefault() : null,
-                a.RecursoId
+                a.CreadoPorId,
+                a.CreadoPorNombre,
+                a.CreatedAt,
+                a.ActualizadoPorId,
+                a.UpdatedAt
             ))
             .FirstOrDefaultAsync(cancellationToken);
 

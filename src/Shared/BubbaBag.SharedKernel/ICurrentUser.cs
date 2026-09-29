@@ -6,6 +6,7 @@ namespace BubbaBag.SharedKernel;
 public interface ICurrentUser
 {
     Guid Id { get; }
+    string Nombre { get; }
     string Email { get; }
     IReadOnlyList<string> Roles { get; }
     bool IsAuthenticated { get; }

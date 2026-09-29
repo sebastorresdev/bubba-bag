@@ -14,7 +14,7 @@ public class PlantillaMaterialConfiguration : IEntityTypeConfiguration<Plantilla
 
         builder.Property(m => m.CantidadPrevista)
             .IsRequired()
-            .HasPrecision(12, 2);
+            .HasPrecision(14, 5);
 
         builder.Property(m => m.EsObligatorio)
             .IsRequired()

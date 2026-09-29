@@ -1,4 +1,5 @@
 import { makeStyles, tokens } from '@fluentui/react-components';
+import { semanticTokens } from './semanticTokens';
 
 export const useD365FormStyles = makeStyles({
   root: {
@@ -20,31 +21,13 @@ export const useD365FormStyles = makeStyles({
     flexShrink: 0,
     zIndex: 100,
   },
-  // 1. Dynamics 365 Standard Top Command Bar
-  commandBar: {
-    height: '44px',
-    backgroundColor: tokens.colorNeutralBackground1,
-    borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingLeft: '8px',
-    paddingRight: '16px',
-    flexShrink: 0,
-  },
   toolbarLeft: {
     display: 'flex',
     alignItems: 'center',
     gap: '2px',
   },
-  iconPrimary: {
-    color: tokens.colorBrandForeground1,
-  },
-  iconSaveLilac: {
-    color: tokens.colorPaletteLilacBorderActive,
-  },
   iconNewGreen: {
-    color: tokens.colorPaletteGreenForeground1,
+    color: semanticTokens.status.success,
   },
 
   // 2. Dynamics 365 Entity Header Summary
@@ -54,35 +37,9 @@ export const useD365FormStyles = makeStyles({
     padding: '12px 24px 0 24px',
     flexShrink: 0,
   },
-  headerTopRow: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: '14px',
-  },
-  headerLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-  },
-  headerAvatar: {
-    backgroundColor: tokens.colorPaletteGreenBackground2,
-    color: tokens.colorPaletteGreenForeground2,
-    fontWeight: tokens.fontWeightBold,
-  },
   avatar: {
     backgroundColor: tokens.colorBrandBackground,
     color: tokens.colorNeutralForegroundOnBrand,
-  },
-  titleSection: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  mainTitle: {
-    fontSize: tokens.fontSizeHero700,
-    fontWeight: tokens.fontWeightBold,
-    color: tokens.colorNeutralForeground1,
-    lineHeight: '1.2',
   },
   title: {
     fontSize: tokens.fontSizeHero700,
@@ -90,46 +47,10 @@ export const useD365FormStyles = makeStyles({
     color: tokens.colorNeutralForeground1,
     lineHeight: '1.2',
   },
-  subTitle: {
-    fontSize: tokens.fontSizeBase300,
-    color: tokens.colorNeutralForeground3,
-    marginTop: '2px',
-  },
   subtitle: {
     fontSize: tokens.fontSizeBase300,
     color: tokens.colorNeutralForeground3,
     marginTop: '2px',
-  },
-  headerMetaRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '24px',
-  },
-  metaItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-  },
-  metaLabel: {
-    fontSize: tokens.fontSizeBase100,
-    color: tokens.colorNeutralForeground4,
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-    fontWeight: tokens.fontWeightSemibold,
-  },
-  metaValue: {
-    fontSize: tokens.fontSizeBase300,
-    fontWeight: tokens.fontWeightSemibold,
-    color: tokens.colorNeutralForeground1,
-    marginTop: '2px',
-  },
-  metaDivider: {
-    height: '28px',
-    width: '1px',
-    backgroundColor: tokens.colorNeutralStroke2,
-  },
-  tabList: {
-    marginTop: '4px',
   },
 
   // 3. Form Content Body
@@ -215,7 +136,7 @@ export const useD365FormStyles = makeStyles({
     width: '100%',
   },
   fieldErrorText: {
-    color: tokens.colorPaletteRedForeground1,
+    color: semanticTokens.status.dangerSubtle,
     fontSize: tokens.fontSizeBase100,
     marginTop: '2px',
   },
@@ -250,27 +171,6 @@ export const useD365FormStyles = makeStyles({
     paddingTop: '0px',
     paddingBottom: '0px',
     minHeight: '28px',
-  },
-  lookupContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: '32px',
-    height: '32px',
-    padding: '0 8px',
-    backgroundColor: tokens.colorNeutralBackground1,
-    borderTop: `1px solid ${tokens.colorNeutralStroke1}`,
-    borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
-    borderLeft: `1px solid ${tokens.colorNeutralStroke1}`,
-    borderRight: `1px solid ${tokens.colorNeutralStroke1}`,
-    borderRadius: tokens.borderRadiusMedium,
-    boxSizing: 'border-box',
-  },
-  lookupSearchIcon: {
-    color: tokens.colorNeutralForeground3,
-    cursor: 'pointer',
-    flexShrink: 0,
-    marginLeft: '8px',
   },
   unitIcon: {
     color: tokens.colorBrandForeground1,
@@ -340,13 +240,6 @@ export const useD365FormStyles = makeStyles({
     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
     gap: '12px',
   },
-  skeletonTitle: {
-    width: '280px',
-    marginBottom: '8px',
-  },
-  skeletonSub: {
-    width: '180px',
-  },
   skeletonHeader: {
     width: '120px',
     marginBottom: '16px',
@@ -354,14 +247,6 @@ export const useD365FormStyles = makeStyles({
   skeletonSub140: {
     width: '140px',
     marginBottom: '16px',
-  },
-  skeletonBadge60: {
-    width: '60px',
-    marginTop: '4px',
-  },
-  skeletonBadge80: {
-    width: '80px',
-    marginTop: '4px',
   },
   skeletonFull: {
     width: '100%',
@@ -373,7 +258,7 @@ export const useD365FormStyles = makeStyles({
   dropdownEmptyOption: {
     padding: '8px 12px',
     color: tokens.colorNeutralForeground4,
-    fontSize: '13px',
+    fontSize: tokens.fontSizeBase200,
   },
   labelSmallBlock: {
     marginBottom: '4px',

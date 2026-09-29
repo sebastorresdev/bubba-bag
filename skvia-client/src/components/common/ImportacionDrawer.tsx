@@ -8,9 +8,6 @@ import {
   Button,
   Spinner,
   Text,
-  MessageBar,
-  MessageBarBody,
-  MessageBarTitle,
   tokens,
   makeStyles,
   Select,
@@ -18,6 +15,9 @@ import {
   Badge,
   Tooltip,
 } from '@fluentui/react-components';
+import { D365MessageBar } from './D365MessageBar';
+import { useD365ImportStyles } from '../../styles/d365ImportStyles';
+import { semanticTokens } from '../../styles/semanticTokens';
 import {
   DismissRegular,
   DocumentCheckmark24Regular,
@@ -32,11 +32,11 @@ import {
 } from '@fluentui/react-icons';
 import { useNavigate } from 'react-router-dom';
 import {
-  dataManagementService,
-  type EntityImportDescriptor,
-  type FilePreviewResult,
-  type DataImportJob,
-} from '../../services/dataManagementService';
+  ImportacionService,
+  type EntidadImportableDto,
+  type VistaPreviaImportacionDto,
+  type TrabajoImportacionDto,
+} from '../../services/importacion.service';
 
 const useStyles = makeStyles({
   drawer: {
@@ -150,13 +150,13 @@ const useStyles = makeStyles({
     display: 'block',
   },
   statusIconMapped: {
-    color: tokens.colorPaletteGreenForeground1,
+    color: semanticTokens.status.success,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   },
   statusIconUnmapped: {
-    color: tokens.colorPaletteYellowForeground1,
+    color: semanticTokens.status.warning,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -168,12 +168,12 @@ const useStyles = makeStyles({
     marginBottom: '8px',
   },
   badgeStep: {
-    fontSize: '11px',
+    fontSize: tokens.fontSizeBase100,
     height: '20px',
   },
 });
 
-export interface ImportDataDrawerProps {
+export interface ImportacionDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   targetEntityName?: string; // e.g. "Producto", "Categoria", "Cliente", "UnidadMedida"
@@ -181,7 +181,7 @@ export interface ImportDataDrawerProps {
   onDownloadTemplate?: () => Promise<void>;
 }
 
-export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
+export const ImportacionDrawer: React.FC<ImportacionDrawerProps> = ({
   open,
   onOpenChange,
   targetEntityName,
@@ -189,11 +189,12 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
   onDownloadTemplate,
 }) => {
   const styles = useStyles();
+  const importStyles = useD365ImportStyles();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Estados de configuración de entidad
-  const [entities, setEntities] = useState<EntityImportDescriptor[]>([]);
+  const [entities, setEntities] = useState<EntidadImportableDto[]>([]);
   const [selectedEntityName, setSelectedEntityName] = useState<string>(targetEntityName || 'Producto');
   const [loadingEntities, setLoadingEntities] = useState<boolean>(false);
 
@@ -211,11 +212,11 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
   const [duplicateMode, setDuplicateMode] = useState<string>('Upsert'); // "Upsert", "Skip", "Error"
 
   // Previsualización y Mapeo
-  const [previewData, setPreviewData] = useState<FilePreviewResult | null>(null);
+  const [previewData, setPreviewData] = useState<VistaPreviaImportacionDto | null>(null);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({}); // ExcelHeader -> SystemFieldName
   const [analyzingFile, setAnalyzingFile] = useState<boolean>(false);
   const [importing, setImporting] = useState<boolean>(false);
-  const [importResult, setImportResult] = useState<DataImportJob | null>(null);
+  const [importResult, setImportResult] = useState<TrabajoImportacionDto | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Cargar catálogo de entidades importables
@@ -234,7 +235,7 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
   const loadEntities = async () => {
     try {
       setLoadingEntities(true);
-      const data = await dataManagementService.getImportableEntities();
+      const data = await ImportacionService.getImportableEntities();
       setEntities(data);
       if (!targetEntityName && data.length > 0) {
         setSelectedEntityName(data[0].entityName);
@@ -277,7 +278,7 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
   };
 
   // Algoritmo de Mapeo Inteligente (Smart Auto-Mapper en 2 fases con exclusividad)
-  const performSmartMapping = (headers: string[], entity: EntityImportDescriptor) => {
+  const performSmartMapping = (headers: string[], entity: EntidadImportableDto) => {
     const newMapping: Record<string, string> = {};
     const usedSystemFields = new Set<string>();
 
@@ -340,7 +341,7 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
 
     try {
       setAnalyzingFile(true);
-      const preview = await dataManagementService.previewImportFile(file, {
+      const preview = await ImportacionService.previewImportFile(file, {
         delimiter: isCsv ? undefined : undefined,
         hasHeader: true,
       });
@@ -366,7 +367,7 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
 
     try {
       setAnalyzingFile(true);
-      const preview = await dataManagementService.previewImportFile(selectedFile, {
+      const preview = await ImportacionService.previewImportFile(selectedFile, {
         delimiter: newDelim,
         quoteChar,
         hasHeader,
@@ -390,7 +391,7 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
       setImporting(true);
       setErrorMessage(null);
 
-      const job = await dataManagementService.executeImport(selectedFile, {
+      const job = await ImportacionService.executeImport(selectedFile, {
         entityName: currentEntity.entityName,
         duplicateMode,
         delimiter,
@@ -439,12 +440,12 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
             />
           }
         >
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className={importStyles.column}>
             <Text weight="semibold" size={400}>
               Importar desde Excel o CSV
             </Text>
             {selectedFile && (
-              <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+              <Text size={200} className={importStyles.muted}>
                 Está a punto de importar {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
               </Text>
             )}
@@ -462,7 +463,7 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
           >
             1. Archivo
           </Badge>
-          <Text size={200} style={{ color: tokens.colorNeutralForeground4 }}>→</Text>
+          <Text size={200} className={importStyles.stepArrow}>→</Text>
           <Badge
             appearance={currentStep === 2 ? 'filled' : 'tint'}
             color={currentStep === 2 ? 'brand' : 'subtle'}
@@ -470,7 +471,7 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
           >
             2. Mapeador
           </Badge>
-          <Text size={200} style={{ color: tokens.colorNeutralForeground4 }}>→</Text>
+          <Text size={200} className={importStyles.stepArrow}>→</Text>
           <Badge
             appearance={currentStep === 3 ? 'filled' : 'tint'}
             color={currentStep === 3 ? 'brand' : 'subtle'}
@@ -478,7 +479,7 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
           >
             3. Ajustes
           </Badge>
-          <Text size={200} style={{ color: tokens.colorNeutralForeground4 }}>→</Text>
+          <Text size={200} className={importStyles.stepArrow}>→</Text>
           <Badge
             appearance={currentStep === 4 ? 'filled' : 'tint'}
             color={currentStep === 4 ? 'brand' : 'subtle'}
@@ -489,12 +490,9 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
         </div>
 
         {errorMessage && (
-          <MessageBar intent="error">
-            <MessageBarBody>
-              <MessageBarTitle>Error</MessageBarTitle>
-              {errorMessage}
-            </MessageBarBody>
-          </MessageBar>
+          <D365MessageBar intent="error" title="Error">
+            {errorMessage}
+          </D365MessageBar>
         )}
 
         {/* PASO 1: SELECCIÓN DE ENTIDAD, ARCHIVO Y DELIMITADORES */}
@@ -548,16 +546,16 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
                   ref={fileInputRef}
                   type="file"
                   accept=".xlsx,.xls,.csv,.txt"
-                  style={{ display: 'none' }}
+                  className={importStyles.hiddenInput}
                   onChange={(e) => {
                     if (e.target.files?.[0]) {
                       handleFileChange(e.target.files[0]);
                     }
                   }}
                 />
-                <ArrowUpload24Regular style={{ color: tokens.colorBrandForeground1 }} />
+                <ArrowUpload24Regular className={importStyles.brand} />
                 <Text weight="semibold">Arrastre o seleccione un archivo Excel o CSV</Text>
-                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                <Text size={200} className={importStyles.muted}>
                   Formatos soportados: .xlsx, .xls, .csv, .txt (hasta 20 MB)
                 </Text>
                 {onDownloadTemplate && (
@@ -575,12 +573,12 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
               </div>
             ) : (
               <div className={styles.fileCard}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <DocumentCheckmark24Regular style={{ color: tokens.colorPaletteGreenForeground1 }} />
+                <div className={importStyles.fileDetailsRow}>
+                  <DocumentCheckmark24Regular className={importStyles.successIcon} />
                   <div>
                     <Text weight="semibold">{selectedFile.name}</Text>
                     <br />
-                    <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
+                    <Text size={100} className={importStyles.muted}>
                       {(selectedFile.size / 1024).toFixed(1)} KB • {previewData?.headers.length || 0} columnas detectadas
                     </Text>
                   </div>
@@ -598,7 +596,7 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
             )}
 
             {analyzingFile && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px' }}>
+              <div className={importStyles.analysisRow}>
                 <Spinner size="tiny" />
                 <Text size={200}>Analizando estructura del archivo...</Text>
               </div>
@@ -651,29 +649,19 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
         {/* PASO 2: MAPEO INTELIGENTE DE CAMPOS */}
         {currentStep === 2 && currentEntity && (
           <div className={styles.mappingContainer}>
-            <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+            <Text size={200} className={importStyles.muted}>
               Asocie cada columna del archivo de origen a un campo de la entidad {currentEntity.displayName} en el sistema.
             </Text>
 
             {unmappedRequired.length > 0 && (
-              <MessageBar intent="warning">
-                <MessageBarBody>
-                  <MessageBarTitle>Campos obligatorios requeridos</MessageBarTitle>
-                  Debe mapear los siguientes campos: {unmappedRequired.map((f) => f.displayName).join(', ')}.
-                </MessageBarBody>
-              </MessageBar>
+              <D365MessageBar intent="warning" title="Campos obligatorios requeridos">
+                Debe mapear los siguientes campos: {unmappedRequired.map((f) => f.displayName).join(', ')}.
+              </D365MessageBar>
             )}
 
             {/* Encabezado de la cuadrícula de mapeo */}
             <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 28px 1.4fr',
-                padding: '4px 10px',
-                fontWeight: tokens.fontWeightSemibold,
-                fontSize: tokens.fontSizeBase200,
-                color: tokens.colorNeutralForeground3,
-              }}
+              className={importStyles.mappingHeader}
             >
               <span>Columnas del Archivo de Origen</span>
               <span></span>
@@ -689,8 +677,8 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
               return (
                 <div key={header} className={styles.mappingRow}>
                   {/* Columna Izquierda: Encabezado de tu Excel + Muestra de datos */}
-                  <div style={{ overflow: 'hidden' }}>
-                    <Text weight="semibold" size={200} style={{ display: 'block' }}>
+                  <div className={importStyles.overflowHidden}>
+                    <Text weight="semibold" size={200} className={importStyles.blockText}>
                       {header}
                     </Text>
                     {sampleVal && (
@@ -701,7 +689,7 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
                   </div>
 
                   {/* Icono de Estado */}
-                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <div className={importStyles.centered}>
                     {isMapped ? (
                       <Tooltip content="Mapeado correctamente" relationship="description">
                         <span className={styles.statusIconMapped}>
@@ -763,7 +751,7 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
         {currentStep === 3 && (
           <div className={styles.settingsCard}>
             <div className={styles.sectionTitle}>Tratamiento de Registros Duplicados</div>
-            <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+            <Text size={200} className={importStyles.muted}>
               Determine cómo debe actuar el sistema si encuentra registros que ya existen según el identificador ({currentEntity?.primaryKeyField}).
             </Text>
 
@@ -780,9 +768,9 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
               </Select>
             </div>
 
-            <div style={{ marginTop: '16px', borderTop: `1px solid ${tokens.colorNeutralStroke2}`, paddingTop: '14px' }}>
+            <div className={importStyles.summarySection}>
               <div className={styles.sectionTitle}>Resumen de Importación</div>
-              <ul style={{ margin: 0, paddingLeft: '20px', fontSize: tokens.fontSizeBase200 }}>
+              <ul className={importStyles.summaryList}>
                 <li><strong>Entidad destino:</strong> {currentEntity?.displayName}</li>
                 <li><strong>Archivo:</strong> {selectedFile?.name}</li>
                 <li><strong>Total columnas a importar:</strong> {Object.values(columnMapping).filter((v) => v !== 'Ignore').length}</li>
@@ -794,8 +782,8 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
 
         {/* PASO 4: RESULTADOS DE IMPORTACIÓN */}
         {currentStep === 4 && importResult && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <MessageBar
+          <div className={importStyles.resultColumn}>
+            <D365MessageBar
               intent={
                 importResult.totalFallidos === 0
                   ? 'success'
@@ -803,50 +791,43 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
                   ? 'warning'
                   : 'error'
               }
+              title={
+                importResult.totalFallidos === 0
+                  ? 'Importación completada con éxito'
+                  : importResult.totalExitosos > 0
+                  ? 'Importación completada con advertencias/errores'
+                  : 'Falló la importación'
+              }
             >
-              <MessageBarBody>
-                <MessageBarTitle>
-                  {importResult.totalFallidos === 0
-                    ? 'Importación completada con éxito'
-                    : importResult.totalExitosos > 0
-                    ? 'Importación completada con advertencias/errores'
-                    : 'Falló la importación'}
-                </MessageBarTitle>
-                Se procesaron {importResult.totalProcesados} filas: {importResult.totalExitosos} creadas/actualizadas y {importResult.totalFallidos} fallidas.
-              </MessageBarBody>
-            </MessageBar>
+              Se procesaron {importResult.totalProcesados} filas: {importResult.totalExitosos} creadas/actualizadas y {importResult.totalFallidos} fallidas.
+            </D365MessageBar>
 
             {/* Tarjeta de Métricas estilo D365 */}
             <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '10px',
-                textAlign: 'center',
-              }}
+              className={importStyles.resultMetricsGrid}
             >
-              <div style={{ backgroundColor: tokens.colorNeutralBackground2, padding: '12px', borderRadius: tokens.borderRadiusMedium }}>
-                <Text size={600} weight="bold" style={{ color: tokens.colorPaletteGreenForeground1 }}>
+              <div className={importStyles.metricCard}>
+                <Text size={600} weight="bold" className={importStyles.success}>
                   {importResult.totalExitosos}
                 </Text>
                 <br />
-                <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Correctos</Text>
+                <Text size={100} className={importStyles.muted}>Correctos</Text>
               </div>
 
-              <div style={{ backgroundColor: tokens.colorNeutralBackground2, padding: '12px', borderRadius: tokens.borderRadiusMedium }}>
-                <Text size={600} weight="bold" style={{ color: tokens.colorPaletteRedForeground1 }}>
+              <div className={importStyles.metricCard}>
+                <Text size={600} weight="bold" className={importStyles.danger}>
                   {importResult.totalFallidos}
                 </Text>
                 <br />
-                <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Errores</Text>
+                <Text size={100} className={importStyles.muted}>Errores</Text>
               </div>
 
-              <div style={{ backgroundColor: tokens.colorNeutralBackground2, padding: '12px', borderRadius: tokens.borderRadiusMedium }}>
+              <div className={importStyles.metricCard}>
                 <Text size={600} weight="bold">
                   {importResult.totalProcesados}
                 </Text>
                 <br />
-                <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Total Filas</Text>
+                <Text size={100} className={importStyles.muted}>Total Filas</Text>
               </div>
             </div>
 
@@ -856,7 +837,7 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
               icon={<Eye16Regular />}
               onClick={() => {
                 handleClose();
-                navigate(`/configuracion/data-management/imports/${importResult.id}`);
+                navigate(`/gestion-datos/importaciones/${importResult.id}`);
               }}
             >
               Ver reporte de auditoría y detalle de la importación
@@ -926,7 +907,7 @@ export const ImportDataDrawer: React.FC<ImportDataDrawerProps> = ({
         )}
 
         {currentStep === 4 && (
-          <Button appearance="primary" onClick={handleClose} style={{ marginLeft: 'auto' }}>
+          <Button appearance="primary" onClick={handleClose} className={importStyles.rightAligned}>
             Listo
           </Button>
         )}

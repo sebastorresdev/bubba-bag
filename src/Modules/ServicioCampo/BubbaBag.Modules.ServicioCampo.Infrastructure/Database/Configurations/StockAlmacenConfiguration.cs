@@ -14,11 +14,11 @@ public class StockAlmacenConfiguration : IEntityTypeConfiguration<StockAlmacen>
 
         builder.Property(s => s.CantidadDisponible)
             .IsRequired()
-            .HasPrecision(14, 2);
+            .HasPrecision(14, 5);
 
         builder.Property(s => s.CantidadReservada)
             .IsRequired()
-            .HasPrecision(14, 2);
+            .HasPrecision(14, 5);
 
         builder.HasIndex(s => new { s.AlmacenId, s.ProductoId })
             .IsUnique();

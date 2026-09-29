@@ -32,12 +32,12 @@ public static class RecursosYZonasSeeder
         var sucursalTrujillo = sucursales.FirstOrDefault(s => s.Codigo == "TRUJILLO") ?? sucursales.First();
         var sucursalLima = sucursales.FirstOrDefault(s => s.Codigo == "LIMA") ?? sucursales.First();
 
-        var almHuaraz = almacenes.FirstOrDefault(a => a.Codigo == "ALM-BASE-ANC-HZ");
-        var almChimbote = almacenes.FirstOrDefault(a => a.Codigo == "ALM-BASE-ANC-CH");
-        var almPiura = almacenes.FirstOrDefault(a => a.Codigo == "ALM-BASE-PIU");
-        var almChiclayo = almacenes.FirstOrDefault(a => a.Codigo == "ALM-BASE-CHX");
-        var almTrujillo = almacenes.FirstOrDefault(a => a.Codigo == "ALM-BASE-TRU");
-        var almLima = almacenes.FirstOrDefault(a => a.Codigo == "ALM-BASE-LIM");
+        var almHuaraz = almacenes.FirstOrDefault(a => a.Nombre == "Almacén Base Huaraz");
+        var almChimbote = almacenes.FirstOrDefault(a => a.Nombre == "Almacén Base Chimbote");
+        var almPiura = almacenes.FirstOrDefault(a => a.Nombre == "Almacén Base Piura");
+        var almChiclayo = almacenes.FirstOrDefault(a => a.Nombre == "Almacén Base Chiclayo");
+        var almTrujillo = almacenes.FirstOrDefault(a => a.Nombre == "Almacén Base Trujillo");
+        var almLima = almacenes.FirstOrDefault(a => a.Nombre == "Almacén Central Lima");
 
         var zonasData = new (string Codigo, string Nombre, string DescripcionProveedor, Guid SucursalId, Guid? AlmacenId)[]
         {
@@ -83,21 +83,21 @@ public static class RecursosYZonasSeeder
 
         var almacenes = await context.Almacenes.ToListAsync();
 
-        var tecnicosData = new (string Codigo, string Nombre, string Documento, string Telefono, string Email, string CodigoZona, string CodigoAlmacenBase, int Capacidad, string ColorHex)[]
+        var tecnicosData = new (string Codigo, string Nombre, string Documento, string Telefono, string Email, string CodigoZona, string NombreAlmacenBase, int Capacidad, string ColorHex)[]
         {
-            ("TEC-ANC01", "Carlos Ramirez", "45678901", "943123456", "carlos.ramirez@empresa.com", "I280010", "ALM-BASE-ANC-HZ", 6, "#0078d4"),
-            ("TEC-ANC02", "Marcos Silva", "45678902", "943654321", "marcos.silva@empresa.com", "I280020", "ALM-BASE-ANC-CH", 6, "#107c41"),
-            ("TEC-PIU01", "Jorge Navarro", "45678903", "973112233", "jorge.navarro@empresa.com", "I200010", "ALM-BASE-PIU", 6, "#5c2d91"),
-            ("TEC-CHX01", "Manuel Flores", "45678904", "974445566", "manuel.flores@empresa.com", "I140010", "ALM-BASE-CHX", 6, "#d83b01"),
-            ("TEC-TRU01", "Luis Paredes", "45678905", "944778899", "luis.paredes@empresa.com", "I130010", "ALM-BASE-TRU", 6, "#008272"),
-            ("TEC-LIM01", "Victor Sanchez", "45678906", "999888777", "victor.sanchez@empresa.com", "I150010", "ALM-BASE-LIM", 8, "#004e8c")
+            ("TEC-ANC01", "Carlos Ramirez", "45678901", "943123456", "carlos.ramirez@empresa.com", "I280010", "Almacén Base Huaraz", 6, "#0078d4"),
+            ("TEC-ANC02", "Marcos Silva", "45678902", "943654321", "marcos.silva@empresa.com", "I280020", "Almacén Base Chimbote", 6, "#107c41"),
+            ("TEC-PIU01", "Jorge Navarro", "45678903", "973112233", "jorge.navarro@empresa.com", "I200010", "Almacén Base Piura", 6, "#5c2d91"),
+            ("TEC-CHX01", "Manuel Flores", "45678904", "974445566", "manuel.flores@empresa.com", "I140010", "Almacén Base Chiclayo", 6, "#d83b01"),
+            ("TEC-TRU01", "Luis Paredes", "45678905", "944778899", "luis.paredes@empresa.com", "I130010", "Almacén Base Trujillo", 6, "#008272"),
+            ("TEC-LIM01", "Victor Sanchez", "45678906", "999888777", "victor.sanchez@empresa.com", "I150010", "Almacén Central Lima", 8, "#004e8c")
         };
 
         bool huboCambios = false;
         foreach (var t in tecnicosData)
         {
             var zona = zonas.FirstOrDefault(z => z.Codigo == t.CodigoZona);
-            var almBase = almacenes.FirstOrDefault(a => a.Codigo == t.CodigoAlmacenBase);
+            var almBase = almacenes.FirstOrDefault(a => a.Nombre == t.NombreAlmacenBase);
 
             if (zona == null || almBase == null)
             {

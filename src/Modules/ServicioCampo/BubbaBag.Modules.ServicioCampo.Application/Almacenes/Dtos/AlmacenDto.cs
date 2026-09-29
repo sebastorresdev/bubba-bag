@@ -1,20 +1,16 @@
 using System;
-using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
+using System;
 
 namespace BubbaBag.Modules.ServicioCampo.Application.Almacenes.Dtos;
 
 public record AlmacenDto(
     Guid Id,
-    string Codigo,
     string Nombre,
     string? Descripcion,
     bool Activo,
-    TipoAlmacen Tipo = TipoAlmacen.Fisico,
-    string? Direccion = null,
-    string? Telefono = null,
-    Guid? SucursalId = null,
-    Guid? RecursoId = null,
-    string? NombreSucursal = null,
-    string? NombreRecurso = null,
-    Guid? RecursoTecnicoId = null
+    Guid? CreadoPorId,
+    string? CreadoPorNombre,
+    DateTime CreatedAt,
+    Guid? ActualizadoPorId,
+    DateTime? UpdatedAt
 );

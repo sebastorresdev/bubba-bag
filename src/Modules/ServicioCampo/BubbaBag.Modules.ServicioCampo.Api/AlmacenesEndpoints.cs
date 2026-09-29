@@ -5,10 +5,7 @@ using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Commands.CambiarEstad
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Commands.CrearAlmacen;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerAlmacenPorId;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerAlmacenes;
-using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerRecursosLookup;
-using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerStockTecnicos;
-using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
-using BubbaBag.Modules.ServicioCampo.Domain.Recursos;
+using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerResumenStockAlmacenes;
 using BubbaBag.SharedKernel.CQRS;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -25,44 +22,30 @@ public static class AlmacenesEndpoints
             .RequireAuthorization();
 
         group.MapGet("/", ObtenerAlmacenes);
-        group.MapGet("/recursos-disponibles", ObtenerRecursosDisponibles);
         group.MapGet("/{id:guid}", ObtenerAlmacenPorId);
         group.MapPost("/", CrearAlmacen);
         group.MapPut("/{id:guid}", ActualizarAlmacen);
         group.MapPatch("/{id:guid}/estado", CambiarEstadoAlmacen);
 
-        // Stock por técnico (almacenes móviles)
         var stockGroup = app.MapGroup("/api/inventario/stock")
             .WithTags("Servicio de Campo - Stock")
             .RequireAuthorization();
-
-        stockGroup.MapGet("/tecnicos", ObtenerStockTecnicos);
+        stockGroup.MapGet("/almacenes", ObtenerResumenStockAlmacenes);
     }
 
-    private static async Task<IResult> ObtenerRecursosDisponibles(
-        TipoRecurso? tipo,
+    private static async Task<IResult> ObtenerResumenStockAlmacenes(
         bool? soloActivos,
         IDispatcher dispatcher)
     {
-        var result = await dispatcher.QueryAsync(new ObtenerRecursosLookupQuery(tipo, soloActivos ?? true));
-        return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
-    }
-
-    private static async Task<IResult> ObtenerStockTecnicos(
-        bool? soloActivos,
-        IDispatcher dispatcher)
-    {
-        var result = await dispatcher.QueryAsync(new ObtenerStockTecnicosQuery(soloActivos ?? true));
+        var result = await dispatcher.QueryAsync(new ObtenerResumenStockAlmacenesQuery(soloActivos));
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 
     private static async Task<IResult> ObtenerAlmacenes(
-        TipoAlmacen? tipo,
-        Guid? sucursalId,
         bool? soloActivos,
         IDispatcher dispatcher)
     {
-        var result = await dispatcher.QueryAsync(new ObtenerAlmacenesQuery(tipo, sucursalId, soloActivos));
+        var result = await dispatcher.QueryAsync(new ObtenerAlmacenesQuery(soloActivos));
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 
@@ -80,8 +63,7 @@ public static class AlmacenesEndpoints
     {
         var command = new CrearAlmacenCommand(
             request.Nombre,
-            request.Descripcion,
-            request.Codigo
+            request.Descripcion
         );
 
         var result = await dispatcher.SendAsync(command);
@@ -113,8 +95,7 @@ public static class AlmacenesEndpoints
 
 public record CrearAlmacenRequest(
     string Nombre,
-    string? Descripcion = null,
-    string? Codigo = null
+    string? Descripcion = null
 );
 
 public record ActualizarAlmacenRequest(

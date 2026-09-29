@@ -4,114 +4,61 @@ using BubbaBag.SharedKernel;
 namespace BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
 
 /// <summary>
-/// Representa una ubicación de custodia y control de inventario (física o móvil en vehículo).
+/// Ubicación lógica para custodiar productos, como una bodega o un vehículo.
 /// </summary>
 public class Almacen : Entity<Guid>
 {
-    public string Codigo { get; private set; } = default!;
     public string Nombre { get; private set; } = default!;
     public string? Descripcion { get; private set; }
-    public TipoAlmacen Tipo { get; private set; }
-    public string? Direccion { get; private set; }
-    public string? Telefono { get; private set; }
-
-    // Vinculación opcional a una sede física de la empresa
-    public Guid? SucursalId { get; private set; }
-
-    // Vinculación opcional al recurso propietario de la camioneta (si Tipo == Movil)
-    public Guid? RecursoId { get; private set; }
-    public Guid? RecursoTecnicoId => RecursoId;
-
     public bool Activo { get; private set; }
+
+    public Guid? CreadoPorId { get; private set; }
+    public string? CreadoPorNombre { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+    public Guid? ActualizadoPorId { get; private set; }
+    public DateTime? UpdatedAt { get; private set; }
 
     private Almacen() { }
 
-    /// <summary>
-    /// Creación estándar estilo Dynamics 365 (solo requiere Nombre y opcionalmente Descripción).
-    /// </summary>
-    public static Almacen Crear(
-        string nombre,
-        string? descripcion = null,
-        string? codigo = null)
+    public static Almacen Crear(string nombre, string? descripcion, Guid? creadoPorId, string? creadoPorNombre)
     {
+        if (string.IsNullOrWhiteSpace(nombre))
+            throw new ArgumentException("El nombre del almacén es obligatorio.", nameof(nombre));
+
         return new Almacen
         {
             Id = Guid.NewGuid(),
-            Codigo = !string.IsNullOrWhiteSpace(codigo)
-                ? codigo.Trim().ToUpperInvariant()
-                : $"ALM-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}",
             Nombre = nombre.Trim(),
-            Descripcion = descripcion?.Trim(),
-            Tipo = TipoAlmacen.Fisico,
-            Activo = true
+            Descripcion = NormalizarDescripcion(descripcion),
+            Activo = true,
+            CreadoPorId = creadoPorId,
+            CreadoPorNombre = NormalizarDescripcion(creadoPorNombre),
+            CreatedAt = DateTime.UtcNow
         };
     }
 
-    public static Almacen CrearFisico(
-        string codigo,
-        string nombre,
-        Guid? sucursalId = null,
-        string? direccion = null,
-        string? telefono = null)
+    public void Actualizar(string nombre, string? descripcion, Guid? actualizadoPorId)
     {
-        return new Almacen
-        {
-            Id = Guid.NewGuid(),
-            Codigo = codigo.Trim().ToUpperInvariant(),
-            Nombre = nombre.Trim(),
-            Tipo = TipoAlmacen.Fisico,
-            SucursalId = sucursalId,
-            Direccion = direccion?.Trim(),
-            Telefono = telefono?.Trim(),
-            Activo = true
-        };
-    }
+        if (string.IsNullOrWhiteSpace(nombre))
+            throw new ArgumentException("El nombre del almacén es obligatorio.", nameof(nombre));
 
-    public static Almacen CrearMovil(
-        string codigo,
-        string nombre,
-        Guid recursoId,
-        Guid? sucursalId = null)
-    {
-        return new Almacen
-        {
-            Id = Guid.NewGuid(),
-            Codigo = codigo.Trim().ToUpperInvariant(),
-            Nombre = nombre.Trim(),
-            Tipo = TipoAlmacen.Movil,
-            RecursoId = recursoId,
-            SucursalId = sucursalId,
-            Activo = true
-        };
-    }
-
-    public void Actualizar(string nombre, string? descripcion = null)
-    {
         Nombre = nombre.Trim();
-        Descripcion = descripcion?.Trim();
+        Descripcion = NormalizarDescripcion(descripcion);
+        RegistrarActualizacion(actualizadoPorId);
     }
 
-    public void Actualizar(
-        string nombre,
-        string? direccion,
-        string? telefono,
-        Guid? sucursalId,
-        string? descripcion = null)
+    public void CambiarEstado(bool activo, Guid? actualizadoPorId)
     {
-        Nombre = nombre.Trim();
-        Direccion = direccion?.Trim();
-        Telefono = telefono?.Trim();
-        SucursalId = sucursalId;
-        Descripcion = descripcion?.Trim();
+        Activo = activo;
+        RegistrarActualizacion(actualizadoPorId);
     }
 
-    public void VincularRecurso(Guid? recursoId)
+    private void RegistrarActualizacion(Guid? usuarioId)
     {
-        RecursoId = recursoId;
+        ActualizadoPorId = usuarioId;
+        UpdatedAt = DateTime.UtcNow;
     }
 
-    public void VincularRecursoTecnico(Guid? recursoTecnicoId) => VincularRecurso(recursoTecnicoId);
-
-    public void Desactivar() => Activo = false;
-    public void Activar() => Activo = true;
+    private static string? NormalizarDescripcion(string? descripcion) =>
+        string.IsNullOrWhiteSpace(descripcion) ? null : descripcion.Trim();
 }

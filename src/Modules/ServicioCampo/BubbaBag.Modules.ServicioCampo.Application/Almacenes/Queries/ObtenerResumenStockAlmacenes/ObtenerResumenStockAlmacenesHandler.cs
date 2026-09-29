@@ -3,46 +3,39 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Dtos;
-using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
 using BubbaBag.SharedKernel;
 using BubbaBag.SharedKernel.CQRS;
 using Microsoft.EntityFrameworkCore;
 
-namespace BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerStockTecnicos;
+namespace BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerResumenStockAlmacenes;
 
-public record ObtenerStockTecnicosQuery(
+public record ObtenerResumenStockAlmacenesQuery(
     bool? SoloActivos = true
-) : IQuery<Result<List<ResumenAlmacenMovilDto>>>;
+) : IQuery<Result<List<ResumenStockAlmacenDto>>>;
 
-public class ObtenerStockTecnicosHandler : IQueryHandler<ObtenerStockTecnicosQuery, Result<List<ResumenAlmacenMovilDto>>>
+public class ObtenerResumenStockAlmacenesHandler : IQueryHandler<ObtenerResumenStockAlmacenesQuery, Result<List<ResumenStockAlmacenDto>>>
 {
     private readonly IServicioCampoDbContext _context;
 
-    public ObtenerStockTecnicosHandler(IServicioCampoDbContext context)
+    public ObtenerResumenStockAlmacenesHandler(IServicioCampoDbContext context)
     {
         _context = context;
     }
 
-    public async Task<Result<List<ResumenAlmacenMovilDto>>> HandleAsync(
-        ObtenerStockTecnicosQuery query,
+    public async Task<Result<List<ResumenStockAlmacenDto>>> HandleAsync(
+        ObtenerResumenStockAlmacenesQuery query,
         CancellationToken cancellationToken = default)
     {
-        // Traer todos los almacenes móviles con su stock
-        var almacenesQuery = _context.Almacenes
-            .AsNoTracking()
-            .Where(a => a.Tipo == TipoAlmacen.Movil);
-
+        var almacenesQuery = _context.Almacenes.AsNoTracking().AsQueryable();
         if (query.SoloActivos.HasValue)
             almacenesQuery = almacenesQuery.Where(a => a.Activo == query.SoloActivos.Value);
 
         var almacenes = await almacenesQuery
             .OrderBy(a => a.Nombre)
-            .Select(a => new { a.Id, a.Codigo, a.Nombre, a.RecursoTecnicoId, a.Activo })
+            .Select(a => new { a.Id, a.Nombre, a.Activo })
             .ToListAsync(cancellationToken);
-
         var almacenIds = almacenes.Select(a => a.Id).ToList();
 
-        // Stock no seriado (cantidades)
         var stocks = await _context.StocksAlmacen
             .AsNoTracking()
             .Where(s => almacenIds.Contains(s.AlmacenId))
@@ -53,33 +46,29 @@ public class ObtenerStockTecnicosHandler : IQueryHandler<ObtenerStockTecnicosQue
                 TotalProductos = g.Count(),
                 TotalUnidades = g.Sum(s => s.CantidadDisponible + s.CantidadReservada)
             })
-            .ToListAsync(cancellationToken);
+            .ToDictionaryAsync(x => x.AlmacenId, cancellationToken);
 
-        // Series en custodia (seriados)
         var series = await _context.ItemsSeriados
             .AsNoTracking()
-            .Where(i => i.AlmacenActualId != null && almacenIds.Contains(i.AlmacenActualId!.Value))
+            .Where(i => i.AlmacenActualId.HasValue && almacenIds.Contains(i.AlmacenActualId.Value))
             .GroupBy(i => i.AlmacenActualId!.Value)
             .Select(g => new { AlmacenId = g.Key, TotalSeries = g.Count() })
-            .ToListAsync(cancellationToken);
+            .ToDictionaryAsync(x => x.AlmacenId, cancellationToken);
 
-        var resultado = almacenes.Select(a =>
+        var resumen = almacenes.Select(a =>
         {
-            var stock = stocks.FirstOrDefault(s => s.AlmacenId == a.Id);
-            var serie = series.FirstOrDefault(s => s.AlmacenId == a.Id);
-
-            return new ResumenAlmacenMovilDto(
+            stocks.TryGetValue(a.Id, out var stock);
+            series.TryGetValue(a.Id, out var seriesEnAlmacen);
+            return new ResumenStockAlmacenDto(
                 a.Id,
-                a.Codigo,
                 a.Nombre,
-                a.RecursoTecnicoId,
                 a.Activo,
                 stock?.TotalProductos ?? 0,
                 stock?.TotalUnidades ?? 0m,
-                serie?.TotalSeries ?? 0
+                seriesEnAlmacen?.TotalSeries ?? 0
             );
         }).ToList();
 
-        return Result<List<ResumenAlmacenMovilDto>>.Success(resultado);
+        return Result<List<ResumenStockAlmacenDto>>.Success(resumen);
     }
 }

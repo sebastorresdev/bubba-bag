@@ -152,7 +152,6 @@ public static class CatalogosProductoEndpoints
             request.Codigo,
             request.Nombre,
             request.Abreviatura,
-            request.PermiteDecimales,
             request.Descripcion
         );
 
@@ -171,7 +170,6 @@ public static class CatalogosProductoEndpoints
             id,
             request.Nombre,
             request.Abreviatura,
-            request.PermiteDecimales,
             request.Descripcion
         );
 
@@ -264,7 +262,6 @@ public static class CatalogosProductoEndpoints
         IDispatcher dispatcher)
     {
         var command = new CrearListaPreciosCommand(
-            request.Codigo,
             request.Nombre,
             request.Moneda ?? "PEN",
             request.Descripcion,
@@ -337,14 +334,12 @@ public record CrearUnidadMedidaRequest(
     string Codigo,
     string Nombre,
     string Abreviatura,
-    bool PermiteDecimales,
     string? Descripcion
 );
 
 public record ActualizarUnidadMedidaRequest(
     string Nombre,
     string Abreviatura,
-    bool PermiteDecimales,
     string? Descripcion
 );
 
@@ -361,7 +356,6 @@ public record ActualizarCategoriaProductoRequest(
 );
 
 public record CrearListaPreciosRequest(
-    string Codigo,
     string Nombre,
     string? Moneda,
     string? Descripcion,

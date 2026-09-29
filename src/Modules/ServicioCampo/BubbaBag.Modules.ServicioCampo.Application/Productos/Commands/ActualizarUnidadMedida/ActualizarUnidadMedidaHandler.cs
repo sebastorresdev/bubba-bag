@@ -11,7 +11,6 @@ public record ActualizarUnidadMedidaCommand(
     Guid Id,
     string Nombre,
     string Abreviatura,
-    bool PermiteDecimales,
     string? Descripcion = null
 ) : ICommand<Result>;
 
@@ -38,7 +37,7 @@ public class ActualizarUnidadMedidaHandler : ICommandHandler<ActualizarUnidadMed
         if (unidad is null)
             return Result.Failure("La unidad de medida especificada no existe.");
 
-        unidad.Actualizar(command.Nombre, command.Abreviatura, command.PermiteDecimales, command.Descripcion);
+        unidad.Actualizar(command.Nombre, command.Abreviatura, command.Descripcion);
         await _context.SaveChangesAsync(cancellationToken);
 
         return Result.Success();

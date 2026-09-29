@@ -1,21 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Toolbar,
-  ToolbarButton,
-  ToolbarDivider,
-  Button,
   Input,
-  Spinner,
   Text,
   Link,
-  Badge,
   Menu,
   MenuTrigger,
   MenuList,
   MenuItem,
   MenuPopover,
-  Tooltip,
   DataGrid,
   DataGridHeader,
   DataGridHeaderCell,
@@ -23,46 +16,41 @@ import {
   DataGridRow,
   DataGridCell,
   TableCellLayout,
-  Avatar,
   createTableColumn,
 } from '@fluentui/react-components';
 import type { TableColumnDefinition, SelectionItemId } from '@fluentui/react-components';
 import {
   ArrowUpload16Regular,
   ArrowClockwise16Regular,
-  ArrowDownload16Regular,
   Delete16Regular,
   Checkmark16Regular,
-  ChevronDown12Regular,
   ChevronDown16Regular,
-  DataFunnel20Regular,
   Search16Regular,
-  Share16Regular,
-  TableEdit16Regular,
-  Warning24Regular,
 } from '@fluentui/react-icons';
 import { useD365ListStyles } from '../../../styles/d365ListStyles';
 import { TableEmptyState } from '../../../components/common/TableEmptyState';
-import { ImportDataDrawer } from '../../../components/common/ImportDataDrawer';
+import { D365ListState } from '../../../components/common/D365ListState';
+import { ImportacionDrawer } from '../../../components/common/ImportacionDrawer';
+import { D365CommandBar, D365CommandButton } from '../../../components/common/D365CommandBar';
 import {
-  dataManagementService,
-  type DataImportJob,
-} from '../../../services/dataManagementService';
+  ImportacionService,
+  type TrabajoImportacionDto,
+} from '../../../services/importacion.service';
 
-type ImportViewType = 'todos' | 'mis' | 'completados' | 'fallidos';
+type ImportacionViewType = 'todos' | 'completados' | 'fallidos' | 'procesando';
 
-export const ImportsListPage: React.FC = () => {
+export const ImportacionesListPage: React.FC = () => {
   const styles = useD365ListStyles();
   const navigate = useNavigate();
 
-  const [jobs, setJobs] = useState<DataImportJob[]>([]);
+  const [jobs, setJobs] = useState<TrabajoImportacionDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
 
   // Filters & Search
   const [searchKeyword, setSearchKeyword] = useState<string>('');
-  const [activeView, setActiveView] = useState<ImportViewType>('todos');
+  const [activeView, setActiveView] = useState<ImportacionViewType>('todos');
 
   // Fluent UI v9 Native DataGrid Selection
   const [selectedIds, setSelectedIds] = useState<Set<SelectionItemId>>(new Set());
@@ -71,7 +59,7 @@ export const ImportsListPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await dataManagementService.getImportJobs(100);
+      const data = await ImportacionService.getImportJobs(100);
       setJobs(data);
     } catch (err: any) {
       console.error('Error fetching import jobs:', err);
@@ -97,7 +85,7 @@ export const ImportsListPage: React.FC = () => {
 
     try {
       for (const id of selectedIds) {
-        await dataManagementService.deleteImportJob(String(id));
+        await ImportacionService.deleteImportJob(String(id));
       }
       setSelectedIds(new Set());
       await fetchJobs();
@@ -121,13 +109,8 @@ export const ImportsListPage: React.FC = () => {
           j.estado.toLowerCase() === 'conerrores' ||
           j.totalFallidos > 0
       );
-    } else if (activeView === 'mis') {
-      result = result.filter(
-        (j) =>
-          j.creadoPor.toLowerCase().includes('admin') ||
-          j.creadoPor.toLowerCase().includes('usuario') ||
-          j.creadoPor.toLowerCase().includes('sistema')
-      );
+    } else if (activeView === 'procesando') {
+      result = result.filter((j) => j.estado.toLowerCase() === 'procesando');
     }
 
     if (searchKeyword.trim()) {
@@ -146,145 +129,139 @@ export const ImportsListPage: React.FC = () => {
 
   const getViewTitle = () => {
     switch (activeView) {
-      case 'mis':
-        return 'Mis Importaciones';
       case 'completados':
-        return 'Importaciones Completadas';
+        return 'Completadas';
       case 'fallidos':
-        return 'Importaciones con Fallos';
+        return 'Con errores';
+      case 'procesando':
+        return 'En proceso';
       default:
-        return 'Todas las Importaciones';
+        return 'Todas las importaciones';
     }
   };
 
-  const getStatusBadge = (estado: string) => {
+  const getStatusText = (estado: string) => {
     switch (estado.toLowerCase()) {
       case 'completado':
-        return (
-          <Badge appearance="filled" color="success">
-            Completado
-          </Badge>
-        );
+        return 'Completado';
       case 'conerrores':
-        return (
-          <Badge appearance="filled" color="warning">
-            Con Errores
-          </Badge>
-        );
+        return 'Con errores';
       case 'fallido':
-        return (
-          <Badge appearance="filled" color="danger">
-            Fallido
-          </Badge>
-        );
+        return 'Fallido';
       case 'procesando':
-        return (
-          <Badge appearance="filled" color="brand">
-            En Proceso
-          </Badge>
-        );
+        return 'En proceso';
       default:
-        return <Badge appearance="tint">{estado}</Badge>;
+        return estado;
     }
   };
 
-  const columns: TableColumnDefinition<DataImportJob>[] = useMemo(
+  const columns: TableColumnDefinition<TrabajoImportacionDto>[] = useMemo(
     () => [
-      createTableColumn<DataImportJob>({
+      createTableColumn<TrabajoImportacionDto>({
         columnId: 'nombreArchivo',
         compare: (a, b) => a.nombreArchivo.localeCompare(b.nombreArchivo),
-        renderHeaderCell: () => 'Archivo de Origen',
+        renderHeaderCell: () => 'Archivo',
         renderCell: (item) => (
           <TableCellLayout truncate>
             <Link
               as="button"
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/configuracion/data-management/imports/${item.id}`);
+                navigate(`/gestion-datos/importaciones/${item.id}`);
               }}
               title={item.nombreArchivo}
-              className={styles.primaryLink}
             >
               {item.nombreArchivo}
             </Link>
           </TableCellLayout>
         ),
       }),
-      createTableColumn<DataImportJob>({
+      createTableColumn<TrabajoImportacionDto>({
         columnId: 'estado',
         renderHeaderCell: () => 'Estado',
         renderCell: (item) => (
-          <TableCellLayout truncate>{getStatusBadge(item.estado)}</TableCellLayout>
+          <TableCellLayout truncate><Text>{getStatusText(item.estado)}</Text></TableCellLayout>
         ),
       }),
-      createTableColumn<DataImportJob>({
+      createTableColumn<TrabajoImportacionDto>({
         columnId: 'tipoRegistro',
         compare: (a, b) => a.tipoRegistro.localeCompare(b.tipoRegistro),
-        renderHeaderCell: () => 'Tipo de Registro',
+        renderHeaderCell: () => 'Entidad',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>
+            <Text>
               {item.tipoRegistro}
             </Text>
           </TableCellLayout>
         ),
       }),
-      createTableColumn<DataImportJob>({
+      createTableColumn<TrabajoImportacionDto>({
         columnId: 'totalExitosos',
         compare: (a, b) => a.totalExitosos - b.totalExitosos,
-        renderHeaderCell: () => 'Correctos',
+        renderHeaderCell: () => 'Importados',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>
+            <Text>
               {item.totalExitosos}
             </Text>
           </TableCellLayout>
         ),
       }),
-      createTableColumn<DataImportJob>({
+      createTableColumn<TrabajoImportacionDto>({
         columnId: 'totalFallidos',
         compare: (a, b) => a.totalFallidos - b.totalFallidos,
-        renderHeaderCell: () => 'Errores',
+        renderHeaderCell: () => 'Con errores',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>
-              {item.totalFallidos}
-            </Text>
+            {item.totalFallidos > 0 ? (
+              <Link
+                as="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  navigate(`/gestion-datos/importaciones/${item.id}?tab=errores`);
+                }}
+                aria-label={`Revisar ${item.totalFallidos} errores de ${item.nombreArchivo}`}
+              >
+                {item.totalFallidos}
+              </Link>
+            ) : (
+              <Text>0</Text>
+            )}
           </TableCellLayout>
         ),
       }),
-      createTableColumn<DataImportJob>({
+      createTableColumn<TrabajoImportacionDto>({
         columnId: 'totalParciales',
         compare: (a, b) => a.totalParciales - b.totalParciales,
         renderHeaderCell: () => 'Parciales',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>
+            <Text>
               {item.totalParciales}
             </Text>
           </TableCellLayout>
         ),
       }),
-      createTableColumn<DataImportJob>({
+      createTableColumn<TrabajoImportacionDto>({
         columnId: 'totalProcesados',
         compare: (a, b) => a.totalProcesados - b.totalProcesados,
-        renderHeaderCell: () => 'Total Filas',
+        renderHeaderCell: () => 'Total de filas',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>
+            <Text>
               {item.totalProcesados}
             </Text>
           </TableCellLayout>
         ),
       }),
-      createTableColumn<DataImportJob>({
+      createTableColumn<TrabajoImportacionDto>({
         columnId: 'fechaCreacion',
         compare: (a, b) =>
           new Date(a.fechaCreacion).getTime() - new Date(b.fechaCreacion).getTime(),
-        renderHeaderCell: () => 'Fecha de Creación',
+        renderHeaderCell: () => 'Fecha de creación',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>
+            <Text>
               {new Date(item.fechaCreacion).toLocaleString('es-PE', {
                 dateStyle: 'short',
                 timeStyle: 'short',
@@ -293,83 +270,52 @@ export const ImportsListPage: React.FC = () => {
           </TableCellLayout>
         ),
       }),
-      createTableColumn<DataImportJob>({
+      createTableColumn<TrabajoImportacionDto>({
         columnId: 'creadoPor',
         compare: (a, b) => a.creadoPor.localeCompare(b.creadoPor),
-        renderHeaderCell: () => 'Creado Por',
+        renderHeaderCell: () => 'Solicitado por',
         renderCell: (item) => (
-          <TableCellLayout
-            truncate
-            media={
-              <Avatar
-                name={item.creadoPor}
-                size={20}
-                color="colorful"
-              />
-            }
-          >
-            <Link
-              as="button"
-              className={styles.primaryLink}
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
-            >
-              {item.creadoPor}
-            </Link>
+          <TableCellLayout truncate>
+            <Text>{item.creadoPor || '—'}</Text>
           </TableCellLayout>
         ),
       }),
     ],
-    [styles.noWrapCell, styles.primaryLink, navigate]
+    [navigate]
   );
 
   return (
     <div className={styles.root}>
       {/* 1. TOP COMMAND BAR DYNAMICS 365 */}
-      <div className={styles.commandBar}>
+      <D365CommandBar ariaLabel="Acciones de gestión de datos">
         <div className={styles.toolbarLeft}>
-          <Toolbar size="medium" className={styles.transparentToolbar}>
-            <ToolbarButton
-              icon={<ArrowUpload16Regular className={styles.iconNewGreen} />}
+            <D365CommandButton
+              icon={<ArrowUpload16Regular />}
+              tone="create"
               onClick={() => setDrawerOpen(true)}
             >
-              Importar Datos
-            </ToolbarButton>
+              Nueva importación
+            </D365CommandButton>
 
-            <ToolbarButton
+            <D365CommandButton
               icon={<ArrowClockwise16Regular />}
               onClick={fetchJobs}
             >
               Actualizar
-            </ToolbarButton>
+            </D365CommandButton>
 
             {selectedIds.size > 0 && (
-              <ToolbarButton
-                icon={<Delete16Regular className={styles.iconDanger} />}
+              <D365CommandButton
+                icon={<Delete16Regular />}
+                tone="danger"
                 onClick={handleDeleteSelected}
               >
                 Eliminar ({selectedIds.size})
-              </ToolbarButton>
+              </D365CommandButton>
             )}
 
-            <ToolbarDivider />
-
-            <ToolbarButton icon={<ArrowDownload16Regular />}>
-              Exportar
-              <ChevronDown12Regular className={styles.iconChevronMargin} />
-            </ToolbarButton>
-          </Toolbar>
         </div>
-
-        {/* Right side: Compartir */}
-        <div>
-          <ToolbarButton appearance="primary" icon={<Share16Regular />}>
-            Compartir
-            <ChevronDown12Regular className={styles.iconChevronMargin} />
-          </ToolbarButton>
-        </div>
-      </div>
+      </D365CommandBar>
 
       {/* 2. VIEW HEADER ROW (Selector de Vista + Herramientas + Búsqueda) */}
       <div className={styles.viewHeader}>
@@ -388,56 +334,36 @@ export const ImportsListPage: React.FC = () => {
                 icon={activeView === 'todos' ? <Checkmark16Regular /> : undefined}
                 onClick={() => setActiveView('todos')}
               >
-                Todas las Importaciones
+                Todas las importaciones
               </MenuItem>
               <MenuItem
-                icon={activeView === 'mis' ? <Checkmark16Regular /> : undefined}
-                onClick={() => setActiveView('mis')}
+                icon={activeView === 'procesando' ? <Checkmark16Regular /> : undefined}
+                onClick={() => setActiveView('procesando')}
               >
-                Mis Importaciones
+                En proceso
               </MenuItem>
               <MenuItem
                 icon={activeView === 'completados' ? <Checkmark16Regular /> : undefined}
                 onClick={() => setActiveView('completados')}
               >
-                Importaciones Completadas
+                Completadas
               </MenuItem>
               <MenuItem
                 icon={activeView === 'fallidos' ? <Checkmark16Regular /> : undefined}
                 onClick={() => setActiveView('fallidos')}
               >
-                Importaciones con Fallos
+                Con errores
               </MenuItem>
             </MenuList>
           </MenuPopover>
         </Menu>
 
         <div className={styles.viewToolsRight}>
-          <Tooltip content="Modificar orden y visibilidad de columnas" relationship="label">
-            <Button
-              appearance="subtle"
-              size="medium"
-              icon={<TableEdit16Regular className={styles.iconBrand} />}
-            >
-              Editar columnas
-            </Button>
-          </Tooltip>
-
-          <Tooltip content="Editar filtros de la consulta" relationship="label">
-            <Button
-              appearance="subtle"
-              size="medium"
-              icon={<DataFunnel20Regular className={styles.iconBrand} />}
-            >
-              Editar filtros
-            </Button>
-          </Tooltip>
-
           <Input
             className={styles.searchBox}
             size="medium"
             contentBefore={<Search16Regular />}
-            placeholder="Buscar en esta vista..."
+            placeholder="Buscar importaciones..."
             value={searchKeyword}
             onChange={(_, data) => setSearchKeyword(data.value)}
           />
@@ -446,19 +372,7 @@ export const ImportsListPage: React.FC = () => {
 
       {/* 3. FLUENT UI V9 NATIVE DATAGRID */}
       <div className={styles.gridContainer}>
-        {loading ? (
-          <div className={styles.emptyState}>
-            <Spinner label="Cargando historial de importaciones..." size="medium" />
-          </div>
-        ) : error ? (
-          <div className={styles.emptyState}>
-            <Warning24Regular className={styles.dangerIcon32} />
-            <Text weight="semibold" size={400} className={styles.dangerText}>
-              {error}
-            </Text>
-            <ToolbarButton onClick={fetchJobs}>Reintentar conexión</ToolbarButton>
-          </div>
-        ) : (
+        <D365ListState loading={loading} error={error} onRetry={fetchJobs} loadingLabel="Cargando historial de importaciones...">
           <DataGrid
             items={filteredJobs}
             columns={columns}
@@ -479,15 +393,15 @@ export const ImportsListPage: React.FC = () => {
               </DataGridRow>
             </DataGridHeader>
             {filteredJobs.length === 0 ? (
-              <TableEmptyState />
+              <TableEmptyState message={jobs.length === 0 ? 'Aún no hay importaciones registradas' : 'No hay importaciones que coincidan con la búsqueda'} />
             ) : (
-              <DataGridBody<DataImportJob>>
+              <DataGridBody<TrabajoImportacionDto>>
                 {({ item, rowId }) => (
-                  <DataGridRow<DataImportJob>
+                  <DataGridRow<TrabajoImportacionDto>
                     key={rowId}
                     className={styles.dataRow}
                     onDoubleClick={() => {
-                      navigate(`/configuracion/data-management/imports/${item.id}`);
+                      navigate(`/gestion-datos/importaciones/${item.id}`);
                     }}
                   >
                     {({ renderCell }) => (
@@ -500,19 +414,11 @@ export const ImportsListPage: React.FC = () => {
               </DataGridBody>
             )}
           </DataGrid>
-        )}
+        </D365ListState>
       </div>
 
-      {/* 4. BOTTOM STATUS BAR FOOTER */}
-      <footer className={styles.footer}>
-        <div>
-          1-{filteredJobs.length} de {filteredJobs.length} ({selectedIds.size} seleccionados)
-        </div>
-        <div>Página 1</div>
-      </footer>
-
-      {/* 5. DRAWER LATERAL DE IMPORTACIÓN INTELIGENTE (D365) */}
-      <ImportDataDrawer
+      {/* Asistente de importación compartido con las listas de entidad */}
+      <ImportacionDrawer
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
         onSuccess={fetchJobs}
@@ -520,3 +426,4 @@ export const ImportsListPage: React.FC = () => {
     </div>
   );
 };
+

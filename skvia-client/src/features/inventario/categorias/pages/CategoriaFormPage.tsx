@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Toolbar,
-  ToolbarButton,
-  ToolbarDivider,
   Button,
   Input,
   Textarea,
@@ -12,12 +9,6 @@ import {
   Card,
   Text,
   Label,
-  Avatar,
-  Spinner,
-  MessageBar,
-  MessageBarBody,
-  MessageBarTitle,
-  MessageBarActions,
   Skeleton,
   SkeletonItem,
   TagPicker,
@@ -43,13 +34,16 @@ import {
   SaveMultiple16Regular,
   Add16Regular,
   ArrowClockwise16Regular,
-  DismissRegular,
   Box16Regular,
   Folder16Regular,
 } from '@fluentui/react-icons';
 import { CategoriaService } from '../services/categoria.service';
 import type { CreateCategoriaProductoDto, CategoriaProductoDto } from '../types/categoria.types';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
+import { D365FormField } from '../../../../components/common/D365FormField';
+import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
+import { D365MessageBar } from '../../../../components/common/D365MessageBar';
+import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
 
 export interface CategoriaFormPageProps {
   id?: string | null;
@@ -314,137 +308,90 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
     <div className={styles.root}>
       {/* 0. Notification Bar */}
       {statusMessage && (
-        <MessageBar
+        <D365MessageBar
           intent={statusMessage.type === 'success' ? 'success' : 'error'}
-          shape="square"
           className={styles.messageBarContainer}
+          onDismiss={() => setStatusMessage(null)}
         >
-          <MessageBarBody>
-            <MessageBarTitle>
-              {statusMessage.type === 'success' ? 'Éxito' : 'Atención'}
-            </MessageBarTitle>
-            {statusMessage.text}
-          </MessageBarBody>
-          <MessageBarActions
-            containerAction={
-              <Button
-                appearance="transparent"
-                aria-label="Cerrar notificación"
-                icon={<DismissRegular />}
-                onClick={() => setStatusMessage(null)}
-              />
-            }
-          />
-        </MessageBar>
+          {statusMessage.text}
+        </D365MessageBar>
       )}
 
       {/* 1. Command Bar */}
-      <Toolbar size="medium" aria-label="Comandos de categoría" className={styles.commandBar}>
+      <D365CommandBar
+        ariaLabel="Comandos de categoría"
+
+        busy={saving || loading}
+        busyLabel={loading ? 'Cargando...' : 'Guardando...'}
+      >
         <div className={styles.toolbarLeft}>
-          <ToolbarButton
-            icon={<ArrowLeft16Regular className={styles.iconPrimary} />}
+          <D365CommandButton
+            icon={<ArrowLeft16Regular />}
+            tone="brand"
             onClick={handleBack}
             title="Volver al listado"
             aria-label="Volver"
           />
-          <ToolbarDivider />
+          <D365CommandDivider />
 
-          <ToolbarButton
-            icon={<Save16Regular className={styles.iconSaveLilac} />}
+          <D365CommandButton
+            icon={<Save16Regular />}
+            tone="save"
             onClick={() => handleSave(false)}
             disabled={saving || loading}
             appearance="subtle"
           >
             Guardar
-          </ToolbarButton>
+          </D365CommandButton>
 
-          <ToolbarButton
-            icon={<SaveMultiple16Regular className={styles.iconSaveLilac} />}
+          <D365CommandButton
+            icon={<SaveMultiple16Regular />}
+            tone="save"
             onClick={() => handleSave(true)}
             disabled={saving || loading}
             appearance="subtle"
           >
             Guardar y cerrar
-          </ToolbarButton>
+          </D365CommandButton>
 
-          <ToolbarButton
-            icon={<Add16Regular className={styles.iconNewGreen} />}
+          <D365CommandButton
+            icon={<Add16Regular />}
+            tone="create"
             onClick={handleNew}
             disabled={saving || loading}
             appearance="subtle"
           >
             Nuevo
-          </ToolbarButton>
+          </D365CommandButton>
 
-          <ToolbarButton
+          <D365CommandButton
             icon={<ArrowClockwise16Regular />}
             onClick={handleResetForm}
             disabled={saving || loading}
             appearance="subtle"
           >
             Deshacer
-          </ToolbarButton>
+          </D365CommandButton>
         </div>
-
-        {(saving || loading) && (
-          <Spinner size="tiny" label={loading ? 'Cargando...' : 'Guardando...'} />
-        )}
-      </Toolbar>
+      </D365CommandBar>
 
       {/* 2. Header Summary */}
-      <div className={styles.headerContainer}>
-        {loading ? (
-          <div className={styles.headerTopRow}>
-            <div className={styles.headerLeft}>
-              <Skeleton animation="pulse">
-                <SkeletonItem shape="circle" size={56} />
-              </Skeleton>
-              <div className={styles.titleSection}>
-                <Skeleton animation="pulse">
-                  <SkeletonItem size={24} className={styles.skeletonTitle} />
-                  <SkeletonItem size={16} className={styles.skeletonSub} />
-                </Skeleton>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className={styles.headerTopRow}>
-            <div className={styles.headerLeft}>
-              <Avatar
-                size={56}
-                name={savedHeader.nombre || 'C P'}
-                className={styles.headerAvatar}
-              />
-              <div className={styles.titleSection}>
-                <Text className={styles.mainTitle}>{headerTitle}</Text>
-                <Text className={styles.subTitle}>
-                  {savedHeader.categoriaPadreNombre
-                    ? `Categoría Padre: ${savedHeader.categoriaPadreNombre}`
-                    : 'Categoría principal / raíz • Catálogo de inventario'}
-                </Text>
-              </div>
-            </div>
-
-            <div className={styles.headerMetaRight}>
-              <div className={styles.metaItem}>
-                <Text className={styles.metaLabel}>Estado</Text>
-                <Text className={styles.metaValue}>
-                  {savedHeader.activo ? 'Activo' : 'Inactivo'}
-                </Text>
-              </div>
-            </div>
-          </div>
+      <D365EntityHeader
+        title={headerTitle}
+        subtitle={savedHeader.categoriaPadreNombre
+          ? `Categoría Padre: ${savedHeader.categoriaPadreNombre}`
+          : 'Categoría principal / raíz • Catálogo de inventario'}
+        avatarName={savedHeader.nombre || 'C P'}
+        avatarSize={56}
+        subtleAvatar
+        loading={loading}
+        metadata={[{ label: 'Estado', value: savedHeader.activo ? 'Activo' : 'Inactivo' }]}
+        tabs={(
+          <TabList selectedValue="detalles">
+            <Tab value="detalles" icon={<Box16Regular />}>General</Tab>
+          </TabList>
         )}
-
-        <TabList
-          className={styles.tabList}
-          selectedValue="detalles"
-        >
-          <Tab value="detalles" icon={<Box16Regular />}>
-            General
-          </Tab>
-        </TabList>
-      </div>
+      />
 
       {/* 3. Form Body */}
       {loading ? (
@@ -469,150 +416,126 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
               <Text className={styles.cardSectionTitle}>Datos de la Categoría</Text>
 
               {/* Nombre */}
-              <div className={styles.d365FieldRow}>
-                <div className={styles.d365LabelCol}>
-                  <Label required size="medium" htmlFor="cat-nombre">
-                    Nombre
-                  </Label>
-                </div>
-                <div className={styles.d365ControlCol}>
-                  <Input
-                    id="cat-nombre"
-                    appearance="outline"
-                    size="medium"
-                    className={styles.d365ControlFull}
-                    value={formData.nombre}
-                    placeholder="Ej: Materiales de Red, Equipos Decodificadores, Conectores..."
-                    onChange={(_, data) => {
-                      setFormData({ ...formData, nombre: data.value });
-                      if (errors.nombre && data.value.trim()) {
-                        setErrors((prev) => ({ ...prev, nombre: '' }));
-                      }
-                    }}
-                  />
-                  {errors.nombre && (
-                    <Text size={100} className={styles.fieldErrorText}>{errors.nombre}</Text>
-                  )}
-                </div>
-              </div>
+              <D365FormField label="Nombre" required htmlFor="cat-nombre" size="medium" error={errors.nombre}>
+                <Input
+                  id="cat-nombre"
+                  appearance="outline"
+                  size="medium"
+                  className={styles.d365ControlFull}
+                  value={formData.nombre}
+                  placeholder="Ej: Materiales de Red, Equipos Decodificadores, Conectores..."
+                  onChange={(_, data) => {
+                    setFormData({ ...formData, nombre: data.value });
+                    if (errors.nombre && data.value.trim()) {
+                      setErrors((prev) => ({ ...prev, nombre: '' }));
+                    }
+                  }}
+                />
+              </D365FormField>
 
               {/* Categoría Padre (TagPicker Estilo Dynamics 365 con Quick Create) */}
-              <div className={styles.d365FieldRow}>
-                <div className={styles.d365LabelCol}>
-                  <Label size="medium" htmlFor="cat-padre">
-                    Categoría Padre
-                  </Label>
-                </div>
-                <div className={styles.d365ControlCol}>
-                  <TagPicker
-                    onOptionSelect={onCategoriaPadreOptionSelect}
-                    selectedOptions={selectedPadreOptions}
-                  >
-                    <TagPickerControl className={styles.tagPickerControl}>
-                      {categoriaPadreSeleccionada && (
-                        <TagPickerGroup className={styles.tagPickerGroup} aria-label="Categoría padre seleccionada">
-                          <Tag
-                            key={categoriaPadreSeleccionada.id}
-                            shape="rounded"
-                            size="small"
-                            media={<Folder16Regular className={styles.categoryIcon} />}
-                            value={categoriaPadreSeleccionada.id}
-                          >
-                            <Link
-                              as="span"
-                              className={styles.primaryLink}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                window.open(
-                                  `/servicio-campo/categorias-producto/${categoriaPadreSeleccionada.id}`,
-                                  '_blank'
-                                );
-                              }}
-                              title="Ver detalles de la categoría padre"
-                            >
-                              {categoriaPadreSeleccionada.nombre}
-                            </Link>
-                          </Tag>
-                        </TagPickerGroup>
-                      )}
-                      <TagPickerInput
-                        id="cat-padre"
-                        className={styles.tagPickerInput}
-                        value={categoriaPadreQuery}
-                        onChange={(e) => setCategoriaPadreQuery(e.target.value)}
-                        placeholder={formData.categoriaPadreId ? '' : 'Buscar categoría padre (o dejar vacío para principal)'}
-                        clearable
-                      />
-                    </TagPickerControl>
-                    <TagPickerList>
-                      <TagPickerOptionGroup label="Categorías">
-                        {filteredCategorias.length > 0 ? (
-                          filteredCategorias.map((c) => (
-                            <TagPickerOption
-                              key={c.id}
-                              value={c.id}
-                              media={<Folder16Regular className={styles.categoryIcon} />}
-                              secondaryContent={
-                                c.categoriaPadreNombre ? (
-                                  <Text size={100} className={styles.secondaryOptionText}>
-                                    Padre: {c.categoriaPadreNombre}
-                                  </Text>
-                                ) : undefined
-                              }
-                            >
-                              {c.nombre}
-                            </TagPickerOption>
-                          ))
-                        ) : (
-                          <div className={styles.dropdownEmptyOption}>
-                            No se encontraron categorías
-                          </div>
-                        )}
-                      </TagPickerOptionGroup>
-                      <div className={styles.quickCreateFooter}>
-                        <Button
-                          appearance="subtle"
+              <D365FormField label="Categoría Padre" htmlFor="cat-padre" size="medium">
+                <TagPicker
+                  onOptionSelect={onCategoriaPadreOptionSelect}
+                  selectedOptions={selectedPadreOptions}
+                >
+                  <TagPickerControl className={styles.tagPickerControl}>
+                    {categoriaPadreSeleccionada && (
+                      <TagPickerGroup className={styles.tagPickerGroup} aria-label="Categoría padre seleccionada">
+                        <Tag
+                          key={categoriaPadreSeleccionada.id}
+                          shape="rounded"
                           size="small"
-                          icon={<Add16Regular />}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setQuickCreateCatOpen(true);
-                          }}
+                          media={<Folder16Regular className={styles.categoryIcon} />}
+                          value={categoriaPadreSeleccionada.id}
                         >
-                          Nuevo
-                        </Button>
-                      </div>
-                    </TagPickerList>
-                  </TagPicker>
-                </div>
-              </div>
+                          <Link
+                            as="span"
+                            className={styles.primaryLink}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(
+                                `/servicio-campo/categorias-producto/${categoriaPadreSeleccionada.id}`,
+                                '_blank'
+                              );
+                            }}
+                            title="Ver detalles de la categoría padre"
+                          >
+                            {categoriaPadreSeleccionada.nombre}
+                          </Link>
+                        </Tag>
+                      </TagPickerGroup>
+                    )}
+                    <TagPickerInput
+                      id="cat-padre"
+                      className={styles.tagPickerInput}
+                      value={categoriaPadreQuery}
+                      onChange={(e) => setCategoriaPadreQuery(e.target.value)}
+                      placeholder={formData.categoriaPadreId ? '' : 'Buscar categoría padre (o dejar vacío para principal)'}
+                      clearable
+                    />
+                  </TagPickerControl>
+                  <TagPickerList>
+                    <TagPickerOptionGroup label="Categorías">
+                      {filteredCategorias.length > 0 ? (
+                        filteredCategorias.map((c) => (
+                          <TagPickerOption
+                            key={c.id}
+                            value={c.id}
+                            media={<Folder16Regular className={styles.categoryIcon} />}
+                            secondaryContent={
+                              c.categoriaPadreNombre ? (
+                                <Text size={100} className={styles.secondaryOptionText}>
+                                  Padre: {c.categoriaPadreNombre}
+                                </Text>
+                              ) : undefined
+                            }
+                          >
+                            {c.nombre}
+                          </TagPickerOption>
+                        ))
+                      ) : (
+                        <div className={styles.dropdownEmptyOption}>
+                          No se encontraron categorías
+                        </div>
+                      )}
+                    </TagPickerOptionGroup>
+                    <div className={styles.quickCreateFooter}>
+                      <Button
+                        appearance="subtle"
+                        size="small"
+                        icon={<Add16Regular />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setQuickCreateCatOpen(true);
+                        }}
+                      >
+                        Nuevo
+                      </Button>
+                    </div>
+                  </TagPickerList>
+                </TagPicker>
+              </D365FormField>
             </Card>
 
             {/* Sección: Descripción */}
             <Card className={styles.card}>
               <Text className={styles.cardSectionTitle}>Información Adicional</Text>
 
-              <div className={styles.d365FieldRowTop}>
-                <div className={styles.d365LabelColTop}>
-                  <Label size="medium" htmlFor="cat-desc">
-                    Descripción
-                  </Label>
-                </div>
-                <div className={styles.d365ControlCol}>
-                  <Textarea
-                    id="cat-desc"
-                    appearance="outline"
-                    size="medium"
-                    rows={5}
-                    className={styles.d365ControlFull}
-                    value={formData.descripcion || ''}
-                    placeholder="Propósito, clasificación y criterios de asignación a productos..."
-                    onChange={(_, data) =>
-                      setFormData({ ...formData, descripcion: data.value })
-                    }
-                  />
-                </div>
-              </div>
+              <D365FormField label="Descripción" htmlFor="cat-desc" size="medium" align="top">
+                <Textarea
+                  id="cat-desc"
+                  appearance="outline"
+                  size="medium"
+                  rows={5}
+                  className={styles.d365ControlFull}
+                  value={formData.descripcion || ''}
+                  placeholder="Propósito, clasificación y criterios de asignación a productos..."
+                  onChange={(_, data) =>
+                    setFormData({ ...formData, descripcion: data.value })
+                  }
+                />
+              </D365FormField>
             </Card>
           </div>
         </div>
@@ -625,9 +548,7 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
             <DialogTitle>Creación rápida: Categoría de Producto</DialogTitle>
             <DialogContent className={styles.dialogForm}>
               {quickCatError && (
-                <MessageBar intent="error">
-                  <MessageBarBody>{quickCatError}</MessageBarBody>
-                </MessageBar>
+                <D365MessageBar intent="error">{quickCatError}</D365MessageBar>
               )}
               <div className={styles.dialogRow}>
                 <Label required size="small" className={styles.labelSmallBlock}>

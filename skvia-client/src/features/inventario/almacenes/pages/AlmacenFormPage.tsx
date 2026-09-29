@@ -1,24 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Toolbar,
-  ToolbarButton,
-  ToolbarDivider,
-  Button,
   Input,
   Textarea,
-  TabList,
-  Tab,
-  Text,
-  Label,
-  Avatar,
   Spinner,
-  MessageBar,
-  MessageBarBody,
-  MessageBarTitle,
-  MessageBarActions,
-  Tag,
-  Link,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -29,16 +14,15 @@ import {
   Building16Regular,
   Checkmark16Regular,
   DismissCircle16Regular,
-  Dismiss12Regular,
-  DismissRegular,
-  Search16Regular,
-  Box16Regular,
-  Person16Regular,
 } from '@fluentui/react-icons';
 import { AlmacenService } from '../services/almacen.service';
 import type { CreateAlmacenDto } from '../types/almacen.types';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { getCurrentUserSession } from '../../../../services/sessionService';
+import { D365FormField } from '../../../../components/common/D365FormField';
+import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
+import { D365MessageBar } from '../../../../components/common/D365MessageBar';
+import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
 
 export interface AlmacenFormPageProps {
   almacenId?: string | null;
@@ -56,6 +40,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   const styles = useD365FormStyles();
   const { id: routeId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const currentUser = useMemo(() => getCurrentUserSession(), []);
 
   const effectiveId =
     propAlmacenId !== undefined
@@ -67,9 +52,6 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   const [currentId, setCurrentId] = useState<string | null>(effectiveId);
   const isEditMode = Boolean(currentId);
 
-  const [selectedTab, setSelectedTab] = useState<string>('general');
-  const currentUser = useMemo(() => getCurrentUserSession(), []);
-
   // Form State (Estilo Dynamics 365: Nombre y Descripción)
   const [formData, setFormData] = useState<CreateAlmacenDto>({
     nombre: '',
@@ -79,9 +61,11 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   const [savedHeader, setSavedHeader] = useState<{
     nombre: string;
     activo: boolean;
+    creadoPorNombre: string;
   }>({
     nombre: '',
     activo: true,
+    creadoPorNombre: currentUser.nombre,
   });
 
   // UI state
@@ -96,8 +80,8 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   const cargarAlmacen = useCallback(
     async (idToLoad: string) => {
       try {
+        setCurrentId(idToLoad);
         setLoading(true);
-        setStatusMessage(null);
         const data = await AlmacenService.getAlmacenById(idToLoad);
 
         setFormData({
@@ -108,6 +92,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
         setSavedHeader({
           nombre: data.nombre,
           activo: data.activo,
+          creadoPorNombre: data.creadoPorNombre || '',
         });
       } catch (err: any) {
         console.error('Error al cargar almacén:', err);
@@ -123,9 +108,9 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   );
 
   useEffect(() => {
-    if (effectiveId && effectiveId !== currentId) {
-      cargarAlmacen(effectiveId);
-    } else if (!effectiveId) {
+    if (effectiveId) {
+      void cargarAlmacen(effectiveId);
+    } else {
       setCurrentId(null);
       setFormData({
         nombre: '',
@@ -134,20 +119,13 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
       setSavedHeader({
         nombre: '',
         activo: true,
+        creadoPorNombre: currentUser.nombre,
       });
       setLoading(false);
+      setStatusMessage(null);
+      setErrors({});
     }
-  }, [effectiveId, currentId, cargarAlmacen]);
-
-  // Auto-cerrar mensaje de éxito tras 5 segundos
-  useEffect(() => {
-    if (statusMessage?.type === 'success') {
-      const timer = setTimeout(() => {
-        setStatusMessage(null);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [statusMessage]);
+  }, [effectiveId, cargarAlmacen, currentUser.nombre]);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -184,16 +162,17 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
           nombre: formData.nombre.trim(),
         }));
 
+        const successMessage = `Almacén "${formData.nombre.trim()}" actualizado correctamente.`;
         setStatusMessage({
           type: 'success',
-          text: `Almacén "${formData.nombre.trim()}" actualizado correctamente.`,
+          text: successMessage,
         });
 
         if (propOnSaved) propOnSaved(currentId);
 
         if (closeAfterSave) {
           if (propOnBack) propOnBack();
-          else navigate('/servicio-campo/almacenes');
+          else navigate('/servicio-campo/almacenes', { state: { successMessage } });
         }
 
         return currentId;
@@ -207,18 +186,20 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
         setSavedHeader({
           nombre: formData.nombre.trim(),
           activo: true,
+          creadoPorNombre: currentUser.nombre,
         });
 
+        const successMessage = `Almacén "${formData.nombre.trim()}" creado exitosamente.`;
         setStatusMessage({
           type: 'success',
-          text: `Almacén "${formData.nombre.trim()}" creado exitosamente.`,
+          text: successMessage,
         });
 
         if (propOnCreated) propOnCreated(res.id);
 
         if (closeAfterSave) {
           if (propOnBack) propOnBack();
-          else navigate('/servicio-campo/almacenes');
+          else navigate('/servicio-campo/almacenes', { state: { successMessage } });
         } else {
           navigate(`/servicio-campo/almacenes/${res.id}`, { replace: true });
         }
@@ -274,87 +255,82 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
     <div className={styles.root}>
       {/* 0. Fluent UI MessageBar para notificaciones */}
       {statusMessage && (
-        <MessageBar
+        <D365MessageBar
           intent={statusMessage.type}
-          shape="square"
           className={styles.messageBarContainer}
+          onDismiss={() => setStatusMessage(null)}
         >
-          <MessageBarBody>
-            <MessageBarTitle>
-              {statusMessage.type === 'success' ? 'Éxito' : 'Atención'}
-            </MessageBarTitle>
-            {statusMessage.text}
-          </MessageBarBody>
-          <MessageBarActions
-            containerAction={
-              <Button
-                appearance="transparent"
-                aria-label="Cerrar notificación"
-                icon={<DismissRegular />}
-                onClick={() => setStatusMessage(null)}
-              />
-            }
-          />
-        </MessageBar>
+          {statusMessage.text}
+        </D365MessageBar>
       )}
 
       {/* 1. D365 Standard Command Bar */}
-      <Toolbar className={styles.commandBar} aria-label="Comandos de Almacén">
+      <D365CommandBar
+
+        ariaLabel="Comandos de Almacén"
+        busy={saving || loading}
+        busyLabel={loading ? 'Cargando...' : 'Guardando...'}
+      >
         <div className={styles.toolbarLeft}>
           {/* Botón de Atrás: Solo Icono */}
-          <ToolbarButton
-            icon={<ArrowLeft16Regular className={styles.iconPrimary} />}
+          <D365CommandButton
+            icon={<ArrowLeft16Regular />}
+            tone="brand"
             onClick={handleBack}
             title="Volver al listado"
             aria-label="Volver"
           />
 
-          <ToolbarDivider />
+          <D365CommandDivider />
 
           {/* Botón Guardar: Color lila/púrpura oficial D365 */}
-          <ToolbarButton
-            icon={<Save16Regular className={styles.iconSaveLilac} />}
+          <D365CommandButton
+            icon={<Save16Regular />}
+            tone="save"
             appearance="subtle"
             onClick={() => handleSave(false)}
             disabled={saving || loading}
           >
             Guardar
-          </ToolbarButton>
+          </D365CommandButton>
 
           {/* Botón Guardar y cerrar: Color lila/púrpura oficial D365 */}
-          <ToolbarButton
-            icon={<SaveMultiple16Regular className={styles.iconSaveLilac} />}
+          <D365CommandButton
+            icon={<SaveMultiple16Regular />}
+            tone="save"
             appearance="subtle"
             onClick={() => handleSave(true)}
             disabled={saving || loading}
           >
             Guardar y cerrar
-          </ToolbarButton>
+          </D365CommandButton>
 
-          <ToolbarDivider />
+          <D365CommandDivider />
 
           {/* Botón Nuevo: Verde D365 */}
-          <ToolbarButton
-            icon={<Add16Regular className={styles.iconNewGreen} />}
+          <D365CommandButton
+            icon={<Add16Regular />}
+            tone="create"
             appearance="subtle"
             onClick={handleNew}
             disabled={saving}
           >
             Nuevo
-          </ToolbarButton>
+          </D365CommandButton>
 
           {isEditMode && (
-            <ToolbarButton
+            <D365CommandButton
+              tone={savedHeader.activo ? 'danger' : 'create'}
               icon={savedHeader.activo ? <DismissCircle16Regular /> : <Checkmark16Regular />}
               appearance="subtle"
               onClick={handleToggleEstado}
               disabled={saving || loading}
             >
               {savedHeader.activo ? 'Desactivar' : 'Activar'}
-            </ToolbarButton>
+            </D365CommandButton>
           )}
 
-          <ToolbarButton
+          <D365CommandButton
             icon={<ArrowClockwise16Regular />}
             appearance="subtle"
             onClick={() => {
@@ -364,13 +340,9 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
             title="Actualizar registro"
           >
             Actualizar
-          </ToolbarButton>
+          </D365CommandButton>
         </div>
-
-        {(saving || loading) && (
-          <Spinner size="tiny" label={loading ? 'Cargando...' : 'Guardando...'} />
-        )}
-      </Toolbar>
+      </D365CommandBar>
 
       {loading ? (
         <div className={styles.loadingContainer}>
@@ -379,152 +351,56 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
       ) : (
         <>
           {/* 2. D365 Standard Header Container */}
-          <div className={styles.headerContainer}>
-            <div className={styles.headerTopRow}>
-              <div className={styles.headerLeft}>
-                <Avatar
-                  name={savedHeader.nombre || 'Almacén'}
-                  className={styles.avatar}
-                  size={48}
-                  icon={<Building16Regular />}
-                />
-                <div className={styles.titleSection}>
-                  <Text className={styles.mainTitle}>
-                    {isEditMode
-                      ? savedHeader.nombre || 'Almacén'
-                      : 'Nuevo Almacén'}
-                  </Text>
-                  <Text className={styles.subTitle}>Almacén</Text>
-                </div>
-              </div>
-
-              {/* Header Right Meta Items (Estado en solo texto) */}
-              <div className={styles.headerMetaRight}>
-                <div className={styles.metaItem}>
-                  <Text className={styles.metaLabel}>ESTADO</Text>
-                  <Text className={styles.metaValue}>
-                    {savedHeader.activo ? 'Activo' : 'Inactivo'}
-                  </Text>
-                </div>
-              </div>
-            </div>
-
-            {/* D365 Tabs Navigation */}
-            <TabList
-              selectedValue={selectedTab}
-              onTabSelect={(_e, d) => setSelectedTab(d.value as string)}
-              className={styles.tabList}
-            >
-              <Tab value="general">General</Tab>
-              {isEditMode && <Tab value="existencias">Existencias de Producto</Tab>}
-            </TabList>
-          </div>
+          <D365EntityHeader
+            title={isEditMode ? savedHeader.nombre || 'Almacén' : 'Nuevo Almacén'}
+            subtitle="Almacén"
+            avatarName={savedHeader.nombre || 'Almacén'}
+            avatarIcon={<Building16Regular />}
+            avatarSize={48}
+            metadata={[{ label: 'Estado', value: savedHeader.activo ? 'Activo' : 'Inactivo' }]}
+          />
 
           {/* 3. D365 Form Body Content */}
           <div className={styles.contentBody}>
-            {selectedTab === 'general' ? (
-              <div className={styles.card}>
-                {/* Fila 1: Nombre (Izquierda) | Propietario (Derecha) */}
-                <div className={styles.grid2Cols}>
-                  <div className={styles.d365FieldRow}>
-                    <div className={styles.d365LabelCol}>
-                      <Label required>Nombre</Label>
-                    </div>
-                    <div className={styles.d365ControlCol}>
-                      <Input
-                        className={styles.d365ControlFull}
-                        value={formData.nombre}
-                        onChange={(_e, d) => {
-                          setFormData((prev) => ({ ...prev, nombre: d.value }));
-                          if (errors.nombre) {
-                            setErrors((prev) => ({ ...prev, nombre: '' }));
-                          }
-                        }}
-                        placeholder="---"
-                      />
-                      {errors.nombre && (
-                        <Text className={styles.fieldErrorText}>
-                          {errors.nombre}
-                        </Text>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className={styles.d365FieldRow}>
-                    <div className={styles.d365LabelCol}>
-                      <Label required>Propietario</Label>
-                    </div>
-                    <div className={styles.d365ControlCol}>
-                      <div className={styles.lookupContainer}>
-                        <Tag
-                          appearance="brand"
-                          shape="rounded"
-                          size="small"
-                          media={<Person16Regular />}
-                          dismissible
-                          dismissIcon={<Dismiss12Regular />}
-                          value={currentUser.nombre}
-                        >
-                          <Link
-                            as="span"
-                            className={styles.primaryLink}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                            }}
-                            title={`Usuario: ${currentUser.nombre} (${currentUser.username})`}
-                          >
-                            {currentUser.nombre}
-                          </Link>
-                        </Tag>
-
-                        <Search16Regular
-                          className={styles.lookupSearchIcon}
-                          title="Búsqueda de registros de Usuario"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Fila 2: Descripción (Multilínea estilo Dynamics 365) */}
-                <div className={styles.d365FieldRow} style={{ marginTop: 16 }}>
-                  <div className={styles.d365LabelCol}>
-                    <Label>Descripción</Label>
-                  </div>
-                  <div className={styles.d365ControlCol}>
-                    <Textarea
-                      className={styles.d365ControlFull}
-                      rows={5}
-                      value={formData.descripcion || ''}
-                      onChange={(_e, d) =>
-                        setFormData((prev) => ({ ...prev, descripcion: d.value }))
+            <div className={styles.card}>
+              <div className={styles.grid2Cols}>
+                <D365FormField label="Nombre" required error={errors.nombre}>
+                  <Input
+                    className={styles.d365ControlFull}
+                    value={formData.nombre}
+                    maxLength={150}
+                    onChange={(_e, d) => {
+                      setFormData((prev) => ({ ...prev, nombre: d.value }));
+                      if (errors.nombre) {
+                        setErrors((prev) => ({ ...prev, nombre: '' }));
                       }
-                      placeholder="---"
-                    />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* Tab: Existencias & Stock */
-              <div className={styles.card}>
-                <Text className={styles.cardSectionTitle}>
-                  Existencias e Inventario en Este Almacén
-                </Text>
-                <Text size={300} style={{ color: '#605e5c', marginBottom: 16 }}>
-                  Consulte las cantidades disponibles, reservadas y en tránsito de productos en esta ubicación de inventario.
-                </Text>
+                    }}
+                    placeholder="Ej. Almacén central o Unidad 01"
+                  />
+                </D365FormField>
 
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <Button
-                    appearance="primary"
-                    icon={<Box16Regular />}
-                    onClick={() => navigate('/servicio-campo/stock')}
-                  >
-                    Ver Inventario de Productos
-                  </Button>
-                </div>
+                <D365FormField label="Creado por">
+                  <Input
+                    className={styles.d365ControlFull}
+                    value={savedHeader.creadoPorNombre || 'Usuario no disponible'}
+                    readOnly
+                  />
+                </D365FormField>
               </div>
-            )}
+
+              <D365FormField label="Descripción" align="top">
+                <Textarea
+                  className={styles.d365ControlFull}
+                  rows={5}
+                  maxLength={500}
+                  value={formData.descripcion || ''}
+                  onChange={(_e, d) =>
+                    setFormData((prev) => ({ ...prev, descripcion: d.value }))
+                  }
+                  placeholder="---"
+                />
+              </D365FormField>
+            </div>
           </div>
         </>
       )}

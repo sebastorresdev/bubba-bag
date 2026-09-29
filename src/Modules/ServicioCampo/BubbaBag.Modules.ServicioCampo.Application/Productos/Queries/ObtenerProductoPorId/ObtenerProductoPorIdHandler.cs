@@ -47,7 +47,8 @@ public class ObtenerProductoPorIdHandler : IQueryHandler<ObtenerProductoPorIdQue
             p.AfectoImpuesto,
             p.ProveedorDefecto,
             p.ListaPreciosPredeterminadaId,
-            p.ListaPreciosPredeterminada?.Nombre
+            p.ListaPreciosPredeterminada?.Nombre,
+            p.DecimalesCantidad
         );
 
         return Result<ProductoDto>.Success(dto);

@@ -21,5 +21,6 @@ public record ProductoDto(
     bool AfectoImpuesto = true,
     string? ProveedorDefecto = null,
     Guid? ListaPreciosPredeterminadaId = null,
-    string? ListaPreciosPredeterminadaNombre = null
+    string? ListaPreciosPredeterminadaNombre = null,
+    int DecimalesCantidad = 0
 );

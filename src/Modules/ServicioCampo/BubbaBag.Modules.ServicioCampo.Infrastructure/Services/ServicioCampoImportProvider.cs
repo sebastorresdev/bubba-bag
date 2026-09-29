@@ -47,6 +47,8 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                         "categoría", "categoria", "familia", "linea", "rubro", "category"),
                     new("UnidadMedida", "Unidad de Medida*", isRequired: true, isPrimary: true, type: "lookup", null, "UnidadesMedida",
                         "unidad de medida*", "unidad de medida", "unidad", "um", "u.m.", "unit", "medida"),
+                    new("DecimalesCantidad", "Decimales de cantidad (0-5)", isRequired: false, isPrimary: false, type: "integer", null, null,
+                        "decimales de cantidad", "decimales cantidad", "cantidad decimales", "quantity decimals"),
                     new("PrecioBase", "Precio Base (S/)", isRequired: false, isPrimary: false, type: "decimal", null, null,
                         "precio base (s/)", "precio base", "precio", "p.venta", "precio venta", "price", "precio de venta"),
                     new("CostoActual", "Costo Actual (S/)", isRequired: false, isPrimary: false, type: "decimal", null, null,
@@ -99,8 +101,6 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                         "nombre*", "nombre", "nombre unidad", "unidad"),
                     new("Abreviatura", "Abreviatura*", isRequired: true, isPrimary: true, type: "text", null, null,
                         "abreviatura*", "abreviatura", "abrev", "simbolo", "symbol"),
-                    new("PermiteDecimales", "Permite Decimales", isRequired: false, isPrimary: false, type: "boolean", null, null,
-                        "permite decimales", "fraccionable", "decimales", "permite fraccion"),
                     new("Descripcion", "Descripción", isRequired: false, isPrimary: false, type: "text", null, null,
                         "descripcion", "descripción", "detalle")
                 }
@@ -270,6 +270,18 @@ public class ServicioCampoImportProvider : IEntityImportProvider
             string? codigoBarras = GetVal(row, "CodigoBarras")?.Trim();
             string? proveedor = GetVal(row, "ProveedorDefecto")?.Trim();
             string? descripcion = GetVal(row, "Descripcion")?.Trim();
+            int? decimalesCantidad = null;
+            var decimalesStr = GetVal(row, "DecimalesCantidad")?.Trim();
+            if (!string.IsNullOrWhiteSpace(decimalesStr))
+            {
+                if (!int.TryParse(decimalesStr, out var decimales) || decimales is < 0 or > 5)
+                {
+                    errores.Add(new EntityImportRowError(rowNumber, "Los decimales de cantidad deben ser un número entero entre 0 y 5.", codigo, "DecimalesCantidad", decimalesStr));
+                    fallidos++;
+                    continue;
+                }
+                decimalesCantidad = decimales;
+            }
 
             var prodExistente = productosDb.FirstOrDefault(p => p.Codigo.Equals(codigo, StringComparison.OrdinalIgnoreCase));
 
@@ -302,7 +314,8 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                         costoEstandar,
                         afectoImpuesto,
                         proveedor,
-                        prodExistente.ListaPreciosPredeterminadaId);
+                        prodExistente.ListaPreciosPredeterminadaId,
+                        decimalesCantidad ?? prodExistente.DecimalesCantidad);
                     exitosos++;
                 }
             }
@@ -322,7 +335,8 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                     costoActual,
                     costoEstandar,
                     afectoImpuesto,
-                    proveedor);
+                    proveedor,
+                    decimalesCantidad: decimalesCantidad ?? 0);
                 _context.Productos.Add(nuevo);
                 productosDb.Add(nuevo);
                 exitosos++;
@@ -413,7 +427,6 @@ public class ServicioCampoImportProvider : IEntityImportProvider
             string? codigo = GetVal(row, "Codigo")?.Trim().ToUpperInvariant();
             string? nombre = GetVal(row, "Nombre")?.Trim();
             string? abrev = GetVal(row, "Abreviatura")?.Trim();
-            bool permiteDecimales = ParseBoolean(GetVal(row, "PermiteDecimales"));
             string? desc = GetVal(row, "Descripcion")?.Trim();
 
             if (string.IsNullOrWhiteSpace(codigo) || string.IsNullOrWhiteSpace(nombre) || string.IsNullOrWhiteSpace(abrev))
@@ -439,13 +452,13 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                 }
                 else
                 {
-                    umExistente.Actualizar(nombre, abrev, permiteDecimales, desc);
+                    umExistente.Actualizar(nombre, abrev, desc);
                     exitosos++;
                 }
             }
             else
             {
-                var nueva = UnidadMedida.Crear(codigo, nombre, abrev, permiteDecimales, desc);
+                var nueva = UnidadMedida.Crear(codigo, nombre, abrev, desc);
                 _context.UnidadesMedida.Add(nueva);
                 unidadesDb.Add(nueva);
                 exitosos++;

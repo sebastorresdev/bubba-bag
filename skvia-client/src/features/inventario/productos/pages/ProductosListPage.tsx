@@ -1,12 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Toolbar,
-  ToolbarButton,
-  ToolbarDivider,
   Button,
   Input,
-  Spinner,
   Text,
   Link,
   Menu,
@@ -37,13 +33,14 @@ import {
   Search16Regular,
   Share16Regular,
   TableEdit16Regular,
-  Warning24Regular,
 } from '@fluentui/react-icons';
 import { ProductoService } from '../services/producto.service';
 import type { ProductoDto } from '../types/producto.types';
-import { ImportDataDrawer } from '../../../../components/common/ImportDataDrawer';
+import { ImportacionDrawer } from '../../../../components/common/ImportacionDrawer';
 import { TableEmptyState } from '../../../../components/common/TableEmptyState';
+import { D365ListState } from '../../../../components/common/D365ListState';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
+import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 
 export interface ProductosListPageProps {
   onNewProduct?: () => void;
@@ -129,7 +126,6 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
                 }
               }}
               title={item.nombre}
-              className={styles.primaryLink}
             >
               {item.nombre}
             </Link>
@@ -142,7 +138,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
         renderHeaderCell: () => 'Código',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>
+            <Text>
               {item.codigo}
             </Text>
           </TableCellLayout>
@@ -154,7 +150,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
         renderHeaderCell: () => 'Categoría',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>{item.categoria || '—'}</Text>
+            <Text>{item.categoria || '—'}</Text>
           </TableCellLayout>
         ),
       }),
@@ -163,7 +159,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
         renderHeaderCell: () => 'Tipo',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>
+            <Text>
               {item.tipo === 1 || item.tipo === 'Inventario'
                 ? 'Inventario'
                 : item.tipo === 2 || item.tipo === 'Servicio'
@@ -178,7 +174,16 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
         renderHeaderCell: () => 'Unidad de Medida',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>{item.unidadMedida || 'UND'}</Text>
+            <Text>{item.unidadMedida || 'UND'}</Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ProductoDto>({
+        columnId: 'decimalesCantidad',
+        renderHeaderCell: () => 'Decimales',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Text>{item.decimalesCantidad ?? 0}</Text>
           </TableCellLayout>
         ),
       }),
@@ -188,7 +193,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
         renderHeaderCell: () => 'Precio Base',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>
+            <Text>
               {new Intl.NumberFormat('es-PE', {
                 style: 'currency',
                 currency: 'PEN',
@@ -202,7 +207,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
         renderHeaderCell: () => 'Serializado',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>
+            <Text>
               {item.esSerializado ? 'Sí' : '—'}
             </Text>
           </TableCellLayout>
@@ -213,24 +218,32 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
         renderHeaderCell: () => 'Estado',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text wrap={false} className={styles.noWrapCell}>
+            <Text>
               {item.activo ? 'Activo' : 'Inactivo'}
             </Text>
           </TableCellLayout>
         ),
       }),
     ],
-    [styles.noWrapCell, onSelectProduct, navigate]
+    [onSelectProduct, navigate]
   );
 
   return (
     <div className={styles.root}>
       {/* 1. TOP COMMAND BAR */}
-      <div className={styles.commandBar}>
+      <D365CommandBar
+        ariaLabel="Comandos de productos"
+        trailing={
+          <D365CommandButton appearance="primary" icon={<Share16Regular />}>
+            Compartir
+            <ChevronDown12Regular className={styles.iconChevronMargin} />
+          </D365CommandButton>
+        }
+      >
         <div className={styles.toolbarLeft}>
-          <Toolbar size="medium" className={styles.transparentToolbar}>
-            <ToolbarButton
-              icon={<Add16Regular className={styles.iconNewGreen} />}
+            <D365CommandButton
+              icon={<Add16Regular />}
+              tone="create"
               onClick={() => {
                 if (onNewProduct) {
                   onNewProduct();
@@ -240,42 +253,31 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
               }}
             >
               Nuevo
-            </ToolbarButton>
+            </D365CommandButton>
 
-            <ToolbarButton
+            <D365CommandButton
               icon={<ArrowClockwise16Regular />}
               onClick={loadData}
             >
               Actualizar
-            </ToolbarButton>
+            </D365CommandButton>
 
-            <ToolbarDivider />
+            <D365CommandDivider />
 
-            <ToolbarButton icon={<ArrowDownload16Regular />}>
+            <D365CommandButton icon={<ArrowDownload16Regular />}>
               Exportar a Excel
               <ChevronDown12Regular className={styles.iconChevronMargin} />
-            </ToolbarButton>
+            </D365CommandButton>
 
-            <ToolbarButton
+            <D365CommandButton
               icon={<ArrowUpload16Regular />}
               onClick={() => setImportDialogOpen(true)}
             >
               Importar de Excel
-            </ToolbarButton>
-          </Toolbar>
+            </D365CommandButton>
         </div>
 
-        {/* Right side: Share */}
-        <div>
-          <ToolbarButton
-            appearance="primary"
-            icon={<Share16Regular />}
-          >
-            Compartir
-            <ChevronDown12Regular className={styles.iconChevronMargin} />
-          </ToolbarButton>
-        </div>
-      </div>
+      </D365CommandBar>
 
       {/* 2. VIEW HEADER ROW (View Selector + Column/Filter/Search) */}
       <div className={styles.viewHeader}>
@@ -350,19 +352,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
 
       {/* 3. FLUENT UI V9 NATIVE DATAGRID */}
       <div className={styles.gridContainer}>
-        {loading ? (
-          <div className={styles.emptyState}>
-            <Spinner label="Cargando..." size="medium" />
-          </div>
-        ) : error ? (
-          <div className={styles.emptyState}>
-            <Warning24Regular className={styles.dangerIcon32} />
-            <Text weight="semibold" size={400} className={styles.dangerText}>
-              {error}
-            </Text>
-            <ToolbarButton onClick={loadData}>Reintentar conexión</ToolbarButton>
-          </div>
-        ) : (
+        <D365ListState loading={loading} error={error} onRetry={loadData} loadingLabel="Cargando productos...">
           <DataGrid
             items={filteredProductos}
             columns={columns}
@@ -408,7 +398,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
               </DataGridBody>
             )}
           </DataGrid>
-        )}
+        </D365ListState>
       </div>
 
       {/* 4. BOTTOM STATUS BAR */}
@@ -420,7 +410,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
       </footer>
 
       {/* 5. IMPORT DATA DRAWER LATERAL DERECHO (DYNAMICS 365) */}
-      <ImportDataDrawer
+      <ImportacionDrawer
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         targetEntityName="Producto"

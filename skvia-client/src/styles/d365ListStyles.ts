@@ -1,4 +1,5 @@
 import { makeStyles, tokens } from '@fluentui/react-components';
+import { semanticTokens } from './semanticTokens';
 
 export const useD365ListStyles = makeStyles({
   root: {
@@ -10,32 +11,13 @@ export const useD365ListStyles = makeStyles({
     overflow: 'hidden',
     userSelect: 'none',
   },
-  // 1. Dynamics 365 Standard Top Command Bar
-  commandBar: {
-    height: '44px',
-    backgroundColor: tokens.colorNeutralBackground1,
-    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 8px',
-    flexShrink: 0,
-    zIndex: 10,
-  },
   toolbarLeft: {
     display: 'flex',
     alignItems: 'center',
     gap: '2px',
   },
-  transparentToolbar: {
-    backgroundColor: 'transparent',
-    padding: 0,
-  },
   iconNewGreen: {
-    color: tokens.colorPaletteGreenForeground1,
-  },
-  iconPrimary: {
-    color: tokens.colorBrandForeground1,
+    color: semanticTokens.status.success,
   },
   iconBrand: {
     color: tokens.colorCompoundBrandForeground1,
@@ -45,13 +27,6 @@ export const useD365ListStyles = makeStyles({
   },
   iconChevronMargin: {
     marginLeft: '4px',
-  },
-  dangerText: {
-    color: tokens.colorStatusDangerForeground1,
-  },
-  dangerIcon32: {
-    color: tokens.colorStatusDangerForeground1,
-    fontSize: '32px',
   },
   viewMenuPopover: {
     minWidth: '220px',
@@ -118,12 +93,6 @@ export const useD365ListStyles = makeStyles({
     userSelect: 'text',
     cursor: 'text',
   },
-  noWrapCell: {
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    userSelect: 'text',
-  },
   primaryLink: {
     fontWeight: tokens.fontWeightSemibold,
     whiteSpace: 'nowrap',
@@ -136,12 +105,6 @@ export const useD365ListStyles = makeStyles({
       textDecoration: 'underline',
     },
   },
-  codeCell: {
-    fontFamily: 'Consolas, monospace',
-    fontSize: tokens.fontSizeBase200,
-    color: tokens.colorNeutralForeground2,
-    fontWeight: tokens.fontWeightMedium,
-  },
   footer: {
     height: '32px',
     borderTop: `1px solid ${tokens.colorNeutralStroke1}`,
@@ -150,7 +113,7 @@ export const useD365ListStyles = makeStyles({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '0 16px',
-    fontSize: '12px',
+    fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground3,
     flexShrink: 0,
   },
@@ -164,49 +127,11 @@ export const useD365ListStyles = makeStyles({
     height: '100%',
     gap: '12px',
   },
-  emptyContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '64px 16px',
-    gap: '12px',
-    color: tokens.colorNeutralForeground3,
-  },
-  emptyState: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '48px 16px',
-    gap: '12px',
-  },
-  errorContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '48px 16px',
-    gap: '12px',
-  },
-  statusActive: {
-    color: tokens.colorPaletteGreenForeground1,
-    fontWeight: tokens.fontWeightSemibold,
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-  },
-  statusInactive: {
-    color: tokens.colorNeutralForeground4,
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-  },
   statusDotActive: {
     width: '8px',
     height: '8px',
     borderRadius: '50%',
-    backgroundColor: tokens.colorPaletteGreenForeground1,
+    backgroundColor: semanticTokens.status.success,
     display: 'inline-block',
     flexShrink: 0,
   },
@@ -217,13 +142,5 @@ export const useD365ListStyles = makeStyles({
     backgroundColor: tokens.colorNeutralForeground4,
     display: 'inline-block',
     flexShrink: 0,
-  },
-  flexRowGap6: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-  },
-  mutedIcon: {
-    color: tokens.colorNeutralForeground4,
   },
 });

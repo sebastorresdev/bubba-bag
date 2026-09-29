@@ -14,7 +14,7 @@ const useStyles = makeStyles({
     userSelect: 'none',
   },
   icon: {
-    fontSize: '36px',
+    fontSize: tokens.fontSizeHero800,
     width: '36px',
     height: '36px',
     color: tokens.colorNeutralForeground4,

@@ -3,12 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   makeStyles,
   tokens,
-  Toolbar,
-  ToolbarButton,
-  ToolbarDivider,
   Button,
   Input,
-  Spinner,
   Text,
   Link,
   Menu,
@@ -24,10 +20,6 @@ import {
   DataGridRow,
   DataGridCell,
   TableCellLayout,
-  Badge,
-  MessageBar,
-  MessageBarBody,
-  MessageBarTitle,
   createTableColumn,
 } from '@fluentui/react-components';
 import type { TableColumnDefinition, SelectionItemId } from '@fluentui/react-components';
@@ -38,61 +30,22 @@ import {
   ChevronDown16Regular,
   DismissRegular,
   Search16Regular,
-  Warning24Regular,
-  CalendarLtr16Regular,
   TableEdit16Regular,
   DataFunnel20Regular,
 } from '@fluentui/react-icons';
 import { ListaPreciosService } from '../services/listaPrecios.service';
 import type { ListaPreciosDto } from '../types/listaPrecios.types';
 import { TableEmptyState } from '../../../../components/common/TableEmptyState';
+import { D365ListState } from '../../../../components/common/D365ListState';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
+import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
+import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 
 const useLocalStyles = makeStyles({
-  currencyBadgePEN: {
-    backgroundColor: tokens.colorPaletteGreenBackground2,
-    color: tokens.colorPaletteGreenForeground2,
-    fontWeight: tokens.fontWeightSemibold,
-    padding: '2px 8px',
-    borderRadius: tokens.borderRadiusSmall,
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '4px',
-    fontSize: tokens.fontSizeBase200,
-  },
-  currencyBadgeUSD: {
-    backgroundColor: tokens.colorPaletteBlueBackground2,
-    color: tokens.colorPaletteBlueForeground2,
-    fontWeight: tokens.fontWeightSemibold,
-    padding: '2px 8px',
-    borderRadius: tokens.borderRadiusSmall,
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '4px',
-    fontSize: tokens.fontSizeBase200,
-  },
-  statusActive: {
-    color: tokens.colorPaletteGreenForeground1,
-    fontWeight: tokens.fontWeightSemibold,
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-  },
-  statusInactive: {
-    color: tokens.colorNeutralForeground4,
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-  },
-  statusDot: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-  },
   emptyIcon: {
     color: tokens.colorBrandForeground1,
     opacity: 0.8,
-    fontSize: '48px',
+    fontSize: tokens.fontSizeHero800,
     width: '48px',
     height: '48px',
   },
@@ -182,7 +135,6 @@ export const ListasPreciosListPage: React.FC<ListasPreciosListPageProps> = ({
       result = result.filter(
         (i) =>
           i.nombre.toLowerCase().includes(q) ||
-          i.codigo.toLowerCase().includes(q) ||
           i.moneda.toLowerCase().includes(q) ||
           (i.descripcion && i.descripcion.toLowerCase().includes(q))
       );
@@ -192,7 +144,7 @@ export const ListasPreciosListPage: React.FC<ListasPreciosListPageProps> = ({
   }, [items, activeView, searchKeyword]);
 
   const formatDate = (dateStr?: string | null) => {
-    if (!dateStr) return '---';
+    if (!dateStr) return '—';
     try {
       const d = new Date(dateStr);
       return d.toLocaleDateString('es-PE', { year: 'numeric', month: 'short', day: '2-digit' });
@@ -217,7 +169,6 @@ export const ListasPreciosListPage: React.FC<ListasPreciosListPageProps> = ({
                 else navigate(`/servicio-campo/listas-precios/${item.id}`);
               }}
               title={item.nombre}
-              className={styles.primaryLink}
             >
               {item.nombre}
             </Link>
@@ -225,49 +176,36 @@ export const ListasPreciosListPage: React.FC<ListasPreciosListPageProps> = ({
         ),
       }),
       createTableColumn<ListaPreciosDto>({
-        columnId: 'codigo',
-        compare: (a, b) => a.codigo.localeCompare(b.codigo),
-        renderHeaderCell: () => 'Código',
+        columnId: 'moneda',
+        compare: (a, b) => a.moneda.localeCompare(b.moneda),
+        renderHeaderCell: () => 'Moneda',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text className={styles.codeCell}>{item.codigo}</Text>
+            <Text>
+              {item.moneda?.toUpperCase() === 'PEN' ? 'PEN (S/)' : item.moneda?.toUpperCase() === 'USD' ? 'USD ($)' : item.moneda}
+            </Text>
           </TableCellLayout>
         ),
       }),
       createTableColumn<ListaPreciosDto>({
-        columnId: 'moneda',
-        compare: (a, b) => a.moneda.localeCompare(b.moneda),
-        renderHeaderCell: () => 'Moneda',
-        renderCell: (item) => {
-          const isPEN = item.moneda?.toUpperCase() === 'PEN';
-          return (
-            <TableCellLayout truncate>
-              <Text className={isPEN ? localStyles.currencyBadgePEN : localStyles.currencyBadgeUSD}>
-                {isPEN ? 'PEN (S/)' : 'USD ($)'}
-              </Text>
-            </TableCellLayout>
-          );
-        },
+        columnId: 'fechaInicio',
+        compare: (a, b) => (a.fechaInicio || '').localeCompare(b.fechaInicio || ''),
+        renderHeaderCell: () => 'Desde',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Text>{formatDate(item.fechaInicio)}</Text>
+          </TableCellLayout>
+        ),
       }),
       createTableColumn<ListaPreciosDto>({
-        columnId: 'vigencia',
-        renderHeaderCell: () => 'Período de Vigencia',
-        renderCell: (item) => {
-          const inicio = formatDate(item.fechaInicio);
-          const fin = formatDate(item.fechaFin);
-          const tieneFechas = item.fechaInicio || item.fechaFin;
-
-          return (
-            <TableCellLayout truncate>
-              <div className={styles.flexRowGap6}>
-                <CalendarLtr16Regular className={styles.mutedIcon} />
-                <Text size={200} wrap={false} className={styles.noWrapCell}>
-                  {tieneFechas ? `${inicio} → ${fin}` : 'Permanente / Sin límite'}
-                </Text>
-              </div>
-            </TableCellLayout>
-          );
-        },
+        columnId: 'fechaFin',
+        compare: (a, b) => (a.fechaFin || '').localeCompare(b.fechaFin || ''),
+        renderHeaderCell: () => 'Hasta',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Text>{formatDate(item.fechaFin)}</Text>
+          </TableCellLayout>
+        ),
       }),
       createTableColumn<ListaPreciosDto>({
         columnId: 'cantidadElementos',
@@ -275,9 +213,9 @@ export const ListasPreciosListPage: React.FC<ListasPreciosListPageProps> = ({
         renderHeaderCell: () => 'Productos Asignados',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Badge appearance="tint" color="informative" shape="rounded">
+            <Text>
               {item.cantidadElementos ?? 0} {item.cantidadElementos === 1 ? 'producto' : 'productos'}
-            </Badge>
+            </Text>
           </TableCellLayout>
         ),
       }),
@@ -286,7 +224,7 @@ export const ListasPreciosListPage: React.FC<ListasPreciosListPageProps> = ({
         renderHeaderCell: () => 'Descripción',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text size={200} wrap={false} className={styles.noWrapCell} title={item.descripcion || ''}>
+            <Text title={item.descripcion || undefined}>
               {item.descripcion || '—'}
             </Text>
           </TableCellLayout>
@@ -298,22 +236,12 @@ export const ListasPreciosListPage: React.FC<ListasPreciosListPageProps> = ({
         renderHeaderCell: () => 'Estado',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            {item.activo ? (
-              <Text className={styles.statusActive}>
-                <span className={styles.statusDotActive} />
-                Activo
-              </Text>
-            ) : (
-              <Text className={styles.statusInactive}>
-                <span className={styles.statusDotInactive} />
-                Inactivo
-              </Text>
-            )}
+            <Text>{item.activo ? 'Activo' : 'Inactivo'}</Text>
           </TableCellLayout>
         ),
       }),
     ],
-    [styles, localStyles, navigate, onSelect]
+    [navigate, onSelect]
   );
 
   const viewLabels: Record<string, string> = {
@@ -326,57 +254,55 @@ export const ListasPreciosListPage: React.FC<ListasPreciosListPageProps> = ({
     <div className={styles.root}>
       {feedbackMessage && (
         <div className={localStyles.toastContainer}>
-          <MessageBar intent={feedbackMessage.intent}>
-            <MessageBarBody>
-              <MessageBarTitle>{feedbackMessage.intent === 'success' ? 'Éxito' : 'Atención'}</MessageBarTitle>
-              {feedbackMessage.text}
-            </MessageBarBody>
-          </MessageBar>
+          <D365MessageBar intent={feedbackMessage.intent}>{feedbackMessage.text}</D365MessageBar>
         </div>
       )}
 
       {/* 1. Dynamics 365 Command Bar */}
-      <Toolbar className={styles.commandBar} size="small">
+      <D365CommandBar ariaLabel="Comandos de listas de precios">
         <div className={styles.toolbarLeft}>
-          <ToolbarButton
-            icon={<Add16Regular className={styles.iconNewGreen} />}
+          <D365CommandButton
+            icon={<Add16Regular />}
+            tone="create"
             onClick={() => {
               if (onNew) onNew();
               else navigate('/servicio-campo/listas-precios/nuevo');
             }}
           >
             Nuevo
-          </ToolbarButton>
+          </D365CommandButton>
 
-          <ToolbarDivider />
+          <D365CommandDivider />
 
-          <ToolbarButton
+          <D365CommandButton
             icon={<ArrowClockwise16Regular />}
             onClick={loadData}
             title="Actualizar datos"
           >
             Actualizar
-          </ToolbarButton>
+          </D365CommandButton>
 
           {selectedIds.size > 0 && (
             <>
-              <ToolbarDivider />
-              <ToolbarButton
-                icon={<Checkmark16Regular className={styles.iconNewGreen} />}
+              <D365CommandDivider />
+              <D365CommandButton
+                icon={<Checkmark16Regular />}
+                tone="create"
                 onClick={() => handleCambiarEstadoSeleccionados(true)}
               >
                 Activar ({selectedIds.size})
-              </ToolbarButton>
-              <ToolbarButton
-                icon={<DismissRegular className={styles.iconDanger} />}
+              </D365CommandButton>
+              <D365CommandButton
+                icon={<DismissRegular />}
+                tone="danger"
                 onClick={() => handleCambiarEstadoSeleccionados(false)}
               >
                 Desactivar ({selectedIds.size})
-              </ToolbarButton>
+              </D365CommandButton>
             </>
           )}
         </div>
-      </Toolbar>
+      </D365CommandBar>
 
       {/* 2. View Header Row (Selector + Tools + Search) */}
       <div className={styles.viewHeader}>
@@ -447,19 +373,7 @@ export const ListasPreciosListPage: React.FC<ListasPreciosListPageProps> = ({
 
       {/* 3. Grid Container */}
       <div className={styles.gridWrapper}>
-        {loading ? (
-          <div className={styles.loadingContainer}>
-            <Spinner label="Cargando..." size="large" />
-          </div>
-        ) : error ? (
-          <div className={styles.errorContainer}>
-            <Warning24Regular className={styles.iconDanger} />
-            <Text weight="semibold">{error}</Text>
-            <Button size="small" onClick={loadData}>
-              Reintentar
-            </Button>
-          </div>
-        ) : (
+        <D365ListState loading={loading} error={error} onRetry={loadData} loadingLabel="Cargando listas de precios...">
           <DataGrid
             items={filteredItems}
             columns={columns}
@@ -500,7 +414,7 @@ export const ListasPreciosListPage: React.FC<ListasPreciosListPageProps> = ({
               </DataGridBody>
             )}
           </DataGrid>
-        )}
+        </D365ListState>
       </div>
     </div>
   );

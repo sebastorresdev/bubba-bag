@@ -39,6 +39,12 @@ public class CurrentUser : ICurrentUser
         ?? _httpContextAccessor.HttpContext?.User?.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Email)
         ?? string.Empty;
 
+    public string Nombre =>
+        _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Name)
+        ?? _httpContextAccessor.HttpContext?.User?.FindFirstValue("nombre_completo")
+        ?? _httpContextAccessor.HttpContext?.User?.FindFirstValue("name")
+        ?? string.Empty;
+
     public IReadOnlyList<string> Roles => _httpContextAccessor.HttpContext?.User?.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList() ?? new List<string>();
 
     public bool IsAuthenticated => _httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;

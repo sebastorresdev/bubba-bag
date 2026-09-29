@@ -37,7 +37,6 @@ public class ObtenerListasPreciosHandler : IQueryHandler<ObtenerListasPreciosQue
         {
             var search = query.Search.Trim().ToLower();
             dbQuery = dbQuery.Where(l =>
-                l.Codigo.ToLower().Contains(search) ||
                 l.Nombre.ToLower().Contains(search) ||
                 (l.Descripcion != null && l.Descripcion.ToLower().Contains(search)));
         }
@@ -46,7 +45,6 @@ public class ObtenerListasPreciosHandler : IQueryHandler<ObtenerListasPreciosQue
             .OrderBy(l => l.Nombre)
             .Select(l => new ListaPreciosDto(
                 l.Id,
-                l.Codigo,
                 l.Nombre,
                 l.Moneda,
                 l.Descripcion,

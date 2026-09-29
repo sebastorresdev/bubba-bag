@@ -71,41 +71,37 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
-                    b.Property<string>("Codigo")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                    b.Property<Guid?>("ActualizadoPorId")
+                        .HasColumnType("uuid");
 
-                    b.Property<string>("Direccion")
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreadoPorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CreadoPorNombre")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
-                    b.Property<Guid?>("RecursoTecnicoId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("SucursalId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Telefono")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<int>("Tipo")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("Codigo")
-                        .IsUnique();
+                    b.HasIndex("ActualizadoPorId");
 
-                    b.HasIndex("RecursoTecnicoId");
-
-                    b.HasIndex("SucursalId");
+                    b.HasIndex("CreadoPorId");
 
                     b.ToTable("Almacenes", "inventario");
                 });
@@ -123,8 +119,8 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("Cantidad")
-                        .HasPrecision(14, 2)
-                        .HasColumnType("numeric(14,2)");
+                        .HasPrecision(14, 5)
+                        .HasColumnType("numeric(14,5)");
 
                     b.Property<Guid?>("ClienteId")
                         .HasColumnType("uuid");
@@ -188,12 +184,12 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("CantidadDisponible")
-                        .HasPrecision(14, 2)
-                        .HasColumnType("numeric(14,2)");
+                        .HasPrecision(14, 5)
+                        .HasColumnType("numeric(14,5)");
 
                     b.Property<decimal>("CantidadReservada")
-                        .HasPrecision(14, 2)
-                        .HasColumnType("numeric(14,2)");
+                        .HasPrecision(14, 5)
+                        .HasColumnType("numeric(14,5)");
 
                     b.Property<Guid>("ProductoId")
                         .HasColumnType("uuid");
@@ -520,14 +516,14 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
 
                     b.Property<decimal>("CantidadConsumida")
                         .ValueGeneratedOnAdd()
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)")
+                        .HasPrecision(14, 5)
+                        .HasColumnType("numeric(14,5)")
                         .HasDefaultValue(0m);
 
                     b.Property<decimal>("CantidadDevuelta")
                         .ValueGeneratedOnAdd()
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)")
+                        .HasPrecision(14, 5)
+                        .HasColumnType("numeric(14,5)")
                         .HasDefaultValue(0m);
 
                     b.Property<bool>("EsRetiro")
@@ -576,14 +572,14 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
 
                     b.Property<decimal>("CantidadPrevista")
                         .ValueGeneratedOnAdd()
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)")
+                        .HasPrecision(14, 5)
+                        .HasColumnType("numeric(14,5)")
                         .HasDefaultValue(0m);
 
                     b.Property<decimal>("CantidadUtilizada")
                         .ValueGeneratedOnAdd()
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)")
+                        .HasPrecision(14, 5)
+                        .HasColumnType("numeric(14,5)")
                         .HasDefaultValue(0m);
 
                     b.Property<bool>("EsRetiro")
@@ -754,8 +750,8 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("Cantidad")
-                        .HasPrecision(14, 2)
-                        .HasColumnType("numeric(14,2)");
+                        .HasPrecision(14, 5)
+                        .HasColumnType("numeric(14,5)");
 
                     b.Property<bool>("EsRetiro")
                         .HasColumnType("boolean");
@@ -1179,8 +1175,8 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("CantidadPrevista")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
+                        .HasPrecision(14, 5)
+                        .HasColumnType("numeric(14,5)");
 
                     b.Property<bool>("EsObligatorio")
                         .ValueGeneratedOnAdd()
@@ -1487,6 +1483,11 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         .HasColumnType("numeric(12,2)")
                         .HasDefaultValue(0m);
 
+                    b.Property<int>("DecimalesCantidad")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("Descripcion")
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
@@ -1526,7 +1527,10 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.HasIndex("Codigo")
                         .IsUnique();
 
-                    b.ToTable("Productos", "inventario");
+                    b.ToTable("Productos", "inventario", t =>
+                        {
+                            t.HasCheckConstraint("CK_Productos_DecimalesCantidad", "\"DecimalesCantidad\" BETWEEN 0 AND 5");
+                        });
                 });
 
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Productos.ProductoServicio", b =>
@@ -1607,11 +1611,6 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
-
-                    b.Property<bool>("PermiteDecimales")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
 
                     b.HasKey("Id");
 

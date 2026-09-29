@@ -14,12 +14,12 @@ public class MaterialTrabajoConfiguration : IEntityTypeConfiguration<MaterialTra
 
         builder.Property(m => m.CantidadPrevista)
             .IsRequired()
-            .HasPrecision(12, 2)
+            .HasPrecision(14, 5)
             .HasDefaultValue(0m);
 
         builder.Property(m => m.CantidadUtilizada)
             .IsRequired()
-            .HasPrecision(12, 2)
+            .HasPrecision(14, 5)
             .HasDefaultValue(0m);
 
         builder.Property(m => m.EsSeriado)

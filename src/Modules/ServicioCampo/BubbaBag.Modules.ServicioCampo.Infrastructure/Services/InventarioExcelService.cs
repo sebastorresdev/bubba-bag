@@ -76,7 +76,8 @@ public class InventarioExcelService : IInventarioExcelService
             "Código de Barras",
             "Afecto a Impuesto",
             "Proveedor por Defecto",
-            "Descripción / Especificaciones"
+            "Descripción / Especificaciones",
+            "Decimales de cantidad (0-5)"
         };
 
         for (int col = 0; col < headers.Length; col++)
@@ -147,6 +148,7 @@ public class InventarioExcelService : IInventarioExcelService
         ws.Cell(2, 11).Value = "SI";
         ws.Cell(2, 12).Value = "Distribuidora Tech S.A.C.";
         ws.Cell(2, 13).Value = "Descripción de ejemplo";
+        ws.Cell(2, 14).Value = 0;
 
         // Formatos de celdas
         ws.Range("F2:H500").Style.NumberFormat.Format = "#,##0.00";
@@ -279,10 +281,21 @@ public class InventarioExcelService : IInventarioExcelService
             bool afectoImpuesto;
             string? proveedorDefecto;
             string? descripcion;
+            int? decimalesCantidad = null;
+            bool tieneColumnaDecimales = ws.Cell(1, 14).GetString().Contains("Decimales", StringComparison.OrdinalIgnoreCase);
+            if (tieneColumnaDecimales && !row.Cell(14).IsEmpty())
+            {
+                if (!int.TryParse(row.Cell(14).GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var decimales) || decimales is < 0 or > 5)
+                {
+                    resultado.Errores.Add(new ImportarErrorDto { Fila = rowNum, Codigo = codigo, Mensaje = "Los decimales de cantidad deben ser un número entero entre 0 y 5." });
+                    continue;
+                }
+                decimalesCantidad = decimales;
+            }
 
             if (formatoAntiguoConActivo)
             {
-                // Formato antiguo de 14 columnas
+                // Formato antiguo con la columna Activo y sin precisión por producto.
                 codigoBarras = row.Cell(11).GetString()?.Trim();
                 afectoImpuesto = !row.Cell(12).IsEmpty() ? ParseBoolean(row.Cell(12).GetString()) : true;
                 proveedorDefecto = row.Cell(13).GetString()?.Trim();
@@ -290,7 +303,7 @@ public class InventarioExcelService : IInventarioExcelService
             }
             else
             {
-                // Formato estándar limpio de 13 columnas
+                // Formato estándar sin Activo; incluye la precisión opcional en la columna 14.
                 codigoBarras = row.Cell(10).GetString()?.Trim();
                 afectoImpuesto = !row.Cell(11).IsEmpty() ? ParseBoolean(row.Cell(11).GetString()) : true;
                 proveedorDefecto = row.Cell(12).GetString()?.Trim();
@@ -327,7 +340,8 @@ public class InventarioExcelService : IInventarioExcelService
                     costoActual: costoActual,
                     costoEstandar: costoEstandar,
                     afectoImpuesto: afectoImpuesto,
-                    proveedorDefecto: proveedorDefecto
+                    proveedorDefecto: proveedorDefecto,
+                    decimalesCantidad: decimalesCantidad ?? productoExistente.DecimalesCantidad
                 );
                 resultado.Actualizados++;
             }
@@ -347,7 +361,8 @@ public class InventarioExcelService : IInventarioExcelService
                     costoActual: costoActual,
                     costoEstandar: costoEstandar,
                     afectoImpuesto: afectoImpuesto,
-                    proveedorDefecto: proveedorDefecto
+                    proveedorDefecto: proveedorDefecto,
+                    decimalesCantidad: decimalesCantidad ?? 0
                 );
                 _context.Productos.Add(nuevoProducto);
                 productosDb.Add(nuevoProducto);
@@ -511,7 +526,6 @@ public class InventarioExcelService : IInventarioExcelService
             "Código*",
             "Nombre de Unidad*",
             "Abreviatura*",
-            "Permite Decimales*",
             "Descripción"
         };
 
@@ -528,24 +542,16 @@ public class InventarioExcelService : IInventarioExcelService
         }
         ws.Row(1).Height = 26;
 
-        // Data validation para columna D (Permite Decimales)
-        var dvDec = ws.Range(2, 4, 300, 4).CreateDataValidation();
-        dvDec.List("\"SI,NO\"", true);
-        dvDec.InputTitle = "Permite Decimales";
-        dvDec.InputMessage = "Seleccione si la unidad permite fracciones (SI/NO).";
-
         // Filas de ejemplo
         ws.Cell(2, 1).Value = "UND";
         ws.Cell(2, 2).Value = "Unidad";
         ws.Cell(2, 3).Value = "und";
-        ws.Cell(2, 4).Value = "NO";
-        ws.Cell(2, 5).Value = "Unidad contable indivisible para equipos y accesorios";
+        ws.Cell(2, 4).Value = "Unidad contable para equipos y accesorios";
 
         ws.Cell(3, 1).Value = "MTR";
         ws.Cell(3, 2).Value = "Metro";
         ws.Cell(3, 3).Value = "m";
-        ws.Cell(3, 4).Value = "SI";
-        ws.Cell(3, 5).Value = "Medida de longitud para cableado y fibra óptica";
+        ws.Cell(3, 4).Value = "Medida de longitud para cableado y fibra óptica";
 
         ws.SheetView.FreezeRows(1);
         ws.Columns().AdjustToContents(16, 45);
@@ -577,8 +583,10 @@ public class InventarioExcelService : IInventarioExcelService
             var codigo = row.Cell(1).GetString()?.Trim().ToUpperInvariant();
             var nombre = row.Cell(2).GetString()?.Trim();
             var abreviatura = row.Cell(3).GetString()?.Trim();
-            var permiteDecStr = row.Cell(4).GetString()?.Trim();
-            var descripcion = row.Cell(5).GetString()?.Trim();
+            var cuartaColumna = ws.Cell(1, 4).GetString();
+            var descripcion = cuartaColumna.Contains("Descrip", StringComparison.OrdinalIgnoreCase)
+                ? row.Cell(4).GetString()?.Trim()
+                : row.Cell(5).GetString()?.Trim();
 
             if (string.IsNullOrWhiteSpace(codigo) && string.IsNullOrWhiteSpace(nombre))
                 continue;
@@ -600,17 +608,15 @@ public class InventarioExcelService : IInventarioExcelService
                 abreviatura = codigo.ToLowerInvariant();
             }
 
-            bool permiteDecimales = ParseBoolean(permiteDecStr);
-
             var existente = unidadesDb.FirstOrDefault(u => u.Codigo.Equals(codigo, StringComparison.OrdinalIgnoreCase));
             if (existente != null)
             {
-                existente.Actualizar(nombre, abreviatura, permiteDecimales, descripcion);
+                existente.Actualizar(nombre, abreviatura, descripcion);
                 resultado.Actualizados++;
             }
             else
             {
-                var nueva = UnidadMedida.Crear(codigo, nombre, abreviatura, permiteDecimales, descripcion);
+                var nueva = UnidadMedida.Crear(codigo, nombre, abreviatura, descripcion);
                 _context.UnidadesMedida.Add(nueva);
                 unidadesDb.Add(nueva);
                 resultado.Creados++;

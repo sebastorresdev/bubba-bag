@@ -1,25 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Toolbar,
-  ToolbarButton,
-  ToolbarDivider,
-  Button,
   Input,
   Textarea,
-  Switch,
   TabList,
   Tab,
   Card,
   Text,
   Label,
-  Divider,
-  Avatar,
-  Spinner,
-  MessageBar,
-  MessageBarBody,
-  MessageBarTitle,
-  MessageBarActions,
   Skeleton,
   SkeletonItem,
 } from '@fluentui/react-components';
@@ -29,12 +17,14 @@ import {
   SaveMultiple16Regular,
   Add16Regular,
   ArrowClockwise16Regular,
-  DismissRegular,
   Box16Regular,
 } from '@fluentui/react-icons';
 import { UnidadMedidaService } from '../services/unidadMedida.service';
 import type { CreateUnidadMedidaDto } from '../types/unidadMedida.types';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
+import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
+import { D365MessageBar } from '../../../../components/common/D365MessageBar';
+import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
 
 export interface UnidadMedidaFormPageProps {
   id?: string | null;
@@ -64,7 +54,6 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
     codigo: '',
     nombre: '',
     abreviatura: '',
-    permiteDecimales: false,
     descripcion: '',
   });
 
@@ -72,12 +61,10 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
     nombre: string;
     codigo: string;
     activo: boolean;
-    permiteDecimales: boolean;
   }>({
     nombre: '',
     codigo: '',
     activo: true,
-    permiteDecimales: false,
   });
 
   const [loading, setLoading] = useState<boolean>(Boolean(effectiveId));
@@ -91,14 +78,12 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
       codigo: '',
       nombre: '',
       abreviatura: '',
-      permiteDecimales: false,
       descripcion: '',
     });
     setSavedHeader({
       nombre: '',
       codigo: '',
       activo: true,
-      permiteDecimales: false,
     });
     setErrors({});
     setStatusMessage(null);
@@ -114,14 +99,12 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
             codigo: u.codigo,
             nombre: u.nombre,
             abreviatura: u.abreviatura,
-            permiteDecimales: u.permiteDecimales,
             descripcion: u.descripcion || '',
           });
           setSavedHeader({
             nombre: u.nombre,
             codigo: u.codigo,
             activo: u.activo,
-            permiteDecimales: u.permiteDecimales,
           });
         })
         .catch((err) => {
@@ -172,7 +155,6 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
         await UnidadMedidaService.updateUnidadMedida(currentId, {
           nombre: formData.nombre,
           abreviatura: formData.abreviatura,
-          permiteDecimales: formData.permiteDecimales,
           descripcion: formData.descripcion,
         });
         setStatusMessage({
@@ -196,7 +178,6 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
         nombre: formData.nombre,
         codigo: formData.codigo,
         activo: true,
-        permiteDecimales: formData.permiteDecimales,
       });
 
       if (closeAfter) {
@@ -234,144 +215,92 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
     <div className={styles.root}>
       {/* 0. Notification Bar */}
       {statusMessage && (
-        <MessageBar
+        <D365MessageBar
           intent={statusMessage.type === 'success' ? 'success' : 'error'}
-          shape="square"
           className={styles.messageBarContainer}
+          onDismiss={() => setStatusMessage(null)}
         >
-          <MessageBarBody>
-            <MessageBarTitle>
-              {statusMessage.type === 'success' ? 'Éxito' : 'Atención'}
-            </MessageBarTitle>
-            {statusMessage.text}
-          </MessageBarBody>
-          <MessageBarActions
-            containerAction={
-              <Button
-                appearance="transparent"
-                aria-label="Cerrar notificación"
-                icon={<DismissRegular />}
-                onClick={() => setStatusMessage(null)}
-              />
-            }
-          />
-        </MessageBar>
+          {statusMessage.text}
+        </D365MessageBar>
       )}
 
       {/* 1. Command Bar */}
-      <Toolbar size="medium" aria-label="Comandos de unidad de medida" className={styles.commandBar}>
+      <D365CommandBar
+        ariaLabel="Comandos de unidad de medida"
+
+        busy={saving || loading}
+        busyLabel={loading ? 'Cargando...' : 'Guardando...'}
+      >
         <div className={styles.toolbarLeft}>
-          <ToolbarButton
-            icon={<ArrowLeft16Regular className={styles.iconPrimary} />}
+          <D365CommandButton
+            icon={<ArrowLeft16Regular />}
+            tone="brand"
             onClick={handleBack}
             title="Volver al listado"
             aria-label="Volver"
           />
-          <ToolbarDivider />
+          <D365CommandDivider />
 
-          <ToolbarButton
-            icon={<Save16Regular className={styles.iconSaveLilac} />}
+          <D365CommandButton
+            icon={<Save16Regular />}
+            tone="save"
             onClick={() => handleSave(false)}
             disabled={saving || loading}
             appearance="subtle"
           >
             Guardar
-          </ToolbarButton>
+          </D365CommandButton>
 
-          <ToolbarButton
-            icon={<SaveMultiple16Regular className={styles.iconSaveLilac} />}
+          <D365CommandButton
+            icon={<SaveMultiple16Regular />}
+            tone="save"
             onClick={() => handleSave(true)}
             disabled={saving || loading}
             appearance="subtle"
           >
             Guardar y cerrar
-          </ToolbarButton>
+          </D365CommandButton>
 
-          <ToolbarButton
-            icon={<Add16Regular className={styles.iconNewGreen} />}
+          <D365CommandButton
+            icon={<Add16Regular />}
+            tone="create"
             onClick={handleNew}
             disabled={saving || loading}
             appearance="subtle"
           >
             Nuevo
-          </ToolbarButton>
+          </D365CommandButton>
 
-          <ToolbarButton
+          <D365CommandButton
             icon={<ArrowClockwise16Regular />}
             onClick={handleResetForm}
             disabled={saving || loading}
             appearance="subtle"
           >
             Deshacer
-          </ToolbarButton>
+          </D365CommandButton>
         </div>
-
-        {(saving || loading) && (
-          <Spinner size="tiny" label={loading ? 'Cargando...' : 'Guardando...'} />
-        )}
-      </Toolbar>
+      </D365CommandBar>
 
       {/* 2. Header Summary */}
-      <div className={styles.headerContainer}>
-        {loading ? (
-          <div className={styles.headerTopRow}>
-            <div className={styles.headerLeft}>
-              <Skeleton animation="pulse">
-                <SkeletonItem shape="circle" size={56} />
-              </Skeleton>
-              <div className={styles.titleSection}>
-                <Skeleton animation="pulse">
-                  <SkeletonItem size={24} className={styles.skeletonTitle} />
-                  <SkeletonItem size={16} className={styles.skeletonSub} />
-                </Skeleton>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className={styles.headerTopRow}>
-            <div className={styles.headerLeft}>
-              <Avatar
-                size={56}
-                name={savedHeader.nombre || 'U M'}
-                className={styles.headerAvatar}
-              />
-              <div className={styles.titleSection}>
-                <Text className={styles.mainTitle}>{headerTitle}</Text>
-                <Text className={styles.subTitle}>
-                  {savedHeader.codigo
-                    ? `Código: ${savedHeader.codigo} • Abreviatura: ${formData.abreviatura || '—'}`
-                    : 'Unidad de medida • Catálogo de inventario'}
-                </Text>
-              </div>
-            </div>
-
-            <div className={styles.headerMetaRight}>
-              <div className={styles.metaItem}>
-                <Text className={styles.metaLabel}>Estado</Text>
-                <Text className={styles.metaValue}>
-                  {savedHeader.activo ? 'Activo' : 'Inactivo'}
-                </Text>
-              </div>
-              <Divider vertical className={styles.metaDivider} />
-              <div className={styles.metaItem}>
-                <Text className={styles.metaLabel}>Permite Decimales</Text>
-                <Text className={styles.metaValue}>
-                  {savedHeader.permiteDecimales ? 'Sí' : 'No'}
-                </Text>
-              </div>
-            </div>
-          </div>
+      <D365EntityHeader
+        title={headerTitle}
+        subtitle={savedHeader.codigo
+          ? `Código: ${savedHeader.codigo} • Abreviatura: ${formData.abreviatura || '—'}`
+          : 'Unidad de medida • Catálogo de inventario'}
+        avatarName={savedHeader.nombre || 'U M'}
+        avatarSize={56}
+        subtleAvatar
+        loading={loading}
+        metadata={[
+          { label: 'Estado', value: savedHeader.activo ? 'Activo' : 'Inactivo' },
+        ]}
+        tabs={(
+          <TabList selectedValue="detalles">
+            <Tab value="detalles" icon={<Box16Regular />}>General</Tab>
+          </TabList>
         )}
-
-        <TabList
-          className={styles.tabList}
-          selectedValue="detalles"
-        >
-          <Tab value="detalles" icon={<Box16Regular />}>
-            General
-          </Tab>
-        </TabList>
-      </div>
+      />
 
       {/* 3. Form Body */}
       {loading ? (
@@ -481,27 +410,6 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
                 </div>
               </div>
 
-              {/* Permite Decimales */}
-              <div className={styles.d365FieldRow}>
-                <div className={styles.d365LabelCol}>
-                  <Label size="medium">Permite Decimales</Label>
-                </div>
-                <div className={styles.d365ControlCol}>
-                  <div className={styles.fieldRowFlex}>
-                    <Switch
-                      checked={formData.permiteDecimales}
-                      onChange={(_, data) =>
-                        setFormData({ ...formData, permiteDecimales: data.checked })
-                      }
-                    />
-                    <Text size={200} className={styles.fieldHint}>
-                      {formData.permiteDecimales
-                        ? 'Sí (Permite fraccionar cantidades con decimales, ej: 2.50 metros)'
-                        : 'No (Cantidades exclusivamente enteras, ej: 1 unidad)'}
-                    </Text>
-                  </div>
-                </div>
-              </div>
             </Card>
 
             {/* Sección: Descripción rápida */}

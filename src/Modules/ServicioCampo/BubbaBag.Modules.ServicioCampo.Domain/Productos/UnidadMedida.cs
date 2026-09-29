@@ -12,7 +12,6 @@ public class UnidadMedida : Entity<Guid>
     public string Codigo { get; private set; } = default!;
     public string Nombre { get; private set; } = default!;
     public string Abreviatura { get; private set; } = default!;
-    public bool PermiteDecimales { get; private set; }
     public string? Descripcion { get; private set; }
     public bool Activo { get; private set; }
 
@@ -22,7 +21,6 @@ public class UnidadMedida : Entity<Guid>
         string codigo,
         string nombre,
         string abreviatura,
-        bool permiteDecimales = false,
         string? descripcion = null)
     {
         return new UnidadMedida
@@ -31,7 +29,6 @@ public class UnidadMedida : Entity<Guid>
             Codigo = codigo.Trim().ToUpperInvariant(),
             Nombre = nombre.Trim(),
             Abreviatura = abreviatura.Trim(),
-            PermiteDecimales = permiteDecimales,
             Descripcion = descripcion?.Trim(),
             Activo = true
         };
@@ -40,12 +37,10 @@ public class UnidadMedida : Entity<Guid>
     public void Actualizar(
         string nombre,
         string abreviatura,
-        bool permiteDecimales,
         string? descripcion = null)
     {
         Nombre = nombre.Trim();
         Abreviatura = abreviatura.Trim();
-        PermiteDecimales = permiteDecimales;
         Descripcion = descripcion?.Trim();
     }
 

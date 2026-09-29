@@ -16,13 +16,6 @@ public class ListaPreciosConfiguration : IEntityTypeConfiguration<ListaPrecios>
             .IsRequired()
             .HasMaxLength(150);
 
-        builder.Property(l => l.Codigo)
-            .IsRequired()
-            .HasMaxLength(50);
-
-        builder.HasIndex(l => l.Codigo)
-            .IsUnique();
-
         builder.Property(l => l.Moneda)
             .IsRequired()
             .HasMaxLength(10)

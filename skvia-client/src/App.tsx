@@ -6,7 +6,7 @@ import { AlmacenesListPage, AlmacenFormPage } from './features/inventario/almace
 import { UnidadesMedidaListPage, UnidadMedidaFormPage } from './features/inventario/unidades-medida';
 import { CategoriasListPage, CategoriaFormPage } from './features/inventario/categorias';
 import { ListasPreciosListPage, ListaPreciosFormPage } from './features/inventario/listas-precios';
-import { ImportsListPage, ImportJobDetailPage } from './features/gestion-datos';
+import { ImportacionesListPage, ImportacionDetallePage } from './features/gestion-datos';
 import { PlaceholderPage } from './components/common/PlaceholderPage';
 
 export default function App() {
@@ -42,11 +42,13 @@ export default function App() {
             <Route path="servicio-campo/almacenes/nuevo" element={<AlmacenFormPage />} />
             <Route path="servicio-campo/almacenes/:id" element={<AlmacenFormPage />} />
 
-            {/* 6. Gestión de Datos / Importaciones D365 */}
-            <Route path="configuracion/gestion-datos/imports" element={<ImportsListPage />} />
-            <Route path="configuracion/gestion-datos/imports/:id" element={<ImportJobDetailPage />} />
-            <Route path="configuracion/data-management/imports" element={<ImportsListPage />} />
-            <Route path="configuracion/data-management/imports/:id" element={<ImportJobDetailPage />} />
+            {/* Gestión global de datos e importaciones */}
+            <Route path="gestion-datos/importaciones" element={<ImportacionesListPage />} />
+            <Route path="gestion-datos/importaciones/:id" element={<ImportacionDetallePage />} />
+            <Route path="configuracion/gestion-datos/imports" element={<Navigate to="/gestion-datos/importaciones" replace />} />
+            <Route path="configuracion/gestion-datos/imports/:id" element={<ImportacionDetallePage />} />
+            <Route path="configuracion/data-management/imports" element={<Navigate to="/gestion-datos/importaciones" replace />} />
+            <Route path="configuracion/data-management/imports/:id" element={<ImportacionDetallePage />} />
 
             {/* Vistas en construcción o rutas no mapeadas */}
             <Route path="*" element={<PlaceholderPage />} />

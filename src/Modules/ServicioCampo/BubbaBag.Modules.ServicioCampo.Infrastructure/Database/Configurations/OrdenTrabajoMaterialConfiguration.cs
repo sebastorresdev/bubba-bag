@@ -14,7 +14,7 @@ public class OrdenTrabajoMaterialConfiguration : IEntityTypeConfiguration<OrdenT
 
         builder.Property(m => m.Cantidad)
             .IsRequired()
-            .HasPrecision(14, 2);
+            .HasPrecision(14, 5);
 
         builder.Property(m => m.ItemSeriadoId);
         builder.HasIndex(m => m.ItemSeriadoId);

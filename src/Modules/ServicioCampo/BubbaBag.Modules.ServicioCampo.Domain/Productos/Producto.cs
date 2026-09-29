@@ -18,6 +18,7 @@ public class Producto : Entity<Guid>
     public virtual ICollection<ElementoListaPrecios> PreciosEnListas { get; private set; } = new List<ElementoListaPrecios>();
     public string? Categoria { get; private set; } // Materiales, Equipos, Insumos, Herramientas, Servicios
     public string UnidadMedida { get; private set; } = "Unidades"; // Unidades, Metros, Rollos, Cajas, Servicios
+    public int DecimalesCantidad { get; private set; }
     public bool EsSerializado { get; private set; } // true para decos/routers con serie
     public string? CodigoBarras { get; private set; } // UPC Code / Barcode
     public string? Notas { get; private set; } // Notas internas y especificaciones
@@ -44,8 +45,10 @@ public class Producto : Entity<Guid>
         decimal costoEstandar = 0m,
         bool afectoImpuesto = true,
         string? proveedorDefecto = null,
-        Guid? listaPreciosPredeterminadaId = null)
+        Guid? listaPreciosPredeterminadaId = null,
+        int decimalesCantidad = 0)
     {
+        ValidarDecimalesCantidad(decimalesCantidad);
         return new Producto
         {
             Id = Guid.NewGuid(),
@@ -53,6 +56,7 @@ public class Producto : Entity<Guid>
             Nombre = nombre.Trim(),
             Categoria = string.IsNullOrWhiteSpace(categoria) ? null : categoria.Trim(),
             UnidadMedida = unidadMedida.Trim(),
+            DecimalesCantidad = decimalesCantidad,
             EsSerializado = esSerializado,
             Descripcion = descripcion?.Trim(),
             Tipo = tipo,
@@ -82,11 +86,14 @@ public class Producto : Entity<Guid>
         decimal costoEstandar = 0m,
         bool afectoImpuesto = true,
         string? proveedorDefecto = null,
-        Guid? listaPreciosPredeterminadaId = null)
+        Guid? listaPreciosPredeterminadaId = null,
+        int decimalesCantidad = 0)
     {
+        ValidarDecimalesCantidad(decimalesCantidad);
         Nombre = nombre.Trim();
         Categoria = string.IsNullOrWhiteSpace(categoria) ? null : categoria.Trim();
         UnidadMedida = unidadMedida.Trim();
+        DecimalesCantidad = decimalesCantidad;
         EsSerializado = esSerializado;
         Descripcion = descripcion?.Trim();
         Tipo = tipo;
@@ -107,4 +114,10 @@ public class Producto : Entity<Guid>
 
     public void Desactivar() => Activo = false;
     public void Activar() => Activo = true;
+
+    private static void ValidarDecimalesCantidad(int decimalesCantidad)
+    {
+        if (decimalesCantidad is < 0 or > 5)
+            throw new ArgumentOutOfRangeException(nameof(decimalesCantidad), "Los decimales de cantidad deben estar entre 0 y 5.");
+    }
 }

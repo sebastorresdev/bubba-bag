@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Toolbar,
-  ToolbarButton,
-  ToolbarDivider,
   Button,
   Input,
   Textarea,
@@ -14,13 +11,6 @@ import {
   Card,
   Text,
   Label,
-  Divider,
-  Avatar,
-  Spinner,
-  MessageBar,
-  MessageBarBody,
-  MessageBarTitle,
-  MessageBarActions,
   Skeleton,
   SkeletonItem,
   TagPicker,
@@ -49,7 +39,6 @@ import {
   Box16Regular,
   Wrench16Regular,
   DocumentText16Regular,
-  DismissRegular,
   Cube16Regular,
   Folder16Regular,
   Money16Regular,
@@ -63,6 +52,9 @@ import type { UnidadMedidaDto } from '../../unidades-medida/types/unidadMedida.t
 import { ListaPreciosService } from '../../listas-precios/services/listaPrecios.service';
 import type { ListaPreciosDto } from '../../listas-precios/types/listaPrecios.types';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
+import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
+import { D365MessageBar } from '../../../../components/common/D365MessageBar';
+import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
 
 export interface ProductoFormPageProps {
   productoId?: string | null;
@@ -100,6 +92,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
     tipo: 'Inventario',
     categoria: '', // Opcional
     unidadMedida: 'Unidades',
+    decimalesCantidad: 0,
     precioBase: 0,
     costoActual: 0,
     costoEstandar: 0,
@@ -165,7 +158,6 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
     nombre: '',
     codigo: '',
     abreviatura: '',
-    permiteDecimales: false,
   });
   const [quickUnidadError, setQuickUnidadError] = useState('');
   const [quickUnidadSaving, setQuickUnidadSaving] = useState(false);
@@ -254,7 +246,6 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
     return listasPreciosList.filter(
       (lp) =>
         lp.nombre.toLowerCase().includes(q) ||
-        (lp.codigo && lp.codigo.toLowerCase().includes(q)) ||
         (lp.moneda && lp.moneda.toLowerCase().includes(q))
     );
   }, [listasPreciosList, listaPreciosQuery]);
@@ -303,7 +294,6 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
         nombre: quickUnidadData.nombre.trim(),
         codigo: quickUnidadData.codigo.trim().toUpperCase(),
         abreviatura: quickUnidadData.abreviatura.trim(),
-        permiteDecimales: quickUnidadData.permiteDecimales,
       });
       cargarCatalogos();
       setFormData((prev) => ({ ...prev, unidadMedida: quickUnidadData.nombre.trim() }));
@@ -312,7 +302,6 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
         nombre: '',
         codigo: '',
         abreviatura: '',
-        permiteDecimales: false,
       });
       if (errors.unidadMedida) {
         setErrors((prev) => ({ ...prev, unidadMedida: '' }));
@@ -337,6 +326,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
             tipo: p.tipo,
             categoria: p.categoria || '',
             unidadMedida: p.unidadMedida,
+            decimalesCantidad: p.decimalesCantidad ?? 0,
             precioBase: p.precioBase,
             costoActual: p.costoActual ?? 0,
             costoEstandar: p.costoEstandar ?? 0,
@@ -390,6 +380,10 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
     if (!formData.nombre.trim()) {
       newErrors.nombre = 'El nombre del producto es obligatorio';
     }
+    const decimalesCantidad = formData.decimalesCantidad ?? 0;
+    if (!Number.isInteger(decimalesCantidad) || decimalesCantidad < 0 || decimalesCantidad > 5) {
+      newErrors.decimalesCantidad = 'Indica un número entero entre 0 y 5.';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -411,6 +405,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
           nombre: formData.nombre,
           categoria: formData.categoria || '',
           unidadMedida: formData.unidadMedida,
+          decimalesCantidad: formData.decimalesCantidad,
           esSerializado: formData.esSerializado,
           descripcion: formData.descripcion,
           tipo: formData.tipo,
@@ -468,6 +463,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
       tipo: 'Inventario',
       categoria: '',
       unidadMedida: 'Unidades',
+      decimalesCantidad: 0,
       precioBase: 0,
       costoActual: 0,
       costoEstandar: 0,
@@ -531,168 +527,97 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
     <div className={styles.root}>
       {/* 0. FULL WIDTH TOP NOTIFICATION MESSAGEBAR (ABOVE COMMAND BAR CON BOTÓN X) */}
       {statusMessage && (
-        <MessageBar
+        <D365MessageBar
           intent={statusMessage.type === 'success' ? 'success' : 'error'}
-          shape="square"
           className={styles.messageBarContainer}
+          onDismiss={() => setStatusMessage(null)}
         >
-          <MessageBarBody>
-            <MessageBarTitle>
-              {statusMessage.type === 'success' ? 'Éxito' : 'Atención'}
-            </MessageBarTitle>
-            {statusMessage.text}
-          </MessageBarBody>
-          <MessageBarActions
-            containerAction={
-              <Button
-                appearance="transparent"
-                aria-label="Cerrar notificación"
-                icon={<DismissRegular />}
-                onClick={() => setStatusMessage(null)}
-              />
-            }
-          />
-        </MessageBar>
+          {statusMessage.text}
+        </D365MessageBar>
       )}
 
       {/* 1. DYNAMICS 365 COMMAND BAR */}
-      <Toolbar size="medium" aria-label="Comandos de producto" className={styles.commandBar}>
+      <D365CommandBar
+        ariaLabel="Comandos de producto"
+
+        busy={saving || loading}
+        busyLabel={loading ? 'Cargando...' : 'Guardando...'}
+      >
         <div className={styles.toolbarLeft}>
-          <ToolbarButton
-            icon={<ArrowLeft16Regular className={styles.iconPrimary} />}
+          <D365CommandButton
+            icon={<ArrowLeft16Regular />}
+            tone="brand"
             onClick={handleBack}
             title="Volver al listado"
             aria-label="Volver"
           />
-          <ToolbarDivider />
+          <D365CommandDivider />
 
           {/* Guardar: Lilac Border Active */}
-          <ToolbarButton
-            icon={<Save16Regular className={styles.iconSaveLilac} />}
+          <D365CommandButton
+            icon={<Save16Regular />}
+            tone="save"
             onClick={() => handleSave(false)}
             disabled={saving || loading}
             appearance="subtle"
           >
             Guardar
-          </ToolbarButton>
+          </D365CommandButton>
 
           {/* Guardar y cerrar: Lilac Border Active */}
-          <ToolbarButton
-            icon={<SaveMultiple16Regular className={styles.iconSaveLilac} />}
+          <D365CommandButton
+            icon={<SaveMultiple16Regular />}
+            tone="save"
             onClick={() => handleSave(true)}
             disabled={saving || loading}
             appearance="subtle"
           >
             Guardar y cerrar
-          </ToolbarButton>
+          </D365CommandButton>
 
           {/* Nuevo: Verde D365 */}
-          <ToolbarButton
-            icon={<Add16Regular className={styles.iconNewGreen} />}
+          <D365CommandButton
+            icon={<Add16Regular />}
+            tone="create"
             onClick={handleNew}
             disabled={saving || loading}
             appearance="subtle"
           >
             Nuevo
-          </ToolbarButton>
+          </D365CommandButton>
 
           {/* Deshacer / Refrescar */}
-          <ToolbarButton
+          <D365CommandButton
             icon={<ArrowClockwise16Regular />}
             onClick={handleNew}
             disabled={saving || loading}
             appearance="subtle"
           >
             Deshacer
-          </ToolbarButton>
+          </D365CommandButton>
         </div>
-
-        {(saving || loading) && (
-          <Spinner size="tiny" label={loading ? 'Cargando...' : 'Guardando...'} />
-        )}
-      </Toolbar>
+      </D365CommandBar>
 
       {/* 2. ENTITY HEADER SUMMARY */}
-      <div className={styles.headerContainer}>
-        {loading ? (
-          <div className={styles.headerTopRow}>
-            <div className={styles.headerLeft}>
-              <Skeleton animation="pulse">
-                <SkeletonItem shape="circle" size={56} />
-              </Skeleton>
-              <div className={styles.titleSection}>
-                <Skeleton animation="pulse">
-                  <SkeletonItem size={24} className={styles.skeletonTitle} />
-                  <SkeletonItem size={16} className={styles.skeletonSub} />
-                </Skeleton>
-              </div>
-            </div>
-
-            <div className={styles.headerMetaRight}>
-              <div className={styles.metaItem}>
-                <Text className={styles.metaLabel}>Estado</Text>
-                <Skeleton animation="pulse">
-                  <SkeletonItem size={16} className={styles.skeletonBadge60} />
-                </Skeleton>
-              </div>
-              <Divider vertical className={styles.metaDivider} />
-              <div className={styles.metaItem}>
-                <Text className={styles.metaLabel}>Tipo de Producto</Text>
-                <Skeleton animation="pulse">
-                  <SkeletonItem size={16} className={styles.skeletonBadge80} />
-                </Skeleton>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className={styles.headerTopRow}>
-            <div className={styles.headerLeft}>
-              <Avatar
-                name={headerTitle}
-                initials={headerInitials}
-                size={56}
-                className={styles.avatar}
-              />
-              <div className={styles.titleSection}>
-                <Text className={styles.title}>{headerTitle}</Text>
-                <Text className={styles.subtitle}>{headerSubtitle}</Text>
-              </div>
-            </div>
-
-            {/* Metadatos: Label Arriba (Estado / Tipo) + Valor Abajo + Fluent UI Divider */}
-            <div className={styles.headerMetaRight}>
-              <div className={styles.metaItem}>
-                <Text className={styles.metaLabel}>Estado</Text>
-                <Text className={styles.metaValue}>
-                  {savedHeader.activo ? 'Activo' : 'Inactivo'}
-                </Text>
-              </div>
-              <Divider vertical className={styles.metaDivider} />
-              <div className={styles.metaItem}>
-                <Text className={styles.metaLabel}>Tipo de Producto</Text>
-                <Text className={styles.metaValue}>{savedHeader.tipo}</Text>
-              </div>
-            </div>
-          </div>
+      <D365EntityHeader
+        title={headerTitle}
+        subtitle={headerSubtitle}
+        avatarName={headerTitle}
+        avatarInitials={headerInitials}
+        avatarSize={56}
+        loading={loading}
+        metadata={[
+          { label: 'Estado', value: savedHeader.activo ? 'Activo' : 'Inactivo' },
+          { label: 'Tipo de producto', value: savedHeader.tipo },
+        ]}
+        tabs={(
+          <TabList selectedValue={selectedTab} onTabSelect={(_, data) => setSelectedTab(data.value as string)}>
+            <Tab value="detalles" icon={<Box16Regular />}>Detalles del Producto</Tab>
+            <Tab value="field-service" icon={<Wrench16Regular />}>Servicio de Campo</Tab>
+            <Tab value="notas" icon={<DocumentText16Regular />}>Notas</Tab>
+          </TabList>
         )}
-
-        {/* Tabs de Dynamics 365 */}
-        <TabList
-          className={styles.tabList}
-          selectedValue={selectedTab}
-          onTabSelect={(_, data) => setSelectedTab(data.value as string)}
-        >
-          <Tab value="detalles" icon={<Box16Regular />}>
-            Detalles del Producto
-          </Tab>
-          <Tab value="field-service" icon={<Wrench16Regular />}>
-            Servicio de Campo
-          </Tab>
-          <Tab value="notas" icon={<DocumentText16Regular />}>
-            Notas
-          </Tab>
-        </TabList>
-      </div>
+      />
 
       {/* 3. D365 FORM SECTIONS (Ocupando de izquierda a derecha sin centrado) */}
       {loading ? (
@@ -1010,6 +935,37 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                   </div>
                 </div>
 
+                <div className={styles.d365FieldRow}>
+                  <div className={styles.d365LabelCol}>
+                    <Label size="medium" htmlFor="prod-decimales-cantidad">
+                      Decimales de cantidad
+                    </Label>
+                  </div>
+                  <div className={styles.d365ControlCol}>
+                    <Input
+                      id="prod-decimales-cantidad"
+                      type="number"
+                      min={0}
+                      max={5}
+                      step={1}
+                      value={String(formData.decimalesCantidad ?? 0)}
+                      onChange={(_, data) => {
+                        const value = Number.parseInt(data.value, 10);
+                        setFormData((prev) => ({
+                          ...prev,
+                          decimalesCantidad: Number.isNaN(value) ? 0 : value,
+                        }));
+                      }}
+                    />
+                    <Text size={200} className={styles.fieldHint}>
+                      Cifras decimales permitidas para este producto: 0 para cantidades enteras, 2 para cantidades como 1.25.
+                    </Text>
+                    {errors.decimalesCantidad && (
+                      <Text size={100} className={styles.fieldErrorText}>{errors.decimalesCantidad}</Text>
+                    )}
+                  </div>
+                </div>
+
                 {/* Lista de Precios Predeterminada (TagPicker Estilo Dynamics 365) */}
                 <div className={styles.d365FieldRow}>
                   <div className={styles.d365LabelCol}>
@@ -1067,7 +1023,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                                 key={lp.id}
                                 value={lp.id}
                                 media={<Money16Regular className={styles.iconBrand} />}
-                                secondaryContent={lp.codigo ? `[${lp.codigo}] • ${lp.moneda}` : lp.moneda}
+                                secondaryContent={lp.moneda}
                               >
                                 {lp.nombre}
                               </TagPickerOption>
@@ -1316,9 +1272,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
             <DialogTitle>Creación rápida: Unidad de Medida</DialogTitle>
             <DialogContent className={styles.dialogForm}>
               {quickUnidadError && (
-                <MessageBar intent="error">
-                  <MessageBarBody>{quickUnidadError}</MessageBarBody>
-                </MessageBar>
+                <D365MessageBar intent="error">{quickUnidadError}</D365MessageBar>
               )}
               <div className={styles.dialogRow}>
                 <Label required size="small" className={styles.labelSmallBlock}>
@@ -1358,13 +1312,6 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                   />
                 </div>
               </div>
-              <div className={styles.paddingTop4}>
-                <Switch
-                  label="Permite Decimales (fraccionable)"
-                  checked={quickUnidadData.permiteDecimales}
-                  onChange={(_, d) => setQuickUnidadData((prev) => ({ ...prev, permiteDecimales: d.checked }))}
-                />
-              </div>
             </DialogContent>
             <DialogActions>
               <Button
@@ -1392,9 +1339,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
             <DialogTitle>Creación rápida: Categoría de Producto</DialogTitle>
             <DialogContent className={styles.dialogForm}>
               {quickCatError && (
-                <MessageBar intent="error">
-                  <MessageBarBody>{quickCatError}</MessageBarBody>
-                </MessageBar>
+                <D365MessageBar intent="error">{quickCatError}</D365MessageBar>
               )}
               <div className={styles.dialogRow}>
                 <Label required size="small" className={styles.labelSmallBlock}>
@@ -1445,6 +1390,4 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
   );
 };
 
-// Retrocompatibilidad con importaciones previas
-export const ProductoCreatePage = ProductoFormPage;
 export default ProductoFormPage;

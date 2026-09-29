@@ -33,7 +33,6 @@ public class ObtenerUnidadMedidaPorIdHandler : IQueryHandler<ObtenerUnidadMedida
             u.Codigo,
             u.Nombre,
             u.Abreviatura,
-            u.PermiteDecimales,
             u.Descripcion,
             u.Activo
         );

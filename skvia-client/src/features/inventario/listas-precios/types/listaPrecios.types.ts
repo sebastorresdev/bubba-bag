@@ -1,6 +1,5 @@
 export interface ListaPreciosDto {
   id: string;
-  codigo: string;
   nombre: string;
   moneda: string;
   descripcion?: string | null;
@@ -24,7 +23,6 @@ export interface ElementoListaPreciosDto {
 
 export interface DetalleListaPreciosDto {
   id: string;
-  codigo: string;
   nombre: string;
   moneda: string;
   descripcion?: string | null;
@@ -35,7 +33,6 @@ export interface DetalleListaPreciosDto {
 }
 
 export interface CreateListaPreciosDto {
-  codigo: string;
   nombre: string;
   moneda?: string;
   descripcion?: string | null;

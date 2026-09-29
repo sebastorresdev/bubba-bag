@@ -20,7 +20,7 @@ public class MovimientoInventarioConfiguration : IEntityTypeConfiguration<Movimi
 
         builder.Property(m => m.Cantidad)
             .IsRequired()
-            .HasPrecision(14, 2);
+            .HasPrecision(14, 5);
 
         builder.Property(m => m.NumeroDocumento)
             .HasMaxLength(100);

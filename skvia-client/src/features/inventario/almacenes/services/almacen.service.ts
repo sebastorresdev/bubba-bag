@@ -3,20 +3,13 @@ import type {
   AlmacenDto,
   CreateAlmacenDto,
   UpdateAlmacenDto,
-  RecursoLookupDto,
-  SucursalLookupDto,
+  ResumenStockAlmacenDto,
 } from '../types/almacen.types';
 
 export const AlmacenService = {
   // 1. Obtener almacenes con filtros
-  async getAlmacenes(
-    tipo?: string,
-    sucursalId?: string,
-    soloActivos?: boolean
-  ): Promise<AlmacenDto[]> {
+  async getAlmacenes(soloActivos?: boolean): Promise<AlmacenDto[]> {
     const params = new URLSearchParams();
-    if (tipo) params.append('tipo', tipo);
-    if (sucursalId) params.append('sucursalId', sucursalId);
     if (soloActivos !== undefined) params.append('soloActivos', String(soloActivos));
 
     const qs = params.toString() ? `?${params.toString()}` : '';
@@ -52,14 +45,9 @@ export const AlmacenService = {
     });
   },
 
-  // 6. Obtener recursos disponibles para asignación (técnicos / cuadrillas)
-  async getRecursosDisponibles(tipo?: string): Promise<RecursoLookupDto[]> {
-    const qs = tipo ? `?tipo=${tipo}` : '';
-    return apiClient<RecursoLookupDto[]>(`/api/inventario/almacenes/recursos-disponibles${qs}`);
+  async getResumenStockAlmacenes(soloActivos?: boolean): Promise<ResumenStockAlmacenDto[]> {
+    const qs = soloActivos === undefined ? '' : `?soloActivos=${soloActivos}`;
+    return apiClient<ResumenStockAlmacenDto[]>(`/api/inventario/stock/almacenes${qs}`);
   },
 
-  // 7. Obtener sucursales activas
-  async getSucursales(): Promise<SucursalLookupDto[]> {
-    return apiClient<SucursalLookupDto[]>('/api/configuracion/sucursales?soloActivos=true');
-  },
 };

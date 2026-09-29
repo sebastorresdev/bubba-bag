@@ -29,11 +29,12 @@ import {
 } from '@fluentui/react-icons';
 import { useTheme } from '../../context/ThemeContext';
 import type { EnterpriseApp } from '../../types/navigation.types';
+import { semanticTokens } from '../../styles/semanticTokens';
 
 const useStyles = makeStyles({
   root: {
     height: '48px',
-    backgroundColor: '#0e213f', // Dynamics 365 Deep Navy Blue
+    backgroundColor: semanticTokens.navigation.background,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -43,7 +44,7 @@ const useStyles = makeStyles({
     boxSizing: 'border-box',
     flexShrink: 0,
     zIndex: 100,
-    color: '#ffffff',
+    color: semanticTokens.navigation.foreground,
   },
   leftSection: {
     display: 'flex',
@@ -55,16 +56,16 @@ const useStyles = makeStyles({
     height: '48px',
     padding: 0,
     backgroundColor: 'transparent',
-    color: '#ffffff',
+    color: semanticTokens.navigation.foreground,
     border: 'none',
     borderRadius: 0,
     ':hover': {
-      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-      color: '#ffffff',
+      backgroundColor: semanticTokens.navigation.hoverBackground,
+      color: semanticTokens.navigation.foreground,
     },
     ':active': {
-      backgroundColor: 'rgba(255, 255, 255, 0.16)',
-      color: '#ffffff',
+      backgroundColor: semanticTokens.navigation.pressedBackground,
+      color: semanticTokens.navigation.foreground,
     },
   },
   brandBtn: {
@@ -73,21 +74,20 @@ const useStyles = makeStyles({
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
-    color: '#ffffff',
+    color: semanticTokens.navigation.foreground,
     backgroundColor: 'transparent',
     border: 'none',
     borderRadius: 0,
     padding: '0 12px',
-    fontSize: '15px',
-    fontWeight: '400',
-    fontFamily: '"Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif',
+    fontSize: semanticTokens.typography.body,
+    fontWeight: semanticTokens.typography.regular,
     ':hover': {
-      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-      color: '#ffffff',
+      backgroundColor: semanticTokens.navigation.hoverBackground,
+      color: semanticTokens.navigation.foreground,
     },
     ':active': {
-      backgroundColor: 'rgba(255, 255, 255, 0.16)',
-      color: '#ffffff',
+      backgroundColor: semanticTokens.navigation.pressedBackground,
+      color: semanticTokens.navigation.foreground,
     },
   },
   divider: {
@@ -98,11 +98,10 @@ const useStyles = makeStyles({
     opacity: 0.35,
   },
   appTitle: {
-    color: '#ffffff',
-    fontSize: '15px',
-    fontWeight: '600',
+    color: semanticTokens.navigation.foreground,
+    fontSize: semanticTokens.typography.body,
+    fontWeight: semanticTokens.typography.semibold,
     padding: '0 10px',
-    fontFamily: '"Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif',
   },
   centerSection: {
     flexGrow: 1,
@@ -124,17 +123,17 @@ const useStyles = makeStyles({
     width: '36px',
     height: '36px',
     padding: 0,
-    color: '#ffffff',
+    color: semanticTokens.navigation.foreground,
     backgroundColor: 'transparent',
     border: 'none',
     borderRadius: '4px',
     ':hover': {
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      color: '#ffffff',
+      backgroundColor: semanticTokens.navigation.hoverBackground,
+      color: semanticTokens.navigation.foreground,
     },
     ':active': {
-      backgroundColor: 'rgba(255, 255, 255, 0.18)',
-      color: '#ffffff',
+      backgroundColor: semanticTokens.navigation.pressedBackground,
+      color: semanticTokens.navigation.foreground,
     },
   },
   userProfile: {
@@ -148,14 +147,14 @@ const useStyles = makeStyles({
     borderRadius: '4px',
     backgroundColor: 'transparent',
     border: 'none',
-    color: '#ffffff',
+    color: semanticTokens.navigation.foreground,
     ':hover': {
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      color: '#ffffff',
+      backgroundColor: semanticTokens.navigation.hoverBackground,
+      color: semanticTokens.navigation.foreground,
     },
     ':active': {
-      backgroundColor: 'rgba(255, 255, 255, 0.18)',
-      color: '#ffffff',
+      backgroundColor: semanticTokens.navigation.pressedBackground,
+      color: semanticTokens.navigation.foreground,
     },
   },
   userInfoText: {
@@ -177,6 +176,28 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: '2px',
   },
+  appMenu: { minWidth: '280px' },
+  appSectionLabel: { color: semanticTokens.text.muted },
+  appBadge: {
+    width: '28px',
+    height: '28px',
+    borderRadius: tokens.borderRadiusSmall,
+    backgroundColor: tokens.colorBrandBackground,
+    color: semanticTokens.navigation.foreground,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: semanticTokens.typography.bodySmall,
+    fontWeight: semanticTokens.typography.bold,
+  },
+  selectedCheck: { color: tokens.colorCompoundBrandForeground1 },
+  appSubtitle: { color: semanticTokens.text.secondary },
+  brandChevron: { opacity: 0.8 },
+  brandLabel: { fontWeight: semanticTokens.typography.semibold },
+  notificationIcon: { position: 'relative', display: 'flex' },
+  notificationBadge: { position: 'absolute', top: '-2px', right: '-2px' },
+  userName: { color: semanticTokens.navigation.foreground },
+  userRole: { color: semanticTokens.navigation.foreground },
 });
 
 interface SuiteBarProps {
@@ -198,9 +219,9 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
   const { isDarkMode, toggleDarkMode } = useTheme();
 
   const appMenu = (
-    <MenuList style={{ minWidth: '280px' }}>
+    <MenuList className={styles.appMenu}>
       <div className={styles.appLauncherHeader}>
-        <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground4 }}>
+        <Text size={200} weight="semibold" className={styles.appSectionLabel}>
           APLICACIONES DE LA EMPRESA
         </Text>
       </div>
@@ -211,27 +232,14 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
           <MenuItem
             key={app.id}
             icon={
-              <div
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '4px',
-                  backgroundColor: app.color,
-                  color: tokens.colorNeutralForegroundOnBrand,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                }}
-              >
+              <div className={styles.appBadge}>
                 {app.shortCode}
               </div>
             }
             secondaryContent={
               isSelected ? (
                 <Checkmark16Regular
-                  style={{ color: tokens.colorCompoundBrandForeground1 }}
+                  className={styles.selectedCheck}
                 />
               ) : undefined
             }
@@ -241,7 +249,7 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
               <Text weight={isSelected ? 'semibold' : 'medium'} size={300}>
                 {app.name}
               </Text>
-              <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
+              <Text size={100} className={styles.appSubtitle}>
                 {app.subtitle}
               </Text>
             </div>
@@ -288,10 +296,10 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
               appearance="transparent"
               className={styles.brandBtn}
               title="Cambiar Aplicación"
-              icon={<ChevronDown12Regular style={{ opacity: 0.8 }} />}
+              icon={<ChevronDown12Regular className={styles.brandChevron} />}
               iconPosition="after"
             >
-              <span style={{ fontWeight: 600 }}>SKVIA</span>
+              <span className={styles.brandLabel}>SKVIA</span>
             </Button>
           </MenuTrigger>
           <MenuPopover>{appMenu}</MenuPopover>
@@ -336,12 +344,12 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
             className={styles.actionBtn}
             aria-label="Notificaciones"
             icon={
-              <div style={{ position: 'relative', display: 'flex' }}>
+              <div className={styles.notificationIcon}>
                 <Alert20Regular />
                 <Badge
                   size="extra-small"
                   color="danger"
-                  style={{ position: 'absolute', top: -2, right: -2 }}
+                  className={styles.notificationBadge}
                 />
               </div>
             }
@@ -376,10 +384,10 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
             badge={{ status: 'available' }}
           />
           <div className={styles.userInfoText}>
-            <Text weight="semibold" size={200} style={{ color: '#ffffff' }}>
+            <Text weight="semibold" size={200} className={styles.userName}>
               Sebastián Torres
             </Text>
-            <Text size={100} style={{ color: 'rgba(255, 255, 255, 0.85)' }}>
+            <Text size={100} className={styles.userRole}>
               Administrador
             </Text>
           </div>

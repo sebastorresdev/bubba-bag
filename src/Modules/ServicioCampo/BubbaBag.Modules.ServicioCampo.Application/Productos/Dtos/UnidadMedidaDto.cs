@@ -7,7 +7,6 @@ public record UnidadMedidaDto(
     string Codigo,
     string Nombre,
     string Abreviatura,
-    bool PermiteDecimales,
     string? Descripcion,
     bool Activo
 );

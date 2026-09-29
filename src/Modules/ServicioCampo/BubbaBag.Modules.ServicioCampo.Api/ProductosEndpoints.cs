@@ -107,7 +107,8 @@ public static class ProductosEndpoints
             request.CostoEstandar ?? 0m,
             request.AfectoImpuesto ?? true,
             request.ProveedorDefecto,
-            request.ListaPreciosPredeterminadaId
+            request.ListaPreciosPredeterminadaId,
+            request.DecimalesCantidad ?? 0
         );
 
         var result = await dispatcher.SendAsync(command);
@@ -136,7 +137,8 @@ public static class ProductosEndpoints
             request.CostoEstandar ?? 0m,
             request.AfectoImpuesto ?? true,
             request.ProveedorDefecto,
-            request.ListaPreciosPredeterminadaId
+            request.ListaPreciosPredeterminadaId,
+            request.DecimalesCantidad
         );
 
         var result = await dispatcher.SendAsync(command);
@@ -169,7 +171,8 @@ public record CrearProductoRequest(
     decimal? CostoEstandar = null,
     bool? AfectoImpuesto = null,
     string? ProveedorDefecto = null,
-    Guid? ListaPreciosPredeterminadaId = null
+    Guid? ListaPreciosPredeterminadaId = null,
+    int? DecimalesCantidad = null
 );
 
 public record ActualizarProductoRequest(
@@ -186,7 +189,8 @@ public record ActualizarProductoRequest(
     decimal? CostoEstandar = null,
     bool? AfectoImpuesto = null,
     string? ProveedorDefecto = null,
-    Guid? ListaPreciosPredeterminadaId = null
+    Guid? ListaPreciosPredeterminadaId = null,
+    int? DecimalesCantidad = null
 );
 
 public record CambiarEstadoProductoRequest(bool Activo);

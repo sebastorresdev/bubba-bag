@@ -5,7 +5,6 @@ namespace BubbaBag.Modules.ServicioCampo.Application.Productos.Dtos;
 
 public record ListaPreciosDto(
     Guid Id,
-    string Codigo,
     string Nombre,
     string Moneda,
     string? Descripcion,

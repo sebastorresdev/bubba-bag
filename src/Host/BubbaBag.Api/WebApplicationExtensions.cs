@@ -79,7 +79,9 @@ public static class WebApplicationExtensions
                           ""Activo"" boolean NOT NULL DEFAULT true,
                           ""Tipo"" integer NOT NULL DEFAULT 1,
                           ""PrecioBase"" numeric(12,2) NOT NULL DEFAULT 0,
-                          ""CatalogoId"" uuid
+                          ""DecimalesCantidad"" integer NOT NULL DEFAULT 0,
+                          ""CatalogoId"" uuid,
+                          CONSTRAINT ""CK_Productos_DecimalesCantidad"" CHECK (""DecimalesCantidad"" BETWEEN 0 AND 5)
                       );
 
                       CREATE TABLE IF NOT EXISTS inventario.""Almacenes"" (
@@ -99,7 +101,6 @@ public static class WebApplicationExtensions
                           ""Codigo"" character varying(20) NOT NULL,
                           ""Nombre"" character varying(100) NOT NULL,
                           ""Abreviatura"" character varying(10) NOT NULL,
-                          ""PermiteDecimales"" boolean NOT NULL DEFAULT false,
                           ""Descripcion"" character varying(300),
                           ""Activo"" boolean NOT NULL DEFAULT true
                       );
@@ -140,15 +141,16 @@ public static class WebApplicationExtensions
                       );
 
                       ALTER TABLE inventario.""Productos"" ADD COLUMN IF NOT EXISTS ""ListaPreciosPredeterminadaId"" uuid;
+                      ALTER TABLE inventario.""Productos"" ADD COLUMN IF NOT EXISTS ""DecimalesCantidad"" integer NOT NULL DEFAULT 0;
 
-                      INSERT INTO inventario.""UnidadesMedida"" (""Id"", ""Codigo"", ""Nombre"", ""Abreviatura"", ""PermiteDecimales"", ""Descripcion"", ""Activo"")
+                      INSERT INTO inventario.""UnidadesMedida"" (""Id"", ""Codigo"", ""Nombre"", ""Abreviatura"", ""Descripcion"", ""Activo"")
                       VALUES 
-                          ('a1111111-1111-1111-1111-111111111111', 'UND', 'Unidades', 'und', false, 'Unidad discreta estándar para equipos, piezas y accesorios', true),
-                          ('a2222222-2222-2222-2222-222222222222', 'MTR', 'Metros', 'm', true, 'Metros lineales de cableado, ductos y canaletas (fraccionable)', true),
-                          ('a3333333-3333-3333-3333-333333333333', 'ROL', 'Rollos', 'rol', false, 'Bobina o rollo completo de cable o cinta', true),
-                          ('a4444444-4444-4444-4444-444444444444', 'CAJ', 'Cajas', 'cj', false, 'Caja de grapas, conectores o insumos al por mayor', true),
-                          ('a5555555-5555-5555-5555-555555555555', 'KGM', 'Kilogramos', 'kg', true, 'Peso en masa o granel (fraccionable)', true),
-                          ('a6666666-6666-6666-6666-666666666666', 'SRV', 'Servicio', 'srv', false, 'Prestación de trabajo u hora técnica de instalación', true)
+                          ('a1111111-1111-1111-1111-111111111111', 'UND', 'Unidades', 'und', 'Unidad para equipos, piezas y accesorios', true),
+                          ('a2222222-2222-2222-2222-222222222222', 'MTR', 'Metros', 'm', 'Medida de longitud para cableado, ductos y canaletas', true),
+                          ('a3333333-3333-3333-3333-333333333333', 'ROL', 'Rollos', 'rol', 'Bobina o rollo de cable o cinta', true),
+                          ('a4444444-4444-4444-4444-444444444444', 'CAJ', 'Cajas', 'cj', 'Caja de grapas, conectores o insumos al por mayor', true),
+                          ('a5555555-5555-5555-5555-555555555555', 'KGM', 'Kilogramos', 'kg', 'Unidad de peso en masa', true),
+                          ('a6666666-6666-6666-6666-666666666666', 'SRV', 'Servicio', 'srv', 'Prestación de trabajo o servicio técnico', true)
                       ON CONFLICT (""Id"") DO NOTHING;
 
                       INSERT INTO inventario.""ListasPrecios"" (""Id"", ""Codigo"", ""Nombre"", ""Moneda"", ""Descripcion"", ""Activo"")
