@@ -22,6 +22,7 @@ public class ObtenerUnidadMedidaPorIdHandler : IQueryHandler<ObtenerUnidadMedida
     public async Task<Result<UnidadMedidaDto>> HandleAsync(ObtenerUnidadMedidaPorIdQuery query, CancellationToken cancellationToken = default)
     {
         var u = await _context.UnidadesMedida
+            .Include(x => x.GrupoUnidadMedida)
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == query.Id, cancellationToken);
 
@@ -30,11 +31,14 @@ public class ObtenerUnidadMedidaPorIdHandler : IQueryHandler<ObtenerUnidadMedida
 
         var dto = new UnidadMedidaDto(
             u.Id,
-            u.Codigo,
+            u.GrupoUnidadMedidaId,
+            u.GrupoUnidadMedida?.Nombre ?? string.Empty,
             u.Nombre,
-            u.Abreviatura,
-            u.Descripcion,
-            u.Activo
+            u.EsUnidadBase,
+            u.UnidadMedidaBaseId,
+            u.Cantidad,
+            u.FactorConversionTotal,
+            u.EstaActivo
         );
 
         return Result<UnidadMedidaDto>.Success(dto);

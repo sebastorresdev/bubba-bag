@@ -8,7 +8,7 @@ public class DataImportJobConfiguration : IEntityTypeConfiguration<DataImportJob
 {
     public void Configure(EntityTypeBuilder<DataImportJob> builder)
     {
-        builder.ToTable("DataImportJobs", "GestionDatos");
+        builder.ToTable("DataImportJobs", "gestiondatos");
 
         builder.HasKey(j => j.Id);
         builder.Property(j => j.Id)

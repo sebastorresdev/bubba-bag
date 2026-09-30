@@ -3,14 +3,12 @@ import {
   TabList,
   Tab,
   Text,
-  Badge,
   Spinner,
   Label,
   Input,
   Card,
   Button,
   Link,
-  Tag,
   DataGrid,
   DataGridHeader,
   DataGridHeaderCell,
@@ -30,7 +28,6 @@ import {
   DocumentText16Regular,
   ErrorCircle16Regular,
   CheckmarkCircle16Regular,
-  Person16Regular,
   Calendar16Regular,
   LockClosed16Regular,
   Search16Regular,
@@ -61,7 +58,7 @@ const useLocalStyles = makeStyles({
   },
   subgridTable: {
     width: '100%',
-    minWidth: '700px',
+    minWidth: '1050px',
   },
   // Candado al costado del control (estilo D365)
   lockInline: {
@@ -75,14 +72,6 @@ const useLocalStyles = makeStyles({
     display: 'flex',
     alignItems: 'center',
     width: '100%',
-  },
-  userTagLink: {
-    fontWeight: tokens.fontWeightSemibold,
-    color: tokens.colorBrandForegroundLink,
-    textDecoration: 'none',
-    ':hover': {
-      textDecoration: 'underline',
-    },
   },
   notFoundContent: { padding: tokens.spacingVerticalXXL },
   spacedTop: { marginTop: tokens.spacingVerticalM },
@@ -103,7 +92,19 @@ const useLocalStyles = makeStyles({
   subgridActions: { display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS },
   subgridSearch: { width: '260px' },
   searchInput: { width: '100%' },
-  tableOverflow: { width: '100%', overflowX: 'auto' },
+  tableOverflow: {
+    width: '100%',
+    minHeight: '240px',
+    maxHeight: 'calc(100vh - 360px)',
+    overflowX: 'auto',
+    overflowY: 'auto',
+  },
+  stickyGridHeader: {
+    position: 'sticky',
+    top: 0,
+    zIndex: 1,
+    backgroundColor: tokens.colorNeutralBackground1,
+  },
   loadingProducts: { padding: tokens.spacingVerticalXXL, textAlign: 'center' },
 });
 
@@ -183,34 +184,18 @@ export const ImportacionDetallePage: React.FC = () => {
     }
   };
 
-  const getStatusBadge = (estado: string) => {
+  const getStatusText = (estado: string) => {
     switch (estado.toLowerCase()) {
       case 'completado':
-        return (
-          <Badge appearance="filled" color="success">
-            Completado
-          </Badge>
-        );
+        return 'Completado';
       case 'conerrores':
-        return (
-          <Badge appearance="filled" color="warning">
-            Con Errores
-          </Badge>
-        );
+        return 'Con errores';
       case 'fallido':
-        return (
-          <Badge appearance="filled" color="danger">
-            Fallido
-          </Badge>
-        );
+        return 'Fallido';
       case 'procesando':
-        return (
-          <Badge appearance="filled" color="brand">
-            En Proceso
-          </Badge>
-        );
+        return 'En proceso';
       default:
-        return <Badge appearance="tint">{estado}</Badge>;
+        return estado;
     }
   };
 
@@ -346,9 +331,9 @@ export const ImportacionDetallePage: React.FC = () => {
             <Text wrap={false}>
               {item.tipo === 1 || item.tipo === 'Inventario'
                 ? 'Inventario'
-                : item.tipo === 2 || item.tipo === 'Servicio'
-                  ? 'Servicio'
-                  : 'No Inventariable'}
+                : item.tipo === 2 || item.tipo === 'NoInventario'
+                  ? 'No inventario'
+                  : 'Servicio'}
             </Text>
           </TableCellLayout>
         ),
@@ -358,7 +343,7 @@ export const ImportacionDetallePage: React.FC = () => {
         renderHeaderCell: () => 'Unidad de Medida',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text wrap={false}>{item.unidadMedida || 'UND'}</Text>
+            <Text wrap={false}>{item.nombreUnidadMedidaDefecto || '—'}</Text>
           </TableCellLayout>
         ),
       }),
@@ -447,16 +432,9 @@ export const ImportacionDetallePage: React.FC = () => {
         subtitle={`Archivo de importación · Entidad: ${job.tipoRegistro}`}
         avatarInitials="IM"
         metadata={[
-          { label: 'Estado', value: getStatusBadge(job.estado) },
+          { label: 'Estado', value: getStatusText(job.estado) },
           { label: 'Entidad', value: job.tipoRegistro },
-          {
-            label: 'Iniciado por',
-            value: (
-              <Tag appearance="brand" shape="rounded" size="small" media={<Person16Regular />} value={job.creadoPor}>
-                <Link as="span" className={localStyles.userTagLink}>{job.creadoPor}</Link>
-              </Tag>
-            ),
-          },
+          { label: 'Iniciado por', value: job.creadoPor },
         ]}
         tabs={(
           <TabList selectedValue={activeTab} onTabSelect={(_, data) => setActiveTab(data.value as string)}>
@@ -659,7 +637,6 @@ export const ImportacionDetallePage: React.FC = () => {
               <div className={localStyles.subgridHeader}>
                 <div className={localStyles.subgridActions}>
                   <Button
-                    size="small"
                     icon={<ArrowClockwise16Regular />}
                     onClick={fetchJob}
                   >
@@ -669,8 +646,7 @@ export const ImportacionDetallePage: React.FC = () => {
 
                 <div className={localStyles.subgridSearch}>
                   <Input
-                    size="small"
-                    placeholder="Buscar en los registros..."
+                    placeholder="---"
                     contentBefore={<Search16Regular />}
                     value={errorSearch}
                     onChange={(_, d) => setErrorSearch(d.value)}
@@ -687,7 +663,7 @@ export const ImportacionDetallePage: React.FC = () => {
                   getRowId={(item) => item.id}
                   className={localStyles.subgridTable}
                 >
-                  <DataGridHeader>
+                  <DataGridHeader className={localStyles.stickyGridHeader}>
                     <DataGridRow>
                       {({ renderHeaderCell }) => (
                         <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
@@ -726,7 +702,6 @@ export const ImportacionDetallePage: React.FC = () => {
               <div className={localStyles.subgridHeader}>
                 <div className={localStyles.subgridActions}>
                   <Button
-                    size="small"
                     icon={<ArrowClockwise16Regular />}
                     onClick={fetchImportedProducts}
                   >
@@ -736,8 +711,7 @@ export const ImportacionDetallePage: React.FC = () => {
 
                 <div className={localStyles.subgridSearch}>
                   <Input
-                    size="small"
-                    placeholder="Buscar en los registros..."
+                    placeholder="---"
                     contentBefore={<Search16Regular />}
                     value={productSearch}
                     onChange={(_, d) => setProductSearch(d.value)}
@@ -758,7 +732,7 @@ export const ImportacionDetallePage: React.FC = () => {
                     getRowId={(item) => item.id}
                     className={localStyles.subgridTable}
                   >
-                    <DataGridHeader>
+                    <DataGridHeader className={localStyles.stickyGridHeader}>
                       <DataGridRow>
                         {({ renderHeaderCell }) => (
                           <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>

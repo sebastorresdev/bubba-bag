@@ -34,6 +34,7 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public DbSet<Ubigeo> Ubigeos => Set<Ubigeo>();
     public DbSet<Producto> Productos => Set<Producto>();
     public DbSet<UnidadMedida> UnidadesMedida => Set<UnidadMedida>();
+    public DbSet<GrupoUnidadMedida> GruposUnidadMedida => Set<GrupoUnidadMedida>();
     public DbSet<CategoriaProducto> CategoriasProducto => Set<CategoriaProducto>();
     public DbSet<ListaPrecios> ListasPrecios => Set<ListaPrecios>();
     public DbSet<ElementoListaPrecios> ElementosListaPrecios => Set<ElementoListaPrecios>();
@@ -48,6 +49,27 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public DbSet<PlantillaTrabajo> PlantillasTrabajo => Set<PlantillaTrabajo>();
     public DbSet<PlantillaTarea> PlantillasTareas => Set<PlantillaTarea>();
     public DbSet<PlantillaMaterial> PlantillasMateriales => Set<PlantillaMaterial>();
+
+    public async Task EjecutarEnTransaccionAsync(
+        Func<CancellationToken, Task> operacion,
+        CancellationToken cancellationToken = default)
+    {
+        var estrategia = Database.CreateExecutionStrategy();
+        await estrategia.ExecuteAsync(async () =>
+        {
+            await using var transaccion = await Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                await operacion(cancellationToken);
+                await transaccion.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaccion.RollbackAsync(cancellationToken);
+                throw;
+            }
+        });
+    }
 
     // Ejecución de Trabajos y Liquidación de Materiales
     public DbSet<Trabajo> Trabajos => Set<Trabajo>();

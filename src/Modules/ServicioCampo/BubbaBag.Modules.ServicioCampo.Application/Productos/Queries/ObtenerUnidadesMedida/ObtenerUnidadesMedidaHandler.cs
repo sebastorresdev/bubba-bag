@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,10 +11,11 @@ namespace BubbaBag.Modules.ServicioCampo.Application.Productos.Queries.ObtenerUn
 
 public record ObtenerUnidadesMedidaQuery(
     string? Search = null,
-    bool? SoloActivos = null
-) : IQuery<Result<List<UnidadMedidaDto>>>;
+    bool? SoloActivos = null,
+    Guid? GrupoId = null
+) : IQuery<Result<System.Collections.Generic.List<UnidadMedidaDto>>>;
 
-public class ObtenerUnidadesMedidaHandler : IQueryHandler<ObtenerUnidadesMedidaQuery, Result<List<UnidadMedidaDto>>>
+public class ObtenerUnidadesMedidaHandler : IQueryHandler<ObtenerUnidadesMedidaQuery, Result<System.Collections.Generic.List<UnidadMedidaDto>>>
 {
     private readonly IServicioCampoDbContext _context;
 
@@ -24,37 +24,43 @@ public class ObtenerUnidadesMedidaHandler : IQueryHandler<ObtenerUnidadesMedidaQ
         _context = context;
     }
 
-    public async Task<Result<List<UnidadMedidaDto>>> HandleAsync(ObtenerUnidadesMedidaQuery query, CancellationToken cancellationToken = default)
+    public async Task<Result<System.Collections.Generic.List<UnidadMedidaDto>>> HandleAsync(ObtenerUnidadesMedidaQuery query, CancellationToken cancellationToken = default)
     {
-        var dbQuery = _context.UnidadesMedida.AsNoTracking().AsQueryable();
+        var dbQuery = _context.UnidadesMedida
+            .Include(u => u.GrupoUnidadMedida)
+            .AsNoTracking()
+            .AsQueryable();
 
         if (query.SoloActivos.HasValue)
-        {
-            dbQuery = dbQuery.Where(u => u.Activo == query.SoloActivos.Value);
-        }
+            dbQuery = dbQuery.Where(u => u.EstaActivo == query.SoloActivos.Value);
+
+        if (query.GrupoId.HasValue)
+            dbQuery = dbQuery.Where(u => u.GrupoUnidadMedidaId == query.GrupoId.Value);
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var search = query.Search.Trim().ToLower();
             dbQuery = dbQuery.Where(u =>
-                u.Codigo.ToLower().Contains(search) ||
                 u.Nombre.ToLower().Contains(search) ||
-                u.Abreviatura.ToLower().Contains(search) ||
-                (u.Descripcion != null && u.Descripcion.ToLower().Contains(search)));
+                (u.GrupoUnidadMedida != null && u.GrupoUnidadMedida.Nombre.ToLower().Contains(search)));
         }
 
         var list = await dbQuery
-            .OrderBy(u => u.Nombre)
+            .OrderBy(u => u.GrupoUnidadMedida!.Nombre)
+            .ThenBy(u => u.FactorConversionTotal)
             .Select(u => new UnidadMedidaDto(
                 u.Id,
-                u.Codigo,
+                u.GrupoUnidadMedidaId,
+                u.GrupoUnidadMedida != null ? u.GrupoUnidadMedida.Nombre : string.Empty,
                 u.Nombre,
-                u.Abreviatura,
-                u.Descripcion,
-                u.Activo
+                u.EsUnidadBase,
+                u.UnidadMedidaBaseId,
+                u.Cantidad,
+                u.FactorConversionTotal,
+                u.EstaActivo
             ))
             .ToListAsync(cancellationToken);
 
-        return Result<List<UnidadMedidaDto>>.Success(list);
+        return Result<System.Collections.Generic.List<UnidadMedidaDto>>.Success(list);
     }
 }

@@ -56,7 +56,7 @@ public class ObtenerListaPreciosPorIdHandler : IQueryHandler<ObtenerListaPrecios
                 e.Producto.Codigo,
                 e.Producto.Nombre,
                 e.UnidadMedidaId,
-                e.UnidadMedida != null ? e.UnidadMedida.Nombre : e.Producto.UnidadMedida,
+                e.UnidadMedida != null ? e.UnidadMedida.Nombre : null,
                 e.Monto,
                 (int)e.MetodoFijacion
             ))

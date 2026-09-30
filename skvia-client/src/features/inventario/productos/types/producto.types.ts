@@ -1,4 +1,4 @@
-export type TipoProducto = 'Inventario' | 'Servicio' | 'NoInventariable';
+export type TipoProducto = 'Inventario' | 'NoInventario' | 'Servicio';
 
 export interface ProductoDto {
   id: string;
@@ -7,8 +7,12 @@ export interface ProductoDto {
   descripcion?: string;
   tipo: TipoProducto | number;
   precioBase: number;
-  categoria: string;
-  unidadMedida: string;
+  categoriaProductoId?: string | null;
+  categoria?: string | null;
+  grupoUnidadMedidaId?: string | null;
+  nombreGrupoUnidadMedida?: string | null;
+  unidadMedidaDefectoId?: string | null;
+  nombreUnidadMedidaDefecto?: string | null;
   decimalesCantidad: number;
   esSerializado: boolean;
   activo: boolean;
@@ -27,8 +31,9 @@ export interface CreateProductoDto {
   nombre: string;
   tipo?: TipoProducto | number;
   precioBase?: number;
-  categoria?: string;
-  unidadMedida?: string;
+  categoriaProductoId?: string | null;
+  grupoUnidadMedidaId?: string | null;
+  unidadMedidaDefectoId?: string | null;
   decimalesCantidad?: number;
   esSerializado?: boolean;
   descripcion?: string;
@@ -45,8 +50,9 @@ export interface UpdateProductoDto {
   nombre: string;
   tipo?: TipoProducto | number;
   precioBase?: number;
-  categoria?: string;
-  unidadMedida?: string;
+  categoriaProductoId?: string | null;
+  grupoUnidadMedidaId?: string | null;
+  unidadMedidaDefectoId?: string | null;
   decimalesCantidad?: number;
   esSerializado?: boolean;
   descripcion?: string;

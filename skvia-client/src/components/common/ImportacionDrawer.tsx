@@ -12,27 +12,22 @@ import {
   makeStyles,
   Select,
   Switch,
-  Badge,
-  Tooltip,
 } from '@fluentui/react-components';
 import { D365MessageBar } from './D365MessageBar';
 import { useD365ImportStyles } from '../../styles/d365ImportStyles';
 import { semanticTokens } from '../../styles/semanticTokens';
 import {
   DismissRegular,
-  DocumentCheckmark24Regular,
-  ArrowUpload24Regular,
   CheckmarkCircle16Filled,
   Alert16Filled,
   ArrowLeft16Regular,
-  ArrowRight16Regular,
-  Delete16Regular,
   TableSimple16Regular,
   Eye16Regular,
 } from '@fluentui/react-icons';
 import { useNavigate } from 'react-router-dom';
 import {
   ImportacionService,
+  type CampoImportacionDto,
   type EntidadImportableDto,
   type VistaPreviaImportacionDto,
   type TrabajoImportacionDto,
@@ -60,45 +55,6 @@ const useStyles = makeStyles({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: tokens.colorNeutralBackground2,
-  },
-  dropZone: {
-    borderTop: `2px dashed ${tokens.colorBrandStroke1}`,
-    borderRight: `2px dashed ${tokens.colorBrandStroke1}`,
-    borderBottom: `2px dashed ${tokens.colorBrandStroke1}`,
-    borderLeft: `2px dashed ${tokens.colorBrandStroke1}`,
-    borderRadius: tokens.borderRadiusMedium,
-    padding: '28px 16px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '10px',
-    backgroundColor: tokens.colorNeutralBackground1,
-    cursor: 'pointer',
-    transition: 'background-color 0.2s ease, border-color 0.2s ease',
-    ':hover': {
-      backgroundColor: tokens.colorNeutralBackground1Hover,
-      borderTopColor: tokens.colorBrandStroke2,
-      borderRightColor: tokens.colorBrandStroke2,
-      borderBottomColor: tokens.colorBrandStroke2,
-      borderLeftColor: tokens.colorBrandStroke2,
-    },
-  },
-  dropZoneActive: {
-    backgroundColor: tokens.colorBrandBackground2,
-    borderTopColor: tokens.colorBrandStroke1,
-    borderRightColor: tokens.colorBrandStroke1,
-    borderBottomColor: tokens.colorBrandStroke1,
-    borderLeftColor: tokens.colorBrandStroke1,
-  },
-  fileCard: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '12px 16px',
-    backgroundColor: tokens.colorNeutralBackground2,
-    borderRadius: tokens.borderRadiusMedium,
-    border: `1px solid ${tokens.colorNeutralStroke1}`,
   },
   sectionTitle: {
     fontSize: tokens.fontSizeBase300,
@@ -141,6 +97,25 @@ const useStyles = makeStyles({
       backgroundColor: tokens.colorNeutralBackground1Hover,
     },
   },
+  mappingSection: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  mappingSectionOptional: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    marginTop: '10px',
+    paddingTop: '16px',
+    borderTop: `1px solid ${tokens.colorNeutralStroke1}`,
+  },
+  mappingSectionTitle: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+    marginBottom: '2px',
+  },
   sampleText: {
     fontSize: tokens.fontSizeBase100,
     color: tokens.colorNeutralForeground3,
@@ -161,16 +136,6 @@ const useStyles = makeStyles({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepperHeader: {
-    display: 'flex',
-    gap: '8px',
-    alignItems: 'center',
-    marginBottom: '8px',
-  },
-  badgeStep: {
-    fontSize: tokens.fontSizeBase100,
-    height: '20px',
-  },
 });
 
 export interface ImportacionDrawerProps {
@@ -178,7 +143,6 @@ export interface ImportacionDrawerProps {
   onOpenChange: (open: boolean) => void;
   targetEntityName?: string; // e.g. "Producto", "Categoria", "Cliente", "UnidadMedida"
   onSuccess?: () => void;
-  onDownloadTemplate?: () => Promise<void>;
 }
 
 export const ImportacionDrawer: React.FC<ImportacionDrawerProps> = ({
@@ -186,7 +150,6 @@ export const ImportacionDrawer: React.FC<ImportacionDrawerProps> = ({
   onOpenChange,
   targetEntityName,
   onSuccess,
-  onDownloadTemplate,
 }) => {
   const styles = useStyles();
   const importStyles = useD365ImportStyles();
@@ -201,7 +164,6 @@ export const ImportacionDrawer: React.FC<ImportacionDrawerProps> = ({
   // Estados del asistente (Steps: 1 = Archivo & Delimitadores, 2 = Mapeador Inteligente, 3 = Ajustes & Resumen, 4 = Resultado)
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
 
   // Configuración de Delimitadores CSV
   const [delimiter, setDelimiter] = useState<string>(',');
@@ -422,6 +384,49 @@ export const ImportacionDrawer: React.FC<ImportacionDrawerProps> = ({
 
   const unmappedRequired = getUnmappedRequiredFields();
 
+  const renderFieldMapping = (field: CampoImportacionDto) => {
+    const sourceHeader = Object.entries(columnMapping)
+      .find(([, systemField]) => systemField === field.systemName)?.[0] || '';
+
+    return (
+      <div key={field.systemName} className={styles.mappingRow}>
+        <div className={importStyles.overflowHidden}>
+          <Select
+            value={sourceHeader}
+            size="medium"
+            aria-label={`Columna de origen para ${field.displayName}`}
+            onChange={(_, data) => {
+              setColumnMapping((previous) => {
+                const next = { ...previous };
+                Object.keys(next).forEach((header) => {
+                  if (next[header] === field.systemName) next[header] = 'Ignore';
+                });
+                if (data.value) next[data.value] = field.systemName;
+                return next;
+              });
+            }}
+          >
+            <option value="">Sin asignar</option>
+            {previewData?.headers.map((header) => (
+              <option key={header} value={header}>{header}</option>
+            ))}
+          </Select>
+        </div>
+        <div className={importStyles.centered}>
+          {sourceHeader ? (
+            <span className={styles.statusIconMapped}><CheckmarkCircle16Filled /></span>
+          ) : (
+            <span className={styles.statusIconUnmapped}><Alert16Filled /></span>
+          )}
+        </div>
+        <div className={importStyles.overflowHidden}>
+          <Text weight="semibold" size={200} className={importStyles.blockText}>{field.displayName}</Text>
+          <span className={styles.sampleText}>{field.type === 'lookup' ? 'Catálogo relacionado' : 'Campo del sistema'}</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <OverlayDrawer
       open={open}
@@ -454,41 +459,6 @@ export const ImportacionDrawer: React.FC<ImportacionDrawerProps> = ({
       </DrawerHeader>
 
       <DrawerBody className={styles.drawerBody}>
-        {/* Barra de progreso de pasos tipo D365 */}
-        <div className={styles.stepperHeader}>
-          <Badge
-            appearance={currentStep === 1 ? 'filled' : 'tint'}
-            color={currentStep === 1 ? 'brand' : 'subtle'}
-            className={styles.badgeStep}
-          >
-            1. Archivo
-          </Badge>
-          <Text size={200} className={importStyles.stepArrow}>→</Text>
-          <Badge
-            appearance={currentStep === 2 ? 'filled' : 'tint'}
-            color={currentStep === 2 ? 'brand' : 'subtle'}
-            className={styles.badgeStep}
-          >
-            2. Mapeador
-          </Badge>
-          <Text size={200} className={importStyles.stepArrow}>→</Text>
-          <Badge
-            appearance={currentStep === 3 ? 'filled' : 'tint'}
-            color={currentStep === 3 ? 'brand' : 'subtle'}
-            className={styles.badgeStep}
-          >
-            3. Ajustes
-          </Badge>
-          <Text size={200} className={importStyles.stepArrow}>→</Text>
-          <Badge
-            appearance={currentStep === 4 ? 'filled' : 'tint'}
-            color={currentStep === 4 ? 'brand' : 'subtle'}
-            className={styles.badgeStep}
-          >
-            4. Resumen
-          </Badge>
-        </div>
-
         {errorMessage && (
           <D365MessageBar intent="error" title="Error">
             {errorMessage}
@@ -524,76 +494,24 @@ export const ImportacionDrawer: React.FC<ImportacionDrawerProps> = ({
               </div>
             )}
 
-            {/* Zona de Arrastre de Archivo */}
-            {!selectedFile ? (
-              <div
-                className={`${styles.dropZone} ${isDragging ? styles.dropZoneActive : ''}`}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDragging(true);
+            <div className={styles.formRow}>
+              <label htmlFor="archivo-importacion">Archivo</label>
+              <input
+                id="archivo-importacion"
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv,.txt"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void handleFileChange(file);
                 }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDragging(false);
-                  if (e.dataTransfer.files?.[0]) {
-                    handleFileChange(e.dataTransfer.files[0]);
-                  }
-                }}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".xlsx,.xls,.csv,.txt"
-                  className={importStyles.hiddenInput}
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) {
-                      handleFileChange(e.target.files[0]);
-                    }
-                  }}
-                />
-                <ArrowUpload24Regular className={importStyles.brand} />
-                <Text weight="semibold">Arrastre o seleccione un archivo Excel o CSV</Text>
-                <Text size={200} className={importStyles.muted}>
-                  Formatos soportados: .xlsx, .xls, .csv, .txt (hasta 20 MB)
-                </Text>
-                {onDownloadTemplate && (
-                  <Button
-                    size="small"
-                    appearance="subtle"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDownloadTemplate();
-                    }}
-                  >
-                    Descargar plantilla oficial de {currentEntity?.displayName || 'ejemplo'}
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className={styles.fileCard}>
-                <div className={importStyles.fileDetailsRow}>
-                  <DocumentCheckmark24Regular className={importStyles.successIcon} />
-                  <div>
-                    <Text weight="semibold">{selectedFile.name}</Text>
-                    <br />
-                    <Text size={100} className={importStyles.muted}>
-                      {(selectedFile.size / 1024).toFixed(1)} KB • {previewData?.headers.length || 0} columnas detectadas
-                    </Text>
-                  </div>
-                </div>
-                <Button
-                  appearance="subtle"
-                  icon={<Delete16Regular />}
-                  onClick={() => {
-                    setSelectedFile(null);
-                    setPreviewData(null);
-                    setColumnMapping({});
-                  }}
-                />
-              </div>
-            )}
+              />
+              {selectedFile && (
+                <small>
+                  {selectedFile.name} · {(selectedFile.size / 1024).toFixed(1)} KB · {previewData?.headers.length || 0} columnas
+                </small>
+              )}
+            </div>
 
             {analyzingFile && (
               <div className={importStyles.analysisRow}>
@@ -659,91 +577,27 @@ export const ImportacionDrawer: React.FC<ImportacionDrawerProps> = ({
               </D365MessageBar>
             )}
 
-            {/* Encabezado de la cuadrícula de mapeo */}
-            <div
-              className={importStyles.mappingHeader}
-            >
-              <span>Columnas del Archivo de Origen</span>
-              <span></span>
-              <span>Campos del Sistema ({currentEntity.displayName})</span>
+            <div className={styles.mappingSection}>
+              <div className={styles.mappingSectionTitle}>
+                <Text weight="semibold" size={300}>Mapeo obligatorio</Text>
+                <Text size={200} className={importStyles.muted}>Estos campos deben tener una columna de origen para continuar.</Text>
+              </div>
+              <div className={importStyles.mappingHeader}>
+                <span>Columna del archivo</span><span></span><span>Campo del sistema</span>
+              </div>
+              {currentEntity.fields.filter((field) => field.isRequired).map(renderFieldMapping)}
             </div>
 
-            {/* Filas de mapeo */}
-            {previewData?.headers.map((header, idx) => {
-              const currentMappedField = columnMapping[header] || 'Ignore';
-              const isMapped = currentMappedField !== 'Ignore' && currentMappedField !== 'NotMapped';
-              const sampleVal = previewData.sampleRows?.[0]?.[idx] || '';
-
-              return (
-                <div key={header} className={styles.mappingRow}>
-                  {/* Columna Izquierda: Encabezado de tu Excel + Muestra de datos */}
-                  <div className={importStyles.overflowHidden}>
-                    <Text weight="semibold" size={200} className={importStyles.blockText}>
-                      {header}
-                    </Text>
-                    {sampleVal && (
-                      <span className={styles.sampleText} title={`Muestra: ${sampleVal}`}>
-                        Ej: {sampleVal}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Icono de Estado */}
-                  <div className={importStyles.centered}>
-                    {isMapped ? (
-                      <Tooltip content="Mapeado correctamente" relationship="description">
-                        <span className={styles.statusIconMapped}>
-                          <CheckmarkCircle16Filled />
-                        </span>
-                      </Tooltip>
-                    ) : (
-                      <Tooltip content="Columna ignorada (no se importará)" relationship="description">
-                        <span className={styles.statusIconUnmapped}>
-                          <Alert16Filled />
-                        </span>
-                      </Tooltip>
-                    )}
-                  </div>
-
-                  {/* Columna Derecha: Dropdown con campos del sistema */}
-                  <Select
-                    value={currentMappedField}
-                    size="small"
-                    onChange={(_, data) => {
-                      setColumnMapping((prev) => ({
-                        ...prev,
-                        [header]: data.value,
-                      }));
-                    }}
-                  >
-                    <option value="Ignore">Ignorar (No importar)</option>
-                    <option disabled>──────────────</option>
-
-                    {/* Campos Principales / Obligatorios primero */}
-                    <optgroup label="Campos Obligatorios Principales *">
-                      {currentEntity.fields
-                        .filter((f) => f.isRequired)
-                        .map((f) => (
-                          <option key={f.systemName} value={f.systemName}>
-                            {f.displayName}
-                          </option>
-                        ))}
-                    </optgroup>
-
-                    {/* Campos Opcionales */}
-                    <optgroup label="Campos Opcionales">
-                      {currentEntity.fields
-                        .filter((f) => !f.isRequired)
-                        .map((f) => (
-                          <option key={f.systemName} value={f.systemName}>
-                            {f.displayName}
-                          </option>
-                        ))}
-                    </optgroup>
-                  </Select>
-                </div>
-              );
-            })}
+            <div className={styles.mappingSectionOptional}>
+              <div className={styles.mappingSectionTitle}>
+                <Text weight="semibold" size={300}>Mapeo opcional</Text>
+                <Text size={200} className={importStyles.muted}>Asigne únicamente la información adicional que desea importar.</Text>
+              </div>
+              <div className={importStyles.mappingHeader}>
+                <span>Columna del archivo</span><span></span><span>Campo del sistema</span>
+              </div>
+              {currentEntity.fields.filter((field) => !field.isRequired).map(renderFieldMapping)}
+            </div>
           </div>
         )}
 
@@ -854,12 +708,10 @@ export const ImportacionDrawer: React.FC<ImportacionDrawerProps> = ({
             </Button>
             <Button
               appearance="primary"
-              icon={<ArrowRight16Regular />}
-              iconPosition="after"
               disabled={!selectedFile || !previewData || analyzingFile}
               onClick={() => setCurrentStep(2)}
             >
-              Siguiente (Mapeo)
+              Siguiente
             </Button>
           </>
         )}
@@ -875,12 +727,10 @@ export const ImportacionDrawer: React.FC<ImportacionDrawerProps> = ({
             </Button>
             <Button
               appearance="primary"
-              icon={<ArrowRight16Regular />}
-              iconPosition="after"
               disabled={unmappedRequired.length > 0}
               onClick={() => setCurrentStep(3)}
             >
-              Siguiente (Ajustes)
+              Siguiente
             </Button>
           </>
         )}

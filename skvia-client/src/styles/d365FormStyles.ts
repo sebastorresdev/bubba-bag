@@ -149,46 +149,11 @@ export const useD365FormStyles = makeStyles({
     width: '100%',
     backgroundColor: tokens.colorNeutralBackground2,
   },
-  tagPickerControl: {
-    width: '100%',
-    minHeight: '32px',
-    height: '32px',
-    boxSizing: 'border-box',
-    display: 'flex',
-    alignItems: 'center',
-    paddingTop: '0px',
-    paddingBottom: '0px',
-    flexWrap: 'nowrap',
-  },
-  tagPickerGroup: {
-    paddingTop: '0px',
-    paddingBottom: '0px',
-    display: 'flex',
-    alignItems: 'center',
-    flexShrink: 0,
-  },
-  tagPickerInput: {
-    paddingTop: '0px',
-    paddingBottom: '0px',
-    minHeight: '28px',
-  },
   unitIcon: {
     color: tokens.colorBrandForeground1,
   },
   categoryIcon: {
     color: tokens.colorBrandForeground1,
-  },
-  secondaryOptionText: {
-    fontSize: tokens.fontSizeBase100,
-    color: tokens.colorNeutralForeground4,
-    lineHeight: tokens.lineHeightBase100,
-  },
-  quickCreateFooter: {
-    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
-    padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   statusDotActive: {
     width: '8px',
@@ -255,11 +220,6 @@ export const useD365FormStyles = makeStyles({
     width: '100%',
     height: '72px',
   },
-  dropdownEmptyOption: {
-    padding: '8px 12px',
-    color: tokens.colorNeutralForeground4,
-    fontSize: tokens.fontSizeBase200,
-  },
   labelSmallBlock: {
     marginBottom: '4px',
     display: 'block',
@@ -272,23 +232,6 @@ export const useD365FormStyles = makeStyles({
   },
   iconDanger: {
     color: tokens.colorStatusDangerForeground1,
-  },
-  primaryLink: {
-    fontWeight: tokens.fontWeightSemibold,
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    userSelect: 'text',
-    textAlign: 'left',
-    textDecoration: 'none',
-    cursor: 'pointer',
-    color: tokens.colorBrandForegroundLink,
-    backgroundColor: 'transparent',
-    border: 'none',
-    padding: 0,
-    ':hover': {
-      textDecoration: 'underline',
-    },
   },
   dataRow: {
     userSelect: 'text',

@@ -88,7 +88,7 @@ public class DataImportEngineService : IDataImportEngineService
         else if (ext == ".xlsx")
         {
             using var workbook = new XLWorkbook(stream);
-            var worksheet = workbook.Worksheets.FirstOrDefault();
+            var worksheet = ObtenerPrimeraHojaImportable(workbook);
             if (worksheet == null || worksheet.IsEmpty())
                 return result;
 
@@ -276,6 +276,13 @@ public class DataImportEngineService : IDataImportEngineService
 
     #region HELPERS
 
+    private static IXLWorksheet? ObtenerPrimeraHojaImportable(XLWorkbook workbook)
+    {
+        return workbook.Worksheets.FirstOrDefault(worksheet =>
+            worksheet.Visibility == XLWorksheetVisibility.Visible &&
+            !worksheet.IsEmpty());
+    }
+
     private async Task<List<List<string>>> ReadAllRowsAsync(Stream stream, string fileName, string? customDelimiter, CancellationToken ct)
     {
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
@@ -303,7 +310,7 @@ public class DataImportEngineService : IDataImportEngineService
         else if (ext == ".xlsx")
         {
             using var workbook = new XLWorkbook(stream);
-            var worksheet = workbook.Worksheets.FirstOrDefault();
+            var worksheet = ObtenerPrimeraHojaImportable(workbook);
             if (worksheet == null || worksheet.IsEmpty()) return rows;
 
             int firstRowUsed = worksheet.FirstRowUsed()?.RowNumber() ?? 1;

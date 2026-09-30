@@ -6,6 +6,9 @@ using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Commands.CrearAlmacen
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerAlmacenPorId;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerAlmacenes;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerResumenStockAlmacenes;
+using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerInventarioProductos;
+using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Commands.CrearTransferenciaInventario;
+using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerTransferenciasInventario;
 using BubbaBag.SharedKernel.CQRS;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -31,6 +34,43 @@ public static class AlmacenesEndpoints
             .WithTags("Servicio de Campo - Stock")
             .RequireAuthorization();
         stockGroup.MapGet("/almacenes", ObtenerResumenStockAlmacenes);
+        stockGroup.MapGet("/productos", ObtenerInventarioProductos);
+
+        var transferenciasGroup = app.MapGroup("/api/inventario/transferencias")
+            .WithTags("Servicio de Campo - Transferencias")
+            .RequireAuthorization();
+        transferenciasGroup.MapGet("/", ObtenerTransferencias);
+        transferenciasGroup.MapPost("/", CrearTransferencia);
+    }
+
+    private static async Task<IResult> ObtenerTransferencias(IDispatcher dispatcher)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerTransferenciasInventarioQuery());
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
+    }
+
+    private static async Task<IResult> CrearTransferencia(
+        CrearTransferenciaRequest request,
+        IDispatcher dispatcher)
+    {
+        var command = new CrearTransferenciaInventarioCommand(
+            request.AlmacenOrigenId,
+            request.AlmacenDestinoId,
+            request.Lineas.Select(linea => new LineaTransferenciaInventario(linea.ProductoId, linea.Cantidad)).ToList(),
+            request.Observacion);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Created($"/api/inventario/transferencias/{result.Value}", new { numero = result.Value })
+            : Results.BadRequest(result.Error);
+    }
+
+    private static async Task<IResult> ObtenerInventarioProductos(
+        Guid? almacenId,
+        string? buscar,
+        IDispatcher dispatcher)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerInventarioProductosQuery(almacenId, buscar));
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 
     private static async Task<IResult> ObtenerResumenStockAlmacenes(
@@ -104,3 +144,11 @@ public record ActualizarAlmacenRequest(
 );
 
 public record CambiarEstadoRequest(bool Activo);
+
+public record CrearTransferenciaRequest(
+    Guid AlmacenOrigenId,
+    Guid AlmacenDestinoId,
+    IReadOnlyCollection<CrearTransferenciaLineaRequest> Lineas,
+    string? Observacion = null);
+
+public record CrearTransferenciaLineaRequest(Guid ProductoId, decimal Cantidad);

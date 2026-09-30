@@ -41,11 +41,13 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                     new("Nombre", "Nombre del Producto*", isRequired: true, isPrimary: true, type: "text", null, null,
                         "nombre del producto*", "nombre", "nombre del producto", "nombre producto", "producto", "item name", "description"),
                     new("Tipo", "Tipo*", isRequired: false, isPrimary: false, type: "enum",
-                        new List<string> { "Inventario", "Servicio", "No Inventariable" }, null,
+                        new List<string> { "Inventario", "Servicio", "No inventario" }, null,
                         "tipo*", "tipo", "tipo de producto", "product type"),
                     new("Categoria", "Categoría", isRequired: false, isPrimary: false, type: "lookup", null, "Categorias",
                         "categoría", "categoria", "familia", "linea", "rubro", "category"),
-                    new("UnidadMedida", "Unidad de Medida*", isRequired: true, isPrimary: true, type: "lookup", null, "UnidadesMedida",
+                    new("GrupoUnidadMedida", "Grupo de unidades", isRequired: false, isPrimary: false, type: "lookup", null, "GruposUnidadMedida",
+                        "grupo de unidades", "grupo unidad", "grupo de unidad", "unit group"),
+                    new("UnidadMedida", "Unidad de Medida", isRequired: false, isPrimary: true, type: "lookup", null, "UnidadesMedida",
                         "unidad de medida*", "unidad de medida", "unidad", "um", "u.m.", "unit", "medida"),
                     new("DecimalesCantidad", "Decimales de cantidad (0-5)", isRequired: false, isPrimary: false, type: "integer", null, null,
                         "decimales de cantidad", "decimales cantidad", "cantidad decimales", "quantity decimals"),
@@ -188,6 +190,7 @@ public class ServicioCampoImportProvider : IEntityImportProvider
     {
         var errores = new List<EntityImportRowError>();
         var categoriasDb = await _context.CategoriasProducto.ToListAsync(ct);
+        var gruposDb = await _context.GruposUnidadMedida.ToListAsync(ct);
         var unidadesDb = await _context.UnidadesMedida.ToListAsync(ct);
         var productosDb = await _context.Productos.ToListAsync(ct);
 
@@ -229,7 +232,8 @@ public class ServicioCampoImportProvider : IEntityImportProvider
             }
 
             var catStr = GetVal(row, "Categoria")?.Trim();
-            string? catFinal = null;
+            Guid? categoriaProductoId = categoriasDb
+                .FirstOrDefault(c => c.Nombre.Equals("Default", StringComparison.OrdinalIgnoreCase) && c.Activo)?.Id;
             if (!string.IsNullOrWhiteSpace(catStr))
             {
                 var catDb = categoriasDb.FirstOrDefault(c => c.Nombre.Equals(catStr, StringComparison.OrdinalIgnoreCase));
@@ -239,23 +243,46 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                     fallidos++;
                     continue;
                 }
-                catFinal = catDb.Nombre;
+                categoriaProductoId = catDb.Id;
             }
 
             var umStr = GetVal(row, "UnidadMedida")?.Trim();
-            if (string.IsNullOrWhiteSpace(umStr))
+            var grupoStr = GetVal(row, "GrupoUnidadMedida")?.Trim();
+            if (tipo == TipoProducto.Inventario && string.IsNullOrWhiteSpace(umStr))
             {
                 errores.Add(new EntityImportRowError(rowNumber, "La Unidad de Medida es obligatoria.", codigo, "UnidadMedida"));
                 fallidos++;
                 continue;
             }
 
-            var umDb = unidadesDb.FirstOrDefault(u =>
-                u.Nombre.Equals(umStr, StringComparison.OrdinalIgnoreCase) ||
-                u.Codigo.Equals(umStr, StringComparison.OrdinalIgnoreCase) ||
-                u.Abreviatura.Equals(umStr, StringComparison.OrdinalIgnoreCase));
+            UnidadMedida? umDb = null;
+            if (!string.IsNullOrWhiteSpace(umStr))
+            {
+                Guid? grupoId = null;
+                if (!string.IsNullOrWhiteSpace(grupoStr))
+                {
+                    grupoId = gruposDb.FirstOrDefault(g => g.Nombre.Equals(grupoStr, StringComparison.OrdinalIgnoreCase))?.Id;
+                    if (!grupoId.HasValue)
+                    {
+                        errores.Add(new EntityImportRowError(rowNumber, $"El grupo de unidades '{grupoStr}' no existe en el catálogo.", codigo, "GrupoUnidadMedida", grupoStr));
+                        fallidos++;
+                        continue;
+                    }
+                }
 
-            if (umDb == null)
+                var coincidencias = unidadesDb.Where(u =>
+                    u.Nombre.Equals(umStr, StringComparison.OrdinalIgnoreCase)
+                    && (!grupoId.HasValue || u.GrupoUnidadMedidaId == grupoId.Value)).ToList();
+                if (coincidencias.Count > 1)
+                {
+                    errores.Add(new EntityImportRowError(rowNumber, $"La unidad '{umStr}' existe en varios grupos. Mapee también el Grupo de unidades.", codigo, "UnidadMedida", umStr));
+                    fallidos++;
+                    continue;
+                }
+                umDb = coincidencias.SingleOrDefault();
+            }
+
+            if (tipo == TipoProducto.Inventario && umDb == null)
             {
                 errores.Add(new EntityImportRowError(rowNumber, $"La unidad de medida '{umStr}' no existe en el catálogo.", codigo, "UnidadMedida", umStr));
                 fallidos++;
@@ -302,8 +329,9 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                 {
                     prodExistente.Actualizar(
                         nombre,
-                        catFinal,
-                        umDb.Nombre,
+                        categoriaProductoId,
+                        grupoUnidadMedidaId: umDb?.GrupoUnidadMedidaId,
+                        unidadMedidaDefectoId: umDb?.Id,
                         esSerializado,
                         descripcion,
                         tipo,
@@ -324,8 +352,9 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                 var nuevo = Producto.Crear(
                     codigo,
                     nombre,
-                    catFinal,
-                    umDb.Nombre,
+                    categoriaProductoId,
+                    grupoUnidadMedidaId: umDb?.GrupoUnidadMedidaId,
+                    unidadMedidaDefectoId: umDb?.Id,
                     esSerializado,
                     descripcion,
                     tipo,
@@ -436,33 +465,10 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                 continue;
             }
 
-            var umExistente = unidadesDb.FirstOrDefault(u => u.Codigo.Equals(codigo, StringComparison.OrdinalIgnoreCase));
-            if (umExistente != null)
-            {
-                if (duplicateMode.Equals("Error", StringComparison.OrdinalIgnoreCase))
-                {
-                    errores.Add(new EntityImportRowError(rowNumber, $"La unidad con código '{codigo}' ya existe.", codigo));
-                    fallidos++;
-                    continue;
-                }
-                else if (duplicateMode.Equals("Skip", StringComparison.OrdinalIgnoreCase))
-                {
-                    parciales++;
-                    continue;
-                }
-                else
-                {
-                    umExistente.Actualizar(nombre, abrev, desc);
-                    exitosos++;
-                }
-            }
-            else
-            {
-                var nueva = UnidadMedida.Crear(codigo, nombre, abrev, desc);
-                _context.UnidadesMedida.Add(nueva);
-                unidadesDb.Add(nueva);
-                exitosos++;
-            }
+            // Importación de Unidades de Medida por archivo deprecada.
+            // Las unidades ahora se crean desde la API de Grupos de Unidades de Medida.
+            errores.Add(new EntityImportRowError(rowNumber, "Importación por archivo no disponible. Use la API de Grupos de Unidades de Medida.", codigo));
+            fallidos++;
         }
 
         await _context.SaveChangesAsync(ct);

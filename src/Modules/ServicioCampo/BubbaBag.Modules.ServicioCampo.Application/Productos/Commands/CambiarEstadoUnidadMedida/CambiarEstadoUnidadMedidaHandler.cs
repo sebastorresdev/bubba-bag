@@ -26,6 +26,17 @@ public class CambiarEstadoUnidadMedidaHandler : ICommandHandler<CambiarEstadoUni
         if (unidad is null)
             return Result.Failure("La unidad de medida especificada no existe.");
 
+        if (!command.Activo && unidad.EsUnidadBase)
+            return Result.Failure("La unidad base no puede desactivarse mientras exista el grupo.");
+
+        if (!command.Activo)
+        {
+            var tieneDependientesActivos = await _context.UnidadesMedida
+                .AnyAsync(u => u.UnidadMedidaBaseId == unidad.Id && u.EstaActivo, cancellationToken);
+            if (tieneDependientesActivos)
+                return Result.Failure("No se puede desactivar una unidad que es referencia de otras unidades activas.");
+        }
+
         if (command.Activo)
             unidad.Activar();
         else

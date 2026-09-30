@@ -1,354 +1,131 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Button,
-  Input,
-  Text,
-  Link,
-  Menu,
-  MenuTrigger,
-  MenuList,
-  MenuItem,
-  MenuPopover,
-  Tooltip,
-  DataGrid,
-  DataGridHeader,
-  DataGridHeaderCell,
-  DataGridBody,
-  DataGridRow,
-  DataGridCell,
-  TableCellLayout,
-  createTableColumn,
+  DataGrid, DataGridBody, DataGridCell, DataGridHeader, DataGridHeaderCell,
+  DataGridRow, Input, Link, TableCellLayout, Text, createTableColumn,
 } from '@fluentui/react-components';
-import type { TableColumnDefinition, SelectionItemId } from '@fluentui/react-components';
-import {
-  Add16Regular,
-  ArrowClockwise16Regular,
-  ArrowDownload16Regular,
-  ArrowUpload16Regular,
-  Checkmark16Regular,
-  ChevronDown12Regular,
-  ChevronDown16Regular,
-  DataFunnel20Regular,
-  Search16Regular,
-  Share16Regular,
-  TableEdit16Regular,
-} from '@fluentui/react-icons';
-import { UnidadMedidaService } from '../services/unidadMedida.service';
-import type { UnidadMedidaDto } from '../types/unidadMedida.types';
-import { ImportacionDrawer } from '../../../../components/common/ImportacionDrawer';
-import { TableEmptyState } from '../../../../components/common/TableEmptyState';
+import type { TableColumnDefinition, TableRowId } from '@fluentui/react-components';
+import { Add16Regular, ArrowClockwise16Regular, Search16Regular } from '@fluentui/react-icons';
+import { GrupoUnidadMedidaService } from '../services/unidadMedida.service';
+import type { GrupoUnidadMedidaDto } from '../types/unidadMedida.types';
+import { D365CommandBar, D365CommandButton } from '../../../../components/common/D365CommandBar';
 import { D365ListState } from '../../../../components/common/D365ListState';
+import { TableEmptyState } from '../../../../components/common/TableEmptyState';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
-import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
+import { CrearGrupoModal } from '../components/CrearGrupoModal';
 
 export interface UnidadesMedidaListPageProps {
   onNew?: () => void;
-  onSelect?: (item: UnidadMedidaDto) => void;
+  onSelect?: (item: GrupoUnidadMedidaDto) => void;
 }
 
-export const UnidadesMedidaListPage: React.FC<UnidadesMedidaListPageProps> = ({
-  onNew,
-  onSelect,
-}) => {
+export const UnidadesMedidaListPage: React.FC<UnidadesMedidaListPageProps> = ({ onSelect }) => {
   const styles = useD365ListStyles();
   const navigate = useNavigate();
-
-  const [items, setItems] = useState<UnidadMedidaDto[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [items, setItems] = useState<GrupoUnidadMedidaDto[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [importDialogOpen, setImportDialogOpen] = useState<boolean>(false);
-
-  // Filters & Search
-  const [searchKeyword, setSearchKeyword] = useState<string>('');
-  const [activeView, setActiveView] = useState<'activos' | 'todos' | 'inactivos'>('activos');
-  const [selectedIds, setSelectedIds] = useState<Set<SelectionItemId>>(new Set());
+  const [search, setSearch] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<TableRowId>>(new Set());
+  const [createOpen, setCreateOpen] = useState(false);
 
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await UnidadMedidaService.getUnidadesMedida();
-      setItems(data);
-    } catch (err: any) {
-      console.error('Error loading unidades de medida:', err);
-      setError(err?.message || 'Error al conectar con el backend');
+      setItems(await GrupoUnidadMedidaService.getGrupos());
+    } catch (e: any) {
+      setError(e?.message || 'No se pudieron cargar los grupos de unidades.');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { void loadData(); }, []);
 
-  const filteredItems = useMemo(() => {
-    let result = [...items];
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((g) =>
+      g.nombre.toLowerCase().includes(q) ||
+      g.unidades.some((u) => u.nombre.toLowerCase().includes(q)));
+  }, [items, search]);
 
-    if (activeView === 'activos') {
-      result = result.filter((i) => i.activo);
-    } else if (activeView === 'inactivos') {
-      result = result.filter((i) => !i.activo);
-    }
+  const open = (item: GrupoUnidadMedidaDto) => {
+    if (onSelect) onSelect(item);
+    else navigate(`/grupos-unidades/${item.id}`);
+  };
 
-    if (searchKeyword.trim()) {
-      const q = searchKeyword.toLowerCase();
-      result = result.filter(
-        (i) =>
-          i.codigo.toLowerCase().includes(q) ||
-          i.nombre.toLowerCase().includes(q) ||
-          i.abreviatura.toLowerCase().includes(q) ||
-          (i.descripcion && i.descripcion.toLowerCase().includes(q))
-      );
-    }
+  const columns: TableColumnDefinition<GrupoUnidadMedidaDto>[] = [
+    createTableColumn({
+      columnId: 'grupo', renderHeaderCell: () => 'Grupo de unidades',
+      renderCell: (g) => <TableCellLayout><Link as="button" onClick={(event) => {
+        event.stopPropagation();
+        open(g);
+      }}>{g.nombre}</Link></TableCellLayout>,
+    }),
+    createTableColumn({
+      columnId: 'base', renderHeaderCell: () => 'Unidad base',
+      renderCell: (g) => {
+        const base = g.unidades.find((u) => u.esUnidadBase);
+        return <TableCellLayout>{base?.nombre || 'Sin unidad base'}</TableCellLayout>;
+      },
+    }),
+    createTableColumn({
+      columnId: 'unidades', renderHeaderCell: () => 'Unidades',
+      renderCell: (g) => <TableCellLayout>{g.unidades.length}</TableCellLayout>,
+    }),
+    createTableColumn({
+      columnId: 'estado', renderHeaderCell: () => 'Estado',
+      renderCell: (g) => <TableCellLayout><Text>{g.estaActivo ? 'Activo' : 'Inactivo'}</Text></TableCellLayout>,
+    }),
+  ];
 
-    return result;
-  }, [items, activeView, searchKeyword]);
-
-  const columns: TableColumnDefinition<UnidadMedidaDto>[] = useMemo(
-    () => [
-      createTableColumn<UnidadMedidaDto>({
-        columnId: 'nombre',
-        compare: (a, b) => a.nombre.localeCompare(b.nombre),
-        renderHeaderCell: () => 'Nombre',
-        renderCell: (item) => (
-          <TableCellLayout truncate>
-            <Link
-              as="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onSelect) onSelect(item);
-                else navigate(`/servicio-campo/unidades-medida/${item.id}`);
-              }}
-              title={item.nombre}
-            >
-              {item.nombre}
-            </Link>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<UnidadMedidaDto>({
-        columnId: 'codigo',
-        compare: (a, b) => a.codigo.localeCompare(b.codigo),
-        renderHeaderCell: () => 'Código',
-        renderCell: (item) => (
-          <TableCellLayout truncate>
-            <Text>
-              {item.codigo}
-            </Text>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<UnidadMedidaDto>({
-        columnId: 'abreviatura',
-        renderHeaderCell: () => 'Abreviatura',
-        renderCell: (item) => (
-          <TableCellLayout truncate>
-            <Text>
-              {item.abreviatura}
-            </Text>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<UnidadMedidaDto>({
-        columnId: 'descripcion',
-        renderHeaderCell: () => 'Descripción',
-        renderCell: (item) => (
-          <TableCellLayout truncate>
-            <Text>
-              {item.descripcion || '—'}
-            </Text>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<UnidadMedidaDto>({
-        columnId: 'activo',
-        renderHeaderCell: () => 'Estado',
-        renderCell: (item) => (
-          <TableCellLayout truncate>
-            <Text>
-              {item.activo ? 'Activo' : 'Inactivo'}
-            </Text>
-          </TableCellLayout>
-        ),
-      }),
-    ],
-    [onSelect, navigate]
-  );
-
-  return (
-    <div className={styles.root}>
-      {/* 1. TOP COMMAND BAR */}
-      <D365CommandBar
-        ariaLabel="Comandos de unidades de medida"
-        trailing={
-          <D365CommandButton appearance="primary" icon={<Share16Regular />}>
-            Compartir
-            <ChevronDown12Regular className={styles.iconChevronMargin} />
-          </D365CommandButton>
-        }
-      >
-        <div className={styles.toolbarLeft}>
-            <D365CommandButton
-              icon={<Add16Regular />}
-              tone="create"
-              onClick={() => {
-                if (onNew) onNew();
-                else navigate('/servicio-campo/unidades-medida/nuevo');
-              }}
-            >
-              Nuevo
-            </D365CommandButton>
-
-            <D365CommandButton
-              icon={<ArrowClockwise16Regular />}
-              onClick={loadData}
-            >
-              Actualizar
-            </D365CommandButton>
-
-            <D365CommandDivider />
-
-            <D365CommandButton icon={<ArrowDownload16Regular />}>
-              Exportar a Excel
-              <ChevronDown12Regular className={styles.iconChevronMargin} />
-            </D365CommandButton>
-
-            <D365CommandButton
-              icon={<ArrowUpload16Regular />}
-              onClick={() => setImportDialogOpen(true)}
-            >
-              Importar de Excel
-            </D365CommandButton>
-        </div>
-      </D365CommandBar>
-
-      {/* 2. VIEW HEADER ROW */}
-      <div className={styles.viewHeader}>
-        <Menu>
-          <MenuTrigger disableButtonEnhancement>
-            <div className={styles.viewSelectorTab} title="Seleccionar vista">
-              <Text weight="semibold" size={400}>
-                {activeView === 'activos'
-                  ? 'Unidades de Medida Activas'
-                  : activeView === 'inactivos'
-                    ? 'Unidades de Medida Inactivas'
-                    : 'Todas las Unidades de Medida'}
-              </Text>
-              <ChevronDown16Regular />
-            </div>
-          </MenuTrigger>
-          <MenuPopover>
-            <MenuList className={styles.viewMenuPopover}>
-              <MenuItem
-                icon={activeView === 'activos' ? <Checkmark16Regular /> : undefined}
-                onClick={() => setActiveView('activos')}
-              >
-                Unidades de Medida Activas
-              </MenuItem>
-              <MenuItem
-                icon={activeView === 'todos' ? <Checkmark16Regular /> : undefined}
-                onClick={() => setActiveView('todos')}
-              >
-                Todas las Unidades de Medida
-              </MenuItem>
-              <MenuItem
-                icon={activeView === 'inactivos' ? <Checkmark16Regular /> : undefined}
-                onClick={() => setActiveView('inactivos')}
-              >
-                Unidades de Medida Inactivas
-              </MenuItem>
-            </MenuList>
-          </MenuPopover>
-        </Menu>
-
-        <div className={styles.viewToolsRight}>
-          <Tooltip content="Modificar orden y visibilidad de columnas" relationship="label">
-            <Button
-              appearance="subtle"
-              size="medium"
-              icon={<TableEdit16Regular className={styles.iconBrand} />}
-            >
-              Editar columnas
-            </Button>
-          </Tooltip>
-
-          <Tooltip content="Editar filtros de la consulta" relationship="label">
-            <Button
-              appearance="subtle"
-              size="medium"
-              icon={<DataFunnel20Regular className={styles.iconBrand} />}
-            >
-              Editar filtros
-            </Button>
-          </Tooltip>
-
-          <Input
-            className={styles.searchBox}
-            size="medium"
-            contentBefore={<Search16Regular />}
-            placeholder="Buscar en esta vista..."
-            value={searchKeyword}
-            onChange={(_, d) => setSearchKeyword(d.value)}
-          />
-        </div>
+  return <div className={styles.root}>
+    <D365CommandBar ariaLabel="Comandos de grupos de unidades">
+      <div className={styles.toolbarLeft}>
+        <D365CommandButton icon={<Add16Regular />} tone="create" onClick={() => setCreateOpen(true)}>Nuevo grupo de unidades</D365CommandButton>
+        <D365CommandButton icon={<ArrowClockwise16Regular />} onClick={loadData}>Actualizar</D365CommandButton>
       </div>
-
-      {/* 3. GRID BODY */}
-      <div className={styles.gridWrapper}>
-        <D365ListState loading={loading} error={error} onRetry={loadData} loadingLabel="Cargando unidades de medida...">
-          <DataGrid
-            items={filteredItems}
-            columns={columns}
-            getRowId={(item) => item.id}
-            selectionMode="multiselect"
-            selectedItems={selectedIds}
-            onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
-            className={styles.table}
-          >
-            <DataGridHeader>
-              <DataGridRow>
-                {({ renderHeaderCell }) => (
-                  <DataGridHeaderCell>
-                    {renderHeaderCell()}
-                  </DataGridHeaderCell>
-                )}
-              </DataGridRow>
-            </DataGridHeader>
-            {filteredItems.length === 0 ? (
-              <TableEmptyState />
-            ) : (
-              <DataGridBody<UnidadMedidaDto>>
-                {({ item, rowId }) => (
-                  <DataGridRow<UnidadMedidaDto>
-                    key={rowId}
-                    className={styles.dataRow}
-                    onDoubleClick={() => {
-                      if (onSelect) onSelect(item);
-                      else navigate(`/servicio-campo/unidades-medida/${item.id}`);
-                    }}
-                  >
-                    {({ renderCell }) => (
-                      <DataGridCell className={styles.dataCell}>{renderCell(item)}</DataGridCell>
-                    )}
-                  </DataGridRow>
-                )}
-              </DataGridBody>
-            )}
-          </DataGrid>
-        </D365ListState>
+    </D365CommandBar>
+    <div className={styles.viewHeader}>
+      <Text weight="semibold" size={400}>Grupos y unidades de medida</Text>
+      <div className={styles.viewToolsRight}>
+        <Input className={styles.searchBox} contentBefore={<Search16Regular />} value={search}
+          placeholder="Buscar grupo o unidad..." onChange={(_, d) => setSearch(d.value)} />
       </div>
-
-      {/* 4. IMPORT DATA DRAWER LATERAL DERECHO (DYNAMICS 365) */}
-      <ImportacionDrawer
-        open={importDialogOpen}
-        onOpenChange={setImportDialogOpen}
-        targetEntityName="UnidadMedida"
-        onDownloadTemplate={() => UnidadMedidaService.descargarPlantillaExcel()}
-        onSuccess={loadData}
-      />
     </div>
-  );
+    <div className={styles.gridWrapper}>
+      <D365ListState loading={loading} error={error} onRetry={loadData} loadingLabel="Cargando grupos...">
+        <DataGrid
+          items={filtered}
+          columns={columns}
+          selectionMode="multiselect"
+          selectedItems={selectedIds}
+          onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
+          getRowId={(g) => g.id}
+          focusMode="composite"
+          size="medium"
+          className={styles.table}
+        >
+          <DataGridHeader><DataGridRow>{({ renderHeaderCell }) => <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>}</DataGridRow></DataGridHeader>
+          {filtered.length === 0 ? <TableEmptyState /> : <DataGridBody<GrupoUnidadMedidaDto>>
+            {({ item, rowId }) => <DataGridRow key={rowId} className={styles.dataRow} onDoubleClick={() => open(item)}>
+              {({ renderCell }) => <DataGridCell className={styles.dataCell}>{renderCell(item)}</DataGridCell>}
+            </DataGridRow>}
+          </DataGridBody>}
+        </DataGrid>
+      </D365ListState>
+    </div>
+    <CrearGrupoModal
+      abierto={createOpen}
+      alCerrar={() => setCreateOpen(false)}
+      alCrear={(id) => {
+        setCreateOpen(false);
+        navigate(`/grupos-unidades/${id}`);
+      }}
+    />
+  </div>;
 };
 
 export default UnidadesMedidaListPage;

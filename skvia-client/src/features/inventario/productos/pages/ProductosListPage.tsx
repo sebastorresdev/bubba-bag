@@ -57,7 +57,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
   const [productos, setProductos] = useState<ProductoDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [importDialogOpen, setImportDialogOpen] = useState<boolean>(false);
+  const [importDrawerOpen, setImportDrawerOpen] = useState<boolean>(false);
 
   // Filters & Search
   const [searchKeyword, setSearchKeyword] = useState<string>('');
@@ -100,7 +100,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
           p.codigo.toLowerCase().includes(q) ||
           p.nombre.toLowerCase().includes(q) ||
           p.categoria?.toLowerCase().includes(q) ||
-          p.unidadMedida?.toLowerCase().includes(q)
+          p.nombreUnidadMedidaDefecto?.toLowerCase().includes(q)
       );
     }
 
@@ -162,9 +162,9 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
             <Text>
               {item.tipo === 1 || item.tipo === 'Inventario'
                 ? 'Inventario'
-                : item.tipo === 2 || item.tipo === 'Servicio'
-                  ? 'Servicio'
-                  : 'No Inventariable'}
+                : item.tipo === 2 || item.tipo === 'NoInventario'
+                  ? 'No inventario'
+                  : 'Servicio'}
             </Text>
           </TableCellLayout>
         ),
@@ -174,7 +174,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
         renderHeaderCell: () => 'Unidad de Medida',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text>{item.unidadMedida || 'UND'}</Text>
+            <Text>{item.nombreUnidadMedidaDefecto || '—'}</Text>
           </TableCellLayout>
         ),
       }),
@@ -270,8 +270,15 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
             </D365CommandButton>
 
             <D365CommandButton
+              icon={<ArrowDownload16Regular />}
+              onClick={() => void ProductoService.descargarPlantillaExcel()}
+            >
+              Descargar plantilla
+            </D365CommandButton>
+
+            <D365CommandButton
               icon={<ArrowUpload16Regular />}
-              onClick={() => setImportDialogOpen(true)}
+              onClick={() => setImportDrawerOpen(true)}
             >
               Importar de Excel
             </D365CommandButton>
@@ -411,10 +418,9 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
 
       {/* 5. IMPORT DATA DRAWER LATERAL DERECHO (DYNAMICS 365) */}
       <ImportacionDrawer
-        open={importDialogOpen}
-        onOpenChange={setImportDialogOpen}
+        open={importDrawerOpen}
+        onOpenChange={setImportDrawerOpen}
         targetEntityName="Producto"
-        onDownloadTemplate={() => ProductoService.descargarPlantillaExcel()}
         onSuccess={loadData}
       />
     </div>

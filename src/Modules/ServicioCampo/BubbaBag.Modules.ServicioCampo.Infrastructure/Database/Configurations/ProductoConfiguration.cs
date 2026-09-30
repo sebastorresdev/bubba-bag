@@ -43,13 +43,33 @@ public class ProductoConfiguration : IEntityTypeConfiguration<Producto>
             .HasForeignKey(p => p.ListaPreciosPredeterminadaId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        builder.Property(p => p.Categoria)
-            .IsRequired(false)
-            .HasMaxLength(50);
+        builder.Property(p => p.CategoriaProductoId)
+            .IsRequired(false);
 
-        builder.Property(p => p.UnidadMedida)
-            .IsRequired()
-            .HasMaxLength(30);
+        builder.HasOne(p => p.CategoriaProducto)
+            .WithMany()
+            .HasForeignKey(p => p.CategoriaProductoId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // FK → GrupoUnidadMedida (familia permitida para el producto)
+        builder.Property(p => p.GrupoUnidadMedidaId)
+            .IsRequired(false);
+
+        builder.HasOne(p => p.GrupoUnidadMedida)
+            .WithMany()
+            .HasForeignKey(p => p.GrupoUnidadMedidaId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // FK → UnidadMedidaDefecto (debe pertenecer al grupo anterior)
+        builder.Property(p => p.UnidadMedidaDefectoId)
+            .IsRequired(false);
+
+        builder.HasOne(p => p.UnidadMedidaDefecto)
+            .WithMany()
+            .HasForeignKey(p => p.UnidadMedidaDefectoId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(p => p.DecimalesCantidad)
             .IsRequired()

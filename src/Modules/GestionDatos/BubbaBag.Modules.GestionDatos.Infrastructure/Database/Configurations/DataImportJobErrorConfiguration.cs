@@ -8,7 +8,7 @@ public class DataImportJobErrorConfiguration : IEntityTypeConfiguration<DataImpo
 {
     public void Configure(EntityTypeBuilder<DataImportJobError> builder)
     {
-        builder.ToTable("DataImportJobErrors", "GestionDatos");
+        builder.ToTable("DataImportJobErrors", "gestiondatos");
 
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id)

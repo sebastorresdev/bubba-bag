@@ -29,22 +29,22 @@ public class ObtenerProductosHandler : IQueryHandler<ObtenerProductosQuery, Resu
 
     public async Task<Result<List<ProductoDto>>> HandleAsync(ObtenerProductosQuery query, CancellationToken cancellationToken = default)
     {
-        var dbQuery = _context.Productos.AsNoTracking().AsQueryable();
+        var dbQuery = _context.Productos
+            .Include(p => p.GrupoUnidadMedida)
+            .Include(p => p.CategoriaProducto)
+            .Include(p => p.UnidadMedidaDefecto)
+            .Include(p => p.ListaPreciosPredeterminada)
+            .AsNoTracking()
+            .AsQueryable();
 
         if (query.SoloActivos.HasValue)
-        {
             dbQuery = dbQuery.Where(p => p.Activo == query.SoloActivos.Value);
-        }
 
         if (query.Tipo.HasValue)
-        {
             dbQuery = dbQuery.Where(p => p.Tipo == query.Tipo.Value);
-        }
 
         if (!string.IsNullOrWhiteSpace(query.Categoria))
-        {
-            dbQuery = dbQuery.Where(p => p.Categoria == query.Categoria.Trim());
-        }
+            dbQuery = dbQuery.Where(p => p.CategoriaProducto != null && p.CategoriaProducto.Nombre == query.Categoria.Trim());
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
@@ -57,31 +57,36 @@ public class ObtenerProductosHandler : IQueryHandler<ObtenerProductosQuery, Resu
 
         var lista = await dbQuery
             .OrderBy(p => p.Tipo)
-            .ThenBy(p => p.Categoria)
+            .ThenBy(p => p.CategoriaProducto != null ? p.CategoriaProducto.Nombre : null)
             .ThenBy(p => p.Nombre)
-            .Select(p => new ProductoDto(
-                p.Id,
-                p.Codigo,
-                p.Nombre,
-                p.Descripcion,
-                p.Tipo,
-                p.PrecioBase,
-                p.Categoria,
-                p.UnidadMedida,
-                p.EsSerializado,
-                p.Activo,
-                p.CodigoBarras,
-                p.Notas,
-                p.CostoActual,
-                p.CostoEstandar,
-                p.AfectoImpuesto,
-                p.ProveedorDefecto,
-                p.ListaPreciosPredeterminadaId,
-                p.ListaPreciosPredeterminada != null ? p.ListaPreciosPredeterminada.Nombre : null,
-                p.DecimalesCantidad
-            ))
             .ToListAsync(cancellationToken);
 
-        return Result<List<ProductoDto>>.Success(lista);
+        var dtos = lista.Select(p => new ProductoDto(
+            p.Id,
+            p.Codigo,
+            p.Nombre,
+            p.Descripcion,
+            p.Tipo,
+            p.PrecioBase,
+            p.CategoriaProductoId,
+            p.CategoriaProducto != null ? p.CategoriaProducto.Nombre : null,
+            p.GrupoUnidadMedidaId,
+            p.GrupoUnidadMedida?.Nombre,
+            p.UnidadMedidaDefectoId,
+            p.UnidadMedidaDefecto?.Nombre,
+            p.EsSerializado,
+            p.Activo,
+            p.CodigoBarras,
+            p.Notas,
+            p.CostoActual,
+            p.CostoEstandar,
+            p.AfectoImpuesto,
+            p.ProveedorDefecto,
+            p.ListaPreciosPredeterminadaId,
+            p.ListaPreciosPredeterminada?.Nombre,
+            p.DecimalesCantidad
+        )).ToList();
+
+        return Result<List<ProductoDto>>.Success(dtos);
     }
 }

@@ -20,12 +20,11 @@ import {
   DataGridCell,
   TableCellLayout,
   createTableColumn,
-  Dialog,
-  DialogSurface,
-  DialogTitle,
-  DialogBody,
-  DialogContent,
-  DialogActions,
+  DrawerBody,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerHeaderTitle,
+  OverlayDrawer,
   Tooltip,
   Skeleton,
   SkeletonItem,
@@ -59,6 +58,7 @@ import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
+import { D365FormField } from '../../../../components/common/D365FormField';
 
 const useLocalStyles = makeStyles({
   subgridHeader: {
@@ -87,6 +87,19 @@ const useLocalStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     gap: '4px',
+  },
+  drawer: {
+    width: '460px',
+    maxWidth: '95vw',
+  },
+  drawerHeader: {
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+  },
+  drawerFooter: {
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: tokens.spacingHorizontalS,
   },
 });
 
@@ -138,13 +151,18 @@ export const ListaPreciosFormPage: React.FC = () => {
     fechaFin: '',
     activo: true,
   });
+  const [savedHeader, setSavedHeader] = useState({
+    nombre: '',
+    moneda: 'PEN',
+    activo: true,
+  });
 
   // Price List Elements (Items)
   const [elementos, setElementos] = useState<ElementoListaPreciosDto[]>([]);
   const [elementosSearch, setElementosSearch] = useState<string>('');
 
   // Add Item Dialog State
-  const [itemDialogOpen, setItemDialogOpen] = useState<boolean>(false);
+  const [itemDrawerOpen, setItemDrawerOpen] = useState<boolean>(false);
   const [itemSubmitting, setItemSubmitting] = useState<boolean>(false);
   const [availableProducts, setAvailableProducts] = useState<ProductoDto[]>([]);
   const [availableUnidades, setAvailableUnidades] = useState<UnidadMedidaDto[]>([]);
@@ -169,6 +187,11 @@ export const ListaPreciosFormPage: React.FC = () => {
         fechaFin: data.fechaFin ? data.fechaFin.split('T')[0] : '',
         activo: data.activo,
       });
+      setSavedHeader({
+        nombre: data.nombre || '',
+        moneda: data.moneda || 'PEN',
+        activo: data.activo,
+      });
       setElementos(data.elementos || []);
     } catch (err: any) {
       console.error('Error loading lista de precios:', err);
@@ -186,7 +209,7 @@ export const ListaPreciosFormPage: React.FC = () => {
   }, [loadData]);
 
   // Load catalogs for dialog (Products and Units)
-  const loadCatalogsForDialog = async () => {
+  const loadCatalogsForDrawer = async () => {
     try {
       const [prods, units] = await Promise.all([
         ProductoService.getProductos(undefined, undefined, true),
@@ -199,13 +222,13 @@ export const ListaPreciosFormPage: React.FC = () => {
     }
   };
 
-  const handleOpenItemDialog = () => {
+  const handleOpenItemDrawer = () => {
     setNewProductoId('');
     setNewUnidadMedidaId('');
     setNewMonto('0');
     setNewMetodoFijacion(1);
-    setItemDialogOpen(true);
-    loadCatalogsForDialog();
+    setItemDrawerOpen(true);
+    loadCatalogsForDrawer();
   };
 
   // Handle Save
@@ -262,6 +285,11 @@ export const ListaPreciosFormPage: React.FC = () => {
         };
 
         await ListaPreciosService.updateListaPrecios(id!, updateDto);
+        setSavedHeader((prev) => ({
+          ...prev,
+          nombre: updateDto.nombre,
+          moneda: updateDto.moneda,
+        }));
         setBanner({ text: 'Lista de precios actualizada correctamente.', intent: 'success' });
 
         if (closeAfter) {
@@ -288,6 +316,7 @@ export const ListaPreciosFormPage: React.FC = () => {
       const nuevoEstado = !formData.activo;
       await ListaPreciosService.cambiarEstado(id, nuevoEstado);
       setFormData((prev) => ({ ...prev, activo: nuevoEstado }));
+      setSavedHeader((prev) => ({ ...prev, activo: nuevoEstado }));
       setBanner({
         text: `Lista de precios ${nuevoEstado ? 'activada' : 'desactivada'} correctamente.`,
         intent: 'success',
@@ -324,7 +353,7 @@ export const ListaPreciosFormPage: React.FC = () => {
         productoCodigo: prod?.codigo || 'PROD',
         productoNombre: prod?.nombre || 'Producto',
         unidadMedidaId: newUnidadMedidaId || null,
-        unidadMedidaNombre: um ? `${um.nombre} (${um.abreviatura})` : null,
+        unidadMedidaNombre: um?.nombre || null,
         monto: montoNum,
         metodoFijacion: newMetodoFijacion,
       };
@@ -341,7 +370,7 @@ export const ListaPreciosFormPage: React.FC = () => {
         return [...prev, tempItem];
       });
 
-      setItemDialogOpen(false);
+      setItemDrawerOpen(false);
       setBanner({ text: 'Precio del producto asignado. Se guardará al pulsar Guardar.', intent: 'success' });
       setTimeout(() => setBanner(null), 3000);
       return;
@@ -356,7 +385,7 @@ export const ListaPreciosFormPage: React.FC = () => {
         metodoFijacion: newMetodoFijacion,
       });
 
-      setItemDialogOpen(false);
+      setItemDrawerOpen(false);
       setBanner({ text: 'Producto asignado a la lista de precios exitosamente.', intent: 'success' });
       setTimeout(() => setBanner(null), 4000);
       loadData();
@@ -487,7 +516,7 @@ export const ListaPreciosFormPage: React.FC = () => {
           <TableCellLayout>
             <Tooltip content="Remover de esta lista" relationship="label">
               <Button
-                size="small"
+                size="medium"
                 appearance="subtle"
                 icon={<Delete16Regular className={styles.iconDanger} />}
                 onClick={() => handleEliminarElemento(item.id, item.productoNombre)}
@@ -603,15 +632,15 @@ export const ListaPreciosFormPage: React.FC = () => {
 
       {/* 2. Dynamics 365 Entity Header Summary */}
       <D365EntityHeader
-        title={formData.nombre || (isNew ? 'Nueva Lista de Precios' : 'Sin Nombre')}
+        title={savedHeader.nombre || (isNew ? 'Nueva Lista de Precios' : 'Sin Nombre')}
         subtitle="Lista de Precios"
-        avatarName={formData.nombre || 'Lista de Precios'}
+        avatarName={savedHeader.nombre || 'Lista de Precios'}
         avatarIcon={<Money24Regular />}
         avatarSize={48}
         loading={loading}
         metadata={[
-          { label: 'Moneda', value: formData.moneda === 'USD' ? 'USD ($)' : 'PEN (S/)' },
-          { label: 'Estado', value: <><span className={formData.activo ? styles.statusDotActive : styles.statusDotInactive} />{formData.activo ? 'Activo' : 'Inactivo'}</> },
+          { label: 'Moneda', value: savedHeader.moneda === 'USD' ? 'USD ($)' : 'PEN (S/)' },
+          { label: 'Estado', value: <><span className={savedHeader.activo ? styles.statusDotActive : styles.statusDotInactive} />{savedHeader.activo ? 'Activo' : 'Inactivo'}</> },
           ...(!isNew ? [{ label: 'Artículos', value: `${elementos.length} asignados` }] : []),
         ]}
         tabs={(
@@ -655,64 +684,43 @@ export const ListaPreciosFormPage: React.FC = () => {
               <Text className={styles.cardSectionTitle}>Información de la Tarifa</Text>
 
               {/* Nombre */}
-              <div className={styles.d365FieldRow}>
-                <div className={styles.d365LabelCol}>
-                  <Label size="medium" required htmlFor="lp-nombre">
-                    Nombre
-                  </Label>
-                </div>
-                <div className={styles.d365ControlCol}>
-                  <Input
-                    id="lp-nombre"
-                    size="medium"
-                    className={styles.d365ControlFull}
-                    placeholder="Ej. Tarifa General 2026, Mayoristas..."
-                    value={formData.nombre}
-                    onChange={(_, d) => setFormData({ ...formData, nombre: d.value })}
-                  />
-                </div>
-              </div>
+              <D365FormField label="Nombre" required htmlFor="lp-nombre">
+                <Input
+                  id="lp-nombre"
+                  size="medium"
+                  className={styles.d365ControlFull}
+                  placeholder="---"
+                  value={formData.nombre}
+                  onChange={(_, d) => setFormData({ ...formData, nombre: d.value })}
+                />
+              </D365FormField>
 
               {/* Moneda */}
-              <div className={styles.d365FieldRow}>
-                <div className={styles.d365LabelCol}>
-                  <Label size="medium" required htmlFor="lp-moneda">
-                    Moneda
-                  </Label>
-                </div>
-                <div className={styles.d365ControlCol}>
-                  <Select
-                    id="lp-moneda"
-                    size="medium"
-                    className={styles.d365ControlFull}
-                    value={formData.moneda}
-                    onChange={(_, d) => setFormData({ ...formData, moneda: d.value })}
-                  >
-                    <option value="PEN">PEN — Sol Peruano (S/)</option>
-                    <option value="USD">USD — Dólar Estadounidense ($)</option>
-                  </Select>
-                </div>
-              </div>
+              <D365FormField label="Moneda" required htmlFor="lp-moneda">
+                <Select
+                  id="lp-moneda"
+                  size="medium"
+                  className={styles.d365ControlFull}
+                  value={formData.moneda}
+                  onChange={(_, d) => setFormData({ ...formData, moneda: d.value })}
+                >
+                    <option value="PEN">PEN</option>
+                    <option value="USD">USD</option>
+                </Select>
+              </D365FormField>
 
               {/* Descripción */}
-              <div className={styles.d365FieldRowTop}>
-                <div className={styles.d365LabelColTop}>
-                  <Label size="medium" htmlFor="lp-descripcion">
-                    Descripción
-                  </Label>
-                </div>
-                <div className={styles.d365ControlCol}>
-                  <Textarea
-                    id="lp-descripcion"
-                    size="medium"
-                    rows={4}
-                    className={styles.d365ControlFull}
-                    placeholder="Notas o condiciones sobre el uso de esta lista de precios..."
-                    value={formData.descripcion}
-                    onChange={(_, d) => setFormData({ ...formData, descripcion: d.value })}
-                  />
-                </div>
-              </div>
+              <D365FormField label="Descripción" htmlFor="lp-descripcion" align="top">
+                <Textarea
+                  id="lp-descripcion"
+                  size="medium"
+                  rows={4}
+                  className={styles.d365ControlFull}
+                  placeholder="---"
+                  value={formData.descripcion}
+                  onChange={(_, d) => setFormData({ ...formData, descripcion: d.value })}
+                />
+              </D365FormField>
             </Card>
 
             {/* Card 2: Vigencia y Parámetros */}
@@ -720,44 +728,30 @@ export const ListaPreciosFormPage: React.FC = () => {
               <Text className={styles.cardSectionTitle}>Vigencia y Validez Temporal</Text>
 
               {/* Fecha Inicio */}
-              <div className={styles.d365FieldRow}>
-                <div className={styles.d365LabelCol}>
-                  <Label size="medium">
-                    Fecha de Inicio
-                  </Label>
-                </div>
-                <div className={styles.d365ControlCol}>
-                  <DatePicker
-                    id="lp-inicio"
-                    className={styles.d365ControlFull}
-                    placeholder="Seleccionar fecha de inicio..."
-                    value={parseISODate(formData.fechaInicio)}
-                    onSelectDate={(date) =>
-                      setFormData({ ...formData, fechaInicio: formatISODate(date) })
-                    }
-                  />
-                </div>
-              </div>
+              <D365FormField label="Fecha de Inicio" htmlFor="lp-inicio">
+                <DatePicker
+                  id="lp-inicio"
+                  className={styles.d365ControlFull}
+                  placeholder="---"
+                  value={parseISODate(formData.fechaInicio)}
+                  onSelectDate={(date) =>
+                    setFormData({ ...formData, fechaInicio: formatISODate(date) })
+                  }
+                />
+              </D365FormField>
 
               {/* Fecha Fin */}
-              <div className={styles.d365FieldRow}>
-                <div className={styles.d365LabelCol}>
-                  <Label size="medium">
-                    Fecha de Fin
-                  </Label>
-                </div>
-                <div className={styles.d365ControlCol}>
-                  <DatePicker
-                    id="lp-fin"
-                    className={styles.d365ControlFull}
-                    placeholder="Seleccionar fecha de fin..."
-                    value={parseISODate(formData.fechaFin)}
-                    onSelectDate={(date) =>
-                      setFormData({ ...formData, fechaFin: formatISODate(date) })
-                    }
-                  />
-                </div>
-              </div>
+              <D365FormField label="Fecha de Fin" htmlFor="lp-fin">
+                <DatePicker
+                  id="lp-fin"
+                  className={styles.d365ControlFull}
+                  placeholder="---"
+                  value={parseISODate(formData.fechaFin)}
+                  onSelectDate={(date) =>
+                    setFormData({ ...formData, fechaFin: formatISODate(date) })
+                  }
+                />
+              </D365FormField>
 
             </Card>
           </div>
@@ -771,8 +765,8 @@ export const ListaPreciosFormPage: React.FC = () => {
                 className={localStyles.subgridHeader}
                 trailing={
                   <Input
-                    size="small"
-                    placeholder="Filtrar por palabra clave"
+                    size="medium"
+                    placeholder="---"
                     contentBefore={<Search16Regular />}
                     value={elementosSearch}
                     onChange={(_, d) => setElementosSearch(d.value)}
@@ -781,14 +775,14 @@ export const ListaPreciosFormPage: React.FC = () => {
               >
                 <D365CommandButton
                   tone="create"
-                  size="small"
+                  size="medium"
                   icon={<Add16Regular />}
-                  onClick={handleOpenItemDialog}
+                  onClick={handleOpenItemDrawer}
                 >
                   Agregar producto
                 </D365CommandButton>
                 <D365CommandButton
-                  size="small"
+                  size="medium"
                   icon={<ArrowClockwise16Regular />}
                   onClick={isNew ? undefined : loadData}
                 >
@@ -833,16 +827,31 @@ export const ListaPreciosFormPage: React.FC = () => {
         )}
       </div>
 
-      {/* Dialog: Agregar Producto a Lista de Precios */}
-      <Dialog open={itemDialogOpen} onOpenChange={(_, data) => setItemDialogOpen(data.open)}>
-        <DialogSurface className={styles.dialogSurface}>
-          <DialogTitle>Asignar Producto a Lista de Precios</DialogTitle>
-          <DialogBody>
-            <DialogContent className={localStyles.dialogForm}>
-              {/* Seleccionar Producto */}
+      <OverlayDrawer
+        open={itemDrawerOpen}
+        position="end"
+        className={localStyles.drawer}
+        onOpenChange={(_, data) => !data.open && !itemSubmitting && setItemDrawerOpen(false)}
+      >
+        <DrawerHeader className={localStyles.drawerHeader}>
+          <DrawerHeaderTitle
+            action={(
+              <Button
+                appearance="subtle"
+                icon={<DismissRegular />}
+                aria-label="Cerrar"
+                disabled={itemSubmitting}
+                onClick={() => setItemDrawerOpen(false)}
+              />
+            )}
+          >
+            Creación rápida: Precio
+          </DrawerHeaderTitle>
+        </DrawerHeader>
+        <DrawerBody className={localStyles.dialogForm}>
               <div className={localStyles.dialogRow}>
                 <Label required size="medium" htmlFor="dialog-producto">
-                  Producto del Catálogo
+                  Producto
                 </Label>
                 <Select
                   id="dialog-producto"
@@ -858,10 +867,9 @@ export const ListaPreciosFormPage: React.FC = () => {
                 </Select>
               </div>
 
-              {/* Unidad de Medida */}
               <div className={localStyles.dialogRow}>
                 <Label size="medium" htmlFor="dialog-unidad">
-                  Unidad de Medida (Opcional)
+                  Unidad
                 </Label>
                 <Select
                   id="dialog-unidad"
@@ -871,65 +879,56 @@ export const ListaPreciosFormPage: React.FC = () => {
                   <option value="">---</option>
                   {availableUnidades.map((u) => (
                     <option key={u.id} value={u.id}>
-                      {u.nombre} ({u.abreviatura})
+                      {u.nombre}
                     </option>
                   ))}
                 </Select>
               </div>
 
-              {/* Método de Fijación */}
               <div className={localStyles.dialogRow}>
                 <Label required size="medium" htmlFor="dialog-metodo">
-                  Método de Fijación de Precio
+                  Método
                 </Label>
                 <Select
                   id="dialog-metodo"
                   value={newMetodoFijacion.toString()}
                   onChange={(_, d) => setNewMetodoFijacion(parseInt(d.value, 10))}
                 >
-                  <option value="1">1 — Importe en divisa fija ({currencySymbol})</option>
-                  <option value="2">2 — Porcentaje sobre el costo base (%)</option>
-                  <option value="3">3 — Porcentaje de margen comercial (%)</option>
+                  <option value="1">Importe</option>
+                  <option value="2">Costo</option>
+                  <option value="3">Margen</option>
                 </Select>
               </div>
 
-              {/* Monto / Porcentaje */}
               <div className={localStyles.dialogRow}>
                 <Label required size="medium" htmlFor="dialog-monto">
-                  {newMetodoFijacion === 1 ? `Importe (${currencySymbol})` : 'Porcentaje (%)'}
+                  {newMetodoFijacion === 1 ? 'Importe' : 'Porcentaje'}
                 </Label>
                 <Input
                   id="dialog-monto"
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder="0.00"
+                  placeholder="---"
                   contentBefore={newMetodoFijacion === 1 ? currencySymbol : '%'}
                   value={newMonto}
                   onChange={(_, d) => setNewMonto(d.value)}
                 />
               </div>
-
-              <Text size={200} className={styles.fieldHint}>
-                Nota: En una misma lista de precios, cada combinación de Producto y Unidad de Medida tiene un único precio. Si ya existe, se actualizará su tarifa.
-              </Text>
-            </DialogContent>
-
-            <DialogActions>
-              <Button appearance="secondary" onClick={() => setItemDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button
-                appearance="primary"
-                disabled={itemSubmitting || !newProductoId || newMonto.trim() === ''}
-                onClick={handleGuardarElemento}
-              >
-                {itemSubmitting ? 'Guardando...' : 'Asignar a Lista'}
-              </Button>
-            </DialogActions>
-          </DialogBody>
-        </DialogSurface>
-      </Dialog>
+        </DrawerBody>
+        <DrawerFooter className={localStyles.drawerFooter}>
+          <Button appearance="secondary" disabled={itemSubmitting} onClick={() => setItemDrawerOpen(false)}>
+            Cancelar
+          </Button>
+          <Button
+            appearance="primary"
+            disabled={itemSubmitting || !newProductoId || newMonto.trim() === ''}
+            onClick={handleGuardarElemento}
+          >
+            {itemSubmitting ? 'Guardando…' : 'Guardar y cerrar'}
+          </Button>
+        </DrawerFooter>
+      </OverlayDrawer>
     </div>
   );
 };

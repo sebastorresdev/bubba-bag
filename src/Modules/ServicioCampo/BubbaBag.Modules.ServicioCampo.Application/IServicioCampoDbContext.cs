@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using System;
 using BubbaBag.Modules.RecursosHumanos.Domain.Organizacion;
 using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
 using BubbaBag.Modules.ServicioCampo.Domain.Clientes;
@@ -30,6 +31,7 @@ public interface IServicioCampoDbContext
     DbSet<Ubigeo> Ubigeos { get; }
     DbSet<Producto> Productos { get; }
     DbSet<UnidadMedida> UnidadesMedida { get; }
+    DbSet<GrupoUnidadMedida> GruposUnidadMedida { get; }
     DbSet<CategoriaProducto> CategoriasProducto { get; }
     DbSet<ListaPrecios> ListasPrecios { get; }
     DbSet<ElementoListaPrecios> ElementosListaPrecios { get; }
@@ -53,4 +55,7 @@ public interface IServicioCampoDbContext
     DbSet<LiquidacionMaterialItem> LiquidacionesMaterialItems { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+    Task EjecutarEnTransaccionAsync(
+        Func<CancellationToken, Task> operacion,
+        CancellationToken cancellationToken = default);
 }

@@ -4,6 +4,7 @@ using BubbaBag.Modules.RecursosHumanos.Infrastructure.Database;
 using BubbaBag.Modules.Seguridad.Infrastructure.Persistence;
 using BubbaBag.Modules.Seguridad.Infrastructure.Persistence.Seeders;
 using BubbaBag.Modules.ServicioCampo.Infrastructure.Database;
+using BubbaBag.Modules.GestionDatos.Infrastructure.Database;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +25,49 @@ public static class WebApplicationExtensions
         var rrhhDbContext = scope.ServiceProvider.GetRequiredService<RecursosHumanosDbContext>();
         await rrhhDbContext.Database.MigrateAsync();
 
+        var gestionDatosDbContext = scope.ServiceProvider.GetRequiredService<GestionDatosDbContext>();
+        await gestionDatosDbContext.Database.ExecuteSqlRawAsync(
+            """
+            CREATE SCHEMA IF NOT EXISTS gestiondatos;
+
+            CREATE TABLE IF NOT EXISTS gestiondatos."DataImportJobs" (
+                "Id" uuid NOT NULL PRIMARY KEY,
+                "NombreArchivo" character varying(250) NOT NULL,
+                "TipoRegistro" character varying(100) NOT NULL,
+                "TamanoBytes" bigint NOT NULL DEFAULT 0,
+                "Estado" character varying(50) NOT NULL,
+                "ModoDuplicados" character varying(50) NOT NULL,
+                "PermitirDuplicados" boolean NOT NULL DEFAULT false,
+                "CreadoPor" character varying(150) NOT NULL,
+                "FechaCreacion" timestamp with time zone NOT NULL,
+                "FechaFinalizacion" timestamp with time zone,
+                "TotalProcesados" integer NOT NULL DEFAULT 0,
+                "TotalExitosos" integer NOT NULL DEFAULT 0,
+                "TotalFallidos" integer NOT NULL DEFAULT 0,
+                "TotalParciales" integer NOT NULL DEFAULT 0,
+                "MapeoCamposJson" text,
+                "ParametrosDelimitadorJson" text
+            );
+
+            ALTER TABLE gestiondatos."DataImportJobs"
+                ADD COLUMN IF NOT EXISTS "TamanoBytes" bigint NOT NULL DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS "PermitirDuplicados" boolean NOT NULL DEFAULT false;
+
+            CREATE TABLE IF NOT EXISTS gestiondatos."DataImportJobErrors" (
+                "Id" uuid NOT NULL PRIMARY KEY,
+                "DataImportJobId" uuid NOT NULL REFERENCES gestiondatos."DataImportJobs"("Id") ON DELETE CASCADE,
+                "Fila" integer NOT NULL,
+                "ClaveIdentificador" character varying(150),
+                "Columna" character varying(150),
+                "Mensaje" character varying(1000) NOT NULL,
+                "ValorOriginal" character varying(1000)
+            );
+
+            UPDATE gestiondatos."DataImportJobs"
+            SET "Estado" = 'Fallido'
+            WHERE "Estado" = 'Procesando';
+            """);
+
         var servicioCampoDbContext = scope.ServiceProvider.GetService<ServicioCampoDbContext>();
         if (servicioCampoDbContext != null)
         {
@@ -34,7 +78,7 @@ public static class WebApplicationExtensions
                     @"CREATE SCHEMA IF NOT EXISTS crm;
                       CREATE SCHEMA IF NOT EXISTS inventario;
                       CREATE SCHEMA IF NOT EXISTS serviciocampo;
-                      CREATE SCHEMA IF NOT EXISTS GestionDatos;
+                      CREATE SCHEMA IF NOT EXISTS gestiondatos;
 
                       CREATE TABLE IF NOT EXISTS crm.ubigeos (
                           ""Codigo"" character varying(10) NOT NULL PRIMARY KEY,
@@ -144,13 +188,8 @@ public static class WebApplicationExtensions
                       ALTER TABLE inventario.""Productos"" ADD COLUMN IF NOT EXISTS ""DecimalesCantidad"" integer NOT NULL DEFAULT 0;
 
                       INSERT INTO inventario.""UnidadesMedida"" (""Id"", ""Codigo"", ""Nombre"", ""Abreviatura"", ""Descripcion"", ""Activo"")
-                      VALUES 
-                          ('a1111111-1111-1111-1111-111111111111', 'UND', 'Unidades', 'und', 'Unidad para equipos, piezas y accesorios', true),
-                          ('a2222222-2222-2222-2222-222222222222', 'MTR', 'Metros', 'm', 'Medida de longitud para cableado, ductos y canaletas', true),
-                          ('a3333333-3333-3333-3333-333333333333', 'ROL', 'Rollos', 'rol', 'Bobina o rollo de cable o cinta', true),
-                          ('a4444444-4444-4444-4444-444444444444', 'CAJ', 'Cajas', 'cj', 'Caja de grapas, conectores o insumos al por mayor', true),
-                          ('a5555555-5555-5555-5555-555555555555', 'KGM', 'Kilogramos', 'kg', 'Unidad de peso en masa', true),
-                          ('a6666666-6666-6666-6666-666666666666', 'SRV', 'Servicio', 'srv', 'Prestación de trabajo o servicio técnico', true)
+                      VALUES
+                          ('a1111111-1111-1111-1111-111111111111', 'UNICA', 'Única unidad', 'unidad', NULL, true)
                       ON CONFLICT (""Id"") DO NOTHING;
 
                       INSERT INTO inventario.""ListasPrecios"" (""Id"", ""Codigo"", ""Nombre"", ""Moneda"", ""Descripcion"", ""Activo"")

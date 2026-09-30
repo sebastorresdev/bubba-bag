@@ -37,25 +37,30 @@ public class InventarioExcelService : IInventarioExcelService
             .ToListAsync(cancellationToken);
 
         var unidades = await _context.UnidadesMedida
-            .Where(u => u.Activo)
-            .OrderBy(u => u.Nombre)
-            .Select(u => u.Nombre)
+            .Where(u => u.EstaActivo)
+            .OrderBy(u => u.GrupoUnidadMedida!.Nombre).ThenBy(u => u.Nombre)
+            .Select(u => new { Grupo = u.GrupoUnidadMedida!.Nombre, Unidad = u.Nombre })
             .ToListAsync(cancellationToken);
 
-        var tipos = new List<string> { "Inventario", "Servicio", "No Inventariable" };
+        var grupos = unidades.Select(u => u.Grupo).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var nombresUnidades = unidades.Select(u => u.Unidad).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+        var tipos = new List<string> { "Inventario", "Servicio", "No inventario" };
         var booleanos = new List<string> { "SI", "NO" };
 
         // 2. Hoja Oculta de Catálogos (para los Data Validation / Dropdowns de Excel)
         var wsCatalogos = workbook.Worksheets.Add("_Catalogos");
         wsCatalogos.Cell(1, 1).Value = "Categorias";
-        wsCatalogos.Cell(1, 2).Value = "Unidades";
-        wsCatalogos.Cell(1, 3).Value = "Tipos";
-        wsCatalogos.Cell(1, 4).Value = "Booleanos";
+        wsCatalogos.Cell(1, 2).Value = "GruposUnidades";
+        wsCatalogos.Cell(1, 3).Value = "Unidades";
+        wsCatalogos.Cell(1, 4).Value = "Tipos";
+        wsCatalogos.Cell(1, 5).Value = "Booleanos";
 
         for (int i = 0; i < categorias.Count; i++) wsCatalogos.Cell(i + 2, 1).Value = categorias[i];
-        for (int i = 0; i < unidades.Count; i++) wsCatalogos.Cell(i + 2, 2).Value = unidades[i];
-        for (int i = 0; i < tipos.Count; i++) wsCatalogos.Cell(i + 2, 3).Value = tipos[i];
-        for (int i = 0; i < booleanos.Count; i++) wsCatalogos.Cell(i + 2, 4).Value = booleanos[i];
+        for (int i = 0; i < grupos.Count; i++) wsCatalogos.Cell(i + 2, 2).Value = grupos[i];
+        for (int i = 0; i < nombresUnidades.Count; i++) wsCatalogos.Cell(i + 2, 3).Value = nombresUnidades[i];
+        for (int i = 0; i < tipos.Count; i++) wsCatalogos.Cell(i + 2, 4).Value = tipos[i];
+        for (int i = 0; i < booleanos.Count; i++) wsCatalogos.Cell(i + 2, 5).Value = booleanos[i];
 
         wsCatalogos.Visibility = XLWorksheetVisibility.Hidden;
 
@@ -68,7 +73,8 @@ public class InventarioExcelService : IInventarioExcelService
             "Nombre del Producto*",
             "Tipo*",
             "Categoría",
-            "Unidad de Medida*",
+            "Grupo de unidades",
+            "Unidad de Medida",
             "Precio Base (S/)",
             "Costo Actual (S/)",
             "Costo Estándar (S/)",
@@ -98,7 +104,7 @@ public class InventarioExcelService : IInventarioExcelService
 
         // Tipo: Columna C (3)
         var dvTipo = ws.Range(2, 3, maxRows, 3).CreateDataValidation();
-        dvTipo.List(wsCatalogos.Range(2, 3, tipos.Count + 1, 3), true);
+        dvTipo.List(wsCatalogos.Range(2, 4, tipos.Count + 1, 4), true);
         dvTipo.InputTitle = "Tipo de Producto";
         dvTipo.InputMessage = "Seleccione el tipo del catálogo.";
         dvTipo.ErrorTitle = "Valor Inválido";
@@ -115,47 +121,35 @@ public class InventarioExcelService : IInventarioExcelService
             dvCat.ErrorMessage = "Por favor elija una categoría de la lista desplegable.";
         }
 
-        // Unidad de Medida: Columna E (5) - Solo si existen unidades reales en BD
-        if (unidades.Count > 0)
+        if (grupos.Count > 0)
         {
             var dvUm = ws.Range(2, 5, maxRows, 5).CreateDataValidation();
-            dvUm.List(wsCatalogos.Range(2, 2, unidades.Count + 1, 2), true);
+            dvUm.List(wsCatalogos.Range(2, 2, grupos.Count + 1, 2), true);
+            dvUm.InputTitle = "Grupo de unidades";
+            dvUm.InputMessage = "Seleccione el grupo al que pertenece la unidad.";
+        }
+
+        if (nombresUnidades.Count > 0)
+        {
+            var dvUm = ws.Range(2, 6, maxRows, 6).CreateDataValidation();
+            dvUm.List(wsCatalogos.Range(2, 3, nombresUnidades.Count + 1, 3), true);
             dvUm.InputTitle = "Unidad de Medida";
             dvUm.InputMessage = "Seleccione una unidad de medida del catálogo.";
             dvUm.ErrorTitle = "Unidad no válida";
             dvUm.ErrorMessage = "Por favor elija una unidad de la lista desplegable.";
         }
 
-        // Es Serializado: Columna I (9)
-        var dvSerial = ws.Range(2, 9, maxRows, 9).CreateDataValidation();
+        var dvSerial = ws.Range(2, 10, maxRows, 10).CreateDataValidation();
         dvSerial.List("\"SI,NO\"", true);
 
-        // Afecto a Impuesto: Columna K (11)
-        var dvImpuesto = ws.Range(2, 11, maxRows, 11).CreateDataValidation();
+        var dvImpuesto = ws.Range(2, 12, maxRows, 12).CreateDataValidation();
         dvImpuesto.List("\"SI,NO\"", true);
 
-        // 5. Fila de ejemplo ilustrativa (usando únicamente datos reales si existen en la BD)
-        ws.Cell(2, 1).Value = "PROD-001";
-        ws.Cell(2, 2).Value = "Producto de Ejemplo";
-        ws.Cell(2, 3).Value = "Inventario";
-        ws.Cell(2, 4).Value = categorias.Count > 0 ? categorias[0] : "";
-        ws.Cell(2, 5).Value = unidades.Count > 0 ? unidades[0] : "";
-        ws.Cell(2, 6).Value = 180.00;
-        ws.Cell(2, 7).Value = 95.00;
-        ws.Cell(2, 8).Value = 90.00;
-        ws.Cell(2, 9).Value = "SI";
-        ws.Cell(2, 10).Value = "775987654321";
-        ws.Cell(2, 11).Value = "SI";
-        ws.Cell(2, 12).Value = "Distribuidora Tech S.A.C.";
-        ws.Cell(2, 13).Value = "Descripción de ejemplo";
-        ws.Cell(2, 14).Value = 0;
-
-        // Formatos de celdas
-        ws.Range("F2:H500").Style.NumberFormat.Format = "#,##0.00";
+        ws.Range("G2:I500").Style.NumberFormat.Format = "#,##0.00";
 
         // Congelar panel y ajustar columnas
         ws.SheetView.FreezeRows(1);
-        ws.Columns().AdjustToContents(14, 45);
+        ws.Columns().AdjustToContents(15, 45);
 
         using var memoryStream = new MemoryStream();
         workbook.SaveAs(memoryStream);
@@ -179,6 +173,7 @@ public class InventarioExcelService : IInventarioExcelService
 
         // Cargar listas en memoria para búsqueda rápida y evitar múltiples consultas
         var categoriasDb = await _context.CategoriasProducto.ToListAsync(cancellationToken);
+        var gruposDb = await _context.GruposUnidadMedida.ToListAsync(cancellationToken);
         var unidadesDb = await _context.UnidadesMedida.ToListAsync(cancellationToken);
         var productosDb = await _context.Productos.ToListAsync(cancellationToken);
 
@@ -222,7 +217,8 @@ public class InventarioExcelService : IInventarioExcelService
 
             // Categoría (Opcional pero debe existir si se especifica)
             var categoriaStr = row.Cell(4).GetString()?.Trim();
-            string? categoriaFinal = null;
+            Guid? categoriaProductoId = categoriasDb
+                .FirstOrDefault(c => c.Nombre.Equals("Default", StringComparison.OrdinalIgnoreCase) && c.Activo)?.Id;
             if (!string.IsNullOrWhiteSpace(categoriaStr))
             {
                 var catExistente = categoriasDb.FirstOrDefault(c => c.Nombre.Equals(categoriaStr, StringComparison.OrdinalIgnoreCase));
@@ -236,12 +232,13 @@ public class InventarioExcelService : IInventarioExcelService
                     });
                     continue;
                 }
-                categoriaFinal = catExistente.Nombre;
+                categoriaProductoId = catExistente.Id;
             }
 
-            // Unidad de Medida (Obligatoria y debe existir en el catálogo)
-            var unidadStr = row.Cell(5).GetString()?.Trim();
-            if (string.IsNullOrWhiteSpace(unidadStr))
+            var formatoConGrupo = ws.Cell(1, 5).GetString().Contains("Grupo", StringComparison.OrdinalIgnoreCase);
+            var grupoStr = formatoConGrupo ? row.Cell(5).GetString()?.Trim() : null;
+            var unidadStr = row.Cell(formatoConGrupo ? 6 : 5).GetString()?.Trim();
+            if (tipo == TipoProducto.Inventario && string.IsNullOrWhiteSpace(unidadStr))
             {
                 resultado.Errores.Add(new ImportarErrorDto
                 {
@@ -252,12 +249,32 @@ public class InventarioExcelService : IInventarioExcelService
                 continue;
             }
 
-            var umExistente = unidadesDb.FirstOrDefault(u =>
-                u.Nombre.Equals(unidadStr, StringComparison.OrdinalIgnoreCase) ||
-                u.Codigo.Equals(unidadStr, StringComparison.OrdinalIgnoreCase) ||
-                u.Abreviatura.Equals(unidadStr, StringComparison.OrdinalIgnoreCase));
+            UnidadMedida? umExistente = null;
+            if (!string.IsNullOrWhiteSpace(unidadStr))
+            {
+                Guid? grupoId = null;
+                if (!string.IsNullOrWhiteSpace(grupoStr))
+                {
+                    grupoId = gruposDb.FirstOrDefault(g => g.Nombre.Equals(grupoStr, StringComparison.OrdinalIgnoreCase))?.Id;
+                    if (!grupoId.HasValue)
+                    {
+                        resultado.Errores.Add(new ImportarErrorDto { Fila = rowNum, Codigo = codigo, Mensaje = $"El grupo de unidades '{grupoStr}' no existe en el catálogo." });
+                        continue;
+                    }
+                }
 
-            if (umExistente == null)
+                var coincidencias = unidadesDb.Where(u =>
+                    u.Nombre.Equals(unidadStr, StringComparison.OrdinalIgnoreCase)
+                    && (!grupoId.HasValue || u.GrupoUnidadMedidaId == grupoId.Value)).ToList();
+                if (coincidencias.Count > 1)
+                {
+                    resultado.Errores.Add(new ImportarErrorDto { Fila = rowNum, Codigo = codigo, Mensaje = $"La unidad '{unidadStr}' existe en varios grupos. Especifique el Grupo de unidades." });
+                    continue;
+                }
+                umExistente = coincidencias.SingleOrDefault();
+            }
+
+            if (tipo == TipoProducto.Inventario && umExistente == null)
             {
                 resultado.Errores.Add(new ImportarErrorDto
                 {
@@ -269,23 +286,25 @@ public class InventarioExcelService : IInventarioExcelService
             }
 
             // Numéricos
-            decimal precioBase = ParseDecimal(row.Cell(6));
-            decimal costoActual = ParseDecimal(row.Cell(7));
-            decimal costoEstandar = ParseDecimal(row.Cell(8));
+            var desplazamiento = formatoConGrupo ? 1 : 0;
+            decimal precioBase = ParseDecimal(row.Cell(6 + desplazamiento));
+            decimal costoActual = ParseDecimal(row.Cell(7 + desplazamiento));
+            decimal costoEstandar = ParseDecimal(row.Cell(8 + desplazamiento));
 
             // Booleans y Strings con soporte retrocompatible
-            bool formatoAntiguoConActivo = ws.Cell(1, 10).GetString()?.Trim().Contains("Activo", StringComparison.OrdinalIgnoreCase) ?? false;
+            bool formatoAntiguoConActivo = !formatoConGrupo && (ws.Cell(1, 10).GetString()?.Trim().Contains("Activo", StringComparison.OrdinalIgnoreCase) ?? false);
 
-            bool esSerializado = ParseBoolean(row.Cell(9).GetString());
+            bool esSerializado = ParseBoolean(row.Cell(9 + desplazamiento).GetString());
             string? codigoBarras;
             bool afectoImpuesto;
             string? proveedorDefecto;
             string? descripcion;
             int? decimalesCantidad = null;
-            bool tieneColumnaDecimales = ws.Cell(1, 14).GetString().Contains("Decimales", StringComparison.OrdinalIgnoreCase);
-            if (tieneColumnaDecimales && !row.Cell(14).IsEmpty())
+            var columnaDecimales = 14 + desplazamiento;
+            bool tieneColumnaDecimales = ws.Cell(1, columnaDecimales).GetString().Contains("Decimales", StringComparison.OrdinalIgnoreCase);
+            if (tieneColumnaDecimales && !row.Cell(columnaDecimales).IsEmpty())
             {
-                if (!int.TryParse(row.Cell(14).GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var decimales) || decimales is < 0 or > 5)
+                if (!int.TryParse(row.Cell(columnaDecimales).GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var decimales) || decimales is < 0 or > 5)
                 {
                     resultado.Errores.Add(new ImportarErrorDto { Fila = rowNum, Codigo = codigo, Mensaje = "Los decimales de cantidad deben ser un número entero entre 0 y 5." });
                     continue;
@@ -304,10 +323,10 @@ public class InventarioExcelService : IInventarioExcelService
             else
             {
                 // Formato estándar sin Activo; incluye la precisión opcional en la columna 14.
-                codigoBarras = row.Cell(10).GetString()?.Trim();
-                afectoImpuesto = !row.Cell(11).IsEmpty() ? ParseBoolean(row.Cell(11).GetString()) : true;
-                proveedorDefecto = row.Cell(12).GetString()?.Trim();
-                descripcion = row.Cell(13).GetString()?.Trim();
+                codigoBarras = row.Cell(10 + desplazamiento).GetString()?.Trim();
+                afectoImpuesto = !row.Cell(11 + desplazamiento).IsEmpty() ? ParseBoolean(row.Cell(11 + desplazamiento).GetString()) : true;
+                proveedorDefecto = row.Cell(12 + desplazamiento).GetString()?.Trim();
+                descripcion = row.Cell(13 + desplazamiento).GetString()?.Trim();
             }
 
             // Buscar producto por código
@@ -329,8 +348,9 @@ public class InventarioExcelService : IInventarioExcelService
 
                 productoExistente.Actualizar(
                     nombre: nombre,
-                    categoria: categoriaFinal,
-                    unidadMedida: umExistente.Nombre,
+                    categoriaProductoId: categoriaProductoId,
+                    grupoUnidadMedidaId: umExistente?.GrupoUnidadMedidaId,
+                    unidadMedidaDefectoId: umExistente?.Id,
                     esSerializado: esSerializado,
                     descripcion: descripcion,
                     tipo: tipo,
@@ -350,8 +370,9 @@ public class InventarioExcelService : IInventarioExcelService
                 var nuevoProducto = Producto.Crear(
                     codigo: codigo,
                     nombre: nombre,
-                    categoria: categoriaFinal,
-                    unidadMedida: umExistente.Nombre,
+                    categoriaProductoId: categoriaProductoId,
+                    grupoUnidadMedidaId: umExistente?.GrupoUnidadMedidaId,
+                    unidadMedidaDefectoId: umExistente?.Id,
                     esSerializado: esSerializado,
                     descripcion: descripcion,
                     tipo: tipo,
@@ -608,19 +629,10 @@ public class InventarioExcelService : IInventarioExcelService
                 abreviatura = codigo.ToLowerInvariant();
             }
 
-            var existente = unidadesDb.FirstOrDefault(u => u.Codigo.Equals(codigo, StringComparison.OrdinalIgnoreCase));
-            if (existente != null)
-            {
-                existente.Actualizar(nombre, abreviatura, descripcion);
-                resultado.Actualizados++;
-            }
-            else
-            {
-                var nueva = UnidadMedida.Crear(codigo, nombre, abreviatura, descripcion);
-                _context.UnidadesMedida.Add(nueva);
-                unidadesDb.Add(nueva);
-                resultado.Creados++;
-            }
+            // La importación de unidades por Excel fue deprecada con la introducción de GrupoUnidadMedida.
+            // Las unidades ahora se gestionan a través de la API de Grupos de Unidades de Medida.
+            resultado.Errores.Add(new ImportarErrorDto { Fila = rowNum, Codigo = codigo, Mensaje = "La importación por Excel de Unidades de Medida ya no está disponible. Use la API de Grupos de Unidades de Medida." });
+            continue;
         }
 
         await _context.SaveChangesAsync(cancellationToken);

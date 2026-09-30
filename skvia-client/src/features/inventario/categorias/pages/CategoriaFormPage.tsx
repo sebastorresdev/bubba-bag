@@ -1,32 +1,14 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Button,
   Input,
   Textarea,
   TabList,
   Tab,
   Card,
   Text,
-  Label,
   Skeleton,
   SkeletonItem,
-  TagPicker,
-  TagPickerControl,
-  TagPickerGroup,
-  TagPickerInput,
-  TagPickerList,
-  TagPickerOption,
-  TagPickerOptionGroup,
-  Tag,
-  Link,
-  Dialog,
-  DialogSurface,
-  DialogTitle,
-  DialogBody,
-  DialogContent,
-  DialogActions,
-  type TagPickerProps,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -44,6 +26,8 @@ import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
+import { LookupDropdownWithQuickCreate } from '../../../../components/common/LookupDropdownWithQuickCreate';
+import { CrearCategoriaDrawer } from '../components/CrearCategoriaDrawer';
 
 export interface CategoriaFormPageProps {
   id?: string | null;
@@ -119,67 +103,11 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
 
   // Estado y lógica para TagPicker de Categoría Padre (Estilo Dynamics 365)
   const [categoriaPadreQuery, setCategoriaPadreQuery] = useState('');
-  const [quickCreateCatOpen, setQuickCreateCatOpen] = useState(false);
-  const [quickCatData, setQuickCatData] = useState({
-    nombre: '',
-    descripcion: '',
-  });
-  const [quickCatError, setQuickCatError] = useState('');
-  const [quickCatSaving, setQuickCatSaving] = useState(false);
 
   const categoriaPadreSeleccionada = useMemo(
     () => categoriasDisponibles.find((c) => c.id === formData.categoriaPadreId),
     [categoriasDisponibles, formData.categoriaPadreId]
   );
-
-  const selectedPadreOptions = useMemo(
-    () => (formData.categoriaPadreId ? [formData.categoriaPadreId] : []),
-    [formData.categoriaPadreId]
-  );
-
-  const filteredCategorias = useMemo(() => {
-    const disponibles = categoriasDisponibles.filter((c) => c.id !== currentId);
-    const q = categoriaPadreQuery.trim().toLowerCase();
-    if (!q) return disponibles.filter((c) => c.id !== formData.categoriaPadreId);
-    return disponibles.filter(
-      (c) =>
-        c.id !== formData.categoriaPadreId &&
-        (c.nombre.toLowerCase().includes(q) ||
-          (c.categoriaPadreNombre && c.categoriaPadreNombre.toLowerCase().includes(q)))
-    );
-  }, [categoriasDisponibles, currentId, formData.categoriaPadreId, categoriaPadreQuery]);
-
-  const onCategoriaPadreOptionSelect: TagPickerProps['onOptionSelect'] = (_e, data) => {
-    setFormData((prev) => ({
-      ...prev,
-      categoriaPadreId: prev.categoriaPadreId === data.value ? null : data.value,
-    }));
-    setCategoriaPadreQuery('');
-  };
-
-  const handleGuardarCategoriaRapida = async () => {
-    if (!quickCatData.nombre.trim()) {
-      setQuickCatError('El nombre de la categoría es obligatorio.');
-      return;
-    }
-    try {
-      setQuickCatSaving(true);
-      setQuickCatError('');
-      const res = await CategoriaService.createCategoria({
-        nombre: quickCatData.nombre.trim(),
-        categoriaPadreId: null,
-        descripcion: quickCatData.descripcion.trim() || null,
-      });
-      await cargarCategoriasDisponibles();
-      setFormData((prev) => ({ ...prev, categoriaPadreId: res.id }));
-      setQuickCreateCatOpen(false);
-      setQuickCatData({ nombre: '', descripcion: '' });
-    } catch (err: any) {
-      setQuickCatError(err?.message || 'Error al crear la categoría.');
-    } finally {
-      setQuickCatSaving(false);
-    }
-  };
 
   useEffect(() => {
     cargarCategoriasDisponibles();
@@ -410,10 +338,8 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
         </div>
       ) : (
         <div className={styles.contentBody}>
-          <div className={styles.grid2Cols}>
-            {/* Sección: Identificación */}
-            <Card className={styles.card}>
-              <Text className={styles.cardSectionTitle}>Datos de la Categoría</Text>
+          <Card className={styles.card}>
+            <Text className={styles.cardSectionTitle}>Datos de la Categoría</Text>
 
               {/* Nombre */}
               <D365FormField label="Nombre" required htmlFor="cat-nombre" size="medium" error={errors.nombre}>
@@ -423,7 +349,7 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
                   size="medium"
                   className={styles.d365ControlFull}
                   value={formData.nombre}
-                  placeholder="Ej: Materiales de Red, Equipos Decodificadores, Conectores..."
+                  placeholder="---"
                   onChange={(_, data) => {
                     setFormData({ ...formData, nombre: data.value });
                     if (errors.nombre && data.value.trim()) {
@@ -435,166 +361,64 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
 
               {/* Categoría Padre (TagPicker Estilo Dynamics 365 con Quick Create) */}
               <D365FormField label="Categoría Padre" htmlFor="cat-padre" size="medium">
-                <TagPicker
-                  onOptionSelect={onCategoriaPadreOptionSelect}
-                  selectedOptions={selectedPadreOptions}
-                >
-                  <TagPickerControl className={styles.tagPickerControl}>
-                    {categoriaPadreSeleccionada && (
-                      <TagPickerGroup className={styles.tagPickerGroup} aria-label="Categoría padre seleccionada">
-                        <Tag
-                          key={categoriaPadreSeleccionada.id}
-                          shape="rounded"
-                          size="small"
-                          media={<Folder16Regular className={styles.categoryIcon} />}
-                          value={categoriaPadreSeleccionada.id}
-                        >
-                          <Link
-                            as="span"
-                            className={styles.primaryLink}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              window.open(
-                                `/servicio-campo/categorias-producto/${categoriaPadreSeleccionada.id}`,
-                                '_blank'
-                              );
-                            }}
-                            title="Ver detalles de la categoría padre"
-                          >
-                            {categoriaPadreSeleccionada.nombre}
-                          </Link>
-                        </Tag>
-                      </TagPickerGroup>
-                    )}
-                    <TagPickerInput
-                      id="cat-padre"
-                      className={styles.tagPickerInput}
-                      value={categoriaPadreQuery}
-                      onChange={(e) => setCategoriaPadreQuery(e.target.value)}
-                      placeholder={formData.categoriaPadreId ? '' : 'Buscar categoría padre (o dejar vacío para principal)'}
-                      clearable
+                <LookupDropdownWithQuickCreate
+                  idEntrada="cat-padre"
+                  etiquetaGrupo="Categorías"
+                  opciones={categoriasDisponibles
+                    .filter((categoria) => categoria.id !== currentId)
+                    .map((categoria) => ({
+                      id: categoria.id,
+                      nombre: categoria.nombre,
+                      detalle: categoria.categoriaPadreNombre
+                        ? `Padre: ${categoria.categoriaPadreNombre}`
+                        : null,
+                    }))}
+                  seleccionada={categoriaPadreSeleccionada ? {
+                    id: categoriaPadreSeleccionada.id,
+                    nombre: categoriaPadreSeleccionada.nombre,
+                  } : null}
+                  textoBusqueda={categoriaPadreQuery}
+                  alCambiarBusqueda={setCategoriaPadreQuery}
+                  alSeleccionar={(id) => setFormData((prev) => ({ ...prev, categoriaPadreId: id }))}
+                  alNavegar={(id) => window.open(`/servicio-campo/categorias-producto/${id}`, '_blank')}
+                  icono={<Folder16Regular className={styles.categoryIcon} />}
+                  textoVacio="No se encontraron categorías"
+                  tituloEnlace="Ver detalles de la categoría padre"
+                  renderizarCreacionRapida={({ abierto, nombreInicial, cerrar }) => (
+                    <CrearCategoriaDrawer
+                      abierto={abierto}
+                      nombreInicial={nombreInicial}
+                      alCerrar={cerrar}
+                      alGuardar={(categoriaCreada) => {
+                        setCategoriasDisponibles((actual) => [
+                          categoriaCreada,
+                          ...actual.filter((categoria) => categoria.id !== categoriaCreada.id),
+                        ]);
+                        setFormData((actual) => ({ ...actual, categoriaPadreId: categoriaCreada.id }));
+                      }}
                     />
-                  </TagPickerControl>
-                  <TagPickerList>
-                    <TagPickerOptionGroup label="Categorías">
-                      {filteredCategorias.length > 0 ? (
-                        filteredCategorias.map((c) => (
-                          <TagPickerOption
-                            key={c.id}
-                            value={c.id}
-                            media={<Folder16Regular className={styles.categoryIcon} />}
-                            secondaryContent={
-                              c.categoriaPadreNombre ? (
-                                <Text size={100} className={styles.secondaryOptionText}>
-                                  Padre: {c.categoriaPadreNombre}
-                                </Text>
-                              ) : undefined
-                            }
-                          >
-                            {c.nombre}
-                          </TagPickerOption>
-                        ))
-                      ) : (
-                        <div className={styles.dropdownEmptyOption}>
-                          No se encontraron categorías
-                        </div>
-                      )}
-                    </TagPickerOptionGroup>
-                    <div className={styles.quickCreateFooter}>
-                      <Button
-                        appearance="subtle"
-                        size="small"
-                        icon={<Add16Regular />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setQuickCreateCatOpen(true);
-                        }}
-                      >
-                        Nuevo
-                      </Button>
-                    </div>
-                  </TagPickerList>
-                </TagPicker>
-              </D365FormField>
-            </Card>
-
-            {/* Sección: Descripción */}
-            <Card className={styles.card}>
-              <Text className={styles.cardSectionTitle}>Información Adicional</Text>
-
-              <D365FormField label="Descripción" htmlFor="cat-desc" size="medium" align="top">
-                <Textarea
-                  id="cat-desc"
-                  appearance="outline"
-                  size="medium"
-                  rows={5}
-                  className={styles.d365ControlFull}
-                  value={formData.descripcion || ''}
-                  placeholder="Propósito, clasificación y criterios de asignación a productos..."
-                  onChange={(_, data) =>
-                    setFormData({ ...formData, descripcion: data.value })
-                  }
+                  )}
                 />
               </D365FormField>
-            </Card>
-          </div>
+
+            <D365FormField label="Descripción" htmlFor="cat-desc" size="medium" align="top">
+              <Textarea
+                id="cat-desc"
+                appearance="outline"
+                size="medium"
+                rows={5}
+                className={styles.d365ControlFull}
+                value={formData.descripcion || ''}
+                placeholder="---"
+                onChange={(_, data) =>
+                  setFormData({ ...formData, descripcion: data.value })
+                }
+              />
+            </D365FormField>
+          </Card>
         </div>
       )}
 
-      {/* Diálogo de Creación Rápida de Categoría Padre (Quick Create Estilo Dynamics) */}
-      <Dialog open={quickCreateCatOpen} onOpenChange={(_, data) => setQuickCreateCatOpen(data.open)}>
-        <DialogSurface>
-          <DialogBody>
-            <DialogTitle>Creación rápida: Categoría de Producto</DialogTitle>
-            <DialogContent className={styles.dialogForm}>
-              {quickCatError && (
-                <D365MessageBar intent="error">{quickCatError}</D365MessageBar>
-              )}
-              <div className={styles.dialogRow}>
-                <Label required size="small" className={styles.labelSmallBlock}>
-                  Nombre de la Categoría
-                </Label>
-                <Input
-                  size="medium"
-                  className={styles.d365ControlFull}
-                  placeholder="Ej: Materiales de Red, Equipos Decodificadores..."
-                  value={quickCatData.nombre}
-                  onChange={(_, d) => setQuickCatData((prev) => ({ ...prev, nombre: d.value }))}
-                />
-              </div>
-              <div className={styles.dialogRow}>
-                <Label size="small" className={styles.labelSmallBlock}>
-                  Descripción (opcional)
-                </Label>
-                <Textarea
-                  size="medium"
-                  rows={3}
-                  className={styles.d365ControlFull}
-                  placeholder="Descripción de la categoría..."
-                  value={quickCatData.descripcion}
-                  onChange={(_, d) => setQuickCatData((prev) => ({ ...prev, descripcion: d.value }))}
-                />
-              </div>
-            </DialogContent>
-            <DialogActions>
-              <Button
-                appearance="secondary"
-                disabled={quickCatSaving}
-                onClick={() => setQuickCreateCatOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                appearance="primary"
-                disabled={quickCatSaving}
-                onClick={handleGuardarCategoriaRapida}
-              >
-                {quickCatSaving ? 'Guardando...' : 'Guardar y seleccionar'}
-              </Button>
-            </DialogActions>
-          </DialogBody>
-        </DialogSurface>
-      </Dialog>
     </div>
   );
 };

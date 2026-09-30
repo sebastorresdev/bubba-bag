@@ -14,6 +14,7 @@ import {
   Building16Regular,
   Checkmark16Regular,
   DismissCircle16Regular,
+  LockClosed16Regular,
 } from '@fluentui/react-icons';
 import { AlmacenService } from '../services/almacen.service';
 import type { CreateAlmacenDto } from '../types/almacen.types';
@@ -375,7 +376,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
                         setErrors((prev) => ({ ...prev, nombre: '' }));
                       }
                     }}
-                    placeholder="Ej. Almacén central o Unidad 01"
+                    placeholder="---"
                   />
                 </D365FormField>
 
@@ -383,7 +384,11 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
                   <Input
                     className={styles.d365ControlFull}
                     value={savedHeader.creadoPorNombre || 'Usuario no disponible'}
+                    appearance="filled-darker"
                     readOnly
+                    contentAfter={(
+                      <LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />
+                    )}
                   />
                 </D365FormField>
               </div>

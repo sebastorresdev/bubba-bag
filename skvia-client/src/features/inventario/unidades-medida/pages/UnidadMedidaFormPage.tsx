@@ -1,30 +1,50 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
-  Input,
-  Textarea,
-  TabList,
-  Tab,
-  Card,
-  Text,
-  Label,
-  Skeleton,
-  SkeletonItem,
+  Button, Card, DataGrid, DataGridBody, DataGridCell, DataGridHeader,
+  DataGridHeaderCell, DataGridRow, Input, makeStyles, Skeleton, SkeletonItem,
+  Tab, TabList, Text, Textarea, Toast, Toaster, ToastTitle, tokens,
+  createTableColumn, useId, useToastController,
 } from '@fluentui/react-components';
+import type { TableColumnDefinition, TableRowId } from '@fluentui/react-components';
 import {
-  ArrowLeft16Regular,
-  Save16Regular,
-  SaveMultiple16Regular,
-  Add16Regular,
-  ArrowClockwise16Regular,
-  Box16Regular,
+  Add16Regular, ArrowClockwise16Regular, ArrowLeft16Regular, Box16Regular,
+  Checkmark16Regular, DismissCircle16Regular, Ruler16Regular,
+  LockClosed16Regular, Save16Regular, Search16Regular,
 } from '@fluentui/react-icons';
-import { UnidadMedidaService } from '../services/unidadMedida.service';
-import type { CreateUnidadMedidaDto } from '../types/unidadMedida.types';
-import { useD365FormStyles } from '../../../../styles/d365FormStyles';
+import { GrupoUnidadMedidaService, UnidadMedidaService } from '../services/unidadMedida.service';
+import type { CreateGrupoUnidadMedidaDto, GrupoUnidadMedidaDto, UnidadMedidaDto } from '../types/unidadMedida.types';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
-import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
+import { D365FormField } from '../../../../components/common/D365FormField';
+import { D365MessageBar } from '../../../../components/common/D365MessageBar';
+import { useD365FormStyles } from '../../../../styles/d365FormStyles';
+import { CrearUnidadDrawer } from '../components/CrearUnidadDrawer';
+
+const usePageStyles = makeStyles({
+  tableWrap: {
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    borderRadius: tokens.borderRadiusMedium,
+    overflow: 'hidden',
+  },
+  associatedHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalL,
+    marginBottom: tokens.spacingVerticalS,
+  },
+  associatedCommands: { display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalXS },
+  associatedTitle: { marginBottom: tokens.spacingVerticalS },
+  searchBox: { width: '260px' },
+  emptyUnits: {
+    padding: tokens.spacingVerticalXXL,
+    textAlign: 'center',
+    color: tokens.colorNeutralForeground3,
+  },
+});
+
+const emptyGroup: CreateGrupoUnidadMedidaDto = { nombre: '', nombreUnidadBase: '' };
 
 export interface UnidadMedidaFormPageProps {
   id?: string | null;
@@ -34,412 +54,366 @@ export interface UnidadMedidaFormPageProps {
 }
 
 export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
-  id: propId,
-  onBack: propOnBack,
-  onSaved: propOnSaved,
-  onCreated: propOnCreated,
+  id: propId, onBack, onSaved, onCreated,
 }) => {
   const styles = useD365FormStyles();
-  const { id: routeId } = useParams<{ id: string }>();
+  const pageStyles = usePageStyles();
+  const toasterId = useId('grupos-unidades-notificaciones');
+  const { dispatchToast } = useToastController(toasterId);
   const navigate = useNavigate();
+  const { id: routeId } = useParams<{ id: string }>();
+  const initialId = propId !== undefined ? propId : routeId && routeId !== 'nuevo' ? routeId : null;
+  const [currentId, setCurrentId] = useState<string | null>(initialId);
+  const [selectedTab, setSelectedTab] = useState<'general' | 'unidades'>('general');
+  const [group, setGroup] = useState<CreateGrupoUnidadMedidaDto & { observacion?: string | null }>(emptyGroup);
+  const [detail, setDetail] = useState<GrupoUnidadMedidaDto | null>(null);
+  const [selectedUnitIds, setSelectedUnitIds] = useState<Set<TableRowId>>(new Set());
+  const [unitSearch, setUnitSearch] = useState('');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [loading, setLoading] = useState(Boolean(initialId));
+  const [saving, setSaving] = useState(false);
+  const [saveAttempted, setSaveAttempted] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const effectiveId = propId !== undefined
-    ? propId
-    : (routeId && routeId !== 'nuevo' ? routeId : null);
-
-  const [currentId, setCurrentId] = useState<string | null>(effectiveId);
-  const isEditMode = Boolean(currentId);
-
-  const [formData, setFormData] = useState<CreateUnidadMedidaDto>({
-    codigo: '',
-    nombre: '',
-    abreviatura: '',
-    descripcion: '',
-  });
-
-  const [savedHeader, setSavedHeader] = useState<{
-    nombre: string;
-    codigo: string;
-    activo: boolean;
-  }>({
-    nombre: '',
-    codigo: '',
-    activo: true,
-  });
-
-  const [loading, setLoading] = useState<boolean>(Boolean(effectiveId));
-  const [saving, setSaving] = useState<boolean>(false);
-  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const handleResetForm = () => {
-    setCurrentId(null);
-    setFormData({
-      codigo: '',
-      nombre: '',
-      abreviatura: '',
-      descripcion: '',
-    });
-    setSavedHeader({
-      nombre: '',
-      codigo: '',
-      activo: true,
-    });
-    setErrors({});
-    setStatusMessage(null);
+  const load = async (id: string) => {
+    try {
+      setLoading(true);
+      const data = await GrupoUnidadMedidaService.getGrupoById(id);
+      const base = data.unidades.find((unit) => unit.esUnidadBase);
+      if (!base) throw new Error('El grupo no tiene una unidad base válida.');
+      setDetail(data);
+      setGroup({ nombre: data.nombre, nombreUnidadBase: base.nombre, observacion: data.observacion });
+    } catch (e: any) {
+      setMessage({ type: 'error', text: e?.message || 'No se pudo cargar el grupo.' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    if (effectiveId) {
-      setCurrentId(effectiveId);
-      setLoading(true);
-      UnidadMedidaService.getUnidadMedidaById(effectiveId)
-        .then((u) => {
-          setFormData({
-            codigo: u.codigo,
-            nombre: u.nombre,
-            abreviatura: u.abreviatura,
-            descripcion: u.descripcion || '',
-          });
-          setSavedHeader({
-            nombre: u.nombre,
-            codigo: u.codigo,
-            activo: u.activo,
-          });
-        })
-        .catch((err) => {
-          setStatusMessage({
-            type: 'error',
-            text: `Error al cargar la unidad de medida: ${err?.message || 'Error desconocido'}`,
-          });
-        })
-        .finally(() => {
-          setLoading(false);
-        });
+    if (initialId) {
+      setCurrentId(initialId);
+      void load(initialId);
     } else {
-      handleResetForm();
+      setCurrentId(null);
+      setDetail(null);
+      setGroup(emptyGroup);
+      setSaveAttempted(false);
       setLoading(false);
     }
-  }, [effectiveId]);
+  }, [initialId]);
 
-  const validate = (): boolean => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.codigo.trim()) {
-      newErrors.codigo = 'El código de la unidad es obligatorio (ej: UND, MTR, KGM)';
-    }
-    if (!formData.nombre.trim()) {
-      newErrors.nombre = 'El nombre de la unidad es obligatorio';
-    }
-    if (!formData.abreviatura.trim()) {
-      newErrors.abreviatura = 'La abreviatura es obligatoria (ej: und, m, kg)';
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const validationErrors = useMemo(() => ({
+    nombre: group.nombre.trim() ? '' : 'El nombre del grupo es obligatorio.',
+    unidad: group.nombreUnidadBase.trim() ? '' : 'La unidad base es obligatoria.',
+  }), [group]);
+  const errors = saveAttempted ? validationErrors : { nombre: '', unidad: '' };
+  const invalid = Boolean(validationErrors.nombre || validationErrors.unidad);
+  const baseUnit = detail?.unidades.find((unit) => unit.esUnidadBase);
 
-  const handleSave = async (closeAfter: boolean = false) => {
-    if (!validate()) {
-      setStatusMessage({
-        type: 'error',
-        text: 'Por favor completa todos los campos requeridos antes de guardar.',
-      });
+  const save = async (close = false) => {
+    setSaveAttempted(true);
+    if (invalid) {
+      setMessage({ type: 'error', text: 'Complete los datos obligatorios del grupo y su unidad base.' });
       return;
     }
-
     try {
       setSaving(true);
-      setStatusMessage(null);
-      let savedId = currentId;
-
-      if (currentId) {
-        await UnidadMedidaService.updateUnidadMedida(currentId, {
-          nombre: formData.nombre,
-          abreviatura: formData.abreviatura,
-          descripcion: formData.descripcion,
-        });
-        setStatusMessage({
-          type: 'success',
-          text: `Unidad de medida "${formData.nombre}" actualizada con éxito.`,
-        });
+      setMessage(null);
+      let id = currentId;
+      if (id) {
+        await GrupoUnidadMedidaService.updateGrupo(id, { nombre: group.nombre, observacion: group.observacion });
       } else {
-        const res = await UnidadMedidaService.createUnidadMedida(formData);
-        savedId = res.id;
-        setCurrentId(res.id);
-        setStatusMessage({
-          type: 'success',
-          text: `Unidad de medida "${formData.nombre}" creada con éxito.`,
-        });
-        if (!closeAfter) {
-          navigate(`/servicio-campo/unidades-medida/${res.id}`, { replace: true });
-        }
+        const result = await GrupoUnidadMedidaService.createGrupo(group);
+        id = result.id;
+        setCurrentId(id);
+        onCreated?.(id);
+        navigate(`/grupos-unidades/${id}`, { replace: true });
       }
-
-      setSavedHeader({
-        nombre: formData.nombre,
-        codigo: formData.codigo,
-        activo: true,
-      });
-
-      if (closeAfter) {
-        setTimeout(() => {
-          if (propOnSaved) propOnSaved(savedId || '');
-          if (propOnCreated) propOnCreated(savedId || '');
-          navigate('/servicio-campo/unidades-medida');
-        }, 800);
-      }
-    } catch (err: any) {
-      setStatusMessage({
-        type: 'error',
-        text: err?.message || 'Error al comunicarse con el servidor.',
-      });
+      onSaved?.(id);
+      setSaveAttempted(false);
+      setMessage({ type: 'success', text: 'Grupo de unidades guardado correctamente.' });
+      await load(id);
+      if (close) navigate('/servicio-campo/unidades-medida');
+    } catch (e: any) {
+      setMessage({ type: 'error', text: e?.message || 'No se pudo guardar.' });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleBack = () => {
-    if (propOnBack) propOnBack();
-    else navigate('/servicio-campo/unidades-medida');
+
+  const toggleUnit = async (id: string, active: boolean) => {
+    try {
+      await UnidadMedidaService.cambiarEstado(id, active);
+      if (currentId) await load(currentId);
+    } catch (e: any) {
+      setMessage({ type: 'error', text: e?.message || 'No se pudo cambiar el estado.' });
+    }
   };
 
-  const handleNew = () => {
-    navigate('/servicio-campo/unidades-medida/nuevo');
-    handleResetForm();
+  const toggleGroup = async () => {
+    if (!currentId || !detail) return;
+    try {
+      setSaving(true);
+      await GrupoUnidadMedidaService.cambiarEstadoGrupo(currentId, !detail.estaActivo);
+      await load(currentId);
+      setMessage({ type: 'success', text: `Grupo ${detail.estaActivo ? 'desactivado' : 'activado'} correctamente.` });
+    } catch (e: any) {
+      setMessage({ type: 'error', text: e?.message || 'No se pudo cambiar el estado del grupo.' });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const headerTitle = loading
-    ? 'Cargando...'
-    : savedHeader.nombre || (isEditMode ? 'Cargando...' : 'Nueva Unidad de Medida');
+  const unitColumns: TableColumnDefinition<UnidadMedidaDto>[] = [
+    createTableColumn({
+      columnId: 'nombre',
+      renderHeaderCell: () => 'Nombre',
+      renderCell: (unit) => <Text weight="semibold">{unit.nombre}</Text>,
+    }),
+    createTableColumn({
+      columnId: 'base',
+      renderHeaderCell: () => 'Unidad de referencia',
+      renderCell: (unit) => unit.esUnidadBase
+        ? '—'
+        : detail?.unidades.find((candidate) => candidate.id === unit.unidadMedidaBaseId)?.nombre || '—',
+    }),
+    createTableColumn({
+      columnId: 'cantidad',
+      renderHeaderCell: () => 'Cantidad',
+      renderCell: (unit) => unit.cantidad.toFixed(4),
+    }),
+    createTableColumn({
+      columnId: 'total',
+      renderHeaderCell: () => 'Equivalencia total',
+      renderCell: (unit) => unit.factorConversionTotal.toFixed(4),
+    }),
+    createTableColumn({
+      columnId: 'estado',
+      renderHeaderCell: () => 'Estado',
+      renderCell: (unit) => <Text>{unit.estaActivo ? 'Activa' : 'Inactiva'}</Text>,
+    }),
+  ];
+  const filteredUnits = (detail?.unidades || []).filter((unit) =>
+    unit.nombre.toLocaleLowerCase().includes(unitSearch.trim().toLocaleLowerCase()));
+  const selectedUnit = detail?.unidades.find((unit) => selectedUnitIds.has(unit.id));
 
   return (
     <div className={styles.root}>
-      {/* 0. Notification Bar */}
-      {statusMessage && (
-        <D365MessageBar
-          intent={statusMessage.type === 'success' ? 'success' : 'error'}
-          className={styles.messageBarContainer}
-          onDismiss={() => setStatusMessage(null)}
-        >
-          {statusMessage.text}
-        </D365MessageBar>
+      <Toaster toasterId={toasterId} position="top-end" />
+      {message && (
+        <D365MessageBar intent={message.type} onDismiss={() => setMessage(null)}>{message.text}</D365MessageBar>
       )}
 
-      {/* 1. Command Bar */}
-      <D365CommandBar
-        ariaLabel="Comandos de unidad de medida"
-
-        busy={saving || loading}
-        busyLabel={loading ? 'Cargando...' : 'Guardando...'}
-      >
+      <D365CommandBar ariaLabel="Comandos del grupo" busy={saving || loading}>
         <div className={styles.toolbarLeft}>
           <D365CommandButton
             icon={<ArrowLeft16Regular />}
             tone="brand"
-            onClick={handleBack}
+            onClick={() => onBack ? onBack() : navigate('/servicio-campo/unidades-medida')}
             title="Volver al listado"
             aria-label="Volver"
           />
           <D365CommandDivider />
-
-          <D365CommandButton
-            icon={<Save16Regular />}
-            tone="save"
-            onClick={() => handleSave(false)}
-            disabled={saving || loading}
-            appearance="subtle"
-          >
+          <D365CommandButton icon={<Save16Regular />} tone="save" disabled={saving || loading} onClick={() => save(false)}>
             Guardar
           </D365CommandButton>
-
-          <D365CommandButton
-            icon={<SaveMultiple16Regular />}
-            tone="save"
-            onClick={() => handleSave(true)}
-            disabled={saving || loading}
-            appearance="subtle"
-          >
+          <D365CommandButton icon={<Save16Regular />} tone="save" disabled={saving || loading} onClick={() => save(true)}>
             Guardar y cerrar
           </D365CommandButton>
-
-          <D365CommandButton
-            icon={<Add16Regular />}
-            tone="create"
-            onClick={handleNew}
-            disabled={saving || loading}
-            appearance="subtle"
-          >
-            Nuevo
-          </D365CommandButton>
-
-          <D365CommandButton
-            icon={<ArrowClockwise16Regular />}
-            onClick={handleResetForm}
-            disabled={saving || loading}
-            appearance="subtle"
-          >
-            Deshacer
-          </D365CommandButton>
+          {currentId && detail && (
+            <>
+              <D365CommandDivider />
+              <D365CommandButton
+                icon={detail.estaActivo ? <DismissCircle16Regular /> : <Checkmark16Regular />}
+                disabled={saving || loading}
+                onClick={() => void toggleGroup()}
+              >
+                {detail.estaActivo ? 'Desactivar' : 'Activar'}
+              </D365CommandButton>
+              <D365CommandButton
+                icon={<ArrowClockwise16Regular />}
+                disabled={saving || loading}
+                onClick={() => void load(currentId)}
+              >
+                Actualizar
+              </D365CommandButton>
+            </>
+          )}
         </div>
       </D365CommandBar>
 
-      {/* 2. Header Summary */}
       <D365EntityHeader
-        title={headerTitle}
-        subtitle={savedHeader.codigo
-          ? `Código: ${savedHeader.codigo} • Abreviatura: ${formData.abreviatura || '—'}`
-          : 'Unidad de medida • Catálogo de inventario'}
-        avatarName={savedHeader.nombre || 'U M'}
-        avatarSize={56}
+        title={currentId ? detail?.nombre || 'Grupo de unidades' : 'Nuevo'}
+        subtitle="Grupo de unidades de medida"
+        avatarName={group.nombre || 'Grupo de unidades'}
+        avatarInitials="UM"
         subtleAvatar
         loading={loading}
         metadata={[
-          { label: 'Estado', value: savedHeader.activo ? 'Activo' : 'Inactivo' },
+          {
+            label: 'Estado',
+            value: detail?.estaActivo === false ? 'Inactivo' : 'Activo',
+          },
+          { label: 'Unidad base', value: baseUnit?.nombre || 'Sin definir' },
+          { label: 'Unidades', value: detail?.unidades.length ?? '—' },
         ]}
         tabs={(
-          <TabList selectedValue="detalles">
-            <Tab value="detalles" icon={<Box16Regular />}>General</Tab>
+          <TabList selectedValue={selectedTab} onTabSelect={(_, data) => setSelectedTab(data.value as 'general' | 'unidades')}>
+            <Tab value="general" icon={<Box16Regular />}>General</Tab>
+            <Tab value="unidades" icon={<Ruler16Regular />}>Unidades</Tab>
           </TabList>
         )}
       />
 
-      {/* 3. Form Body */}
       {loading ? (
         <div className={styles.contentBody}>
-          <div className={styles.grid2Cols}>
-            <Card className={styles.card}>
-              <Skeleton animation="pulse">
-                <SkeletonItem size={16} className={styles.skeletonHeader} />
-                <div className={styles.fieldColumnFlex}>
-                  <SkeletonItem size={32} className={styles.skeletonFull} />
-                  <SkeletonItem size={32} className={styles.skeletonFull} />
-                  <SkeletonItem size={32} className={styles.skeletonFull} />
-                </div>
-              </Skeleton>
-            </Card>
-          </div>
+          <Card className={styles.card}>
+            <Skeleton animation="pulse">
+              <SkeletonItem size={16} className={styles.skeletonHeader} />
+              <div className={styles.fieldColumnFlex}>
+                <SkeletonItem size={32} className={styles.skeletonFull} />
+                <SkeletonItem size={32} className={styles.skeletonFull} />
+              </div>
+            </Skeleton>
+          </Card>
+        </div>
+      ) : selectedTab === 'general' ? (
+        <div className={styles.contentBody}>
+          <Card className={styles.card}>
+              <Text className={styles.cardSectionTitle}>Información general</Text>
+              <D365FormField label="Nombre del grupo" required htmlFor="grupo-nombre" error={errors.nombre}>
+                <Input
+                  id="grupo-nombre"
+                  className={styles.d365ControlFull}
+                  value={group.nombre}
+                  placeholder="---"
+                  onChange={(_, data) => setGroup({ ...group, nombre: data.value })}
+                />
+              </D365FormField>
+              <D365FormField
+                label="Unidad base"
+                required
+                htmlFor="unidad-base"
+                error={errors.unidad}
+              >
+                <Input
+                  id="unidad-base"
+                  className={styles.d365ControlFull}
+                  value={group.nombreUnidadBase}
+                  placeholder="---"
+                  appearance={currentId ? 'filled-darker' : 'outline'}
+                  readOnly={Boolean(currentId)}
+                  contentAfter={currentId ? (
+                    <LockClosed16Regular
+                      title="Campo de solo lectura"
+                      aria-label="Campo de solo lectura"
+                    />
+                  ) : undefined}
+                  onChange={(_, data) => setGroup({ ...group, nombreUnidadBase: data.value })}
+                />
+              </D365FormField>
+              <D365FormField label="Observación" htmlFor="grupo-observacion" align="top">
+                <Textarea
+                  id="grupo-observacion"
+                  className={styles.d365ControlFull}
+                  rows={4}
+                  value={group.observacion || ''}
+                  onChange={(_, data) => setGroup({ ...group, observacion: data.value })}
+                />
+              </D365FormField>
+          </Card>
         </div>
       ) : (
         <div className={styles.contentBody}>
-          <div className={styles.grid2Cols}>
-            {/* Sección: Identificación y Parámetros */}
+          {!currentId ? (
             <Card className={styles.card}>
-              <Text className={styles.cardSectionTitle}>Datos Principales</Text>
-
-              {/* Código */}
-              <div className={styles.d365FieldRow}>
-                <div className={styles.d365LabelCol}>
-                  <Label required size="medium" htmlFor="um-codigo">
-                    Código
-                  </Label>
-                </div>
-                <div className={styles.d365ControlCol}>
-                  <Input
-                    id="um-codigo"
-                    appearance="outline"
-                    size="medium"
-                    className={styles.d365ControlFull}
-                    value={formData.codigo}
-                    placeholder="Ej: UND, MTR, KGM, LTR, PZA..."
-                    disabled={isEditMode}
-                    onChange={(_, data) => {
-                      setFormData({ ...formData, codigo: data.value.toUpperCase() });
-                      if (errors.codigo && data.value.trim()) {
-                        setErrors((prev) => ({ ...prev, codigo: '' }));
-                      }
-                    }}
-                  />
-                  {errors.codigo && (
-                    <Text size={100} className={styles.fieldErrorText}>{errors.codigo}</Text>
-                  )}
-                </div>
-              </div>
-
-              {/* Nombre */}
-              <div className={styles.d365FieldRow}>
-                <div className={styles.d365LabelCol}>
-                  <Label required size="medium" htmlFor="um-nombre">
-                    Nombre
-                  </Label>
-                </div>
-                <div className={styles.d365ControlCol}>
-                  <Input
-                    id="um-nombre"
-                    appearance="outline"
-                    size="medium"
-                    className={styles.d365ControlFull}
-                    value={formData.nombre}
-                    placeholder="Ej: Unidades, Metros, Kilogramos, Rollos..."
-                    onChange={(_, data) => {
-                      setFormData({ ...formData, nombre: data.value });
-                      if (errors.nombre && data.value.trim()) {
-                        setErrors((prev) => ({ ...prev, nombre: '' }));
-                      }
-                    }}
-                  />
-                  {errors.nombre && (
-                    <Text size={100} className={styles.fieldErrorText}>{errors.nombre}</Text>
-                  )}
-                </div>
-              </div>
-
-              {/* Abreviatura */}
-              <div className={styles.d365FieldRow}>
-                <div className={styles.d365LabelCol}>
-                  <Label required size="medium" htmlFor="um-abrev">
-                    Abreviatura
-                  </Label>
-                </div>
-                <div className={styles.d365ControlCol}>
-                  <Input
-                    id="um-abrev"
-                    appearance="outline"
-                    size="medium"
-                    className={styles.d365ControlFull}
-                    value={formData.abreviatura}
-                    placeholder="Ej: und, m, kg, ltr, pza..."
-                    onChange={(_, data) => {
-                      setFormData({ ...formData, abreviatura: data.value });
-                      if (errors.abreviatura && data.value.trim()) {
-                        setErrors((prev) => ({ ...prev, abreviatura: '' }));
-                      }
-                    }}
-                  />
-                  {errors.abreviatura && (
-                    <Text size={100} className={styles.fieldErrorText}>{errors.abreviatura}</Text>
-                  )}
-                </div>
-              </div>
-
-            </Card>
-
-            {/* Sección: Descripción rápida */}
-            <Card className={styles.card}>
-              <Text className={styles.cardSectionTitle}>Información Adicional</Text>
-
-              <div className={styles.d365FieldRowTop}>
-                <div className={styles.d365LabelColTop}>
-                  <Label size="medium" htmlFor="um-desc">
-                    Descripción
-                  </Label>
-                </div>
-                <div className={styles.d365ControlCol}>
-                  <Textarea
-                    id="um-desc"
-                    appearance="outline"
-                    size="medium"
-                    rows={5}
-                    className={styles.d365ControlFull}
-                    value={formData.descripcion || ''}
-                    placeholder="Observaciones de uso en inventarios, órdenes de trabajo y despacho..."
-                    onChange={(_, data) =>
-                      setFormData({ ...formData, descripcion: data.value })
-                    }
-                  />
-                </div>
+              <div className={pageStyles.emptyUnits}>
+                <Text weight="semibold" block>Primero guarde el grupo y su unidad base.</Text>
+                <Text block>Después podrá agregar las demás unidades y definir su cantidad respecto a la unidad base.</Text>
               </div>
             </Card>
-          </div>
+          ) : (
+            <Card className={styles.card}>
+                <div className={pageStyles.associatedHeader}>
+                  <div className={pageStyles.associatedCommands}>
+                    <Button
+                      size="medium"
+                      appearance="subtle"
+                      icon={<Add16Regular />}
+                      onClick={() => setDrawerOpen(true)}
+                    >
+                      Nueva unidad
+                    </Button>
+                    <Button size="medium" appearance="subtle" icon={<ArrowClockwise16Regular />} onClick={() => void load(currentId)}>
+                      Actualizar
+                    </Button>
+                    {selectedUnit && !selectedUnit.esUnidadBase && (
+                      <Button
+                        size="medium"
+                        appearance="subtle"
+                        onClick={() => void toggleUnit(selectedUnit.id, !selectedUnit.estaActivo)}
+                      >
+                        {selectedUnit.estaActivo ? 'Desactivar' : 'Activar'}
+                      </Button>
+                    )}
+                  </div>
+                  <Input
+                    size="medium"
+                    className={pageStyles.searchBox}
+                    contentBefore={<Search16Regular />}
+                    placeholder="---"
+                    value={unitSearch}
+                    onChange={(_, data) => setUnitSearch(data.value)}
+                  />
+                </div>
+                <Text size={400} weight="semibold" className={pageStyles.associatedTitle}>
+                  Unidades asociadas del grupo
+                </Text>
+                <div className={pageStyles.tableWrap}>
+                  <DataGrid
+                    items={filteredUnits}
+                    columns={unitColumns}
+                    selectionMode="multiselect"
+                    selectedItems={selectedUnitIds}
+                    onSelectionChange={(_, data) => setSelectedUnitIds(data.selectedItems)}
+                    getRowId={(unit) => unit.id}
+                    focusMode="composite"
+                    size="medium"
+                  >
+                    <DataGridHeader>
+                      <DataGridRow>{({ renderHeaderCell }) => <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>}</DataGridRow>
+                    </DataGridHeader>
+                    <DataGridBody<UnidadMedidaDto>>
+                      {({ item, rowId }) => (
+                        <DataGridRow<UnidadMedidaDto> key={rowId}>
+                          {({ renderCell }) => <DataGridCell>{renderCell(item)}</DataGridCell>}
+                        </DataGridRow>
+                      )}
+                    </DataGridBody>
+                  </DataGrid>
+                </div>
+              </Card>
+          )}
         </div>
+      )}
+
+      {currentId && baseUnit && (
+        <CrearUnidadDrawer
+          abierto={drawerOpen}
+          grupoId={currentId}
+          nombreGrupo={detail?.nombre || ''}
+          nombreUnidadRaiz={baseUnit.nombre}
+          alCerrar={() => setDrawerOpen(false)}
+          alGuardar={async () => {
+            await load(currentId);
+            dispatchToast(
+              <Toast><ToastTitle>Unidad agregada</ToastTitle></Toast>,
+              { intent: 'success' },
+            );
+          }}
+        />
       )}
     </div>
   );

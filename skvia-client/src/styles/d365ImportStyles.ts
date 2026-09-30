@@ -13,9 +13,9 @@ export const useD365ImportStyles = makeStyles({
   brand: { color: semanticTokens.status.info },
   brandIcon: { color: tokens.colorCompoundBrandForeground1 },
   successIcon: { color: semanticTokens.status.success },
-  stepArrow: { color: tokens.colorNeutralForeground4 },
   hiddenInput: { display: 'none' },
   fileDetailsRow: { display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalM },
+  stepArrow: { color: tokens.colorNeutralForeground4 },
   analysisRow: { display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalM, padding: tokens.spacingVerticalM },
   mappingHeader: {
     display: 'grid',

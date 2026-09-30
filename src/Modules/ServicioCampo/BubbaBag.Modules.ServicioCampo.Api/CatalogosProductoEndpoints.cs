@@ -3,17 +3,20 @@ using System.Threading.Tasks;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.ActualizarCategoriaProducto;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.ActualizarListaPrecios;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.ActualizarUnidadMedida;
+using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.ActualizarGrupoUnidadMedida;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.CambiarEstadoCategoriaProducto;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.CambiarEstadoListaPrecios;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.CambiarEstadoUnidadMedida;
+using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.CambiarEstadoGrupoUnidadMedida;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.CrearCategoriaProducto;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.CrearListaPrecios;
-using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.CrearUnidadMedida;
+// using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.CrearUnidadMedida;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.GestionarElementoListaPrecios;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Queries.ObtenerCategoriasProducto;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Queries.ObtenerListaPreciosPorId;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Queries.ObtenerListasPrecios;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Queries.ObtenerUnidadesMedida;
+using BubbaBag.Modules.ServicioCampo.Application.Productos.Queries.ObtenerUnidadesReferencia;
 using BubbaBag.Modules.ServicioCampo.Domain.Productos;
 using BubbaBag.SharedKernel.CQRS;
 using Microsoft.AspNetCore.Builder;
@@ -26,7 +29,31 @@ public static class CatalogosProductoEndpoints
 {
     public static void MapCatalogosProductoEndpoints(this IEndpointRouteBuilder app)
     {
-        // ── Unidades de Medida ──
+        // ── Grupos de Unidades de Medida (Unit Groups) ──
+        var grupoUmGroup = app.MapGroup("/api/inventario/grupos-unidad-medida")
+            .WithTags("Servicio de Campo - Grupos de Unidades de Medida")
+            .RequireAuthorization();
+
+        grupoUmGroup.MapGet("/", ObtenerGruposUnidadMedida);
+        grupoUmGroup.MapGet("/{id:guid}", ObtenerGrupoUnidadMedidaPorId);
+        grupoUmGroup.MapGet("/{id:guid}/unidades-referencia", ObtenerUnidadesReferencia);
+        grupoUmGroup.MapPost("/", CrearGrupoUnidadMedida);
+        grupoUmGroup.MapPut("/{id:guid}", ActualizarGrupoUnidadMedida);
+        grupoUmGroup.MapPatch("/{id:guid}/estado", CambiarEstadoGrupoUnidadMedida);
+        grupoUmGroup.MapPost("/{id:guid}/unidades", AgregarUnidadAGrupo);
+
+        var gruposUnidadesGroup = app.MapGroup("/api/grupos-unidad-medida")
+            .WithTags("Servicio de Campo - Grupos de Unidades de Medida")
+            .RequireAuthorization();
+        gruposUnidadesGroup.MapGet("/", ObtenerGruposUnidadMedida);
+        gruposUnidadesGroup.MapGet("/{id:guid}", ObtenerGrupoUnidadMedidaPorId);
+        gruposUnidadesGroup.MapGet("/{id:guid}/unidades-referencia", ObtenerUnidadesReferencia);
+        gruposUnidadesGroup.MapPost("/", CrearGrupoUnidadMedida);
+        gruposUnidadesGroup.MapPut("/{id:guid}", ActualizarGrupoUnidadMedida);
+        gruposUnidadesGroup.MapPatch("/{id:guid}/estado", CambiarEstadoGrupoUnidadMedida);
+        gruposUnidadesGroup.MapPost("/{id:guid}/unidades", AgregarUnidadAGrupo);
+
+        // ── Unidades de Medida (operaciones sobre unidades individuales) ──
         var umGroup = app.MapGroup("/api/inventario/unidades-medida")
             .WithTags("Servicio de Campo - Unidades de Medida")
             .RequireAuthorization();
@@ -35,7 +62,6 @@ public static class CatalogosProductoEndpoints
         umGroup.MapGet("/plantilla-excel", DescargarPlantillaUnidadesMedida);
         umGroup.MapPost("/importar-excel", ImportarUnidadesMedidaExcel).DisableAntiforgery();
         umGroup.MapGet("/{id:guid}", ObtenerUnidadMedidaPorId);
-        umGroup.MapPost("/", CrearUnidadMedida);
         umGroup.MapPut("/{id:guid}", ActualizarUnidadMedida);
         umGroup.MapPatch("/{id:guid}/estado", CambiarEstadoUnidadMedida);
 
@@ -134,17 +160,94 @@ public static class CatalogosProductoEndpoints
         return result.IsSuccess ? Results.Ok(result.Value) : Results.NotFound(result.Error);
     }
 
-    // Handlers Unidades de Medida
-    private static async Task<IResult> ObtenerUnidadesMedida(
+    // ── Handlers: Grupos de Unidades de Medida ──
+    private static async Task<IResult> ObtenerGruposUnidadMedida(
         string? search,
         bool? soloActivos,
         IDispatcher dispatcher)
     {
-        var result = await dispatcher.QueryAsync(new ObtenerUnidadesMedidaQuery(search, soloActivos));
+        var result = await dispatcher.QueryAsync(new BubbaBag.Modules.ServicioCampo.Application.Productos.Queries.ObtenerGruposUnidadMedida.ObtenerGruposUnidadMedidaQuery(search, soloActivos));
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 
-    private static async Task<IResult> CrearUnidadMedida(
+    private static async Task<IResult> ObtenerGrupoUnidadMedidaPorId(Guid id, IDispatcher dispatcher)
+    {
+        var result = await dispatcher.QueryAsync(new BubbaBag.Modules.ServicioCampo.Application.Productos.Queries.ObtenerGruposUnidadMedida.ObtenerGruposUnidadMedidaQuery());
+        if (!result.IsSuccess) return Results.BadRequest(result.Error);
+        var grupo = result.Value?.FirstOrDefault(g => g.Id == id);
+        return grupo is not null ? Results.Ok(grupo) : Results.NotFound($"Grupo {id} no encontrado.");
+    }
+
+    private static async Task<IResult> ObtenerUnidadesReferencia(
+        Guid id,
+        Guid? excluirUnidadId,
+        IDispatcher dispatcher)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerUnidadesReferenciaQuery(id, excluirUnidadId));
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
+    }
+
+    private static async Task<IResult> CrearGrupoUnidadMedida(
+        CrearGrupoUnidadMedidaDto request,
+        IDispatcher dispatcher)
+    {
+        var command = new BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.CrearGrupoUnidadMedida.CrearGrupoUnidadMedidaCommand(
+            request.Nombre,
+            request.NombreUnidadBase);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Created($"/api/grupos-unidad-medida/{result.Value}", new { Id = result.Value })
+            : Results.BadRequest(result.Error);
+    }
+
+    private static async Task<IResult> ActualizarGrupoUnidadMedida(
+        Guid id,
+        ActualizarGrupoUnidadMedidaDto request,
+        IDispatcher dispatcher)
+    {
+        var result = await dispatcher.SendAsync(new ActualizarGrupoUnidadMedidaCommand(
+            id, request.Nombre, request.Observacion));
+        return result.IsSuccess ? Results.NoContent() : Results.BadRequest(result.Error);
+    }
+
+    private static async Task<IResult> CambiarEstadoGrupoUnidadMedida(
+        Guid id,
+        CambiarEstadoCatalogoRequest request,
+        IDispatcher dispatcher)
+    {
+        var command = new CambiarEstadoGrupoUnidadMedidaCommand(id, request.Activo);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess ? Results.NoContent() : Results.BadRequest(result.Error);
+    }
+
+    private static async Task<IResult> AgregarUnidadAGrupo(
+        Guid id,
+        AgregarUnidadMedidaRequest request,
+        IDispatcher dispatcher)
+    {
+        var command = new BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.AgregarUnidadMedidaAGrupo.AgregarUnidadMedidaAGrupoCommand(
+            id,
+            request.Nombre,
+            request.UnidadMedidaBaseId,
+            request.Cantidad);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Created($"/api/inventario/unidades-medida/{result.Value}", new { Id = result.Value })
+            : Results.BadRequest(result.Error);
+    }
+
+    // ── Handlers: Unidades de Medida ──
+    private static async Task<IResult> ObtenerUnidadesMedida(
+        string? search,
+        bool? soloActivos,
+        Guid? grupoId,
+        IDispatcher dispatcher)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerUnidadesMedidaQuery(search, soloActivos, grupoId));
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
+    }
+
+    /* private static async Task<IResult> CrearUnidadMedida(
         CrearUnidadMedidaRequest request,
         IDispatcher dispatcher)
     {
@@ -159,7 +262,7 @@ public static class CatalogosProductoEndpoints
         return result.IsSuccess
             ? Results.Created($"/api/inventario/unidades-medida/{result.Value}", new { Id = result.Value })
             : Results.BadRequest(result.Error);
-    }
+    } */
 
     private static async Task<IResult> ActualizarUnidadMedida(
         Guid id,
@@ -169,8 +272,8 @@ public static class CatalogosProductoEndpoints
         var command = new ActualizarUnidadMedidaCommand(
             id,
             request.Nombre,
-            request.Abreviatura,
-            request.Descripcion
+            request.UnidadMedidaBaseId,
+            request.Cantidad
         );
 
         var result = await dispatcher.SendAsync(command);
@@ -330,17 +433,28 @@ public static class CatalogosProductoEndpoints
     }
 }
 
-public record CrearUnidadMedidaRequest(
-    string Codigo,
+// ── Request records: Grupos de Unidades de Medida ──
+public record CrearGrupoUnidadMedidaDto(
     string Nombre,
-    string Abreviatura,
-    string? Descripcion
+    string NombreUnidadBase
 );
 
+public record ActualizarGrupoUnidadMedidaDto(
+    string Nombre,
+    string? Observacion
+);
+
+public record AgregarUnidadMedidaRequest(
+    string Nombre,
+    Guid UnidadMedidaBaseId,
+    decimal Cantidad
+);
+
+// ── Request records: Unidades de Medida ──
 public record ActualizarUnidadMedidaRequest(
     string Nombre,
-    string Abreviatura,
-    string? Descripcion
+    Guid UnidadMedidaBaseId,
+    decimal Cantidad
 );
 
 public record CrearCategoriaProductoRequest(

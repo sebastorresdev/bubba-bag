@@ -24,6 +24,9 @@ public class ObtenerProductoPorIdHandler : IQueryHandler<ObtenerProductoPorIdQue
         var p = await _context.Productos
             .AsNoTracking()
             .Include(x => x.ListaPreciosPredeterminada)
+            .Include(x => x.CategoriaProducto)
+            .Include(x => x.GrupoUnidadMedida)
+            .Include(x => x.UnidadMedidaDefecto)
             .FirstOrDefaultAsync(x => x.Id == query.Id, cancellationToken);
 
         if (p is null)
@@ -36,8 +39,12 @@ public class ObtenerProductoPorIdHandler : IQueryHandler<ObtenerProductoPorIdQue
             p.Descripcion,
             p.Tipo,
             p.PrecioBase,
-            p.Categoria,
-            p.UnidadMedida,
+            p.CategoriaProductoId,
+            p.CategoriaProducto?.Nombre,
+            p.GrupoUnidadMedidaId,
+            p.GrupoUnidadMedida?.Nombre,
+            p.UnidadMedidaDefectoId,
+            p.UnidadMedidaDefecto?.Nombre,
             p.EsSerializado,
             p.Activo,
             p.CodigoBarras,

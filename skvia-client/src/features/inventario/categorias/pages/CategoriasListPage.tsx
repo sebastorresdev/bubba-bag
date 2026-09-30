@@ -57,7 +57,7 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
   const [items, setItems] = useState<CategoriaProductoDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [importDialogOpen, setImportDialogOpen] = useState<boolean>(false);
+  const [importDrawerOpen, setImportDrawerOpen] = useState<boolean>(false);
 
   // Filters & Search
   const [searchKeyword, setSearchKeyword] = useState<string>('');
@@ -225,8 +225,15 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
             </D365CommandButton>
 
             <D365CommandButton
+              icon={<ArrowDownload16Regular />}
+              onClick={() => void CategoriaService.descargarPlantillaExcel()}
+            >
+              Descargar plantilla
+            </D365CommandButton>
+
+            <D365CommandButton
               icon={<ArrowUpload16Regular />}
-              onClick={() => setImportDialogOpen(true)}
+              onClick={() => setImportDrawerOpen(true)}
             >
               Importar de Excel
             </D365CommandButton>
@@ -351,10 +358,9 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
 
       {/* 4. IMPORT DATA DRAWER LATERAL DERECHO (DYNAMICS 365) */}
       <ImportacionDrawer
-        open={importDialogOpen}
-        onOpenChange={setImportDialogOpen}
+        open={importDrawerOpen}
+        onOpenChange={setImportDrawerOpen}
         targetEntityName="Categoria"
-        onDownloadTemplate={() => CategoriaService.descargarPlantillaExcel()}
         onSuccess={loadData}
       />
     </div>
