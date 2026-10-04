@@ -11,6 +11,7 @@ public class StockAlmacenConfiguration : IEntityTypeConfiguration<StockAlmacen>
         builder.ToTable("StocksAlmacen", "inventario");
 
         builder.HasKey(s => s.Id);
+        builder.Property<uint>("xmin").IsRowVersion();
 
         builder.Property(s => s.CantidadDisponible)
             .IsRequired()
@@ -20,13 +21,13 @@ public class StockAlmacenConfiguration : IEntityTypeConfiguration<StockAlmacen>
             .IsRequired()
             .HasPrecision(14, 5);
 
-        builder.HasIndex(s => new { s.AlmacenId, s.ProductoId })
+        builder.HasIndex(s => new { s.UbicacionId, s.ProductoId, s.Condicion })
             .IsUnique();
 
-        builder.HasOne(s => s.Almacen)
+        builder.HasOne(s => s.Ubicacion)
             .WithMany()
-            .HasForeignKey(s => s.AlmacenId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .HasForeignKey(s => s.UbicacionId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(s => s.Producto)
             .WithMany()

@@ -1,3 +1,4 @@
+using BubbaBag.SharedKernel.Authorization;
 using System;
 using System.Threading.Tasks;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.ActualizarProducto;
@@ -19,15 +20,15 @@ public static class ProductosEndpoints
     {
         var group = app.MapGroup("/api/inventario/productos")
             .WithTags("Servicio de Campo - Catálogo de Materiales y Equipos")
-            .RequireAuthorization();
+            .RequireAuthorization(Permissions.Inventario.Acceso);
 
         group.MapGet("/", ObtenerProductos);
         group.MapGet("/plantilla-excel", DescargarPlantillaProductos);
-        group.MapPost("/importar-excel", ImportarProductosExcel).DisableAntiforgery();
+        group.MapPost("/importar-excel", ImportarProductosExcel).DisableAntiforgery().RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
         group.MapGet("/{id:guid}", ObtenerProductoPorId);
-        group.MapPost("/", CrearProducto);
-        group.MapPut("/{id:guid}", ActualizarProducto);
-        group.MapPatch("/{id:guid}/estado", CambiarEstadoProducto);
+        group.MapPost("/", CrearProducto).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
+        group.MapPut("/{id:guid}", ActualizarProducto).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
+        group.MapPatch("/{id:guid}/estado", CambiarEstadoProducto).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
     }
 
     private static async Task<IResult> DescargarPlantillaProductos(
@@ -74,9 +75,11 @@ public static class ProductosEndpoints
         string? categoria,
         TipoProducto? tipo,
         bool? soloActivos,
-        IDispatcher dispatcher)
+        int? limite,
+        IDispatcher dispatcher,
+        CancellationToken cancellationToken)
     {
-        var result = await dispatcher.QueryAsync(new ObtenerProductosQuery(search, categoria, tipo, soloActivos));
+        var result = await dispatcher.QueryAsync(new ObtenerProductosQuery(search, categoria, tipo, soloActivos, limite), cancellationToken);
         return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
     }
 

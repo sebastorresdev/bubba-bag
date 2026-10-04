@@ -1,10 +1,10 @@
 using System.Reflection;
-using BubbaBag.Modules.RecursosHumanos.Domain.Organizacion;
 using BubbaBag.Modules.ServicioCampo.Application;
 using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
 using BubbaBag.Modules.ServicioCampo.Domain.Clientes;
 using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 using BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
+using BubbaBag.Modules.ServicioCampo.Domain.Organizacion;
 using BubbaBag.Modules.ServicioCampo.Domain.Plantillas;
 using BubbaBag.Modules.ServicioCampo.Domain.Productos;
 using BubbaBag.Modules.ServicioCampo.Domain.Recursos;
@@ -19,6 +19,7 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     {
     }
 
+    public DbSet<UnidadOrganizativa> UnidadesOrganizativas => Set<UnidadOrganizativa>();
     public DbSet<OrdenTrabajo> OrdenesTrabajo => Set<OrdenTrabajo>();
     public DbSet<OrdenTrabajoVisita> OrdenTrabajoVisitas => Set<OrdenTrabajoVisita>();
     public DbSet<OrdenTrabajoVisitaEvidencia> OrdenTrabajoVisitaEvidencias => Set<OrdenTrabajoVisitaEvidencia>();
@@ -26,7 +27,16 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public DbSet<OrdenTrabajoMaterial> OrdenTrabajoMateriales => Set<OrdenTrabajoMaterial>();
     public DbSet<ZonaOperativa> ZonasOperativas => Set<ZonaOperativa>();
     public DbSet<Recurso> Recursos => Set<Recurso>();
+    public DbSet<UbicacionInventario> UbicacionesInventario => Set<UbicacionInventario>();
     public DbSet<Almacen> Almacenes => Set<Almacen>();
+    public DbSet<UsuarioAlmacenAutorizacion> UsuarioAlmacenAutorizaciones => Set<UsuarioAlmacenAutorizacion>();
+    public DbSet<Transferencia> Transferencias => Set<Transferencia>();
+    public DbSet<TransferenciaDetalle> TransferenciaDetalles => Set<TransferenciaDetalle>();
+    public DbSet<TransferenciaDetalleSerie> TransferenciaDetalleSeries => Set<TransferenciaDetalleSerie>();
+    public DbSet<RecepcionTransferencia> RecepcionesTransferencia => Set<RecepcionTransferencia>();
+    public DbSet<RecepcionTransferenciaDetalle> RecepcionTransferenciaDetalles => Set<RecepcionTransferenciaDetalle>();
+    public DbSet<ResolucionDiferenciaTransferencia> ResolucionDiferenciaTransferencias => Set<ResolucionDiferenciaTransferencia>();
+    public DbSet<Compra> Compras => Set<Compra>();
     public DbSet<StockAlmacen> StocksAlmacen => Set<StockAlmacen>();
     public DbSet<MovimientoInventario> MovimientosInventario => Set<MovimientoInventario>();
     public DbSet<MotivoIncidencia> MotivosIncidencia => Set<MotivoIncidencia>();
@@ -39,7 +49,6 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public DbSet<ListaPrecios> ListasPrecios => Set<ListaPrecios>();
     public DbSet<ElementoListaPrecios> ElementosListaPrecios => Set<ElementoListaPrecios>();
     public DbSet<ItemSeriado> ItemsSeriados => Set<ItemSeriado>();
-    public DbSet<Sucursal> Sucursales => Set<Sucursal>();
     public DbSet<TipoOrdenTrabajo> TiposOrdenTrabajo => Set<TipoOrdenTrabajo>();
     public DbSet<CampoDefinicion> CamposDefinicion => Set<CampoDefinicion>();
     public DbSet<TipoTareaServicio> TiposTareaServicio => Set<TipoTareaServicio>();
@@ -82,13 +91,6 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     {
         modelBuilder.HasDefaultSchema("serviciocampo");
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-
-        // Referencia a la tabla maestra del módulo Recursos Humanos (externa)
-        modelBuilder.Entity<Sucursal>(b =>
-        {
-            b.ToTable("Sucursales", "rrhh", t => t.ExcludeFromMigrations());
-            b.HasKey(s => s.Id);
-        });
 
         base.OnModelCreating(modelBuilder);
     }

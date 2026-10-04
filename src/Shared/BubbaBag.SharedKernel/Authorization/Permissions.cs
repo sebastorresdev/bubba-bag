@@ -5,6 +5,13 @@ namespace BubbaBag.SharedKernel.Authorization;
 
 public static class Permissions
 {
+    public static class Inventario
+    {
+        public const string Acceso = "inventario.acceso";
+        public const string CatalogosGestionar = "inventario.catalogos.gestionar";
+        public const string Operar = "inventario.operar";
+        public const string AccesosGestionar = "inventario.accesos.gestionar";
+    }
     // =========================================================================
     // SERVICIO DE CAMPO
     // =========================================================================

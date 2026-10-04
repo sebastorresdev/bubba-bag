@@ -451,7 +451,7 @@ export const ImportacionDrawer: React.FC<ImportacionDrawerProps> = ({
             </Text>
             {selectedFile && (
               <Text size={200} className={importStyles.muted}>
-                Está a punto de importar {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
+                {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
               </Text>
             )}
           </div>
@@ -567,9 +567,6 @@ export const ImportacionDrawer: React.FC<ImportacionDrawerProps> = ({
         {/* PASO 2: MAPEO INTELIGENTE DE CAMPOS */}
         {currentStep === 2 && currentEntity && (
           <div className={styles.mappingContainer}>
-            <Text size={200} className={importStyles.muted}>
-              Asocie cada columna del archivo de origen a un campo de la entidad {currentEntity.displayName} en el sistema.
-            </Text>
 
             {unmappedRequired.length > 0 && (
               <D365MessageBar intent="warning" title="Campos obligatorios requeridos">
@@ -580,7 +577,6 @@ export const ImportacionDrawer: React.FC<ImportacionDrawerProps> = ({
             <div className={styles.mappingSection}>
               <div className={styles.mappingSectionTitle}>
                 <Text weight="semibold" size={300}>Mapeo obligatorio</Text>
-                <Text size={200} className={importStyles.muted}>Estos campos deben tener una columna de origen para continuar.</Text>
               </div>
               <div className={importStyles.mappingHeader}>
                 <span>Columna del archivo</span><span></span><span>Campo del sistema</span>
@@ -591,7 +587,6 @@ export const ImportacionDrawer: React.FC<ImportacionDrawerProps> = ({
             <div className={styles.mappingSectionOptional}>
               <div className={styles.mappingSectionTitle}>
                 <Text weight="semibold" size={300}>Mapeo opcional</Text>
-                <Text size={200} className={importStyles.muted}>Asigne únicamente la información adicional que desea importar.</Text>
               </div>
               <div className={importStyles.mappingHeader}>
                 <span>Columna del archivo</span><span></span><span>Campo del sistema</span>
@@ -605,9 +600,6 @@ export const ImportacionDrawer: React.FC<ImportacionDrawerProps> = ({
         {currentStep === 3 && (
           <div className={styles.settingsCard}>
             <div className={styles.sectionTitle}>Tratamiento de Registros Duplicados</div>
-            <Text size={200} className={importStyles.muted}>
-              Determine cómo debe actuar el sistema si encuentra registros que ya existen según el identificador ({currentEntity?.primaryKeyField}).
-            </Text>
 
             <div className={styles.formRow}>
               <Text size={200} weight="semibold">Modo de Tratamiento de Duplicados</Text>
@@ -616,9 +608,9 @@ export const ImportacionDrawer: React.FC<ImportacionDrawerProps> = ({
                 onChange={(_, d) => setDuplicateMode(d.value)}
                 size="small"
               >
-                <option value="Upsert">Actualizar registros existentes (Upsert)</option>
-                <option value="Skip">Omitir duplicados (No modificar ni fallar)</option>
-                <option value="Error">Rechazar duplicados (Marcar como fila fallida)</option>
+                <option value="Upsert">Actualizar registros existentes</option>
+                <option value="Skip">Omitir duplicados</option>
+                <option value="Error">Rechazar duplicados</option>
               </Select>
             </div>
 

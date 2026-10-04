@@ -1,14 +1,101 @@
 export interface TransferenciaInventarioDto {
-  id: string; numero: string; fecha: string;
-  almacenOrigenId: string; almacenOrigen: string;
-  almacenDestinoId: string; almacenDestino: string;
-  productoId: string; codigoProducto: string; producto: string;
-  cantidad: number; unidad?: string | null; observacion?: string | null;
+  id: string;
+  numero: string;
+  fecha: string;
+  almacenOrigenId: string;
+  almacenOrigen: string;
+  almacenDestinoId: string;
+  almacenDestino: string;
+  totalLineas?: number;
+  totalCantidad?: number;
+  observacion?: string | null;
+  estado?: 'Borrador' | 'EnTransito' | 'ParcialmenteRecibida' | 'Cerrada' | 'Cancelada' | string;
+  modalidad?: 'Inmediata' | 'ConTransito' | string;
+  cantidadRecibida?: number;
+  cantidadPendiente?: number;
+  resumenProductos?: string | null;
+  productoId?: string;
+  codigoProducto?: string;
+  producto?: string;
+  cantidad?: number;
+  unidad?: string | null;
 }
 
 export interface CrearTransferenciaDto {
   almacenOrigenId: string;
   almacenDestinoId: string;
   observacion?: string | null;
-  lineas: Array<{ productoId: string; cantidad: number }>;
+  ubicacionOrigenId: string;
+  ubicacionDestinoId: string;
+  modalidad: 1 | 2;
+  operacionId: string;
+  fechaReal?: string;
+  lineas: Array<{ productoId: string; cantidad: number; series?: string[] | null; condicion?: number }>;
+}
+
+export interface TransferenciaDetalleLineaDto {
+  id: string;
+  productoId: string;
+  codigoProducto: string;
+  productoNombre: string;
+  cantidadEnviada: number;
+  cantidadRecibida: number;
+  cantidadResuelta: number;
+  unidadMedidaNombre?: string | null;
+  condicion: string;
+  series: Array<{numeroSerie:string;recibida:boolean;resuelta:boolean}>;
+  cantidadPendiente: number;
+}
+
+export interface RecepcionTransferenciaItemDto {
+  id: string;
+  numeroRecepcion: string;
+  fechaReal: string;
+  lineas: Array<{codigoProducto:string;cantidad:number;series:string[]}>;
+  fechaRecepcion: string;
+  recibidoPorId: string;
+  recibidoPorNombre: string;
+  observaciones?: string | null;
+}
+
+export interface TransferenciaDetalladaDto {
+  id: string;
+  numero: string;
+  almacenOrigenId: string;
+  almacenOrigenNombre: string;
+  almacenDestinoId: string;
+  almacenDestinoNombre: string;
+  unidadOrganizativaOrigenId: string;
+  unidadOrganizativaDestinoId: string;
+  modalidad: 'Inmediata' | 'ConTransito' | string;
+  estado: 'Borrador' | 'EnTransito' | 'ParcialmenteRecibida' | 'Cerrada' | 'Cancelada' | string;
+  fechaRegistro: string;
+  fechaDespacho?: string | null;
+  fechaCierre?: string | null;
+  despachadoPorNombre?: string | null;
+  numeroGuiaRemision?: string | null;
+  observaciones?: string | null;
+  ubicacionOrigenId?: string | null;
+  ubicacionDestinoId?: string | null;
+  ubicacionOrigenNombre?: string | null;
+  ubicacionDestinoNombre?: string | null;
+  fechaReal: string;
+  puedeRecepcionar: boolean;
+  puedeResolver: boolean;
+  lineas: TransferenciaDetalleLineaDto[];
+  recepciones: RecepcionTransferenciaItemDto[];
+  resoluciones: Array<{id:string;detalleId:string;cantidad:number;resultado:string;motivo:string;evidencia?:string|null;supervisor:string;fecha:string;series:string[]}>;
+}
+
+export interface RecepcionarTransferenciaLineaDto {
+  transferenciaDetalleId: string;
+  cantidad: number;
+  series?: string[];
+}
+
+export interface RecepcionarTransferenciaDto {
+  operacionId: string;
+  fechaReal?: string;
+  lineas: RecepcionarTransferenciaLineaDto[];
+  observaciones?: string | null;
 }

@@ -689,7 +689,6 @@ export const ListaPreciosFormPage: React.FC = () => {
                   id="lp-nombre"
                   size="medium"
                   className={styles.d365ControlFull}
-                  placeholder="---"
                   value={formData.nombre}
                   onChange={(_, d) => setFormData({ ...formData, nombre: d.value })}
                 />
@@ -716,7 +715,6 @@ export const ListaPreciosFormPage: React.FC = () => {
                   size="medium"
                   rows={4}
                   className={styles.d365ControlFull}
-                  placeholder="---"
                   value={formData.descripcion}
                   onChange={(_, d) => setFormData({ ...formData, descripcion: d.value })}
                 />
@@ -732,7 +730,6 @@ export const ListaPreciosFormPage: React.FC = () => {
                 <DatePicker
                   id="lp-inicio"
                   className={styles.d365ControlFull}
-                  placeholder="---"
                   value={parseISODate(formData.fechaInicio)}
                   onSelectDate={(date) =>
                     setFormData({ ...formData, fechaInicio: formatISODate(date) })
@@ -745,7 +742,6 @@ export const ListaPreciosFormPage: React.FC = () => {
                 <DatePicker
                   id="lp-fin"
                   className={styles.d365ControlFull}
-                  placeholder="---"
                   value={parseISODate(formData.fechaFin)}
                   onSelectDate={(date) =>
                     setFormData({ ...formData, fechaFin: formatISODate(date) })
@@ -766,7 +762,7 @@ export const ListaPreciosFormPage: React.FC = () => {
                 trailing={
                   <Input
                     size="medium"
-                    placeholder="---"
+                    placeholder="Buscar" aria-label="Buscar"
                     contentBefore={<Search16Regular />}
                     value={elementosSearch}
                     onChange={(_, d) => setElementosSearch(d.value)}
@@ -909,7 +905,6 @@ export const ListaPreciosFormPage: React.FC = () => {
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder="---"
                   contentBefore={newMetodoFijacion === 1 ? currencySymbol : '%'}
                   value={newMonto}
                   onChange={(_, d) => setNewMonto(d.value)}

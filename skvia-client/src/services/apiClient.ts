@@ -1,50 +1,9 @@
-// Centralized API client for SKVIA client with automatic JWT token management
-
-const TOKEN_KEY = 'skvia_auth_token';
+import { clearSession, readToken } from './authSession';
 
 export async function getValidAuthToken(): Promise<string> {
-  let token = localStorage.getItem(TOKEN_KEY);
-  if (token) {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-      if (payload.email === 'admin@bubbabag.com' || payload.nombre_completo === 'SuperAdmin' || payload.unique_name === 'admin@bubbabag.com') {
-        localStorage.removeItem(TOKEN_KEY);
-        token = null;
-      }
-    } catch {
-      localStorage.removeItem(TOKEN_KEY);
-      token = null;
-    }
-    if (token) {
-      return token;
-    }
-  }
-
-  // Automatic authentication with system credentials for seamless development experience
-  try {
-    const res = await fetch('/api/seguridad/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: 'admin@skvia.com',
-        password: 'Admin123!',
-      }),
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.token) {
-        localStorage.setItem(TOKEN_KEY, data.token);
-        return data.token;
-      }
-    }
-  } catch (err) {
-    console.error('Error auto-logging in:', err);
-  }
-
-  return '';
+  const token = readToken();
+  if (!token) throw new Error('Inicie sesión para continuar.');
+  return token;
 }
 
 async function parseResponseBody<T>(res: Response): Promise<T> {
@@ -97,21 +56,8 @@ export async function apiClient<T>(
   });
 
   if (response.status === 401) {
-    // If token expired, clear and retry once
-    localStorage.removeItem(TOKEN_KEY);
-    const newToken = await getValidAuthToken();
-    if (newToken) {
-      headers['Authorization'] = `Bearer ${newToken}`;
-      const retryResponse = await fetch(endpoint, {
-        ...options,
-        headers,
-      });
-      if (!retryResponse.ok) {
-        const errData = await parseResponseBody<any>(retryResponse);
-        throw new Error(extractApiErrorMessage(errData, `API Error: ${retryResponse.statusText}`, retryResponse.status));
-      }
-      return parseResponseBody<T>(retryResponse);
-    }
+    clearSession();
+    throw new Error('La sesión ha vencido o sus permisos han cambiado. Inicie sesión nuevamente.');
   }
 
   if (!response.ok) {
@@ -132,6 +78,7 @@ export async function apiClientDownload(endpoint: string, defaultFilename: strin
     headers,
   });
 
+  if (response.status === 401) clearSession();
   if (!response.ok) {
     const errData = await parseResponseBody<any>(response);
     throw new Error(extractApiErrorMessage(errData, `Error al descargar archivo: ${response.statusText}`, response.status));
@@ -159,6 +106,7 @@ export async function apiClientUpload<T>(endpoint: string, formData: FormData): 
     body: formData,
   });
 
+  if (response.status === 401) clearSession();
   if (!response.ok) {
     const errorData = await parseResponseBody<any>(response);
     throw new Error(extractApiErrorMessage(errorData, `Error al subir archivo (${response.status}): ${response.statusText}`, response.status));

@@ -1,11 +1,11 @@
 using System.Threading;
 using System.Threading.Tasks;
 using System;
-using BubbaBag.Modules.RecursosHumanos.Domain.Organizacion;
 using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
 using BubbaBag.Modules.ServicioCampo.Domain.Clientes;
 using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 using BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
+using BubbaBag.Modules.ServicioCampo.Domain.Organizacion;
 using BubbaBag.Modules.ServicioCampo.Domain.Plantillas;
 using BubbaBag.Modules.ServicioCampo.Domain.Productos;
 using BubbaBag.Modules.ServicioCampo.Domain.Recursos;
@@ -16,6 +16,7 @@ namespace BubbaBag.Modules.ServicioCampo.Application;
 
 public interface IServicioCampoDbContext
 {
+    DbSet<UnidadOrganizativa> UnidadesOrganizativas { get; }
     DbSet<OrdenTrabajo> OrdenesTrabajo { get; }
     DbSet<OrdenTrabajoVisita> OrdenTrabajoVisitas { get; }
     DbSet<OrdenTrabajoVisitaEvidencia> OrdenTrabajoVisitaEvidencias { get; }
@@ -23,7 +24,16 @@ public interface IServicioCampoDbContext
     DbSet<OrdenTrabajoMaterial> OrdenTrabajoMateriales { get; }
     DbSet<ZonaOperativa> ZonasOperativas { get; }
     DbSet<Recurso> Recursos { get; }
+    DbSet<UbicacionInventario> UbicacionesInventario { get; }
     DbSet<Almacen> Almacenes { get; }
+    DbSet<UsuarioAlmacenAutorizacion> UsuarioAlmacenAutorizaciones { get; }
+    DbSet<Transferencia> Transferencias { get; }
+    DbSet<TransferenciaDetalle> TransferenciaDetalles { get; }
+    DbSet<TransferenciaDetalleSerie> TransferenciaDetalleSeries { get; }
+    DbSet<RecepcionTransferencia> RecepcionesTransferencia { get; }
+    DbSet<RecepcionTransferenciaDetalle> RecepcionTransferenciaDetalles { get; }
+    DbSet<ResolucionDiferenciaTransferencia> ResolucionDiferenciaTransferencias { get; }
+    DbSet<Compra> Compras { get; }
     DbSet<StockAlmacen> StocksAlmacen { get; }
     DbSet<MovimientoInventario> MovimientosInventario { get; }
     DbSet<MotivoIncidencia> MotivosIncidencia { get; }
@@ -36,7 +46,6 @@ public interface IServicioCampoDbContext
     DbSet<ListaPrecios> ListasPrecios { get; }
     DbSet<ElementoListaPrecios> ElementosListaPrecios { get; }
     DbSet<ItemSeriado> ItemsSeriados { get; }
-    DbSet<Sucursal> Sucursales { get; }
     DbSet<TipoOrdenTrabajo> TiposOrdenTrabajo { get; }
     DbSet<CampoDefinicion> CamposDefinicion { get; }
     DbSet<TipoTareaServicio> TiposTareaServicio { get; }

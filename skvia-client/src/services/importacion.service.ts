@@ -1,3 +1,4 @@
+import { clearSession } from './authSession';
 import { apiClient, getValidAuthToken } from './apiClient';
 
 export interface CampoImportacionDto {
@@ -88,6 +89,7 @@ export const ImportacionService = {
       body: formData,
     });
 
+    if (res.status === 401) clearSession();
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.mensaje || err.detail || 'Error al previsualizar el archivo.');
@@ -127,6 +129,7 @@ export const ImportacionService = {
       body: formData,
     });
 
+    if (res.status === 401) clearSession();
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.mensaje || err.detail || 'Error al ejecutar la importación.');

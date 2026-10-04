@@ -42,7 +42,7 @@ public static class GestionDatosModule
     {
         var group = app.MapGroup(prefix)
             .WithTags("Gestión de Datos - Importaciones Masivas")
-            .RequireAuthorization();
+            .RequireAuthorization(p => p.RequireRole(BubbaBag.SharedKernel.Authorization.Roles.SuperAdmin, BubbaBag.SharedKernel.Authorization.Roles.InventarioAdmin, BubbaBag.SharedKernel.Authorization.Roles.ServicioCampoAdmin, BubbaBag.SharedKernel.Authorization.Roles.CrmAdmin));
 
         // 1. Obtener catálogo de entidades importables
         group.MapGet("/entities", (IEntityImportMetadataService metadataService) =>
@@ -182,4 +182,3 @@ public static class GestionDatosModule
         });
     }
 }
-

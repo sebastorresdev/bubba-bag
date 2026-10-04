@@ -32,3 +32,6 @@ pnpm-debug.log*
 !.vscode/extensions.json
 .DS_Store
 Thumbs.db
+
+## Isolated build and database verification
+.artifacts/

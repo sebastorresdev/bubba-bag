@@ -121,7 +121,6 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
   open,
   onOpenChange,
   title,
-  entityName,
   onDownloadTemplate,
   onUploadFile,
   onSuccess,
@@ -330,10 +329,7 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
                 {/* Paso 1: Descargar Plantilla */}
                 <div className={styles.stepCard}>
                   <Text weight="semibold" size={300}>
-                    Paso 1: Descargar plantilla con listas desplegables
-                  </Text>
-                  <Text size={200} className={importStyles.muted}>
-                    Descarga la plantilla oficial configurada para {entityName}. Incluye listas de validación y selectores desplegables para evitar errores de escritura.
+                    Descargar plantilla
                   </Text>
                   <div>
                     <Button
@@ -351,7 +347,7 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
                 {/* Paso 2: Subir Archivo */}
                 <div className={styles.stepCard}>
                   <Text weight="semibold" size={300}>
-                    Paso 2: Cargar archivo y opciones
+                    Archivo y opciones
                   </Text>
 
                   {allowUpsert && (

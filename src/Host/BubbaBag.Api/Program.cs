@@ -10,14 +10,35 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
+var allowedCorsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? ["http://localhost:4300", "http://localhost:4301"];
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.SetIsOriginAllowed(origin => true)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.SetIsOriginAllowed(origin =>
+            {
+                if (string.IsNullOrEmpty(origin)) return false;
+                if (Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                {
+                    return uri.Host is "localhost" or "127.0.0.1" || allowedCorsOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase);
+                }
+                return false;
+            })
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+        }
+        else
+        {
+            policy.WithOrigins(allowedCorsOrigins)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
     });
 });
 
@@ -46,7 +67,7 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 app.MapDefaultEndpoints();
-await app.ApplyMigrationsAndSeedAsync();
+await app.ApplyMigrationsAsync();
 
 if (app.Environment.IsDevelopment())
 {
@@ -69,4 +90,3 @@ app.MapServicioCampoEndpoints();
 app.MapGestionDatosEndpoints();
 
 app.Run();
-

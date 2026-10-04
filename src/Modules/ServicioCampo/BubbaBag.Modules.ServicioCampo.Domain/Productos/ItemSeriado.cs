@@ -18,11 +18,13 @@ public class ItemSeriado : Entity<Guid>
     public string? MacAddress { get; private set; }
 
     /// <summary>
-    /// Almacén actual de custodia (Físico o Móvil del técnico).
+    /// Ubicación actual dentro de una bodega o custodia personal.
     /// Es nulo cuando el equipo se encuentra instalado en el domicilio del cliente.
     /// </summary>
-    public Guid? AlmacenActualId { get; private set; }
-    public Almacen? AlmacenActual { get; private set; }
+    public Guid? UbicacionActualId { get; private set; }
+    public UbicacionInventario? UbicacionActual { get; private set; }
+    public Guid? TransferenciaEnTransitoId { get; private set; }
+    public CondicionInventario Condicion { get; private set; } = CondicionInventario.Utilizable;
 
     public EstadoItemSeriado Estado { get; private set; }
 
@@ -46,7 +48,7 @@ public class ItemSeriado : Entity<Guid>
     public static ItemSeriado Crear(
         Guid productoId,
         string numeroSerie,
-        Guid almacenInicialId,
+        Guid ubicacionInicialId,
         string? numeroSmartCard = null,
         string? macAddress = null,
         string? observaciones = null)
@@ -61,7 +63,7 @@ public class ItemSeriado : Entity<Guid>
             NumeroSerie = numeroSerie.Trim().ToUpperInvariant(),
             NumeroSmartCard = numeroSmartCard?.Trim().ToUpperInvariant(),
             MacAddress = macAddress?.Trim().ToUpperInvariant(),
-            AlmacenActualId = almacenInicialId,
+            UbicacionActualId = ubicacionInicialId,
             Estado = EstadoItemSeriado.EnAlmacen,
             Observaciones = observaciones?.Trim(),
             CreatedAt = DateTime.UtcNow
@@ -69,15 +71,27 @@ public class ItemSeriado : Entity<Guid>
     }
 
     /// <summary>
-    /// Transfiere la custodia del equipo desde una bodega base hacia la camioneta del técnico.
+    /// Marca el equipo en tránsito hacia un almacén de destino.
     /// </summary>
-    public void DespacharATecnico(Guid almacenMovilId)
+    public void DespacharEnTransito(Guid transferenciaId)
     {
-        if (Estado != EstadoItemSeriado.EnAlmacen)
-            throw new InvalidOperationException($"El equipo con serie '{NumeroSerie}' no está disponible en almacén (Estado actual: '{Estado}').");
+        if (!UbicacionActualId.HasValue || TransferenciaEnTransitoId.HasValue)
+            throw new InvalidOperationException("La serie no está disponible en una ubicación.");
+        UbicacionActualId = null;
+        TransferenciaEnTransitoId = transferenciaId;
+        Estado = EstadoItemSeriado.EnTransito;
+        UpdatedAt = DateTime.UtcNow;
+    }
 
-        AlmacenActualId = almacenMovilId;
-        Estado = EstadoItemSeriado.EnCustodiaTecnico;
+    public void Ubicar(Guid ubicacionId, TipoAlmacen tipo, CondicionInventario? condicion = null)
+    {
+        if (ubicacionId == Guid.Empty) throw new ArgumentException("La ubicación es obligatoria.");
+        UbicacionActualId = ubicacionId;
+        TransferenciaEnTransitoId = null;
+        if (condicion.HasValue) Condicion = condicion.Value;
+        Estado = Condicion == CondicionInventario.Defectuoso
+            ? EstadoItemSeriado.AveriadoEnAlmacen
+            : tipo == TipoAlmacen.CustodiaPersonal ? EstadoItemSeriado.EnCustodiaTecnico : EstadoItemSeriado.EnAlmacen;
         UpdatedAt = DateTime.UtcNow;
     }
 
@@ -90,7 +104,7 @@ public class ItemSeriado : Entity<Guid>
         if (Estado != EstadoItemSeriado.EnCustodiaTecnico && Estado != EstadoItemSeriado.EnAlmacen)
             throw new InvalidOperationException($"No se puede instalar un equipo en estado '{Estado}'. Debe estar en custodia de técnico o en almacén.");
 
-        AlmacenActualId = null; // Ya no está en ningún almacén de la empresa
+        UbicacionActualId = null; // Ya no está en ningún almacén de la empresa
         ClienteActualId = clienteId;
         OrdenTrabajoInstalacionId = ordenTrabajoId;
         FechaInstalacion = DateTime.UtcNow;
@@ -104,7 +118,7 @@ public class ItemSeriado : Entity<Guid>
     /// </summary>
     public void RetirarPorAveria(Guid almacenMovilId, Guid clienteId, Guid ordenTrabajoId, string? motivo = null)
     {
-        AlmacenActualId = almacenMovilId;
+        UbicacionActualId = almacenMovilId;
         ClienteActualId = clienteId;
         OrdenTrabajoInstalacionId = ordenTrabajoId;
         Estado = EstadoItemSeriado.RetiradoPorAveria;
@@ -113,21 +127,11 @@ public class ItemSeriado : Entity<Guid>
     }
 
     /// <summary>
-    /// Ingresa el equipo a una bodega física (ej. recepción inicial o devolución del técnico al final del día).
-    /// </summary>
-    public void RecepcionarEnAlmacen(Guid almacenFisicoId, bool esAveriado = false)
-    {
-        AlmacenActualId = almacenFisicoId;
-        Estado = esAveriado ? EstadoItemSeriado.AveriadoEnAlmacen : EstadoItemSeriado.EnAlmacen;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
-    /// <summary>
     /// Registra la devolución formal del equipo dañado o en exceso a la empresa proveedora (DIRECTV).
     /// </summary>
     public void DevolverAProveedor(string? documentoDevolucion = null)
     {
-        AlmacenActualId = null;
+        UbicacionActualId = null;
         Estado = EstadoItemSeriado.DevueltoAProveedor;
         Observaciones = string.IsNullOrWhiteSpace(documentoDevolucion)
             ? Observaciones
@@ -140,7 +144,8 @@ public class ItemSeriado : Entity<Guid>
     /// </summary>
     public void DarDeBaja(string motivo)
     {
-        AlmacenActualId = null;
+        UbicacionActualId = null;
+        TransferenciaEnTransitoId = null;
         Estado = EstadoItemSeriado.BajaPorPerdida;
         Observaciones = $"Baja por: {motivo}";
         UpdatedAt = DateTime.UtcNow;

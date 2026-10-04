@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface,
-  DialogTitle, Input, Text, makeStyles, tokens,
+  DialogTitle, Input, makeStyles, tokens,
 } from '@fluentui/react-components';
 import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
@@ -10,7 +10,6 @@ import { GrupoUnidadMedidaService } from '../services/unidadMedida.service';
 const usarEstilos = makeStyles({
   superficie: { width: '480px', maxWidth: 'calc(100vw - 32px)' },
   contenido: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM },
-  ayuda: { color: tokens.colorNeutralForeground3 },
   control: { width: '100%' },
 });
 
@@ -61,14 +60,10 @@ export const CrearGrupoModal: React.FC<CrearGrupoModalProps> = ({ abierto, alCer
           <DialogTitle>Crear grupo de unidades</DialogTitle>
           <DialogContent className={estilos.contenido}>
             {error && <D365MessageBar intent="error">{error}</D365MessageBar>}
-            <Text className={estilos.ayuda}>
-              Especifique el nombre del grupo y la unidad base primaria indivisible. Esta unidad será la base del inventario y no podrá modificarse posteriormente.
-            </Text>
             <D365FormField label="Nombre del grupo" required htmlFor="crear-grupo-nombre">
               <Input
                 id="crear-grupo-nombre"
                 className={estilos.control}
-                placeholder="---"
                 value={datos.nombre}
                 onChange={(_, cambio) => setDatos((actual) => ({ ...actual, nombre: cambio.value }))}
               />
@@ -77,7 +72,6 @@ export const CrearGrupoModal: React.FC<CrearGrupoModalProps> = ({ abierto, alCer
               <Input
                 id="crear-grupo-unidad-base"
                 className={estilos.control}
-                placeholder="---"
                 value={datos.nombreUnidadBase}
                 onChange={(_, cambio) => setDatos((actual) => ({ ...actual, nombreUnidadBase: cambio.value }))}
               />

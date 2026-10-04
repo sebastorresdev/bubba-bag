@@ -11,6 +11,7 @@ public class ItemSeriadoConfiguration : IEntityTypeConfiguration<ItemSeriado>
         builder.ToTable("ItemsSeriados", "inventario");
 
         builder.HasKey(i => i.Id);
+        builder.Property<uint>("xmin").IsRowVersion();
 
         builder.Property(i => i.NumeroSerie)
             .IsRequired()
@@ -49,9 +50,10 @@ public class ItemSeriadoConfiguration : IEntityTypeConfiguration<ItemSeriado>
             .HasForeignKey(i => i.ProductoId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(i => i.AlmacenActual)
+        builder.HasOne<BubbaBag.Modules.ServicioCampo.Domain.Almacenes.Transferencia>().WithMany().HasForeignKey(i=>i.TransferenciaEnTransitoId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(i => i.UbicacionActual)
             .WithMany()
-            .HasForeignKey(i => i.AlmacenActualId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .HasForeignKey(i => i.UbicacionActualId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

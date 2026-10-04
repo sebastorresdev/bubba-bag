@@ -12,6 +12,8 @@ public static class RecursosHumanosSeeder
 {
     public static async Task SeedAsync(RecursosHumanosDbContext context, ILogger logger)
     {
+        await SeedSucursalesAsync(context, logger);
+
         if (await context.Departamentos.AnyAsync())
         {
             logger.LogInformation("Los departamentos y cargos de RRHH ya se encuentran inicializados.");

@@ -1,0 +1,21 @@
+-- Synthetic previous inventory schema. Never run against an application database.
+CREATE SCHEMA inventario;
+CREATE TABLE inventario."Almacenes"("Id" uuid PRIMARY KEY,"Tipo" integer,"Activo" boolean,"RecursoId" uuid);
+CREATE TABLE inventario."Productos"("Id" uuid PRIMARY KEY,"EsSerializado" boolean);
+CREATE TABLE inventario."StocksAlmacen"("Id" uuid PRIMARY KEY,"AlmacenId" uuid NOT NULL REFERENCES inventario."Almacenes","ProductoId" uuid,"CantidadDisponible" numeric(14,5),"CantidadReservada" numeric(14,5),"UpdatedAt" timestamptz,UNIQUE("AlmacenId","ProductoId"));
+CREATE TABLE inventario."ItemsSeriados"("Id" uuid PRIMARY KEY,"ProductoId" uuid,"AlmacenActualId" uuid,"Estado" integer);
+CREATE TABLE inventario."Transferencias"("Id" uuid PRIMARY KEY,"AlmacenOrigenId" uuid,"AlmacenDestinoId" uuid,"Modalidad" integer,"Estado" integer,"FechaRegistro" timestamptz,"FechaDespacho" timestamptz,"DespachadoPorId" uuid,"DespachadoPorNombre" text);
+CREATE TABLE inventario."TransferenciaDetalles"("Id" uuid PRIMARY KEY,"TransferenciaId" uuid,"ProductoId" uuid,"CantidadEnviada" numeric(18,4),"CantidadRecibida" numeric(18,4),"CantidadResuelta" numeric(18,4));
+CREATE TABLE inventario."TransferenciaDetalleSeries"("Id" uuid PRIMARY KEY,"TransferenciaDetalleId" uuid,"ItemSeriadoId" uuid,"Recibida" boolean);
+CREATE TABLE inventario."RecepcionesTransferencia"("Id" uuid PRIMARY KEY,"FechaRecepcion" timestamptz);
+CREATE TABLE inventario."RecepcionTransferenciaDetalles"("Id" uuid PRIMARY KEY,"CantidadAceptada" numeric(18,4));
+CREATE TABLE inventario."ResolucionDiferenciaTransferencias"("Id" uuid PRIMARY KEY,"CantidadAfectada" numeric(18,4));
+CREATE TABLE inventario."MovimientosInventario"("Id" uuid PRIMARY KEY,"FechaMovimiento" timestamptz,"Cantidad" numeric(18,4));
+INSERT INTO inventario."Almacenes" VALUES('10000000-0000-0000-0000-000000000001',1,true,null),('10000000-0000-0000-0000-000000000002',1,true,null);
+INSERT INTO inventario."Productos" VALUES('20000000-0000-0000-0000-000000000001',true),('20000000-0000-0000-0000-000000000002',false);
+INSERT INTO inventario."StocksAlmacen" VALUES('30000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001',2,0,now()),('30000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002',12.34567,0,now());
+INSERT INTO inventario."ItemsSeriados" VALUES('40000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',1),('40000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',5),('40000000-0000-0000-0000-000000000003','20000000-0000-0000-0000-000000000001',null,8);
+INSERT INTO inventario."Transferencias" VALUES('50000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000002',2,2,now(),now(),null,'Anterior'),('50000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000002',1,4,now(),now(),null,'Anterior');
+INSERT INTO inventario."TransferenciaDetalles" VALUES('60000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001',1,0,0),('60000000-0000-0000-0000-000000000002','50000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000001',1,1,0);
+INSERT INTO inventario."TransferenciaDetalleSeries" VALUES('70000000-0000-0000-0000-000000000001','60000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000003',false),('70000000-0000-0000-0000-000000000002','60000000-0000-0000-0000-000000000002','40000000-0000-0000-0000-000000000001',false);
+INSERT INTO inventario."MovimientosInventario" VALUES('80000000-0000-0000-0000-000000000001',now(),2);

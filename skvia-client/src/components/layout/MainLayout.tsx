@@ -3,7 +3,8 @@ import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { makeStyles, tokens } from '@fluentui/react-components';
 import { SuiteBar } from './SuiteBar';
 import { SideNav } from './SideNav';
-import { ENTERPRISE_APPS } from '../../data/navigation.data';
+import { availableApps } from '../../features/seguridad/securityAccess';
+import { useAuthSession } from '../../services/authSession';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import type { NavArea, NavItem, EnterpriseApp } from '../../types/navigation.types';
 
@@ -34,6 +35,8 @@ const useStyles = makeStyles({
 
 export const MainLayout: React.FC = () => {
   const styles = useStyles();
+  const { permisos } = useAuthSession();
+  const apps = useMemo(() => availableApps(permisos), [permisos]);
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile(1024);
@@ -51,7 +54,7 @@ export const MainLayout: React.FC = () => {
   // Find matching navigation hierarchy (app, area, item) based on current route path
   const currentNav = useMemo(() => {
     const currentPath = location.pathname;
-    for (const app of ENTERPRISE_APPS) {
+    for (const app of apps) {
       for (const area of app.areas) {
         for (const group of area.groups) {
           for (const item of group.items) {
@@ -70,11 +73,11 @@ export const MainLayout: React.FC = () => {
       }
     }
     return null;
-  }, [location.pathname]);
+  }, [location.pathname, apps]);
 
   // Active state with fallbacks
-  const [selectedApp, setSelectedApp] = useState<EnterpriseApp>(() => currentNav?.app || ENTERPRISE_APPS[0]);
-  const [selectedArea, setSelectedArea] = useState<NavArea>(() => currentNav?.area || ENTERPRISE_APPS[0].areas[2]);
+  const [selectedApp, setSelectedApp] = useState<EnterpriseApp>(() => currentNav?.app || apps[0]);
+  const [selectedArea, setSelectedArea] = useState<NavArea>(() => currentNav?.area || apps[0].areas[0]);
 
   // Keep selected app and area in sync when route changes
   useEffect(() => {
@@ -116,7 +119,7 @@ export const MainLayout: React.FC = () => {
     <div className={styles.root}>
       {/* Top SuiteBar: App Launcher (Waffle) + Hamburger Toggle + Enterprise apps */}
       <SuiteBar
-        apps={ENTERPRISE_APPS}
+        apps={apps}
         activeApp={activeApp}
         onSelectApp={handleSelectApp}
         isNavOpen={navOpen}

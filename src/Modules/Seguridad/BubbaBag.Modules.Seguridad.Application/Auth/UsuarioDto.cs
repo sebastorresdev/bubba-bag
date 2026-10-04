@@ -13,7 +13,8 @@ public record UsuarioDto(
 
 public record ActualizarUsuarioRequest(
     string NombreCompleto,
-    string Email
+    string Email,
+    List<string>? Roles = null
 );
 
 public record CambiarPasswordRequest(

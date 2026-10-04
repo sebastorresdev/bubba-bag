@@ -3,6 +3,10 @@ import type { ProductoDto, CreateProductoDto, UpdateProductoDto } from '../types
 import type { ImportarExcelResultadoDto } from '../../../../types/excelImport.types';
 
 export const ProductoService = {
+  buscarInventariables(search: string, signal?: AbortSignal): Promise<ProductoDto[]> {
+    const params = new URLSearchParams({ search, tipo: 'Inventario', soloActivos: 'true', limite: '20' });
+    return apiClient<ProductoDto[]>(`/api/inventario/productos?${params}`, { signal });
+  },
   async getProductos(search?: string, categoria?: string, soloActivos?: boolean): Promise<ProductoDto[]> {
     const params = new URLSearchParams();
     if (search) params.append('search', search);

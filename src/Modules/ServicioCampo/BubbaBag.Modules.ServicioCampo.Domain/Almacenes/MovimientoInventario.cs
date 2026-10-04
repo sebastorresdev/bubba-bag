@@ -10,6 +10,12 @@ namespace BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
 /// </summary>
 public class MovimientoInventario : Entity<Guid>
 {
+    public Guid? UbicacionOrigenId { get; private set; }
+    public Guid? UbicacionDestinoId { get; private set; }
+    public Guid? TransferenciaId { get; private set; }
+    public Guid? EventoId { get; private set; }
+    public DateTime FechaRegistro { get; private set; }
+    public CondicionInventario Condicion { get; private set; } = CondicionInventario.Utilizable;
     public TipoMovimientoInventario Tipo { get; private set; }
 
     public Guid ProductoId { get; private set; }
@@ -57,7 +63,8 @@ public class MovimientoInventario : Entity<Guid>
         Guid? ordenTrabajoId = null,
         string? numeroDocumento = null,
         Guid? usuarioResponsableId = null,
-        string? observaciones = null)
+        string? observaciones = null, Guid? ubicacionOrigenId = null, Guid? ubicacionDestinoId = null,
+        Guid? transferenciaId = null, Guid? eventoId = null, DateTime? fechaReal = null, CondicionInventario condicion = CondicionInventario.Utilizable)
     {
         if (cantidad <= 0)
             throw new ArgumentException("La cantidad del movimiento debe ser mayor a 0.", nameof(cantidad));
@@ -66,6 +73,12 @@ public class MovimientoInventario : Entity<Guid>
         {
             Id = Guid.NewGuid(),
             Tipo = tipo,
+            UbicacionOrigenId = ubicacionOrigenId,
+            UbicacionDestinoId = ubicacionDestinoId,
+            TransferenciaId = transferenciaId,
+            EventoId = eventoId,
+            FechaRegistro = DateTime.UtcNow,
+            Condicion = condicion,
             ProductoId = productoId,
             Cantidad = cantidad,
             AlmacenOrigenId = almacenOrigenId,
@@ -76,7 +89,7 @@ public class MovimientoInventario : Entity<Guid>
             NumeroDocumento = numeroDocumento?.Trim(),
             UsuarioResponsableId = usuarioResponsableId,
             Observaciones = observaciones?.Trim(),
-            FechaMovimiento = DateTime.UtcNow
+            FechaMovimiento = fechaReal ?? DateTime.UtcNow
         };
     }
 }

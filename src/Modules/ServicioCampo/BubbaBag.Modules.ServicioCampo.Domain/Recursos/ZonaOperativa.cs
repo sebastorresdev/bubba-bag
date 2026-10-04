@@ -12,6 +12,7 @@ public class ZonaOperativa : Entity<Guid>
     public string Nombre { get; private set; } = default!;              // 'Ancash - Huaraz'
     public string? DescripcionProveedor { get; private set; }           // 'PE-I280010-PROGRAMMING...'
     public Guid SucursalId { get; private set; }                        // Sede a la que pertenece territorialmente
+    public Guid UnidadOrganizativaId => SucursalId;                     // Alias semántico para arquitectura de dominio
     public Guid? AlmacenPredeterminadoId { get; private set; }          // Almacén físico que abastece a los técnicos de esta zona
     public bool Activo { get; private set; }
 

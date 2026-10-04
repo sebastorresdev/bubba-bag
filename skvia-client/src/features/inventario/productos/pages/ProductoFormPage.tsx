@@ -538,7 +538,6 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                     size="medium"
                     className={styles.d365ControlFull}
                     value={formData.nombre}
-                    placeholder="---"
                     onChange={(_, data) => {
                       setFormData({ ...formData, nombre: data.value });
                       if (errors.nombre && data.value.trim()) {
@@ -555,7 +554,6 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                     size="medium"
                     className={styles.d365ControlFull}
                     value={formData.codigo}
-                    placeholder="---"
                     appearance={isEditMode ? 'filled-darker' : 'outline'}
                     readOnly={isEditMode}
                     contentAfter={isEditMode ? (
@@ -629,7 +627,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                         }
                       />
                       <Text size={200} className={styles.fieldHint}>
-                        {formData.esSerializado ? 'Sí (Exige serie/MAC individual)' : 'No'}
+                        {formData.esSerializado ? 'Sí' : 'No'}
                       </Text>
                     </div>
                   </div>
@@ -644,7 +642,6 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                     rows={3}
                     className={styles.d365ControlFull}
                     value={formData.descripcion || ''}
-                    placeholder="---"
                     onChange={(_, data) => setFormData({ ...formData, descripcion: data.value })}
                   />
                 </D365FormField>
@@ -795,7 +792,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                         }
                       />
                       <Text size={200} className={styles.fieldHint}>
-                        {formData.afectoImpuesto !== false ? 'Sí (Afecto a IGV)' : 'No (Exonerado)'}
+                        {formData.afectoImpuesto !== false ? 'Sí' : 'No'}
                       </Text>
                     </div>
                   </div>
@@ -851,7 +848,6 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                       contentBefore="S/."
                       className={styles.d365ControlFull}
                       value={precioBaseStr}
-                      placeholder="---"
                       onChange={(_, data) => {
                         setPrecioBaseStr(data.value);
                         const val = parseFloat(data.value);
@@ -875,7 +871,6 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                       size="medium"
                       className={styles.d365ControlFull}
                       value={formData.codigoBarras || ''}
-                      placeholder="---"
                       onChange={(_, data) => setFormData({ ...formData, codigoBarras: data.value })}
                     />
                   </div>
@@ -900,7 +895,6 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                       size="medium"
                       className={styles.d365ControlFull}
                       value={formData.proveedorDefecto || ''}
-                      placeholder="---"
                       onChange={(_, data) =>
                         setFormData({ ...formData, proveedorDefecto: data.value })
                       }
@@ -926,7 +920,6 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                       contentBefore="S/."
                       className={styles.d365ControlFull}
                       value={costoActualStr}
-                      placeholder="---"
                       onChange={(_, data) => {
                         setCostoActualStr(data.value);
                         const val = parseFloat(data.value);
@@ -954,7 +947,6 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                       contentBefore="S/."
                       className={styles.d365ControlFull}
                       value={costoEstandarStr}
-                      placeholder="---"
                       onChange={(_, data) => {
                         setCostoEstandarStr(data.value);
                         const val = parseFloat(data.value);
@@ -986,7 +978,6 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                     rows={8}
                     className={styles.d365ControlFull}
                     value={formData.notas || ''}
-                    placeholder="---"
                     onChange={(_, data) => setFormData({ ...formData, notas: data.value })}
                   />
                 </div>

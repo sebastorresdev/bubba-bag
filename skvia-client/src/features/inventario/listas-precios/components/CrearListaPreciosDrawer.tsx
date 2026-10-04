@@ -80,7 +80,7 @@ export const CrearListaPreciosDrawer: React.FC<CrearListaPreciosDrawerProps> = (
       <DrawerBody className={estilos.cuerpo}>
         {error && <D365MessageBar intent="error">{error}</D365MessageBar>}
         <D365FormField label="Nombre" required htmlFor="nueva-lista-nombre">
-          <Input id="nueva-lista-nombre" className={estilos.control} placeholder="---"
+          <Input id="nueva-lista-nombre" className={estilos.control}
             value={datos.nombre} onChange={(_, cambio) => setDatos((actual) => ({ ...actual, nombre: cambio.value }))} />
         </D365FormField>
         <D365FormField label="Moneda" required htmlFor="nueva-lista-moneda">

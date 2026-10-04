@@ -283,7 +283,7 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
             className={styles.searchBox}
             size="medium"
             contentBefore={<Search16Regular />}
-            placeholder="Buscar por nombre o descripción..."
+            placeholder="Buscar" aria-label="Buscar por nombre o descripción"
             value={searchKeyword}
             onChange={(_, data) => setSearchKeyword(data.value)}
           />

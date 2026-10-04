@@ -113,7 +113,6 @@ export const SelectorEntidadRelacionada: React.FC<SelectorEntidadRelacionadaProp
           id={idEntrada}
           className={estilos.entrada}
           value={textoBusqueda}
-          placeholder={seleccionada ? '' : '---'}
           clearable
           onChange={(evento) => alCambiarBusqueda(evento.target.value)}
         />

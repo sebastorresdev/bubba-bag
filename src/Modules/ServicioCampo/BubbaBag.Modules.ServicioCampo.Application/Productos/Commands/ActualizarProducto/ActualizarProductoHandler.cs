@@ -102,6 +102,9 @@ public class ActualizarProductoHandler : ICommandHandler<ActualizarProductoComma
                 return Result.Failure("Ya existe un producto con el mismo código de barras.");
         }
 
+        if ((producto.Tipo != command.Tipo || producto.EsSerializado != command.EsSerializado || producto.UnidadMedidaDefectoId != command.UnidadMedidaDefectoId || producto.GrupoUnidadMedidaId != command.GrupoUnidadMedidaId || command.DecimalesCantidad.HasValue && command.DecimalesCantidad.Value != producto.DecimalesCantidad) &&
+            (await _context.StocksAlmacen.AnyAsync(x=>x.ProductoId==producto.Id,cancellationToken) || await _context.ItemsSeriados.AnyAsync(x=>x.ProductoId==producto.Id,cancellationToken) || await _context.TransferenciaDetalles.AnyAsync(x=>x.ProductoId==producto.Id,cancellationToken)))
+            return Result.Failure("El producto ya tiene inventario o movimientos. Conserve unidad, tipo, seriado y precisión para mantener su trazabilidad.");
         producto.Actualizar(
             command.Nombre,
             command.CategoriaProductoId,

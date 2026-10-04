@@ -17,15 +17,19 @@ public class Recurso : Entity<Guid>
     public string? Telefono { get; private set; }
     public string? Email { get; private set; }
 
+    // Pertenencia administrativa / Base operativa
+    public Guid? UnidadOrganizativaId { get; private set; }
+
     // Zona geográfica habitual / Territorio de servicio en el que opera
     public Guid? ZonaOperativaId { get; private set; }
+    public Guid? TerritorioId => ZonaOperativaId;
     public virtual ZonaOperativa? ZonaOperativa { get; private set; }
 
     // Almacén físico base (de donde recoge materiales o abastece)
     public Guid? AlmacenBaseId { get; private set; }
 
     // Almacén móvil propio (camioneta / maletín) cuando aplica
-    public Guid? AlmacenMovilId { get; private set; }
+    public Guid? AlmacenMovilId { get; private set; } // Compatibilidad de lectura; no se persiste ni decide movimientos.
 
     // Vinculación opcional a cuenta de login en Seguridad (para app móvil / portal)
     public Guid? UsuarioId { get; private set; }
@@ -109,6 +113,7 @@ public class Recurso : Entity<Guid>
         Notas = notas?.Trim();
     }
 
+    public void AsignarUnidadOrganizativa(Guid? unidadOrganizativaId) => UnidadOrganizativaId = unidadOrganizativaId;
     public void AsignarAlmacenMovil(Guid? almacenMovilId) => AlmacenMovilId = almacenMovilId;
     public void VincularUsuario(Guid? usuarioId) => UsuarioId = usuarioId;
     public void Desactivar() => Activo = false;

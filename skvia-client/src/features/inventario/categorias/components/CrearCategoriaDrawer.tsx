@@ -90,11 +90,11 @@ export const CrearCategoriaDrawer: React.FC<CrearCategoriaDrawerProps> = ({
       <DrawerBody className={estilos.cuerpo}>
         {error && <D365MessageBar intent="error">{error}</D365MessageBar>}
         <D365FormField label="Nombre" required htmlFor="nueva-categoria-nombre">
-          <Input id="nueva-categoria-nombre" className={estilos.control} placeholder="---"
+          <Input id="nueva-categoria-nombre" className={estilos.control}
             value={datos.nombre} onChange={(_, cambio) => setDatos((actual) => ({ ...actual, nombre: cambio.value }))} />
         </D365FormField>
         <D365FormField label="Descripción" htmlFor="nueva-categoria-descripcion" align="top">
-          <Textarea id="nueva-categoria-descripcion" className={estilos.control} rows={4} placeholder="---"
+          <Textarea id="nueva-categoria-descripcion" className={estilos.control} rows={4}
             value={datos.descripcion} onChange={(_, cambio) => setDatos((actual) => ({ ...actual, descripcion: cambio.value }))} />
         </D365FormField>
       </DrawerBody>

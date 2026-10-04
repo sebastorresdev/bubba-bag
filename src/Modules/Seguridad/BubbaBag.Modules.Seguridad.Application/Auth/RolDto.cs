@@ -7,5 +7,6 @@ public record RolDto(
     string Codigo,
     string Modulo,
     string NombreVisible,
-    string Descripcion
+    string Descripcion,
+    System.Collections.Generic.List<string>? Permisos = null
 );

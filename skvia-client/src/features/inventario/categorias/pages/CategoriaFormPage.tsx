@@ -349,7 +349,6 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
                   size="medium"
                   className={styles.d365ControlFull}
                   value={formData.nombre}
-                  placeholder="---"
                   onChange={(_, data) => {
                     setFormData({ ...formData, nombre: data.value });
                     if (errors.nombre && data.value.trim()) {
@@ -409,7 +408,6 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
                 rows={5}
                 className={styles.d365ControlFull}
                 value={formData.descripcion || ''}
-                placeholder="---"
                 onChange={(_, data) =>
                   setFormData({ ...formData, descripcion: data.value })
                 }

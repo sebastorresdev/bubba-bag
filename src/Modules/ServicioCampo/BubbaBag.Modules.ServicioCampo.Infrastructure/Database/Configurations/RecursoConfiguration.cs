@@ -37,6 +37,10 @@ public class RecursoConfiguration : IEntityTypeConfiguration<Recurso>
         builder.Property(r => r.Email)
             .HasMaxLength(150);
 
+        builder.Property(r => r.UnidadOrganizativaId)
+            .IsRequired(false);
+        builder.HasIndex(r => r.UnidadOrganizativaId);
+
         builder.Property(r => r.ZonaOperativaId)
             .IsRequired(false);
 
@@ -49,8 +53,7 @@ public class RecursoConfiguration : IEntityTypeConfiguration<Recurso>
             .IsRequired(false);
         builder.HasIndex(r => r.AlmacenBaseId);
 
-        builder.Property(r => r.AlmacenMovilId);
-        builder.HasIndex(r => r.AlmacenMovilId);
+        builder.Ignore(r => r.AlmacenMovilId);
 
         builder.Property(r => r.UsuarioId);
         builder.HasIndex(r => r.UsuarioId);

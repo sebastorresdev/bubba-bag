@@ -14,21 +14,28 @@ public record ObtenerAlmacenPorIdQuery(Guid Id) : IQuery<Result<AlmacenDto>>;
 public class ObtenerAlmacenPorIdHandler : IQueryHandler<ObtenerAlmacenPorIdQuery, Result<AlmacenDto>>
 {
     private readonly IServicioCampoDbContext _context;
+    private readonly ICurrentUser _user;
 
-    public ObtenerAlmacenPorIdHandler(IServicioCampoDbContext context)
+    public ObtenerAlmacenPorIdHandler(IServicioCampoDbContext context, ICurrentUser user)
     {
-        _context = context;
+        _context = context; _user = user;
     }
 
     public async Task<Result<AlmacenDto>> HandleAsync(ObtenerAlmacenPorIdQuery query, CancellationToken cancellationToken = default)
     {
         var dto = await _context.Almacenes
             .AsNoTracking()
-            .Where(a => a.Id == query.Id)
+            .Where(a => a.Id == query.Id && (_user.IsAuthenticated && _user.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Inventario.AccesosGestionar) || InventarioAcceso.AlmacenesConsultables(_context, _user).Contains(a.Id)))
             .Select(a => new AlmacenDto(
                 a.Id,
+                a.Codigo,
                 a.Nombre,
                 a.Descripcion,
+                a.Tipo,
+                a.UnidadOrganizativaId,
+                null,
+                a.RecursoId,
+                null,
                 a.Activo,
                 a.CreadoPorId,
                 a.CreadoPorNombre,
@@ -41,6 +48,11 @@ public class ObtenerAlmacenPorIdHandler : IQueryHandler<ObtenerAlmacenPorIdQuery
         if (dto is null)
             return Result<AlmacenDto>.Failure($"No se encontró el almacén con ID '{query.Id}'.");
 
+        dto = dto with {
+            PuedeDespachar = await InventarioAcceso.PuedeAsync(_context,_user,query.Id,"despachar",cancellationToken),
+            PuedeRecepcionar = await InventarioAcceso.PuedeAsync(_context,_user,query.Id,"recibir",cancellationToken),
+            EsSupervisor = await InventarioAcceso.PuedeAsync(_context,_user,query.Id,"supervisar",cancellationToken)
+        };
         return Result<AlmacenDto>.Success(dto);
     }
 }

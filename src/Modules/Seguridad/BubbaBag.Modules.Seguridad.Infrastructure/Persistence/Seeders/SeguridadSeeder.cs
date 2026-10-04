@@ -7,16 +7,17 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace BubbaBag.Modules.Seguridad.Infrastructure.Persistence.Seeders;
 
-public static class SeguridadSeeder
+public static class CatalogoRolesSistema
 {
-    public static async Task SeedAsync(IServiceProvider serviceProvider)
+    public static async Task AsegurarAsync(IServiceProvider serviceProvider)
     {
         var roleManager = serviceProvider.GetRequiredService<RoleManager<Rol>>();
-        var userManager = serviceProvider.GetRequiredService<UserManager<Usuario>>();
 
-        // 1. Sembrar o actualizar los roles del sistema con metadatos para UI estilo Odoo
+        // Catálogo técnico de autorización. No crea usuarios ni datos operativos.
         var rolesFijos = new (string Nombre, string Modulo, string NombreVisible, string Descripcion)[]
         {
+            (Roles.InventarioAdmin, "Inventario", "Administrador de inventario", "Gestiona catálogos y autorizaciones. Los movimientos requieren alcance explícito por almacén."),
+            (Roles.InventarioAlmacenero, "Inventario", "Almacenero", "Consulta, despacho y recepción exclusivamente en los almacenes autorizados."),
             (
                 Roles.SuperAdmin,
                 "Sistema",
@@ -78,13 +79,14 @@ public static class SeguridadSeeder
             var rol = await roleManager.FindByNameAsync(nombre);
             if (rol == null)
             {
-                await roleManager.CreateAsync(new Rol
+                var resultado = await roleManager.CreateAsync(new Rol
                 {
                     Name = nombre,
                     Modulo = modulo,
                     NombreVisible = nombreVisible,
                     Descripcion = descripcion
                 });
+                if (!resultado.Succeeded) throw new InvalidOperationException(string.Join(", ", resultado.Errors.Select(e => e.Description)));
             }
             else
             {
@@ -95,65 +97,11 @@ public static class SeguridadSeeder
 
                 if (modificado)
                 {
-                    await roleManager.UpdateAsync(rol);
+                    var resultado = await roleManager.UpdateAsync(rol);
+                    if (!resultado.Succeeded) throw new InvalidOperationException(string.Join(", ", resultado.Errors.Select(e => e.Description)));
                 }
             }
         }
 
-        // 2. Limpieza de rol legado "Admin" si existiera de versiones anteriores
-        var rolViejoAdmin = await roleManager.FindByNameAsync("Admin");
-        if (rolViejoAdmin != null)
-        {
-            await roleManager.DeleteAsync(rolViejoAdmin);
-        }
-
-        // 3. Sembrar usuario inicial SuperAdmin (Sebastian Torres)
-        var admin = await userManager.FindByEmailAsync("admin@skvia.com")
-                    ?? await userManager.FindByEmailAsync("admin@bubbabag.com")
-                    ?? await userManager.FindByIdAsync("00000000-0000-0000-0000-000000000001");
-
-        if (admin == null)
-        {
-            admin = new Usuario
-            {
-                Id = Guid.Parse("00000000-0000-0000-0000-000000000001"),
-                UserName = "admin@skvia.com",
-                Email = "admin@skvia.com",
-                NombreCompleto = "Sebastian Torres"
-            };
-            await userManager.CreateAsync(admin, "Admin123!");
-            await userManager.AddToRoleAsync(admin, Roles.SuperAdmin);
-        }
-        else
-        {
-            bool modificado = false;
-            if (admin.Email != "admin@skvia.com")
-            {
-                admin.Email = "admin@skvia.com";
-                admin.NormalizedEmail = "ADMIN@SKVIA.COM";
-                modificado = true;
-            }
-            if (admin.UserName != "admin@skvia.com")
-            {
-                admin.UserName = "admin@skvia.com";
-                admin.NormalizedUserName = "ADMIN@SKVIA.COM";
-                modificado = true;
-            }
-            if (admin.NombreCompleto != "Sebastian Torres")
-            {
-                admin.NombreCompleto = "Sebastian Torres";
-                modificado = true;
-            }
-
-            if (modificado)
-            {
-                await userManager.UpdateAsync(admin);
-            }
-
-            if (!await userManager.IsInRoleAsync(admin, Roles.SuperAdmin))
-            {
-                await userManager.AddToRoleAsync(admin, Roles.SuperAdmin);
-            }
-        }
     }
 }

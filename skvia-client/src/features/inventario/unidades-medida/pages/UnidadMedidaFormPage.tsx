@@ -288,7 +288,6 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
                   id="grupo-nombre"
                   className={styles.d365ControlFull}
                   value={group.nombre}
-                  placeholder="---"
                   onChange={(_, data) => setGroup({ ...group, nombre: data.value })}
                 />
               </D365FormField>
@@ -302,7 +301,6 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
                   id="unidad-base"
                   className={styles.d365ControlFull}
                   value={group.nombreUnidadBase}
-                  placeholder="---"
                   appearance={currentId ? 'filled-darker' : 'outline'}
                   readOnly={Boolean(currentId)}
                   contentAfter={currentId ? (
@@ -330,8 +328,7 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
           {!currentId ? (
             <Card className={styles.card}>
               <div className={pageStyles.emptyUnits}>
-                <Text weight="semibold" block>Primero guarde el grupo y su unidad base.</Text>
-                <Text block>Después podrá agregar las demás unidades y definir su cantidad respecto a la unidad base.</Text>
+                <Text weight="semibold" block>Guarde el grupo para agregar unidades.</Text>
               </div>
             </Card>
           ) : (
@@ -363,7 +360,7 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
                     size="medium"
                     className={pageStyles.searchBox}
                     contentBefore={<Search16Regular />}
-                    placeholder="---"
+                    placeholder="Buscar" aria-label="Buscar"
                     value={unitSearch}
                     onChange={(_, data) => setUnitSearch(data.value)}
                   />

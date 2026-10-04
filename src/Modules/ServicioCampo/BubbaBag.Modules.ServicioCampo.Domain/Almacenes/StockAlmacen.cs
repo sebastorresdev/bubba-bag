@@ -5,12 +5,13 @@ using BubbaBag.Modules.ServicioCampo.Domain.Productos;
 namespace BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
 
 /// <summary>
-/// Representa el balance de existencias de un producto o material no seriado dentro de un almacén físico o móvil.
+/// Saldo por producto, ubicación y condición, incluyendo los productos seriados.
 /// </summary>
 public class StockAlmacen : Entity<Guid>
 {
-    public Guid AlmacenId { get; private set; }
-    public Almacen Almacen { get; private set; } = default!;
+    public Guid UbicacionId { get; private set; }
+    public UbicacionInventario Ubicacion { get; private set; } = default!;
+    public CondicionInventario Condicion { get; private set; } = CondicionInventario.Utilizable;
 
     public Guid ProductoId { get; private set; }
     public Producto Producto { get; private set; } = default!;
@@ -24,14 +25,17 @@ public class StockAlmacen : Entity<Guid>
 
     private StockAlmacen() { }
 
-    public static StockAlmacen Crear(Guid almacenId, Guid productoId, decimal cantidadInicial = 0m)
+    public static StockAlmacen Crear(Guid ubicacionId, Guid productoId, decimal cantidadInicial = 0m, CondicionInventario condicion = CondicionInventario.Utilizable)
     {
+        if (ubicacionId == Guid.Empty || productoId == Guid.Empty || cantidadInicial < 0 || !Enum.IsDefined(condicion))
+            throw new ArgumentException("La ubicación, producto y cantidad inicial no son válidos.");
         return new StockAlmacen
         {
             Id = Guid.NewGuid(),
-            AlmacenId = almacenId,
+            UbicacionId = ubicacionId,
+            Condicion = condicion,
             ProductoId = productoId,
-            CantidadDisponible = Math.Max(0, cantidadInicial),
+            CantidadDisponible = cantidadInicial,
             CantidadReservada = 0m,
             UpdatedAt = DateTime.UtcNow
         };

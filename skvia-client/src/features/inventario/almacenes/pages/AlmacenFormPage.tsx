@@ -3,7 +3,18 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Input,
   Textarea,
+  Select,
   Spinner,
+  TabList,
+  Tab,
+  Table,
+  TableHeader,
+  TableRow,
+  TableHeaderCell,
+  TableBody,
+  TableCell,
+  TableCellLayout,
+  Badge,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -15,9 +26,20 @@ import {
   Checkmark16Regular,
   DismissCircle16Regular,
   LockClosed16Regular,
+  Box16Regular,
+  Info16Regular,
+  DocumentBulletList16Regular,
 } from '@fluentui/react-icons';
+import { AlmacenConfiguracion } from '../components/AlmacenConfiguracion';
 import { AlmacenService } from '../services/almacen.service';
-import type { CreateAlmacenDto } from '../types/almacen.types';
+import type {
+  CreateAlmacenDto,
+  UnidadOrganizativaDto,
+  RecursoTecnicoDto,
+  TipoAlmacen,
+} from '../types/almacen.types';
+import { InventarioProductoService } from '../../inventario-productos/services/inventario-producto.service';
+import type { InventarioProductoDto } from '../../inventario-productos/types/inventario-producto.types';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { getCurrentUserSession } from '../../../../services/sessionService';
 import { D365FormField } from '../../../../components/common/D365FormField';
@@ -53,30 +75,83 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   const [currentId, setCurrentId] = useState<string | null>(effectiveId);
   const isEditMode = Boolean(currentId);
 
-  // Form State (Estilo Dynamics 365: Nombre y Descripción)
+  // Tab State: standard D365 tabs
+  const [selectedTab, setSelectedTab] = useState<'general' | 'existencias' | 'detalle' | 'configuracion'>('general');
+
+  // Catálogos reales desde la API
+  const [unidades, setUnidades] = useState<UnidadOrganizativaDto[]>([]);
+  const [puedeSupervisar, setPuedeSupervisar] = useState(false);
+  const [recursos, setRecursos] = useState<RecursoTecnicoDto[]>([]);
+
+  // Form State
   const [formData, setFormData] = useState<CreateAlmacenDto>({
     nombre: '',
     descripcion: '',
+    codigo: '',
+    tipo: 1 as TipoAlmacen,
+    unidadOrganizativaId: '',
+    recursoId: '',
   });
 
   const [savedHeader, setSavedHeader] = useState<{
+    id?: string;
     nombre: string;
+    tipo: TipoAlmacen;
     activo: boolean;
     creadoPorNombre: string;
+    fechaCreacion?: string;
   }>({
     nombre: '',
+    tipo: 1,
     activo: true,
     creadoPorNombre: currentUser.nombre,
   });
 
+  // Stock / Existencias en este almacén
+  const [existencias, setExistencias] = useState<InventarioProductoDto[]>([]);
+  const [cargandoExistencias, setCargandoExistencias] = useState<boolean>(false);
+  const [filtroStock, setFiltroStock] = useState<string>('');
+
   // UI state
-  const [loading, setLoading] = useState<boolean>(Boolean(effectiveId));
+  const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<{
     type: 'success' | 'error';
     text: string;
   } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Cargar catálogos reales
+  const cargarCatalogos = useCallback(async () => {
+    try {
+      const [unids, recs] = await Promise.all([
+        AlmacenService.getUnidadesOrganizativas(),
+        AlmacenService.getRecursosTecnicos(),
+      ]);
+      setUnidades(unids || []);
+      setRecursos(recs || []);
+    } catch (err) {
+      console.error('Error al cargar catálogos organizacionales:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    void cargarCatalogos();
+  }, [cargarCatalogos]);
+
+  // Cargar existencias cuando se selecciona la pestaña
+  const cargarExistencias = useCallback(async (almacenId: string) => {
+    if (!almacenId) return;
+    try {
+      setCargandoExistencias(true);
+      const stock = await InventarioProductoService.obtener(almacenId);
+      setExistencias(stock || []);
+    } catch (err) {
+      console.error('Error al cargar existencias del almacén:', err);
+    } finally {
+      setCargandoExistencias(false);
+    }
+  }, []);
 
   const cargarAlmacen = useCallback(
     async (idToLoad: string) => {
@@ -85,16 +160,27 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
         setLoading(true);
         const data = await AlmacenService.getAlmacenById(idToLoad);
 
+        setPuedeSupervisar(Boolean(data.esSupervisor));
         setFormData({
           nombre: data.nombre,
           descripcion: data.descripcion || '',
+          codigo: data.codigo || '',
+          tipo: (data.tipo || 1) as TipoAlmacen,
+          unidadOrganizativaId: data.unidadOrganizativaId || '',
+          recursoId: data.recursoId || '',
         });
 
         setSavedHeader({
+          id: data.id,
           nombre: data.nombre,
+          tipo: (data.tipo || 1) as TipoAlmacen,
           activo: data.activo,
-          creadoPorNombre: data.creadoPorNombre || '',
+          creadoPorNombre: data.creadoPorNombre || 'Sistema',
+          fechaCreacion: data.createdAt,
         });
+
+        // Pre-cargar existencias
+        void cargarExistencias(idToLoad);
       } catch (err: any) {
         console.error('Error al cargar almacén:', err);
         setStatusMessage({
@@ -105,7 +191,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
         setLoading(false);
       }
     },
-    []
+    [cargarExistencias]
   );
 
   useEffect(() => {
@@ -116,12 +202,18 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
       setFormData({
         nombre: '',
         descripcion: '',
+        codigo: '',
+        tipo: 1,
+        unidadOrganizativaId: '',
+        recursoId: '',
       });
       setSavedHeader({
         nombre: '',
+        tipo: 1,
         activo: true,
         creadoPorNombre: currentUser.nombre,
       });
+      setExistencias([]);
       setLoading(false);
       setStatusMessage(null);
       setErrors({});
@@ -135,15 +227,21 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
       newErrors.nombre = 'El nombre del almacén es obligatorio.';
     }
 
+    if (!formData.unidadOrganizativaId) newErrors.unidadOrganizativaId = 'Seleccione una unidad organizativa.';
+    if (formData.tipo === 2 && !formData.recursoId) {
+      newErrors.recursoId = 'La custodia personal requiere un recurso técnico responsable.';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSave = async (closeAfterSave = false): Promise<string | null> => {
     if (!validate()) {
+      setSelectedTab('general');
       setStatusMessage({
         type: 'error',
-        text: 'Por favor complete todos los campos obligatorios.',
+        text: 'Por favor complete todos los campos obligatorios en la pestaña General.',
       });
       return null;
     }
@@ -152,15 +250,22 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
       setSaving(true);
       setStatusMessage(null);
 
+      const payload = {
+        nombre: formData.nombre.trim(),
+        descripcion: formData.descripcion?.trim() || null,
+        codigo: formData.codigo?.trim() || null,
+        tipo: formData.tipo,
+        unidadOrganizativaId: formData.unidadOrganizativaId || null,
+        recursoId: formData.recursoId || null,
+      };
+
       if (isEditMode && currentId) {
-        await AlmacenService.updateAlmacen(currentId, {
-          nombre: formData.nombre.trim(),
-          descripcion: formData.descripcion?.trim() || null,
-        });
+        await AlmacenService.updateAlmacen(currentId, payload);
 
         setSavedHeader((prev) => ({
           ...prev,
           nombre: formData.nombre.trim(),
+          tipo: formData.tipo || 1,
         }));
 
         const successMessage = `Almacén "${formData.nombre.trim()}" actualizado correctamente.`;
@@ -178,16 +283,16 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
 
         return currentId;
       } else {
-        const res = await AlmacenService.createAlmacen({
-          nombre: formData.nombre.trim(),
-          descripcion: formData.descripcion?.trim() || null,
-        });
+        const res = await AlmacenService.createAlmacen(payload);
 
         setCurrentId(res.id);
         setSavedHeader({
+          id: res.id,
           nombre: formData.nombre.trim(),
+          tipo: formData.tipo || 1,
           activo: true,
           creadoPorNombre: currentUser.nombre,
+          fechaCreacion: new Date().toISOString(),
         });
 
         const successMessage = `Almacén "${formData.nombre.trim()}" creado exitosamente.`;
@@ -197,6 +302,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
         });
 
         if (propOnCreated) propOnCreated(res.id);
+        if (propAlmacenId !== undefined && propOnCreated) return res.id;
 
         if (closeAfterSave) {
           if (propOnBack) propOnBack();
@@ -249,12 +355,57 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   };
 
   const handleNew = () => {
+    if (propAlmacenId !== undefined) {
+      setCurrentId(null);
+      setFormData({
+        nombre: '',
+        descripcion: '',
+        codigo: '',
+        tipo: 1,
+        unidadOrganizativaId: '',
+        recursoId: '',
+      });
+      setErrors({});
+      setStatusMessage(null);
+      setSelectedTab('general');
+      return;
+    }
     navigate('/servicio-campo/almacenes/nuevo');
   };
 
+  // Filtrar recursos según el tipo de almacén y la unidad organizativa
+  const recursosDisponibles = useMemo(() => {
+    return recursos.filter((r) => {
+      // Si el almacén es móvil, debe ser tipo 1 (Técnico)
+      if (formData.tipo === 2 && (r as any).tipo && (r as any).tipo !== 1) {
+        return false;
+      }
+      // Si tiene unidad seleccionada, dar preferencia o filtrar
+      if (formData.unidadOrganizativaId && r.unidadOrganizativaId) {
+        return r.unidadOrganizativaId === formData.unidadOrganizativaId;
+      }
+      return true;
+    });
+  }, [recursos, formData.tipo, formData.unidadOrganizativaId]);
+
+  // Filtrar solo líneas con stock positivo real
+  const existenciasConStock = useMemo(() => {
+    return existencias.filter((e) => e.cantidadTotal > 0 || e.cantidadDisponible > 0);
+  }, [existencias]);
+
+  // Filtrado en memoria de existencias
+  const existenciasFiltradas = useMemo(() => {
+    if (!filtroStock.trim()) return existenciasConStock;
+    const term = filtroStock.toLowerCase();
+    return existenciasConStock.filter(
+      (e) =>
+        e.nombreProducto.toLowerCase().includes(term) ||
+        (e.codigoProducto && e.codigoProducto.toLowerCase().includes(term))
+    );
+  }, [existenciasConStock, filtroStock]);
+
   return (
     <div className={styles.root}>
-      {/* 0. Fluent UI MessageBar para notificaciones */}
       {statusMessage && (
         <D365MessageBar
           intent={statusMessage.type}
@@ -265,15 +416,12 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
         </D365MessageBar>
       )}
 
-      {/* 1. D365 Standard Command Bar */}
       <D365CommandBar
-
         ariaLabel="Comandos de Almacén"
         busy={saving || loading}
         busyLabel={loading ? 'Cargando...' : 'Guardando...'}
       >
         <div className={styles.toolbarLeft}>
-          {/* Botón de Atrás: Solo Icono */}
           <D365CommandButton
             icon={<ArrowLeft16Regular />}
             tone="brand"
@@ -284,7 +432,6 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
 
           <D365CommandDivider />
 
-          {/* Botón Guardar: Color lila/púrpura oficial D365 */}
           <D365CommandButton
             icon={<Save16Regular />}
             tone="save"
@@ -295,7 +442,6 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
             Guardar
           </D365CommandButton>
 
-          {/* Botón Guardar y cerrar: Color lila/púrpura oficial D365 */}
           <D365CommandButton
             icon={<SaveMultiple16Regular />}
             tone="save"
@@ -308,7 +454,6 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
 
           <D365CommandDivider />
 
-          {/* Botón Nuevo: Verde D365 */}
           <D365CommandButton
             icon={<Add16Regular />}
             tone="create"
@@ -335,7 +480,8 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
             icon={<ArrowClockwise16Regular />}
             appearance="subtle"
             onClick={() => {
-              if (currentId) cargarAlmacen(currentId);
+              void cargarCatalogos();
+              if (currentId) void cargarAlmacen(currentId);
             }}
             disabled={saving || loading}
             title="Actualizar registro"
@@ -351,61 +497,325 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
         </div>
       ) : (
         <>
-          {/* 2. D365 Standard Header Container */}
           <D365EntityHeader
             title={isEditMode ? savedHeader.nombre || 'Almacén' : 'Nuevo Almacén'}
-            subtitle="Almacén"
+            subtitle={savedHeader.tipo === 2 ? 'Custodia personal de Técnico de Campo' : 'Bodega'}
             avatarName={savedHeader.nombre || 'Almacén'}
             avatarIcon={<Building16Regular />}
             avatarSize={48}
-            metadata={[{ label: 'Estado', value: savedHeader.activo ? 'Activo' : 'Inactivo' }]}
+            metadata={[
+              {
+                label: 'Tipo',
+                value: savedHeader.tipo === 2 ? 'Custodia personal' : 'Bodega',
+              },
+              { label: 'Estado', value: savedHeader.activo ? 'Activo' : 'Inactivo' },
+              ...(isEditMode
+                ? [{ label: 'Artículos en stock', value: String(existenciasConStock.length) }]
+                : []),
+            ]}
+            tabs={
+              <TabList
+                selectedValue={selectedTab}
+                onTabSelect={(_, data) =>
+                  setSelectedTab(data.value as 'general' | 'existencias' | 'detalle' | 'configuracion')
+                }
+              >
+                <Tab value="general" icon={<Box16Regular />}>
+                  General
+                </Tab>
+                <Tab value="existencias" icon={<DocumentBulletList16Regular />}>
+                  Existencias / Stock {existenciasConStock.length > 0 ? `(${existenciasConStock.length})` : ''}
+                </Tab>
+                {currentId && <Tab value="configuracion">Ubicaciones y permisos</Tab>}
+                <Tab value="detalle" icon={<Info16Regular />}>
+                  Detalle / Auditoría
+                </Tab>
+              </TabList>
+            }
           />
 
-          {/* 3. D365 Form Body Content */}
           <div className={styles.contentBody}>
-            <div className={styles.card}>
-              <div className={styles.grid2Cols}>
-                <D365FormField label="Nombre" required error={errors.nombre}>
-                  <Input
-                    className={styles.d365ControlFull}
-                    value={formData.nombre}
-                    maxLength={150}
-                    onChange={(_e, d) => {
-                      setFormData((prev) => ({ ...prev, nombre: d.value }));
-                      if (errors.nombre) {
-                        setErrors((prev) => ({ ...prev, nombre: '' }));
+            {selectedTab === 'configuracion' && currentId && <div className={styles.card}><AlmacenConfiguracion almacenId={currentId} puedeSupervisar={puedeSupervisar} /></div>}
+            {/* PESTAÑA 1: GENERAL */}
+            {selectedTab === 'general' && (
+              <div className={styles.card}>
+                <div className={styles.grid2Cols}>
+                  <D365FormField label="Nombre del almacén" required error={errors.nombre}>
+                    <Input
+                      className={styles.d365ControlFull}
+                      value={formData.nombre}
+                      maxLength={150}
+                      onChange={(_e, d) => {
+                        setFormData((prev) => ({ ...prev, nombre: d.value }));
+                        if (errors.nombre) {
+                          setErrors((prev) => ({ ...prev, nombre: '' }));
+                        }
+                      }}
+                    />
+                  </D365FormField>
+
+                  <D365FormField label="Código identificador">
+                    <Input
+                      className={styles.d365ControlFull}
+                      value={formData.codigo || ''}
+                      maxLength={30}
+                      onChange={(_e, d) => setFormData((prev) => ({ ...prev, codigo: d.value }))}
+                    />
+                  </D365FormField>
+
+                  <D365FormField label="Tipo de almacén" required>
+                    <Select
+                      className={styles.d365ControlFull}
+                      value={String(formData.tipo || 1)}
+                      disabled={isEditMode}
+                      onChange={(_e, d) => {
+                        const nuevoTipo = Number(d.value) as TipoAlmacen;
+                        setFormData((prev) => ({
+                          ...prev,
+                          tipo: nuevoTipo,
+                          recursoId: nuevoTipo === 1 ? '' : prev.recursoId,
+                        }));
+                      }}
+                    >
+                      <option value="1">Bodega</option>
+                      <option value="2">Custodia personal</option>
+                    </Select>
+                  </D365FormField>
+
+                  <D365FormField label="Unidad organizativa" required error={errors.unidadOrganizativaId}>
+                    <Select
+                      className={styles.d365ControlFull}
+                      value={formData.unidadOrganizativaId || ''}
+                      disabled={isEditMode}
+                      onChange={(_e, d) =>
+                        setFormData((prev) => ({ ...prev, unidadOrganizativaId: d.value }))
                       }
-                    }}
-                    placeholder="---"
-                  />
-                </D365FormField>
+                    >
+                      <option value="">Seleccione sede organizacional...</option>
+                      {unidades.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.nombre} ({u.codigo})
+                        </option>
+                      ))}
+                    </Select>
+                  </D365FormField>
 
-                <D365FormField label="Creado por">
-                  <Input
-                    className={styles.d365ControlFull}
-                    value={savedHeader.creadoPorNombre || 'Usuario no disponible'}
-                    appearance="filled-darker"
-                    readOnly
-                    contentAfter={(
-                      <LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />
-                    )}
-                  />
-                </D365FormField>
+                  {formData.tipo === 2 && (
+                    <D365FormField
+                      label="Técnico responsable de custodia"
+                      required
+                      error={errors.recursoId}
+                    >
+                      <Select
+                        className={styles.d365ControlFull}
+                        value={formData.recursoId || ''}
+                        disabled={isEditMode}
+                        onChange={(_e, d) => {
+                          setFormData((prev) => ({ ...prev, recursoId: d.value }));
+                          if (errors.recursoId) {
+                            setErrors((prev) => ({ ...prev, recursoId: '' }));
+                          }
+                        }}
+                      >
+                        <option value="">Seleccione el recurso técnico asignado...</option>
+                        {recursosDisponibles.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.nombreCompleto} ({r.codigo})
+                          </option>
+                        ))}
+                      </Select>
+                    </D365FormField>
+                  )}
+                </div>
+
+                <div style={{ marginTop: 16 }}>
+                  <D365FormField label="Descripción u observaciones" align="top">
+                    <Textarea
+                      className={styles.d365ControlFull}
+                      rows={4}
+                      maxLength={500}
+                      value={formData.descripcion || ''}
+                      onChange={(_e, d) =>
+                        setFormData((prev) => ({ ...prev, descripcion: d.value }))
+                      }
+                    />
+                  </D365FormField>
+                </div>
               </div>
+            )}
 
-              <D365FormField label="Descripción" align="top">
-                <Textarea
-                  className={styles.d365ControlFull}
-                  rows={5}
-                  maxLength={500}
-                  value={formData.descripcion || ''}
-                  onChange={(_e, d) =>
-                    setFormData((prev) => ({ ...prev, descripcion: d.value }))
-                  }
-                  placeholder="---"
-                />
-              </D365FormField>
-            </div>
+            {/* PESTAÑA 2: EXISTENCIAS / STOCK */}
+            {selectedTab === 'existencias' && (
+              <div className={styles.card}>
+                {!isEditMode ? (
+                  <div style={{ padding: '24px', textAlign: 'center', color: '#605e5c' }}>
+                    <Box16Regular style={{ fontSize: 32, marginBottom: 8 }} />
+                    <p style={{ margin: 0, fontWeight: 600 }}>Guarde el almacén para consultar existencias.</p>
+                  </div>
+                ) : (
+                  <div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: 12,
+                      }}
+                    >
+                      <Input
+                        placeholder="Buscar" aria-label="Buscar producto o código"
+                        value={filtroStock}
+                        onChange={(_e, d) => setFiltroStock(d.value)}
+                        style={{ width: 280 }}
+                      />
+                      <span style={{ fontSize: 12, color: '#605e5c' }}>
+                        Total líneas con stock: <strong>{existenciasFiltradas.length}</strong>
+                      </span>
+                    </div>
+
+                    {cargandoExistencias ? (
+                      <div style={{ padding: 24, textAlign: 'center' }}>
+                        <Spinner label="Cargando existencias..." size="small" />
+                      </div>
+                    ) : existenciasFiltradas.length === 0 ? (
+                      <div style={{ padding: '32px 16px', textAlign: 'center', color: '#605e5c' }}>
+                        <p style={{ margin: 0, fontWeight: 500 }}>{filtroStock ? 'Sin resultados.' : 'No hay existencias.'}</p>
+                      </div>
+                    ) : (
+                      <Table aria-label="Existencias del almacén">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHeaderCell>Código</TableHeaderCell>
+                            <TableHeaderCell>Producto</TableHeaderCell>
+                            <TableHeaderCell>Ubicación</TableHeaderCell><TableHeaderCell>Condición</TableHeaderCell><TableHeaderCell>Control</TableHeaderCell>
+                            <TableHeaderCell style={{ textAlign: 'right' }}>Disponible</TableHeaderCell>
+                            <TableHeaderCell style={{ textAlign: 'right' }}>Reservado</TableHeaderCell>
+                            <TableHeaderCell style={{ textAlign: 'right' }}>Total</TableHeaderCell>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {existenciasFiltradas.map((item) => (
+                            <TableRow key={item.stockId || item.productoId}>
+                              <TableCell>
+                                <TableCellLayout>
+                                  <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                                    {item.codigoProducto || '—'}
+                                  </span>
+                                </TableCellLayout>
+                              </TableCell>
+                              <TableCell>
+                                <TableCellLayout>
+                                  <strong>{item.nombreProducto}</strong>
+                                </TableCellLayout>
+                              </TableCell>
+                              <TableCell>{item.nombreUbicacion}</TableCell><TableCell>{item.condicion}</TableCell>
+                              <TableCell>
+                                {item.esSerializado ? (
+                                  <Badge appearance="tint" color="brand">Seriado</Badge>
+                                ) : (
+                                  <Badge appearance="outline">No seriado</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell style={{ textAlign: 'right' }}>
+                                <Badge
+                                  appearance="filled"
+                                  color={item.cantidadDisponible > 0 ? 'success' : 'informative'}
+                                >
+                                  {item.cantidadDisponible} {item.nombreUnidadMedida || 'UND'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell style={{ textAlign: 'right' }}>
+                                {item.cantidadReservada > 0 ? (
+                                  <Badge appearance="tint" color="warning">
+                                    {item.cantidadReservada} {item.nombreUnidadMedida || 'UND'}
+                                  </Badge>
+                                ) : (
+                                  `0 ${item.nombreUnidadMedida || 'UND'}`
+                                )}
+                              </TableCell>
+                              <TableCell style={{ textAlign: 'right', fontWeight: 600 }}>
+                                {item.cantidadTotal} {item.nombreUnidadMedida || 'UND'}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* PESTAÑA 3: DETALLE / AUDITORÍA */}
+            {selectedTab === 'detalle' && (
+              <div className={styles.card}>
+                <div className={styles.grid2Cols}>
+                  <D365FormField label="Creado por">
+                    <Input
+                      className={styles.d365ControlFull}
+                      value={savedHeader.creadoPorNombre || currentUser.nombre || 'SuperAdmin'}
+                      appearance="filled-darker"
+                      readOnly
+                      contentAfter={
+                        <LockClosed16Regular
+                          title="Campo de auditoría del sistema"
+                          aria-label="Campo de solo lectura"
+                        />
+                      }
+                    />
+                  </D365FormField>
+
+                  <D365FormField label="Estado del registro">
+                    <Input
+                      className={styles.d365ControlFull}
+                      value={savedHeader.activo ? 'Activo' : 'Inactivo'}
+                      appearance="filled-darker"
+                      readOnly
+                      contentAfter={
+                        <LockClosed16Regular
+                          title="Gestionado con los comandos de estado"
+                          aria-label="Campo de solo lectura"
+                        />
+                      }
+                    />
+                  </D365FormField>
+
+                  {savedHeader.fechaCreacion && (
+                    <D365FormField label="Fecha de registro">
+                      <Input
+                        className={styles.d365ControlFull}
+                        value={new Date(savedHeader.fechaCreacion).toLocaleString()}
+                        appearance="filled-darker"
+                        readOnly
+                        contentAfter={
+                          <LockClosed16Regular
+                            title="Fecha generada por el sistema"
+                            aria-label="Campo de solo lectura"
+                          />
+                        }
+                      />
+                    </D365FormField>
+                  )}
+
+                  {savedHeader.id && (
+                    <D365FormField label="Identificador del sistema (ID)">
+                      <Input
+                        className={styles.d365ControlFull}
+                        value={savedHeader.id}
+                        appearance="filled-darker"
+                        readOnly
+                        contentAfter={
+                          <LockClosed16Regular
+                            title="Clave primaria única"
+                            aria-label="Campo de solo lectura"
+                          />
+                        }
+                      />
+                    </D365FormField>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}

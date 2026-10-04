@@ -11,7 +11,11 @@ namespace BubbaBag.Modules.ServicioCampo.Application.Almacenes.Commands.Actualiz
 public record ActualizarAlmacenCommand(
     Guid Id,
     string Nombre,
-    string? Descripcion = null
+    string? Descripcion = null,
+    string? Codigo = null,
+    int? Tipo = null,
+    Guid? UnidadOrganizativaId = null,
+    Guid? RecursoId = null
 ) : ICommand<Result>;
 
 public class ActualizarAlmacenHandler : ICommandHandler<ActualizarAlmacenCommand, Result>
@@ -27,6 +31,7 @@ public class ActualizarAlmacenHandler : ICommandHandler<ActualizarAlmacenCommand
 
     public async Task<Result> HandleAsync(ActualizarAlmacenCommand command, CancellationToken cancellationToken = default)
     {
+        if (!await InventarioAcceso.PuedeAsync(_context,_currentUser,command.Id,"supervisar",cancellationToken)) return Result.Failure("No puede administrar este almacén.");
         var almacen = await _context.Almacenes.FirstOrDefaultAsync(a => a.Id == command.Id, cancellationToken);
         if (almacen is null)
             return Result.Failure($"No se encontró el almacén con ID '{command.Id}'.");
@@ -38,7 +43,22 @@ public class ActualizarAlmacenHandler : ICommandHandler<ActualizarAlmacenCommand
         if (command.Descripcion?.Length > 500)
             return Result.Failure("La descripción no puede superar los 500 caracteres.");
 
-        almacen.Actualizar(command.Nombre, command.Descripcion, UsuarioActualId());
+        if (command.Tipo.HasValue && command.Tipo is not (1 or 2)) return Result.Failure("Tipo de almacén inválido.");
+        if (command.Codigo?.Length>30 || !string.IsNullOrWhiteSpace(command.Codigo) && await _context.Almacenes.AnyAsync(x=>x.Id!=command.Id && x.Codigo==command.Codigo.Trim().ToUpperInvariant(),cancellationToken)) return Result.Failure("Revise longitud y unicidad del código.");
+        TipoAlmacen? tipoAlm = command.Tipo.HasValue
+            ? (command.Tipo.Value == 2 ? TipoAlmacen.CustodiaPersonal : TipoAlmacen.Bodega)
+            : null;
+
+        if ((tipoAlm.HasValue && tipoAlm != almacen.Tipo) || (command.UnidadOrganizativaId.HasValue && command.UnidadOrganizativaId != almacen.UnidadOrganizativaId) || (command.RecursoId.HasValue && command.RecursoId != almacen.RecursoId)) return Result.Failure("Conserve tipo, unidad y custodio; transfiera el material para cambiar custodia.");
+        almacen.Actualizar(
+            command.Nombre,
+            command.Descripcion,
+            UsuarioActualId(),
+            command.Codigo,
+            tipoAlm,
+            command.UnidadOrganizativaId,
+            command.RecursoId);
+
         await _context.SaveChangesAsync(cancellationToken);
 
         return Result.Success();

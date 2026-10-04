@@ -16,17 +16,18 @@ public record ObtenerResumenStockAlmacenesQuery(
 public class ObtenerResumenStockAlmacenesHandler : IQueryHandler<ObtenerResumenStockAlmacenesQuery, Result<List<ResumenStockAlmacenDto>>>
 {
     private readonly IServicioCampoDbContext _context;
+    private readonly ICurrentUser _user;
 
-    public ObtenerResumenStockAlmacenesHandler(IServicioCampoDbContext context)
+    public ObtenerResumenStockAlmacenesHandler(IServicioCampoDbContext context, ICurrentUser user)
     {
-        _context = context;
+        _context = context; _user = user;
     }
 
     public async Task<Result<List<ResumenStockAlmacenDto>>> HandleAsync(
         ObtenerResumenStockAlmacenesQuery query,
         CancellationToken cancellationToken = default)
     {
-        var almacenesQuery = _context.Almacenes.AsNoTracking().AsQueryable();
+        var almacenesQuery = _context.Almacenes.AsNoTracking().Where(a=>InventarioAcceso.AlmacenesConsultables(_context,_user).Contains(a.Id));
         if (query.SoloActivos.HasValue)
             almacenesQuery = almacenesQuery.Where(a => a.Activo == query.SoloActivos.Value);
 
@@ -38,20 +39,20 @@ public class ObtenerResumenStockAlmacenesHandler : IQueryHandler<ObtenerResumenS
 
         var stocks = await _context.StocksAlmacen
             .AsNoTracking()
-            .Where(s => almacenIds.Contains(s.AlmacenId))
-            .GroupBy(s => s.AlmacenId)
+            .Where(s => almacenIds.Contains(s.Ubicacion.AlmacenId))
+            .GroupBy(s => s.Ubicacion.AlmacenId)
             .Select(g => new
             {
                 AlmacenId = g.Key,
-                TotalProductos = g.Count(),
+                TotalProductos = g.Select(s=>s.ProductoId).Distinct().Count(),
                 TotalUnidades = g.Sum(s => s.CantidadDisponible + s.CantidadReservada)
             })
             .ToDictionaryAsync(x => x.AlmacenId, cancellationToken);
 
         var series = await _context.ItemsSeriados
             .AsNoTracking()
-            .Where(i => i.AlmacenActualId.HasValue && almacenIds.Contains(i.AlmacenActualId.Value))
-            .GroupBy(i => i.AlmacenActualId!.Value)
+            .Where(i => i.UbicacionActual != null && almacenIds.Contains(i.UbicacionActual.AlmacenId))
+            .GroupBy(i => i.UbicacionActual!.AlmacenId)
             .Select(g => new { AlmacenId = g.Key, TotalSeries = g.Count() })
             .ToDictionaryAsync(x => x.AlmacenId, cancellationToken);
 

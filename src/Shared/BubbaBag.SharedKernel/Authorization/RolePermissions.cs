@@ -7,12 +7,22 @@ public static class RolePermissions
 {
     private static readonly Dictionary<string, HashSet<string>> _rolePermissions = new(StringComparer.OrdinalIgnoreCase)
     {
+        [Roles.InventarioAdmin] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            Permissions.Inventario.Acceso, Permissions.Inventario.CatalogosGestionar,
+            Permissions.Inventario.Operar, Permissions.Inventario.AccesosGestionar,
+        },
+        [Roles.InventarioAlmacenero] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            Permissions.Inventario.Acceso, Permissions.Inventario.Operar,
+        },
         // 1. SuperAdmin: acceso absoluto a todo (bypass implementado en handler también)
         [Roles.SuperAdmin] = new HashSet<string>(Permissions.GetAll(), StringComparer.OrdinalIgnoreCase),
 
         // 2. Gerencia: visualización ejecutiva y confidencial de todos los módulos
         [Roles.Gerencia] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
+            Permissions.Inventario.Acceso,
             Permissions.ServicioCampo.Acceso,
             Permissions.ServicioCampo.OrdenesVerTodas,
             Permissions.ServicioCampo.OrdenesVerAsignadas,
@@ -55,6 +65,8 @@ public static class RolePermissions
         // 5. Servicio de Campo: Administrador
         [Roles.ServicioCampoAdmin] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
+            Permissions.Inventario.Acceso, Permissions.Inventario.CatalogosGestionar,
+            Permissions.Inventario.Operar, Permissions.Inventario.AccesosGestionar,
             Permissions.ServicioCampo.Acceso,
             Permissions.ServicioCampo.OrdenesVerTodas,
             Permissions.ServicioCampo.OrdenesVerAsignadas,

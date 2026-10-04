@@ -646,7 +646,7 @@ export const ImportacionDetallePage: React.FC = () => {
 
                 <div className={localStyles.subgridSearch}>
                   <Input
-                    placeholder="---"
+                    placeholder="Buscar" aria-label="Buscar"
                     contentBefore={<Search16Regular />}
                     value={errorSearch}
                     onChange={(_, d) => setErrorSearch(d.value)}
@@ -711,7 +711,7 @@ export const ImportacionDetallePage: React.FC = () => {
 
                 <div className={localStyles.subgridSearch}>
                   <Input
-                    placeholder="---"
+                    placeholder="Buscar" aria-label="Buscar"
                     contentBefore={<Search16Regular />}
                     value={productSearch}
                     onChange={(_, d) => setProductSearch(d.value)}

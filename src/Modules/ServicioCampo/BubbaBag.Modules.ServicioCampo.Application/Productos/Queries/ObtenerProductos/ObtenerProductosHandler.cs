@@ -15,7 +15,8 @@ public record ObtenerProductosQuery(
     string? Search = null,
     string? Categoria = null,
     TipoProducto? Tipo = null,
-    bool? SoloActivos = true
+    bool? SoloActivos = true,
+    int? Limite = null
 ) : IQuery<Result<List<ProductoDto>>>;
 
 public class ObtenerProductosHandler : IQueryHandler<ObtenerProductosQuery, Result<List<ProductoDto>>>
@@ -52,14 +53,16 @@ public class ObtenerProductosHandler : IQueryHandler<ObtenerProductosQuery, Resu
             dbQuery = dbQuery.Where(p =>
                 p.Codigo.ToLower().Contains(search) ||
                 p.Nombre.ToLower().Contains(search) ||
-                (p.Descripcion != null && p.Descripcion.ToLower().Contains(search)));
+                (query.Limite == null && p.Descripcion != null && p.Descripcion.ToLower().Contains(search)));
         }
 
-        var lista = await dbQuery
+        dbQuery = dbQuery
             .OrderBy(p => p.Tipo)
             .ThenBy(p => p.CategoriaProducto != null ? p.CategoriaProducto.Nombre : null)
             .ThenBy(p => p.Nombre)
-            .ToListAsync(cancellationToken);
+            .ThenBy(p => p.Id);
+        if (query.Limite.HasValue) dbQuery = dbQuery.Take(Math.Clamp(query.Limite.Value, 1, 50));
+        var lista = await dbQuery.ToListAsync(cancellationToken);
 
         var dtos = lista.Select(p => new ProductoDto(
             p.Id,

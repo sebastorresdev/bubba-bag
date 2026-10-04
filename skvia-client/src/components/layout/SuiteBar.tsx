@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   makeStyles,
   tokens,
@@ -26,8 +27,11 @@ import {
   QuestionCircle20Regular,
   Settings20Regular,
   Checkmark16Regular,
+  ArrowClockwise16Regular,
+  SignOutRegular,
 } from '@fluentui/react-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
 import type { EnterpriseApp } from '../../types/navigation.types';
 import { semanticTokens } from '../../styles/semanticTokens';
 
@@ -98,20 +102,73 @@ const useStyles = makeStyles({
     opacity: 0.35,
   },
   appTitle: {
-    color: semanticTokens.navigation.foreground,
     fontSize: semanticTokens.typography.body,
     fontWeight: semanticTokens.typography.semibold,
-    padding: '0 10px',
+    color: semanticTokens.navigation.foreground,
+    letterSpacing: '-0.2px',
+    paddingLeft: '8px',
+    paddingRight: '16px',
+  },
+  brandLabel: {
+    fontWeight: semanticTokens.typography.semibold,
+    letterSpacing: '0.5px',
+  },
+  brandChevron: {
+    color: semanticTokens.navigation.foreground,
+    opacity: 0.8,
+  },
+  appMenu: {
+    minWidth: '320px',
+    maxWidth: '380px',
+    padding: '8px',
+  },
+  appLauncherHeader: {
+    padding: '8px 12px 4px 12px',
+    marginBottom: '4px',
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+  },
+  appSectionLabel: {
+    letterSpacing: '0.5px',
+    color: tokens.colorNeutralForeground3,
+  },
+  appBadge: {
+    width: '32px',
+    height: '32px',
+    borderRadius: '4px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: tokens.colorNeutralForegroundOnBrand,
+    backgroundColor: tokens.colorBrandBackground,
+    fontWeight: semanticTokens.typography.semibold,
+    fontSize: semanticTokens.typography.caption,
+  },
+  appItemText: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: '2px',
+    flexGrow: 1,
+    overflow: 'hidden',
+  },
+  appSubtitle: {
+    color: tokens.colorNeutralForeground3,
+  },
+  selectedCheck: {
+    color: tokens.colorBrandForeground1,
   },
   centerSection: {
     flexGrow: 1,
-    maxWidth: '500px',
+    maxWidth: '480px',
     margin: '0 16px',
   },
   searchInput: {
     width: '100%',
-    borderRadius: '4px',
     backgroundColor: tokens.colorNeutralBackground1,
+    borderRadius: '4px',
+    ':focus-within': {
+      backgroundColor: tokens.colorNeutralBackground1,
+    },
   },
   rightSection: {
     display: 'flex',
@@ -123,8 +180,8 @@ const useStyles = makeStyles({
     width: '36px',
     height: '36px',
     padding: 0,
-    color: semanticTokens.navigation.foreground,
     backgroundColor: 'transparent',
+    color: semanticTokens.navigation.foreground,
     border: 'none',
     borderRadius: '4px',
     ':hover': {
@@ -136,68 +193,43 @@ const useStyles = makeStyles({
       color: semanticTokens.navigation.foreground,
     },
   },
+  notificationIcon: {
+    position: 'relative',
+    display: 'inline-flex',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: '-2px',
+    right: '-2px',
+  },
   userProfile: {
-    minWidth: 'auto',
-    height: 'auto',
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    marginLeft: '6px',
     padding: '4px 8px',
+    height: '36px',
     borderRadius: '4px',
-    backgroundColor: 'transparent',
     border: 'none',
-    color: semanticTokens.navigation.foreground,
+    backgroundColor: 'transparent',
+    cursor: 'pointer',
     ':hover': {
       backgroundColor: semanticTokens.navigation.hoverBackground,
-      color: semanticTokens.navigation.foreground,
-    },
-    ':active': {
-      backgroundColor: semanticTokens.navigation.pressedBackground,
-      color: semanticTokens.navigation.foreground,
     },
   },
   userInfoText: {
-    display: 'none',
+    display: 'flex',
     flexDirection: 'column',
     alignItems: 'flex-start',
+    textAlign: 'left',
     lineHeight: '1.2',
-    '@media (min-width: 900px)': {
-      display: 'flex',
-    },
   },
-  appLauncherHeader: {
-    padding: '10px 14px 6px 14px',
-    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-    marginBottom: '4px',
-  },
-  appItemText: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-  },
-  appMenu: { minWidth: '280px' },
-  appSectionLabel: { color: semanticTokens.text.muted },
-  appBadge: {
-    width: '28px',
-    height: '28px',
-    borderRadius: tokens.borderRadiusSmall,
-    backgroundColor: tokens.colorBrandBackground,
+  userName: {
     color: semanticTokens.navigation.foreground,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: semanticTokens.typography.bodySmall,
-    fontWeight: semanticTokens.typography.bold,
   },
-  selectedCheck: { color: tokens.colorCompoundBrandForeground1 },
-  appSubtitle: { color: semanticTokens.text.secondary },
-  brandChevron: { opacity: 0.8 },
-  brandLabel: { fontWeight: semanticTokens.typography.semibold },
-  notificationIcon: { position: 'relative', display: 'flex' },
-  notificationBadge: { position: 'absolute', top: '-2px', right: '-2px' },
-  userName: { color: semanticTokens.navigation.foreground },
-  userRole: { color: semanticTokens.navigation.foreground },
+  userRole: {
+    color: semanticTokens.navigation.foreground,
+    opacity: 0.85,
+  },
 });
 
 interface SuiteBarProps {
@@ -216,7 +248,35 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
   onToggleNav,
 }) => {
   const styles = useStyles();
+  const navigate = useNavigate();
   const { isDarkMode, toggleDarkMode } = useTheme();
+  const currentUser = useCurrentUser();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      if (q.includes('prod') || q.includes('art') || q.includes('sku') || q.includes('mat')) {
+        navigate(`/servicio-campo/productos?buscar=${encodeURIComponent(searchQuery.trim())}`);
+      } else if (q.includes('alm') || q.includes('bod')) {
+        navigate('/servicio-campo/almacenes');
+      } else if (q.includes('comp') || q.includes('recep')) {
+        navigate('/servicio-campo/recepciones-compra');
+      } else if (q.includes('transf')) {
+        navigate('/servicio-campo/transferencias');
+      } else if (q.includes('prec') || q.includes('list')) {
+        navigate('/servicio-campo/listas-precios');
+      } else if (q.includes('unid')) {
+        navigate('/servicio-campo/unidades-medida');
+      } else if (q.includes('categ') || q.includes('fam')) {
+        navigate('/servicio-campo/categorias-producto');
+      } else if (q.includes('imp') || q.includes('carg')) {
+        navigate('/gestion-datos/importaciones');
+      } else {
+        navigate(`/servicio-campo/productos?buscar=${encodeURIComponent(searchQuery.trim())}`);
+      }
+    }
+  };
 
   const appMenu = (
     <MenuList className={styles.appMenu}>
@@ -312,14 +372,17 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
         <span className={styles.appTitle}>{activeApp.name}</span>
       </div>
 
-      {/* Global Search */}
+      {/* Global Search with direct routing */}
       <div className={styles.centerSection}>
         <Input
           className={styles.searchInput}
-          placeholder={`Buscar en ${activeApp.name}...`}
+          placeholder={`Buscar en ${activeApp.name}`}
           contentBefore={<Search16Regular />}
           appearance="outline"
           size="medium"
+          value={searchQuery}
+          onChange={(_e, data) => setSearchQuery(data.value)}
+          onKeyDown={handleSearchKeyDown}
         />
       </div>
 
@@ -338,60 +401,151 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
           />
         </Tooltip>
 
-        <Tooltip content="Notificaciones y alertas" relationship="label">
-          <Button
-            appearance="transparent"
-            className={styles.actionBtn}
-            aria-label="Notificaciones"
-            icon={
-              <div className={styles.notificationIcon}>
-                <Alert20Regular />
-                <Badge
-                  size="extra-small"
-                  color="danger"
-                  className={styles.notificationBadge}
-                />
+        {/* Notificaciones del Sistema */}
+        <Menu>
+          <MenuTrigger disableButtonEnhancement>
+            <Tooltip content="Notificaciones y alertas del sistema" relationship="label">
+              <Button
+                appearance="transparent"
+                className={styles.actionBtn}
+                aria-label="Notificaciones"
+                icon={
+                  <div className={styles.notificationIcon}>
+                    <Alert20Regular />
+                    <Badge
+                      size="extra-small"
+                      color="success"
+                      className={styles.notificationBadge}
+                    />
+                  </div>
+                }
+              />
+            </Tooltip>
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList style={{ minWidth: '260px', padding: '8px' }}>
+              <div style={{ padding: '6px 12px' }}>
+                <Text weight="semibold" size={300} block>
+                  Centro de Notificaciones
+                </Text>
+                <Text size={100} style={{ opacity: 0.7 }} block>
+                  Estado operativo en tiempo real
+                </Text>
               </div>
-            }
-          />
-        </Tooltip>
+              <Divider style={{ margin: '6px 0' }} />
+              <MenuItem disabled>🟢 Servidor API: Operativo y en línea</MenuItem>
+              <MenuItem disabled>🟢 PostgreSQL: Base de datos sincronizada</MenuItem>
+              <MenuItem disabled>🟢 Telemetría Aspire: Activa</MenuItem>
+              <MenuItem disabled>ℹ️ No hay alertas críticas pendientes</MenuItem>
+            </MenuList>
+          </MenuPopover>
+        </Menu>
 
-        <Tooltip content="Ayuda y soporte" relationship="label">
-          <Button
-            appearance="transparent"
-            className={styles.actionBtn}
-            aria-label="Ayuda"
-            icon={<QuestionCircle20Regular />}
-          />
-        </Tooltip>
+        {/* Ayuda y Soporte */}
+        <Menu>
+          <MenuTrigger disableButtonEnhancement>
+            <Tooltip content="Ayuda y documentación técnica" relationship="label">
+              <Button
+                appearance="transparent"
+                className={styles.actionBtn}
+                aria-label="Ayuda"
+                icon={<QuestionCircle20Regular />}
+              />
+            </Tooltip>
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList style={{ minWidth: '260px', padding: '8px' }}>
+              <div style={{ padding: '6px 12px' }}>
+                <Text weight="semibold" size={300} block>
+                  Centro de Ayuda
+                </Text>
+                <Text size={100} style={{ opacity: 0.7 }} block>
+                  BubbaBag / SKVIA ERP v1.0.0
+                </Text>
+              </div>
+              <Divider style={{ margin: '6px 0' }} />
+              <MenuItem onClick={() => navigate('/gestion-datos/importaciones')}>
+                📂 Guía de Importación Masiva Excel
+              </MenuItem>
+              <MenuItem onClick={() => navigate('/servicio-campo/productos')}>
+                📦 Catálogo de Productos y Precios
+              </MenuItem>
+              <MenuItem disabled>
+                ⌨️ Tip: Busca productos o almacenes desde la barra superior
+              </MenuItem>
+            </MenuList>
+          </MenuPopover>
+        </Menu>
 
-        <Tooltip content="Configuración global" relationship="label">
-          <Button
-            appearance="transparent"
-            className={styles.actionBtn}
-            aria-label="Configuración"
-            icon={<Settings20Regular />}
-          />
-        </Tooltip>
+        {/* Configuración Rápida */}
+        <Menu>
+          <MenuTrigger disableButtonEnhancement>
+            <Tooltip content="Configuración global del entorno" relationship="label">
+              <Button
+                appearance="transparent"
+                className={styles.actionBtn}
+                aria-label="Configuración"
+                icon={<Settings20Regular />}
+              />
+            </Tooltip>
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList style={{ minWidth: '240px', padding: '8px' }}>
+              <div style={{ padding: '6px 12px' }}>
+                <Text weight="semibold" size={300} block>
+                  Configuración del Entorno
+                </Text>
+              </div>
+              <Divider style={{ margin: '6px 0' }} />
+              <MenuItem onClick={toggleDarkMode}>
+                {isDarkMode ? '☀️ Cambiar a tema Claro' : '🌙 Cambiar a tema Oscuro'}
+              </MenuItem>
+              <MenuItem disabled>📐 Densidad: Estándar (D365)</MenuItem>
+              <MenuItem disabled>🇵🇪 Moneda: Soles (PEN - S/.)</MenuItem>
+            </MenuList>
+          </MenuPopover>
+        </Menu>
 
-        {/* User Persona */}
-        <Button appearance="transparent" className={styles.userProfile}>
-          <Avatar
-            name="Sebastián Torres"
-            initials="ST"
-            color="colorful"
-            size={28}
-            badge={{ status: 'available' }}
-          />
-          <div className={styles.userInfoText}>
-            <Text weight="semibold" size={200} className={styles.userName}>
-              Sebastián Torres
-            </Text>
-            <Text size={100} className={styles.userRole}>
-              Administrador
-            </Text>
-          </div>
-        </Button>
+        {/* User Persona dinámico */}
+        <Menu>
+          <MenuTrigger disableButtonEnhancement>
+            <Button appearance="transparent" className={styles.userProfile} title="Perfil del usuario activo">
+              <Avatar
+                name={currentUser.nombre}
+                initials={currentUser.initials}
+                color="colorful"
+                size={28}
+                badge={{ status: 'available' }}
+              />
+              <div className={styles.userInfoText}>
+                <Text weight="semibold" size={200} className={styles.userName}>
+                  {currentUser.nombre}
+                </Text>
+                <Text size={100} className={styles.userRole}>
+                  {currentUser.rol}
+                </Text>
+              </div>
+            </Button>
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList style={{ minWidth: '240px', padding: '8px' }}>
+              <div style={{ padding: '8px 12px' }}>
+                <Text weight="semibold" block>{currentUser.nombre}</Text>
+                <Text size={200} style={{ opacity: 0.7 }} block>{currentUser.email}</Text>
+                <Badge size="small" appearance="tint" color="informative" style={{ marginTop: '6px' }}>
+                  {currentUser.rol}
+                </Badge>
+              </div>
+              <Divider style={{ margin: '6px 0' }} />
+              <MenuItem icon={<ArrowClockwise16Regular />} onClick={currentUser.refreshUser}>
+                Actualizar sesión
+              </MenuItem>
+              <MenuItem icon={<SignOutRegular />} onClick={currentUser.logout}>
+                Cerrar sesión
+              </MenuItem>
+            </MenuList>
+          </MenuPopover>
+        </Menu>
       </div>
     </header>
   );

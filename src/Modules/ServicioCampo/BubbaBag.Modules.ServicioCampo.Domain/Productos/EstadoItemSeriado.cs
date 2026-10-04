@@ -38,5 +38,10 @@ public enum EstadoItemSeriado
     /// <summary>
     /// Dado de baja definitiva por robo, siniestro o extravío.
     /// </summary>
-    BajaPorPerdida = 7
+    BajaPorPerdida = 7,
+
+    /// <summary>
+    /// En tránsito entre almacenes o sedes (despachado con guía de remisión / transferencia).
+    /// </summary>
+    EnTransito = 8
 }

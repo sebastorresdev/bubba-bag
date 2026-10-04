@@ -14,10 +14,10 @@ namespace BubbaBag.Api;
 
 public static class WebApplicationExtensions
 {
-    public static async Task ApplyMigrationsAndSeedAsync(this WebApplication app)
+    public static async Task ApplyMigrationsAsync(this WebApplication app)
     {
         using var scope = app.Services.CreateScope();
-        
+
         // 1. Aplicar migraciones de base de datos
         var seguridadDbContext = scope.ServiceProvider.GetRequiredService<SeguridadDbContext>();
         await seguridadDbContext.Database.MigrateAsync();
@@ -187,15 +187,7 @@ public static class WebApplicationExtensions
                       ALTER TABLE inventario.""Productos"" ADD COLUMN IF NOT EXISTS ""ListaPreciosPredeterminadaId"" uuid;
                       ALTER TABLE inventario.""Productos"" ADD COLUMN IF NOT EXISTS ""DecimalesCantidad"" integer NOT NULL DEFAULT 0;
 
-                      INSERT INTO inventario.""UnidadesMedida"" (""Id"", ""Codigo"", ""Nombre"", ""Abreviatura"", ""Descripcion"", ""Activo"")
-                      VALUES
-                          ('a1111111-1111-1111-1111-111111111111', 'UNICA', 'Única unidad', 'unidad', NULL, true)
-                      ON CONFLICT (""Id"") DO NOTHING;
 
-                      INSERT INTO inventario.""ListasPrecios"" (""Id"", ""Codigo"", ""Nombre"", ""Moneda"", ""Descripcion"", ""Activo"")
-                      VALUES 
-                          ('b1111111-1111-1111-1111-111111111111', 'LP-ESTANDAR', 'Tarifa General', 'PEN', 'Lista de precios estándar predeterminada para productos y servicios', true)
-                      ON CONFLICT (""Id"") DO NOTHING;
 
                       CREATE TABLE IF NOT EXISTS serviciocampo.""DataImportJobs"" (
                           ""Id"" uuid NOT NULL PRIMARY KEY,
@@ -231,34 +223,179 @@ public static class WebApplicationExtensions
             catch { }
 
             await servicioCampoDbContext.Database.MigrateAsync();
-            try
-            {
-                await servicioCampoDbContext.Database.ExecuteSqlRawAsync(
-                    @"UPDATE serviciocampo.""DataImportJobs"" 
-                      SET ""CreadoPor"" = 'Sebastián Torres' 
-                      WHERE ""CreadoPor"" = 'Usuario del Sistema' OR ""CreadoPor"" IS NULL;");
-            }
-            catch { }
+            await servicioCampoDbContext.Database.ExecuteSqlRawAsync("""
+                CREATE TABLE IF NOT EXISTS inventario."Compras" (
+                    "Id" uuid PRIMARY KEY, "Numero" varchar(40) NOT NULL,
+                    "Proveedor" varchar(150) NOT NULL, "TipoDocumento" varchar(30) NOT NULL,
+                    "NumeroDocumento" varchar(100) NOT NULL, "FechaDocumento" date NOT NULL,
+                    "Moneda" varchar(3) NOT NULL, "AlmacenId" uuid NOT NULL REFERENCES inventario."Almacenes"("Id"),
+                    "Observacion" varchar(500), "LineasJson" text NOT NULL, "Total" numeric(18,2) NOT NULL,
+                    "UsuarioId" uuid NOT NULL, "FechaRegistro" timestamp with time zone NOT NULL
+                );
+                ALTER TABLE inventario."Compras" ADD COLUMN IF NOT EXISTS "Estado" varchar(50) NOT NULL DEFAULT 'Recibida';
+                ALTER TABLE inventario."Compras" ALTER COLUMN "Estado" TYPE varchar(50);
+                ALTER TABLE inventario."Compras" ALTER COLUMN "AlmacenId" DROP NOT NULL;
+                DROP INDEX IF EXISTS inventario."IX_Compras_Proveedor_TipoDocumento_NumeroDocumento";
+                CREATE UNIQUE INDEX "IX_Compras_Proveedor_TipoDocumento_NumeroDocumento"
+                    ON inventario."Compras" ("Proveedor", "TipoDocumento", "NumeroDocumento") WHERE "NumeroDocumento" <> '';
+
+                CREATE TABLE IF NOT EXISTS serviciocampo."UnidadesOrganizativas" (
+                    "Id" uuid NOT NULL PRIMARY KEY,
+                    "Codigo" character varying(20) NOT NULL UNIQUE,
+                    "Nombre" character varying(150) NOT NULL,
+                    "Ciudad" character varying(100),
+                    "Direccion" character varying(250),
+                    "Telefono" character varying(50),
+                    "EsSedePrincipal" boolean NOT NULL DEFAULT false,
+                    "Activo" boolean NOT NULL DEFAULT true,
+                    "CreatedAt" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    "UpdatedAt" timestamp with time zone
+                );
+
+                CREATE TABLE IF NOT EXISTS serviciocampo."ZonasOperativas" (
+                    "Id" uuid NOT NULL PRIMARY KEY,
+                    "Codigo" character varying(50) NOT NULL UNIQUE,
+                    "Nombre" character varying(150) NOT NULL,
+                    "DescripcionProveedor" character varying(250),
+                    "SucursalId" uuid NOT NULL,
+                    "AlmacenPredeterminadoId" uuid,
+                    "Activo" boolean NOT NULL DEFAULT true
+                );
+
+                CREATE TABLE IF NOT EXISTS serviciocampo."Recursos" (
+                    "Id" uuid NOT NULL PRIMARY KEY,
+                    "Codigo" character varying(50) NOT NULL UNIQUE,
+                    "NombreCompleto" character varying(150) NOT NULL,
+                    "Tipo" integer NOT NULL DEFAULT 1,
+                    "DocumentoIdentidad" character varying(30),
+                    "Telefono" character varying(50),
+                    "Email" character varying(150),
+                    "UnidadOrganizativaId" uuid,
+                    "ZonaOperativaId" uuid,
+                    "AlmacenBaseId" uuid,
+                    "AlmacenMovilId" uuid,
+                    "UsuarioId" uuid,
+                    "EmpleadoId" uuid,
+                    "CapacidadMaximaOrdenesPorDia" integer NOT NULL DEFAULT 6,
+                    "ColorHex" character varying(20) DEFAULT '#0078d4',
+                    "Notas" character varying(500),
+                    "Activo" boolean NOT NULL DEFAULT true
+                );
+
+                ALTER TABLE serviciocampo."Recursos" ADD COLUMN IF NOT EXISTS "Tipo" integer NOT NULL DEFAULT 1;
+                ALTER TABLE serviciocampo."Recursos" ADD COLUMN IF NOT EXISTS "Notas" character varying(500);
+                ALTER TABLE serviciocampo."Recursos" ADD COLUMN IF NOT EXISTS "UnidadOrganizativaId" uuid;
+                ALTER TABLE serviciocampo."Recursos" ALTER COLUMN "ZonaOperativaId" DROP NOT NULL;
+                ALTER TABLE serviciocampo."Recursos" ALTER COLUMN "AlmacenBaseId" DROP NOT NULL;
+
+                ALTER TABLE inventario."Almacenes" ADD COLUMN IF NOT EXISTS "Codigo" character varying(50);
+                ALTER TABLE inventario."Almacenes" ADD COLUMN IF NOT EXISTS "Tipo" integer NOT NULL DEFAULT 1;
+                ALTER TABLE inventario."Almacenes" ADD COLUMN IF NOT EXISTS "Descripcion" character varying(500);
+                ALTER TABLE inventario."Almacenes" ADD COLUMN IF NOT EXISTS "UnidadOrganizativaId" uuid;
+                ALTER TABLE inventario."Almacenes" ADD COLUMN IF NOT EXISTS "RecursoId" uuid;
+                ALTER TABLE inventario."Almacenes" ADD COLUMN IF NOT EXISTS "CreadoPorId" uuid;
+                ALTER TABLE inventario."Almacenes" ADD COLUMN IF NOT EXISTS "CreadoPorNombre" character varying(150);
+                ALTER TABLE inventario."Almacenes" ADD COLUMN IF NOT EXISTS "CreatedAt" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP;
+                ALTER TABLE inventario."Almacenes" ADD COLUMN IF NOT EXISTS "ActualizadoPorId" uuid;
+                ALTER TABLE inventario."Almacenes" ADD COLUMN IF NOT EXISTS "UpdatedAt" timestamp with time zone;
+                UPDATE inventario."Almacenes" SET "Codigo" = 'ALM-' || UPPER(SUBSTRING(REPLACE("Id"::text, '-', ''), 1, 6)) WHERE "Codigo" IS NULL OR "Codigo" = '';
+
+                CREATE TABLE IF NOT EXISTS inventario."UsuarioAlmacenAutorizaciones" (
+                    "Id" uuid NOT NULL PRIMARY KEY,
+                    "UsuarioId" uuid NOT NULL,
+                    "AlmacenId" uuid NOT NULL REFERENCES inventario."Almacenes"("Id") ON DELETE CASCADE,
+                    "PuedeConsultar" boolean NOT NULL DEFAULT true,
+                    "PuedeDespachar" boolean NOT NULL DEFAULT true,
+                    "PuedeRecepcionar" boolean NOT NULL DEFAULT true,
+                    "EsSupervisor" boolean NOT NULL DEFAULT false,
+                    "Activo" boolean NOT NULL DEFAULT true,
+                    "CreatedAt" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    "UpdatedAt" timestamp with time zone
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_UsuarioAlmacenAutorizaciones_Usuario_Almacen"
+                    ON inventario."UsuarioAlmacenAutorizaciones" ("UsuarioId", "AlmacenId");
+
+                CREATE TABLE IF NOT EXISTS inventario."Transferencias" (
+                    "Id" uuid NOT NULL PRIMARY KEY,
+                    "Numero" character varying(50) NOT NULL UNIQUE,
+                    "AlmacenOrigenId" uuid NOT NULL REFERENCES inventario."Almacenes"("Id"),
+                    "AlmacenDestinoId" uuid NOT NULL REFERENCES inventario."Almacenes"("Id"),
+                    "UnidadOrganizativaOrigenId" uuid NOT NULL,
+                    "UnidadOrganizativaDestinoId" uuid NOT NULL,
+                    "Modalidad" integer NOT NULL,
+                    "Estado" integer NOT NULL,
+                    "FechaRegistro" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    "FechaDespacho" timestamp with time zone,
+                    "FechaCierre" timestamp with time zone,
+                    "DespachadoPorId" uuid,
+                    "DespachadoPorNombre" character varying(150),
+                    "NumeroGuiaRemision" character varying(100),
+                    "Observaciones" character varying(500)
+                );
+
+                CREATE TABLE IF NOT EXISTS inventario."TransferenciaDetalles" (
+                    "Id" uuid NOT NULL PRIMARY KEY,
+                    "TransferenciaId" uuid NOT NULL REFERENCES inventario."Transferencias"("Id") ON DELETE CASCADE,
+                    "ProductoId" uuid NOT NULL,
+                    "CantidadEnviada" numeric(18,4) NOT NULL,
+                    "CantidadRecibida" numeric(18,4) NOT NULL DEFAULT 0,
+                    "CantidadResuelta" numeric(18,4) NOT NULL DEFAULT 0
+                );
+
+                CREATE TABLE IF NOT EXISTS inventario."TransferenciaDetalleSeries" (
+                    "Id" uuid NOT NULL PRIMARY KEY,
+                    "TransferenciaDetalleId" uuid NOT NULL REFERENCES inventario."TransferenciaDetalles"("Id") ON DELETE CASCADE,
+                    "ItemSeriadoId" uuid NOT NULL,
+                    "NumeroSerie" character varying(100) NOT NULL,
+                    "Recibida" boolean NOT NULL DEFAULT false,
+                    "TieneIncidencia" boolean NOT NULL DEFAULT false,
+                    "MotivoIncidencia" character varying(250)
+                );
+
+                CREATE TABLE IF NOT EXISTS inventario."RecepcionesTransferencia" (
+                    "Id" uuid NOT NULL PRIMARY KEY,
+                    "NumeroRecepcion" character varying(50) NOT NULL UNIQUE,
+                    "TransferenciaId" uuid NOT NULL REFERENCES inventario."Transferencias"("Id") ON DELETE CASCADE,
+                    "FechaRecepcion" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    "RecibidoPorId" uuid NOT NULL,
+                    "RecibidoPorNombre" character varying(150) NOT NULL,
+                    "Observaciones" character varying(500)
+                );
+
+                CREATE TABLE IF NOT EXISTS inventario."RecepcionTransferenciaDetalles" (
+                    "Id" uuid NOT NULL PRIMARY KEY,
+                    "RecepcionTransferenciaId" uuid NOT NULL REFERENCES inventario."RecepcionesTransferencia"("Id") ON DELETE CASCADE,
+                    "TransferenciaDetalleId" uuid NOT NULL,
+                    "ProductoId" uuid NOT NULL,
+                    "CantidadAceptada" numeric(18,4) NOT NULL,
+                    "SeriesAceptadasJson" text
+                );
+
+                CREATE TABLE IF NOT EXISTS inventario."ResolucionDiferenciaTransferencias" (
+                    "Id" uuid NOT NULL PRIMARY KEY,
+                    "TransferenciaId" uuid NOT NULL REFERENCES inventario."Transferencias"("Id") ON DELETE CASCADE,
+                    "TransferenciaDetalleId" uuid NOT NULL,
+                    "CantidadAfectada" numeric(18,4) NOT NULL,
+                    "Resultado" integer NOT NULL,
+                    "Motivo" character varying(500) NOT NULL,
+                    "EvidenciaDocumentaria" character varying(500),
+                    "SupervisorId" uuid NOT NULL,
+                    "SupervisorNombre" character varying(150) NOT NULL,
+                    "FechaResolucion" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                """);
         }
 
-        // 2. Ejecutar sembradores modulares en orden de dependencias
-        await SeguridadSeeder.SeedAsync(scope.ServiceProvider);
-
-        var rrhhLogger = scope.ServiceProvider.GetRequiredService<ILogger<RecursosHumanosDbContext>>();
-        await BubbaBag.Modules.RecursosHumanos.Infrastructure.Database.Seeders.RecursosHumanosSeeder.SeedAsync(rrhhDbContext, rrhhLogger);
-
-        var sucursalesMap = await rrhhDbContext.Sucursales
-            .ToDictionaryAsync(s => s.Codigo, s => s.Id);
+        // Únicamente definiciones técnicas de roles, sin cuentas ni datos de ejemplo.
+        await CatalogoRolesSistema.AsegurarAsync(scope.ServiceProvider);
 
         if (servicioCampoDbContext != null)
         {
-            var scLogger = scope.ServiceProvider.GetRequiredService<ILogger<ServicioCampoDbContext>>();
 
             try
             {
                 await servicioCampoDbContext.Database.ExecuteSqlRawAsync(
-                    @"UPDATE crm.clientes SET ""EsClienteFacturacion"" = TRUE WHERE ""TipoPersona"" = 'JURIDICA' AND ""EsClienteFacturacion"" = FALSE;
-                      ALTER TABLE inventario.""Productos"" ADD COLUMN IF NOT EXISTS ""Tipo"" integer NOT NULL DEFAULT 1;
+                    @"ALTER TABLE inventario.""Productos"" ADD COLUMN IF NOT EXISTS ""Tipo"" integer NOT NULL DEFAULT 1;
                       ALTER TABLE inventario.""Productos"" ADD COLUMN IF NOT EXISTS ""PrecioBase"" numeric(12,2) NOT NULL DEFAULT 0;
                       ALTER TABLE inventario.""Productos"" DROP COLUMN IF EXISTS ""CatalogoId"";");
             }
@@ -270,10 +407,10 @@ public static class WebApplicationExtensions
                     @"DO $$
                       BEGIN
                           IF EXISTS (
-                              SELECT 1 FROM information_schema.tables 
+                              SELECT 1 FROM information_schema.tables
                               WHERE table_schema = 'serviciocampo' AND table_name = 'RecursosTecnicos'
                           ) AND NOT EXISTS (
-                              SELECT 1 FROM information_schema.tables 
+                              SELECT 1 FROM information_schema.tables
                               WHERE table_schema = 'serviciocampo' AND table_name = 'Recursos'
                           ) THEN
                               ALTER TABLE serviciocampo.""RecursosTecnicos"" RENAME TO ""Recursos"";
@@ -301,6 +438,7 @@ public static class WebApplicationExtensions
 
                       ALTER TABLE serviciocampo.""Recursos"" ADD COLUMN IF NOT EXISTS ""Tipo"" integer NOT NULL DEFAULT 1;
                       ALTER TABLE serviciocampo.""Recursos"" ADD COLUMN IF NOT EXISTS ""Notas"" character varying(500);
+                      ALTER TABLE serviciocampo.""Recursos"" ADD COLUMN IF NOT EXISTS ""UnidadOrganizativaId"" uuid;
                       ALTER TABLE serviciocampo.""Recursos"" ALTER COLUMN ""ZonaOperativaId"" DROP NOT NULL;
                       ALTER TABLE serviciocampo.""Recursos"" ALTER COLUMN ""AlmacenBaseId"" DROP NOT NULL;
 
@@ -308,7 +446,7 @@ public static class WebApplicationExtensions
                       DO $$
                       BEGIN
                           IF EXISTS (
-                              SELECT 1 FROM information_schema.columns 
+                              SELECT 1 FROM information_schema.columns
                               WHERE table_schema = 'serviciocampo' AND table_name = 'OrdenTrabajoVisitas' AND column_name = 'RecursoTecnicoId'
                           ) THEN
                               UPDATE serviciocampo.""OrdenTrabajoVisitas"" SET ""RecursoId"" = ""RecursoTecnicoId"" WHERE ""RecursoId"" IS NULL;
@@ -319,7 +457,7 @@ public static class WebApplicationExtensions
                       DO $$
                       BEGIN
                           IF EXISTS (
-                              SELECT 1 FROM information_schema.columns 
+                              SELECT 1 FROM information_schema.columns
                               WHERE table_schema = 'inventario' AND table_name = 'Almacenes' AND column_name = 'RecursoTecnicoId'
                           ) THEN
                               UPDATE inventario.""Almacenes"" SET ""RecursoId"" = ""RecursoTecnicoId"" WHERE ""RecursoId"" IS NULL;
@@ -327,21 +465,11 @@ public static class WebApplicationExtensions
                       END $$;
 
                       ALTER TABLE inventario.""Almacenes"" ADD COLUMN IF NOT EXISTS ""Descripcion"" character varying(500);
-                      DELETE FROM inventario.""Almacenes"" WHERE ""Codigo"" LIKE 'ALM-BASE-%';
-
-                      UPDATE seguridad.""AspNetUsers""
-                      SET ""UserName"" = 'admin@skvia.com',
-                          ""NormalizedUserName"" = 'ADMIN@SKVIA.COM',
-                          ""Email"" = 'admin@skvia.com',
-                          ""NormalizedEmail"" = 'ADMIN@SKVIA.COM',
-                          ""NombreCompleto"" = 'Sebastian Torres'
-                      WHERE ""Email"" = 'admin@bubbabag.com' OR ""UserName"" = 'admin@bubbabag.com' OR ""Id"" = '00000000-0000-0000-0000-000000000001';
-
                       ALTER TABLE serviciocampo.""PlantillasTrabajo"" ADD COLUMN IF NOT EXISTS ""ProductoId"" uuid;
                       DO $$
                       BEGIN
                           IF EXISTS (
-                              SELECT 1 FROM information_schema.columns 
+                              SELECT 1 FROM information_schema.columns
                               WHERE table_schema = 'serviciocampo' AND table_name = 'PlantillasTrabajo' AND column_name = 'ServicioId'
                           ) THEN
                               UPDATE serviciocampo.""PlantillasTrabajo"" SET ""ProductoId"" = ""ServicioId"" WHERE ""ProductoId"" IS NULL;
@@ -352,7 +480,7 @@ public static class WebApplicationExtensions
                       DO $$
                       BEGIN
                           IF EXISTS (
-                              SELECT 1 FROM information_schema.columns 
+                              SELECT 1 FROM information_schema.columns
                               WHERE table_schema = 'serviciocampo' AND table_name = 'Trabajos' AND column_name = 'ServicioId'
                           ) THEN
                               UPDATE serviciocampo.""Trabajos"" SET ""ProductoId"" = ""ServicioId"" WHERE ""ProductoId"" IS NULL;
@@ -362,20 +490,20 @@ public static class WebApplicationExtensions
                       DO $$
                       BEGIN
                           IF EXISTS (
-                              SELECT 1 FROM information_schema.tables 
+                              SELECT 1 FROM information_schema.tables
                               WHERE table_schema = 'serviciocampo' AND table_name = 'DataImportJobs'
                           ) AND NOT EXISTS (
-                              SELECT 1 FROM information_schema.tables 
+                              SELECT 1 FROM information_schema.tables
                               WHERE table_schema = 'GestionDatos' AND table_name = 'DataImportJobs'
                           ) THEN
                               ALTER TABLE serviciocampo.""DataImportJobs"" SET SCHEMA GestionDatos;
                           END IF;
 
                           IF EXISTS (
-                              SELECT 1 FROM information_schema.tables 
+                              SELECT 1 FROM information_schema.tables
                               WHERE table_schema = 'serviciocampo' AND table_name = 'DataImportJobErrors'
                           ) AND NOT EXISTS (
-                              SELECT 1 FROM information_schema.tables 
+                              SELECT 1 FROM information_schema.tables
                               WHERE table_schema = 'GestionDatos' AND table_name = 'DataImportJobErrors'
                           ) THEN
                               ALTER TABLE serviciocampo.""DataImportJobErrors"" SET SCHEMA GestionDatos;
@@ -411,12 +539,7 @@ public static class WebApplicationExtensions
             }
             catch { }
 
-            await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.UbigeoSeeder.SeedAsync(servicioCampoDbContext, scLogger);
-            await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.ClienteSeeder.SeedAsync(servicioCampoDbContext, scLogger);
-            await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.InventarioSeeder.SeedAsync(servicioCampoDbContext, scLogger, sucursalesMap);
-            await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.RecursosYZonasSeeder.SeedAsync(servicioCampoDbContext, scLogger);
-            await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.TiposTareaSeeder.SeedAsync(servicioCampoDbContext, scLogger);
+            await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.MigracionUbicacionesInventario.AplicarAsync(servicioCampoDbContext);
         }
     }
 }
-

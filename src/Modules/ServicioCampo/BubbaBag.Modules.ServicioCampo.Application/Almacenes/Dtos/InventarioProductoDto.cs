@@ -16,5 +16,6 @@ public record InventarioProductoDto(
     decimal CantidadTotal,
     decimal CostoActual,
     decimal ValorInventario,
-    DateTime ActualizadoEn
+    DateTime ActualizadoEn,
+    bool EsSerializado = false, Guid UbicacionId = default, string NombreUbicacion = "", string Condicion = "Utilizable"
 );

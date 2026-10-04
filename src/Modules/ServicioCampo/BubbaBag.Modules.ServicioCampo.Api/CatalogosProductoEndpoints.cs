@@ -1,3 +1,4 @@
+using BubbaBag.SharedKernel.Authorization;
 using System;
 using System.Threading.Tasks;
 using BubbaBag.Modules.ServicioCampo.Application.Productos.Commands.ActualizarCategoriaProducto;
@@ -32,64 +33,64 @@ public static class CatalogosProductoEndpoints
         // ── Grupos de Unidades de Medida (Unit Groups) ──
         var grupoUmGroup = app.MapGroup("/api/inventario/grupos-unidad-medida")
             .WithTags("Servicio de Campo - Grupos de Unidades de Medida")
-            .RequireAuthorization();
+            .RequireAuthorization(Permissions.Inventario.Acceso);
 
         grupoUmGroup.MapGet("/", ObtenerGruposUnidadMedida);
         grupoUmGroup.MapGet("/{id:guid}", ObtenerGrupoUnidadMedidaPorId);
         grupoUmGroup.MapGet("/{id:guid}/unidades-referencia", ObtenerUnidadesReferencia);
-        grupoUmGroup.MapPost("/", CrearGrupoUnidadMedida);
-        grupoUmGroup.MapPut("/{id:guid}", ActualizarGrupoUnidadMedida);
-        grupoUmGroup.MapPatch("/{id:guid}/estado", CambiarEstadoGrupoUnidadMedida);
-        grupoUmGroup.MapPost("/{id:guid}/unidades", AgregarUnidadAGrupo);
+        grupoUmGroup.MapPost("/", CrearGrupoUnidadMedida).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
+        grupoUmGroup.MapPut("/{id:guid}", ActualizarGrupoUnidadMedida).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
+        grupoUmGroup.MapPatch("/{id:guid}/estado", CambiarEstadoGrupoUnidadMedida).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
+        grupoUmGroup.MapPost("/{id:guid}/unidades", AgregarUnidadAGrupo).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
 
         var gruposUnidadesGroup = app.MapGroup("/api/grupos-unidad-medida")
             .WithTags("Servicio de Campo - Grupos de Unidades de Medida")
-            .RequireAuthorization();
+            .RequireAuthorization(Permissions.Inventario.Acceso);
         gruposUnidadesGroup.MapGet("/", ObtenerGruposUnidadMedida);
         gruposUnidadesGroup.MapGet("/{id:guid}", ObtenerGrupoUnidadMedidaPorId);
         gruposUnidadesGroup.MapGet("/{id:guid}/unidades-referencia", ObtenerUnidadesReferencia);
-        gruposUnidadesGroup.MapPost("/", CrearGrupoUnidadMedida);
-        gruposUnidadesGroup.MapPut("/{id:guid}", ActualizarGrupoUnidadMedida);
-        gruposUnidadesGroup.MapPatch("/{id:guid}/estado", CambiarEstadoGrupoUnidadMedida);
-        gruposUnidadesGroup.MapPost("/{id:guid}/unidades", AgregarUnidadAGrupo);
+        gruposUnidadesGroup.MapPost("/", CrearGrupoUnidadMedida).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
+        gruposUnidadesGroup.MapPut("/{id:guid}", ActualizarGrupoUnidadMedida).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
+        gruposUnidadesGroup.MapPatch("/{id:guid}/estado", CambiarEstadoGrupoUnidadMedida).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
+        gruposUnidadesGroup.MapPost("/{id:guid}/unidades", AgregarUnidadAGrupo).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
 
         // ── Unidades de Medida (operaciones sobre unidades individuales) ──
         var umGroup = app.MapGroup("/api/inventario/unidades-medida")
             .WithTags("Servicio de Campo - Unidades de Medida")
-            .RequireAuthorization();
+            .RequireAuthorization(Permissions.Inventario.Acceso);
 
         umGroup.MapGet("/", ObtenerUnidadesMedida);
         umGroup.MapGet("/plantilla-excel", DescargarPlantillaUnidadesMedida);
-        umGroup.MapPost("/importar-excel", ImportarUnidadesMedidaExcel).DisableAntiforgery();
+        umGroup.MapPost("/importar-excel", ImportarUnidadesMedidaExcel).DisableAntiforgery().RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
         umGroup.MapGet("/{id:guid}", ObtenerUnidadMedidaPorId);
-        umGroup.MapPut("/{id:guid}", ActualizarUnidadMedida);
-        umGroup.MapPatch("/{id:guid}/estado", CambiarEstadoUnidadMedida);
+        umGroup.MapPut("/{id:guid}", ActualizarUnidadMedida).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
+        umGroup.MapPatch("/{id:guid}/estado", CambiarEstadoUnidadMedida).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
 
         // ── Categorías y Familias de Productos ──
         var catGroup = app.MapGroup("/api/inventario/categorias-producto")
             .WithTags("Servicio de Campo - Categorías de Productos")
-            .RequireAuthorization();
+            .RequireAuthorization(Permissions.Inventario.Acceso);
 
         catGroup.MapGet("/", ObtenerCategoriasProducto);
         catGroup.MapGet("/plantilla-excel", DescargarPlantillaCategorias);
-        catGroup.MapPost("/importar-excel", ImportarCategoriasExcel).DisableAntiforgery();
+        catGroup.MapPost("/importar-excel", ImportarCategoriasExcel).DisableAntiforgery().RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
         catGroup.MapGet("/{id:guid}", ObtenerCategoriaProductoPorId);
-        catGroup.MapPost("/", CrearCategoriaProducto);
-        catGroup.MapPut("/{id:guid}", ActualizarCategoriaProducto);
-        catGroup.MapPatch("/{id:guid}/estado", CambiarEstadoCategoriaProducto);
+        catGroup.MapPost("/", CrearCategoriaProducto).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
+        catGroup.MapPut("/{id:guid}", ActualizarCategoriaProducto).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
+        catGroup.MapPatch("/{id:guid}/estado", CambiarEstadoCategoriaProducto).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
 
         // ── Listas de Precios (Price Lists) ──
         var lpGroup = app.MapGroup("/api/inventario/listas-precios")
             .WithTags("Servicio de Campo - Listas de Precios")
-            .RequireAuthorization();
+            .RequireAuthorization(Permissions.Inventario.Acceso);
 
         lpGroup.MapGet("/", ObtenerListasPrecios);
         lpGroup.MapGet("/{id:guid}", ObtenerListaPreciosPorId);
-        lpGroup.MapPost("/", CrearListaPrecios);
-        lpGroup.MapPut("/{id:guid}", ActualizarListaPrecios);
-        lpGroup.MapPatch("/{id:guid}/estado", CambiarEstadoListaPrecios);
-        lpGroup.MapPost("/{id:guid}/elementos", GuardarElementoListaPrecios);
-        lpGroup.MapDelete("/elementos/{elementoId:guid}", EliminarElementoListaPrecios);
+        lpGroup.MapPost("/", CrearListaPrecios).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
+        lpGroup.MapPut("/{id:guid}", ActualizarListaPrecios).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
+        lpGroup.MapPatch("/{id:guid}/estado", CambiarEstadoListaPrecios).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
+        lpGroup.MapPost("/{id:guid}/elementos", GuardarElementoListaPrecios).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
+        lpGroup.MapDelete("/elementos/{elementoId:guid}", EliminarElementoListaPrecios).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
     }
 
     private static async Task<IResult> DescargarPlantillaUnidadesMedida(

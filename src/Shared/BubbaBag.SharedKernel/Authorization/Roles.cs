@@ -20,6 +20,9 @@ public static class Roles
     public const string CrmAdmin = "CrmAdmin";
     public const string CrmOperador = "CrmOperador";
 
+    public const string InventarioAdmin = "InventarioAdmin";
+    public const string InventarioAlmacenero = "InventarioAlmacenero";
+
     public static readonly IReadOnlyList<string> Fijos = new[]
     {
         SuperAdmin,
@@ -30,7 +33,9 @@ public static class Roles
         ServicioCampoBackoffice,
         ServicioCampoTecnico,
         CrmAdmin,
-        CrmOperador
+        CrmOperador,
+        InventarioAdmin,
+        InventarioAlmacenero
     };
 
     // Agrupaciones para compatibilidad

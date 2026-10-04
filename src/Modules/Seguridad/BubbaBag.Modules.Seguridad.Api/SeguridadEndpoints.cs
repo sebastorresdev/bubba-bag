@@ -17,35 +17,39 @@ public static class SeguridadEndpoints
     {
         var group = app.MapGroup("/api/seguridad").WithTags("Seguridad");
 
+        group.MapGet("/configuracion-inicial", ObtenerEstadoConfiguracion).AllowAnonymous();
+        group.MapPost("/configuracion-inicial", ConfigurarAdministrador).AllowAnonymous();
+        group.MapGet("/sesion", ObtenerSesion).RequireAuthorization();
+
         group.MapPost("/login", IniciarSesion)
             .AllowAnonymous();
 
         group.MapGet("/roles", ObtenerRoles)
-            .RequireAuthorization(p => p.RequireRole(Roles.SuperAdmin, Roles.Gerencia));
+            .RequireAuthorization(Permissions.Seguridad.Acceso);
 
         group.MapGet("/usuarios", ObtenerUsuarios)
-            .RequireAuthorization(p => p.RequireRole(Roles.SuperAdmin, Roles.Gerencia));
+            .RequireAuthorization(Permissions.Seguridad.Acceso);
 
         group.MapGet("/usuarios/{id:guid}", ObtenerUsuarioPorId)
-            .RequireAuthorization(p => p.RequireRole(Roles.SuperAdmin, Roles.Gerencia));
+            .RequireAuthorization(Permissions.Seguridad.Acceso);
 
         group.MapPost("/usuarios", RegistrarUsuario)
-            .RequireAuthorization(p => p.RequireRole(Roles.SuperAdmin));
+            .RequireAuthorization(Permissions.Seguridad.UsuariosGestionar);
 
         group.MapPut("/usuarios/{id:guid}", ActualizarUsuario)
-            .RequireAuthorization(p => p.RequireRole(Roles.SuperAdmin));
+            .RequireAuthorization(Permissions.Seguridad.UsuariosGestionar);
 
         group.MapPatch("/usuarios/{id:guid}/estado", CambiarEstadoUsuario)
-            .RequireAuthorization(p => p.RequireRole(Roles.SuperAdmin));
+            .RequireAuthorization(Permissions.Seguridad.UsuariosGestionar);
 
         group.MapPut("/usuarios/{id:guid}/password", CambiarPasswordUsuario)
-            .RequireAuthorization(p => p.RequireRole(Roles.SuperAdmin));
+            .RequireAuthorization(Permissions.Seguridad.UsuariosGestionar);
 
         group.MapGet("/usuarios/{id:guid}/roles", ObtenerRolesUsuario)
-            .RequireAuthorization(p => p.RequireRole(Roles.SuperAdmin));
+            .RequireAuthorization(Permissions.Seguridad.UsuariosGestionar);
 
         group.MapPut("/usuarios/{id:guid}/roles", AsignarRolesUsuario)
-            .RequireAuthorization(p => p.RequireRole(Roles.SuperAdmin));
+            .RequireAuthorization(Permissions.Seguridad.UsuariosGestionar);
 
         // Vistas Personalizadas y Predeterminadas (Dynamics 365)
         group.MapGet("/vistas", ObtenerVistasPorEntidad)
@@ -59,6 +63,23 @@ public static class SeguridadEndpoints
 
         group.MapDelete("/vistas/{id:guid}", EliminarVista)
             .RequireAuthorization();
+    }
+
+    private static async Task<IResult> ObtenerEstadoConfiguracion(IAuthService authService)
+        => Results.Ok(new { RequiereConfiguracion = await authService.RequiereConfiguracionAsync() });
+
+    private static async Task<IResult> ConfigurarAdministrador(ConfiguracionInicialRequest request, IAuthService authService)
+    {
+        var resultado = await authService.ConfigurarAdministradorAsync(request.Email, request.Password, request.NombreCompleto);
+        return resultado.IsSuccess ? Results.Ok(new { UsuarioId = resultado.Value })
+            : Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Configuración inicial", resultado.Error));
+    }
+
+    private static async Task<IResult> ObtenerSesion(IAuthService authService, ICurrentUser usuario)
+    {
+        var resultado = await authService.ObtenerUsuarioPorIdAsync(usuario.Id);
+        return resultado.IsSuccess ? Results.Ok(new { Usuario = resultado.Value, Permisos = RolePermissions.GetPermissionsForRoles(resultado.Value.Roles) })
+            : Results.Unauthorized();
     }
 
     private static async Task<IResult> IniciarSesion(LoginRequest request, IAuthService authService)
@@ -105,7 +126,7 @@ public static class SeguridadEndpoints
 
     private static async Task<IResult> ActualizarUsuario(Guid id, ActualizarUsuarioRequest request, IAuthService authService)
     {
-        var result = await authService.ActualizarUsuarioAsync(id, request.NombreCompleto, request.Email);
+        var result = await authService.ActualizarUsuarioAsync(id, request.NombreCompleto, request.Email, request.Roles);
         if (result.IsFailure)
         {
             return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Error al actualizar usuario", result.Error));
@@ -197,3 +218,4 @@ public static class SeguridadEndpoints
 public record LoginRequest(string Email, string Password);
 public record RegisterRequest(string Email, string Password, string NombreCompleto, List<string> Roles);
 public record AsignarRolesRequest(List<string> Roles);
+public record ConfiguracionInicialRequest(string Email, string Password, string NombreCompleto);

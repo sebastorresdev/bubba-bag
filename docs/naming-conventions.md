@@ -22,33 +22,26 @@ Regla del proyecto: **la arquitectura técnica se nombra en inglés, pero el dom
 | `Empleado` (entidad) | `Employee` |
 | `Modules/RecursosHumanos/` (módulo) | `Modules/HR/` |
 | `CrearClienteCommandHandler` | `CrearClienteCommandManejador` |
-| `ActualizarFacturaCommand` | `UpdateFacturaCommand` |
-| `ClienteRepository` | `RepositorioCliente` |
+| `ActualizarProductoCommand` | `UpdateProductoCommand` |
+| `ProductoRepository` | `RepositorioProducto` |
 
 ## Aplica a
 
-- Nombres de módulos de negocio (carpetas, proyectos, namespaces): `Ventas`, `Inventario`,
-  `Contabilidad`, `RecursosHumanos`, `Crm`, `Manufactura`, etc. — no `Sales`, `Inventory`,
-  `Accounting`, `HR`.
-- Entidades de dominio y sus propiedades de negocio (ej. `Empleado.Salario`, no
-  `Employee.Salary`), salvo campos técnicos genéricos (`Id`, `CreatedAtUtc`, etc. pueden quedar en
-  inglés como parte de `Entity<TId>` del SharedKernel).
-- Comandos, queries, DTOs, validadores, endpoints HTTP (ej. `/api/ventas/clientes`, no
-  `/api/sales/customers`).
+- Nombres de módulos de negocio (carpetas, proyectos, namespaces): `ServicioCampo`, `RecursosHumanos`,
+  `Seguridad`, etc. — no `FieldService`, `HR`, `Security`.
+- Entidades de dominio y sus propiedades de negocio (ej. `Empleado.Salario`, `Producto.PrecioBase`), salvo campos técnicos genéricos (`Id`, `CreatedAtUtc`, etc. que forman parte de `Entity<TId>` del SharedKernel).
+- Comandos, queries, DTOs, validadores, endpoints HTTP (ej. `/api/inventario/productos`, `/api/rrhh/empleados`).
 
 ## NO aplica a (queda en inglés)
 
-- `BubbaBag.SharedKernel`, librerías transversales, etc. — son infraestructura
+- `BubbaBag.SharedKernel`, librerías transversales, middleware — son infraestructura
   técnica transversal, no dominio de negocio de un módulo específico.
+- Componentes técnicos de ingestión / ETL: `GestionDatos` utiliza términos técnicos estándar de pipeline de datos (`DataImportJob`, `DataImportEngineService`, `EntityImportDescriptorDto`, `preview`, `mappings`) al tratarse de herramientas genéricas de infraestructura de datos.
 - Sufijos/patrones de arquitectura: `Command`, `Query`, `Handler`, `Dto`, `Repository`, `Entity`,
   `Validator`, `DbContext`.
 - Nombres de capas: `Domain`, `Application`, `Infrastructure`, `Api`.
 - Identificadores técnicos genéricos: `Id`, `CreatedAtUtc`, `IsActive`, etc.
 
-## Módulo de referencia
+## Módulos de referencia
 
-El módulo `Ventas` (`src/Modules/Ventas/`) sigue esta convención y sirve como plantilla exacta
-para los módulos siguientes: `Cliente` (entidad), `ClienteDto`, `CrearClienteCommand`,
-`CrearClienteCommandHandler`, `CrearClienteValidator`, `ObtenerClientesQuery`,
-`ObtenerClientesQueryHandler`, `IClienteRepository`, `ClienteRepository`, `VentasDbContext`,
-`VentasEndpoints`, ruta `/api/ventas/clientes`.
+Los módulos `ServicioCampo` (`src/Modules/ServicioCampo/`) y `RecursosHumanos` (`src/Modules/RecursosHumanos/`) siguen esta convención y sirven como plantilla exacta: `Empleado`, `Producto`, `Almacen`, `CrearEmpleadoCommand`, `ObtenerProductosQuery`, `ServicioCampoDbContext`, etc.

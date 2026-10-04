@@ -16,15 +16,17 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Services;
 public class ServicioCampoImportProvider : IEntityImportProvider
 {
     private readonly IServicioCampoDbContext _context;
+    private readonly BubbaBag.SharedKernel.ICurrentUser _usuario;
 
-    public ServicioCampoImportProvider(IServicioCampoDbContext context)
+    public ServicioCampoImportProvider(IServicioCampoDbContext context, BubbaBag.SharedKernel.ICurrentUser usuario)
     {
         _context = context;
+        _usuario = usuario;
     }
 
     public IEnumerable<EntityImportDescriptorDto> GetDescriptors()
     {
-        return new List<EntityImportDescriptorDto>
+        var descriptores = new List<EntityImportDescriptorDto>
         {
             // 1. PRODUCTOS
             new()
@@ -145,6 +147,9 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                 }
             }
         };
+        return descriptores.Where(x => _usuario.HasPermission(x.EntityName == "Cliente"
+            ? BubbaBag.SharedKernel.Authorization.Permissions.Crm.ClientesCrear
+            : BubbaBag.SharedKernel.Authorization.Permissions.Inventario.CatalogosGestionar));
     }
 
     public bool Supports(string entityName)
@@ -161,6 +166,10 @@ public class ServicioCampoImportProvider : IEntityImportProvider
         string duplicateMode,
         CancellationToken cancellationToken = default)
     {
+        var permiso = entityName.Equals("Cliente", StringComparison.OrdinalIgnoreCase)
+            ? BubbaBag.SharedKernel.Authorization.Permissions.Crm.ClientesCrear
+            : BubbaBag.SharedKernel.Authorization.Permissions.Inventario.CatalogosGestionar;
+        if (!_usuario.IsAuthenticated || !_usuario.HasPermission(permiso)) throw new UnauthorizedAccessException("No tiene permiso para importar esta entidad.");
         if (entityName.Equals("Producto", StringComparison.OrdinalIgnoreCase))
         {
             return await ImportProductosAsync(mappedRows, duplicateMode, cancellationToken);
@@ -605,4 +614,3 @@ public class ServicioCampoImportProvider : IEntityImportProvider
 
     #endregion
 }
-

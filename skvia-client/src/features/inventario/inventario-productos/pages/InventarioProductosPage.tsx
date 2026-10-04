@@ -37,6 +37,7 @@ import { AlmacenService } from '../../almacenes/services/almacen.service';
 import type { AlmacenDto } from '../../almacenes/types/almacen.types';
 import { InventarioProductoService } from '../services/inventario-producto.service';
 import type { InventarioProductoDto } from '../types/inventario-producto.types';
+import { SeriesAlmacenDrawer } from '../components/SeriesAlmacenDrawer';
 
 const formatoCantidad = new Intl.NumberFormat('es-PE', { maximumFractionDigits: 4 });
 const formatoMoneda = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
@@ -51,6 +52,7 @@ export function InventarioProductosPage() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [seleccionados, setSeleccionados] = useState<Set<SelectionItemId>>(new Set());
+  const [itemParaVerSeries, setItemParaVerSeries] = useState<InventarioProductoDto | null>(null);
 
   const cargar = useCallback(async () => {
     try {
@@ -74,6 +76,8 @@ export function InventarioProductosPage() {
   const registrosFiltrados = useMemo(() => {
     const termino = buscar.trim().toLocaleLowerCase('es');
     return registros.filter((registro) => {
+      // Excluir artículos sin existencias ni stock disponible
+      if (registro.cantidadTotal <= 0 && registro.cantidadDisponible <= 0) return false;
       if (almacenId && registro.almacenId !== almacenId) return false;
       if (!termino) return true;
       return [registro.codigoProducto, registro.nombreProducto, registro.nombreAlmacen]
@@ -118,6 +122,8 @@ export function InventarioProductosPage() {
         </TableCellLayout>
       ),
     }),
+    createTableColumn({ columnId: 'ubicacion', renderHeaderCell: () => 'Ubicación', renderCell: item => item.nombreUbicacion }),
+    createTableColumn({ columnId: 'condicion', renderHeaderCell: () => 'Condición', renderCell: item => item.condicion }),
     createTableColumn({
       columnId: 'unidad',
       renderHeaderCell: () => 'Unidad',
@@ -136,7 +142,22 @@ export function InventarioProductosPage() {
     createTableColumn({
       columnId: 'total',
       renderHeaderCell: () => 'Existencia',
-      renderCell: (item: InventarioProductoDto) => <TableCellLayout>{formatoCantidad.format(item.cantidadTotal)}</TableCellLayout>,
+      renderCell: (item: InventarioProductoDto) => (
+        <TableCellLayout>
+          {item.esSerializado && item.cantidadTotal > 0 ? (
+            <Link
+              as="button"
+              style={{ fontWeight: 600, textDecoration: 'underline' }}
+              onClick={() => setItemParaVerSeries(item)}
+              title="Clic para ver detalle de series registradas"
+            >
+              {formatoCantidad.format(item.cantidadTotal)} (Ver series)
+            </Link>
+          ) : (
+            formatoCantidad.format(item.cantidadTotal)
+          )}
+        </TableCellLayout>
+      ),
     }),
     createTableColumn({
       columnId: 'valor',
@@ -202,7 +223,7 @@ export function InventarioProductosPage() {
             className={styles.searchBox}
             size="medium"
             contentBefore={<Search16Regular />}
-            placeholder="---"
+            placeholder="Buscar" aria-label="Buscar"
             value={buscar}
             onChange={(_, data) => setBuscar(data.value)}
           />
@@ -247,6 +268,8 @@ export function InventarioProductosPage() {
           Disponible: {formatoCantidad.format(totales.disponible)} · Reservado: {formatoCantidad.format(totales.reservado)} · Valor: {formatoMoneda.format(totales.valor)}
         </div>
       </footer>
+
+      <SeriesAlmacenDrawer item={itemParaVerSeries} alCerrar={() => setItemParaVerSeries(null)} />
     </div>
   );
 }

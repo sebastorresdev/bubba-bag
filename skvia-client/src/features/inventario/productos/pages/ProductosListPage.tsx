@@ -350,7 +350,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
             className={styles.searchBox}
             size="medium"
             contentBefore={<Search16Regular />}
-            placeholder="Buscar en esta vista..."
+            placeholder="Buscar" aria-label="Buscar en esta vista"
             value={searchKeyword}
             onChange={(_, data) => setSearchKeyword(data.value)}
           />

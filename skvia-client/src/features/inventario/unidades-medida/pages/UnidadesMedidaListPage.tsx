@@ -92,7 +92,7 @@ export const UnidadesMedidaListPage: React.FC<UnidadesMedidaListPageProps> = ({ 
       <Text weight="semibold" size={400}>Grupos y unidades de medida</Text>
       <div className={styles.viewToolsRight}>
         <Input className={styles.searchBox} contentBefore={<Search16Regular />} value={search}
-          placeholder="Buscar grupo o unidad..." onChange={(_, d) => setSearch(d.value)} />
+          placeholder="Buscar" aria-label="Buscar grupo o unidad" onChange={(_, d) => setSearch(d.value)} />
       </div>
     </div>
     <div className={styles.gridWrapper}>

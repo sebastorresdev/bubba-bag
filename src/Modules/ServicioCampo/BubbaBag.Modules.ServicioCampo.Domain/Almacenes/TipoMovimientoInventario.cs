@@ -43,5 +43,8 @@ public enum TipoMovimientoInventario
     /// <summary>
     /// Devolución formal de equipos en garantía / averiados hacia DIRECTV.
     /// </summary>
-    DevolucionAProveedor = 8
+    DevolucionAProveedor = 8,
+    SalidaATransito = 9,
+    RecepcionDeTransito = 10,
+    ResolucionTransito = 11
 }

@@ -28,7 +28,8 @@ public class JwtProvider : IJwtProvider
             new Claim(ClaimTypes.Email, usuario.Email ?? string.Empty),
             new Claim(JwtRegisteredClaimNames.Email, usuario.Email ?? string.Empty),
             new Claim(ClaimTypes.Name, usuario.NombreCompleto),
-            new Claim("nombre_completo", usuario.NombreCompleto)
+            new Claim("nombre_completo", usuario.NombreCompleto),
+            new Claim("security_stamp", usuario.SecurityStamp ?? string.Empty)
         };
 
         foreach (var rol in roles)

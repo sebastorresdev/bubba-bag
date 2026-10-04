@@ -363,7 +363,7 @@ export const ImportacionesListPage: React.FC = () => {
             className={styles.searchBox}
             size="medium"
             contentBefore={<Search16Regular />}
-            placeholder="Buscar importaciones..."
+            placeholder="Buscar" aria-label="Buscar importaciones"
             value={searchKeyword}
             onChange={(_, data) => setSearchKeyword(data.value)}
           />

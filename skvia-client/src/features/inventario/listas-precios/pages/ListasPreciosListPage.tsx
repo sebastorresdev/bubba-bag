@@ -363,7 +363,7 @@ export const ListasPreciosListPage: React.FC<ListasPreciosListPageProps> = ({
           <Input
             className={styles.searchBox}
             size="medium"
-            placeholder="Buscar en esta vista..."
+            placeholder="Buscar" aria-label="Buscar en esta vista"
             contentBefore={<Search16Regular />}
             value={searchKeyword}
             onChange={(_, d) => setSearchKeyword(d.value)}

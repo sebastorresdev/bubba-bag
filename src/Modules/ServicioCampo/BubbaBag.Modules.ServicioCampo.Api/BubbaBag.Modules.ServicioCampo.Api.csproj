@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Seguridad\BubbaBag.Modules.Seguridad.Application\BubbaBag.Modules.Seguridad.Application.csproj" />
     <ProjectReference Include="..\BubbaBag.Modules.ServicioCampo.Application\BubbaBag.Modules.ServicioCampo.Application.csproj" />
     <ProjectReference Include="..\BubbaBag.Modules.ServicioCampo.Infrastructure\BubbaBag.Modules.ServicioCampo.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\Shared\BubbaBag.SharedKernel\BubbaBag.SharedKernel.csproj" />

@@ -156,12 +156,12 @@ export const CrearUnidadDrawer: React.FC<CrearUnidadDrawerProps> = ({
           )}
         </D365FormField>
         <D365FormField label="Nombre" required htmlFor="nueva-unidad-nombre">
-          <Input id="nueva-unidad-nombre" className={estilos.control} placeholder="---" value={datos.nombre}
+          <Input id="nueva-unidad-nombre" className={estilos.control} value={datos.nombre}
             onChange={(_, cambio) => setDatos((actual) => ({ ...actual, nombre: cambio.value }))} />
         </D365FormField>
         <D365FormField label="Cantidad" required htmlFor="nueva-unidad-cantidad">
           <Input id="nueva-unidad-cantidad" className={estilos.control} type="number" min={0.000001}
-            step="any" placeholder="---" value={datos.cantidad > 0 ? String(datos.cantidad) : ''}
+            step="any" value={datos.cantidad > 0 ? String(datos.cantidad) : ''}
             onChange={(_, cambio) => setDatos((actual) => ({ ...actual, cantidad: Number(cambio.value) }))} />
         </D365FormField>
         <D365FormField label="Referencia" required htmlFor="nueva-unidad-referencia">
