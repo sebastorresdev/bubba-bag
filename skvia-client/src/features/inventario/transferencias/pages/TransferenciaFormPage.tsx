@@ -928,7 +928,9 @@ export function TransferenciaFormPage() {
         <div className={formStyles.toolbarLeft}>
           <D365CommandButton
             icon={<ArrowLeft16Regular />}
+            tone="brand"
             aria-label="Volver"
+            title="Volver al listado"
             onClick={() => navigate('/servicio-campo/transferencias')}
           />
           <D365CommandDivider />
@@ -1023,11 +1025,11 @@ export function TransferenciaFormPage() {
               General
             </Tab>
             <Tab value="productos" disabled={!pestanaProductosHabilitada} icon={<Table16Regular />}>
-              Productos ({lineas.length})
+              Productos
             </Tab>
             {isViewMode && (
               <Tab value="recepciones" icon={<History16Regular />}>
-                Recepciones ({detalle?.recepciones?.length ?? 0})
+                Recepciones
               </Tab>
             )}
           </TabList>

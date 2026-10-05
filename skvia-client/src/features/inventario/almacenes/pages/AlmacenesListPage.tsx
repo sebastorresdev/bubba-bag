@@ -4,6 +4,7 @@ import {
   Input,
   Text,
   Link,
+  Badge,
   Menu,
   MenuTrigger,
   MenuList,
@@ -55,7 +56,9 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
 
   // Filters & Search
   const [searchKeyword, setSearchKeyword] = useState<string>('');
-  const [activeView, setActiveView] = useState<'activos' | 'todos' | 'inactivos'>('activos');
+  const [activeView, setActiveView] = useState<
+    'activos' | 'bodegas' | 'custodias' | 'todos' | 'inactivos'
+  >('activos');
 
   // Fluent UI v9 DataGrid Selection
   const [selectedIds, setSelectedIds] = useState<Set<SelectionItemId>>(new Set());
@@ -89,9 +92,13 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
   const filteredAlmacenes = useMemo(() => {
     let result = [...almacenes];
 
-    // Filtro Estado
+    // Filtro Estado & Tipo
     if (activeView === 'activos') {
       result = result.filter((a) => a.activo);
+    } else if (activeView === 'bodegas') {
+      result = result.filter((a) => a.activo && a.tipo === 1);
+    } else if (activeView === 'custodias') {
+      result = result.filter((a) => a.activo && a.tipo === 2);
     } else if (activeView === 'inactivos') {
       result = result.filter((a) => !a.activo);
     }
@@ -102,7 +109,12 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
       result = result.filter(
         (a) =>
           a.nombre.toLowerCase().includes(q) ||
-          (a.descripcion && a.descripcion.toLowerCase().includes(q))
+          (a.codigo && a.codigo.toLowerCase().includes(q)) ||
+          (a.descripcion && a.descripcion.toLowerCase().includes(q)) ||
+          (a.unidadOrganizativaNombre &&
+            a.unidadOrganizativaNombre.toLowerCase().includes(q)) ||
+          (a.recursoNombre && a.recursoNombre.toLowerCase().includes(q)) ||
+          (a.tipo === 2 ? 'custodia personal' : 'bodega').includes(q)
       );
     }
 
@@ -131,6 +143,45 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
             >
               {item.nombre}
             </Link>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<AlmacenDto>({
+        columnId: 'tipo',
+        compare: (a, b) => (a.tipo || 0) - (b.tipo || 0),
+        renderHeaderCell: () => 'Tipo de almacén',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Badge
+              appearance="tint"
+              shape="rounded"
+              color={item.tipo === 2 ? 'brand' : 'informative'}
+            >
+              {item.tipo === 2 ? 'Custodia personal' : 'Bodega'}
+            </Badge>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<AlmacenDto>({
+        columnId: 'unidadOrganizativaNombre',
+        compare: (a, b) =>
+          (a.unidadOrganizativaNombre || '').localeCompare(b.unidadOrganizativaNombre || ''),
+        renderHeaderCell: () => 'Unidad Organizativa',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            {item.unidadOrganizativaId ? (
+              <Link
+                as="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/servicio-campo/unidades-organizativas/${item.unidadOrganizativaId}`);
+                }}
+              >
+                {item.unidadOrganizativaNombre}
+              </Link>
+            ) : (
+              <Text>{item.unidadOrganizativaNombre || '—'}</Text>
+            )}
           </TableCellLayout>
         ),
       }),
@@ -176,9 +227,13 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
         renderHeaderCell: () => 'Estado',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text>
+            <Badge
+              appearance="tint"
+              shape="rounded"
+              color={item.activo ? 'success' : 'subtle'}
+            >
               {item.activo ? 'Activo' : 'Inactivo'}
-            </Text>
+            </Badge>
           </TableCellLayout>
         ),
       }),
@@ -247,6 +302,10 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
               <Text weight="semibold" size={400}>
                 {activeView === 'activos'
                   ? 'Almacenes Activos'
+                  : activeView === 'bodegas'
+                  ? 'Bodegas'
+                  : activeView === 'custodias'
+                  ? 'Custodias Personales'
                   : activeView === 'inactivos'
                   ? 'Almacenes Inactivos'
                   : 'Todos los Almacenes'}
@@ -261,6 +320,18 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
                 onClick={() => setActiveView('activos')}
               >
                 Almacenes Activos
+              </MenuItem>
+              <MenuItem
+                icon={activeView === 'bodegas' ? <Checkmark16Regular /> : undefined}
+                onClick={() => setActiveView('bodegas')}
+              >
+                Bodegas
+              </MenuItem>
+              <MenuItem
+                icon={activeView === 'custodias' ? <Checkmark16Regular /> : undefined}
+                onClick={() => setActiveView('custodias')}
+              >
+                Custodias Personales
               </MenuItem>
               <MenuItem
                 icon={activeView === 'todos' ? <Checkmark16Regular /> : undefined}

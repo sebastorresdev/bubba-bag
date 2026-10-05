@@ -1,11 +1,12 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace BubbaBag.SharedKernel.Authorization;
 
 public static class RolePermissions
 {
-    private static readonly Dictionary<string, HashSet<string>> _rolePermissions = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly ConcurrentDictionary<string, HashSet<string>> _rolePermissions = new(StringComparer.OrdinalIgnoreCase)
     {
         [Roles.InventarioAdmin] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -131,6 +132,33 @@ public static class RolePermissions
             Permissions.Crm.ClientesEditar,
         }
     };
+
+    public static void SetRolePermissions(string role, IEnumerable<string> permissions)
+    {
+        if (string.Equals(role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+        {
+            _rolePermissions[Roles.SuperAdmin] = new HashSet<string>(Permissions.GetAll(), StringComparer.OrdinalIgnoreCase);
+            return;
+        }
+
+        _rolePermissions[role] = new HashSet<string>(permissions, StringComparer.OrdinalIgnoreCase);
+    }
+
+    public static void RemoveRole(string role)
+    {
+        if (!string.Equals(role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+        {
+            _rolePermissions.TryRemove(role, out _);
+        }
+    }
+
+    public static void SyncWithDatabase(IDictionary<string, IEnumerable<string>> dbPermissions)
+    {
+        foreach (var kvp in dbPermissions)
+        {
+            SetRolePermissions(kvp.Key, kvp.Value);
+        }
+    }
 
     public static bool RoleHasPermission(string role, string permission)
     {

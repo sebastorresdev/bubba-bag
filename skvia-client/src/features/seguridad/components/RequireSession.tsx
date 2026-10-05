@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { Button, Spinner, Text } from '@fluentui/react-components';
-import { clearSession, initializeSession, useAuthSession } from '../../services/authSession';
-import { canAccessPath, homePath } from './securityAccess';
-import { D365MessageBar } from '../../components/common/D365MessageBar';
+import { clearSession, initializeSession, useAuthSession } from '../../../services/authSession';
+import { canAccessPath, homePath } from '../services/securityAccess';
+import { D365MessageBar } from '../../../components/common/D365MessageBar';
 
 export function RequireSession() {
   const { usuario, cargando, permisos } = useAuthSession();

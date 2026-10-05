@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Input,
@@ -17,8 +17,9 @@ import {
   Clock16Regular,
   History16Regular,
   LockClosed16Regular,
+  Person16Regular,
 } from '@fluentui/react-icons';
-import { SeguridadService, type UsuarioDto } from '../../seguridad/seguridad.service';
+import { SeguridadService, type UsuarioDto } from '../../seguridad';
 import { SelectorEntidadRelacionada } from '../../../components/common/SelectorEntidadRelacionada';
 import { OrganizacionService } from '../services/organizacion.service';
 import type {
@@ -89,21 +90,43 @@ export function RecursoFormPage() {
       OrganizacionService.getUnidadesOrganizativas(true),
       OrganizacionService.getTerritorios(undefined, true),
       AlmacenService.getAlmacenes(true),
-      SeguridadService.usuariosVinculables(),
+      SeguridadService.usuariosVinculables(id),
     ])
       .then(([seds, terrs, alms, cuentas]) => {
         if (!activo) return;
         setSedes(seds);
         setUsuarios(cuentas);
         setTerritorios(terrs);
-        setAlmacenesBase(alms.filter((a) => a.tipo === 1)); // Bodegas base
+        setAlmacenesBase(
+          alms.filter(
+            (a) =>
+              a.tipo === 1 ||
+              String(a.tipo).toLowerCase().includes('bodega') ||
+              (!a.tipo && !a.recursoId)
+          )
+        ); // Bodegas base
       })
       .catch((e) => setStatusMessage({ type: 'error', text: e.message }));
 
     return () => {
       activo = false;
     };
-  }, []);
+  }, [id]);
+
+  const usuariosTecnicos = useMemo(() => {
+    return usuarios.filter(
+      (u) =>
+        u.id === formData.usuarioId ||
+        !u.roles ||
+        u.roles.length === 0 ||
+        u.roles.some(
+          (r) =>
+            r.toLowerCase().includes('tecnico') ||
+            r.toLowerCase().includes('técnico') ||
+            r === 'ServicioCampoTecnico'
+        )
+    );
+  }, [usuarios, formData.usuarioId]);
 
   const cargarDatos = useCallback(async (recId: string) => {
     try {
@@ -387,7 +410,9 @@ export function RecursoFormPage() {
                         .filter(
                           (a) =>
                             !formData.unidadOrganizativaId ||
-                            a.unidadOrganizativaId === formData.unidadOrganizativaId
+                            !a.unidadOrganizativaId ||
+                            a.unidadOrganizativaId === formData.unidadOrganizativaId ||
+                            a.id === formData.almacenBaseId
                         )
                         .map((a) => (
                           <option key={a.id} value={a.id}>
@@ -397,9 +422,12 @@ export function RecursoFormPage() {
                     </Select>
                   </D365FormField>
 
-                  <D365FormField label="Usuario de acceso vinculado">
-                    <SelectorEntidadRelacionada etiquetaGrupo="Usuarios" opciones={usuarios.map(u => ({ id: u.id, nombre: u.nombreCompleto, detalle: u.email }))}
-                      seleccionada={usuarios.find(u => u.id === formData.usuarioId) ? { id: formData.usuarioId!, nombre: usuarios.find(u => u.id === formData.usuarioId)!.nombreCompleto } : null}
+                  <D365FormField label="Usuario de acceso vinculado" error={errors.usuarioId}>
+                    <SelectorEntidadRelacionada
+                      etiquetaGrupo="Técnicos"
+                      icono={<Person16Regular />}
+                      opciones={usuariosTecnicos.map(u => ({ id: u.id, nombre: u.nombreCompleto, detalle: u.email }))}
+                      seleccionada={usuariosTecnicos.find(u => u.id === formData.usuarioId) ? { id: formData.usuarioId!, nombre: usuariosTecnicos.find(u => u.id === formData.usuarioId)!.nombreCompleto } : null}
                       textoBusqueda={busquedaUsuario} alCambiarBusqueda={setBusquedaUsuario}
                       alSeleccionar={usuarioId => setFormData(p => ({ ...p, usuarioId: usuarioId ?? '' }))}
                       alNavegar={usuarioId => navigate('/configuracion/usuarios/' + usuarioId)} deshabilitado={saving} />

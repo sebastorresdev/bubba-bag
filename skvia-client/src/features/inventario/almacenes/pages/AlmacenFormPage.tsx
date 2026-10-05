@@ -29,6 +29,9 @@ import {
   Box16Regular,
   Info16Regular,
   DocumentBulletList16Regular,
+  Location16Regular,
+  People16Regular,
+  Search16Regular,
 } from '@fluentui/react-icons';
 import { AlmacenConfiguracion } from '../components/AlmacenConfiguracion';
 import { AlmacenService } from '../services/almacen.service';
@@ -46,6 +49,7 @@ import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
+import { useCurrentUser } from '../../../../hooks/useCurrentUser';
 
 export interface AlmacenFormPageProps {
   almacenId?: string | null;
@@ -64,6 +68,12 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   const { id: routeId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const currentUser = useMemo(() => getCurrentUserSession(), []);
+  const user = useCurrentUser();
+  const esAdminAlmacenes =
+    user.isAuthenticated &&
+    user.roles.some((r) =>
+      ['SuperAdmin', 'ServicioCampoAdmin', 'InventarioAdmin'].includes(r)
+    );
 
   const effectiveId =
     propAlmacenId !== undefined
@@ -76,7 +86,9 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   const isEditMode = Boolean(currentId);
 
   // Tab State: standard D365 tabs
-  const [selectedTab, setSelectedTab] = useState<'general' | 'existencias' | 'detalle' | 'configuracion'>('general');
+  const [selectedTab, setSelectedTab] = useState<
+    'general' | 'existencias' | 'detalle' | 'configuracion' | 'ubicaciones' | 'autorizados'
+  >('general');
 
   // Catálogos reales desde la API
   const [unidades, setUnidades] = useState<UnidadOrganizativaDto[]>([]);
@@ -138,6 +150,15 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   useEffect(() => {
     void cargarCatalogos();
   }, [cargarCatalogos]);
+
+  // Si se está creando un almacén o es de tipo custodia personal, restringir pestañas inactivas
+  useEffect(() => {
+    if (!currentId && selectedTab !== 'general') {
+      setSelectedTab('general');
+    } else if (formData.tipo === 2 && selectedTab === 'autorizados') {
+      setSelectedTab('general');
+    }
+  }, [currentId, formData.tipo, selectedTab]);
 
   // Cargar existencias cuando se selecciona la pestaña
   const cargarExistencias = useCallback(async (almacenId: string) => {
@@ -517,25 +538,74 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
               <TabList
                 selectedValue={selectedTab}
                 onTabSelect={(_, data) =>
-                  setSelectedTab(data.value as 'general' | 'existencias' | 'detalle' | 'configuracion')
+                  setSelectedTab(
+                    data.value as
+                      | 'general'
+                      | 'existencias'
+                      | 'detalle'
+                      | 'configuracion'
+                      | 'ubicaciones'
+                      | 'autorizados'
+                  )
                 }
               >
                 <Tab value="general" icon={<Box16Regular />}>
                   General
                 </Tab>
-                <Tab value="existencias" icon={<DocumentBulletList16Regular />}>
-                  Existencias / Stock {existenciasConStock.length > 0 ? `(${existenciasConStock.length})` : ''}
-                </Tab>
-                {currentId && <Tab value="configuracion">Ubicaciones y permisos</Tab>}
-                <Tab value="detalle" icon={<Info16Regular />}>
-                  Detalle / Auditoría
-                </Tab>
+                {currentId && (
+                  <Tab value="existencias" icon={<DocumentBulletList16Regular />}>
+                    Existencias / Stock
+                  </Tab>
+                )}
+                {currentId && (
+                  <Tab value="ubicaciones" icon={<Location16Regular />}>
+                    Ubicaciones
+                  </Tab>
+                )}
+                {currentId && formData.tipo !== 2 && (esAdminAlmacenes || puedeSupervisar) && (
+                  <Tab value="autorizados" icon={<People16Regular />}>
+                    Usuarios autorizados
+                  </Tab>
+                )}
+                {currentId && (
+                  <Tab value="detalle" icon={<Info16Regular />}>
+                    Detalle / Auditoría
+                  </Tab>
+                )}
               </TabList>
             }
           />
 
           <div className={styles.contentBody}>
-            {selectedTab === 'configuracion' && currentId && <div className={styles.card}><AlmacenConfiguracion almacenId={currentId} puedeSupervisar={puedeSupervisar} /></div>}
+            {/* PESTAÑA: UBICACIONES */}
+            {selectedTab === 'ubicaciones' && currentId && (
+              <AlmacenConfiguracion
+                almacenId={currentId}
+                puedeSupervisar={puedeSupervisar}
+                vista="ubicaciones"
+                tipoAlmacen={formData.tipo}
+              />
+            )}
+
+            {/* PESTAÑA: USUARIOS AUTORIZADOS */}
+            {selectedTab === 'autorizados' && currentId && formData.tipo !== 2 && (
+              <AlmacenConfiguracion
+                almacenId={currentId}
+                puedeSupervisar={puedeSupervisar}
+                vista="autorizaciones"
+                tipoAlmacen={formData.tipo}
+              />
+            )}
+
+            {/* RETROCOMPATIBILIDAD CONFIGURACIÓN */}
+            {selectedTab === 'configuracion' && currentId && (
+              <AlmacenConfiguracion
+                almacenId={currentId}
+                puedeSupervisar={puedeSupervisar}
+                vista="todas"
+                tipoAlmacen={formData.tipo}
+              />
+            )}
             {/* PESTAÑA 1: GENERAL */}
             {selectedTab === 'general' && (
               <div className={styles.card}>
@@ -645,7 +715,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
             )}
 
             {/* PESTAÑA 2: EXISTENCIAS / STOCK */}
-            {selectedTab === 'existencias' && (
+            {selectedTab === 'existencias' && currentId && (
               <div className={styles.card}>
                 {!isEditMode ? (
                   <div style={{ padding: '24px', textAlign: 'center', color: '#605e5c' }}>
@@ -662,15 +732,17 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
                         marginBottom: 12,
                       }}
                     >
+                      <span style={{ fontSize: 13, color: '#605e5c' }}>
+                        Total líneas con stock: <strong>{existenciasFiltradas.length}</strong>
+                      </span>
                       <Input
-                        placeholder="Buscar" aria-label="Buscar producto o código"
+                        contentBefore={<Search16Regular />}
+                        placeholder="Buscar por producto o código..."
+                        aria-label="Buscar producto o código"
                         value={filtroStock}
                         onChange={(_e, d) => setFiltroStock(d.value)}
                         style={{ width: 280 }}
                       />
-                      <span style={{ fontSize: 12, color: '#605e5c' }}>
-                        Total líneas con stock: <strong>{existenciasFiltradas.length}</strong>
-                      </span>
                     </div>
 
                     {cargandoExistencias ? (
@@ -687,7 +759,9 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
                           <TableRow>
                             <TableHeaderCell>Código</TableHeaderCell>
                             <TableHeaderCell>Producto</TableHeaderCell>
-                            <TableHeaderCell>Ubicación</TableHeaderCell><TableHeaderCell>Condición</TableHeaderCell><TableHeaderCell>Control</TableHeaderCell>
+                            <TableHeaderCell>Ubicación</TableHeaderCell>
+                            <TableHeaderCell>Condición</TableHeaderCell>
+                            <TableHeaderCell>Control</TableHeaderCell>
                             <TableHeaderCell style={{ textAlign: 'right' }}>Disponible</TableHeaderCell>
                             <TableHeaderCell style={{ textAlign: 'right' }}>Reservado</TableHeaderCell>
                             <TableHeaderCell style={{ textAlign: 'right' }}>Total</TableHeaderCell>
@@ -708,25 +782,43 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
                                   <strong>{item.nombreProducto}</strong>
                                 </TableCellLayout>
                               </TableCell>
-                              <TableCell>{item.nombreUbicacion}</TableCell><TableCell>{item.condicion}</TableCell>
+                              <TableCell>{item.nombreUbicacion || '—'}</TableCell>
+                              <TableCell>
+                                {item.condicion === 'Utilizable' ? (
+                                  <Badge appearance="tint" shape="rounded" color="success">
+                                    Utilizable
+                                  </Badge>
+                                ) : item.condicion ? (
+                                  <Badge appearance="tint" shape="rounded" color="danger">
+                                    {item.condicion}
+                                  </Badge>
+                                ) : (
+                                  '—'
+                                )}
+                              </TableCell>
                               <TableCell>
                                 {item.esSerializado ? (
-                                  <Badge appearance="tint" color="brand">Seriado</Badge>
+                                  <Badge appearance="tint" shape="rounded" color="brand">
+                                    Seriado
+                                  </Badge>
                                 ) : (
-                                  <Badge appearance="outline">No seriado</Badge>
+                                  <Badge appearance="tint" shape="rounded" color="subtle">
+                                    No seriado
+                                  </Badge>
                                 )}
                               </TableCell>
                               <TableCell style={{ textAlign: 'right' }}>
                                 <Badge
-                                  appearance="filled"
-                                  color={item.cantidadDisponible > 0 ? 'success' : 'informative'}
+                                  appearance="tint"
+                                  shape="rounded"
+                                  color={item.cantidadDisponible > 0 ? 'success' : 'subtle'}
                                 >
                                   {item.cantidadDisponible} {item.nombreUnidadMedida || 'UND'}
                                 </Badge>
                               </TableCell>
                               <TableCell style={{ textAlign: 'right' }}>
                                 {item.cantidadReservada > 0 ? (
-                                  <Badge appearance="tint" color="warning">
+                                  <Badge appearance="tint" shape="rounded" color="warning">
                                     {item.cantidadReservada} {item.nombreUnidadMedida || 'UND'}
                                   </Badge>
                                 ) : (
@@ -747,7 +839,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
             )}
 
             {/* PESTAÑA 3: DETALLE / AUDITORÍA */}
-            {selectedTab === 'detalle' && (
+            {selectedTab === 'detalle' && currentId && (
               <div className={styles.card}>
                 <div className={styles.grid2Cols}>
                   <D365FormField label="Creado por">

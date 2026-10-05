@@ -18,16 +18,30 @@ public static class UbicacionesEndpoints
         g.MapGet("/{id:guid}/ubicaciones",ObtenerUbicaciones);
         g.MapPost("/{id:guid}/ubicaciones",CrearUbicacion);
         g.MapPatch("/{id:guid}/ubicaciones/{ubicacionId:guid}/estado",CambiarEstadoUbicacion);
+        g.MapDelete("/{id:guid}/ubicaciones/{ubicacionId:guid}",EliminarUbicacion);
         g.MapGet("/{id:guid}/destinos",ObtenerDestinos);
         g.MapGet("/{id:guid}/autorizaciones",ObtenerAutorizaciones);
         g.MapPut("/{id:guid}/autorizaciones/{usuarioId:guid}",GuardarAutorizacion);
+        g.MapDelete("/{id:guid}/autorizaciones/{usuarioId:guid}",EliminarAutorizacion);
     }
 
     private static async Task<IResult> ObtenerUsuariosAutorizables(ICurrentUser user,BubbaBag.Modules.Seguridad.Application.Auth.IAuthService usuarios)
     {
         if(!user.IsAuthenticated || !user.HasAnyRole(BubbaBag.SharedKernel.Authorization.Roles.SuperAdmin,BubbaBag.SharedKernel.Authorization.Roles.ServicioCampoAdmin,BubbaBag.SharedKernel.Authorization.Roles.InventarioAdmin)) return Results.Forbid();
-        var resultado=await usuarios.ObtenerUsuariosAsync();
-        return resultado.IsSuccess ? Results.Ok(resultado.Value) : Results.BadRequest(resultado.Error);
+        var resultado=await usuarios.ObtenerUsuariosAsync(soloActivos: true);
+        if (resultado.IsFailure) return Results.BadRequest(resultado.Error);
+
+        static bool EsAlmacenero(string rol) =>
+            rol.Equals(BubbaBag.SharedKernel.Authorization.Roles.InventarioAlmacenero, StringComparison.OrdinalIgnoreCase) ||
+            rol.Contains("almacen", StringComparison.OrdinalIgnoreCase) ||
+            rol.Contains("almacén", StringComparison.OrdinalIgnoreCase);
+
+        var almaceneros = resultado.Value
+            .Where(u => u.EsActivo && u.Roles.Any(EsAlmacenero))
+            .Select(u => new { u.Id, u.NombreCompleto, u.Email, u.EsActivo, u.Roles })
+            .ToList();
+
+        return Results.Ok(almaceneros);
     }
 
     private static async Task<IResult> ObtenerUbicaciones(Guid id,Guid? origenId,IServicioCampoDbContext db,ICurrentUser user,CancellationToken ct)
@@ -62,6 +76,35 @@ public static class UbicacionesEndpoints
         u.CambiarEstado(r.Activo); await db.SaveChangesAsync(ct); return Results.NoContent();
     }
 
+    private static async Task<IResult> EliminarUbicacion(Guid id, Guid ubicacionId, IServicioCampoDbContext db, ICurrentUser user, CancellationToken ct)
+    {
+        if (!await InventarioAcceso.PuedeAsync(db, user, id, "supervisar", ct)) return Results.Forbid();
+        var u = await db.UbicacionesInventario.SingleOrDefaultAsync(x => x.Id == ubicacionId && x.AlmacenId == id, ct);
+        if (u == null) return Results.NotFound();
+        if (u.EsPrincipal) return Results.BadRequest("La ubicación principal del almacén no se puede eliminar.");
+
+        if (await db.StocksAlmacen.AnyAsync(x => x.UbicacionId == u.Id && (x.CantidadDisponible > 0 || x.CantidadReservada > 0), ct))
+            return Results.BadRequest("No se puede eliminar la ubicación porque contiene existencias de stock activas.");
+
+        if (await db.ItemsSeriados.AnyAsync(x => x.UbicacionActualId == u.Id, ct))
+            return Results.BadRequest("No se puede eliminar la ubicación porque tiene números de serie asignados actualmente.");
+
+        if (await db.Transferencias.AnyAsync(x => (x.UbicacionOrigenId == u.Id || x.UbicacionDestinoId == u.Id) && (x.Estado == EstadoTransferencia.EnTransito || x.Estado == EstadoTransferencia.ParcialmenteRecibida), ct))
+            return Results.BadRequest("No se puede eliminar la ubicación porque tiene transferencias en tránsito pendientes.");
+
+        var tieneHistorico = await db.MovimientosInventario.AnyAsync(x => x.UbicacionOrigenId == u.Id || x.UbicacionDestinoId == u.Id, ct);
+        if (tieneHistorico)
+        {
+            u.CambiarEstado(false);
+            await db.SaveChangesAsync(ct);
+            return Results.Ok(new { mensaje = "La ubicación poseía historial de movimientos previos; ha sido desactivada para preservar la trazabilidad contable." });
+        }
+
+        db.UbicacionesInventario.Remove(u);
+        await db.SaveChangesAsync(ct);
+        return Results.NoContent();
+    }
+
     private static bool DestinoPermitido(Almacen a,Almacen b)=>b.Activo && a.UnidadOrganizativaId.HasValue && b.UnidadOrganizativaId.HasValue &&
         (a.Id==b.Id || a.Tipo==TipoAlmacen.Bodega && (b.Tipo==TipoAlmacen.Bodega || a.UnidadOrganizativaId==b.UnidadOrganizativaId) || a.Tipo==TipoAlmacen.CustodiaPersonal && b.Tipo==TipoAlmacen.Bodega && a.UnidadOrganizativaId==b.UnidadOrganizativaId);
 
@@ -86,11 +129,30 @@ public static class UbicacionesEndpoints
         if(usuarioId==Guid.Empty || !await db.Almacenes.AnyAsync(x=>x.Id==id,ct)) return Results.BadRequest("Usuario o almacén inválido.");
         var cuenta=await usuarios.ObtenerUsuarioPorIdAsync(usuarioId);
         if(cuenta.IsFailure || r.Activo && !cuenta.Value.EsActivo) return Results.BadRequest("El usuario no existe o está inactivo.");
+
+        // Validar que el usuario a autorizar posea el rol de Almacenero
+        var esAlmacenero = cuenta.Value.Roles.Any(rol =>
+            rol.Equals(BubbaBag.SharedKernel.Authorization.Roles.InventarioAlmacenero, StringComparison.OrdinalIgnoreCase) ||
+            rol.Contains("almacen", StringComparison.OrdinalIgnoreCase) ||
+            rol.Contains("almacén", StringComparison.OrdinalIgnoreCase));
+        if (!esAlmacenero)
+            return Results.BadRequest("Solo se pueden asignar y autorizar usuarios que tengan el rol de Almacenero.");
+
         if(r.Activo && !r.PuedeConsultar && (r.PuedeDespachar||r.PuedeRecepcionar||r.EsSupervisor)) return Results.BadRequest("Las facultades operativas requieren permiso de consulta.");
         var a=await db.UsuarioAlmacenAutorizaciones.SingleOrDefaultAsync(x=>x.UsuarioId==usuarioId && x.AlmacenId==id,ct);
         if(a==null){a=UsuarioAlmacenAutorizacion.Crear(usuarioId,id,r.PuedeConsultar,r.PuedeDespachar,r.PuedeRecepcionar,r.EsSupervisor);db.UsuarioAlmacenAutorizaciones.Add(a);}
         else a.ActualizarPermisos(r.PuedeConsultar,r.PuedeDespachar,r.PuedeRecepcionar,r.EsSupervisor);
         if(r.Activo)a.Activar();else a.Desactivar(); await db.SaveChangesAsync(ct);return Results.NoContent();
+    }
+
+    private static async Task<IResult> EliminarAutorizacion(Guid id,Guid usuarioId,IServicioCampoDbContext db,ICurrentUser user,CancellationToken ct)
+    {
+        if(!user.HasAnyRole(BubbaBag.SharedKernel.Authorization.Roles.SuperAdmin,BubbaBag.SharedKernel.Authorization.Roles.ServicioCampoAdmin,BubbaBag.SharedKernel.Authorization.Roles.InventarioAdmin) || !user.IsAuthenticated) return Results.Forbid();
+        var a=await db.UsuarioAlmacenAutorizaciones.SingleOrDefaultAsync(x=>x.UsuarioId==usuarioId && x.AlmacenId==id,ct);
+        if(a==null) return Results.NotFound();
+        db.UsuarioAlmacenAutorizaciones.Remove(a);
+        await db.SaveChangesAsync(ct);
+        return Results.NoContent();
     }
 }
 public record CrearUbicacionRequest(string Codigo,string Nombre);

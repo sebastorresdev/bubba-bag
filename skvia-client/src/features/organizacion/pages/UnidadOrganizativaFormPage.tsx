@@ -269,10 +269,10 @@ export function UnidadOrganizativaFormPage() {
                   General
                 </Tab>
                 <Tab value="territorios" disabled={!isEditMode} icon={<Shield16Regular />}>
-                  Territorios ({territorios.length})
+                  Territorios
                 </Tab>
                 <Tab value="almacenes" disabled={!isEditMode} icon={<Box16Regular />}>
-                  Almacenes ({almacenes.length})
+                  Almacenes
                 </Tab>
                 <Tab value="detalle" disabled={!isEditMode} icon={<History16Regular />}>
                   Detalle / Auditoría

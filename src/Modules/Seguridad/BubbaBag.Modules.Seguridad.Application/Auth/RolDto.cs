@@ -8,5 +8,7 @@ public record RolDto(
     string Modulo,
     string NombreVisible,
     string Descripcion,
-    System.Collections.Generic.List<string>? Permisos = null
+    System.Collections.Generic.List<string>? Permisos = null,
+    bool EsSistema = false,
+    int UsuariosCount = 0
 );

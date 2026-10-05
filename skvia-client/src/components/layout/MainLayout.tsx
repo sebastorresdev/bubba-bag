@@ -3,7 +3,7 @@ import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { makeStyles, tokens } from '@fluentui/react-components';
 import { SuiteBar } from './SuiteBar';
 import { SideNav } from './SideNav';
-import { availableApps } from '../../features/seguridad/securityAccess';
+import { availableApps } from '../../features/seguridad/services/securityAccess';
 import { useAuthSession } from '../../services/authSession';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import type { NavArea, NavItem, EnterpriseApp } from '../../types/navigation.types';
@@ -124,6 +124,7 @@ export const MainLayout: React.FC = () => {
         onSelectApp={handleSelectApp}
         isNavOpen={navOpen}
         onToggleNav={handleToggleNav}
+        isMobile={isMobile}
       />
 
       {/* Main Body */}

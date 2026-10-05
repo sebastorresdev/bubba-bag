@@ -48,6 +48,13 @@ const useStyles = makeStyles({
   },
   metadataValue: { fontSize: tokens.fontSizeBase300, fontWeight: tokens.fontWeightSemibold, color: tokens.colorNeutralForeground1 },
   metadataDivider: { height: '28px' },
+  processFlow: {
+    margin: '0 -24px',
+    padding: '8px 24px',
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    backgroundColor: tokens.colorNeutralBackground1,
+  },
   tabs: { marginTop: tokens.spacingVerticalXS },
   titleSkeleton: { width: '280px', marginBottom: tokens.spacingVerticalXS },
   subtitleSkeleton: { width: '180px' },
@@ -68,6 +75,7 @@ export interface D365EntityHeaderProps {
   avatarSize?: 48 | 56;
   subtleAvatar?: boolean;
   metadata?: D365EntityMetadata[];
+  processFlow?: ReactNode;
   tabs?: ReactNode;
   loading?: boolean;
   className?: string;
@@ -82,6 +90,7 @@ export const D365EntityHeader: React.FC<D365EntityHeaderProps> = ({
   avatarSize = 56,
   subtleAvatar = false,
   metadata = [],
+  processFlow,
   tabs,
   loading = false,
   className,
@@ -138,6 +147,7 @@ export const D365EntityHeader: React.FC<D365EntityHeaderProps> = ({
           </div>
         )}
       </div>
+      {processFlow && <div className={styles.processFlow}>{processFlow}</div>}
       {tabs && <div className={styles.tabs}>{tabs}</div>}
     </header>
   );

@@ -81,7 +81,14 @@ export function TerritorioFormPage() {
       .then(([seds, alms]) => {
         if (!activo) return;
         setSedes(seds);
-        setAlmacenes(alms.filter((a) => a.tipo === 1)); // Solo bodegas base para abastecimiento
+        setAlmacenes(
+          alms.filter(
+            (a) =>
+              a.tipo === 1 ||
+              String(a.tipo).toLowerCase().includes('bodega') ||
+              (!a.tipo && !a.recursoId)
+          )
+        ); // Solo bodegas base para abastecimiento
       })
       .catch((e) => console.error(e));
 
@@ -271,7 +278,7 @@ export function TerritorioFormPage() {
                   General
                 </Tab>
                 <Tab value="recursos" disabled={!isEditMode} icon={<People16Regular />}>
-                  Técnicos Asignados ({recursosAsignados.length})
+                  Técnicos Asignados
                 </Tab>
                 <Tab value="detalle" disabled={!isEditMode} icon={<History16Regular />}>
                   Detalle / Auditoría
@@ -329,7 +336,13 @@ export function TerritorioFormPage() {
                     >
                       <option value="">Seleccione almacén predeterminado...</option>
                       {almacenes
-                        .filter((a) => !formData.unidadOrganizativaId || a.unidadOrganizativaId === formData.unidadOrganizativaId)
+                        .filter(
+                          (a) =>
+                            !formData.unidadOrganizativaId ||
+                            !a.unidadOrganizativaId ||
+                            a.unidadOrganizativaId === formData.unidadOrganizativaId ||
+                            a.id === formData.almacenPredeterminadoId
+                        )
                         .map((a) => (
                           <option key={a.id} value={a.id}>
                             {a.nombre}

@@ -113,7 +113,6 @@ export function TransferenciasListPage() {
           <TableCellLayout>
             <Link
               as="button"
-              style={{ fontWeight: tokens.fontWeightSemibold, cursor: 'pointer' }}
               onClick={(e) => {
                 e.stopPropagation();
                 navigate(`/servicio-campo/transferencias/${x.id}`);

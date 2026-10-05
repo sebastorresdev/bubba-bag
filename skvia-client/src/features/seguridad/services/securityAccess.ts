@@ -1,10 +1,13 @@
-import { ENTERPRISE_APPS } from '../../data/navigation.data';
-import type { EnterpriseApp } from '../../types/navigation.types';
+import { ENTERPRISE_APPS } from '../../../data/navigation.data';
+import type { EnterpriseApp } from '../../../types/navigation.types';
 
 export function canAccessPath(path: string, permisos: readonly string[]): boolean {
   const has = (permission: string) => permisos.includes(permission);
-  if (path.startsWith('/configuracion/usuarios') || path.startsWith('/configuracion/roles')) {
+  if (path.startsWith('/configuracion/usuarios')) {
     return has('seguridad.acceso') && (!path.includes('/nuevo') || has('seguridad.usuarios.gestionar'));
+  }
+  if (path.startsWith('/configuracion/roles')) {
+    return has('seguridad.acceso') && (!path.includes('/nuevo') || has('seguridad.roles.gestionar'));
   }
   if (path.startsWith('/gestion-datos/') || path.includes('/gestion-datos/') || path.includes('/data-management/'))
     return has('inventario.catalogos.gestionar') || has('crm.clientes.eliminar');

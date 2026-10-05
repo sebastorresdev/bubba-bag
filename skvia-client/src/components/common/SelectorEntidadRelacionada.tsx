@@ -14,7 +14,7 @@ import {
   tokens,
   type TagPickerProps,
 } from '@fluentui/react-components';
-import { Add16Regular } from '@fluentui/react-icons';
+import { Add16Regular, Person16Regular } from '@fluentui/react-icons';
 import { EnlaceEntidad } from './EnlaceEntidad';
 
 const usarEstilos = makeStyles({
@@ -75,6 +75,9 @@ export const SelectorEntidadRelacionada: React.FC<SelectorEntidadRelacionadaProp
   idEntrada,
 }) => {
   const estilos = usarEstilos();
+  const iconoFinal =
+    icono ?? (etiquetaGrupo.toLowerCase().includes('usuario') ? <Person16Regular /> : undefined);
+
   const opcionesFiltradas = useMemo(() => {
     const consulta = textoBusqueda.trim().toLocaleLowerCase('es');
     return opciones.filter((opcion) => {
@@ -103,7 +106,7 @@ export const SelectorEntidadRelacionada: React.FC<SelectorEntidadRelacionadaProp
             <EnlaceEntidad
               id={seleccionada.id}
               nombre={seleccionada.nombre}
-              icono={icono}
+              icono={iconoFinal}
               alNavegar={alNavegar}
               titulo={tituloEnlace}
             />
@@ -126,7 +129,7 @@ export const SelectorEntidadRelacionada: React.FC<SelectorEntidadRelacionadaProp
               <TagPickerOption
                 key={opcion.id}
                 value={opcion.id}
-                media={icono}
+                media={iconoFinal}
                 secondaryContent={opcion.detalle ? (
                   <Text size={100} className={estilos.detalle}>{opcion.detalle}</Text>
                 ) : undefined}

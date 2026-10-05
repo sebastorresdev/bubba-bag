@@ -79,13 +79,14 @@ public static class CatalogoRolesSistema
             var rol = await roleManager.FindByNameAsync(nombre);
             if (rol == null)
             {
-                var resultado = await roleManager.CreateAsync(new Rol
+                rol = new Rol
                 {
                     Name = nombre,
                     Modulo = modulo,
                     NombreVisible = nombreVisible,
                     Descripcion = descripcion
-                });
+                };
+                var resultado = await roleManager.CreateAsync(rol);
                 if (!resultado.Succeeded) throw new InvalidOperationException(string.Join(", ", resultado.Errors.Select(e => e.Description)));
             }
             else
@@ -101,7 +102,39 @@ public static class CatalogoRolesSistema
                     if (!resultado.Succeeded) throw new InvalidOperationException(string.Join(", ", resultado.Errors.Select(e => e.Description)));
                 }
             }
+
+            // Asegurar que los roles base tengan sus claims iniciales de permisos registrados
+            var claimsActuales = await roleManager.GetClaimsAsync(rol);
+            if (!claimsActuales.Any(c => c.Type == "permission"))
+            {
+                var permisosBase = RolePermissions.GetPermissionsForRole(nombre);
+                foreach (var p in permisosBase)
+                {
+                    await roleManager.AddClaimAsync(rol, new System.Security.Claims.Claim("permission", p));
+                }
+            }
         }
 
+        // Sincronizar permisos en memoria desde la base de datos para todos los roles (fijos y personalizados)
+        var db = serviceProvider.GetRequiredService<SeguridadDbContext>();
+        var todosLosClaims = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+            db.RoleClaims.Where(rc => rc.ClaimType == "permission")
+        );
+        var todosLosRoles = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+            roleManager.Roles
+        );
+
+        var mapa = new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var r in todosLosRoles)
+        {
+            if (string.IsNullOrEmpty(r.Name)) continue;
+            var perms = todosLosClaims.Where(rc => rc.RoleId == r.Id).Select(rc => rc.ClaimValue!).ToList();
+            if (perms.Count > 0)
+            {
+                mapa[r.Name] = perms;
+            }
+        }
+        RolePermissions.SyncWithDatabase(mapa);
     }
 }
+

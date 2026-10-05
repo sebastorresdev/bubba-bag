@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Button, Checkbox, Link, Spinner, Table, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell, Text } from '@fluentui/react-components';
 import { useNavigate } from 'react-router-dom';
-import { AlmacenService } from '../inventario/almacenes/services/almacen.service';
-import { D365MessageBar } from '../../components/common/D365MessageBar';
+import { AlmacenService } from '../../inventario/almacenes/services/almacen.service';
+import { D365MessageBar } from '../../../components/common/D365MessageBar';
 
 type Scope = { puedeConsultar: boolean; puedeDespachar: boolean; puedeRecepcionar: boolean; esSupervisor: boolean; activo: boolean };
 type Row = Scope & { id: string; nombre: string; dirty: boolean };

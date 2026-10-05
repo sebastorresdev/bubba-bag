@@ -24,8 +24,23 @@ public static class SeguridadEndpoints
         group.MapPost("/login", IniciarSesion)
             .AllowAnonymous();
 
+        group.MapGet("/permisos", ObtenerCatalogoPermisos)
+            .RequireAuthorization(Permissions.Seguridad.Acceso);
+
         group.MapGet("/roles", ObtenerRoles)
             .RequireAuthorization(Permissions.Seguridad.Acceso);
+
+        group.MapGet("/roles/{id:guid}", ObtenerRolPorId)
+            .RequireAuthorization(Permissions.Seguridad.Acceso);
+
+        group.MapPost("/roles", CrearRol)
+            .RequireAuthorization(Permissions.Seguridad.RolesGestionar);
+
+        group.MapPut("/roles/{id:guid}", ActualizarRol)
+            .RequireAuthorization(Permissions.Seguridad.RolesGestionar);
+
+        group.MapDelete("/roles/{id:guid}", EliminarRol)
+            .RequireAuthorization(Permissions.Seguridad.RolesGestionar);
 
         group.MapGet("/usuarios", ObtenerUsuarios)
             .RequireAuthorization(Permissions.Seguridad.Acceso);
@@ -92,10 +107,56 @@ public static class SeguridadEndpoints
         return Results.Ok(new { Token = result.Value });
     }
 
+    private static async Task<IResult> ObtenerCatalogoPermisos(IAuthService authService)
+    {
+        var result = await authService.ObtenerCatalogoPermisosAsync();
+        return Results.Ok(result.Value);
+    }
+
     private static async Task<IResult> ObtenerRoles(IAuthService authService)
     {
         var result = await authService.ObtenerTodosLosRolesAsync();
         return Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> ObtenerRolPorId(Guid id, IAuthService authService)
+    {
+        var result = await authService.ObtenerRolPorIdAsync(id);
+        if (result.IsFailure)
+        {
+            return Results.NotFound(new BubbaBag.SharedKernel.Http.ErrorResponse(404, "Rol no encontrado", result.Error));
+        }
+        return Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> CrearRol(CrearRolRequest request, IAuthService authService)
+    {
+        var result = await authService.CrearRolAsync(request.NombreVisible, request.Codigo, request.Modulo, request.Descripcion, request.Permisos);
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Error al crear rol", result.Error));
+        }
+        return Results.Ok(new { RolId = result.Value });
+    }
+
+    private static async Task<IResult> ActualizarRol(Guid id, ActualizarRolRequest request, IAuthService authService)
+    {
+        var result = await authService.ActualizarRolAsync(id, request.NombreVisible, request.Modulo, request.Descripcion, request.Permisos);
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Error al actualizar rol", result.Error));
+        }
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> EliminarRol(Guid id, IAuthService authService)
+    {
+        var result = await authService.EliminarRolAsync(id);
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new BubbaBag.SharedKernel.Http.ErrorResponse(400, "Error al eliminar rol", result.Error));
+        }
+        return Results.NoContent();
     }
 
     private static async Task<IResult> ObtenerUsuarios(string? busqueda, bool? soloActivos, IAuthService authService)
@@ -219,3 +280,5 @@ public record LoginRequest(string Email, string Password);
 public record RegisterRequest(string Email, string Password, string NombreCompleto, List<string> Roles);
 public record AsignarRolesRequest(List<string> Roles);
 public record ConfiguracionInicialRequest(string Email, string Password, string NombreCompleto);
+public record CrearRolRequest(string NombreVisible, string? Codigo, string Modulo, string Descripcion, List<string> Permisos);
+public record ActualizarRolRequest(string NombreVisible, string Modulo, string Descripcion, List<string> Permisos);

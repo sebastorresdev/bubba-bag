@@ -2,42 +2,49 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Badge,
-  DataGrid,
-  DataGridBody,
-  DataGridCell,
-  DataGridHeader,
-  DataGridHeaderCell,
-  DataGridRow,
   Input,
   Link,
+  Menu,
+  MenuTrigger,
+  MenuPopover,
+  MenuList,
+  MenuItem,
   TableCellLayout,
   Text,
-  tokens,
   createTableColumn,
 } from '@fluentui/react-components';
 import type { SelectionItemId, TableColumnDefinition } from '@fluentui/react-components';
 import {
   Add16Regular,
   ArrowClockwise16Regular,
-  BuildingBank20Regular,
   Checkmark16Regular,
+  ChevronDown16Regular,
   DismissCircle16Regular,
   Eye16Regular,
   Search16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../components/common/D365CommandBar';
-import { D365ListState } from '../../../components/common/D365ListState';
+import { D365EntityTable } from '../../../components/common/D365EntityTable';
 import { D365MessageBar } from '../../../components/common/D365MessageBar';
-import { TableEmptyState } from '../../../components/common/TableEmptyState';
 import { useD365ListStyles } from '../../../styles/d365ListStyles';
 import { OrganizacionService } from '../services/organizacion.service';
 import type { UnidadOrganizativaDto } from '../types/organizacion.types';
+
+type VistaUnidades = 'activas' | 'todas' | 'principales' | 'inactivas';
+
+const nombresVistaUnidades: Record<VistaUnidades, string> = {
+  activas: 'Sedes y bases activas',
+  todas: 'Todas las unidades organizativas',
+  principales: 'Sedes principales',
+  inactivas: 'Unidades inactivas',
+};
 
 export function UnidadesOrganizativasListPage() {
   const styles = useD365ListStyles();
   const navigate = useNavigate();
   const [datos, setDatos] = useState<UnidadOrganizativaDto[]>([]);
   const [buscar, setBuscar] = useState('');
+  const [vista, setVista] = useState<VistaUnidades>('activas');
   const [seleccionados, setSeleccionados] = useState<Set<SelectionItemId>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,14 +69,18 @@ export function UnidadesOrganizativasListPage() {
 
   const filtrados = useMemo(() => {
     const q = buscar.trim().toLowerCase();
-    if (!q) return datos;
-    return datos.filter(
-      (u) =>
+    return datos.filter((u) => {
+      if (vista === 'activas' && !u.activo) return false;
+      if (vista === 'inactivas' && u.activo) return false;
+      if (vista === 'principales' && !u.esSedePrincipal) return false;
+      if (!q) return true;
+      return (
         u.nombre.toLowerCase().includes(q) ||
         u.codigo.toLowerCase().includes(q) ||
         (u.ciudad && u.ciudad.toLowerCase().includes(q))
-    );
-  }, [buscar, datos]);
+      );
+    });
+  }, [buscar, datos, vista]);
 
   const itemSeleccionado = useMemo(() => {
     if (seleccionados.size !== 1) return null;
@@ -102,7 +113,6 @@ export function UnidadesOrganizativasListPage() {
           <TableCellLayout>
             <Link
               as="button"
-              style={{ fontWeight: tokens.fontWeightSemibold, cursor: 'pointer' }}
               onClick={(e) => {
                 e.stopPropagation();
                 navigate(`/servicio-campo/unidades-organizativas/${x.id}`);
@@ -119,7 +129,7 @@ export function UnidadesOrganizativasListPage() {
         renderHeaderCell: () => 'Nombre / Sede',
         renderCell: (x) => (
           <TableCellLayout>
-            <Text weight="semibold">{x.nombre}</Text>
+            <Text>{x.nombre}</Text>
           </TableCellLayout>
         ),
       }),
@@ -144,11 +154,11 @@ export function UnidadesOrganizativasListPage() {
         renderCell: (x) => (
           <TableCellLayout>
             {x.esSedePrincipal ? (
-              <Badge appearance="filled" color="important">
+              <Badge appearance="tint" shape="rounded" color="important">
                 Sede Principal
               </Badge>
             ) : (
-              <Badge appearance="tint" color="informative">
+              <Badge appearance="tint" shape="rounded" color="informative">
                 Base Zonal
               </Badge>
             )}
@@ -160,7 +170,11 @@ export function UnidadesOrganizativasListPage() {
         renderHeaderCell: () => 'Estado',
         renderCell: (x) => (
           <TableCellLayout>
-            <Badge appearance="filled" color={x.activo ? 'success' : 'danger'}>
+            <Badge
+              appearance="tint"
+              shape="rounded"
+              color={x.activo ? 'success' : 'danger'}
+            >
               {x.activo ? 'Activo' : 'Inactivo'}
             </Badge>
           </TableCellLayout>
@@ -214,62 +228,61 @@ export function UnidadesOrganizativasListPage() {
       </D365CommandBar>
 
       <div className={styles.viewHeader}>
-        <div className={styles.viewSelectorTab}>
-          <BuildingBank20Regular />
-          <Text weight="semibold" size={400}>
-            Unidades Organizativas (Sedes y Bases)
-          </Text>
-        </div>
+        <Menu>
+          <MenuTrigger disableButtonEnhancement>
+            <div className={styles.viewSelectorTab} title="Seleccionar vista">
+              <Text weight="semibold" size={400}>
+                {nombresVistaUnidades[vista]}
+              </Text>
+              <ChevronDown16Regular />
+            </div>
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList className={styles.viewMenuPopover}>
+              {(Object.keys(nombresVistaUnidades) as VistaUnidades[]).map((v) => (
+                <MenuItem
+                  key={v}
+                  icon={vista === v ? <Checkmark16Regular /> : undefined}
+                  onClick={() => {
+                    setVista(v);
+                    setSeleccionados(new Set());
+                  }}
+                >
+                  {nombresVistaUnidades[v]}
+                </MenuItem>
+              ))}
+            </MenuList>
+          </MenuPopover>
+        </Menu>
 
         <div className={styles.viewToolsRight}>
           <Input
             className={styles.searchBox}
             size="medium"
             contentBefore={<Search16Regular />}
-            placeholder="Buscar" aria-label="Buscar por nombre, código o ciudad"
+            placeholder="Buscar por nombre, código o ciudad..."
+            aria-label="Buscar en esta vista"
             value={buscar}
             onChange={(_, d) => setBuscar(d.value)}
           />
         </div>
       </div>
 
-      <div className={styles.gridContainer}>
-        <D365ListState loading={loading} error={error} onRetry={() => void cargar()}>
-          <DataGrid
-            items={filtrados}
-            columns={columns}
-            sortable
-            selectionMode="multiselect"
-            selectedItems={seleccionados}
-            onSelectionChange={(_, data) => setSeleccionados(data.selectedItems)}
-            getRowId={(item) => item.id}
-            focusMode="composite"
-            size="medium"
-            className={styles.table}
-          >
-            <DataGridHeader>
-              <DataGridRow>
-                {({ renderHeaderCell }) => <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>}
-              </DataGridRow>
-            </DataGridHeader>
-            {filtrados.length === 0 ? (
-              <TableEmptyState />
-            ) : (
-              <DataGridBody<UnidadOrganizativaDto>>
-                {({ item, rowId }) => (
-                  <DataGridRow<UnidadOrganizativaDto> key={rowId} className={styles.dataRow}>
-                    {({ renderCell }) => <DataGridCell className={styles.dataCell}>{renderCell(item)}</DataGridCell>}
-                  </DataGridRow>
-                )}
-              </DataGridBody>
-            )}
-          </DataGrid>
-        </D365ListState>
-      </div>
+      <D365EntityTable
+        items={filtrados}
+        columns={columns}
+        loading={loading}
+        error={error}
+        onRetry={() => void cargar()}
+        selectionMode="multiselect"
+        selectedItems={seleccionados}
+        onSelectionChange={(_, data) => setSeleccionados(data.selectedItems)}
+      />
 
       <footer className={styles.footer}>
         <div>
-          1-{filtrados.length} de {filtrados.length} ({seleccionados.size} seleccionados)
+          1-{filtrados.length} de {filtrados.length}
+          {seleccionados.size > 0 && ` (${seleccionados.size} seleccionados)`}
         </div>
         <div>Página 1</div>
       </footer>

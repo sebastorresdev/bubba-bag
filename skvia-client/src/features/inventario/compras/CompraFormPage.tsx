@@ -103,7 +103,14 @@ export function CompraFormPage() {
     {error && <D365MessageBar intent="error" onDismiss={() => setError(null)}>{error}</D365MessageBar>}
     {mensaje && <D365MessageBar intent="success" onDismiss={() => setMensaje(null)}>{mensaje}</D365MessageBar>}
     <D365CommandBar ariaLabel="Comandos de compra" busy={saving || cargandoDatos} busyLabel={cargandoDatos ? 'Cargando...' : 'Guardando...'}><div className={form.toolbarLeft}>
-      <D365CommandButton icon={<ArrowLeft16Regular />} aria-label="Volver" disabled={saving} onClick={() => navigate('/servicio-campo/recepciones-compra')} />
+      <D365CommandButton
+        icon={<ArrowLeft16Regular />}
+        tone="brand"
+        aria-label="Volver"
+        title="Volver al listado"
+        disabled={saving}
+        onClick={() => navigate('/servicio-campo/recepciones-compra')}
+      />
       <D365CommandDivider />
       <D365CommandButton icon={<Save16Regular />} tone="save" disabled={bloqueado} onClick={() => void guardar(false)}>Guardar</D365CommandButton>
       <D365CommandButton icon={<SaveMultiple16Regular />} tone="save" disabled={bloqueado} onClick={() => void guardar(true)}>Guardar y cerrar</D365CommandButton>
@@ -130,10 +137,20 @@ export function CompraFormPage() {
       <D365CommandDivider />
       <D365CommandButton icon={<Add16Regular />} tone="create" disabled={saving || cargandoDatos} onClick={() => navigate('/servicio-campo/recepciones-compra/nuevo')}>Nuevo</D365CommandButton>
     </div></D365CommandBar>
-    <D365EntityHeader loading={cargandoDatos} title={compra?.numero ?? 'Nueva compra'} subtitle="Compra" avatarName={proveedor || 'Compra'}
+    <D365EntityHeader
+      loading={cargandoDatos}
+      title={compra?.numero ?? 'Nueva compra'}
+      subtitle="Compra"
+      avatarName={proveedor || 'Compra'}
       metadata={[{ label: 'Estado', value: estado }, { label: 'Total', value: dinero(total) }]}
-      tabs={<TabList selectedValue={tab} onTabSelect={(_, d) => setTab(String(d.value))}><Tab value="general" disabled={cargandoDatos} icon={<Box16Regular />}>General</Tab><Tab value="productos" disabled={cargandoDatos} icon={<Table16Regular />}>Productos</Tab></TabList>} />
-    {!cargandoDatos && <CompraEtapas estado={estado} />}
+      processFlow={!cargandoDatos ? <CompraEtapas estado={estado} embedded /> : undefined}
+      tabs={
+        <TabList selectedValue={tab} onTabSelect={(_, d) => setTab(String(d.value))}>
+          <Tab value="general" disabled={cargandoDatos} icon={<Box16Regular />}>General</Tab>
+          <Tab value="productos" disabled={cargandoDatos} icon={<Table16Regular />}>Productos</Tab>
+        </TabList>
+      }
+    />
     <div className={form.contentBody} aria-busy={cargandoDatos}>{cargandoDatos ? <div className={form.card} role="status" aria-label="Cargando compra">
       <Skeleton animation="pulse">
         <SkeletonItem size={16} className={form.skeletonHeader} />

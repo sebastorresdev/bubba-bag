@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Button,
   DataGrid,
   DataGridBody,
   DataGridCell,
@@ -14,6 +15,16 @@ import {
   makeStyles,
   tokens,
   typographyStyles,
+  Menu,
+  MenuTrigger,
+  MenuPopover,
+  MenuList,
+  MenuItem,
+  Popover,
+  PopoverTrigger,
+  PopoverSurface,
+  Tooltip,
+  Text,
 } from '@fluentui/react-components';
 import type { TableColumnDefinition } from '@fluentui/react-components';
 import {
@@ -25,6 +36,9 @@ import {
   Person16Regular,
   Warning16Filled,
   Box16Regular,
+  ChevronDown16Regular,
+  Checkmark16Regular,
+  DataFunnel20Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton } from '../../../components/common/D365CommandBar';
 import { D365ListState } from '../../../components/common/D365ListState';
@@ -36,51 +50,6 @@ import { InventarioProductoService } from '../inventario-productos/services/inve
 import type { ItemSeriadoStockDto } from '../inventario-productos/types/inventario-producto.types';
 
 const useStyles = makeStyles({
-  filterBar: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '12px',
-    padding: '12px 24px',
-    alignItems: 'center',
-    backgroundColor: tokens.colorNeutralBackground1,
-    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-  },
-  filterItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  filterLabel: {
-    ...typographyStyles.caption1Strong,
-    color: tokens.colorNeutralForeground3,
-    textTransform: 'uppercase',
-  },
-  metricsBar: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-    gap: '12px',
-    padding: '12px 24px',
-    backgroundColor: tokens.colorNeutralBackground2,
-    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-  },
-  metricCard: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-    padding: '8px 12px',
-    backgroundColor: tokens.colorNeutralBackground1,
-    border: `1px solid ${tokens.colorNeutralStroke2}`,
-    borderRadius: tokens.borderRadiusMedium,
-  },
-  metricValue: {
-    ...typographyStyles.subtitle2,
-    fontWeight: tokens.fontWeightBold,
-  },
-  metricLabel: {
-    ...typographyStyles.caption2,
-    color: tokens.colorNeutralForeground3,
-    textTransform: 'uppercase',
-  },
   serieText: {
     fontFamily: 'monospace',
     fontWeight: tokens.fontWeightSemibold,
@@ -96,9 +65,21 @@ export function TrazabilidadSeriesPage() {
   const [almacenes, setAlmacenes] = useState<AlmacenDto[]>([]);
   const [almacenId, setAlmacenId] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState('TODOS');
+  const [vistaActual, setVistaActual] = useState<'todas' | 'almacen' | 'transito' | 'tecnico' | 'cliente' | 'averiado'>('todas');
+  const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
+  const [filtroPopoverOpen, setFiltroPopoverOpen] = useState(false);
   const [buscar, setBuscar] = useState('');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const vistas = useMemo(() => [
+    { id: 'todas', nombre: 'Todas las Series', estado: 'TODOS' },
+    { id: 'almacen', nombre: 'Series en Almacén', estado: 'EnAlmacen' },
+    { id: 'transito', nombre: 'Series en Tránsito', estado: 'EnTransito' },
+    { id: 'tecnico', nombre: 'Series en Custodia Técnico', estado: 'EnCustodiaTecnico' },
+    { id: 'cliente', nombre: 'Series en Cliente Abonado', estado: 'InstaladoEnCliente' },
+    { id: 'averiado', nombre: 'Series Averiadas / Retiradas', estado: 'AveriadoEnAlmacen' },
+  ], []);
 
   const cargar = useCallback(async () => {
     try {
@@ -142,42 +123,18 @@ export function TrazabilidadSeriesPage() {
     });
   }, [series, estadoFiltro, buscar]);
 
-  // Métricas de estado
-  const metricas = useMemo(() => {
-    let enAlmacen = 0;
-    let enTransito = 0;
-    let enTecnico = 0;
-    let enCliente = 0;
-    let averiado = 0;
-
-    series.forEach(s => {
-      if (s.estado === 'EnAlmacen') enAlmacen++;
-      else if (s.estado === 'EnTransito') enTransito++;
-      else if (s.estado === 'EnCustodiaTecnico') enTecnico++;
-      else if (s.estado === 'InstaladoEnCliente') enCliente++;
-      else if (s.estado === 'AveriadoEnAlmacen' || s.estado === 'RetiradoPorAveria') averiado++;
-    });
-
-    return {
-      total: series.length,
-      enAlmacen,
-      enTransito,
-      enTecnico,
-      enCliente,
-      averiado,
-    };
-  }, [series]);
-
   // Exportar a CSV (Auditorías DIRECTV)
   const exportarCSV = () => {
     if (seriesFiltradas.length === 0) return;
-    const encabezados = ['Serie', 'CodigoProducto', 'Producto', 'Estado', 'Almacen', 'SmartCard', 'MAC', 'FechaIngreso'];
+    const encabezados = ['Serie', 'CodigoProducto', 'Producto', 'Estado', 'Almacen', 'Ubicacion', 'Condicion', 'SmartCard', 'MAC', 'FechaIngreso'];
     const filas = seriesFiltradas.map(s => [
       `"${s.numeroSerie}"`,
       `"${s.codigoProducto}"`,
       `"${s.nombreProducto}"`,
       `"${s.estado}"`,
-      `"${s.nombreAlmacen || ''}"`,
+      `"${(s.nombreAlmacen || '').replace(/^[\p{Emoji}\s]+/u, '').trim()}"`,
+      `"${s.nombreUbicacion || ''}"`,
+      `"${s.condicion || ''}"`,
       `"${s.numeroSmartCard || ''}"`,
       `"${s.macAddress || ''}"`,
       `"${new Date(s.createdAt).toISOString()}"`,
@@ -206,17 +163,24 @@ export function TrazabilidadSeriesPage() {
       ),
     }),
     createTableColumn({
+      columnId: 'codigo',
+      compare: (a, b) => a.codigoProducto.localeCompare(b.codigoProducto),
+      renderHeaderCell: () => 'Código',
+      renderCell: (item: ItemSeriadoStockDto) => (
+        <TableCellLayout>
+          <span style={{ fontFamily: 'Consolas, Monaco, monospace', fontWeight: 600, fontSize: '13px' }}>
+            {item.codigoProducto}
+          </span>
+        </TableCellLayout>
+      ),
+    }),
+    createTableColumn({
       columnId: 'producto',
       compare: (a, b) => a.nombreProducto.localeCompare(b.nombreProducto),
       renderHeaderCell: () => 'Producto',
       renderCell: (item: ItemSeriadoStockDto) => (
         <TableCellLayout truncate>
-          <div>
-            <div style={{ fontWeight: 600 }}>{item.nombreProducto}</div>
-            <div style={{ ...typographyStyles.caption2, color: tokens.colorNeutralForeground3 }}>
-              Cód: {item.codigoProducto}
-            </div>
-          </div>
+          <span style={{ fontWeight: 600 }}>{item.nombreProducto}</span>
         </TableCellLayout>
       ),
     }),
@@ -228,7 +192,7 @@ export function TrazabilidadSeriesPage() {
         if (item.estado === 'EnAlmacen') {
           return (
             <TableCellLayout>
-              <Badge appearance="tint" color="success" icon={<CheckmarkCircle16Filled />}>
+              <Badge appearance="tint" shape="rounded" color="success" icon={<CheckmarkCircle16Filled />}>
                 En Almacén
               </Badge>
             </TableCellLayout>
@@ -237,7 +201,7 @@ export function TrazabilidadSeriesPage() {
         if (item.estado === 'EnTransito') {
           return (
             <TableCellLayout>
-              <Badge appearance="tint" color="warning" icon={<ArrowClockwise16Regular />}>
+              <Badge appearance="tint" shape="rounded" color="warning" icon={<ArrowClockwise16Regular />}>
                 En Tránsito
               </Badge>
             </TableCellLayout>
@@ -246,7 +210,7 @@ export function TrazabilidadSeriesPage() {
         if (item.estado === 'EnCustodiaTecnico') {
           return (
             <TableCellLayout>
-              <Badge appearance="tint" color="informative" icon={<VehicleCarProfile16Regular />}>
+              <Badge appearance="tint" shape="rounded" color="informative" icon={<VehicleCarProfile16Regular />}>
                 En Camioneta / Técnico
               </Badge>
             </TableCellLayout>
@@ -255,7 +219,7 @@ export function TrazabilidadSeriesPage() {
         if (item.estado === 'InstaladoEnCliente') {
           return (
             <TableCellLayout>
-              <Badge appearance="tint" color="brand" icon={<Person16Regular />}>
+              <Badge appearance="tint" shape="rounded" color="brand" icon={<Person16Regular />}>
                 Instalado en Cliente
               </Badge>
             </TableCellLayout>
@@ -264,7 +228,7 @@ export function TrazabilidadSeriesPage() {
         if (item.estado === 'AveriadoEnAlmacen' || item.estado === 'RetiradoPorAveria') {
           return (
             <TableCellLayout>
-              <Badge appearance="tint" color="danger" icon={<Warning16Filled />}>
+              <Badge appearance="tint" shape="rounded" color="danger" icon={<Warning16Filled />}>
                 Averiado
               </Badge>
             </TableCellLayout>
@@ -272,7 +236,7 @@ export function TrazabilidadSeriesPage() {
         }
         return (
           <TableCellLayout>
-            <Badge appearance="outline" color="subtle">
+            <Badge appearance="outline" shape="rounded" color="subtle">
               {item.estado}
             </Badge>
           </TableCellLayout>
@@ -280,17 +244,52 @@ export function TrazabilidadSeriesPage() {
       },
     }),
     createTableColumn({
-      columnId: 'ubicacion',
+      columnId: 'almacen',
       compare: (a, b) => (a.nombreAlmacen ?? '').localeCompare(b.nombreAlmacen ?? ''),
       renderHeaderCell: () => 'Almacén / Custodio',
+      renderCell: (item: ItemSeriadoStockDto) => {
+        const nombreLimpio = item.nombreAlmacen
+          ? item.nombreAlmacen.replace(/^[\p{Emoji}\s]+/u, '').trim()
+          : '—';
+        return (
+          <TableCellLayout truncate>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Box16Regular style={{ color: tokens.colorNeutralForeground3, flexShrink: 0 }} />
+              <span>{item.estado === 'EnTransito' ? `En tránsito · ${item.transferenciaNumero ?? ''}` : nombreLimpio}</span>
+            </div>
+          </TableCellLayout>
+        );
+      },
+    }),
+    createTableColumn({
+      columnId: 'ubicacion',
+      compare: (a, b) => (a.nombreUbicacion ?? '').localeCompare(b.nombreUbicacion ?? ''),
+      renderHeaderCell: () => 'Ubicación',
       renderCell: (item: ItemSeriadoStockDto) => (
         <TableCellLayout truncate>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Box16Regular style={{ color: tokens.colorNeutralForeground3 }} />
-            <span>
-              {item.estado === 'EnTransito' ? `En tránsito · ${item.transferenciaNumero ?? ''}` : `${item.nombreAlmacen ?? ''} · ${item.nombreUbicacion ?? ''} · ${item.condicion}`}
-            </span>
-          </div>
+          <span>{item.nombreUbicacion || '—'}</span>
+        </TableCellLayout>
+      ),
+    }),
+    createTableColumn({
+      columnId: 'condicion',
+      compare: (a, b) => (a.condicion ?? '').localeCompare(b.condicion ?? ''),
+      renderHeaderCell: () => 'Condición',
+      renderCell: (item: ItemSeriadoStockDto) => (
+        <TableCellLayout>
+          {item.condicion === 'Utilizable' ? (
+            <Badge appearance="tint" shape="rounded" color="success">
+              Utilizable
+            </Badge>
+          ) : item.condicion === 'Defectuoso' ? (
+            <Badge appearance="tint" shape="rounded" color="danger">
+              Defectuoso
+            </Badge>
+          ) : (
+            <Badge appearance="outline" shape="rounded" color="subtle">
+              {item.condicion || '—'}
+            </Badge>
+          )}
         </TableCellLayout>
       ),
     }),
@@ -337,85 +336,114 @@ export function TrazabilidadSeriesPage() {
         </div>
       </D365CommandBar>
 
-      {/* Tarjetas de Métricas de Custodia */}
-      <div className={styles.metricsBar}>
-        <div className={styles.metricCard}>
-          <span className={styles.metricValue}>{metricas.total}</span>
-          <span className={styles.metricLabel}>Total Registradas</span>
-        </div>
-        <div className={styles.metricCard}>
-          <span className={`${styles.metricValue}`} style={{ color: tokens.colorPaletteGreenForeground1 }}>
-            {metricas.enAlmacen}
-          </span>
-          <span className={styles.metricLabel}>En Almacén Base</span>
-        </div>
-        <div className={styles.metricCard}>
-          <span className={`${styles.metricValue}`} style={{ color: tokens.colorPaletteYellowForeground1 }}>
-            {metricas.enTransito}
-          </span>
-          <span className={styles.metricLabel}>En Tránsito</span>
-        </div>
-        <div className={styles.metricCard}>
-          <span className={`${styles.metricValue}`} style={{ color: tokens.colorPaletteBlueForeground2 }}>
-            {metricas.enTecnico}
-          </span>
-          <span className={styles.metricLabel}>En Custodia Técnico</span>
-        </div>
-        <div className={styles.metricCard}>
-          <span className={`${styles.metricValue}`} style={{ color: tokens.colorPaletteBerryForeground1 }}>
-            {metricas.enCliente}
-          </span>
-          <span className={styles.metricLabel}>En Cliente Abonado</span>
-        </div>
-        <div className={styles.metricCard}>
-          <span className={`${styles.metricValue}`} style={{ color: tokens.colorPaletteRedForeground1 }}>
-            {metricas.averiado}
-          </span>
-          <span className={styles.metricLabel}>Averiadas / Retiradas</span>
-        </div>
-      </div>
+      {/* 2. VIEW HEADER ROW (Selector de Vista + Filtros + Búsqueda) */}
+      <div className={listStyles.viewHeader}>
+        <Menu>
+          <MenuTrigger disableButtonEnhancement>
+            <div className={listStyles.viewSelectorTab} title="Seleccionar vista">
+              <Text weight="semibold" size={400}>
+                {vistas.find(v => v.id === vistaActual)?.nombre || 'Todas las Series'}
+              </Text>
+              <ChevronDown16Regular />
+            </div>
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList className={listStyles.viewMenuPopover}>
+              {vistas.map(v => (
+                <MenuItem
+                  key={v.id}
+                  icon={vistaActual === v.id ? <Checkmark16Regular /> : undefined}
+                  onClick={() => {
+                    setVistaActual(v.id as any);
+                    setEstadoFiltro(v.estado);
+                  }}
+                >
+                  {v.nombre}
+                </MenuItem>
+              ))}
+            </MenuList>
+          </MenuPopover>
+        </Menu>
 
-      {/* Filtros Operativos */}
-      <div className={styles.filterBar}>
-        <div className={styles.filterItem}>
-          <span className={styles.filterLabel}>Almacén:</span>
-          <Select
-            size="small"
-            value={almacenId}
-            onChange={(_, d) => setAlmacenId(d.value)}
+        <div className={listStyles.viewToolsRight}>
+          <Popover
+            open={filtroPopoverOpen}
+            onOpenChange={(_, data) => setFiltroPopoverOpen(data.open)}
+            positioning="below-end"
           >
-            <option value="">Todos los almacenes</option>
-            {almacenes.map(a => (
-              <option key={a.id} value={a.id}>
-                {a.nombre}
-              </option>
-            ))}
-          </Select>
-        </div>
+            <PopoverTrigger disableButtonEnhancement>
+              <Tooltip content="Filtrar por almacén y estado" relationship="label">
+                <Button
+                  appearance={almacenId || (estadoFiltro !== 'TODOS' && vistaActual === 'todas') ? 'primary' : 'subtle'}
+                  size="medium"
+                  icon={<DataFunnel20Regular className={almacenId ? undefined : listStyles.iconBrand} />}
+                >
+                  {almacenId ? 'Filtros (1)' : 'Editar filtros'}
+                </Button>
+              </Tooltip>
+            </PopoverTrigger>
+            <PopoverSurface style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px', minWidth: '280px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text weight="semibold">Filtros de consulta</Text>
+                {(almacenId || estadoFiltro !== 'TODOS') && (
+                  <Button
+                    size="small"
+                    appearance="subtle"
+                    onClick={() => {
+                      setAlmacenId('');
+                      setEstadoFiltro('TODOS');
+                      setVistaActual('todas');
+                    }}
+                  >
+                    Restablecer
+                  </Button>
+                )}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground3 }}>ALMACÉN</Text>
+                <Select
+                  size="small"
+                  value={almacenId}
+                  onChange={(_, d) => setAlmacenId(d.value)}
+                >
+                  <option value="">Todos los almacenes</option>
+                  {almacenes.map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.nombre}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground3 }}>ESTADO DE CUSTODIA</Text>
+                <Select
+                  size="small"
+                  value={estadoFiltro}
+                  onChange={(_, d) => {
+                    setEstadoFiltro(d.value);
+                    const match = vistas.find(v => v.estado === d.value);
+                    if (match) setVistaActual(match.id as any);
+                    else setVistaActual('todas');
+                  }}
+                >
+                  <option value="TODOS">Todos los estados</option>
+                  <option value="EnAlmacen">En Almacén</option>
+                  <option value="EnTransito">En Tránsito</option>
+                  <option value="EnCustodiaTecnico">En Camioneta / Técnico</option>
+                  <option value="InstaladoEnCliente">Instalado en Cliente</option>
+                  <option value="AveriadoEnAlmacen">Averiado</option>
+                  <option value="DevueltoAProveedor">Devuelto a DIRECTV</option>
+                </Select>
+              </div>
+            </PopoverSurface>
+          </Popover>
 
-        <div className={styles.filterItem}>
-          <span className={styles.filterLabel}>Estado:</span>
-          <Select
-            size="small"
-            value={estadoFiltro}
-            onChange={(_, d) => setEstadoFiltro(d.value)}
-          >
-            <option value="TODOS">Todos los estados</option>
-            <option value="EnAlmacen">En Almacén</option>
-            <option value="EnTransito">En Tránsito</option>
-            <option value="EnCustodiaTecnico">En Camioneta / Técnico</option>
-            <option value="InstaladoEnCliente">Instalado en Cliente</option>
-            <option value="AveriadoEnAlmacen">Averiado</option>
-            <option value="DevueltoAProveedor">Devuelto a DIRECTV</option>
-          </Select>
-        </div>
-
-        <div style={{ flexGrow: 1, maxWidth: '400px', marginLeft: 'auto' }}>
           <Input
-            size="small"
-            style={{ width: '100%' }}
-            placeholder="Buscar" aria-label="Buscar por serie, smartcard, MAC o producto"
+            className={listStyles.searchBox}
+            size="medium"
             contentBefore={<Search16Regular />}
+            placeholder="Buscar serie, producto, MAC..."
+            aria-label="Buscar en esta vista"
             value={buscar}
             onChange={(_, d) => setBuscar(d.value)}
           />
@@ -434,6 +462,9 @@ export function TrazabilidadSeriesPage() {
             items={seriesFiltradas}
             columns={columns}
             sortable
+            selectionMode="multiselect"
+            selectedItems={selectedIds}
+            onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
             getRowId={item => item.id}
             focusMode="composite"
             size="medium"
@@ -463,14 +494,13 @@ export function TrazabilidadSeriesPage() {
         </D365ListState>
       </div>
 
-      {/* Footer */}
+      {/* Footer Estándar D365 */}
       <footer className={listStyles.footer}>
         <div>
-          Mostrando {seriesFiltradas.length} de {series.length} series registradas
+          1-{seriesFiltradas.length} de {seriesFiltradas.length}
+          {selectedIds.size > 0 && ` (${selectedIds.size} seleccionados)`}
         </div>
-        <div>
-          SKVIA Field Service • Control de Series 360°
-        </div>
+        <div>Página 1</div>
       </footer>
     </div>
   );

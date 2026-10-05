@@ -381,17 +381,61 @@ public static class OrganizacionEndpoints
         ));
     }
 
-    private static async Task<IResult> ObtenerUsuariosVinculables(BubbaBag.Modules.Seguridad.Application.Auth.IAuthService usuarios)
+    private static async Task<IResult> ObtenerUsuariosVinculables(
+        Guid? recursoId,
+        BubbaBag.Modules.Seguridad.Application.Auth.IAuthService usuarios,
+        IServicioCampoDbContext context,
+        CancellationToken ct)
     {
         var resultado = await usuarios.ObtenerUsuariosAsync(soloActivos: true);
-        return Results.Ok(resultado.Value.Select(u => new { u.Id, u.NombreCompleto, u.Email, u.EsActivo }));
+        if (resultado.IsFailure) return Results.BadRequest(resultado.Error);
+
+        Guid? usuarioActualId = null;
+        if (recursoId.HasValue && recursoId.Value != Guid.Empty)
+        {
+            var recurso = await context.Recursos.FindAsync([recursoId.Value], ct);
+            usuarioActualId = recurso?.UsuarioId;
+        }
+
+        static bool EsRolTecnico(string rol) =>
+            rol.Equals(BubbaBag.SharedKernel.Authorization.Roles.ServicioCampoTecnico, StringComparison.OrdinalIgnoreCase) ||
+            rol.Contains("tecnico", StringComparison.OrdinalIgnoreCase) ||
+            rol.Contains("técnico", StringComparison.OrdinalIgnoreCase);
+
+        var tecnicos = resultado.Value
+            .Where(u => u.Id == usuarioActualId || u.Roles.Any(EsRolTecnico))
+            .Select(u => new { u.Id, u.NombreCompleto, u.Email, u.EsActivo, u.Roles })
+            .ToList();
+
+        return Results.Ok(tecnicos);
     }
 
-    private static async Task<string?> ValidarUsuarioRecurso(Guid? usuarioId, BubbaBag.Modules.Seguridad.Application.Auth.IAuthService usuarios)
+    private static async Task<string?> ValidarUsuarioRecurso(
+        Guid? usuarioId,
+        BubbaBag.Modules.Seguridad.Application.Auth.IAuthService usuarios,
+        Guid? recursoActualId,
+        IServicioCampoDbContext context,
+        CancellationToken ct)
     {
-        if (!usuarioId.HasValue) return null;
+        if (!usuarioId.HasValue || usuarioId.Value == Guid.Empty) return null;
+
         var resultado = await usuarios.ObtenerUsuarioPorIdAsync(usuarioId.Value);
-        return resultado.IsFailure || !resultado.Value.EsActivo ? "Seleccione una cuenta de usuario existente y activa." : null;
+        if (resultado.IsFailure || !resultado.Value.EsActivo)
+            return "Seleccione una cuenta de usuario existente y activa.";
+
+        var esTecnico = resultado.Value.Roles.Any(rol =>
+            rol.Equals(BubbaBag.SharedKernel.Authorization.Roles.ServicioCampoTecnico, StringComparison.OrdinalIgnoreCase) ||
+            rol.Contains("tecnico", StringComparison.OrdinalIgnoreCase) ||
+            rol.Contains("técnico", StringComparison.OrdinalIgnoreCase));
+        if (!esTecnico)
+            return "El usuario seleccionado no cuenta con el rol de Técnico.";
+
+        var asignadoAOtro = await context.Recursos
+            .AnyAsync(r => r.UsuarioId == usuarioId.Value && (!recursoActualId.HasValue || r.Id != recursoActualId.Value), ct);
+        if (asignadoAOtro)
+            return "El usuario ya se encuentra vinculado a otro recurso.";
+
+        return null;
     }
 
     private static async Task<IResult> CrearRecurso(
@@ -406,7 +450,7 @@ public static class OrganizacionEndpoints
         var existe = await context.Recursos.AnyAsync(r => r.Codigo.ToUpper() == request.Codigo.Trim().ToUpper(), ct);
         if (existe) return Results.BadRequest($"Ya existe un recurso con el código '{request.Codigo.Trim().ToUpper()}'.");
 
-        var errorUsuario = await ValidarUsuarioRecurso(request.UsuarioId, usuarios);
+        var errorUsuario = await ValidarUsuarioRecurso(request.UsuarioId, usuarios, null, context, ct);
         if (errorUsuario != null) return Results.BadRequest(errorUsuario);
         var tipo = (TipoRecurso)(request.Tipo <= 0 ? 1 : request.Tipo);
         var recurso = Recurso.Crear(
@@ -446,6 +490,9 @@ public static class OrganizacionEndpoints
     {
         var recurso = await context.Recursos.FirstOrDefaultAsync(r => r.Id == id, ct);
         if (recurso is null) return Results.NotFound("Recurso no encontrado.");
+
+        var errorUsuario = await ValidarUsuarioRecurso(request.UsuarioId, usuarios, id, context, ct);
+        if (errorUsuario != null) return Results.BadRequest(errorUsuario);
 
         var tipo = (TipoRecurso)(request.Tipo <= 0 ? 1 : request.Tipo);
         var custodia=await context.Almacenes.FirstOrDefaultAsync(a=>a.RecursoId==id && a.Tipo==TipoAlmacen.CustodiaPersonal && a.Activo,ct);

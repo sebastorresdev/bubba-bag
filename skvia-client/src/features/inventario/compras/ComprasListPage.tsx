@@ -64,6 +64,7 @@ export function ComprasListPage() {
           <TableCellLayout>
             <Badge
               appearance="tint"
+              shape="rounded"
               color={esRecibida ? 'success' : esFaltante ? 'warning' : esEnviada ? 'informative' : 'subtle'}
             >
               {x.estado}

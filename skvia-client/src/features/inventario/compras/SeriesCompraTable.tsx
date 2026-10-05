@@ -11,6 +11,7 @@ import {
   TableRow,
   Text,
   Spinner,
+  Badge,
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
@@ -202,15 +203,13 @@ export function SeriesCompraTable({
                   </TableCell>
                   {setRecibidas && (
                     <TableCell>
-                      <span
-                        style={{
-                          color: estaRecibida ? '#107c41' : '#a80000',
-                          fontWeight: 600,
-                          fontSize: '12px',
-                        }}
+                      <Badge
+                        appearance="tint"
+                        color={estaRecibida ? 'success' : 'danger'}
+                        size="medium"
                       >
                         {estaRecibida ? '✓ Recibida' : '✗ Faltante'}
-                      </span>
+                      </Badge>
                     </TableCell>
                   )}
                   {!soloLectura && (

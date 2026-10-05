@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   makeStyles,
   tokens,
+  mergeClasses,
   Button,
   Divider,
   Input,
@@ -15,11 +16,14 @@ import {
   MenuList,
   MenuItem,
   MenuPopover,
+  OverlayDrawer,
+  DrawerHeader,
+  DrawerHeaderTitle,
+  DrawerBody,
 } from '@fluentui/react-components';
 import {
   Navigation24Regular,
   Apps20Regular,
-  ChevronDown12Regular,
   Search16Regular,
   WeatherSunny20Regular,
   WeatherMoon20Regular,
@@ -29,6 +33,7 @@ import {
   Checkmark16Regular,
   ArrowClockwise16Regular,
   SignOutRegular,
+  Dismiss20Regular,
 } from '@fluentui/react-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
@@ -72,27 +77,34 @@ const useStyles = makeStyles({
       color: semanticTokens.navigation.foreground,
     },
   },
-  brandBtn: {
-    minWidth: 'auto',
+  waffleBtn: {
+    minWidth: '48px',
+    width: '48px',
     height: '48px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    color: semanticTokens.navigation.foreground,
-    backgroundColor: 'transparent',
+    padding: 0,
+    backgroundColor: '#008272',
+    color: '#ffffff',
     border: 'none',
     borderRadius: 0,
-    padding: '0 12px',
-    fontSize: semanticTokens.typography.body,
-    fontWeight: semanticTokens.typography.regular,
     ':hover': {
-      backgroundColor: semanticTokens.navigation.hoverBackground,
-      color: semanticTokens.navigation.foreground,
+      backgroundColor: '#006e60',
+      color: '#ffffff',
     },
     ':active': {
-      backgroundColor: semanticTokens.navigation.pressedBackground,
-      color: semanticTokens.navigation.foreground,
+      backgroundColor: '#005b4f',
+      color: '#ffffff',
     },
+  },
+  brandText: {
+    padding: '0 12px',
+    fontSize: semanticTokens.typography.body,
+    fontWeight: semanticTokens.typography.semibold,
+    color: semanticTokens.navigation.foreground,
+    letterSpacing: '0.8px',
+    display: 'flex',
+    alignItems: 'center',
+    userSelect: 'none',
+    lineHeight: '48px',
   },
   divider: {
     height: '18px',
@@ -109,39 +121,83 @@ const useStyles = makeStyles({
     paddingLeft: '8px',
     paddingRight: '16px',
   },
-  brandLabel: {
-    fontWeight: semanticTokens.typography.semibold,
-    letterSpacing: '0.5px',
+  appsDrawer: {
+    width: '320px',
+    maxWidth: '85vw',
+    backgroundColor: tokens.colorNeutralBackground1,
   },
-  brandChevron: {
-    color: semanticTokens.navigation.foreground,
-    opacity: 0.8,
-  },
-  appMenu: {
-    minWidth: '320px',
-    maxWidth: '380px',
-    padding: '8px',
-  },
-  appLauncherHeader: {
-    padding: '8px 12px 4px 12px',
-    marginBottom: '4px',
+  drawerHeader: {
+    padding: '12px 16px',
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
   },
-  appSectionLabel: {
+  drawerHeaderTitleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  waffleHeaderIcon: {
+    width: '28px',
+    height: '28px',
+    borderRadius: '4px',
+    backgroundColor: '#008272',
+    color: '#ffffff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  drawerBody: {
+    padding: '12px 8px',
+  },
+  appsSectionHeader: {
+    padding: '6px 8px 10px 8px',
+  },
+  appsSectionLabel: {
     letterSpacing: '0.5px',
     color: tokens.colorNeutralForeground3,
   },
+  appsList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+  },
+  appCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '10px 12px',
+    borderRadius: tokens.borderRadiusMedium,
+    backgroundColor: 'transparent',
+    border: 'none',
+    width: '100%',
+    cursor: 'pointer',
+    textAlign: 'left',
+    boxSizing: 'border-box',
+    transition: 'background-color 0.12s ease',
+    ':hover': {
+      backgroundColor: tokens.colorSubtleBackgroundHover,
+    },
+    ':active': {
+      backgroundColor: tokens.colorSubtleBackgroundPressed,
+    },
+  },
+  appCardSelected: {
+    backgroundColor: tokens.colorSubtleBackgroundSelected,
+    ':hover': {
+      backgroundColor: tokens.colorSubtleBackgroundSelected,
+    },
+  },
   appBadge: {
-    width: '32px',
-    height: '32px',
-    borderRadius: '4px',
+    width: '36px',
+    height: '36px',
+    borderRadius: '6px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     color: tokens.colorNeutralForegroundOnBrand,
     backgroundColor: tokens.colorBrandBackground,
-    fontWeight: semanticTokens.typography.semibold,
+    fontWeight: semanticTokens.typography.bold,
     fontSize: semanticTokens.typography.caption,
+    flexShrink: 0,
   },
   appItemText: {
     display: 'flex',
@@ -150,6 +206,9 @@ const useStyles = makeStyles({
     gap: '2px',
     flexGrow: 1,
     overflow: 'hidden',
+  },
+  appItemTitle: {
+    color: tokens.colorNeutralForeground1,
   },
   appSubtitle: {
     color: tokens.colorNeutralForeground3,
@@ -238,6 +297,7 @@ interface SuiteBarProps {
   onSelectApp: (app: EnterpriseApp) => void;
   isNavOpen?: boolean;
   onToggleNav?: () => void;
+  isMobile?: boolean;
 }
 
 export const SuiteBar: React.FC<SuiteBarProps> = ({
@@ -246,6 +306,7 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
   onSelectApp,
   isNavOpen,
   onToggleNav,
+  isMobile = false,
 }) => {
   const styles = useStyles();
   const navigate = useNavigate();
@@ -278,52 +339,13 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
     }
   };
 
-  const appMenu = (
-    <MenuList className={styles.appMenu}>
-      <div className={styles.appLauncherHeader}>
-        <Text size={200} weight="semibold" className={styles.appSectionLabel}>
-          APLICACIONES DE LA EMPRESA
-        </Text>
-      </div>
-
-      {apps.map((app) => {
-        const isSelected = app.id === activeApp.id;
-        return (
-          <MenuItem
-            key={app.id}
-            icon={
-              <div className={styles.appBadge}>
-                {app.shortCode}
-              </div>
-            }
-            secondaryContent={
-              isSelected ? (
-                <Checkmark16Regular
-                  className={styles.selectedCheck}
-                />
-              ) : undefined
-            }
-            onClick={() => onSelectApp(app)}
-          >
-            <div className={styles.appItemText}>
-              <Text weight={isSelected ? 'semibold' : 'medium'} size={300}>
-                {app.name}
-              </Text>
-              <Text size={100} className={styles.appSubtitle}>
-                {app.subtitle}
-              </Text>
-            </div>
-          </MenuItem>
-        );
-      })}
-    </MenuList>
-  );
+  const [appsDrawerOpen, setAppsDrawerOpen] = useState(false);
 
   return (
     <header className={styles.root}>
-      {/* Left: Hamburger Toggle + Teal Waffle Button + Dynamics 365 dropdown + App Name */}
+      {/* Left: Mobile Hamburger Toggle + Teal Waffle Button + SKVIA text + App Name */}
       <div className={styles.leftSection}>
-        {onToggleNav && (
+        {onToggleNav && isMobile && (
           <Button
             appearance="transparent"
             className={styles.navBtn}
@@ -335,35 +357,18 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
           />
         )}
 
-        {/* Waffle Launcher */}
-        <Menu>
-          <MenuTrigger disableButtonEnhancement>
-            <Button
-              appearance="transparent"
-              className={styles.navBtn}
-              title="Iniciador de aplicaciones (Apps)"
-              aria-label="Iniciador de aplicaciones"
-              icon={<Apps20Regular />}
-            />
-          </MenuTrigger>
-          <MenuPopover>{appMenu}</MenuPopover>
-        </Menu>
+        {/* Waffle Launcher Button */}
+        <Button
+          appearance="transparent"
+          className={styles.waffleBtn}
+          onClick={() => setAppsDrawerOpen(true)}
+          title="Iniciador de aplicaciones (Apps)"
+          aria-label="Iniciador de aplicaciones"
+          icon={<Apps20Regular />}
+        />
 
-        {/* SKVIA with Chevron Down */}
-        <Menu>
-          <MenuTrigger disableButtonEnhancement>
-            <Button
-              appearance="transparent"
-              className={styles.brandBtn}
-              title="Cambiar Aplicación"
-              icon={<ChevronDown12Regular className={styles.brandChevron} />}
-              iconPosition="after"
-            >
-              <span className={styles.brandLabel}>SKVIA</span>
-            </Button>
-          </MenuTrigger>
-          <MenuPopover>{appMenu}</MenuPopover>
-        </Menu>
+        {/* SKVIA Brand Text only */}
+        <span className={styles.brandText}>SKVIA</span>
 
         {/* Separator Pipe | */}
         <Divider vertical className={styles.divider} />
@@ -547,6 +552,79 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
           </MenuPopover>
         </Menu>
       </div>
+
+      {/* Left Apps Drawer (Overlay Drawer) */}
+      <OverlayDrawer
+        position="start"
+        open={appsDrawerOpen}
+        onOpenChange={(_, { open }) => setAppsDrawerOpen(open)}
+        className={styles.appsDrawer}
+      >
+        <DrawerHeader className={styles.drawerHeader}>
+          <DrawerHeaderTitle
+            action={
+              <Button
+                appearance="subtle"
+                aria-label="Cerrar menú de aplicaciones"
+                icon={<Dismiss20Regular />}
+                onClick={() => setAppsDrawerOpen(false)}
+              />
+            }
+          >
+            <div className={styles.drawerHeaderTitleRow}>
+              <div className={styles.waffleHeaderIcon}>
+                <Apps20Regular />
+              </div>
+              <Text weight="semibold" size={400}>
+                Aplicaciones
+              </Text>
+            </div>
+          </DrawerHeaderTitle>
+        </DrawerHeader>
+
+        <DrawerBody className={styles.drawerBody}>
+          <div className={styles.appsSectionHeader}>
+            <Text size={200} weight="semibold" className={styles.appsSectionLabel}>
+              APLICACIONES DE LA EMPRESA
+            </Text>
+          </div>
+
+          <div className={styles.appsList}>
+            {apps.map((app) => {
+              const isSelected = app.id === activeApp.id;
+              return (
+                <button
+                  key={app.id}
+                  type="button"
+                  className={mergeClasses(
+                    styles.appCard,
+                    isSelected && styles.appCardSelected
+                  )}
+                  onClick={() => {
+                    onSelectApp(app);
+                    setAppsDrawerOpen(false);
+                  }}
+                >
+                  <div className={styles.appBadge}>
+                    {app.shortCode}
+                  </div>
+                  <div className={styles.appItemText}>
+                    <Text weight={isSelected ? 'semibold' : 'medium'} size={300} className={styles.appItemTitle}>
+                      {app.name}
+                    </Text>
+                    <Text size={100} className={styles.appSubtitle}>
+                      {app.subtitle}
+                    </Text>
+                  </div>
+                  {isSelected && (
+                    <Checkmark16Regular className={styles.selectedCheck} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </DrawerBody>
+      </OverlayDrawer>
     </header>
   );
 };

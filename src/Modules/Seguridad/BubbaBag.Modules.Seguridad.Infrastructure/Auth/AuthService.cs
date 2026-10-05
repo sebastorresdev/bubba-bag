@@ -96,7 +96,7 @@ public class AuthService(UserManager<Usuario> usuarios, RoleManager<Rol> roles, 
     private async Task<bool> RolesValidosAsync(IEnumerable<string> elegidos)
     {
         foreach (var rol in elegidos)
-            if (!Roles.Fijos.Contains(rol) || !await roles.RoleExistsAsync(rol)) return false;
+            if (!await roles.RoleExistsAsync(rol)) return false;
         return true;
     }
     private async Task<bool> EsUltimoAdministradorAsync(Usuario usuario)
@@ -184,7 +184,205 @@ public class AuthService(UserManager<Usuario> usuarios, RoleManager<Rol> roles, 
     }
     public async Task<Result<List<RolDto>>> ObtenerTodosLosRolesAsync()
     {
-        var lista = await roles.Roles.Where(x => Roles.Fijos.Contains(x.Name!)).OrderBy(x => x.Modulo).ThenBy(x => x.NombreVisible).ToListAsync();
-        return Result<List<RolDto>>.Success(lista.Select(x => new RolDto(x.Id, x.Name!, x.Modulo, x.NombreVisible, x.Descripcion, RolePermissions.GetPermissionsForRole(x.Name!).Order().ToList())).ToList());
+        var lista = await roles.Roles.OrderBy(x => x.Modulo).ThenBy(x => x.NombreVisible).ToListAsync();
+        var claims = await db.RoleClaims.Where(rc => rc.ClaimType == "permission").ToListAsync();
+        var userRoles = await db.UserRoles.ToListAsync();
+
+        var dtos = lista.Select(x =>
+        {
+            var perms = string.Equals(x.Name, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase)
+                ? Permissions.GetAll().Order().ToList()
+                : claims.Where(rc => rc.RoleId == x.Id).Select(rc => rc.ClaimValue!).Distinct().Order().ToList();
+
+            if (perms.Count == 0 && !string.IsNullOrEmpty(x.Name))
+            {
+                perms = RolePermissions.GetPermissionsForRole(x.Name).Order().ToList();
+            }
+
+            bool esSistema = Roles.Fijos.Contains(x.Name!);
+            int usersCount = userRoles.Count(ur => ur.RoleId == x.Id);
+
+            return new RolDto(x.Id, x.Name!, x.Modulo, x.NombreVisible, x.Descripcion, perms, esSistema, usersCount);
+        }).ToList();
+
+        return Result<List<RolDto>>.Success(dtos);
+    }
+    public async Task<Result<RolDto>> ObtenerRolPorIdAsync(Guid rolId)
+    {
+        var x = await roles.FindByIdAsync(rolId.ToString());
+        if (x == null) return Result<RolDto>.Failure("Rol no encontrado.");
+
+        var claims = await db.RoleClaims.Where(rc => rc.RoleId == x.Id && rc.ClaimType == "permission").Select(rc => rc.ClaimValue!).ToListAsync();
+        var perms = string.Equals(x.Name, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase)
+            ? Permissions.GetAll().Order().ToList()
+            : claims.Distinct().Order().ToList();
+
+        if (perms.Count == 0 && !string.IsNullOrEmpty(x.Name))
+        {
+            perms = RolePermissions.GetPermissionsForRole(x.Name).Order().ToList();
+        }
+
+        bool esSistema = Roles.Fijos.Contains(x.Name!);
+        var usersCount = await db.UserRoles.CountAsync(ur => ur.RoleId == x.Id);
+
+        return Result<RolDto>.Success(new RolDto(x.Id, x.Name!, x.Modulo, x.NombreVisible, x.Descripcion, perms, esSistema, usersCount));
+    }
+    public Task<Result<Guid>> CrearRolAsync(string nombreVisible, string? codigo, string modulo, string descripcion, IEnumerable<string> permisos) => EscribirAsync(async () =>
+    {
+        if (string.IsNullOrWhiteSpace(nombreVisible) || nombreVisible.Trim().Length > 150)
+            return Result<Guid>.Failure("El nombre del rol es requerido y debe tener hasta 150 caracteres.");
+
+        var cod = string.IsNullOrWhiteSpace(codigo)
+            ? System.Text.RegularExpressions.Regex.Replace(nombreVisible.Trim(), @"[^a-zA-Z0-9]", "")
+            : System.Text.RegularExpressions.Regex.Replace(codigo.Trim(), @"[^a-zA-Z0-9]", "");
+
+        if (string.IsNullOrWhiteSpace(cod) || cod.Length > 100)
+            return Result<Guid>.Failure("El código identificador debe ser alfanumérico.");
+
+        if (await roles.RoleExistsAsync(cod))
+            return Result<Guid>.Failure($"Ya existe un rol con el código '{cod}'.");
+
+        var mod = string.IsNullOrWhiteSpace(modulo) ? "Personalizado" : modulo.Trim();
+        var desc = descripcion?.Trim() ?? string.Empty;
+
+        var nuevoRol = new Rol
+        {
+            Name = cod,
+            NombreVisible = nombreVisible.Trim(),
+            Modulo = mod,
+            Descripcion = desc
+        };
+
+        var resultado = await roles.CreateAsync(nuevoRol);
+        if (!resultado.Succeeded) return Result<Guid>.Failure(Errores(resultado));
+
+        var validos = Permissions.GetAll();
+        var listaPermisos = (permisos ?? []).Where(p => validos.Contains(p)).Distinct().ToList();
+
+        foreach (var p in listaPermisos)
+        {
+            await roles.AddClaimAsync(nuevoRol, new System.Security.Claims.Claim("permission", p));
+        }
+
+        RolePermissions.SetRolePermissions(cod, listaPermisos);
+        return Result<Guid>.Success(nuevoRol.Id);
+    });
+    public Task<Result<bool>> ActualizarRolAsync(Guid rolId, string nombreVisible, string modulo, string descripcion, IEnumerable<string> permisos) => EscribirAsync(async () =>
+    {
+        var rol = await roles.FindByIdAsync(rolId.ToString());
+        if (rol == null) return Result<bool>.Failure("Rol no encontrado.");
+
+        if (string.Equals(rol.Name, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase) || Roles.Fijos.Contains(rol.Name!))
+            return Result<bool>.Failure($"El rol '{rol.NombreVisible}' es un rol predefinido del sistema y no puede modificarse.");
+
+        if (string.IsNullOrWhiteSpace(nombreVisible) || nombreVisible.Trim().Length > 150)
+            return Result<bool>.Failure("El nombre visible es requerido.");
+
+        rol.NombreVisible = nombreVisible.Trim();
+        if (!string.IsNullOrWhiteSpace(modulo)) rol.Modulo = modulo.Trim();
+        rol.Descripcion = descripcion?.Trim() ?? string.Empty;
+
+        var resultado = await roles.UpdateAsync(rol);
+        if (!resultado.Succeeded) return Result<bool>.Failure(Errores(resultado));
+
+        if (!string.Equals(rol.Name, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+        {
+            var validos = Permissions.GetAll();
+            var listaPermisos = (permisos ?? []).Where(p => validos.Contains(p)).Distinct().ToList();
+
+            var claimsActuales = await roles.GetClaimsAsync(rol);
+            var permClaims = claimsActuales.Where(c => c.Type == "permission").ToList();
+
+            foreach (var c in permClaims.Where(c => !listaPermisos.Contains(c.Value)))
+            {
+                await roles.RemoveClaimAsync(rol, c);
+            }
+
+            foreach (var p in listaPermisos.Where(p => !permClaims.Any(c => c.Value == p)))
+            {
+                await roles.AddClaimAsync(rol, new System.Security.Claims.Claim("permission", p));
+            }
+
+            RolePermissions.SetRolePermissions(rol.Name!, listaPermisos);
+
+            var usuariosEnRol = await usuarios.GetUsersInRoleAsync(rol.Name!);
+            foreach (var u in usuariosEnRol)
+            {
+                await usuarios.UpdateSecurityStampAsync(u);
+            }
+        }
+
+        return Result<bool>.Success(true);
+    });
+    public Task<Result<bool>> EliminarRolAsync(Guid rolId) => EscribirAsync(async () =>
+    {
+        var rol = await roles.FindByIdAsync(rolId.ToString());
+        if (rol == null) return Result<bool>.Failure("Rol no encontrado.");
+
+        if (string.Equals(rol.Name, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+            return Result<bool>.Failure("No se puede eliminar el rol Super Administrador del sistema.");
+
+        if (Roles.Fijos.Contains(rol.Name!))
+            return Result<bool>.Failure($"El rol '{rol.NombreVisible}' es un rol predefinido del sistema y no puede eliminarse.");
+
+        var count = await db.UserRoles.CountAsync(ur => ur.RoleId == rol.Id);
+        if (count > 0)
+            return Result<bool>.Failure($"No se puede eliminar el rol '{rol.NombreVisible}' porque está asignado a {count} usuario(s). Desasigne el rol primero.");
+
+        var claims = await roles.GetClaimsAsync(rol);
+        foreach (var c in claims)
+        {
+            await roles.RemoveClaimAsync(rol, c);
+        }
+
+        var resultado = await roles.DeleteAsync(rol);
+        if (!resultado.Succeeded) return Result<bool>.Failure(Errores(resultado));
+
+        RolePermissions.RemoveRole(rol.Name!);
+        return Result<bool>.Success(true);
+    });
+    public Task<Result<List<PermisoDefinicionDto>>> ObtenerCatalogoPermisosAsync()
+    {
+        var catalogo = new List<PermisoDefinicionDto>
+        {
+            // Inventario
+            new(Permissions.Inventario.Acceso, "Inventario", "Acceso al módulo", "Consultar inventario, productos, almacenes y movimientos."),
+            new(Permissions.Inventario.CatalogosGestionar, "Inventario", "Gestionar catálogos", "Crear y modificar productos, almacenes, sedes y categorías."),
+            new(Permissions.Inventario.Operar, "Inventario", "Operar movimientos", "Registrar recepciones, despachos y transferencias en almacenes."),
+            new(Permissions.Inventario.AccesosGestionar, "Inventario", "Gestionar autorizaciones", "Asignar autorizaciones y permisos de acceso por almacén."),
+
+            // Servicio de Campo
+            new(Permissions.ServicioCampo.Acceso, "Servicio de Campo", "Acceso al módulo", "Acceder al portal operativo de servicio de campo."),
+            new(Permissions.ServicioCampo.OrdenesVerTodas, "Servicio de Campo", "Ver todas las órdenes", "Visualizar el listado general de órdenes de trabajo de toda la organización."),
+            new(Permissions.ServicioCampo.OrdenesVerAsignadas, "Servicio de Campo", "Ver órdenes asignadas", "Visualizar únicamente las órdenes asignadas a su técnico o cuadrilla."),
+            new(Permissions.ServicioCampo.OrdenesCrear, "Servicio de Campo", "Crear órdenes", "Registrar nuevas órdenes de trabajo de servicio."),
+            new(Permissions.ServicioCampo.OrdenesAsignar, "Servicio de Campo", "Asignar órdenes", "Despachar y asignar órdenes de trabajo a recursos técnicos."),
+            new(Permissions.ServicioCampo.OrdenesOperarCampo, "Servicio de Campo", "Operar en campo", "Registrar traslados, check-in, checklists y evidencias en sitio."),
+            new(Permissions.ServicioCampo.OrdenesCerrar, "Servicio de Campo", "Cerrar órdenes", "Finalizar, liquidar y cerrar técnicamente órdenes de trabajo."),
+            new(Permissions.ServicioCampo.CatalogosGestionar, "Servicio de Campo", "Gestionar catálogos", "Parametrizar tarifarios, tipos de orden y servicios."),
+
+            // CRM y Clientes
+            new(Permissions.Crm.Acceso, "CRM y Clientes", "Acceso al módulo", "Acceder al directorio comercial de clientes y contactos."),
+            new(Permissions.Crm.ClientesVer, "CRM y Clientes", "Consultar clientes", "Visualizar fichas y datos de clientes."),
+            new(Permissions.Crm.ClientesCrear, "CRM y Clientes", "Crear clientes", "Registrar nuevos clientes en la cartera comercial."),
+            new(Permissions.Crm.ClientesEditar, "CRM y Clientes", "Editar clientes", "Modificar información comercial y de contacto de clientes."),
+            new(Permissions.Crm.ClientesEliminar, "CRM y Clientes", "Eliminar clientes", "Desactivar o eliminar clientes de la cartera."),
+            new(Permissions.Crm.SegmentacionAvanzada, "CRM y Clientes", "Segmentación comercial", "Acceso a filtros avanzados y segmentación de clientes."),
+
+            // Recursos Humanos
+            new(Permissions.Rrhh.Acceso, "Recursos Humanos", "Acceso al módulo", "Acceder a la gestión de personal y colaboradores."),
+            new(Permissions.Rrhh.ColaboradoresVer, "Recursos Humanos", "Consultar colaboradores", "Visualizar el directorio de colaboradores."),
+            new(Permissions.Rrhh.ColaboradoresGestionar, "Recursos Humanos", "Gestionar colaboradores", "Dar de alta, actualizar datos laborales y cesar colaboradores."),
+            new(Permissions.Rrhh.SalariosConfidencial, "Recursos Humanos", "Salarios confidenciales", "Acceso a remuneraciones, sueldos y cuentas bancarias."),
+            new(Permissions.Rrhh.CatalogosGestionar, "Recursos Humanos", "Gestionar catálogos", "Parametrizar cargos, departamentos y tipos de contrato."),
+
+            // Seguridad
+            new(Permissions.Seguridad.Acceso, "Seguridad", "Acceso al módulo", "Consultar el directorio de usuarios y catálogo de roles."),
+            new(Permissions.Seguridad.UsuariosGestionar, "Seguridad", "Gestionar usuarios", "Crear usuarios, asignar roles y restablecer contraseñas."),
+            new(Permissions.Seguridad.RolesGestionar, "Seguridad", "Gestionar roles y permisos", "Crear, modificar y eliminar roles y su matriz de permisos.")
+        };
+
+        return Task.FromResult(Result<List<PermisoDefinicionDto>>.Success(catalogo));
     }
 }
+

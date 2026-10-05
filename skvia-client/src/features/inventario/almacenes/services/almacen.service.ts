@@ -7,26 +7,53 @@ import type {
   UnidadOrganizativaDto,
   RecursoTecnicoDto,
   ValidarSeriesResponse,
+  TipoAlmacen,
 } from '../types/almacen.types';
+
+function normalizarAlmacen(a: AlmacenDto): AlmacenDto {
+  if (!a) return a;
+  let tipoNum: TipoAlmacen = 1;
+  const rawTipo = String(a.tipo ?? '').toLowerCase();
+  if (a.tipo === 2 || rawTipo === '2' || rawTipo.includes('custodia')) {
+    tipoNum = 2;
+  } else if (a.tipo === 1 || rawTipo === '1' || rawTipo.includes('bodega')) {
+    tipoNum = 1;
+  } else if (a.recursoId) {
+    tipoNum = 2;
+  } else {
+    tipoNum = 1;
+  }
+  return {
+    ...a,
+    tipo: tipoNum,
+  };
+}
 
 export const AlmacenService = {
   getUbicaciones: (id:string,origenId?:string) => apiClient<import('../types/almacen.types').UbicacionInventarioDto[]>(`/api/inventario/almacenes/${id}/ubicaciones${origenId ? '?origenId='+origenId : ''}`),
   crearUbicacion: (id:string,codigo:string,nombre:string) => apiClient(`/api/inventario/almacenes/${id}/ubicaciones`,{method:'POST',body:JSON.stringify({codigo,nombre})}),
-  getDestinos: (id:string) => apiClient<import('../types/almacen.types').AlmacenDto[]>(`/api/inventario/almacenes/${id}/destinos`),
+  eliminarUbicacion: (id:string,ubicacionId:string) => apiClient(`/api/inventario/almacenes/${id}/ubicaciones/${ubicacionId}`,{method:'DELETE'}),
+  getDestinos: async (id:string) => {
+    const list = await apiClient<import('../types/almacen.types').AlmacenDto[]>(`/api/inventario/almacenes/${id}/destinos`);
+    return (list || []).map(normalizarAlmacen);
+  },
   getAutorizaciones: (id:string) => apiClient<Array<{usuarioId:string;puedeConsultar:boolean;puedeDespachar:boolean;puedeRecepcionar:boolean;esSupervisor:boolean;activo:boolean}>>(`/api/inventario/almacenes/${id}/autorizaciones`),
   guardarAutorizacion: (id:string,usuarioId:string,datos:{puedeConsultar:boolean;puedeDespachar:boolean;puedeRecepcionar:boolean;esSupervisor:boolean;activo:boolean}) => apiClient(`/api/inventario/almacenes/${id}/autorizaciones/${usuarioId}`,{method:'PUT',body:JSON.stringify(datos)}),
+  eliminarAutorizacion: (id:string,usuarioId:string) => apiClient(`/api/inventario/almacenes/${id}/autorizaciones/${usuarioId}`,{method:'DELETE'}),
   // 1. Obtener almacenes con filtros
   async getAlmacenes(soloActivos?: boolean): Promise<AlmacenDto[]> {
     const params = new URLSearchParams();
     if (soloActivos !== undefined) params.append('soloActivos', String(soloActivos));
 
     const qs = params.toString() ? `?${params.toString()}` : '';
-    return apiClient<AlmacenDto[]>(`/api/inventario/almacenes${qs}`);
+    const list = await apiClient<AlmacenDto[]>(`/api/inventario/almacenes${qs}`);
+    return (list || []).map(normalizarAlmacen);
   },
 
   // 2. Obtener almacén por ID
   async getAlmacenById(id: string): Promise<AlmacenDto> {
-    return apiClient<AlmacenDto>(`/api/inventario/almacenes/${id}`);
+    const data = await apiClient<AlmacenDto>(`/api/inventario/almacenes/${id}`);
+    return normalizarAlmacen(data);
   },
 
   // 3. Crear almacén

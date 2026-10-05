@@ -5,11 +5,12 @@ import { ThemeProvider } from './context/ThemeContext';
 import { MainLayout } from './components/layout/MainLayout';
 
 import { initializeSession } from './services/authSession';
-import { RequireSession } from './features/seguridad/RequireSession';
-const LoginPage = lazy(() => import('./features/seguridad/LoginPage').then(m => ({ default: m.LoginPage })));
-const UsuariosListPage = lazy(() => import('./features/seguridad/UsuariosListPage').then(m => ({ default: m.UsuariosListPage })));
-const UsuarioFormPage = lazy(() => import('./features/seguridad/UsuarioFormPage').then(m => ({ default: m.UsuarioFormPage })));
-const RolesListPage = lazy(() => import('./features/seguridad/RolesListPage').then(m => ({ default: m.RolesListPage })));
+import { RequireSession } from './features/seguridad/components/RequireSession';
+const LoginPage = lazy(() => import('./features/seguridad/pages/LoginPage').then(m => ({ default: m.LoginPage })));
+const UsuariosListPage = lazy(() => import('./features/seguridad/pages/UsuariosListPage').then(m => ({ default: m.UsuariosListPage })));
+const UsuarioFormPage = lazy(() => import('./features/seguridad/pages/UsuarioFormPage').then(m => ({ default: m.UsuarioFormPage })));
+const RolesListPage = lazy(() => import('./features/seguridad/pages/RolesListPage').then(m => ({ default: m.RolesListPage })));
+const RolFormPage = lazy(() => import('./features/seguridad/pages/RolFormPage').then(m => ({ default: m.RolFormPage })));
 
 // Code-splitting diferido por rutas y módulos funcionales (React.lazy)
 const ProductosListPage = lazy(() => import('./features/inventario/productos').then((m) => ({ default: m.ProductosListPage })));
@@ -74,6 +75,8 @@ export default function App() {
               <Route path="configuracion/usuarios/nuevo" element={<UsuarioFormPage />} />
               <Route path="configuracion/usuarios/:id" element={<UsuarioFormPage />} />
               <Route path="configuracion/roles" element={<RolesListPage />} />
+              <Route path="configuracion/roles/nuevo" element={<RolFormPage />} />
+              <Route path="configuracion/roles/:id" element={<RolFormPage />} />
               <Route index element={<Navigate to="/servicio-campo/productos" replace />} />
 
               {/* 1. Catálogo General - Unidades de Medida */}

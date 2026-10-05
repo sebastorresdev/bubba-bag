@@ -2,17 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Badge,
-  DataGrid,
-  DataGridBody,
-  DataGridCell,
-  DataGridHeader,
-  DataGridHeaderCell,
-  DataGridRow,
   Input,
   Link,
+  Menu,
+  MenuTrigger,
+  MenuPopover,
+  MenuList,
+  MenuItem,
   TableCellLayout,
   Text,
-  tokens,
   createTableColumn,
 } from '@fluentui/react-components';
 import type { SelectionItemId, TableColumnDefinition } from '@fluentui/react-components';
@@ -20,24 +18,32 @@ import {
   Add16Regular,
   ArrowClockwise16Regular,
   Checkmark16Regular,
+  ChevronDown16Regular,
   DismissCircle16Regular,
   Eye16Regular,
   Search16Regular,
-  Shield20Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../components/common/D365CommandBar';
-import { D365ListState } from '../../../components/common/D365ListState';
+import { D365EntityTable } from '../../../components/common/D365EntityTable';
 import { D365MessageBar } from '../../../components/common/D365MessageBar';
-import { TableEmptyState } from '../../../components/common/TableEmptyState';
 import { useD365ListStyles } from '../../../styles/d365ListStyles';
 import { OrganizacionService } from '../services/organizacion.service';
 import type { TerritorioDto } from '../types/organizacion.types';
+
+type VistaTerritorios = 'activos' | 'todos' | 'inactivos';
+
+const nombresVistaTerritorios: Record<VistaTerritorios, string> = {
+  activos: 'Territorios activos',
+  todos: 'Todos los territorios',
+  inactivos: 'Territorios inactivos',
+};
 
 export function TerritoriosListPage() {
   const styles = useD365ListStyles();
   const navigate = useNavigate();
   const [datos, setDatos] = useState<TerritorioDto[]>([]);
   const [buscar, setBuscar] = useState('');
+  const [vista, setVista] = useState<VistaTerritorios>('activos');
   const [seleccionados, setSeleccionados] = useState<Set<SelectionItemId>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,14 +68,17 @@ export function TerritoriosListPage() {
 
   const filtrados = useMemo(() => {
     const q = buscar.trim().toLowerCase();
-    if (!q) return datos;
-    return datos.filter(
-      (t) =>
+    return datos.filter((t) => {
+      if (vista === 'activos' && !t.activo) return false;
+      if (vista === 'inactivos' && t.activo) return false;
+      if (!q) return true;
+      return (
         t.nombre.toLowerCase().includes(q) ||
         t.codigo.toLowerCase().includes(q) ||
         t.unidadOrganizativaNombre.toLowerCase().includes(q)
-    );
-  }, [buscar, datos]);
+      );
+    });
+  }, [buscar, datos, vista]);
 
   const itemSeleccionado = useMemo(() => {
     if (seleccionados.size !== 1) return null;
@@ -102,7 +111,6 @@ export function TerritoriosListPage() {
           <TableCellLayout>
             <Link
               as="button"
-              style={{ fontWeight: tokens.fontWeightSemibold, cursor: 'pointer' }}
               onClick={(e) => {
                 e.stopPropagation();
                 navigate(`/servicio-campo/territorios/${x.id}`);
@@ -119,19 +127,29 @@ export function TerritoriosListPage() {
         renderHeaderCell: () => 'Territorio / Zona',
         renderCell: (x) => (
           <TableCellLayout>
-            <Text weight="semibold">{x.nombre}</Text>
+            <Text>{x.nombre}</Text>
           </TableCellLayout>
         ),
       }),
       createTableColumn({
         columnId: 'sede',
         compare: (a, b) => a.unidadOrganizativaNombre.localeCompare(b.unidadOrganizativaNombre),
-        renderHeaderCell: () => 'Unidad Organizativa (Sede)',
+        renderHeaderCell: () => 'Unidad Organizativa',
         renderCell: (x) => (
           <TableCellLayout>
-            <Badge appearance="tint" color="informative">
-              {x.unidadOrganizativaNombre}
-            </Badge>
+            {x.unidadOrganizativaId ? (
+              <Link
+                as="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/servicio-campo/unidades-organizativas/${x.unidadOrganizativaId}`);
+                }}
+              >
+                {x.unidadOrganizativaNombre}
+              </Link>
+            ) : (
+              x.unidadOrganizativaNombre || '—'
+            )}
           </TableCellLayout>
         ),
       }),
@@ -150,7 +168,7 @@ export function TerritoriosListPage() {
         renderHeaderCell: () => 'Estado',
         renderCell: (x) => (
           <TableCellLayout>
-            <Badge appearance="filled" color={x.activo ? 'success' : 'danger'}>
+            <Badge appearance="tint" shape="rounded" color={x.activo ? 'success' : 'danger'}>
               {x.activo ? 'Activo' : 'Inactivo'}
             </Badge>
           </TableCellLayout>
@@ -204,62 +222,61 @@ export function TerritoriosListPage() {
       </D365CommandBar>
 
       <div className={styles.viewHeader}>
-        <div className={styles.viewSelectorTab}>
-          <Shield20Regular />
-          <Text weight="semibold" size={400}>
-            Territorios y Zonas Operativas
-          </Text>
-        </div>
+        <Menu>
+          <MenuTrigger disableButtonEnhancement>
+            <div className={styles.viewSelectorTab} title="Seleccionar vista">
+              <Text weight="semibold" size={400}>
+                {nombresVistaTerritorios[vista]}
+              </Text>
+              <ChevronDown16Regular />
+            </div>
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList className={styles.viewMenuPopover}>
+              {(Object.keys(nombresVistaTerritorios) as VistaTerritorios[]).map((v) => (
+                <MenuItem
+                  key={v}
+                  icon={vista === v ? <Checkmark16Regular /> : undefined}
+                  onClick={() => {
+                    setVista(v);
+                    setSeleccionados(new Set());
+                  }}
+                >
+                  {nombresVistaTerritorios[v]}
+                </MenuItem>
+              ))}
+            </MenuList>
+          </MenuPopover>
+        </Menu>
 
         <div className={styles.viewToolsRight}>
           <Input
             className={styles.searchBox}
             size="medium"
             contentBefore={<Search16Regular />}
-            placeholder="Buscar" aria-label="Buscar por territorio, código o sede"
+            placeholder="Buscar por territorio, código o sede..."
+            aria-label="Buscar en esta vista"
             value={buscar}
             onChange={(_, d) => setBuscar(d.value)}
           />
         </div>
       </div>
 
-      <div className={styles.gridContainer}>
-        <D365ListState loading={loading} error={error} onRetry={() => void cargar()}>
-          <DataGrid
-            items={filtrados}
-            columns={columns}
-            sortable
-            selectionMode="multiselect"
-            selectedItems={seleccionados}
-            onSelectionChange={(_, data) => setSeleccionados(data.selectedItems)}
-            getRowId={(item) => item.id}
-            focusMode="composite"
-            size="medium"
-            className={styles.table}
-          >
-            <DataGridHeader>
-              <DataGridRow>
-                {({ renderHeaderCell }) => <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>}
-              </DataGridRow>
-            </DataGridHeader>
-            {filtrados.length === 0 ? (
-              <TableEmptyState />
-            ) : (
-              <DataGridBody<TerritorioDto>>
-                {({ item, rowId }) => (
-                  <DataGridRow<TerritorioDto> key={rowId} className={styles.dataRow}>
-                    {({ renderCell }) => <DataGridCell className={styles.dataCell}>{renderCell(item)}</DataGridCell>}
-                  </DataGridRow>
-                )}
-              </DataGridBody>
-            )}
-          </DataGrid>
-        </D365ListState>
-      </div>
+      <D365EntityTable
+        items={filtrados}
+        columns={columns}
+        loading={loading}
+        error={error}
+        onRetry={() => void cargar()}
+        selectionMode="multiselect"
+        selectedItems={seleccionados}
+        onSelectionChange={(_, data) => setSeleccionados(data.selectedItems)}
+      />
 
       <footer className={styles.footer}>
         <div>
-          1-{filtrados.length} de {filtrados.length} ({seleccionados.size} seleccionados)
+          1-{filtrados.length} de {filtrados.length}
+          {seleccionados.size > 0 && ` (${seleccionados.size} seleccionados)`}
         </div>
         <div>Página 1</div>
       </footer>

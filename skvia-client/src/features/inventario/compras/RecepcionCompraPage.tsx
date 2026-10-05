@@ -3,14 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Button,
   Input,
-  Label,
-  ProgressBar,
   Badge,
   Text,
   Spinner,
   makeStyles,
   tokens,
-  typographyStyles,
   DataGrid,
   DataGridHeader,
   DataGridRow,
@@ -19,6 +16,11 @@ import {
   DataGridCell,
   createTableColumn,
   TableCellLayout,
+  Tab,
+  TabList,
+  Popover,
+  PopoverTrigger,
+  PopoverSurface,
 } from '@fluentui/react-components';
 import type { TableColumnDefinition } from '@fluentui/react-components';
 import {
@@ -26,107 +28,119 @@ import {
   Save16Regular,
   Checkmark16Regular,
   Dismiss16Regular,
-  Search16Regular,
   Clock16Regular,
   CheckmarkCircle16Filled,
+  CheckmarkCircle16Regular,
   Warning16Filled,
+  ArrowClockwise16Regular,
+  BarcodeScanner20Regular,
+  ArrowUndo16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../components/common/D365CommandBar';
 import { D365EntityHeader } from '../../../components/common/D365EntityHeader';
-import { D365FormField } from '../../../components/common/D365FormField';
 import { D365MessageBar } from '../../../components/common/D365MessageBar';
 import { useD365FormStyles } from '../../../styles/d365FormStyles';
 import { CompraService } from './compra.service';
 import type { CompraDto, LineaRecepcionDatos } from './compra.service';
+import { ProductoService } from '../productos/services/producto.service';
+import type { ProductoDto } from '../productos/types/producto.types';
 
 const useStyles = makeStyles({
-  splitLayout: {
-    display: 'grid',
-    gridTemplateColumns: '1fr',
-    gap: '16px',
-    '@media (min-width: 900px)': {
-      gridTemplateColumns: '340px 1fr',
-    },
-  },
-  scannerSection: {
+  scannerContainer: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px',
+    gap: '10px',
+    marginBottom: '16px',
+    paddingBottom: '16px',
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+  },
+  scannerHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: '8px',
+  },
+  scannerHeaderTitle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
   },
   scannerRow: {
     display: 'flex',
     gap: '8px',
+    alignItems: 'stretch',
   },
   scannerInput: {
     flexGrow: 1,
-    fontFamily: 'monospace',
+    fontFamily: 'Consolas, Monaco, monospace',
+    fontSize: '14px',
     fontWeight: tokens.fontWeightSemibold,
+    letterSpacing: '0.5px',
+  },
+  feedbackText: {
+    fontSize: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '8px',
+    padding: '6px 12px',
+    borderRadius: tokens.borderRadiusMedium,
+    fontWeight: tokens.fontWeightMedium,
+  },
+  feedbackSuccess: {
+    backgroundColor: tokens.colorNeutralBackground2,
+    color: tokens.colorNeutralForeground1,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+  },
+  feedbackWarning: {
+    backgroundColor: tokens.colorPaletteYellowBackground2,
+    color: tokens.colorPaletteYellowForeground2,
+    border: `1px solid ${tokens.colorPaletteYellowBorder2}`,
+  },
+  feedbackError: {
+    backgroundColor: tokens.colorPaletteRedBackground2,
+    color: tokens.colorPaletteRedForeground1,
+    border: `1px solid ${tokens.colorPaletteRedBorder2}`,
   },
   seriesToolbar: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: '8px',
-    marginBottom: '8px',
-  },
-  filterGroup: {
-    display: 'flex',
-    gap: '4px',
-  },
-  serieText: {
-    fontFamily: 'monospace',
-    fontWeight: tokens.fontWeightSemibold,
-    fontSize: '13px',
-  },
-  summaryMetrics: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '8px',
-    textAlign: 'center',
-    padding: '12px',
-    backgroundColor: tokens.colorNeutralBackground2,
-    borderRadius: tokens.borderRadiusMedium,
-    border: `1px solid ${tokens.colorNeutralStroke2}`,
-  },
-  metricItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-  },
-  metricValue: {
-    ...typographyStyles.body1Strong,
-    color: tokens.colorNeutralForeground1,
-  },
-  metricLabel: {
-    ...typographyStyles.caption2,
-    color: tokens.colorNeutralForeground3,
-    textTransform: 'uppercase',
-  },
-  feedbackText: {
-    ...typographyStyles.caption1,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '6px 10px',
-    borderRadius: tokens.borderRadiusSmall,
-  },
-  feedbackSuccess: {
-    backgroundColor: tokens.colorPaletteGreenBackground2,
-    color: tokens.colorPaletteGreenForeground1,
-  },
-  feedbackWarning: {
-    backgroundColor: tokens.colorPaletteYellowBackground2,
-    color: tokens.colorPaletteYellowForeground2,
-  },
-  feedbackError: {
-    backgroundColor: tokens.colorPaletteRedBackground2,
-    color: tokens.colorPaletteRedForeground1,
+    gap: '12px',
+    marginBottom: '12px',
+    paddingBottom: '10px',
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   tableWrapper: {
     border: `1px solid ${tokens.colorNeutralStroke2}`,
     borderRadius: tokens.borderRadiusMedium,
     overflow: 'hidden',
+    backgroundColor: tokens.colorNeutralBackground1,
+  },
+  serieCode: {
+    fontFamily: 'Consolas, Monaco, monospace',
+    fontWeight: tokens.fontWeightSemibold,
+    fontSize: '13px',
+    color: tokens.colorNeutralForeground1,
+    letterSpacing: '0.5px',
+  },
+  serieRowClickable: {
+    cursor: 'pointer',
+    userSelect: 'none',
+    '&:hover': {
+      backgroundColor: tokens.colorNeutralBackground1Hover,
+    },
+  },
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '36px 16px',
+    gap: '8px',
+    color: tokens.colorNeutralForeground3,
   },
 });
 
@@ -152,9 +166,22 @@ export function RecepcionCompraPage() {
   const [serieInput, setSerieInput] = useState('');
   const [feedback, setFeedback] = useState<{ tipo: 'ok' | 'aviso' | 'error'; texto: string } | null>(null);
   const [filtro, setFiltro] = useState<'todas' | 'recibidas' | 'pendientes'>('todas');
-  const [busqueda, setBusqueda] = useState('');
   const [seriesVerificadas, setSeriesVerificadas] = useState<Set<string>>(new Set());
   const [cantidadesNoSeriadas, setCantidadesNoSeriadas] = useState<Record<string, number>>({});
+  const [productosInfo, setProductosInfo] = useState<Record<string, ProductoDto>>({});
+  const [popupRecibirTodoOpen, setPopupRecibirTodoOpen] = useState(false);
+  const [popupRecibirTodoTopOpen, setPopupRecibirTodoTopOpen] = useState(false);
+
+  // Auto-eliminar mensaje de escaneo/recepción exitoso o aviso a los 3.5 segundos
+  useEffect(() => {
+    if (!feedback) return;
+    if (feedback.tipo === 'ok' || feedback.tipo === 'aviso') {
+      const timer = setTimeout(() => {
+        setFeedback(null);
+      }, 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback]);
 
   const scannerRef = useRef<HTMLInputElement>(null);
 
@@ -186,6 +213,20 @@ export function RecepcionCompraPage() {
         }
       });
       setCantidadesNoSeriadas(cants);
+
+      // Cargar información de los productos de la orden para reconocer códigos SKU y códigos de barra
+      try {
+        const productosConsultados = await Promise.all(
+          data.lineas.map(l => ProductoService.getProductoById(l.productoId).catch(() => null))
+        );
+        const mapa: Record<string, ProductoDto> = {};
+        productosConsultados.forEach(p => {
+          if (p) mapa[p.id] = p;
+        });
+        setProductosInfo(mapa);
+      } catch (err) {
+        console.error('Error cargando información de productos para recepción:', err);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo cargar la orden de compra.');
     } finally {
@@ -208,18 +249,20 @@ export function RecepcionCompraPage() {
     if (!compra) return [];
     const lista: SerieItem[] = [];
     compra.lineas.forEach(l => {
+      const prod = productosInfo[l.productoId];
+      const nombreProducto = prod?.codigo ? `${prod.codigo} · ${l.producto}` : l.producto;
       l.series.forEach(s => {
         if (s.trim()) {
           lista.push({
             serie: s.trim().toUpperCase(),
-            producto: l.producto,
+            producto: nombreProducto,
             productoId: l.productoId,
           });
         }
       });
     });
     return lista;
-  }, [compra]);
+  }, [compra, productosInfo]);
 
   const lineasNoSeriadas = useMemo(() => {
     return compra ? compra.lineas.filter(l => l.series.length === 0) : [];
@@ -234,28 +277,96 @@ export function RecepcionCompraPage() {
   const totalInsumos = Object.values(cantidadesNoSeriadas).reduce((acc, curr) => acc + (curr > 0 ? curr : 0), 0);
   const totalUnidadesRecibidas = cantidadVerificadas + totalInsumos;
 
-  // Lógica de pistola / escaneo
+  // Lógica de pistola / escaneo: acepta número de serie directo O código SKU / código de barras
   const procesarEscaneo = (valor: string) => {
     const limpio = valor.trim().toUpperCase();
     if (!limpio) return;
 
-    const encontrada = todasLasSeries.find(x => x.serie === limpio);
-    if (!encontrada) {
-      setFeedback({ tipo: 'error', texto: `Serie ${limpio} no encontrada en esta orden.` });
+    // 1. ¿Coincide directamente con un número de serie de la orden?
+    const serieDirecta = todasLasSeries.find(x => x.serie === limpio);
+    if (serieDirecta) {
+      if (seriesVerificadas.has(limpio)) {
+        setFeedback({ tipo: 'aviso', texto: `Serie ${limpio} ya se encuentra registrada (${serieDirecta.producto}).` });
+        setSerieInput('');
+        return;
+      }
+      setSeriesVerificadas(prev => new Set(prev).add(limpio));
+      setFeedback({ tipo: 'ok', texto: `✓ Serie ${limpio} verificada correctamente (${serieDirecta.producto}).` });
       setSerieInput('');
+      scannerRef.current?.focus();
       return;
     }
 
-    if (seriesVerificadas.has(limpio)) {
-      setFeedback({ tipo: 'aviso', texto: `Serie ${limpio} ya se encuentra registrada.` });
-      setSerieInput('');
-      return;
+    // 2. ¿Coincide con el código SKU o código de barras de algún producto de la compra?
+    if (compra) {
+      const lineaCoincidente = compra.lineas.find(l => {
+        const prod = productosInfo[l.productoId];
+        const matchSku = prod?.codigo?.trim().toUpperCase() === limpio;
+        const matchBarcode = prod?.codigoBarras?.trim().toUpperCase() === limpio;
+        return matchSku || matchBarcode;
+      });
+
+      if (lineaCoincidente) {
+        const prod = productosInfo[lineaCoincidente.productoId];
+        const skuEtiqueta = prod?.codigo || 'SKU';
+        const nombreProducto = prod?.nombre || lineaCoincidente.producto;
+
+        // Si el producto es serializado: verifica la primera serie de esta línea que aún esté pendiente
+        if (lineaCoincidente.series.length > 0) {
+          const seriePendiente = lineaCoincidente.series.find(
+            s => !seriesVerificadas.has(s.trim().toUpperCase())
+          );
+
+          if (seriePendiente) {
+            const serieNormalizada = seriePendiente.trim().toUpperCase();
+            setSeriesVerificadas(prev => new Set(prev).add(serieNormalizada));
+            setFeedback({
+              tipo: 'ok',
+              texto: `✓ Unidad recibida por SKU [${skuEtiqueta}]: Serie ${serieNormalizada} verificada (${nombreProducto}).`,
+            });
+            setSerieInput('');
+            scannerRef.current?.focus();
+            return;
+          } else {
+            setFeedback({
+              tipo: 'aviso',
+              texto: `Todas las series de [${skuEtiqueta}] ${nombreProducto} ya fueron verificadas (${lineaCoincidente.series.length}/${lineaCoincidente.series.length}).`,
+            });
+            setSerieInput('');
+            return;
+          }
+        }
+
+        // Si el producto no es serializado: incrementa en 1 unidad la cantidad recibida
+        const cantActual = cantidadesNoSeriadas[lineaCoincidente.productoId] ?? 0;
+        const cantEsperada = lineaCoincidente.cantidad;
+
+        if (cantActual < cantEsperada) {
+          const nuevaCant = cantActual + 1;
+          setCantidadesNoSeriadas(prev => ({
+            ...prev,
+            [lineaCoincidente.productoId]: nuevaCant,
+          }));
+          setFeedback({
+            tipo: 'ok',
+            texto: `✓ 1 unidad recibida de [${skuEtiqueta}] ${nombreProducto} (${nuevaCant} de ${cantEsperada}).`,
+          });
+          setSerieInput('');
+          scannerRef.current?.focus();
+          return;
+        } else {
+          setFeedback({
+            tipo: 'aviso',
+            texto: `El producto [${skuEtiqueta}] ${nombreProducto} ya completó las ${cantEsperada} unidades esperadas.`,
+          });
+          setSerieInput('');
+          return;
+        }
+      }
     }
 
-    setSeriesVerificadas(prev => new Set(prev).add(limpio));
-    setFeedback({ tipo: 'ok', texto: `Serie ${limpio} verificada.` });
+    setFeedback({ tipo: 'error', texto: `Código SKU o serie "${limpio}" no encontrado en esta orden.` });
     setSerieInput('');
-    scannerRef.current?.focus();
   };
 
   const alternarSerie = (serie: string) => {
@@ -264,17 +375,30 @@ export function RecepcionCompraPage() {
       const nuevo = new Set(prev);
       if (nuevo.has(serie)) {
         nuevo.delete(serie);
+        setFeedback({ tipo: 'aviso', texto: `Serie ${serie} desmarcada.` });
       } else {
         nuevo.add(serie);
+        setFeedback({ tipo: 'ok', texto: `Serie ${serie} verificada.` });
       }
       return nuevo;
     });
   };
 
-  const marcarTodas = () => {
+  const confirmarRecibirTodo = () => {
     if (soloLectura) return;
-    setSeriesVerificadas(new Set(todasLasSeries.map(x => x.serie)));
-    setFeedback({ tipo: 'ok', texto: `Todas las series marcadas como recibidas (${totalSeries}).` });
+    if (tieneSerializados) {
+      setSeriesVerificadas(new Set(todasLasSeries.map(x => x.serie)));
+    }
+    if (lineasNoSeriadas.length > 0) {
+      const nuevas: Record<string, number> = {};
+      lineasNoSeriadas.forEach(l => {
+        nuevas[l.productoId] = l.cantidad;
+      });
+      setCantidadesNoSeriadas(prev => ({ ...prev, ...nuevas }));
+    }
+    setFeedback({ tipo: 'ok', texto: 'Todas las series e insumos han sido marcados como recibidos.' });
+    setPopupRecibirTodoOpen(false);
+    setPopupRecibirTodoTopOpen(false);
   };
 
   const limpiarVerificacion = () => {
@@ -287,15 +411,9 @@ export function RecepcionCompraPage() {
   const seriesVisibles = useMemo(() => {
     return todasLasSeries.filter(item => {
       const verif = seriesVerificadas.has(item.serie);
-      const matchFiltro =
-        filtro === 'todas' ? true : filtro === 'recibidas' ? verif : !verif;
-
-      const q = busqueda.trim().toUpperCase();
-      const matchBusqueda = !q || item.serie.includes(q) || item.producto.toUpperCase().includes(q);
-
-      return matchFiltro && matchBusqueda;
+      return filtro === 'todas' ? true : filtro === 'recibidas' ? verif : !verif;
     });
-  }, [todasLasSeries, seriesVerificadas, filtro, busqueda]);
+  }, [todasLasSeries, seriesVerificadas, filtro]);
 
   const columnasSeries: TableColumnDefinition<SerieItem>[] = useMemo(() => [
     createTableColumn({
@@ -306,9 +424,10 @@ export function RecepcionCompraPage() {
         return (
           <TableCellLayout>
             <Badge
-              appearance={verif ? 'filled' : 'outline'}
+              appearance={verif ? 'filled' : 'tint'}
+              shape="rounded"
               color={verif ? 'success' : 'informative'}
-              icon={verif ? <Checkmark16Regular /> : <Clock16Regular />}
+              icon={verif ? <CheckmarkCircle16Filled /> : <Clock16Regular />}
             >
               {verif ? 'Recibida' : 'Pendiente'}
             </Badge>
@@ -319,12 +438,20 @@ export function RecepcionCompraPage() {
     createTableColumn({
       columnId: 'serie',
       renderHeaderCell: () => 'Número de Serie',
-      renderCell: item => <TableCellLayout><Text className={styles.serieText}>{item.serie}</Text></TableCellLayout>,
+      renderCell: item => (
+        <TableCellLayout>
+          <Text className={styles.serieCode}>{item.serie}</Text>
+        </TableCellLayout>
+      ),
     }),
     createTableColumn({
       columnId: 'producto',
       renderHeaderCell: () => 'Producto',
-      renderCell: item => <TableCellLayout truncate>{item.producto}</TableCellLayout>,
+      renderCell: item => (
+        <TableCellLayout truncate>
+          <Text weight="semibold">{item.producto}</Text>
+        </TableCellLayout>
+      ),
     }),
     createTableColumn({
       columnId: 'accion',
@@ -336,8 +463,12 @@ export function RecepcionCompraPage() {
           <TableCellLayout>
             <Button
               size="small"
-              appearance="subtle"
-              onClick={() => alternarSerie(item.serie)}
+              appearance={verif ? 'subtle' : 'primary'}
+              icon={verif ? <ArrowUndo16Regular /> : <Checkmark16Regular />}
+              onClick={(e) => {
+                e.stopPropagation();
+                alternarSerie(item.serie);
+              }}
             >
               {verif ? 'Desmarcar' : 'Recibir'}
             </Button>
@@ -345,7 +476,127 @@ export function RecepcionCompraPage() {
         );
       },
     }),
-  ], [seriesVerificadas, soloLectura, styles.serieText]);
+  ], [seriesVerificadas, soloLectura, styles.serieCode]);
+
+  const columnasNoSeriadas: TableColumnDefinition<CompraDto['lineas'][number]>[] = useMemo(() => [
+    createTableColumn({
+      columnId: 'producto',
+      renderHeaderCell: () => 'Producto',
+      renderCell: item => (
+        <TableCellLayout truncate>
+          <div>
+            <Text weight="semibold" style={{ display: 'block' }}>{item.producto}</Text>
+            {productosInfo[item.productoId]?.codigo && (
+              <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                Cód: {productosInfo[item.productoId].codigo}
+              </Text>
+            )}
+          </div>
+        </TableCellLayout>
+      ),
+    }),
+    createTableColumn({
+      columnId: 'unidad',
+      renderHeaderCell: () => 'Unidad',
+      renderCell: item => (
+        <TableCellLayout>
+          <Text>{item.unidad || 'UND'}</Text>
+        </TableCellLayout>
+      ),
+    }),
+    createTableColumn({
+      columnId: 'esperado',
+      renderHeaderCell: () => 'Cantidad esperada',
+      renderCell: item => (
+        <TableCellLayout>
+          <Input
+            type="number"
+            size="small"
+            readOnly
+            value={String(item.cantidad)}
+            style={{ width: '90px' }}
+          />
+        </TableCellLayout>
+      ),
+    }),
+    createTableColumn({
+      columnId: 'recibido',
+      renderHeaderCell: () => 'Cantidad recibida',
+      renderCell: item => {
+        const cant = cantidadesNoSeriadas[item.productoId] ?? item.cantidad;
+        if (soloLectura) {
+          return (
+            <TableCellLayout>
+              <Input
+                type="number"
+                size="small"
+                readOnly
+                value={String(cant)}
+                style={{ width: '90px' }}
+              />
+            </TableCellLayout>
+          );
+        }
+        return (
+          <TableCellLayout>
+            <Input
+              type="number"
+              size="small"
+              min={0}
+              value={String(cant)}
+              disabled={saving}
+              style={{ width: '90px' }}
+              onChange={(_, d) => {
+                const val = Number(d.value);
+                setCantidadesNoSeriadas(prev => ({
+                  ...prev,
+                  [item.productoId]: isNaN(val) ? 0 : Math.max(0, val),
+                }));
+              }}
+            />
+          </TableCellLayout>
+        );
+      },
+    }),
+    createTableColumn({
+      columnId: 'estado',
+      renderHeaderCell: () => 'Estado',
+      renderCell: item => {
+        const cant = cantidadesNoSeriadas[item.productoId] ?? item.cantidad;
+        const esExcedente = cant > item.cantidad;
+        const esCompleto = cant === item.cantidad;
+        const diferencia = cant - item.cantidad;
+
+        if (esExcedente) {
+          return (
+            <TableCellLayout>
+              <Badge
+                appearance="tint"
+                shape="rounded"
+                color="warning"
+                icon={<Warning16Filled />}
+              >
+                Excedente (+{diferencia})
+              </Badge>
+            </TableCellLayout>
+          );
+        }
+
+        return (
+          <TableCellLayout>
+            <Badge
+              appearance="tint"
+              shape="rounded"
+              color={esCompleto ? 'success' : cant > 0 ? 'warning' : 'subtle'}
+              icon={esCompleto ? <CheckmarkCircle16Filled /> : <Clock16Regular />}
+            >
+              {esCompleto ? 'Completo' : cant > 0 ? `${cant} de ${item.cantidad}` : 'Pendiente'}
+            </Badge>
+          </TableCellLayout>
+        );
+      },
+    }),
+  ], [cantidadesNoSeriadas, productosInfo, soloLectura, saving]);
 
   const guardarRecepcion = async () => {
     if (!compra || !id) return;
@@ -391,7 +642,7 @@ export function RecepcionCompraPage() {
         fechaDocumento: compra.fechaDocumento,
         lineas: lineasARecepcionar,
       });
-      setMensaje('Recepción registrada correctamente.');
+      setMensaje('Recepción registrada correctamente. El inventario ha sido actualizado.');
       void cargarCompra(id);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al procesar la recepción.');
@@ -428,6 +679,8 @@ export function RecepcionCompraPage() {
         <div className={formStyles.toolbarLeft}>
           <D365CommandButton
             icon={<ArrowLeft16Regular />}
+            tone="brand"
+            title="Volver a la orden de compra"
             aria-label="Volver"
             onClick={() => navigate(`/servicio-campo/recepciones-compra/${id}`)}
           />
@@ -442,6 +695,64 @@ export function RecepcionCompraPage() {
               Confirmar recepción
             </D365CommandButton>
           )}
+          {!soloLectura && (cantidadVerificadas < totalSeries || lineasNoSeriadas.some(l => (cantidadesNoSeriadas[l.productoId] ?? l.cantidad) < l.cantidad)) && (
+            <Popover
+              open={popupRecibirTodoTopOpen}
+              onOpenChange={(_, data) => setPopupRecibirTodoTopOpen(data.open)}
+              positioning="below-start"
+              withArrow
+            >
+              <PopoverTrigger disableButtonEnhancement>
+                <D365CommandButton
+                  icon={<CheckmarkCircle16Regular />}
+                  disabled={saving}
+                >
+                  Recibir todo
+                </D365CommandButton>
+              </PopoverTrigger>
+              <PopoverSurface
+                style={{
+                  padding: '12px 14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  maxWidth: '280px',
+                }}
+              >
+                <Text weight="semibold" size={300}>
+                  ¿Recibir todos los ítems?
+                </Text>
+                <Text size={200} style={{ color: tokens.colorNeutralForeground2 }}>
+                  Se marcarán todas las series y materiales pendientes como recibidos.
+                </Text>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+                  <Button size="small" appearance="subtle" onClick={() => setPopupRecibirTodoTopOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    size="small"
+                    appearance="primary"
+                    icon={<Checkmark16Regular />}
+                    onClick={() => {
+                      confirmarRecibirTodo();
+                      setPopupRecibirTodoTopOpen(false);
+                    }}
+                  >
+                    Confirmar
+                  </Button>
+                </div>
+              </PopoverSurface>
+            </Popover>
+          )}
+          <D365CommandButton
+            icon={<ArrowClockwise16Regular />}
+            disabled={saving || loading}
+            onClick={() => {
+              if (id) void cargarCompra(id);
+            }}
+          >
+            Actualizar
+          </D365CommandButton>
           {soloLectura && (
             <Badge appearance="tint" color="success" icon={<CheckmarkCircle16Filled />}>
               Recepción finalizada
@@ -452,267 +763,306 @@ export function RecepcionCompraPage() {
 
       <D365EntityHeader
         title={compra.numero}
-        subtitle="Recepción física de material"
+        subtitle="Recepción física y control de series"
         avatarName={compra.proveedor || 'Recepción'}
         metadata={[
           { label: 'Estado', value: compra.estado },
-          { label: 'Destino', value: compra.almacen },
+          { label: 'Almacén Destino', value: compra.almacen },
           { label: 'Proveedor', value: compra.proveedor },
           { label: 'Comprobante', value: `${compra.tipoDocumento} ${compra.numeroDocumento || 'S/N'}` },
+          { label: 'Fecha Emisión', value: compra.fechaDocumento || '---' },
         ]}
       />
 
       <div className={formStyles.contentBody}>
-        <div className={styles.splitLayout}>
-          {/* Panel Izquierdo: Resumen y Lector de código */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Métricas de Recepción */}
-            <div className={formStyles.card}>
-              <Text weight="semibold" size={300} style={{ marginBottom: '8px', display: 'block' }}>
-                Resumen de unidades
-              </Text>
-              <div className={styles.summaryMetrics}>
-                <div className={styles.metricItem}>
-                  <span className={styles.metricValue}>{totalSeries + lineasNoSeriadas.reduce((a, b) => a + b.cantidad, 0)}</span>
-                  <span className={styles.metricLabel}>Esperadas</span>
-                </div>
-                <div className={styles.metricItem}>
-                  <span className={styles.metricValue}>{totalUnidadesRecibidas}</span>
-                  <span className={styles.metricLabel}>Recibidas</span>
-                </div>
-                <div className={styles.metricItem}>
-                  <span className={styles.metricValue}>
-                    {Math.max(0, (totalSeries + lineasNoSeriadas.reduce((a, b) => a + b.cantidad, 0)) - totalUnidadesRecibidas)}
-                  </span>
-                  <span className={styles.metricLabel}>Pendientes</span>
-                </div>
-              </div>
+        {/* Recepción de Series con escáner y tabla integrados */}
+        {tieneSerializados && (
+          <div className={formStyles.card}>
+            {/* Filtros de estado y badge de progreso arriba del input */}
+            <div className={styles.seriesToolbar}>
+              <TabList
+                selectedValue={filtro}
+                onTabSelect={(_, d) => setFiltro(d.value as 'todas' | 'recibidas' | 'pendientes')}
+              >
+                <Tab value="todas">
+                  Todas <Badge appearance={filtro === 'todas' ? 'filled' : 'tint'} size="small">{totalSeries}</Badge>
+                </Tab>
+                <Tab value="pendientes">
+                  Pendientes <Badge appearance={filtro === 'pendientes' ? 'filled' : 'tint'} color={totalSeries - cantidadVerificadas > 0 ? 'warning' : 'subtle'} size="small">{totalSeries - cantidadVerificadas}</Badge>
+                </Tab>
+                <Tab value="recibidas">
+                  Recibidas <Badge appearance={filtro === 'recibidas' ? 'filled' : 'tint'} color={cantidadVerificadas > 0 ? 'success' : 'subtle'} size="small">{cantidadVerificadas}</Badge>
+                </Tab>
+              </TabList>
 
-              {tieneSerializados && (
-                <div style={{ marginTop: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>Avance de series</Text>
-                    <Text size={200} weight="semibold">{progresoPorcentaje}%</Text>
-                  </div>
-                  <ProgressBar value={progresoPorcentaje / 100} color={progresoPorcentaje === 100 ? 'success' : 'brand'} />
-                </div>
-              )}
+              <Badge
+                appearance={progresoPorcentaje === 100 ? 'filled' : 'tint'}
+                color={progresoPorcentaje === 100 ? 'success' : progresoPorcentaje > 0 ? 'brand' : 'subtle'}
+                size="small"
+              >
+                {cantidadVerificadas} de {totalSeries} recibidas ({progresoPorcentaje}%)
+              </Badge>
             </div>
 
-            {/* Lector de código de barras */}
-            {tieneSerializados && !soloLectura && (
-              <div className={formStyles.card}>
-                <div className={styles.scannerSection}>
-                  <Text weight="semibold" size={300}>
-                    Lector de código de barras
-                  </Text>
-                  <div className={styles.scannerRow}>
-                    <Label htmlFor="recepcion-compra-serie">Serie</Label>
-                    <Input
-                      ref={scannerRef}
-                      className={styles.scannerInput}
-                      id="recepcion-compra-serie"
-                      value={serieInput}
-                      disabled={saving}
-                      onChange={(_, d) => setSerieInput(d.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          procesarEscaneo(serieInput);
-                        }
-                      }}
-                    />
+            {/* Input de escaneo directamente debajo del filtro */}
+            {!soloLectura && (
+              <div className={styles.scannerContainer}>
+                <div className={styles.scannerRow}>
+                  <Input
+                    ref={scannerRef}
+                    className={styles.scannerInput}
+                    id="recepcion-compra-serie"
+                    contentBefore={<BarcodeScanner20Regular />}
+                    placeholder="Escanee o ingrese código SKU o serie..."
+                    value={serieInput}
+                    disabled={saving}
+                    onChange={(_, d) => setSerieInput(d.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        procesarEscaneo(serieInput);
+                      }
+                    }}
+                  />
+                  <Button
+                    appearance="primary"
+                    icon={<Checkmark16Regular />}
+                    disabled={saving || !serieInput.trim()}
+                    onClick={() => procesarEscaneo(serieInput)}
+                  >
+                    Registrar
+                  </Button>
+                  {cantidadVerificadas < totalSeries && (
+                    <Popover
+                      open={popupRecibirTodoOpen}
+                      onOpenChange={(_, data) => setPopupRecibirTodoOpen(data.open)}
+                      positioning="below-end"
+                      withArrow
+                    >
+                      <PopoverTrigger disableButtonEnhancement>
+                        <Button
+                          appearance="outline"
+                          icon={<CheckmarkCircle16Regular />}
+                          disabled={saving}
+                        >
+                          Recibir todo
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverSurface
+                        style={{
+                          padding: '12px 14px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px',
+                          maxWidth: '280px',
+                        }}
+                      >
+                        <Text weight="semibold" size={300}>
+                          ¿Recibir todas las series?
+                        </Text>
+                        <Text size={200} style={{ color: tokens.colorNeutralForeground2 }}>
+                          Se marcarán las {totalSeries - cantidadVerificadas} series pendientes restantes como recibidas.
+                        </Text>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+                          <Button size="small" appearance="subtle" onClick={() => setPopupRecibirTodoOpen(false)}>
+                            Cancelar
+                          </Button>
+                          <Button
+                            size="small"
+                            appearance="primary"
+                            icon={<Checkmark16Regular />}
+                            onClick={() => {
+                              confirmarRecibirTodo();
+                              setPopupRecibirTodoOpen(false);
+                            }}
+                          >
+                            Confirmar
+                          </Button>
+                        </div>
+                      </PopoverSurface>
+                    </Popover>
+                  )}
+                  {cantidadVerificadas > 0 && (
                     <Button
-                      appearance="primary"
-                      disabled={saving || !serieInput.trim()}
-                      onClick={() => procesarEscaneo(serieInput)}
+                      appearance="subtle"
+                      icon={<ArrowUndo16Regular />}
+                      onClick={limpiarVerificacion}
+                      disabled={saving}
                     >
-                      Registrar
+                      Limpiar
                     </Button>
-                  </div>
+                  )}
+                </div>
 
-                  {feedback && (
-                    <div
-                      className={`${styles.feedbackText} ${
-                        feedback.tipo === 'ok'
-                          ? styles.feedbackSuccess
-                          : feedback.tipo === 'aviso'
-                          ? styles.feedbackWarning
-                          : styles.feedbackError
-                      }`}
-                    >
+                {feedback && (
+                  <div
+                    className={`${styles.feedbackText} ${
+                      feedback.tipo === 'ok'
+                        ? styles.feedbackSuccess
+                        : feedback.tipo === 'aviso'
+                        ? styles.feedbackWarning
+                        : styles.feedbackError
+                    }`}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexGrow: 1 }}>
                       {feedback.tipo === 'ok' && <CheckmarkCircle16Filled />}
                       {feedback.tipo === 'aviso' && <Warning16Filled />}
                       {feedback.tipo === 'error' && <Dismiss16Regular />}
                       <span>{feedback.texto}</span>
                     </div>
-                  )}
-
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                    <Button size="small" appearance="outline" onClick={marcarTodas}>
-                      Marcar todas
-                    </Button>
-                    {cantidadVerificadas > 0 && (
-                      <Button size="small" appearance="subtle" onClick={limpiarVerificacion}>
-                        Limpiar
-                      </Button>
-                    )}
+                    <Button
+                      appearance="subtle"
+                      size="small"
+                      icon={<Dismiss16Regular />}
+                      aria-label="Cerrar mensaje"
+                      onClick={() => setFeedback(null)}
+                      style={{ minWidth: 'auto', padding: '2px', height: '20px' }}
+                    />
                   </div>
-                </div>
+                )}
               </div>
             )}
 
-            {/* Datos de Comprobante */}
-            <div className={formStyles.card}>
-              <Text weight="semibold" size={300} style={{ marginBottom: '8px', display: 'block' }}>
-                Datos del documento
-              </Text>
-              <D365FormField label="Tipo">
-                <Text>{compra.tipoDocumento}</Text>
-              </D365FormField>
-              <D365FormField label="Número">
-                <Text weight="semibold">{compra.numeroDocumento || '---'}</Text>
-              </D365FormField>
-              <D365FormField label="Fecha">
-                <Text>{compra.fechaDocumento || '---'}</Text>
-              </D365FormField>
-            </div>
-          </div>
-
-          {/* Panel Derecho: Tabla de Series e Insumos */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Series */}
-            {tieneSerializados && (
-              <div className={formStyles.card}>
-                <div className={styles.seriesToolbar}>
-                  <div className={styles.filterGroup}>
-                    <Button
-                      size="small"
-                      appearance={filtro === 'todas' ? 'primary' : 'subtle'}
-                      onClick={() => setFiltro('todas')}
-                    >
-                      Todas ({totalSeries})
-                    </Button>
-                    <Button
-                      size="small"
-                      appearance={filtro === 'recibidas' ? 'primary' : 'subtle'}
-                      onClick={() => setFiltro('recibidas')}
-                    >
-                      Recibidas ({cantidadVerificadas})
-                    </Button>
-                    <Button
-                      size="small"
-                      appearance={filtro === 'pendientes' ? 'primary' : 'subtle'}
-                      onClick={() => setFiltro('pendientes')}
-                    >
-                      Pendientes ({totalSeries - cantidadVerificadas})
-                    </Button>
-                  </div>
-
-                  <Input
-                    size="small"
-                    placeholder="Buscar" aria-label="Buscar serie"
-                    contentBefore={<Search16Regular />}
-                    value={busqueda}
-                    onChange={(_, d) => setBusqueda(d.value)}
-                    style={{ width: '180px' }}
-                  />
+            <div className={styles.tableWrapper}>
+              {seriesVisibles.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <BarcodeScanner20Regular style={{ fontSize: '24px', opacity: 0.5 }} />
+                  <Text weight="medium">No hay series en esta categoría</Text>
+                  <Text size={200}>Seleccione otra pestaña para ver series pendientes o recibidas.</Text>
                 </div>
-
-                <div className={styles.tableWrapper}>
-                  <DataGrid
-                    items={seriesVisibles}
-                    columns={columnasSeries}
-                    getRowId={item => item.serie}
-                    size="small"
-                  >
-                    <DataGridHeader>
-                      <DataGridRow>
-                        {({ renderHeaderCell }) => (
-                          <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
+              ) : (
+                <DataGrid
+                  items={seriesVisibles}
+                  columns={columnasSeries}
+                  getRowId={item => item.serie}
+                  size="small"
+                >
+                  <DataGridHeader>
+                    <DataGridRow>
+                      {({ renderHeaderCell }) => (
+                        <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
+                      )}
+                    </DataGridRow>
+                  </DataGridHeader>
+                  <DataGridBody<SerieItem>>
+                    {({ item, rowId }) => (
+                      <DataGridRow<SerieItem>
+                        key={rowId}
+                        className={!soloLectura ? styles.serieRowClickable : undefined}
+                        onClick={() => !soloLectura && alternarSerie(item.serie)}
+                      >
+                        {({ renderCell }) => (
+                          <DataGridCell>{renderCell(item)}</DataGridCell>
                         )}
                       </DataGridRow>
-                    </DataGridHeader>
-                    <DataGridBody<SerieItem>>
-                      {({ item, rowId }) => (
-                        <DataGridRow<SerieItem> key={rowId}>
-                          {({ renderCell }) => (
-                            <DataGridCell>{renderCell(item)}</DataGridCell>
-                          )}
-                        </DataGridRow>
-                      )}
-                    </DataGridBody>
-                  </DataGrid>
-                </div>
-              </div>
-            )}
-
-            {/* Insumos no seriados */}
-            {lineasNoSeriadas.length > 0 && (
-              <div className={formStyles.card}>
-                <Text weight="semibold" size={300} style={{ marginBottom: '12px', display: 'block' }}>
-                  Insumos y materiales por cantidad
-                </Text>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {lineasNoSeriadas.map(linea => {
-                    const cant = cantidadesNoSeriadas[linea.productoId] ?? linea.cantidad;
-                    return (
-                      <div
-                        key={linea.productoId}
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: '1fr 120px 140px',
-                          gap: '12px',
-                          alignItems: 'center',
-                          padding: '10px 14px',
-                          border: `1px solid ${tokens.colorNeutralStroke2}`,
-                          borderRadius: tokens.borderRadiusMedium,
-                          backgroundColor: tokens.colorNeutralBackground1,
-                        }}
-                      >
-                        <div>
-                          <Text weight="semibold">{linea.producto}</Text>
-                          <br />
-                          <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                            Esperado: {linea.cantidad} {linea.unidad || 'UND'}
-                          </Text>
-                        </div>
-
-                        <div>
-                          <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>Unidad:</Text>{' '}
-                          <Text weight="semibold">{linea.unidad || 'UND'}</Text>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <Text size={200}>Recibido:</Text>
-                          {soloLectura ? (
-                            <Text weight="semibold">{cant} {linea.unidad || 'UND'}</Text>
-                          ) : (
-                            <Input
-                              type="number"
-                              min={0}
-                              max={linea.cantidad}
-                              value={String(cant)}
-                              disabled={saving}
-                              style={{ width: '80px', textAlign: 'center' }}
-                              onChange={(_, d) => {
-                                const val = Number(d.value);
-                                setCantidadesNoSeriadas(prev => ({
-                                  ...prev,
-                                  [linea.productoId]: isNaN(val) ? 0 : Math.max(0, val),
-                                }));
-                              }}
-                            />
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+                    )}
+                  </DataGridBody>
+                </DataGrid>
+              )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Insumos no seriados */}
+        {lineasNoSeriadas.length > 0 && (
+          <div className={formStyles.card}>
+            {!tieneSerializados && !soloLectura && (
+              <div className={styles.scannerContainer}>
+                <div className={styles.scannerHeader}>
+                  <div className={styles.scannerHeaderTitle}>
+                    <BarcodeScanner20Regular style={{ color: tokens.colorBrandForeground1 }} />
+                    <Text weight="semibold" size={300}>
+                      Lector de código de barras / SKU
+                    </Text>
+                  </div>
+                </div>
+
+                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                  Escanee con lector de código de barras o ingrese el código SKU del material y presione <b>Enter</b>.
+                </Text>
+
+                <div className={styles.scannerRow}>
+                  <Input
+                    ref={scannerRef}
+                    className={styles.scannerInput}
+                    id="recepcion-compra-sku"
+                    contentBefore={<BarcodeScanner20Regular />}
+                    placeholder="Escanee o ingrese código SKU..."
+                    value={serieInput}
+                    disabled={saving}
+                    onChange={(_, d) => setSerieInput(d.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        procesarEscaneo(serieInput);
+                      }
+                    }}
+                  />
+                  <Button
+                    appearance="primary"
+                    icon={<Checkmark16Regular />}
+                    disabled={saving || !serieInput.trim()}
+                    onClick={() => procesarEscaneo(serieInput)}
+                  >
+                    Registrar
+                  </Button>
+                </div>
+
+                {feedback && (
+                  <div
+                    className={`${styles.feedbackText} ${
+                      feedback.tipo === 'ok'
+                        ? styles.feedbackSuccess
+                        : feedback.tipo === 'aviso'
+                        ? styles.feedbackWarning
+                        : styles.feedbackError
+                    }`}
+                  >
+                    {feedback.tipo === 'ok' && <CheckmarkCircle16Filled />}
+                    {feedback.tipo === 'aviso' && <Warning16Filled />}
+                    {feedback.tipo === 'error' && <Dismiss16Regular />}
+                    <span>{feedback.texto}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <Text weight="semibold" size={300}>
+                Insumos y materiales por cantidad
+              </Text>
+              <Badge appearance="tint" color="brand" size="small">
+                {lineasNoSeriadas.length} {lineasNoSeriadas.length === 1 ? 'producto' : 'productos'}
+              </Badge>
+            </div>
+
+            <div className={styles.tableWrapper}>
+              <DataGrid
+                items={lineasNoSeriadas}
+                columns={columnasNoSeriadas}
+                getRowId={item => item.productoId}
+                size="small"
+              >
+                <DataGridHeader>
+                  <DataGridRow>
+                    {({ renderHeaderCell }) => (
+                      <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
+                    )}
+                  </DataGridRow>
+                </DataGridHeader>
+                <DataGridBody<CompraDto['lineas'][number]>>
+                  {({ item, rowId }) => (
+                    <DataGridRow<CompraDto['lineas'][number]> key={rowId}>
+                      {({ renderCell }) => (
+                        <DataGridCell>{renderCell(item)}</DataGridCell>
+                      )}
+                    </DataGridRow>
+                  )}
+                </DataGridBody>
+              </DataGrid>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -20,4 +20,9 @@ public interface IAuthService
     Task<Result<bool>> AsignarRolesAsync(Guid usuarioId, IEnumerable<string> roles);
     Task<Result<List<string>>> ObtenerRolesUsuarioAsync(Guid usuarioId);
     Task<Result<List<RolDto>>> ObtenerTodosLosRolesAsync();
+    Task<Result<RolDto>> ObtenerRolPorIdAsync(Guid rolId);
+    Task<Result<Guid>> CrearRolAsync(string nombreVisible, string? codigo, string modulo, string descripcion, IEnumerable<string> permisos);
+    Task<Result<bool>> ActualizarRolAsync(Guid rolId, string nombreVisible, string modulo, string descripcion, IEnumerable<string> permisos);
+    Task<Result<bool>> EliminarRolAsync(Guid rolId);
+    Task<Result<List<PermisoDefinicionDto>>> ObtenerCatalogoPermisosAsync();
 }
