@@ -107,33 +107,6 @@ const useStyles = makeStyles({
       color: tokens.colorNeutralForegroundOnBrand,
     },
   },
-  waffleFieldService: {
-    backgroundColor: tokens.colorPaletteTealBorderActive,
-    ':hover': {
-      backgroundColor: tokens.colorPaletteLightTealForeground2,
-    },
-    ':active': {
-      backgroundColor: tokens.colorPaletteTealForeground2,
-    },
-  },
-  waffleRRHH: {
-    backgroundColor: tokens.colorPaletteBerryBorderActive,
-    ':hover': {
-      backgroundColor: tokens.colorPaletteBerryForeground1,
-    },
-    ':active': {
-      backgroundColor: tokens.colorPaletteBerryBackground1,
-    },
-  },
-  waffleAdminCenter: {
-    backgroundColor: tokens.colorNeutralBackground4,
-    ':hover': {
-      backgroundColor: tokens.colorNeutralBackground3,
-    },
-    ':active': {
-      backgroundColor: tokens.colorNeutralBackground5,
-    },
-  },
   brandText: {
     padding: '0 12px',
     fontSize: semanticTokens.typography.body,
@@ -402,12 +375,6 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
     };
   };
 
-  const getWaffleClass = () => {
-    if (activeApp.id === 'rrhh') return styles.waffleRRHH;
-    if (activeApp.id === 'admin-center') return styles.waffleAdminCenter;
-    return styles.waffleFieldService;
-  };
-
   const getAppBadgeBg = (appId: string) => {
     if (appId === 'rrhh') {
       return isDarkMode ? tokens.colorPaletteBerryBackground2 : tokens.colorPaletteBerryBorderActive;
@@ -437,10 +404,10 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
           />
         )}
 
-        {/* Waffle Launcher Button */}
+        {/* Waffle Launcher Button - always persistent Teal */}
         <Button
           appearance="transparent"
-          className={mergeClasses(styles.waffleBtn, getWaffleClass())}
+          className={styles.waffleBtn}
           onClick={() => setAppsDrawerOpen(true)}
           title="Iniciador de aplicaciones (Apps)"
           aria-label="Iniciador de aplicaciones"
@@ -652,10 +619,7 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
             }
           >
             <div className={styles.drawerHeaderTitleRow}>
-              <div
-                className={styles.waffleHeaderIcon}
-                style={{ backgroundColor: getAppBadgeBg(activeApp.id) }}
-              >
+              <div className={styles.waffleHeaderIcon}>
                 <Apps20Regular />
               </div>
               <Text weight="semibold" size={400}>
