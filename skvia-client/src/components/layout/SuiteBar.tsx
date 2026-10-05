@@ -54,6 +54,17 @@ const useStyles = makeStyles({
     flexShrink: 0,
     zIndex: 100,
     color: semanticTokens.navigation.foreground,
+    transition: 'background-color 0.2s ease',
+  },
+  rootFieldService: {
+    backgroundColor: semanticTokens.navigation.background,
+  },
+  rootRRHH: {
+    backgroundColor: tokens.colorPaletteBerryForeground2, // #6d2064 (Plum/Berry from user image)
+  },
+  rootAdminCenter: {
+    backgroundColor: '#000000', // Black
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   leftSection: {
     display: 'flex',
@@ -69,11 +80,11 @@ const useStyles = makeStyles({
     border: 'none',
     borderRadius: 0,
     ':hover': {
-      backgroundColor: semanticTokens.navigation.hoverBackground,
+      backgroundColor: 'rgba(255, 255, 255, 0.12)',
       color: semanticTokens.navigation.foreground,
     },
     ':active': {
-      backgroundColor: semanticTokens.navigation.pressedBackground,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
       color: semanticTokens.navigation.foreground,
     },
   },
@@ -86,6 +97,7 @@ const useStyles = makeStyles({
     color: '#ffffff',
     border: 'none',
     borderRadius: 0,
+    transition: 'background-color 0.2s ease',
     ':hover': {
       backgroundColor: '#006e60',
       color: '#ffffff',
@@ -93,6 +105,33 @@ const useStyles = makeStyles({
     ':active': {
       backgroundColor: '#005b4f',
       color: '#ffffff',
+    },
+  },
+  waffleFieldService: {
+    backgroundColor: '#008272',
+    ':hover': {
+      backgroundColor: '#006e60',
+    },
+    ':active': {
+      backgroundColor: '#005b4f',
+    },
+  },
+  waffleRRHH: {
+    backgroundColor: tokens.colorPaletteBerryForeground1, // #af33a1
+    ':hover': {
+      backgroundColor: tokens.colorPaletteBerryForeground2,
+    },
+    ':active': {
+      backgroundColor: '#52174b',
+    },
+  },
+  waffleAdminCenter: {
+    backgroundColor: '#1f1f1f',
+    ':hover': {
+      backgroundColor: '#333333',
+    },
+    ':active': {
+      backgroundColor: '#111111',
     },
   },
   brandText: {
@@ -244,11 +283,11 @@ const useStyles = makeStyles({
     border: 'none',
     borderRadius: '4px',
     ':hover': {
-      backgroundColor: semanticTokens.navigation.hoverBackground,
+      backgroundColor: 'rgba(255, 255, 255, 0.12)',
       color: semanticTokens.navigation.foreground,
     },
     ':active': {
-      backgroundColor: semanticTokens.navigation.pressedBackground,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
       color: semanticTokens.navigation.foreground,
     },
   },
@@ -272,7 +311,7 @@ const useStyles = makeStyles({
     backgroundColor: 'transparent',
     cursor: 'pointer',
     ':hover': {
-      backgroundColor: semanticTokens.navigation.hoverBackground,
+      backgroundColor: 'rgba(255, 255, 255, 0.12)',
     },
   },
   userInfoText: {
@@ -341,8 +380,26 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
 
   const [appsDrawerOpen, setAppsDrawerOpen] = useState(false);
 
+  const getHeaderRootClass = () => {
+    if (activeApp.id === 'rrhh') return styles.rootRRHH;
+    if (activeApp.id === 'admin-center') return styles.rootAdminCenter;
+    return styles.rootFieldService;
+  };
+
+  const getWaffleClass = () => {
+    if (activeApp.id === 'rrhh') return styles.waffleRRHH;
+    if (activeApp.id === 'admin-center') return styles.waffleAdminCenter;
+    return styles.waffleFieldService;
+  };
+
+  const getAppBadgeBg = (appId: string) => {
+    if (appId === 'rrhh') return 'var(--colorPaletteBerryForeground1, #af33a1)';
+    if (appId === 'admin-center') return '#000000';
+    return '#008272';
+  };
+
   return (
-    <header className={styles.root}>
+    <header className={mergeClasses(styles.root, getHeaderRootClass())}>
       {/* Left: Mobile Hamburger Toggle + Teal Waffle Button + SKVIA text + App Name */}
       <div className={styles.leftSection}>
         {onToggleNav && isMobile && (
@@ -360,7 +417,7 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
         {/* Waffle Launcher Button */}
         <Button
           appearance="transparent"
-          className={styles.waffleBtn}
+          className={mergeClasses(styles.waffleBtn, getWaffleClass())}
           onClick={() => setAppsDrawerOpen(true)}
           title="Iniciador de aplicaciones (Apps)"
           aria-label="Iniciador de aplicaciones"
@@ -572,7 +629,10 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
             }
           >
             <div className={styles.drawerHeaderTitleRow}>
-              <div className={styles.waffleHeaderIcon}>
+              <div
+                className={styles.waffleHeaderIcon}
+                style={{ backgroundColor: getAppBadgeBg(activeApp.id) }}
+              >
                 <Apps20Regular />
               </div>
               <Text weight="semibold" size={400}>
@@ -605,7 +665,10 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
                     setAppsDrawerOpen(false);
                   }}
                 >
-                  <div className={styles.appBadge}>
+                  <div
+                    className={styles.appBadge}
+                    style={{ backgroundColor: getAppBadgeBg(app.id) }}
+                  >
                     {app.shortCode}
                   </div>
                   <div className={styles.appItemText}>
