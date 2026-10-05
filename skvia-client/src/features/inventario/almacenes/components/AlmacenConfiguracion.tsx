@@ -460,7 +460,7 @@ export function AlmacenConfiguracion({
                               <Button
                                 size="small"
                                 appearance="primary"
-                                style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: '#fff' }}
+                                style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: tokens.colorNeutralForegroundOnBrand }}
                                 onClick={() => void handleEliminarUbicacion(u.id)}
                               >
                                 Eliminar
@@ -734,7 +734,7 @@ export function AlmacenConfiguracion({
                                   <Button
                                     size="small"
                                     appearance="primary"
-                                    style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: '#fff' }}
+                                    style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: tokens.colorNeutralForegroundOnBrand }}
                                     onClick={() => void handleEliminarAutorizacion(p.usuarioId)}
                                   >
                                     Revocar

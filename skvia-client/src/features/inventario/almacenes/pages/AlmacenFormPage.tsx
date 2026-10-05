@@ -15,6 +15,7 @@ import {
   TableCell,
   TableCellLayout,
   Badge,
+  tokens,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -718,7 +719,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
             {selectedTab === 'existencias' && currentId && (
               <div className={styles.card}>
                 {!isEditMode ? (
-                  <div style={{ padding: '24px', textAlign: 'center', color: '#605e5c' }}>
+                  <div style={{ padding: '24px', textAlign: 'center', color: tokens.colorNeutralForeground3 }}>
                     <Box16Regular style={{ fontSize: 32, marginBottom: 8 }} />
                     <p style={{ margin: 0, fontWeight: 600 }}>Guarde el almacén para consultar existencias.</p>
                   </div>
@@ -732,7 +733,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
                         marginBottom: 12,
                       }}
                     >
-                      <span style={{ fontSize: 13, color: '#605e5c' }}>
+                      <span style={{ fontSize: 13, color: tokens.colorNeutralForeground3 }}>
                         Total líneas con stock: <strong>{existenciasFiltradas.length}</strong>
                       </span>
                       <Input
@@ -750,7 +751,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
                         <Spinner label="Cargando existencias..." size="small" />
                       </div>
                     ) : existenciasFiltradas.length === 0 ? (
-                      <div style={{ padding: '32px 16px', textAlign: 'center', color: '#605e5c' }}>
+                      <div style={{ padding: '32px 16px', textAlign: 'center', color: tokens.colorNeutralForeground3 }}>
                         <p style={{ margin: 0, fontWeight: 500 }}>{filtroStock ? 'Sin resultados.' : 'No hay existencias.'}</p>
                       </div>
                     ) : (

@@ -60,10 +60,10 @@ const useStyles = makeStyles({
     backgroundColor: semanticTokens.navigation.background,
   },
   rootRRHH: {
-    backgroundColor: tokens.colorPaletteBerryForeground2, // #6d2064 (Plum/Berry from user image)
+    backgroundColor: tokens.colorPaletteBerryForeground2,
   },
   rootAdminCenter: {
-    backgroundColor: '#000000', // Black
+    backgroundColor: tokens.colorNeutralBackground5,
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   leftSection: {
@@ -93,45 +93,45 @@ const useStyles = makeStyles({
     width: '48px',
     height: '48px',
     padding: 0,
-    backgroundColor: '#008272',
-    color: '#ffffff',
+    backgroundColor: tokens.colorPaletteTealBorderActive,
+    color: tokens.colorNeutralForegroundOnBrand,
     border: 'none',
     borderRadius: 0,
     transition: 'background-color 0.2s ease',
     ':hover': {
-      backgroundColor: '#006e60',
-      color: '#ffffff',
+      backgroundColor: tokens.colorPaletteLightTealForeground2,
+      color: tokens.colorNeutralForegroundOnBrand,
     },
     ':active': {
-      backgroundColor: '#005b4f',
-      color: '#ffffff',
+      backgroundColor: tokens.colorPaletteTealForeground2,
+      color: tokens.colorNeutralForegroundOnBrand,
     },
   },
   waffleFieldService: {
-    backgroundColor: '#008272',
+    backgroundColor: tokens.colorPaletteTealBorderActive,
     ':hover': {
-      backgroundColor: '#006e60',
+      backgroundColor: tokens.colorPaletteLightTealForeground2,
     },
     ':active': {
-      backgroundColor: '#005b4f',
+      backgroundColor: tokens.colorPaletteTealForeground2,
     },
   },
   waffleRRHH: {
-    backgroundColor: tokens.colorPaletteBerryForeground1, // #af33a1
+    backgroundColor: tokens.colorPaletteBerryBorderActive,
     ':hover': {
-      backgroundColor: tokens.colorPaletteBerryForeground2,
+      backgroundColor: tokens.colorPaletteBerryForeground1,
     },
     ':active': {
-      backgroundColor: '#52174b',
+      backgroundColor: tokens.colorPaletteBerryBackground1,
     },
   },
   waffleAdminCenter: {
-    backgroundColor: '#1f1f1f',
+    backgroundColor: tokens.colorNeutralBackground4,
     ':hover': {
-      backgroundColor: '#333333',
+      backgroundColor: tokens.colorNeutralBackground3,
     },
     ':active': {
-      backgroundColor: '#111111',
+      backgroundColor: tokens.colorNeutralBackground5,
     },
   },
   brandText: {
@@ -178,8 +178,8 @@ const useStyles = makeStyles({
     width: '28px',
     height: '28px',
     borderRadius: '4px',
-    backgroundColor: '#008272',
-    color: '#ffffff',
+    backgroundColor: tokens.colorPaletteTealBorderActive,
+    color: tokens.colorNeutralForegroundOnBrand,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -386,6 +386,22 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
     return styles.rootFieldService;
   };
 
+  const getHeaderStyle = (): React.CSSProperties => {
+    if (activeApp.id === 'rrhh') {
+      return {
+        backgroundColor: isDarkMode ? tokens.colorPaletteBerryBackground2 : tokens.colorPaletteBerryForeground2,
+      };
+    }
+    if (activeApp.id === 'admin-center') {
+      return {
+        backgroundColor: isDarkMode ? tokens.colorNeutralBackground5 : tokens.colorNeutralBackgroundStatic,
+      };
+    }
+    return {
+      backgroundColor: semanticTokens.navigation.background,
+    };
+  };
+
   const getWaffleClass = () => {
     if (activeApp.id === 'rrhh') return styles.waffleRRHH;
     if (activeApp.id === 'admin-center') return styles.waffleAdminCenter;
@@ -393,13 +409,20 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
   };
 
   const getAppBadgeBg = (appId: string) => {
-    if (appId === 'rrhh') return 'var(--colorPaletteBerryForeground1, #af33a1)';
-    if (appId === 'admin-center') return '#000000';
-    return '#008272';
+    if (appId === 'rrhh') {
+      return isDarkMode ? tokens.colorPaletteBerryBackground2 : tokens.colorPaletteBerryBorderActive;
+    }
+    if (appId === 'admin-center') {
+      return isDarkMode ? tokens.colorNeutralBackground5 : tokens.colorNeutralBackgroundStatic;
+    }
+    return isDarkMode ? tokens.colorPaletteTealBackground2 : tokens.colorPaletteTealBorderActive;
   };
 
   return (
-    <header className={mergeClasses(styles.root, getHeaderRootClass())}>
+    <header
+      className={mergeClasses(styles.root, getHeaderRootClass())}
+      style={getHeaderStyle()}
+    >
       {/* Left: Mobile Hamburger Toggle + Teal Waffle Button + SKVIA text + App Name */}
       <div className={styles.leftSection}>
         {onToggleNav && isMobile && (

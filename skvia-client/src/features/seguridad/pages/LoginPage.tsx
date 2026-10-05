@@ -31,12 +31,7 @@ const useStyles = makeStyles({
     alignItems: 'center',
     justifyContent: 'center',
     padding: '24px',
-    backgroundColor: '#f3f6f9',
-    backgroundImage: `
-      radial-gradient(at 0% 0%, rgba(0, 120, 212, 0.08) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgba(0, 120, 212, 0.05) 0px, transparent 50%),
-      radial-gradient(at 50% 50%, #ffffff 0%, #edf2f7 100%)
-    `,
+    backgroundColor: tokens.colorNeutralBackground3,
     boxSizing: 'border-box',
   },
   card: {
@@ -45,7 +40,7 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: '12px',
     padding: '40px 36px',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04)',
+    boxShadow: tokens.shadow16,
     border: `1px solid ${tokens.colorNeutralStroke2}`,
     display: 'flex',
     flexDirection: 'column',
@@ -65,8 +60,8 @@ const useStyles = makeStyles({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#ffffff',
-    boxShadow: '0 4px 12px rgba(0, 120, 212, 0.35)',
+    color: tokens.colorNeutralForegroundOnBrand,
+    boxShadow: tokens.shadow4,
   },
   brandTexts: {
     display: 'flex',

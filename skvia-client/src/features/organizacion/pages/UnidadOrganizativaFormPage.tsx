@@ -8,6 +8,7 @@ import {
   Spinner,
   Text,
   Badge,
+  tokens,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -353,13 +354,13 @@ export function UnidadOrganizativaFormPage() {
                   </D365CommandButton>
                 </div>
                 {territorios.length === 0 ? (
-                  <Text size={200} style={{ color: '#888' }}>
+                  <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
                     No hay territorios asignados.
                   </Text>
                 ) : (
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
-                      <tr style={{ borderBottom: '1px solid #e0e0e0', textAlign: 'left' }}>
+                      <tr style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, textAlign: 'left' }}>
                         <th style={{ padding: '8px' }}>Código</th>
                         <th style={{ padding: '8px' }}>Territorio</th>
                         <th style={{ padding: '8px' }}>Almacén Predeterminado</th>
@@ -368,7 +369,7 @@ export function UnidadOrganizativaFormPage() {
                     </thead>
                     <tbody>
                       {territorios.map((t) => (
-                        <tr key={t.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                        <tr key={t.id} style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke3}` }}>
                           <td style={{ padding: '8px', fontWeight: 600 }}>{t.codigo}</td>
                           <td style={{ padding: '8px' }}>{t.nombre}</td>
                           <td style={{ padding: '8px' }}>{t.almacenPredeterminadoNombre || '—'}</td>
@@ -396,13 +397,13 @@ export function UnidadOrganizativaFormPage() {
                   </D365CommandButton>
                 </div>
                 {almacenes.length === 0 ? (
-                  <Text size={200} style={{ color: '#888' }}>
+                  <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
                     No hay almacenes asociados.
                   </Text>
                 ) : (
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
-                      <tr style={{ borderBottom: '1px solid #e0e0e0', textAlign: 'left' }}>
+                      <tr style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, textAlign: 'left' }}>
                         <th style={{ padding: '8px' }}>Nombre</th>
                         <th style={{ padding: '8px' }}>Código</th>
                         <th style={{ padding: '8px' }}>Tipo</th>
@@ -411,7 +412,7 @@ export function UnidadOrganizativaFormPage() {
                     </thead>
                     <tbody>
                       {almacenes.map((a) => (
-                        <tr key={a.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                        <tr key={a.id} style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke3}` }}>
                           <td style={{ padding: '8px', fontWeight: 600 }}>{a.nombre}</td>
                           <td style={{ padding: '8px' }}>{a.codigo || '—'}</td>
                           <td style={{ padding: '8px' }}>
