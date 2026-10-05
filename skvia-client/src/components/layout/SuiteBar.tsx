@@ -20,6 +20,9 @@ import {
   DrawerHeader,
   DrawerHeaderTitle,
   DrawerBody,
+  FluentProvider,
+  webLightTheme,
+  webDarkTheme,
 } from '@fluentui/react-components';
 import {
   Navigation24Regular,
@@ -63,7 +66,7 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorPaletteBerryForeground2,
   },
   rootAdminCenter: {
-    backgroundColor: tokens.colorNeutralBackground5,
+    backgroundColor: tokens.colorStrokeFocus2,
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   leftSection: {
@@ -359,37 +362,21 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
     return styles.rootFieldService;
   };
 
-  const getHeaderStyle = (): React.CSSProperties => {
-    if (activeApp.id === 'rrhh') {
-      return {
-        backgroundColor: isDarkMode ? tokens.colorPaletteBerryBackground2 : tokens.colorPaletteBerryForeground2,
-      };
-    }
-    if (activeApp.id === 'admin-center') {
-      return {
-        backgroundColor: isDarkMode ? tokens.colorNeutralBackground5 : tokens.colorNeutralBackgroundStatic,
-      };
-    }
-    return {
-      backgroundColor: semanticTokens.navigation.background,
-    };
-  };
-
   const getAppBadgeBg = (appId: string) => {
     if (appId === 'rrhh') {
-      return isDarkMode ? tokens.colorPaletteBerryBackground2 : tokens.colorPaletteBerryBorderActive;
+      return tokens.colorPaletteBerryForeground2;
     }
     if (appId === 'admin-center') {
-      return isDarkMode ? tokens.colorNeutralBackground5 : tokens.colorNeutralBackgroundStatic;
+      return tokens.colorStrokeFocus2;
     }
-    return isDarkMode ? tokens.colorPaletteTealBackground2 : tokens.colorPaletteTealBorderActive;
+    return tokens.colorPaletteTealBorderActive;
   };
 
+  const appActiveTheme = isDarkMode ? webDarkTheme : webLightTheme;
+
   return (
-    <header
-      className={mergeClasses(styles.root, getHeaderRootClass())}
-      style={getHeaderStyle()}
-    >
+    <FluentProvider theme={webLightTheme} style={{ width: '100%', flexShrink: 0, zIndex: 100 }}>
+      <header className={mergeClasses(styles.root, getHeaderRootClass())}>
       {/* Left: Mobile Hamburger Toggle + Teal Waffle Button + SKVIA text + App Name */}
       <div className={styles.leftSection}>
         {onToggleNav && isMobile && (
@@ -475,21 +462,23 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
             </Tooltip>
           </MenuTrigger>
           <MenuPopover>
-            <MenuList style={{ minWidth: '260px', padding: '8px' }}>
-              <div style={{ padding: '6px 12px' }}>
-                <Text weight="semibold" size={300} block>
-                  Centro de Notificaciones
-                </Text>
-                <Text size={100} style={{ opacity: 0.7 }} block>
-                  Estado operativo en tiempo real
-                </Text>
-              </div>
-              <Divider style={{ margin: '6px 0' }} />
-              <MenuItem disabled>🟢 Servidor API: Operativo y en línea</MenuItem>
-              <MenuItem disabled>🟢 PostgreSQL: Base de datos sincronizada</MenuItem>
-              <MenuItem disabled>🟢 Telemetría Aspire: Activa</MenuItem>
-              <MenuItem disabled>ℹ️ No hay alertas críticas pendientes</MenuItem>
-            </MenuList>
+            <FluentProvider theme={appActiveTheme}>
+              <MenuList style={{ minWidth: '260px', padding: '8px' }}>
+                <div style={{ padding: '6px 12px' }}>
+                  <Text weight="semibold" size={300} block>
+                    Centro de Notificaciones
+                  </Text>
+                  <Text size={100} style={{ opacity: 0.7 }} block>
+                    Estado operativo en tiempo real
+                  </Text>
+                </div>
+                <Divider style={{ margin: '6px 0' }} />
+                <MenuItem disabled>🟢 Servidor API: Operativo y en línea</MenuItem>
+                <MenuItem disabled>🟢 PostgreSQL: Base de datos sincronizada</MenuItem>
+                <MenuItem disabled>🟢 Telemetría Aspire: Activa</MenuItem>
+                <MenuItem disabled>ℹ️ No hay alertas críticas pendientes</MenuItem>
+              </MenuList>
+            </FluentProvider>
           </MenuPopover>
         </Menu>
 
@@ -506,26 +495,28 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
             </Tooltip>
           </MenuTrigger>
           <MenuPopover>
-            <MenuList style={{ minWidth: '260px', padding: '8px' }}>
-              <div style={{ padding: '6px 12px' }}>
-                <Text weight="semibold" size={300} block>
-                  Centro de Ayuda
-                </Text>
-                <Text size={100} style={{ opacity: 0.7 }} block>
-                  BubbaBag / SKVIA ERP v1.0.0
-                </Text>
-              </div>
-              <Divider style={{ margin: '6px 0' }} />
-              <MenuItem onClick={() => navigate('/gestion-datos/importaciones')}>
-                📂 Guía de Importación Masiva Excel
-              </MenuItem>
-              <MenuItem onClick={() => navigate('/servicio-campo/productos')}>
-                📦 Catálogo de Productos y Precios
-              </MenuItem>
-              <MenuItem disabled>
-                ⌨️ Tip: Busca productos o almacenes desde la barra superior
-              </MenuItem>
-            </MenuList>
+            <FluentProvider theme={appActiveTheme}>
+              <MenuList style={{ minWidth: '260px', padding: '8px' }}>
+                <div style={{ padding: '6px 12px' }}>
+                  <Text weight="semibold" size={300} block>
+                    Centro de Ayuda
+                  </Text>
+                  <Text size={100} style={{ opacity: 0.7 }} block>
+                    BubbaBag / SKVIA ERP v1.0.0
+                  </Text>
+                </div>
+                <Divider style={{ margin: '6px 0' }} />
+                <MenuItem onClick={() => navigate('/gestion-datos/importaciones')}>
+                  📂 Guía de Importación Masiva Excel
+                </MenuItem>
+                <MenuItem onClick={() => navigate('/servicio-campo/productos')}>
+                  📦 Catálogo de Productos y Precios
+                </MenuItem>
+                <MenuItem disabled>
+                  ⌨️ Tip: Busca productos o almacenes desde la barra superior
+                </MenuItem>
+              </MenuList>
+            </FluentProvider>
           </MenuPopover>
         </Menu>
 
@@ -542,19 +533,21 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
             </Tooltip>
           </MenuTrigger>
           <MenuPopover>
-            <MenuList style={{ minWidth: '240px', padding: '8px' }}>
-              <div style={{ padding: '6px 12px' }}>
-                <Text weight="semibold" size={300} block>
-                  Configuración del Entorno
-                </Text>
-              </div>
-              <Divider style={{ margin: '6px 0' }} />
-              <MenuItem onClick={toggleDarkMode}>
-                {isDarkMode ? '☀️ Cambiar a tema Claro' : '🌙 Cambiar a tema Oscuro'}
-              </MenuItem>
-              <MenuItem disabled>📐 Densidad: Estándar (D365)</MenuItem>
-              <MenuItem disabled>🇵🇪 Moneda: Soles (PEN - S/.)</MenuItem>
-            </MenuList>
+            <FluentProvider theme={appActiveTheme}>
+              <MenuList style={{ minWidth: '240px', padding: '8px' }}>
+                <div style={{ padding: '6px 12px' }}>
+                  <Text weight="semibold" size={300} block>
+                    Configuración del Entorno
+                  </Text>
+                </div>
+                <Divider style={{ margin: '6px 0' }} />
+                <MenuItem onClick={toggleDarkMode}>
+                  {isDarkMode ? '☀️ Cambiar a tema Claro' : '🌙 Cambiar a tema Oscuro'}
+                </MenuItem>
+                <MenuItem disabled>📐 Densidad: Estándar (D365)</MenuItem>
+                <MenuItem disabled>🇵🇪 Moneda: Soles (PEN - S/.)</MenuItem>
+              </MenuList>
+            </FluentProvider>
           </MenuPopover>
         </Menu>
 
@@ -580,22 +573,24 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
             </Button>
           </MenuTrigger>
           <MenuPopover>
-            <MenuList style={{ minWidth: '240px', padding: '8px' }}>
-              <div style={{ padding: '8px 12px' }}>
-                <Text weight="semibold" block>{currentUser.nombre}</Text>
-                <Text size={200} style={{ opacity: 0.7 }} block>{currentUser.email}</Text>
-                <Badge size="small" appearance="tint" color="informative" style={{ marginTop: '6px' }}>
-                  {currentUser.rol}
-                </Badge>
-              </div>
-              <Divider style={{ margin: '6px 0' }} />
-              <MenuItem icon={<ArrowClockwise16Regular />} onClick={currentUser.refreshUser}>
-                Actualizar sesión
-              </MenuItem>
-              <MenuItem icon={<SignOutRegular />} onClick={currentUser.logout}>
-                Cerrar sesión
-              </MenuItem>
-            </MenuList>
+            <FluentProvider theme={appActiveTheme}>
+              <MenuList style={{ minWidth: '240px', padding: '8px' }}>
+                <div style={{ padding: '8px 12px' }}>
+                  <Text weight="semibold" block>{currentUser.nombre}</Text>
+                  <Text size={200} style={{ opacity: 0.7 }} block>{currentUser.email}</Text>
+                  <Badge size="small" appearance="tint" color="informative" style={{ marginTop: '6px' }}>
+                    {currentUser.rol}
+                  </Badge>
+                </div>
+                <Divider style={{ margin: '6px 0' }} />
+                <MenuItem icon={<ArrowClockwise16Regular />} onClick={currentUser.refreshUser}>
+                  Actualizar sesión
+                </MenuItem>
+                <MenuItem icon={<SignOutRegular />} onClick={currentUser.logout}>
+                  Cerrar sesión
+                </MenuItem>
+              </MenuList>
+            </FluentProvider>
           </MenuPopover>
         </Menu>
       </div>
@@ -607,74 +602,77 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
         onOpenChange={(_, { open }) => setAppsDrawerOpen(open)}
         className={styles.appsDrawer}
       >
-        <DrawerHeader className={styles.drawerHeader}>
-          <DrawerHeaderTitle
-            action={
-              <Button
-                appearance="subtle"
-                aria-label="Cerrar menú de aplicaciones"
-                icon={<Dismiss20Regular />}
-                onClick={() => setAppsDrawerOpen(false)}
-              />
-            }
-          >
-            <div className={styles.drawerHeaderTitleRow}>
-              <div className={styles.waffleHeaderIcon}>
-                <Apps20Regular />
+        <FluentProvider theme={appActiveTheme} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <DrawerHeader className={styles.drawerHeader}>
+            <DrawerHeaderTitle
+              action={
+                <Button
+                  appearance="subtle"
+                  aria-label="Cerrar menú de aplicaciones"
+                  icon={<Dismiss20Regular />}
+                  onClick={() => setAppsDrawerOpen(false)}
+                />
+              }
+            >
+              <div className={styles.drawerHeaderTitleRow}>
+                <div className={styles.waffleHeaderIcon}>
+                  <Apps20Regular />
+                </div>
+                <Text weight="semibold" size={400}>
+                  Aplicaciones
+                </Text>
               </div>
-              <Text weight="semibold" size={400}>
-                Aplicaciones
+            </DrawerHeaderTitle>
+          </DrawerHeader>
+
+          <DrawerBody className={styles.drawerBody}>
+            <div className={styles.appsSectionHeader}>
+              <Text size={200} weight="semibold" className={styles.appsSectionLabel}>
+                APLICACIONES DE LA EMPRESA
               </Text>
             </div>
-          </DrawerHeaderTitle>
-        </DrawerHeader>
 
-        <DrawerBody className={styles.drawerBody}>
-          <div className={styles.appsSectionHeader}>
-            <Text size={200} weight="semibold" className={styles.appsSectionLabel}>
-              APLICACIONES DE LA EMPRESA
-            </Text>
-          </div>
-
-          <div className={styles.appsList}>
-            {apps.map((app) => {
-              const isSelected = app.id === activeApp.id;
-              return (
-                <button
-                  key={app.id}
-                  type="button"
-                  className={mergeClasses(
-                    styles.appCard,
-                    isSelected && styles.appCardSelected
-                  )}
-                  onClick={() => {
-                    onSelectApp(app);
-                    setAppsDrawerOpen(false);
-                  }}
-                >
-                  <div
-                    className={styles.appBadge}
-                    style={{ backgroundColor: getAppBadgeBg(app.id) }}
+            <div className={styles.appsList}>
+              {apps.map((app) => {
+                const isSelected = app.id === activeApp.id;
+                return (
+                  <button
+                    key={app.id}
+                    type="button"
+                    className={mergeClasses(
+                      styles.appCard,
+                      isSelected && styles.appCardSelected
+                    )}
+                    onClick={() => {
+                      onSelectApp(app);
+                      setAppsDrawerOpen(false);
+                    }}
                   >
-                    {app.shortCode}
-                  </div>
-                  <div className={styles.appItemText}>
-                    <Text weight={isSelected ? 'semibold' : 'medium'} size={300} className={styles.appItemTitle}>
-                      {app.name}
-                    </Text>
-                    <Text size={100} className={styles.appSubtitle}>
-                      {app.subtitle}
-                    </Text>
-                  </div>
-                  {isSelected && (
-                    <Checkmark16Regular className={styles.selectedCheck} />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </DrawerBody>
+                    <div
+                      className={styles.appBadge}
+                      style={{ backgroundColor: getAppBadgeBg(app.id) }}
+                    >
+                      {app.shortCode}
+                    </div>
+                    <div className={styles.appItemText}>
+                      <Text weight={isSelected ? 'semibold' : 'medium'} size={300} className={styles.appItemTitle}>
+                        {app.name}
+                      </Text>
+                      <Text size={100} className={styles.appSubtitle}>
+                        {app.subtitle}
+                      </Text>
+                    </div>
+                    {isSelected && (
+                      <Checkmark16Regular className={styles.selectedCheck} />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </DrawerBody>
+        </FluentProvider>
       </OverlayDrawer>
     </header>
-  );
+  </FluentProvider>
+);
 };
