@@ -20,9 +20,6 @@ import {
   DrawerHeader,
   DrawerHeaderTitle,
   DrawerBody,
-  FluentProvider,
-  webLightTheme,
-  webDarkTheme,
 } from '@fluentui/react-components';
 import {
   Navigation24Regular,
@@ -46,7 +43,6 @@ import { semanticTokens } from '../../styles/semanticTokens';
 const useStyles = makeStyles({
   root: {
     height: '48px',
-    backgroundColor: semanticTokens.navigation.background,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -58,16 +54,6 @@ const useStyles = makeStyles({
     zIndex: 100,
     color: semanticTokens.navigation.foreground,
     transition: 'background-color 0.2s ease',
-  },
-  rootFieldService: {
-    backgroundColor: semanticTokens.navigation.background,
-  },
-  rootRRHH: {
-    backgroundColor: tokens.colorPaletteBerryForeground2,
-  },
-  rootAdminCenter: {
-    backgroundColor: tokens.colorStrokeFocus2,
-    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   leftSection: {
     display: 'flex',
@@ -139,7 +125,6 @@ const useStyles = makeStyles({
   appsDrawer: {
     width: '320px',
     maxWidth: '85vw',
-    backgroundColor: tokens.colorNeutralBackground1,
   },
   drawerHeader: {
     padding: '12px 16px',
@@ -238,10 +223,11 @@ const useStyles = makeStyles({
   },
   searchInput: {
     width: '100%',
-    backgroundColor: tokens.colorNeutralBackground1,
+    backgroundColor: tokens.colorBrandBackgroundInverted,
+    color: tokens.colorNeutralForeground1Static,
     borderRadius: '4px',
     ':focus-within': {
-      backgroundColor: tokens.colorNeutralBackground1,
+      backgroundColor: tokens.colorBrandBackgroundInverted,
     },
   },
   rightSection: {
@@ -356,113 +342,121 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
 
   const [appsDrawerOpen, setAppsDrawerOpen] = useState(false);
 
-  const getHeaderRootClass = () => {
-    if (activeApp.id === 'rrhh') return styles.rootRRHH;
-    if (activeApp.id === 'admin-center') return styles.rootAdminCenter;
-    return styles.rootFieldService;
+  const getHeaderStyle = (): React.CSSProperties => {
+    if (activeApp.id === 'rrhh') {
+      return {
+        backgroundColor: isDarkMode ? tokens.colorPaletteBerryBackground2 : tokens.colorPaletteBerryForeground2,
+      };
+    }
+    if (activeApp.id === 'admin-center') {
+      return {
+        backgroundColor: isDarkMode ? tokens.colorNeutralBackground5 : tokens.colorStrokeFocus2,
+        borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+      };
+    }
+    return {
+      backgroundColor: tokens.colorBrandBackgroundStatic,
+    };
   };
 
   const getAppBadgeBg = (appId: string) => {
     if (appId === 'rrhh') {
-      return tokens.colorPaletteBerryForeground2;
+      return isDarkMode ? tokens.colorPaletteBerryBackground2 : tokens.colorPaletteBerryForeground2;
     }
     if (appId === 'admin-center') {
-      return tokens.colorStrokeFocus2;
+      return isDarkMode ? tokens.colorNeutralBackground5 : tokens.colorStrokeFocus2;
     }
     return tokens.colorPaletteTealBorderActive;
   };
 
-  const appActiveTheme = isDarkMode ? webDarkTheme : webLightTheme;
-
   return (
-    <FluentProvider theme={webLightTheme} style={{ width: '100%', flexShrink: 0, zIndex: 100 }}>
-      <header className={mergeClasses(styles.root, getHeaderRootClass())}>
-      {/* Left: Mobile Hamburger Toggle + Teal Waffle Button + SKVIA text + App Name */}
-      <div className={styles.leftSection}>
-        {onToggleNav && isMobile && (
+    <>
+      <header className={styles.root} style={getHeaderStyle()}>
+        {/* Left: Mobile Hamburger Toggle + Teal Waffle Button + SKVIA text + App Name */}
+        <div className={styles.leftSection}>
+          {onToggleNav && isMobile && (
+            <Button
+              appearance="transparent"
+              className={styles.navBtn}
+              onClick={onToggleNav}
+              title={isNavOpen ? 'Contraer navegación' : 'Expandir navegación'}
+              aria-label={isNavOpen ? 'Contraer navegación' : 'Expandir navegación'}
+              aria-expanded={isNavOpen}
+              icon={<Navigation24Regular />}
+            />
+          )}
+
+          {/* Waffle Launcher Button - always persistent Teal */}
           <Button
             appearance="transparent"
-            className={styles.navBtn}
-            onClick={onToggleNav}
-            title={isNavOpen ? 'Contraer navegación' : 'Expandir navegación'}
-            aria-label={isNavOpen ? 'Contraer navegación' : 'Expandir navegación'}
-            aria-expanded={isNavOpen}
-            icon={<Navigation24Regular />}
+            className={styles.waffleBtn}
+            onClick={() => setAppsDrawerOpen(true)}
+            title="Iniciador de aplicaciones (Apps)"
+            aria-label="Iniciador de aplicaciones"
+            icon={<Apps20Regular />}
           />
-        )}
 
-        {/* Waffle Launcher Button - always persistent Teal */}
-        <Button
-          appearance="transparent"
-          className={styles.waffleBtn}
-          onClick={() => setAppsDrawerOpen(true)}
-          title="Iniciador de aplicaciones (Apps)"
-          aria-label="Iniciador de aplicaciones"
-          icon={<Apps20Regular />}
-        />
+          {/* SKVIA Brand Text only */}
+          <span className={styles.brandText}>SKVIA</span>
 
-        {/* SKVIA Brand Text only */}
-        <span className={styles.brandText}>SKVIA</span>
+          {/* Separator Pipe | */}
+          <Divider vertical className={styles.divider} />
 
-        {/* Separator Pipe | */}
-        <Divider vertical className={styles.divider} />
+          {/* Active Application Name */}
+          <span className={styles.appTitle}>{activeApp.name}</span>
+        </div>
 
-        {/* Active Application Name */}
-        <span className={styles.appTitle}>{activeApp.name}</span>
-      </div>
-
-      {/* Global Search with direct routing */}
-      <div className={styles.centerSection}>
-        <Input
-          className={styles.searchInput}
-          placeholder={`Buscar en ${activeApp.name}`}
-          contentBefore={<Search16Regular />}
-          appearance="outline"
-          size="medium"
-          value={searchQuery}
-          onChange={(_e, data) => setSearchQuery(data.value)}
-          onKeyDown={handleSearchKeyDown}
-        />
-      </div>
-
-      {/* Right Actions */}
-      <div className={styles.rightSection}>
-        <Tooltip
-          content={isDarkMode ? 'Cambiar a modo Claro' : 'Cambiar a modo Oscuro'}
-          relationship="label"
-        >
-          <Button
-            appearance="transparent"
-            className={styles.actionBtn}
-            onClick={toggleDarkMode}
-            aria-label="Cambiar tema"
-            icon={isDarkMode ? <WeatherSunny20Regular /> : <WeatherMoon20Regular />}
+        {/* Global Search with direct routing */}
+        <div className={styles.centerSection}>
+          <Input
+            className={styles.searchInput}
+            placeholder={`Buscar en ${activeApp.name}`}
+            contentBefore={<Search16Regular />}
+            appearance="outline"
+            size="medium"
+            value={searchQuery}
+            onChange={(_e, data) => setSearchQuery(data.value)}
+            onKeyDown={handleSearchKeyDown}
           />
-        </Tooltip>
+        </div>
 
-        {/* Notificaciones del Sistema */}
-        <Menu>
-          <MenuTrigger disableButtonEnhancement>
-            <Tooltip content="Notificaciones y alertas del sistema" relationship="label">
-              <Button
-                appearance="transparent"
-                className={styles.actionBtn}
-                aria-label="Notificaciones"
-                icon={
-                  <div className={styles.notificationIcon}>
-                    <Alert20Regular />
-                    <Badge
-                      size="extra-small"
-                      color="success"
-                      className={styles.notificationBadge}
-                    />
-                  </div>
-                }
-              />
-            </Tooltip>
-          </MenuTrigger>
-          <MenuPopover>
-            <FluentProvider theme={appActiveTheme}>
+        {/* Right Actions */}
+        <div className={styles.rightSection}>
+          <Tooltip
+            content={isDarkMode ? 'Cambiar a modo Claro' : 'Cambiar a modo Oscuro'}
+            relationship="label"
+          >
+            <Button
+              appearance="transparent"
+              className={styles.actionBtn}
+              onClick={toggleDarkMode}
+              aria-label="Cambiar tema"
+              icon={isDarkMode ? <WeatherSunny20Regular /> : <WeatherMoon20Regular />}
+            />
+          </Tooltip>
+
+          {/* Notificaciones del Sistema */}
+          <Menu>
+            <MenuTrigger disableButtonEnhancement>
+              <Tooltip content="Notificaciones y alertas del sistema" relationship="label">
+                <Button
+                  appearance="transparent"
+                  className={styles.actionBtn}
+                  aria-label="Notificaciones"
+                  icon={
+                    <div className={styles.notificationIcon}>
+                      <Alert20Regular />
+                      <Badge
+                        size="extra-small"
+                        color="success"
+                        className={styles.notificationBadge}
+                      />
+                    </div>
+                  }
+                />
+              </Tooltip>
+            </MenuTrigger>
+            <MenuPopover>
               <MenuList style={{ minWidth: '260px', padding: '8px' }}>
                 <div style={{ padding: '6px 12px' }}>
                   <Text weight="semibold" size={300} block>
@@ -478,24 +472,22 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
                 <MenuItem disabled>🟢 Telemetría Aspire: Activa</MenuItem>
                 <MenuItem disabled>ℹ️ No hay alertas críticas pendientes</MenuItem>
               </MenuList>
-            </FluentProvider>
-          </MenuPopover>
-        </Menu>
+            </MenuPopover>
+          </Menu>
 
-        {/* Ayuda y Soporte */}
-        <Menu>
-          <MenuTrigger disableButtonEnhancement>
-            <Tooltip content="Ayuda y documentación técnica" relationship="label">
-              <Button
-                appearance="transparent"
-                className={styles.actionBtn}
-                aria-label="Ayuda"
-                icon={<QuestionCircle20Regular />}
-              />
-            </Tooltip>
-          </MenuTrigger>
-          <MenuPopover>
-            <FluentProvider theme={appActiveTheme}>
+          {/* Ayuda y Soporte */}
+          <Menu>
+            <MenuTrigger disableButtonEnhancement>
+              <Tooltip content="Ayuda y documentación técnica" relationship="label">
+                <Button
+                  appearance="transparent"
+                  className={styles.actionBtn}
+                  aria-label="Ayuda"
+                  icon={<QuestionCircle20Regular />}
+                />
+              </Tooltip>
+            </MenuTrigger>
+            <MenuPopover>
               <MenuList style={{ minWidth: '260px', padding: '8px' }}>
                 <div style={{ padding: '6px 12px' }}>
                   <Text weight="semibold" size={300} block>
@@ -516,24 +508,22 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
                   ⌨️ Tip: Busca productos o almacenes desde la barra superior
                 </MenuItem>
               </MenuList>
-            </FluentProvider>
-          </MenuPopover>
-        </Menu>
+            </MenuPopover>
+          </Menu>
 
-        {/* Configuración Rápida */}
-        <Menu>
-          <MenuTrigger disableButtonEnhancement>
-            <Tooltip content="Configuración global del entorno" relationship="label">
-              <Button
-                appearance="transparent"
-                className={styles.actionBtn}
-                aria-label="Configuración"
-                icon={<Settings20Regular />}
-              />
-            </Tooltip>
-          </MenuTrigger>
-          <MenuPopover>
-            <FluentProvider theme={appActiveTheme}>
+          {/* Configuración Rápida */}
+          <Menu>
+            <MenuTrigger disableButtonEnhancement>
+              <Tooltip content="Configuración global del entorno" relationship="label">
+                <Button
+                  appearance="transparent"
+                  className={styles.actionBtn}
+                  aria-label="Configuración"
+                  icon={<Settings20Regular />}
+                />
+              </Tooltip>
+            </MenuTrigger>
+            <MenuPopover>
               <MenuList style={{ minWidth: '240px', padding: '8px' }}>
                 <div style={{ padding: '6px 12px' }}>
                   <Text weight="semibold" size={300} block>
@@ -547,33 +537,31 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
                 <MenuItem disabled>📐 Densidad: Estándar (D365)</MenuItem>
                 <MenuItem disabled>🇵🇪 Moneda: Soles (PEN - S/.)</MenuItem>
               </MenuList>
-            </FluentProvider>
-          </MenuPopover>
-        </Menu>
+            </MenuPopover>
+          </Menu>
 
-        {/* User Persona dinámico */}
-        <Menu>
-          <MenuTrigger disableButtonEnhancement>
-            <Button appearance="transparent" className={styles.userProfile} title="Perfil del usuario activo">
-              <Avatar
-                name={currentUser.nombre}
-                initials={currentUser.initials}
-                color="colorful"
-                size={28}
-                badge={{ status: 'available' }}
-              />
-              <div className={styles.userInfoText}>
-                <Text weight="semibold" size={200} className={styles.userName}>
-                  {currentUser.nombre}
-                </Text>
-                <Text size={100} className={styles.userRole}>
-                  {currentUser.rol}
-                </Text>
-              </div>
-            </Button>
-          </MenuTrigger>
-          <MenuPopover>
-            <FluentProvider theme={appActiveTheme}>
+          {/* User Persona dinámico */}
+          <Menu>
+            <MenuTrigger disableButtonEnhancement>
+              <Button appearance="transparent" className={styles.userProfile} title="Perfil del usuario activo">
+                <Avatar
+                  name={currentUser.nombre}
+                  initials={currentUser.initials}
+                  color="colorful"
+                  size={28}
+                  badge={{ status: 'available' }}
+                />
+                <div className={styles.userInfoText}>
+                  <Text weight="semibold" size={200} className={styles.userName}>
+                    {currentUser.nombre}
+                  </Text>
+                  <Text size={100} className={styles.userRole}>
+                    {currentUser.rol}
+                  </Text>
+                </div>
+              </Button>
+            </MenuTrigger>
+            <MenuPopover>
               <MenuList style={{ minWidth: '240px', padding: '8px' }}>
                 <div style={{ padding: '8px 12px' }}>
                   <Text weight="semibold" block>{currentUser.nombre}</Text>
@@ -590,10 +578,10 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
                   Cerrar sesión
                 </MenuItem>
               </MenuList>
-            </FluentProvider>
-          </MenuPopover>
-        </Menu>
-      </div>
+            </MenuPopover>
+          </Menu>
+        </div>
+      </header>
 
       {/* Left Apps Drawer (Overlay Drawer) */}
       <OverlayDrawer
@@ -602,77 +590,74 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
         onOpenChange={(_, { open }) => setAppsDrawerOpen(open)}
         className={styles.appsDrawer}
       >
-        <FluentProvider theme={appActiveTheme} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-          <DrawerHeader className={styles.drawerHeader}>
-            <DrawerHeaderTitle
-              action={
-                <Button
-                  appearance="subtle"
-                  aria-label="Cerrar menú de aplicaciones"
-                  icon={<Dismiss20Regular />}
-                  onClick={() => setAppsDrawerOpen(false)}
-                />
-              }
-            >
-              <div className={styles.drawerHeaderTitleRow}>
-                <div className={styles.waffleHeaderIcon}>
-                  <Apps20Regular />
-                </div>
-                <Text weight="semibold" size={400}>
-                  Aplicaciones
-                </Text>
+        <DrawerHeader className={styles.drawerHeader}>
+          <DrawerHeaderTitle
+            action={
+              <Button
+                appearance="subtle"
+                aria-label="Cerrar menú de aplicaciones"
+                icon={<Dismiss20Regular />}
+                onClick={() => setAppsDrawerOpen(false)}
+              />
+            }
+          >
+            <div className={styles.drawerHeaderTitleRow}>
+              <div className={styles.waffleHeaderIcon}>
+                <Apps20Regular />
               </div>
-            </DrawerHeaderTitle>
-          </DrawerHeader>
-
-          <DrawerBody className={styles.drawerBody}>
-            <div className={styles.appsSectionHeader}>
-              <Text size={200} weight="semibold" className={styles.appsSectionLabel}>
-                APLICACIONES DE LA EMPRESA
+              <Text weight="semibold" size={400}>
+                Aplicaciones
               </Text>
             </div>
+          </DrawerHeaderTitle>
+        </DrawerHeader>
 
-            <div className={styles.appsList}>
-              {apps.map((app) => {
-                const isSelected = app.id === activeApp.id;
-                return (
-                  <button
-                    key={app.id}
-                    type="button"
-                    className={mergeClasses(
-                      styles.appCard,
-                      isSelected && styles.appCardSelected
-                    )}
-                    onClick={() => {
-                      onSelectApp(app);
-                      setAppsDrawerOpen(false);
-                    }}
+        <DrawerBody className={styles.drawerBody}>
+          <div className={styles.appsSectionHeader}>
+            <Text size={200} weight="semibold" className={styles.appsSectionLabel}>
+              APLICACIONES DE LA EMPRESA
+            </Text>
+          </div>
+
+          <div className={styles.appsList}>
+            {apps.map((app) => {
+              const isSelected = app.id === activeApp.id;
+              return (
+                <button
+                  key={app.id}
+                  type="button"
+                  className={mergeClasses(
+                    styles.appCard,
+                    isSelected && styles.appCardSelected
+                  )}
+                  onClick={() => {
+                    onSelectApp(app);
+                    setAppsDrawerOpen(false);
+                  }}
+                >
+                  <div
+                    className={styles.appBadge}
+                    style={{ backgroundColor: getAppBadgeBg(app.id) }}
                   >
-                    <div
-                      className={styles.appBadge}
-                      style={{ backgroundColor: getAppBadgeBg(app.id) }}
-                    >
-                      {app.shortCode}
-                    </div>
-                    <div className={styles.appItemText}>
-                      <Text weight={isSelected ? 'semibold' : 'medium'} size={300} className={styles.appItemTitle}>
-                        {app.name}
-                      </Text>
-                      <Text size={100} className={styles.appSubtitle}>
-                        {app.subtitle}
-                      </Text>
-                    </div>
-                    {isSelected && (
-                      <Checkmark16Regular className={styles.selectedCheck} />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </DrawerBody>
-        </FluentProvider>
+                    {app.shortCode}
+                  </div>
+                  <div className={styles.appItemText}>
+                    <Text weight={isSelected ? 'semibold' : 'medium'} size={300} className={styles.appItemTitle}>
+                      {app.name}
+                    </Text>
+                    <Text size={100} className={styles.appSubtitle}>
+                      {app.subtitle}
+                    </Text>
+                  </div>
+                  {isSelected && (
+                    <Checkmark16Regular className={styles.selectedCheck} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </DrawerBody>
       </OverlayDrawer>
-    </header>
-  </FluentProvider>
-);
+    </>
+  );
 };
