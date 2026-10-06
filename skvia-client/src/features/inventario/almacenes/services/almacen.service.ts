@@ -37,7 +37,7 @@ export const AlmacenService = {
     const list = await apiClient<import('../types/almacen.types').AlmacenDto[]>(`/api/inventario/almacenes/${id}/destinos`);
     return (list || []).map(normalizarAlmacen);
   },
-  getAutorizaciones: (id:string) => apiClient<Array<{usuarioId:string;puedeConsultar:boolean;puedeDespachar:boolean;puedeRecepcionar:boolean;esSupervisor:boolean;activo:boolean}>>(`/api/inventario/almacenes/${id}/autorizaciones`),
+  getAutorizaciones: (id:string) => apiClient<Array<{usuarioId:string;nombreCompleto?:string;email?:string;puedeConsultar:boolean;puedeDespachar:boolean;puedeRecepcionar:boolean;esSupervisor:boolean;activo:boolean}>>(`/api/inventario/almacenes/${id}/autorizaciones`),
   guardarAutorizacion: (id:string,usuarioId:string,datos:{puedeConsultar:boolean;puedeDespachar:boolean;puedeRecepcionar:boolean;esSupervisor:boolean;activo:boolean}) => apiClient(`/api/inventario/almacenes/${id}/autorizaciones/${usuarioId}`,{method:'PUT',body:JSON.stringify(datos)}),
   eliminarAutorizacion: (id:string,usuarioId:string) => apiClient(`/api/inventario/almacenes/${id}/autorizaciones/${usuarioId}`,{method:'DELETE'}),
   // 1. Obtener almacenes con filtros

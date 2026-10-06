@@ -31,18 +31,23 @@ public static class UbicacionesEndpoints
         var resultado=await usuarios.ObtenerUsuariosAsync(soloActivos: true);
         if (resultado.IsFailure) return Results.BadRequest(resultado.Error);
 
-        static bool EsAlmacenero(string rol) =>
-            rol.Equals(BubbaBag.SharedKernel.Authorization.Roles.InventarioAlmacenero, StringComparison.OrdinalIgnoreCase) ||
-            rol.Contains("almacen", StringComparison.OrdinalIgnoreCase) ||
-            rol.Contains("almacén", StringComparison.OrdinalIgnoreCase);
-
-        var almaceneros = resultado.Value
-            .Where(u => u.EsActivo && u.Roles.Any(EsAlmacenero))
+        var autorizables = resultado.Value
+            .Where(u => u.EsActivo && EsUsuarioAutorizable(u.Roles))
             .Select(u => new { u.Id, u.NombreCompleto, u.Email, u.EsActivo, u.Roles })
             .ToList();
 
-        return Results.Ok(almaceneros);
+        return Results.Ok(autorizables);
     }
+
+    private static bool EsUsuarioAutorizable(IEnumerable<string> roles) =>
+        roles.Any(rol =>
+            rol.Equals(BubbaBag.SharedKernel.Authorization.Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase) ||
+            rol.Equals(BubbaBag.SharedKernel.Authorization.Roles.InventarioAdmin, StringComparison.OrdinalIgnoreCase) ||
+            rol.Equals(BubbaBag.SharedKernel.Authorization.Roles.ServicioCampoAdmin, StringComparison.OrdinalIgnoreCase) ||
+            rol.Equals(BubbaBag.SharedKernel.Authorization.Roles.InventarioAlmacenero, StringComparison.OrdinalIgnoreCase) ||
+            rol.Contains("admin", StringComparison.OrdinalIgnoreCase) ||
+            rol.Contains("almacen", StringComparison.OrdinalIgnoreCase) ||
+            rol.Contains("almacén", StringComparison.OrdinalIgnoreCase));
 
     private static async Task<IResult> ObtenerUbicaciones(Guid id,Guid? origenId,IServicioCampoDbContext db,ICurrentUser user,CancellationToken ct)
     {
@@ -146,13 +151,9 @@ public static class UbicacionesEndpoints
         var cuenta=await usuarios.ObtenerUsuarioPorIdAsync(usuarioId);
         if(cuenta.IsFailure || r.Activo && !cuenta.Value.EsActivo) return Results.BadRequest("El usuario no existe o está inactivo.");
 
-        // Validar que el usuario a autorizar posea el rol de Almacenero
-        var esAlmacenero = cuenta.Value.Roles.Any(rol =>
-            rol.Equals(BubbaBag.SharedKernel.Authorization.Roles.InventarioAlmacenero, StringComparison.OrdinalIgnoreCase) ||
-            rol.Contains("almacen", StringComparison.OrdinalIgnoreCase) ||
-            rol.Contains("almacén", StringComparison.OrdinalIgnoreCase));
-        if (!esAlmacenero)
-            return Results.BadRequest("Solo se pueden asignar y autorizar usuarios que tengan el rol de Almacenero.");
+        // Validar que el usuario a autorizar posea un rol autorizable (Almacenero, Administrador o SuperAdmin)
+        if (!EsUsuarioAutorizable(cuenta.Value.Roles))
+            return Results.BadRequest("Solo se pueden asignar y autorizar usuarios que tengan rol operativo de Almacenero o Administrador.");
 
         if(r.Activo && !r.PuedeConsultar && (r.PuedeDespachar||r.PuedeRecepcionar||r.EsSupervisor)) return Results.BadRequest("Las facultades operativas requieren permiso de consulta.");
         var a=await db.UsuarioAlmacenAutorizaciones.SingleOrDefaultAsync(x=>x.UsuarioId==usuarioId && x.AlmacenId==id,ct);

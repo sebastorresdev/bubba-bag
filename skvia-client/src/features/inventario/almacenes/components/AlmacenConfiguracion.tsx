@@ -641,8 +641,9 @@ export function AlmacenConfiguracion({
                 </TableRow>
               ) : (
                 permisos.map(p => {
-                  const u = usuarios.find(usr => usr.id === p.usuarioId);
-                  const nombreMostrar = p.nombreCompleto || u?.nombreCompleto || p.usuarioId;
+                  const u = usuarios.find(usr => usr.id.toLowerCase() === p.usuarioId.toLowerCase());
+                  const nombreValido = p.nombreCompleto && p.nombreCompleto !== p.usuarioId ? p.nombreCompleto : undefined;
+                  const nombreMostrar = nombreValido || u?.nombreCompleto || p.nombreCompleto || p.usuarioId;
                   const emailMostrar = p.email || u?.email;
                   return (
                     <TableRow key={p.usuarioId}>
@@ -787,11 +788,13 @@ export function AlmacenConfiguracion({
               <Label required htmlFor="drawer-usuario-select" className={localStyles.fieldLabel}>
                 Usuario a autorizar
               </Label>
-              {permisos.some(p => p.usuarioId === edicion.usuarioId) ? (
+              {permisos.some(p => p.usuarioId.toLowerCase() === edicion.usuarioId.toLowerCase()) ? (
                 <Input
                   id="drawer-usuario-select"
                   value={
-                    usuarios.find(u => u.id === edicion.usuarioId)?.nombreCompleto ||
+                    edicion.nombreCompleto ||
+                    permisos.find(p => p.usuarioId.toLowerCase() === edicion.usuarioId.toLowerCase())?.nombreCompleto ||
+                    usuarios.find(u => u.id.toLowerCase() === edicion.usuarioId.toLowerCase())?.nombreCompleto ||
                     edicion.usuarioId
                   }
                   disabled
@@ -805,24 +808,24 @@ export function AlmacenConfiguracion({
                   disabled={ocupado}
                   style={{ width: '100%' }}
                   onChange={(_, d) => {
-                    const existente = permisos.find(p => p.usuarioId === d.value);
-                    setEdicion(existente ?? { ...inicial, usuarioId: d.value });
+                    const existente = permisos.find(p => p.usuarioId.toLowerCase() === d.value.toLowerCase());
+                    const usr = usuarios.find(u => u.id.toLowerCase() === d.value.toLowerCase());
+                    setEdicion(
+                      existente ?? {
+                        ...inicial,
+                        usuarioId: d.value,
+                        nombreCompleto: usr?.nombreCompleto,
+                        email: usr?.email,
+                      }
+                    );
                   }}
                 >
                   <option value="">Seleccione un usuario...</option>
-                  {usuarios
-                    .filter(u => {
-                      if (!u.roles || u.roles.length === 0) return true; // backend ya filtró
-                      return u.roles.some(r =>
-                        r.toLowerCase().includes('almacen') ||
-                        r === 'InventarioAlmacenero'
-                      );
-                    })
-                    .map(u => (
-                      <option value={u.id} key={u.id}>
-                        {u.nombreCompleto} ({u.email})
-                      </option>
-                    ))}
+                  {usuarios.map(u => (
+                    <option value={u.id} key={u.id}>
+                      {u.nombreCompleto} ({u.email})
+                    </option>
+                  ))}
                 </Select>
               )}
             </div>
