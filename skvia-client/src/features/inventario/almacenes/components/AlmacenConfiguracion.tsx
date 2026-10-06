@@ -53,6 +53,8 @@ import { useCurrentUser } from '../../../../hooks/useCurrentUser';
 
 type Permisos = {
   usuarioId: string;
+  nombreCompleto?: string;
+  email?: string;
   puedeConsultar: boolean;
   puedeDespachar: boolean;
   puedeRecepcionar: boolean;
@@ -640,8 +642,8 @@ export function AlmacenConfiguracion({
               ) : (
                 permisos.map(p => {
                   const u = usuarios.find(usr => usr.id === p.usuarioId);
-                  const nombreMostrar = u?.nombreCompleto || p.usuarioId;
-                  const emailMostrar = u?.email;
+                  const nombreMostrar = p.nombreCompleto || u?.nombreCompleto || p.usuarioId;
+                  const emailMostrar = p.email || u?.email;
                   return (
                     <TableRow key={p.usuarioId}>
                       <TableCell>

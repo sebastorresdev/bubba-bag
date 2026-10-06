@@ -14,3 +14,10 @@ body,
 * {
   box-sizing: border-box;
 }
+
+/* Ocultar el botón nativo de Edge/Chromium para revelar contraseñas y evitar doble icono */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none !important;
+}
+

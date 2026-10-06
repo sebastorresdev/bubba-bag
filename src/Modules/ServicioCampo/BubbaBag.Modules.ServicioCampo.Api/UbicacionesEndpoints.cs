@@ -116,10 +116,26 @@ public static class UbicacionesEndpoints
         return Results.Ok(almacenes.Where(x=>DestinoPermitido(origen,x)).Select(x=>new{x.Id,x.Codigo,x.Nombre,Tipo=(int)x.Tipo,x.UnidadOrganizativaId,x.RecursoId,x.Activo}));
     }
 
-    private static async Task<IResult> ObtenerAutorizaciones(Guid id,IServicioCampoDbContext db,ICurrentUser user,CancellationToken ct)
+    private static async Task<IResult> ObtenerAutorizaciones(Guid id,IServicioCampoDbContext db,ICurrentUser user,BubbaBag.Modules.Seguridad.Application.Auth.IAuthService usuarios,CancellationToken ct)
     {
         if(!await InventarioAcceso.PuedeAsync(db,user,id,"supervisar",ct) && !user.HasAnyRole(BubbaBag.SharedKernel.Authorization.Roles.SuperAdmin,BubbaBag.SharedKernel.Authorization.Roles.ServicioCampoAdmin,BubbaBag.SharedKernel.Authorization.Roles.InventarioAdmin)) return Results.Forbid();
-        return Results.Ok(await db.UsuarioAlmacenAutorizaciones.Where(x=>x.AlmacenId==id).Select(x=>new{x.UsuarioId,x.PuedeConsultar,x.PuedeDespachar,x.PuedeRecepcionar,x.EsSupervisor,x.Activo}).ToListAsync(ct));
+        var lista = await db.UsuarioAlmacenAutorizaciones.Where(x=>x.AlmacenId==id).ToListAsync(ct);
+        var usuariosRes = await usuarios.ObtenerUsuariosAsync(soloActivos: false);
+        var mapa = usuariosRes.IsSuccess ? usuariosRes.Value.ToDictionary(u => u.Id, u => u) : new();
+        var resultado = lista.Select(x => {
+            mapa.TryGetValue(x.UsuarioId, out var u);
+            return new {
+                x.UsuarioId,
+                NombreCompleto = u?.NombreCompleto ?? x.UsuarioId.ToString(),
+                Email = u?.Email ?? string.Empty,
+                x.PuedeConsultar,
+                x.PuedeDespachar,
+                x.PuedeRecepcionar,
+                x.EsSupervisor,
+                x.Activo
+            };
+        });
+        return Results.Ok(resultado);
     }
 
     private static async Task<IResult> GuardarAutorizacion(Guid id,Guid usuarioId,AutorizacionRequest r,IServicioCampoDbContext db,ICurrentUser user,BubbaBag.Modules.Seguridad.Application.Auth.IAuthService usuarios,CancellationToken ct)

@@ -465,9 +465,11 @@ export function UsuarioFormPage() {
                               contentAfter={
                                 <Button
                                   size="small"
-                                  appearance="transparent"
+                                  appearance="subtle"
                                   icon={mostrarPassword ? <EyeOff16Regular /> : <Eye16Regular />}
                                   onClick={() => setMostrarPassword(!mostrarPassword)}
+                                  aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                                  tabIndex={-1}
                                 />
                               }
                               style={{ flex: 1, fontFamily: 'monospace' }}
@@ -501,9 +503,11 @@ export function UsuarioFormPage() {
                             contentAfter={
                               <Button
                                 size="small"
-                                appearance="transparent"
+                                appearance="subtle"
                                 icon={mostrarPassword ? <EyeOff16Regular /> : <Eye16Regular />}
                                 onClick={() => setMostrarPassword(!mostrarPassword)}
+                                aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                                tabIndex={-1}
                               />
                             }
                             onChange={(_, d) => setPasswordManual(d.value)}
