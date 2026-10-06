@@ -27,6 +27,7 @@ public static class OrganizacionEndpoints
             .RequireAuthorization(Permissions.Inventario.Acceso);
 
         sedesGroup.MapGet("/", ObtenerUnidadesOrganizativas);
+        sedesGroup.MapGet("/plantilla-excel", DescargarPlantillaUnidadesOrganizativas);
         sedesGroup.MapGet("/{id:guid}", ObtenerUnidadOrganizativaPorId);
         sedesGroup.MapPost("/", CrearUnidadOrganizativa).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
         sedesGroup.MapPut("/{id:guid}", ActualizarUnidadOrganizativa).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
@@ -40,6 +41,7 @@ public static class OrganizacionEndpoints
             .RequireAuthorization(Permissions.Inventario.Acceso);
 
         territoriosGroup.MapGet("/", ObtenerTerritorios);
+        territoriosGroup.MapGet("/plantilla-excel", DescargarPlantillaTerritorios);
         territoriosGroup.MapGet("/{id:guid}", ObtenerTerritorioPorId);
         territoriosGroup.MapPost("/", CrearTerritorio).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
         territoriosGroup.MapPut("/{id:guid}", ActualizarTerritorio).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
@@ -179,6 +181,65 @@ public static class OrganizacionEndpoints
         return Results.Ok();
     }
 
+    private static IResult DescargarPlantillaUnidadesOrganizativas()
+    {
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var ws = workbook.Worksheets.Add("UnidadesOrganizativas");
+
+        string[] headers =
+        {
+            "Código*",
+            "Nombre de la Sede*",
+            "Ciudad",
+            "Dirección",
+            "Teléfono",
+            "¿Es Sede Principal?"
+        };
+
+        for (int col = 0; col < headers.Length; col++)
+        {
+            var cell = ws.Cell(1, col + 1);
+            cell.Value = headers[col];
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+            cell.Style.Font.FontSize = 11;
+            cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#0078D4");
+            cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+            cell.Style.Alignment.Vertical = ClosedXML.Excel.XLAlignmentVerticalValues.Center;
+        }
+        ws.Row(1).Height = 26;
+
+        ws.Cell(2, 1).Value = "LIM";
+        ws.Cell(2, 2).Value = "Sede Central Lima";
+        ws.Cell(2, 3).Value = "Lima";
+        ws.Cell(2, 4).Value = "Av. Javier Prado Este 456";
+        ws.Cell(2, 5).Value = "01-5123456";
+        ws.Cell(2, 6).Value = "SI";
+
+        ws.Cell(3, 1).Value = "TRU";
+        ws.Cell(3, 2).Value = "Sede Trujillo";
+        ws.Cell(3, 3).Value = "Trujillo";
+        ws.Cell(3, 4).Value = "Av. América Sur 789";
+        ws.Cell(3, 5).Value = "044-283940";
+        ws.Cell(3, 6).Value = "NO";
+
+        ws.Cell(4, 1).Value = "AQP";
+        ws.Cell(4, 2).Value = "Sede Arequipa";
+        ws.Cell(4, 3).Value = "Arequipa";
+        ws.Cell(4, 4).Value = "Calle Mercaderes 123";
+        ws.Cell(4, 5).Value = "054-203040";
+        ws.Cell(4, 6).Value = "NO";
+
+        ws.Columns().AdjustToContents();
+
+        using var ms = new System.IO.MemoryStream();
+        workbook.SaveAs(ms);
+        return Results.File(
+            ms.ToArray(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "Plantilla_Unidades_Organizativas.xlsx");
+    }
+
     // -------------------------------------------------------------------------
     // HANDLERS TERRITORIOS (Zonas Operativas)
     // -------------------------------------------------------------------------
@@ -298,6 +359,81 @@ public static class OrganizacionEndpoints
         if (request.Activo) territorio.Activar(); else territorio.Desactivar();
         await context.SaveChangesAsync(ct);
         return Results.Ok();
+    }
+
+    private static async Task<IResult> DescargarPlantillaTerritorios(
+        IServicioCampoDbContext context,
+        CancellationToken ct)
+    {
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var ws = workbook.Worksheets.Add("Territorios");
+
+        string[] headers =
+        {
+            "Código*",
+            "Nombre del Territorio*",
+            "Unidad Organizativa (Sede)*",
+            "Almacén Predeterminado",
+            "Descripción / Cód. Proveedor"
+        };
+
+        for (int col = 0; col < headers.Length; col++)
+        {
+            var cell = ws.Cell(1, col + 1);
+            cell.Value = headers[col];
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+            cell.Style.Font.FontSize = 11;
+            cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#0078D4");
+            cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+            cell.Style.Alignment.Vertical = ClosedXML.Excel.XLAlignmentVerticalValues.Center;
+        }
+        ws.Row(1).Height = 26;
+
+        var sedes = await context.UnidadesOrganizativas.AsNoTracking().Where(s => s.Activo).OrderBy(s => s.Nombre).ToListAsync(ct);
+        var sedeEjemplo1 = sedes.FirstOrDefault()?.Codigo ?? "LIM";
+        var sedeEjemplo2 = sedes.Skip(1).FirstOrDefault()?.Codigo ?? "TRU";
+
+        ws.Cell(2, 1).Value = "ZON-LIM-NORTE";
+        ws.Cell(2, 2).Value = "Lima Norte";
+        ws.Cell(2, 3).Value = sedeEjemplo1;
+        ws.Cell(2, 4).Value = "";
+        ws.Cell(2, 5).Value = "COV-PE-LIM-01";
+
+        ws.Cell(3, 1).Value = "ZON-LIM-SUR";
+        ws.Cell(3, 2).Value = "Lima Sur";
+        ws.Cell(3, 3).Value = sedeEjemplo1;
+        ws.Cell(3, 4).Value = "";
+        ws.Cell(3, 5).Value = "COV-PE-LIM-02";
+
+        ws.Cell(4, 1).Value = "ZON-TRU-01";
+        ws.Cell(4, 2).Value = "Trujillo Centro";
+        ws.Cell(4, 3).Value = sedeEjemplo2;
+        ws.Cell(4, 4).Value = "";
+        ws.Cell(4, 5).Value = "COV-PE-TRU-01";
+
+        ws.Columns().AdjustToContents();
+
+        if (sedes.Count > 0)
+        {
+            var wsRef = workbook.Worksheets.Add("_SedesDisponibles");
+            wsRef.Cell(1, 1).Value = "Código Sede";
+            wsRef.Cell(1, 2).Value = "Nombre Sede";
+            wsRef.Row(1).Style.Font.Bold = true;
+            for (int i = 0; i < sedes.Count; i++)
+            {
+                wsRef.Cell(i + 2, 1).Value = sedes[i].Codigo;
+                wsRef.Cell(i + 2, 2).Value = sedes[i].Nombre;
+            }
+            wsRef.Columns().AdjustToContents();
+        }
+
+        using var ms = new System.IO.MemoryStream();
+        workbook.SaveAs(ms);
+        return Results.File(
+            ms.ToArray(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "Plantilla_Territorios.xlsx");
     }
 
     // -------------------------------------------------------------------------

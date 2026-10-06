@@ -1,4 +1,4 @@
-import { apiClient } from '../../../services/apiClient';
+import { apiClient, apiClientDownload } from '../../../services/apiClient';
 import type {
   UnidadOrganizativaDto,
   CreateUnidadOrganizativaDto,
@@ -45,6 +45,10 @@ export const OrganizacionService = {
     });
   },
 
+  async descargarPlantillaUnidadesOrganizativas(): Promise<void> {
+    return apiClientDownload('/api/serviciocampo/unidades-organizativas/plantilla-excel', 'Plantilla_Unidades_Organizativas.xlsx');
+  },
+
   // -------------------------------------------------------------------------
   // TERRITORIOS (Zonas Operativas)
   // -------------------------------------------------------------------------
@@ -79,6 +83,10 @@ export const OrganizacionService = {
       method: 'PATCH',
       body: JSON.stringify({ activo }),
     });
+  },
+
+  async descargarPlantillaTerritorios(): Promise<void> {
+    return apiClientDownload('/api/serviciocampo/territorios/plantilla-excel', 'Plantilla_Territorios.xlsx');
   },
 
   // -------------------------------------------------------------------------

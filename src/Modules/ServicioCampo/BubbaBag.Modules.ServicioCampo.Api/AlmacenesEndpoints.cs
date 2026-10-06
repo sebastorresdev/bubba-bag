@@ -113,19 +113,42 @@ public static class AlmacenesEndpoints
         if (comprasRecibidas.Count == 0) return compras;
 
         var faltantesIds = comprasRecibidas.Where(c => !c.UsuarioRecepcionId.HasValue).Select(c => c.Id).ToList();
+        var faltantesNumeros = comprasRecibidas.Where(c => !c.UsuarioRecepcionId.HasValue).Select(c => c.Numero).ToList();
         var movimientosDict = new Dictionary<Guid, (Guid? usuarioId, DateTime? fecha)>();
         if (faltantesIds.Count > 0)
         {
             var movs = await context.MovimientosInventario.AsNoTracking()
-                .Where(m => m.EventoId.HasValue && faltantesIds.Contains(m.EventoId.Value) && m.Tipo == TipoMovimientoInventario.IngresoProveedor)
-                .Select(m => new { CompraId = m.EventoId!.Value, m.UsuarioResponsableId, m.FechaMovimiento, m.FechaRegistro })
+                .Where(m => ((m.EventoId.HasValue && faltantesIds.Contains(m.EventoId.Value)) || (m.NumeroDocumento != null && faltantesNumeros.Contains(m.NumeroDocumento))) && m.Tipo == TipoMovimientoInventario.IngresoProveedor)
+                .Select(m => new { CompraId = m.EventoId, m.NumeroDocumento, m.UsuarioResponsableId, m.FechaMovimiento, m.FechaRegistro })
                 .ToListAsync(ct);
-            movimientosDict = movs
-                .GroupBy(m => m.CompraId)
-                .ToDictionary(
-                    g => g.Key,
-                    g => (g.First().UsuarioResponsableId, (DateTime?)g.First().FechaRegistro)
-                );
+
+            var comprasPorNumero = comprasRecibidas.ToDictionary(c => c.Numero, c => c.Id);
+            foreach (var m in movs)
+            {
+                Guid? cid = m.CompraId;
+                if ((!cid.HasValue || cid == Guid.Empty) && !string.IsNullOrEmpty(m.NumeroDocumento) && comprasPorNumero.TryGetValue(m.NumeroDocumento, out var idPorNum))
+                {
+                    cid = idPorNum;
+                }
+                if (cid.HasValue && !movimientosDict.ContainsKey(cid.Value))
+                {
+                    movimientosDict[cid.Value] = (m.UsuarioResponsableId, (DateTime?)m.FechaRegistro);
+                }
+            }
+
+            // Fallback directo a Compra.UsuarioId si aún no se tiene usuario
+            var todaviaFaltantes = faltantesIds.Where(id => !movimientosDict.ContainsKey(id)).ToList();
+            if (todaviaFaltantes.Count > 0)
+            {
+                var comprasDb = await context.Compras.AsNoTracking()
+                    .Where(c => todaviaFaltantes.Contains(c.Id))
+                    .Select(c => new { c.Id, c.UsuarioId, c.FechaRecepcion, c.FechaRegistro })
+                    .ToListAsync(ct);
+                foreach (var cdb in comprasDb)
+                {
+                    movimientosDict[cdb.Id] = (cdb.UsuarioId, cdb.FechaRecepcion ?? cdb.FechaRegistro);
+                }
+            }
         }
 
         var userIds = new HashSet<Guid>();
@@ -159,10 +182,18 @@ public static class AlmacenesEndpoints
 
             string? nombre = null;
             string? email = null;
-            if (usrId.HasValue && usersMap.TryGetValue(usrId.Value, out var u))
+            if (usrId.HasValue)
             {
-                nombre = u.NombreCompleto;
-                email = u.Email;
+                if (usersMap.TryGetValue(usrId.Value, out var u))
+                {
+                    nombre = u.NombreCompleto;
+                    email = u.Email;
+                }
+                else
+                {
+                    nombre = "SuperAdmin";
+                    email = "admin@bubbabag.local";
+                }
             }
 
             return c with

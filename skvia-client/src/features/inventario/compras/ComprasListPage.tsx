@@ -95,8 +95,12 @@ export function ComprasListPage() {
                   </span>
                 )}
               </div>
+            ) : x.fechaRecepcion ? (
+              <span style={{ fontSize: '11px', color: tokens.colorNeutralForeground3 }}>
+                {new Date(x.fechaRecepcion).toLocaleString('es-PE')}
+              </span>
             ) : (
-              <Badge appearance="tint" shape="rounded" color="informative">Confirmada</Badge>
+              <Text style={{ color: tokens.colorNeutralForeground4 }}>—</Text>
             )}
           </TableCellLayout>
         );

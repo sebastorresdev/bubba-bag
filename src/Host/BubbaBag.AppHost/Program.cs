@@ -1,6 +1,8 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var postgres = builder.AddPostgres("postgres")
+    .WithDataVolume("postgres-data")
+    .WithLifetime(ContainerLifetime.Persistent)
     .AddDatabase("sqldb");
 
 var jwtSecret = builder.AddParameter("jwt-secret", secret: true);

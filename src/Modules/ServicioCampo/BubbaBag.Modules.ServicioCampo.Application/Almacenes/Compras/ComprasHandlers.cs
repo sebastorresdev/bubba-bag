@@ -57,7 +57,13 @@ public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser us
                 lineas.Any(x => !originales.Any(o => o.ProductoId == x.ProductoId && o.Cantidad == x.Cantidad && o.CostoUnitario == x.CostoUnitario)))
                 return Result<Guid>.Failure("La solicitud conserva productos, cantidades y costos.");
         }
-        if (command.AlmacenId.HasValue && !await context.Almacenes.AnyAsync(x => x.Id == command.AlmacenId && x.Activo, ct)) return Result<Guid>.Failure("El almacén no está disponible.");
+        if (command.AlmacenId.HasValue)
+        {
+            var alm = await context.Almacenes.FirstOrDefaultAsync(x => x.Id == command.AlmacenId && x.Activo, ct);
+            if (alm is null) return Result<Guid>.Failure("El almacén no está disponible.");
+            if (alm.Tipo == TipoAlmacen.CustodiaPersonal)
+                return Result<Guid>.Failure("El almacén de recepción para compras debe ser una bodega física, no de custodia personal.");
+        }
         var ids = lineas.Select(x => x.ProductoId).ToList();
         var productos = await context.Productos.Include(x => x.UnidadMedidaDefecto).Where(x => ids.Contains(x.Id) && x.Activo && x.Tipo == TipoProducto.Inventario).ToDictionaryAsync(x => x.Id, ct);
         if (productos.Count != ids.Count) return Result<Guid>.Failure("Los productos deben estar activos y ser inventariables.");
@@ -201,7 +207,7 @@ public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser us
                         var item = ItemSeriado.Crear(linea.ProductoId, serie, ubicacion.Id);
                         await context.ItemsSeriados.AddAsync(item, ct);
                         await context.MovimientosInventario.AddAsync(MovimientoInventario.Registrar(TipoMovimientoInventario.IngresoProveedor, linea.ProductoId, 1,
-                            almacenDestinoId: command.AlmacenId, itemSeriadoId: item.Id, numeroDocumento: compra.Numero, usuarioResponsableId: user.Id, observaciones: command.Observacion), ct);
+                            almacenDestinoId: command.AlmacenId, itemSeriadoId: item.Id, numeroDocumento: compra.Numero, usuarioResponsableId: user.Id, observaciones: command.Observacion, ubicacionDestinoId: ubicacion.Id, eventoId: compra.Id), ct);
                     }
                 }
                 await context.SaveChangesAsync(ct);

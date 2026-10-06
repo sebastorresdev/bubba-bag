@@ -168,7 +168,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
     const categoriaDefault = categoriasList.find((categoria) => categoria.nombre.toLowerCase() === 'default');
     const grupoDefault = gruposUnidadList.find((grupo) => grupo.nombre.toLowerCase() === 'unidades generales');
     const unidadDefault = grupoDefault
-      ? unidadesList.find((unidad) => unidad.grupoUnidadMedidaId === grupoDefault.id && unidad.esUnidadBase && unidad.nombre.toLowerCase() === 'unidad')
+      ? unidadesList.find((unidad) => unidad.grupoUnidadMedidaId === grupoDefault.id && (unidad.esUnidadBase || unidad.nombre.toLowerCase() === 'unidades' || unidad.nombre.toLowerCase() === 'unidad'))
       : undefined;
 
     setFormData((actual) => ({

@@ -542,6 +542,7 @@ public static class WebApplicationExtensions
             catch { }
 
             await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.MigracionUbicacionesInventario.AplicarAsync(servicioCampoDbContext);
+            await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.InventarioSeeder.AsegurarUnidadesMedidaAsync(servicioCampoDbContext);
         }
     }
 }

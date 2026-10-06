@@ -8,7 +8,9 @@ using BubbaBag.Modules.GestionDatos.Application.Dtos;
 using BubbaBag.Modules.GestionDatos.Application.Services;
 using BubbaBag.Modules.ServicioCampo.Application;
 using BubbaBag.Modules.ServicioCampo.Domain.Clientes;
+using BubbaBag.Modules.ServicioCampo.Domain.Organizacion;
 using BubbaBag.Modules.ServicioCampo.Domain.Productos;
+using BubbaBag.Modules.ServicioCampo.Domain.Recursos;
 using Microsoft.EntityFrameworkCore;
 
 namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Services;
@@ -145,6 +147,54 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                     new("ReferenciaUbicacion", "Referencia de Ubicación", isRequired: false, isPrimary: false, type: "text", null, null,
                         "referencia de ubicación", "referencia", "referencia ubicacion")
                 }
+            },
+
+            // 5. UNIDADES ORGANIZATIVAS (SEDES)
+            new()
+            {
+                EntityName = "UnidadOrganizativa",
+                DisplayName = "Unidades Organizativas (Sedes)",
+                Description = "Sedes físicas, bases territoriales y centros operativos de la organización.",
+                IconName = "City",
+                PrimaryKeyField = "Codigo",
+                Fields = new List<EntityFieldDescriptorDto>
+                {
+                    new("Codigo", "Código*", isRequired: true, isPrimary: true, type: "text", null, null,
+                        "código*", "codigo", "código", "cod", "cod_sede", "sede_codigo", "code"),
+                    new("Nombre", "Nombre de la Sede*", isRequired: true, isPrimary: true, type: "text", null, null,
+                        "nombre*", "nombre", "sede", "nombre sede", "nombre de la sede", "unidad organizativa", "nombre unidad"),
+                    new("Ciudad", "Ciudad", isRequired: false, isPrimary: false, type: "text", null, null,
+                        "ciudad", "provincia", "distrito", "city", "departamento"),
+                    new("Direccion", "Dirección", isRequired: false, isPrimary: false, type: "text", null, null,
+                        "dirección", "direccion", "address", "domicilio", "ubicacion"),
+                    new("Telefono", "Teléfono", isRequired: false, isPrimary: false, type: "text", null, null,
+                        "teléfono", "telefono", "phone", "celular", "tel"),
+                    new("EsSedePrincipal", "Es Sede Principal", isRequired: false, isPrimary: false, type: "boolean", null, null,
+                        "es sede principal", "sede principal", "principal", "es principal", "is main")
+                }
+            },
+
+            // 6. TERRITORIOS (ZONAS OPERATIVAS)
+            new()
+            {
+                EntityName = "Territorio",
+                DisplayName = "Territorios (Zonas Operativas)",
+                Description = "Zonas geográficas de cobertura técnica y despacho de órdenes de trabajo.",
+                IconName = "MapPin",
+                PrimaryKeyField = "Codigo",
+                Fields = new List<EntityFieldDescriptorDto>
+                {
+                    new("Codigo", "Código*", isRequired: true, isPrimary: true, type: "text", null, null,
+                        "código*", "codigo", "código", "cod", "cod_territorio", "zona_codigo", "code", "territory code"),
+                    new("Nombre", "Nombre del Territorio*", isRequired: true, isPrimary: true, type: "text", null, null,
+                        "nombre*", "nombre", "territorio", "zona", "nombre territorio", "nombre zona", "territory name"),
+                    new("UnidadOrganizativa", "Unidad Organizativa (Sede)*", isRequired: true, isPrimary: false, type: "lookup", null, "UnidadesOrganizativas",
+                        "unidad organizativa*", "unidad organizativa", "sede*", "sede", "sucursal", "base", "organizational unit"),
+                    new("AlmacenPredeterminado", "Almacén Predeterminado", isRequired: false, isPrimary: false, type: "lookup", null, "Almacenes",
+                        "almacén predeterminado", "almacen predeterminado", "almacén", "almacen", "almacen base", "bodega", "warehouse"),
+                    new("DescripcionProveedor", "Descripción / Cód. Proveedor", isRequired: false, isPrimary: false, type: "text", null, null,
+                        "descripción / cód. proveedor", "descripción proveedor", "descripcion proveedor", "código proveedor", "codigo proveedor", "proveedor externo", "notas", "observaciones")
+                }
             }
         };
         return descriptores.Where(x => _usuario.HasPermission(x.EntityName == "Cliente"
@@ -157,7 +207,9 @@ public class ServicioCampoImportProvider : IEntityImportProvider
         return entityName.Equals("Producto", StringComparison.OrdinalIgnoreCase)
             || entityName.Equals("Categoria", StringComparison.OrdinalIgnoreCase)
             || entityName.Equals("UnidadMedida", StringComparison.OrdinalIgnoreCase)
-            || entityName.Equals("Cliente", StringComparison.OrdinalIgnoreCase);
+            || entityName.Equals("Cliente", StringComparison.OrdinalIgnoreCase)
+            || entityName.Equals("UnidadOrganizativa", StringComparison.OrdinalIgnoreCase)
+            || entityName.Equals("Territorio", StringComparison.OrdinalIgnoreCase);
     }
 
     public async Task<EntityImportExecutionResult> ImportAsync(
@@ -185,6 +237,14 @@ public class ServicioCampoImportProvider : IEntityImportProvider
         if (entityName.Equals("Cliente", StringComparison.OrdinalIgnoreCase))
         {
             return await ImportClientesAsync(mappedRows, duplicateMode, cancellationToken);
+        }
+        if (entityName.Equals("UnidadOrganizativa", StringComparison.OrdinalIgnoreCase))
+        {
+            return await ImportUnidadesOrganizativasAsync(mappedRows, duplicateMode, cancellationToken);
+        }
+        if (entityName.Equals("Territorio", StringComparison.OrdinalIgnoreCase))
+        {
+            return await ImportTerritoriosAsync(mappedRows, duplicateMode, cancellationToken);
         }
 
         throw new NotSupportedException($"La entidad '{entityName}' no es soportada por este proveedor.");
@@ -571,6 +631,182 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                     referencia: refUbicacion);
                 _context.Clientes.Add(nuevo);
                 clientesDb.Add(nuevo);
+                exitosos++;
+            }
+        }
+
+        await _context.SaveChangesAsync(ct);
+        return new EntityImportExecutionResult(rows.Count, exitosos, fallidos, parciales, errores);
+    }
+
+    private async Task<EntityImportExecutionResult> ImportUnidadesOrganizativasAsync(
+        IReadOnlyList<Dictionary<string, string>> rows,
+        string duplicateMode,
+        CancellationToken ct)
+    {
+        var errores = new List<EntityImportRowError>();
+        var sedesDb = await _context.UnidadesOrganizativas.ToListAsync(ct);
+
+        int exitosos = 0;
+        int fallidos = 0;
+        int parciales = 0;
+
+        for (int i = 0; i < rows.Count; i++)
+        {
+            int rowNumber = i + 2;
+            var row = rows[i];
+
+            string? codigo = GetVal(row, "Codigo")?.Trim().ToUpperInvariant();
+            string? nombre = GetVal(row, "Nombre")?.Trim();
+            string? ciudad = GetVal(row, "Ciudad")?.Trim();
+            string? direccion = GetVal(row, "Direccion")?.Trim();
+            string? telefono = GetVal(row, "Telefono")?.Trim();
+            bool esSedePrincipal = ParseBoolean(GetVal(row, "EsSedePrincipal"));
+
+            if (string.IsNullOrWhiteSpace(codigo))
+            {
+                errores.Add(new EntityImportRowError(rowNumber, "El Código de la unidad organizativa es obligatorio.", null, "Codigo"));
+                fallidos++;
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(nombre))
+            {
+                errores.Add(new EntityImportRowError(rowNumber, "El Nombre de la unidad organizativa es obligatorio.", codigo, "Nombre"));
+                fallidos++;
+                continue;
+            }
+
+            var sedeExistente = sedesDb.FirstOrDefault(s => s.Codigo.Equals(codigo, StringComparison.OrdinalIgnoreCase));
+            if (sedeExistente != null)
+            {
+                if (duplicateMode.Equals("Error", StringComparison.OrdinalIgnoreCase))
+                {
+                    errores.Add(new EntityImportRowError(rowNumber, $"La unidad organizativa con código '{codigo}' ya existe.", codigo, "Codigo"));
+                    fallidos++;
+                    continue;
+                }
+                else if (duplicateMode.Equals("Skip", StringComparison.OrdinalIgnoreCase))
+                {
+                    parciales++;
+                    continue;
+                }
+                else
+                {
+                    sedeExistente.Actualizar(nombre, ciudad, direccion, telefono, esSedePrincipal);
+                    exitosos++;
+                }
+            }
+            else
+            {
+                var nueva = UnidadOrganizativa.Crear(codigo, nombre, ciudad, direccion, telefono, esSedePrincipal);
+                _context.UnidadesOrganizativas.Add(nueva);
+                sedesDb.Add(nueva);
+                exitosos++;
+            }
+        }
+
+        await _context.SaveChangesAsync(ct);
+        return new EntityImportExecutionResult(rows.Count, exitosos, fallidos, parciales, errores);
+    }
+
+    private async Task<EntityImportExecutionResult> ImportTerritoriosAsync(
+        IReadOnlyList<Dictionary<string, string>> rows,
+        string duplicateMode,
+        CancellationToken ct)
+    {
+        var errores = new List<EntityImportRowError>();
+        var zonasDb = await _context.ZonasOperativas.ToListAsync(ct);
+        var sedesDb = await _context.UnidadesOrganizativas.ToListAsync(ct);
+        var almacenesDb = await _context.Almacenes.ToListAsync(ct);
+
+        int exitosos = 0;
+        int fallidos = 0;
+        int parciales = 0;
+
+        for (int i = 0; i < rows.Count; i++)
+        {
+            int rowNumber = i + 2;
+            var row = rows[i];
+
+            string? codigo = GetVal(row, "Codigo")?.Trim().ToUpperInvariant();
+            string? nombre = GetVal(row, "Nombre")?.Trim();
+            string? sedeStr = GetVal(row, "UnidadOrganizativa")?.Trim();
+            string? almacenStr = GetVal(row, "AlmacenPredeterminado")?.Trim();
+            string? descripcionProveedor = GetVal(row, "DescripcionProveedor")?.Trim();
+
+            if (string.IsNullOrWhiteSpace(codigo))
+            {
+                errores.Add(new EntityImportRowError(rowNumber, "El Código del territorio es obligatorio.", null, "Codigo"));
+                fallidos++;
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(nombre))
+            {
+                errores.Add(new EntityImportRowError(rowNumber, "El Nombre del territorio es obligatorio.", codigo, "Nombre"));
+                fallidos++;
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(sedeStr))
+            {
+                errores.Add(new EntityImportRowError(rowNumber, "Debe especificar la Unidad Organizativa (Sede) a la que pertenece el territorio.", codigo, "UnidadOrganizativa"));
+                fallidos++;
+                continue;
+            }
+
+            var sede = sedesDb.FirstOrDefault(s =>
+                s.Codigo.Equals(sedeStr, StringComparison.OrdinalIgnoreCase) ||
+                s.Nombre.Equals(sedeStr, StringComparison.OrdinalIgnoreCase) ||
+                (Guid.TryParse(sedeStr, out var sGuid) && s.Id == sGuid));
+
+            if (sede == null)
+            {
+                errores.Add(new EntityImportRowError(rowNumber, $"No se encontró la Unidad Organizativa (Sede) '{sedeStr}'.", codigo, "UnidadOrganizativa", sedeStr));
+                fallidos++;
+                continue;
+            }
+
+            Guid? almacenId = null;
+            if (!string.IsNullOrWhiteSpace(almacenStr))
+            {
+                var alm = almacenesDb.FirstOrDefault(a =>
+                    (!string.IsNullOrEmpty(a.Codigo) && a.Codigo.Equals(almacenStr, StringComparison.OrdinalIgnoreCase)) ||
+                    a.Nombre.Equals(almacenStr, StringComparison.OrdinalIgnoreCase) ||
+                    (Guid.TryParse(almacenStr, out var aGuid) && a.Id == aGuid));
+
+                if (alm != null)
+                {
+                    almacenId = alm.Id;
+                }
+            }
+
+            var zonaExistente = zonasDb.FirstOrDefault(z => z.Codigo.Equals(codigo, StringComparison.OrdinalIgnoreCase));
+            if (zonaExistente != null)
+            {
+                if (duplicateMode.Equals("Error", StringComparison.OrdinalIgnoreCase))
+                {
+                    errores.Add(new EntityImportRowError(rowNumber, $"El territorio con código '{codigo}' ya existe.", codigo, "Codigo"));
+                    fallidos++;
+                    continue;
+                }
+                else if (duplicateMode.Equals("Skip", StringComparison.OrdinalIgnoreCase))
+                {
+                    parciales++;
+                    continue;
+                }
+                else
+                {
+                    zonaExistente.Actualizar(nombre, sede.Id, almacenId ?? zonaExistente.AlmacenPredeterminadoId, descripcionProveedor);
+                    exitosos++;
+                }
+            }
+            else
+            {
+                var nueva = ZonaOperativa.Crear(codigo, nombre, sede.Id, almacenId, descripcionProveedor);
+                _context.ZonasOperativas.Add(nueva);
+                zonasDb.Add(nueva);
                 exitosos++;
             }
         }

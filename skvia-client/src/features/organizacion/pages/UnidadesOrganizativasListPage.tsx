@@ -17,6 +17,8 @@ import type { SelectionItemId, TableColumnDefinition } from '@fluentui/react-com
 import {
   Add16Regular,
   ArrowClockwise16Regular,
+  ArrowDownload16Regular,
+  ArrowUpload16Regular,
   Checkmark16Regular,
   ChevronDown16Regular,
   DismissCircle16Regular,
@@ -26,6 +28,7 @@ import {
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../components/common/D365CommandBar';
 import { D365EntityTable } from '../../../components/common/D365EntityTable';
 import { D365MessageBar } from '../../../components/common/D365MessageBar';
+import { ImportacionDrawer } from '../../../components/common/ImportacionDrawer';
 import { useD365ListStyles } from '../../../styles/d365ListStyles';
 import { OrganizacionService } from '../services/organizacion.service';
 import type { UnidadOrganizativaDto } from '../types/organizacion.types';
@@ -49,6 +52,7 @@ export function UnidadesOrganizativasListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [importDrawerOpen, setImportDrawerOpen] = useState(false);
 
   const cargar = useCallback(async () => {
     try {
@@ -224,6 +228,18 @@ export function UnidadesOrganizativasListPage() {
           <D365CommandButton icon={<ArrowClockwise16Regular />} onClick={() => void cargar()}>
             Actualizar
           </D365CommandButton>
+          <D365CommandButton
+            icon={<ArrowDownload16Regular />}
+            onClick={() => void OrganizacionService.descargarPlantillaUnidadesOrganizativas()}
+          >
+            Descargar plantilla
+          </D365CommandButton>
+          <D365CommandButton
+            icon={<ArrowUpload16Regular />}
+            onClick={() => setImportDrawerOpen(true)}
+          >
+            Importar de Excel
+          </D365CommandButton>
         </div>
       </D365CommandBar>
 
@@ -286,6 +302,13 @@ export function UnidadesOrganizativasListPage() {
         </div>
         <div>Página 1</div>
       </footer>
+
+      <ImportacionDrawer
+        open={importDrawerOpen}
+        onOpenChange={setImportDrawerOpen}
+        targetEntityName="UnidadOrganizativa"
+        onSuccess={cargar}
+      />
     </div>
   );
 }

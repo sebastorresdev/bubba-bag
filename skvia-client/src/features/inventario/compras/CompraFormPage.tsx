@@ -200,7 +200,9 @@ export function CompraFormPage() {
             icono={<Box16Regular className={form.categoryIcon} />}
             alNavegar={id => window.open(`/servicio-campo/almacenes/${id}`, '_blank')}
             tituloEnlace="Ver detalles del almacén"
-            opciones={almacenes.filter(x => x.activo || x.id === almacenId).map(x => ({ id: x.id, nombre: x.nombre }))}
+            opciones={almacenes
+              .filter(x => (x.activo || x.id === almacenId) && (x.tipo === 1 || (!x.tipo && !x.recursoId)))
+              .map(x => ({ id: x.id, nombre: x.nombre }))}
             seleccionada={almacen ? { id: almacen.id, nombre: almacen.nombre } : null}
             textoBusqueda={busquedaAlmacen}
             alCambiarBusqueda={setBusquedaAlmacen}
