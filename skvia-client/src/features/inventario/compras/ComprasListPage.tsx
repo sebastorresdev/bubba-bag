@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Link, Badge, DataGrid, DataGridBody, DataGridCell, DataGridHeader, DataGridHeaderCell, DataGridRow, Input, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, TableCellLayout, Text, createTableColumn } from '@fluentui/react-components';
+import { Link, Badge, DataGrid, DataGridBody, DataGridCell, DataGridHeader, DataGridHeaderCell, DataGridRow, Input, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, TableCellLayout, Text, createTableColumn, tokens } from '@fluentui/react-components';
 import type { SelectionItemId, TableColumnDefinition } from '@fluentui/react-components';
 import { Add16Regular, ArrowClockwise16Regular, Checkmark16Regular, ChevronDown16Regular, Search16Regular } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton } from '../../../components/common/D365CommandBar';
@@ -46,7 +46,7 @@ export function ComprasListPage() {
     return datos.filter((item) => {
       if (vista === 'recientes' && new Date(item.fechaDocumento + 'T00:00:00') < limite) return false;
       if (vista !== 'recientes' && vista !== 'todas' && item.estado !== vista) return false;
-      return !q || [item.numero, item.proveedor, item.numeroDocumento, item.almacen, item.estado].some((valor) => valor.toLowerCase().includes(q));
+      return !q || [item.numero, item.proveedor, item.numeroDocumento, item.almacen, item.estado, item.recibidoPor || ''].some((valor) => valor.toLowerCase().includes(q));
     });
   }, [buscar, datos, vista]);
 
@@ -76,6 +76,32 @@ export function ComprasListPage() {
     createTableColumn({ columnId: 'fecha', compare: (a: CompraDto, b: CompraDto) => a.fechaDocumento.localeCompare(b.fechaDocumento), renderHeaderCell: () => 'Fecha', renderCell: (x: CompraDto) => <TableCellLayout>{new Date(x.fechaDocumento + 'T00:00:00').toLocaleDateString('es-PE')}</TableCellLayout> }),
     createTableColumn({ columnId: 'origen', compare: (a: CompraDto, b: CompraDto) => a.proveedor.localeCompare(b.proveedor), renderHeaderCell: () => 'Proveedor', renderCell: (x: CompraDto) => <TableCellLayout>{x.proveedor}</TableCellLayout> }),
     createTableColumn({ columnId: 'destino', compare: (a: CompraDto, b: CompraDto) => a.almacen.localeCompare(b.almacen), renderHeaderCell: () => 'Almacén', renderCell: (x: CompraDto) => <TableCellLayout>{x.almacen}</TableCellLayout> }),
+    createTableColumn({
+      columnId: 'recibidoPor',
+      compare: (a: CompraDto, b: CompraDto) => (a.recibidoPor || '').localeCompare(b.recibidoPor || ''),
+      renderHeaderCell: () => 'Recibido por',
+      renderCell: (x: CompraDto) => {
+        if (!x.estado.startsWith('Recibida')) {
+          return <TableCellLayout><Text style={{ color: tokens.colorNeutralForeground4 }}>—</Text></TableCellLayout>;
+        }
+        return (
+          <TableCellLayout truncate>
+            {x.recibidoPor ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <Text weight="semibold">{x.recibidoPor}</Text>
+                {x.fechaRecepcion && (
+                  <span style={{ fontSize: '11px', color: tokens.colorNeutralForeground3 }}>
+                    {new Date(x.fechaRecepcion).toLocaleString('es-PE')}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <Badge appearance="tint" shape="rounded" color="informative">Confirmada</Badge>
+            )}
+          </TableCellLayout>
+        );
+      },
+    }),
     createTableColumn({ columnId: 'producto', compare: (a: CompraDto, b: CompraDto) => a.numeroDocumento.localeCompare(b.numeroDocumento), renderHeaderCell: () => 'Comprobante', renderCell: (x: CompraDto) => <TableCellLayout truncate>{x.numeroDocumento}</TableCellLayout> }),
     createTableColumn({ columnId: 'cantidad', compare: (a: CompraDto, b: CompraDto) => a.total - b.total, renderHeaderCell: () => 'Total', renderCell: (x: CompraDto) => <TableCellLayout>{x.total.toLocaleString('es-PE', { style: 'currency', currency: x.moneda })}</TableCellLayout> }),
   ], [navigate]);

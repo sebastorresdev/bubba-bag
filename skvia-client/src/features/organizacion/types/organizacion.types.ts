@@ -71,6 +71,8 @@ export interface RecursoDto {
   almacenBaseNombre?: string | null;
   almacenMovilId?: string | null;
   usuarioId?: string | null;
+  usuarioNombre?: string | null;
+  usuarioEmail?: string | null;
   capacidadMaximaOrdenesPorDia: number;
   colorHex?: string | null;
   activo: boolean;

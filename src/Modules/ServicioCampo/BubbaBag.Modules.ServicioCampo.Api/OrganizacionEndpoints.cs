@@ -308,6 +308,7 @@ public static class OrganizacionEndpoints
         Guid? unidadOrganizativaId,
         bool? soloActivos,
         IServicioCampoDbContext context,
+        BubbaBag.Modules.Seguridad.Application.Auth.IAuthService usuarios,
         CancellationToken ct)
     {
         var query = context.Recursos.AsNoTracking().AsQueryable();
@@ -320,26 +321,48 @@ public static class OrganizacionEndpoints
         var almacenesMap = await context.Almacenes.AsNoTracking().ToDictionaryAsync(a => a.Id, a => a.Nombre, ct);
 
         var recursos = await query.OrderBy(r => r.NombreCompleto).ToListAsync(ct);
-        var lista = recursos.Select(r => new RecursoDetalleDto(
-            r.Id,
-            r.Codigo,
-            r.NombreCompleto,
-            (int)r.Tipo,
-            r.Tipo.ToString(),
-            r.DocumentoIdentidad,
-            r.Telefono,
-            r.Email,
-            r.UnidadOrganizativaId,
-            r.UnidadOrganizativaId.HasValue && sedesMap.TryGetValue(r.UnidadOrganizativaId.Value, out var sNom) ? sNom : null,
-            r.ZonaOperativaId,
-            r.AlmacenBaseId,
-            r.AlmacenBaseId.HasValue && almacenesMap.TryGetValue(r.AlmacenBaseId.Value, out var aNom) ? aNom : null,
-            context.Almacenes.Where(a=>a.RecursoId==r.Id && a.Activo && a.Tipo==BubbaBag.Modules.ServicioCampo.Domain.Almacenes.TipoAlmacen.CustodiaPersonal).Select(a=>(Guid?)a.Id).FirstOrDefault(),
-            r.UsuarioId,
-            r.CapacidadMaximaOrdenesPorDia,
-            r.ColorHex,
-            r.Activo
-        )).ToList();
+        var userIds = recursos.Where(r => r.UsuarioId.HasValue).Select(r => r.UsuarioId!.Value).Distinct().ToList();
+        var usersMap = new Dictionary<Guid, BubbaBag.Modules.Seguridad.Application.Auth.UsuarioDto>();
+        if (userIds.Count > 0)
+        {
+            var usersRes = await usuarios.ObtenerUsuariosAsync(soloActivos: false);
+            if (usersRes.IsSuccess)
+            {
+                usersMap = usersRes.Value.Where(u => userIds.Contains(u.Id)).ToDictionary(u => u.Id, u => u);
+            }
+        }
+
+        var lista = recursos.Select(r => {
+            string? uNom = null;
+            string? uEmail = null;
+            if (r.UsuarioId.HasValue && usersMap.TryGetValue(r.UsuarioId.Value, out var u))
+            {
+                uNom = u.NombreCompleto;
+                uEmail = u.Email;
+            }
+            return new RecursoDetalleDto(
+                r.Id,
+                r.Codigo,
+                r.NombreCompleto,
+                (int)r.Tipo,
+                r.Tipo.ToString(),
+                r.DocumentoIdentidad,
+                r.Telefono,
+                r.Email,
+                r.UnidadOrganizativaId,
+                r.UnidadOrganizativaId.HasValue && sedesMap.TryGetValue(r.UnidadOrganizativaId.Value, out var sNom) ? sNom : null,
+                r.ZonaOperativaId,
+                r.AlmacenBaseId,
+                r.AlmacenBaseId.HasValue && almacenesMap.TryGetValue(r.AlmacenBaseId.Value, out var aNom) ? aNom : null,
+                context.Almacenes.Where(a=>a.RecursoId==r.Id && a.Activo && a.Tipo==BubbaBag.Modules.ServicioCampo.Domain.Almacenes.TipoAlmacen.CustodiaPersonal).Select(a=>(Guid?)a.Id).FirstOrDefault(),
+                r.UsuarioId,
+                r.CapacidadMaximaOrdenesPorDia,
+                r.ColorHex,
+                r.Activo,
+                uNom,
+                uEmail
+            );
+        }).ToList();
 
         return Results.Ok(lista);
     }
@@ -347,6 +370,7 @@ public static class OrganizacionEndpoints
     private static async Task<IResult> ObtenerRecursoPorId(
         Guid id,
         IServicioCampoDbContext context,
+        BubbaBag.Modules.Seguridad.Application.Auth.IAuthService usuarios,
         CancellationToken ct)
     {
         var r = await context.Recursos.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
@@ -358,6 +382,18 @@ public static class OrganizacionEndpoints
         var almNom = r.AlmacenBaseId.HasValue
             ? await context.Almacenes.Where(a => a.Id == r.AlmacenBaseId.Value).Select(a => a.Nombre).FirstOrDefaultAsync(ct)
             : null;
+
+        string? uNom = null;
+        string? uEmail = null;
+        if (r.UsuarioId.HasValue)
+        {
+            var uRes = await usuarios.ObtenerUsuarioPorIdAsync(r.UsuarioId.Value);
+            if (uRes.IsSuccess)
+            {
+                uNom = uRes.Value.NombreCompleto;
+                uEmail = uRes.Value.Email;
+            }
+        }
 
         return Results.Ok(new RecursoDetalleDto(
             r.Id,
@@ -377,7 +413,9 @@ public static class OrganizacionEndpoints
             r.UsuarioId,
             r.CapacidadMaximaOrdenesPorDia,
             r.ColorHex,
-            r.Activo
+            r.Activo,
+            uNom,
+            uEmail
         ));
     }
 
@@ -614,7 +652,9 @@ public record RecursoDetalleDto(
     Guid? UsuarioId,
     int CapacidadMaximaOrdenesPorDia,
     string? ColorHex,
-    bool Activo
+    bool Activo,
+    string? UsuarioNombre = null,
+    string? UsuarioEmail = null
 );
 
 public record CrearRecursoRequest(

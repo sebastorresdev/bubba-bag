@@ -250,8 +250,15 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
     }
 
     if (!formData.unidadOrganizativaId) newErrors.unidadOrganizativaId = 'Seleccione una unidad organizativa.';
-    if (formData.tipo === 2 && !formData.recursoId) {
-      newErrors.recursoId = 'La custodia personal requiere un recurso técnico responsable.';
+    if (formData.tipo === 2) {
+      if (!formData.recursoId) {
+        newErrors.recursoId = 'La custodia personal requiere un recurso técnico responsable.';
+      } else {
+        const rec = recursos.find((r) => r.id === formData.recursoId);
+        if (rec?.almacenMovilId && rec.almacenMovilId !== currentId) {
+          newErrors.recursoId = 'Este técnico ya cuenta con un almacén de custodia personal activo.';
+        }
+      }
     }
 
     setErrors(newErrors);
@@ -689,11 +696,14 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
                         }}
                       >
                         <option value="">Seleccione el recurso técnico asignado...</option>
-                        {recursosDisponibles.map((r) => (
-                          <option key={r.id} value={r.id}>
-                            {r.nombreCompleto} ({r.codigo})
-                          </option>
-                        ))}
+                        {recursosDisponibles.map((r) => {
+                          const tieneCustodia = Boolean(r.almacenMovilId && r.almacenMovilId !== currentId);
+                          return (
+                            <option key={r.id} value={r.id} disabled={tieneCustodia}>
+                              {r.nombreCompleto} ({r.codigo}){tieneCustodia ? ' — [Ya tiene custodia activa]' : ''}
+                            </option>
+                          );
+                        })}
                       </Select>
                     </D365FormField>
                   )}

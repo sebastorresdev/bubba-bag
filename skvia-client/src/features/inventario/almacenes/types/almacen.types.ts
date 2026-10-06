@@ -53,6 +53,7 @@ export interface RecursoTecnicoDto {
   nombreCompleto: string;
   tipo: string;
   unidadOrganizativaId?: string | null;
+  almacenMovilId?: string | null;
   email?: string | null;
   telefono?: string | null;
 }

@@ -142,7 +142,12 @@ export function CompraFormPage() {
       title={compra?.numero ?? 'Nueva compra'}
       subtitle="Compra"
       avatarName={proveedor || 'Compra'}
-      metadata={[{ label: 'Estado', value: estado }, { label: 'Total', value: dinero(total) }]}
+      metadata={[
+        { label: 'Estado', value: estado },
+        { label: 'Total', value: dinero(total) },
+        ...(compra?.recibidoPor ? [{ label: 'Recibido por', value: compra.recibidoPor }] : []),
+        ...(compra?.fechaRecepcion ? [{ label: 'Fecha de recepción', value: new Date(compra.fechaRecepcion).toLocaleString('es-PE') }] : []),
+      ]}
       processFlow={!cargandoDatos ? <CompraEtapas estado={estado} embedded /> : undefined}
       tabs={
         <TabList selectedValue={tab} onTabSelect={(_, d) => setTab(String(d.value))}>
@@ -163,6 +168,30 @@ export function CompraFormPage() {
       <div className={form.grid2Cols}>
         <D365FormField label="Código de compra" htmlFor="compra-codigo"><Input id="compra-codigo" className={form.d365ControlFull} value={compra?.numero ?? ''} appearance="filled-darker" readOnly contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />} /></D365FormField>
         <D365FormField label="Estado" htmlFor="compra-estado"><Input id="compra-estado" className={form.d365ControlFull} value={estado} appearance="filled-darker" readOnly contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />} /></D365FormField>
+        {estado.startsWith('Recibida') && (
+          <>
+            <D365FormField label="Recibido por" htmlFor="compra-recibido-por">
+              <Input
+                id="compra-recibido-por"
+                className={form.d365ControlFull}
+                value={compra?.recibidoPor || 'Confirmada'}
+                appearance="filled-darker"
+                readOnly
+                contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />}
+              />
+            </D365FormField>
+            <D365FormField label="Fecha de recepción" htmlFor="compra-fecha-recepcion">
+              <Input
+                id="compra-fecha-recepcion"
+                className={form.d365ControlFull}
+                value={compra?.fechaRecepcion ? new Date(compra.fechaRecepcion).toLocaleString('es-PE') : '—'}
+                appearance="filled-darker"
+                readOnly
+                contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />}
+              />
+            </D365FormField>
+          </>
+        )}
         <D365FormField label="Proveedor"><Input aria-label="Proveedor" className={form.d365ControlFull} value={proveedor} maxLength={150} disabled={bloqueadoPedido} onChange={(_, d) => setProveedor(d.value)} /></D365FormField>
         <D365FormField label="Almacén de recepción" htmlFor="compra-almacen">
           <LookupDropdownWithQuickCreate

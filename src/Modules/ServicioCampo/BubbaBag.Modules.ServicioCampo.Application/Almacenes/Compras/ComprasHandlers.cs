@@ -10,7 +10,8 @@ namespace BubbaBag.Modules.ServicioCampo.Application.Almacenes.Compras;
 public record LineaCompra(Guid ProductoId, decimal Cantidad, decimal CostoUnitario, IReadOnlyList<string>? Series);
 public record LineaCompraDetalle(Guid ProductoId, string Producto, string? Unidad, decimal Cantidad, decimal CostoUnitario, IReadOnlyList<string> Series, decimal? CantidadRecibida = null, IReadOnlyList<string>? SeriesRecibidas = null);
 public record CompraDto(Guid Id, string Numero, string Proveedor, string TipoDocumento, string NumeroDocumento,
-    DateOnly FechaDocumento, string Moneda, Guid? AlmacenId, string Almacen, decimal Total, string? Observacion, IReadOnlyList<LineaCompraDetalle> Lineas, string Estado);
+    DateOnly FechaDocumento, string Moneda, Guid? AlmacenId, string Almacen, decimal Total, string? Observacion, IReadOnlyList<LineaCompraDetalle> Lineas, string Estado,
+    Guid? UsuarioRecepcionId = null, string? RecibidoPor = null, string? RecibidoPorEmail = null, DateTime? FechaRecepcion = null);
 public record ObtenerComprasQuery(Guid? Id = null) : IQuery<Result<List<CompraDto>>>;
 public record CrearCompraCommand(string Proveedor, string TipoDocumento, string NumeroDocumento, DateOnly FechaDocumento,
     string Moneda, Guid? AlmacenId, IReadOnlyList<LineaCompra>? Lineas, string? Observacion) : ICommand<Result<Guid>>;
@@ -28,7 +29,8 @@ public class ObtenerComprasHandler(IServicioCampoDbContext context, ICurrentUser
             .Where(x => (query.Id == null || x.Id == query.Id) && (user.IsInRole(BubbaBag.SharedKernel.Authorization.Roles.SuperAdmin) || x.AlmacenId.HasValue && InventarioAcceso.AlmacenesConsultables(context,user).Contains(x.AlmacenId.Value))).OrderByDescending(x => x.FechaRegistro).ToListAsync(cancellationToken);
         return Result<List<CompraDto>>.Success(compras.Select(x => new CompraDto(x.Id, x.Numero, x.Proveedor, x.TipoDocumento,
             x.NumeroDocumento, x.FechaDocumento, x.Moneda, x.AlmacenId, x.Almacen?.Nombre ?? "", x.Total, x.Observacion,
-            JsonSerializer.Deserialize<List<LineaCompraDetalle>>(x.LineasJson) ?? [], x.Estado)).ToList());
+            JsonSerializer.Deserialize<List<LineaCompraDetalle>>(x.LineasJson) ?? [], x.Estado,
+            x.UsuarioRecepcionId, null, null, x.FechaRecepcion)).ToList());
     }
 }
 
@@ -182,7 +184,7 @@ public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser us
                 var ubicacion = await InventarioAcceso.UbicacionAsync(context,command.AlmacenId!.Value,null,ct) ?? throw new InvalidOperationException("Falta la ubicación principal.");
                 var stocks = await context.StocksAlmacen.Where(x => x.UbicacionId == ubicacion.Id && x.Condicion == CondicionInventario.Utilizable && ids.Contains(x.ProductoId)).ToDictionaryAsync(x => x.ProductoId, ct);
                 compra.CompletarComprobanteRecepcion(command.TipoDocumento, command.NumeroDocumento, command.FechaDocumento);
-                compra.Recepcionar(conFaltantes, JsonSerializer.Serialize(lineasActualizadas));
+                compra.Recepcionar(user.Id, conFaltantes, JsonSerializer.Serialize(lineasActualizadas));
                 foreach (var linea in lineasFinales)
                 {
                     if (!stocks.TryGetValue(linea.ProductoId, out var stock))

@@ -30,13 +30,14 @@ import { useD365ListStyles } from '../../../styles/d365ListStyles';
 import { OrganizacionService } from '../services/organizacion.service';
 import type { RecursoDto } from '../types/organizacion.types';
 
-type VistaRecursos = 'activos' | 'todos' | 'tecnicos' | 'despachadores' | 'inactivos';
+type VistaRecursos = 'activos' | 'todos' | 'tecnicos' | 'despachadores' | 'sinUsuario' | 'inactivos';
 
 const nombresVistaRecursos: Record<VistaRecursos, string> = {
   activos: 'Recursos activos',
   todos: 'Todos los recursos',
   tecnicos: 'Técnicos de campo',
   despachadores: 'Despachadores',
+  sinUsuario: 'Sin usuario de acceso',
   inactivos: 'Recursos inactivos',
 };
 
@@ -75,12 +76,15 @@ export function RecursosListPage() {
       if (vista === 'inactivos' && r.activo) return false;
       if (vista === 'tecnicos' && r.tipo !== 1) return false;
       if (vista === 'despachadores' && r.tipo !== 4) return false;
+      if (vista === 'sinUsuario' && r.usuarioId) return false;
       if (!q) return true;
       return (
         r.nombreCompleto.toLowerCase().includes(q) ||
         r.codigo.toLowerCase().includes(q) ||
         (r.unidadOrganizativaNombre && r.unidadOrganizativaNombre.toLowerCase().includes(q)) ||
-        (r.documentoIdentidad && r.documentoIdentidad.toLowerCase().includes(q))
+        (r.documentoIdentidad && r.documentoIdentidad.toLowerCase().includes(q)) ||
+        (r.usuarioNombre && r.usuarioNombre.toLowerCase().includes(q)) ||
+        (r.usuarioEmail && r.usuarioEmail.toLowerCase().includes(q))
       );
     });
   }, [buscar, datos, vista]);
@@ -149,6 +153,24 @@ export function RecursosListPage() {
             >
               {x.tipoNombre}
             </Badge>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn({
+        columnId: 'usuario',
+        compare: (a, b) => (a.usuarioNombre || a.usuarioEmail || '').localeCompare(b.usuarioNombre || b.usuarioEmail || ''),
+        renderHeaderCell: () => 'Usuario de Acceso',
+        renderCell: (x) => (
+          <TableCellLayout truncate>
+            {x.usuarioId ? (
+              <Badge appearance="tint" shape="rounded" color="success">
+                {x.usuarioNombre || x.usuarioEmail || 'Vinculado'}
+              </Badge>
+            ) : (
+              <Badge appearance="tint" shape="rounded" color="warning">
+                Sin usuario
+              </Badge>
+            )}
           </TableCellLayout>
         ),
       }),

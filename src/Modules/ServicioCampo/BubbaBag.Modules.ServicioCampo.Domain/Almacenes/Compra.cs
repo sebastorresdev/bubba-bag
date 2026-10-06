@@ -18,6 +18,8 @@ public class Compra : Entity<Guid>
     public decimal Total { get; private set; }
     public Guid UsuarioId { get; private set; }
     public DateTime FechaRegistro { get; private set; }
+    public Guid? UsuarioRecepcionId { get; private set; }
+    public DateTime? FechaRecepcion { get; private set; }
 
     private Compra() { }
 
@@ -53,10 +55,12 @@ public class Compra : Entity<Guid>
         Estado = "Enviada";
     }
 
-    public void Recepcionar(bool conFaltantes = false, string? lineasActualizadasJson = null)
+    public void Recepcionar(Guid? usuarioRecepcionId = null, bool conFaltantes = false, string? lineasActualizadasJson = null)
     {
         if (Estado != "Enviada") throw new InvalidOperationException("La compra debe estar enviada.");
         Estado = conFaltantes ? "Recibida con faltantes" : "Recibida";
+        UsuarioRecepcionId = usuarioRecepcionId;
+        FechaRecepcion = DateTime.UtcNow;
         if (!string.IsNullOrWhiteSpace(lineasActualizadasJson))
         {
             LineasJson = lineasActualizadasJson;

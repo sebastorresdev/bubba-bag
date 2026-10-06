@@ -235,6 +235,8 @@ public static class WebApplicationExtensions
                 ALTER TABLE inventario."Compras" ADD COLUMN IF NOT EXISTS "Estado" varchar(50) NOT NULL DEFAULT 'Recibida';
                 ALTER TABLE inventario."Compras" ALTER COLUMN "Estado" TYPE varchar(50);
                 ALTER TABLE inventario."Compras" ALTER COLUMN "AlmacenId" DROP NOT NULL;
+                ALTER TABLE inventario."Compras" ADD COLUMN IF NOT EXISTS "UsuarioRecepcionId" uuid;
+                ALTER TABLE inventario."Compras" ADD COLUMN IF NOT EXISTS "FechaRecepcion" timestamp with time zone;
                 DROP INDEX IF EXISTS inventario."IX_Compras_Proveedor_TipoDocumento_NumeroDocumento";
                 CREATE UNIQUE INDEX "IX_Compras_Proveedor_TipoDocumento_NumeroDocumento"
                     ON inventario."Compras" ("Proveedor", "TipoDocumento", "NumeroDocumento") WHERE "NumeroDocumento" <> '';

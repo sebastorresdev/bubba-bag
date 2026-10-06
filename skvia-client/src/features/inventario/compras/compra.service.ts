@@ -24,6 +24,10 @@ export interface CompraDto extends CrearCompra {
   almacen: string;
   total: number;
   estado: 'Borrador' | 'Solicitada' | 'Enviada' | 'Recibida' | 'Recibida con faltantes';
+  usuarioRecepcionId?: string | null;
+  recibidoPor?: string | null;
+  recibidoPorEmail?: string | null;
+  fechaRecepcion?: string | null;
   lineas: (LineaCompra & {
     producto: string;
     unidad: string | null;

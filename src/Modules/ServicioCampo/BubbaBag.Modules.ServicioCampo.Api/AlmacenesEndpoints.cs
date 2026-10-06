@@ -73,21 +73,106 @@ public static class AlmacenesEndpoints
         compras.MapPost("/{id:guid}/recepcionar", RecepcionarCompra).RequireAuthorization(Permissions.Inventario.Operar);
     }
 
-    private static async Task<IResult> ObtenerCompras(IDispatcher dispatcher)
+    private static async Task<IResult> ObtenerCompras(
+        IDispatcher dispatcher,
+        IServicioCampoDbContext context,
+        BubbaBag.Modules.Seguridad.Application.Auth.IAuthService authService,
+        CancellationToken ct)
     {
         var resultado = await dispatcher.QueryAsync(new ObtenerComprasQuery());
-        return resultado.IsSuccess ? Results.Ok(resultado.Value) : Results.BadRequest(resultado.Error);
+        if (resultado.IsFailure) return Results.BadRequest(resultado.Error);
+        var enriquecidas = await EnriquecerComprasConRecepcion(resultado.Value, context, authService, ct);
+        return Results.Ok(enriquecidas);
     }
     private static async Task<IResult> CrearCompra(CrearCompraCommand command, IDispatcher dispatcher)
     {
         var resultado = await dispatcher.SendAsync(command);
         return resultado.IsSuccess ? Results.Created($"/api/inventario/compras/{resultado.Value}", new { id = resultado.Value }) : Results.BadRequest(resultado.Error);
     }
-    private static async Task<IResult> ObtenerCompra(Guid id, IDispatcher dispatcher)
+    private static async Task<IResult> ObtenerCompra(
+        Guid id,
+        IDispatcher dispatcher,
+        IServicioCampoDbContext context,
+        BubbaBag.Modules.Seguridad.Application.Auth.IAuthService authService,
+        CancellationToken ct)
     {
         var resultado = await dispatcher.QueryAsync(new ObtenerComprasQuery(id));
         if (resultado.IsFailure) return Results.BadRequest(resultado.Error);
-        return resultado.Value.Count == 0 ? Results.NotFound("La compra no existe.") : Results.Ok(resultado.Value[0]);
+        if (resultado.Value.Count == 0) return Results.NotFound("La compra no existe.");
+        var enriquecidas = await EnriquecerComprasConRecepcion(resultado.Value, context, authService, ct);
+        return Results.Ok(enriquecidas[0]);
+    }
+
+    private static async Task<List<BubbaBag.Modules.ServicioCampo.Application.Almacenes.Compras.CompraDto>> EnriquecerComprasConRecepcion(
+        List<BubbaBag.Modules.ServicioCampo.Application.Almacenes.Compras.CompraDto> compras,
+        IServicioCampoDbContext context,
+        BubbaBag.Modules.Seguridad.Application.Auth.IAuthService authService,
+        CancellationToken ct)
+    {
+        var comprasRecibidas = compras.Where(c => c.Estado.StartsWith("Recibida")).ToList();
+        if (comprasRecibidas.Count == 0) return compras;
+
+        var faltantesIds = comprasRecibidas.Where(c => !c.UsuarioRecepcionId.HasValue).Select(c => c.Id).ToList();
+        var movimientosDict = new Dictionary<Guid, (Guid? usuarioId, DateTime? fecha)>();
+        if (faltantesIds.Count > 0)
+        {
+            var movs = await context.MovimientosInventario.AsNoTracking()
+                .Where(m => m.EventoId.HasValue && faltantesIds.Contains(m.EventoId.Value) && m.Tipo == TipoMovimientoInventario.IngresoProveedor)
+                .Select(m => new { CompraId = m.EventoId!.Value, m.UsuarioResponsableId, m.FechaMovimiento, m.FechaRegistro })
+                .ToListAsync(ct);
+            movimientosDict = movs
+                .GroupBy(m => m.CompraId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (g.First().UsuarioResponsableId, (DateTime?)g.First().FechaRegistro)
+                );
+        }
+
+        var userIds = new HashSet<Guid>();
+        foreach (var c in comprasRecibidas)
+        {
+            if (c.UsuarioRecepcionId.HasValue) userIds.Add(c.UsuarioRecepcionId.Value);
+            else if (movimientosDict.TryGetValue(c.Id, out var m) && m.usuarioId.HasValue) userIds.Add(m.usuarioId.Value);
+        }
+
+        var usersMap = new Dictionary<Guid, BubbaBag.Modules.Seguridad.Application.Auth.UsuarioDto>();
+        if (userIds.Count > 0)
+        {
+            var uRes = await authService.ObtenerUsuariosAsync(soloActivos: false);
+            if (uRes.IsSuccess)
+            {
+                usersMap = uRes.Value.Where(u => userIds.Contains(u.Id)).ToDictionary(u => u.Id, u => u);
+            }
+        }
+
+        return compras.Select(c =>
+        {
+            if (!c.Estado.StartsWith("Recibida")) return c;
+
+            Guid? usrId = c.UsuarioRecepcionId;
+            DateTime? fechaRec = c.FechaRecepcion;
+            if (!usrId.HasValue && movimientosDict.TryGetValue(c.Id, out var m))
+            {
+                usrId = m.usuarioId;
+                fechaRec = m.fecha;
+            }
+
+            string? nombre = null;
+            string? email = null;
+            if (usrId.HasValue && usersMap.TryGetValue(usrId.Value, out var u))
+            {
+                nombre = u.NombreCompleto;
+                email = u.Email;
+            }
+
+            return c with
+            {
+                UsuarioRecepcionId = usrId,
+                RecibidoPor = nombre,
+                RecibidoPorEmail = email,
+                FechaRecepcion = fechaRec
+            };
+        }).ToList();
     }
     private static async Task<IResult> ActualizarCompra(Guid id, CrearCompraCommand datos, IDispatcher dispatcher)
     {
