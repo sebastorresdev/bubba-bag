@@ -15,6 +15,8 @@ public static class CargoPdfGenerator
     static CargoPdfGenerator()
     {
         QuestPDF.Settings.License = LicenseType.Community;
+        QuestPDF.Settings.UseSystemFonts = true;
+        QuestPDF.Settings.ThrowOnMissingFontFamilies = false;
     }
 
     public static byte[] GenerarCargo(
@@ -72,7 +74,7 @@ public static class CargoPdfGenerator
                 page.Size(PageSizes.A4);
                 page.Margin(1.5f, Unit.Centimetre);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Arial"));
+                page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Lato", "Arial"));
 
                 // ==================== HEADER ====================
                 page.Header().Column(col =>

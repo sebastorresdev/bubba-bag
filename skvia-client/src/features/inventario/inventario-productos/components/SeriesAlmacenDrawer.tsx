@@ -206,6 +206,7 @@ export function SeriesAlmacenDrawer({ item, alCerrar }: SeriesAlmacenDrawerProps
                     <div>
                       <Badge
                         appearance="tint"
+                        shape="rounded"
                         color="success"
                         icon={<CheckmarkCircle16Filled />}
                       >

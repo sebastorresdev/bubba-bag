@@ -41,6 +41,7 @@ import { D365EntityHeader } from '../../../../components/common/D365EntityHeader
 import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { SelectorEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
+import { WhatsAppIcon } from '../../../../components/common/WhatsAppIcon';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { AlmacenService } from '../../almacenes/services/almacen.service';
 import type { AlmacenDto, UbicacionInventarioDto } from '../../almacenes/types/almacen.types';
@@ -314,14 +315,22 @@ export const DevolucionTecnicoPage: React.FC = () => {
     return opcionesTecnicos.find(o => o.id === tecnicoId) || null;
   }, [opcionesTecnicos, tecnicoId]);
 
+  const tecnicoObj = useMemo(() => {
+    return tecnicos.find(t => t.id === tecnicoId) || null;
+  }, [tecnicos, tecnicoId]);
+
   const opcionesBodegasDestino = useMemo(() => {
     const bodegas = almacenes.filter(a => a.tipo === 1);
-    return bodegas.map(b => ({
+    const filtradas = tecnicoObj?.unidadOrganizativaId
+      ? bodegas.filter(b => !b.unidadOrganizativaId || b.unidadOrganizativaId === tecnicoObj.unidadOrganizativaId)
+      : bodegas;
+
+    return filtradas.map(b => ({
       id: b.id,
       nombre: b.nombre,
       detalle: `${b.codigo || 'BOD'} · ${b.unidadOrganizativaNombre || 'Central'}`,
     }));
-  }, [almacenes]);
+  }, [almacenes, tecnicoObj]);
 
   const bodegaDestinoSeleccionada = useMemo(() => {
     return opcionesBodegasDestino.find(o => o.id === almacenDestinoId) || null;
@@ -599,6 +608,22 @@ export const DevolucionTecnicoPage: React.FC = () => {
     }
   };
 
+  const handleCompartirWhatsApp = async () => {
+    const idCargo = devolucionExitosa?.id || transferenciaId;
+    const numCargo = devolucionExitosa?.numero || numeroTransferencia;
+    if (!idCargo) return;
+    try {
+      const tecnico = tecnicos.find((t) => t.id === tecnicoId);
+      await TransferenciaService.compartirCargoWhatsapp(idCargo, numCargo, {
+        tipoOperacion: 'Devolución de Técnico',
+        destinatario: tecnico?.nombreCompleto,
+        telefono: tecnico?.telefono || undefined,
+      });
+    } catch (err: any) {
+      setMensaje({ tipo: 'error', texto: err.message });
+    }
+  };
+
   const resetFormulario = () => {
     setTransferenciaId(null);
     setNumeroTransferencia('');
@@ -686,6 +711,12 @@ export const DevolucionTecnicoPage: React.FC = () => {
               >
                 Imprimir
               </D365CommandButton>
+              <D365CommandButton
+                icon={<WhatsAppIcon size={16} />}
+                onClick={() => void handleCompartirWhatsApp()}
+              >
+                WhatsApp
+              </D365CommandButton>
             </>
           )}
         </div>
@@ -734,7 +765,18 @@ export const DevolucionTecnicoPage: React.FC = () => {
                     seleccionada={tecnicoSeleccionado}
                     textoBusqueda={busquedaTecnico}
                     alCambiarBusqueda={setBusquedaTecnico}
-                    alSeleccionar={(id) => setTecnicoId(id || '')}
+                    alSeleccionar={(id) => {
+                      setTecnicoId(id || '');
+                      if (id) {
+                        const nuevoTec = tecnicos.find(t => t.id === id);
+                        if (nuevoTec?.unidadOrganizativaId && almacenDestinoId) {
+                          const bodegaActual = almacenes.find(a => a.id === almacenDestinoId);
+                          if (bodegaActual && bodegaActual.unidadOrganizativaId && bodegaActual.unidadOrganizativaId !== nuevoTec.unidadOrganizativaId) {
+                            setAlmacenDestinoId('');
+                          }
+                        }
+                      }
+                    }}
                     alNavegar={() => navigate(`/administracion/usuarios`)}
                     icono={<Person16Regular />}
                     tituloEnlace="Ver perfil del técnico"
@@ -742,7 +784,13 @@ export const DevolucionTecnicoPage: React.FC = () => {
                   />
                 </D365FormField>
 
-                <D365FormField label="Bodega Destino" required info="Almacén principal que recibe y resguarda los materiales">
+                <D365FormField
+                  label="Bodega Destino"
+                  required
+                  info={tecnicoObj?.unidadOrganizativaNombre
+                    ? `Solo se listan bodegas de la sede "${tecnicoObj.unidadOrganizativaNombre}" del técnico`
+                    : "Almacén principal que recibe y resguarda los materiales"}
+                >
                   <SelectorEntidadRelacionada
                     etiquetaGrupo="Bodegas Disponibles"
                     opciones={opcionesBodegasDestino}
@@ -753,7 +801,10 @@ export const DevolucionTecnicoPage: React.FC = () => {
                     alNavegar={(id) => navigate(`/almacenes/${id}`)}
                     icono={<Box16Regular />}
                     tituloEnlace="Ver ficha del almacén"
-                    deshabilitado={estado === 'Cerrada'}
+                    textoVacio={tecnicoObj?.unidadOrganizativaNombre
+                      ? `No hay bodegas disponibles en la sede ${tecnicoObj.unidadOrganizativaNombre}`
+                      : "No se encontraron bodegas"}
+                    deshabilitado={estado === 'Cerrada' || !tecnicoId}
                   />
                 </D365FormField>
 
@@ -886,6 +937,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
                       return (
                         <Badge
                           appearance="tint"
+                          shape="rounded"
                           color={productoSeleccionado.cantidadDisponible >= cantidadInput ? 'informative' : 'danger'}
                           size="medium"
                         >
@@ -903,7 +955,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
                   <Text weight="semibold" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Tag16Regular /> Seleccione las {cantidadInput} serie(s) que el técnico está devolviendo:
                   </Text>
-                  <Badge appearance="tint" color={seriesSeleccionadas.length === cantidadInput ? 'success' : 'warning'}>
+                  <Badge appearance="tint" shape="rounded" color={seriesSeleccionadas.length === cantidadInput ? 'success' : 'warning'}>
                     {seriesSeleccionadas.length} de {cantidadInput} seleccionadas
                   </Badge>
                 </div>
@@ -977,13 +1029,14 @@ export const DevolucionTecnicoPage: React.FC = () => {
                       <td className={classes.td}>{l.nombre}</td>
                       <td className={classes.td}><strong>{l.cantidad}</strong></td>
                       <td className={classes.td}>
-                        <Badge appearance="tint" color="informative" size="small">
+                        <Badge appearance="tint" shape="rounded" color="informative" size="small">
                           {l.unidad}
                         </Badge>
                       </td>
                       <td className={classes.td}>
                         <Badge
-                          appearance="filled"
+                          appearance="tint"
+                          shape="rounded"
                           color={l.condicion === 1 ? 'informative' : 'danger'}
                         >
                           {l.condicion === 1 ? 'Utilizable' : 'Defectuoso'}
@@ -993,7 +1046,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
                         {l.series.length > 0 ? (
                           <div className={classes.seriesBadgeList}>
                             {l.series.map(s => (
-                              <Badge key={s} appearance="tint" color="brand">{s}</Badge>
+                              <Badge key={s} appearance="tint" shape="rounded" color="brand">{s}</Badge>
                             ))}
                           </div>
                         ) : (
@@ -1045,7 +1098,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
                   Las existencias han reingresado a la bodega en la condición especificada. Puede descargar o imprimir el Acta Oficial de Devolución para archivo y firmas.
                 </Text>
 
-                <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
                   <Button
                     appearance="primary"
                     icon={<ArrowDownload16Regular />}
@@ -1059,6 +1112,13 @@ export const DevolucionTecnicoPage: React.FC = () => {
                     onClick={() => void handleImprimirActa()}
                   >
                     Abrir / Imprimir
+                  </Button>
+                  <Button
+                    appearance="outline"
+                    icon={<WhatsAppIcon size={16} />}
+                    onClick={() => void handleCompartirWhatsApp()}
+                  >
+                    Compartir por WhatsApp
                   </Button>
                 </div>
               </div>

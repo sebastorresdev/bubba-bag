@@ -204,7 +204,7 @@ export function RolesListPage() {
         columnId: 'tipo',
         renderHeaderCell: () => 'Tipo',
         renderCell: (x) => (
-          <Badge appearance="tint" color={x.esSistema ? 'informative' : 'subtle'}>
+          <Badge appearance="tint" shape="rounded" color={x.esSistema ? 'informative' : 'subtle'}>
             {x.esSistema ? 'Sistema' : 'Personalizado'}
           </Badge>
         ),

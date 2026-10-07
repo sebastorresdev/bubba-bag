@@ -142,7 +142,7 @@ export function UsuariosListPage() {
     createTableColumn<UsuarioDto>({
       columnId: 'estado',
       renderHeaderCell: () => 'Estado',
-      renderCell: x => <Badge appearance="tint" color={x.esActivo ? 'success' : 'subtle'}>{x.esActivo ? 'Activo' : 'Inactivo'}</Badge>
+      renderCell: x => <Badge appearance="tint" shape="rounded" color={x.esActivo ? 'success' : 'subtle'}>{x.esActivo ? 'Activo' : 'Inactivo'}</Badge>
     }),
   ], [navigate]);
 

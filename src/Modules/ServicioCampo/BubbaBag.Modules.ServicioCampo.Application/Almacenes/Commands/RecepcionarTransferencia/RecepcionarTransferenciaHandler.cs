@@ -52,7 +52,7 @@ public class RecepcionarTransferenciaHandler(IServicioCampoDbContext db,ICurrent
                         var sd=d.Series.Single(x=>x.NumeroSerie==s);
                         var item=await db.ItemsSeriados.SingleAsync(x=>x.Id==sd.ItemSeriadoId,ct);
                         if(item.TransferenciaEnTransitoId!=t.Id || item.UbicacionActualId.HasValue) throw new InvalidOperationException("La serie no está en tránsito en este envío.");
-                        sd.MarcarRecibida(rd.Id); item.Ubicar(destino.Id,destino.Almacen.Tipo);
+                        sd.MarcarRecibida(rd.Id); item.Ubicar(destino.Id,destino.Almacen.Tipo,d.Condicion);
                         db.MovimientosInventario.Add(MovimientoInventario.Registrar(TipoMovimientoInventario.RecepcionDeTransito,d.ProductoId,1,almacenDestinoId:t.AlmacenDestinoId,itemSeriadoId:item.Id,numeroDocumento:r.NumeroRecepcion,usuarioResponsableId:user.Id,ubicacionDestinoId:destino.Id,transferenciaId:t.Id,eventoId:r.Id,fechaReal:r.FechaReal,condicion:d.Condicion));
                     }
                 }

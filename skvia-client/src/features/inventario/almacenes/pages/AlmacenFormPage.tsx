@@ -16,8 +16,10 @@ import {
   TableCellLayout,
   Badge,
   tokens,
-  Button,
-  Link,
+  Card,
+  Skeleton,
+  SkeletonItem,
+  makeStyles,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -34,6 +36,7 @@ import {
   DocumentBulletList16Regular,
   Location16Regular,
   People16Regular,
+  Person16Regular,
   Search16Regular,
 } from '@fluentui/react-icons';
 import { AlmacenConfiguracion } from '../components/AlmacenConfiguracion';
@@ -53,6 +56,8 @@ import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
+import { LookupDropdownWithQuickCreate } from '../../../../components/common/LookupDropdownWithQuickCreate';
+import { SelectorEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
 import { useCurrentUser } from '../../../../hooks/useCurrentUser';
 
 export interface AlmacenFormPageProps {
@@ -62,6 +67,19 @@ export interface AlmacenFormPageProps {
   onCreated?: (createdId: string) => void;
 }
 
+const useAlmacenPageStyles = makeStyles({
+  halfCardWrapper: {
+    maxWidth: '700px',
+    width: '100%',
+  },
+  singleColumnFields: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    width: '100%',
+  },
+});
+
 export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   almacenId: propAlmacenId,
   onBack: propOnBack,
@@ -69,6 +87,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   onCreated: propOnCreated,
 }) => {
   const styles = useD365FormStyles();
+  const pageStyles = useAlmacenPageStyles();
   const { id: routeId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const currentUser = useMemo(() => getCurrentUserSession(), []);
@@ -136,26 +155,8 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
     text: string;
   } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [drawerSedeAbierto, setDrawerSedeAbierto] = useState<boolean>(false);
-
-  // Cargar catálogos reales
-  const cargarCatalogos = useCallback(async () => {
-    try {
-      const [unids, recs] = await Promise.all([
-        AlmacenService.getUnidadesOrganizativas(),
-        AlmacenService.getRecursosTecnicos(),
-      ]);
-      setUnidades(unids || []);
-      setRecursos(recs || []);
-    } catch (err) {
-      console.error('Error al cargar catálogos organizacionales:', err);
-    }
-  }, []);
-
-  useEffect(() => {
-    void cargarCatalogos();
-  }, [cargarCatalogos]);
-
+  const [busquedaSede, setBusquedaSede] = useState<string>('');
+  const [busquedaRecurso, setBusquedaRecurso] = useState<string>('');
   // Si se está creando un almacén o es de tipo custodia personal, restringir pestañas inactivas
   useEffect(() => {
     if (!currentId && selectedTab !== 'general') {
@@ -179,72 +180,80 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
     }
   }, []);
 
-  const cargarAlmacen = useCallback(
-    async (idToLoad: string) => {
-      try {
-        setCurrentId(idToLoad);
-        setLoading(true);
-        const data = await AlmacenService.getAlmacenById(idToLoad);
+  // Cargar catálogos reales y datos de almacén coordinadamente
+  useEffect(() => {
+    let activo = true;
+    setLoading(true);
 
-        setPuedeSupervisar(Boolean(data.esSupervisor));
-        setFormData({
-          nombre: data.nombre,
-          descripcion: data.descripcion || '',
-          codigo: data.codigo || '',
-          tipo: (data.tipo || 1) as TipoAlmacen,
-          unidadOrganizativaId: data.unidadOrganizativaId || '',
-          recursoId: data.recursoId || '',
-        });
+    const promises: [Promise<UnidadOrganizativaDto[]>, Promise<RecursoTecnicoDto[]>, Promise<any>] = [
+      AlmacenService.getUnidadesOrganizativas().catch(() => []),
+      AlmacenService.getRecursosTecnicos().catch(() => []),
+      effectiveId ? AlmacenService.getAlmacenById(effectiveId) : Promise.resolve(null),
+    ];
 
-        setSavedHeader({
-          id: data.id,
-          nombre: data.nombre,
-          tipo: (data.tipo || 1) as TipoAlmacen,
-          activo: data.activo,
-          creadoPorNombre: data.creadoPorNombre || 'Sistema',
-          fechaCreacion: data.createdAt,
-        });
+    Promise.all(promises)
+      .then(([unids, recs, almacenData]) => {
+        if (!activo) return;
+        setUnidades(unids || []);
+        setRecursos(recs || []);
 
-        // Pre-cargar existencias
-        void cargarExistencias(idToLoad);
-      } catch (err: any) {
-        console.error('Error al cargar almacén:', err);
+        if (almacenData && effectiveId) {
+          setCurrentId(effectiveId);
+          setPuedeSupervisar(Boolean(almacenData.esSupervisor));
+          setFormData({
+            nombre: almacenData.nombre,
+            descripcion: almacenData.descripcion || '',
+            codigo: almacenData.codigo || '',
+            tipo: (almacenData.tipo || 1) as TipoAlmacen,
+            unidadOrganizativaId: almacenData.unidadOrganizativaId || '',
+            recursoId: almacenData.recursoId || '',
+          });
+          setSavedHeader({
+            id: almacenData.id,
+            nombre: almacenData.nombre,
+            tipo: (almacenData.tipo || 1) as TipoAlmacen,
+            activo: almacenData.activo,
+            creadoPorNombre: almacenData.creadoPorNombre || 'Sistema',
+            fechaCreacion: almacenData.createdAt,
+          });
+          void cargarExistencias(effectiveId);
+        } else {
+          setCurrentId(null);
+          setFormData({
+            nombre: '',
+            descripcion: '',
+            codigo: '',
+            tipo: 1,
+            unidadOrganizativaId: '',
+            recursoId: '',
+          });
+          setSavedHeader({
+            nombre: '',
+            tipo: 1,
+            activo: true,
+            creadoPorNombre: currentUser.nombre,
+          });
+          setExistencias([]);
+          setStatusMessage(null);
+          setErrors({});
+        }
+      })
+      .catch((err) => {
+        if (!activo) return;
+        console.error('Error al inicializar formulario de almacén:', err);
         setStatusMessage({
           type: 'error',
           text: err?.message || 'Error al obtener la información del almacén.',
         });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [cargarExistencias]
-  );
+      })
+      .finally(() => {
+        if (activo) setLoading(false);
+      });
 
-  useEffect(() => {
-    if (effectiveId) {
-      void cargarAlmacen(effectiveId);
-    } else {
-      setCurrentId(null);
-      setFormData({
-        nombre: '',
-        descripcion: '',
-        codigo: '',
-        tipo: 1,
-        unidadOrganizativaId: '',
-        recursoId: '',
-      });
-      setSavedHeader({
-        nombre: '',
-        tipo: 1,
-        activo: true,
-        creadoPorNombre: currentUser.nombre,
-      });
-      setExistencias([]);
-      setLoading(false);
-      setStatusMessage(null);
-      setErrors({});
-    }
-  }, [effectiveId, cargarAlmacen, currentUser.nombre]);
+    return () => {
+      activo = false;
+    };
+  }, [effectiveId, currentUser.nombre, cargarExistencias]);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -513,8 +522,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
             icon={<ArrowClockwise16Regular />}
             appearance="subtle"
             onClick={() => {
-              void cargarCatalogos();
-              if (currentId) void cargarAlmacen(currentId);
+              navigate(0);
             }}
             disabled={saving || loading}
             title="Actualizar registro"
@@ -524,71 +532,85 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
         </div>
       </D365CommandBar>
 
-      {loading ? (
-        <div className={styles.loadingContainer}>
-          <Spinner label="Cargando almacén..." size="large" />
-        </div>
-      ) : (
-        <>
-          <D365EntityHeader
-            title={isEditMode ? savedHeader.nombre || 'Almacén' : 'Nuevo Almacén'}
-            subtitle={savedHeader.tipo === 2 ? 'Custodia personal de Técnico de Campo' : 'Bodega'}
-            avatarName={savedHeader.nombre || 'Almacén'}
-            avatarIcon={<Building16Regular />}
-            avatarSize={48}
-            metadata={[
-              {
-                label: 'Tipo',
-                value: savedHeader.tipo === 2 ? 'Custodia personal' : 'Bodega',
-              },
-              { label: 'Estado', value: savedHeader.activo ? 'Activo' : 'Inactivo' },
-              ...(isEditMode
-                ? [{ label: 'Artículos en stock', value: String(existenciasConStock.length) }]
-                : []),
-            ]}
-            tabs={
-              <TabList
-                selectedValue={selectedTab}
-                onTabSelect={(_, data) =>
-                  setSelectedTab(
-                    data.value as
-                      | 'general'
-                      | 'existencias'
-                      | 'detalle'
-                      | 'configuracion'
-                      | 'ubicaciones'
-                      | 'autorizados'
-                  )
-                }
-              >
-                <Tab value="general" icon={<Box16Regular />}>
-                  General
-                </Tab>
-                {currentId && (
-                  <Tab value="existencias" icon={<DocumentBulletList16Regular />}>
-                    Existencias / Stock
-                  </Tab>
-                )}
-                {currentId && (
-                  <Tab value="ubicaciones" icon={<Location16Regular />}>
-                    Ubicaciones
-                  </Tab>
-                )}
-                {currentId && formData.tipo !== 2 && (esAdminAlmacenes || puedeSupervisar) && (
-                  <Tab value="autorizados" icon={<People16Regular />}>
-                    Usuarios autorizados
-                  </Tab>
-                )}
-                {currentId && (
-                  <Tab value="detalle" icon={<Info16Regular />}>
-                    Detalle / Auditoría
-                  </Tab>
-                )}
-              </TabList>
+      <D365EntityHeader
+        loading={loading}
+        title={isEditMode ? savedHeader.nombre || 'Almacén' : 'Nuevo Almacén'}
+        subtitle={savedHeader.tipo === 2 ? 'Custodia personal de Técnico de Campo' : 'Bodega'}
+        avatarName={savedHeader.nombre || 'Almacén'}
+        avatarIcon={<Building16Regular />}
+        avatarSize={48}
+        metadata={[
+          {
+            label: 'Tipo',
+            value: savedHeader.tipo === 2 ? 'Custodia personal' : 'Bodega',
+          },
+          { label: 'Estado', value: savedHeader.activo ? 'Activo' : 'Inactivo' },
+          ...(isEditMode
+            ? [{ label: 'Artículos en stock', value: String(existenciasConStock.length) }]
+            : []),
+        ]}
+        tabs={
+          <TabList
+            selectedValue={selectedTab}
+            onTabSelect={(_, data) =>
+              setSelectedTab(
+                data.value as
+                  | 'general'
+                  | 'existencias'
+                  | 'detalle'
+                  | 'configuracion'
+                  | 'ubicaciones'
+                  | 'autorizados'
+              )
             }
-          />
+          >
+            <Tab value="general" icon={<Box16Regular />}>
+              General
+            </Tab>
+            {currentId && (
+              <Tab value="existencias" icon={<DocumentBulletList16Regular />}>
+                Existencias / Stock
+              </Tab>
+            )}
+            {currentId && (
+              <Tab value="ubicaciones" icon={<Location16Regular />}>
+                Ubicaciones
+              </Tab>
+            )}
+            {currentId && formData.tipo !== 2 && (esAdminAlmacenes || puedeSupervisar) && (
+              <Tab value="autorizados" icon={<People16Regular />}>
+                Usuarios autorizados
+              </Tab>
+            )}
+            {currentId && (
+              <Tab value="detalle" icon={<Info16Regular />}>
+                Detalle / Auditoría
+              </Tab>
+            )}
+          </TabList>
+        }
+      />
 
-          <div className={styles.contentBody}>
+      <div className={styles.contentBody} aria-busy={loading}>
+        {loading ? (
+          <div className={pageStyles.halfCardWrapper}>
+            <Card className={styles.card} role="status" aria-label="Cargando almacén">
+              <Skeleton animation="pulse">
+                <SkeletonItem size={16} className={styles.skeletonHeader} />
+                <div className={pageStyles.singleColumnFields}>
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                </div>
+                <div style={{ marginTop: 12 }}>
+                  <SkeletonItem size={72} className={styles.skeletonTextarea72} />
+                </div>
+              </Skeleton>
+            </Card>
+          </div>
+        ) : (
+          <>
             {/* PESTAÑA: UBICACIONES */}
             {selectedTab === 'ubicaciones' && currentId && (
               <AlmacenConfiguracion
@@ -620,150 +642,160 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
             )}
             {/* PESTAÑA 1: GENERAL */}
             {selectedTab === 'general' && (
-              <div className={styles.card}>
-                {unidades.length === 0 && !loading && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <D365MessageBar intent="warning">
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: '8px' }}>
-                        <span>No se encontraron sedes organizacionales registradas. Debe crear al menos una sede (Unidad Organizativa) para asociar el almacén.</span>
-                        <Button
-                          size="small"
-                          appearance="primary"
-                          icon={<Building16Regular />}
-                          onClick={() => setDrawerSedeAbierto(true)}
-                        >
-                          Crear Sede
-                        </Button>
-                      </div>
-                    </D365MessageBar>
-                  </div>
-                )}
-                <div className={styles.grid2Cols}>
-                  <D365FormField label="Nombre del almacén" required error={errors.nombre}>
-                    <Input
-                      className={styles.d365ControlFull}
-                      value={formData.nombre}
-                      maxLength={150}
-                      onChange={(_e, d) => {
-                        setFormData((prev) => ({ ...prev, nombre: d.value }));
-                        if (errors.nombre) {
-                          setErrors((prev) => ({ ...prev, nombre: '' }));
-                        }
-                      }}
-                    />
-                  </D365FormField>
-
-                  <D365FormField label="Código identificador">
-                    <Input
-                      className={styles.d365ControlFull}
-                      value={formData.codigo || ''}
-                      maxLength={30}
-                      onChange={(_e, d) => setFormData((prev) => ({ ...prev, codigo: d.value }))}
-                    />
-                  </D365FormField>
-
-                  <D365FormField label="Tipo de almacén" required>
-                    <Select
-                      className={styles.d365ControlFull}
-                      value={String(formData.tipo || 1)}
-                      disabled={isEditMode}
-                      onChange={(_e, d) => {
-                        const nuevoTipo = Number(d.value) as TipoAlmacen;
-                        setFormData((prev) => ({
-                          ...prev,
-                          tipo: nuevoTipo,
-                          recursoId: nuevoTipo === 1 ? '' : prev.recursoId,
-                        }));
-                      }}
-                    >
-                      <option value="1">Bodega</option>
-                      <option value="2">Custodia personal</option>
-                    </Select>
-                  </D365FormField>
-
-                  <D365FormField
-                    label={
-                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                        <span>Unidad organizativa</span>
-                        {!isEditMode && (
-                          <Link
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setDrawerSedeAbierto(true);
-                            }}
-                            style={{ fontSize: '12px', fontWeight: 'normal', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
-                          >
-                            <Add16Regular style={{ fontSize: '12px' }} /> Nueva sede
-                          </Link>
-                        )}
-                      </span>
-                    }
-                    required
-                    error={errors.unidadOrganizativaId}
-                  >
-                    <Select
-                      className={styles.d365ControlFull}
-                      value={formData.unidadOrganizativaId || ''}
-                      disabled={isEditMode}
-                      onChange={(_e, d) => {
-                        setFormData((prev) => ({ ...prev, unidadOrganizativaId: d.value }));
-                        if (errors.unidadOrganizativaId) {
-                          setErrors((prev) => ({ ...prev, unidadOrganizativaId: '' }));
-                        }
-                      }}
-                    >
-                      <option value="">Seleccione sede organizacional...</option>
-                      {unidades.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.nombre} ({u.codigo})
-                        </option>
-                      ))}
-                    </Select>
-                  </D365FormField>
-
-                  {formData.tipo === 2 && (
-                    <D365FormField
-                      label="Técnico responsable de custodia"
-                      required
-                      error={errors.recursoId}
-                    >
-                      <Select
+              <div className={pageStyles.halfCardWrapper}>
+                <div className={styles.card}>
+                  <div className={pageStyles.singleColumnFields}>
+                    <D365FormField label="Nombre del almacén" required error={errors.nombre}>
+                      <Input
                         className={styles.d365ControlFull}
-                        value={formData.recursoId || ''}
-                        disabled={isEditMode}
+                        value={formData.nombre}
+                        maxLength={150}
                         onChange={(_e, d) => {
-                          setFormData((prev) => ({ ...prev, recursoId: d.value }));
-                          if (errors.recursoId) {
-                            setErrors((prev) => ({ ...prev, recursoId: '' }));
+                          setFormData((prev) => ({ ...prev, nombre: d.value }));
+                          if (errors.nombre) {
+                            setErrors((prev) => ({ ...prev, nombre: '' }));
                           }
                         }}
+                      />
+                    </D365FormField>
+
+                    <D365FormField label="Código identificador">
+                      <Input
+                        className={styles.d365ControlFull}
+                        value={formData.codigo || ''}
+                        maxLength={30}
+                        onChange={(_e, d) => setFormData((prev) => ({ ...prev, codigo: d.value }))}
+                      />
+                    </D365FormField>
+
+                    <D365FormField label="Tipo de almacén" required>
+                      <Select
+                        className={styles.d365ControlFull}
+                        value={String(formData.tipo || 1)}
+                        disabled={isEditMode}
+                        onChange={(_e, d) => {
+                          const nuevoTipo = Number(d.value) as TipoAlmacen;
+                          setFormData((prev) => ({
+                            ...prev,
+                            tipo: nuevoTipo,
+                            recursoId: nuevoTipo === 1 ? '' : prev.recursoId,
+                          }));
+                        }}
                       >
-                        <option value="">Seleccione el recurso técnico asignado...</option>
-                        {recursosDisponibles.map((r) => {
-                          const tieneCustodia = Boolean(r.almacenMovilId && r.almacenMovilId !== currentId);
-                          return (
-                            <option key={r.id} value={r.id} disabled={tieneCustodia}>
-                              {r.nombreCompleto} ({r.codigo}){tieneCustodia ? ' — [Ya tiene custodia activa]' : ''}
-                            </option>
-                          );
-                        })}
+                        <option value="1">Bodega</option>
+                        <option value="2">Custodia personal</option>
                       </Select>
                     </D365FormField>
-                  )}
-                </div>
 
-                <div style={{ marginTop: 16 }}>
-                  <D365FormField label="Descripción u observaciones" align="top">
-                    <Textarea
-                      className={styles.d365ControlFull}
-                      rows={4}
-                      maxLength={500}
-                      value={formData.descripcion || ''}
-                      onChange={(_e, d) =>
-                        setFormData((prev) => ({ ...prev, descripcion: d.value }))
-                      }
-                    />
-                  </D365FormField>
+                    <D365FormField
+                      label="Unidad organizativa"
+                      required
+                      error={errors.unidadOrganizativaId}
+                    >
+                      <LookupDropdownWithQuickCreate
+                        idEntrada="almacen-unidad-org"
+                        etiquetaGrupo="Unidades Organizativas (Sedes)"
+                        icono={<Building16Regular />}
+                        deshabilitado={isEditMode || saving}
+                        tituloEnlace="Ver detalles de la sede"
+                        alNavegar={(id) => navigate(`/servicio-campo/unidades-organizativas/${id}`)}
+                        opciones={unidades.map((u) => ({
+                          id: u.id,
+                          nombre: `${u.nombre} (${u.codigo})`,
+                          detalle: u.ciudad || undefined,
+                        }))}
+                        seleccionada={
+                          formData.unidadOrganizativaId
+                            ? (() => {
+                                const u = unidades.find((item) => item.id === formData.unidadOrganizativaId);
+                                return u ? { id: u.id, nombre: `${u.nombre} (${u.codigo})` } : null;
+                              })()
+                            : null
+                        }
+                        textoBusqueda={busquedaSede}
+                        alCambiarBusqueda={setBusquedaSede}
+                        alSeleccionar={(sedeId) => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            unidadOrganizativaId: sedeId || '',
+                          }));
+                          if (errors.unidadOrganizativaId && sedeId) {
+                            setErrors((prev) => ({ ...prev, unidadOrganizativaId: '' }));
+                          }
+                        }}
+                        renderizarCreacionRapida={({ abierto, cerrar }) => (
+                          <CrearUnidadOrganizativaDrawer
+                            abierto={abierto}
+                            alCerrar={cerrar}
+                            alGuardar={(nueva) => {
+                              setUnidades((prev) => [...prev, nueva]);
+                              setFormData((prev) => ({ ...prev, unidadOrganizativaId: nueva.id }));
+                              if (errors.unidadOrganizativaId) {
+                                setErrors((prev) => ({ ...prev, unidadOrganizativaId: '' }));
+                              }
+                              setStatusMessage({
+                                type: 'success',
+                                text: `Sede "${nueva.nombre}" creada y seleccionada exitosamente.`,
+                              });
+                              cerrar();
+                            }}
+                          />
+                        )}
+                      />
+                    </D365FormField>
+
+                    {formData.tipo === 2 && (
+                      <D365FormField
+                        label="Técnico responsable de custodia"
+                        required
+                        error={errors.recursoId}
+                      >
+                        <SelectorEntidadRelacionada
+                          etiquetaGrupo="Técnicos de Campo"
+                          icono={<Person16Regular />}
+                          deshabilitado={isEditMode || saving}
+                          tituloEnlace="Ver detalles del técnico"
+                          alNavegar={(id) => navigate(`/servicio-campo/recursos/${id}`)}
+                          opciones={recursosDisponibles.map((r) => {
+                            const tieneCustodia = Boolean(r.almacenMovilId && r.almacenMovilId !== currentId);
+                            return {
+                              id: r.id,
+                              nombre: `${r.nombreCompleto} (${r.codigo})`,
+                              detalle: tieneCustodia ? 'Custodia activa' : undefined,
+                            };
+                          })}
+                          seleccionada={
+                            formData.recursoId
+                              ? (() => {
+                                  const r = recursos.find((item) => item.id === formData.recursoId);
+                                  return r ? { id: r.id, nombre: `${r.nombreCompleto} (${r.codigo})` } : null;
+                                })()
+                              : null
+                          }
+                          textoBusqueda={busquedaRecurso}
+                          alCambiarBusqueda={setBusquedaRecurso}
+                          alSeleccionar={(recId) => {
+                            setFormData((prev) => ({ ...prev, recursoId: recId || '' }));
+                            if (errors.recursoId && recId) {
+                              setErrors((prev) => ({ ...prev, recursoId: '' }));
+                            }
+                          }}
+                        />
+                      </D365FormField>
+                    )}
+
+                    <D365FormField label="Descripción u observaciones" align="top">
+                      <Textarea
+                        className={styles.d365ControlFull}
+                        rows={4}
+                        maxLength={500}
+                        value={formData.descripcion || ''}
+                        onChange={(_e, d) =>
+                          setFormData((prev) => ({ ...prev, descripcion: d.value }))
+                        }
+                      />
+                    </D365FormField>
+                  </div>
                 </div>
               </div>
             )}
@@ -962,25 +994,9 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
                 </div>
               </div>
             )}
-          </div>
-        </>
-      )}
-
-      <CrearUnidadOrganizativaDrawer
-        abierto={drawerSedeAbierto}
-        alCerrar={() => setDrawerSedeAbierto(false)}
-        alGuardar={(nueva) => {
-          setUnidades((prev) => [...prev, nueva]);
-          setFormData((prev) => ({ ...prev, unidadOrganizativaId: nueva.id }));
-          if (errors.unidadOrganizativaId) {
-            setErrors((prev) => ({ ...prev, unidadOrganizativaId: '' }));
-          }
-          setStatusMessage({
-            type: 'success',
-            text: `Sede "${nueva.nombre}" creada y seleccionada exitosamente.`,
-          });
-        }}
-      />
+          </>
+        )}
+      </div>
     </div>
   );
 };

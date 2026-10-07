@@ -39,6 +39,7 @@ import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../
 import { D365ListState } from '../../../../components/common/D365ListState';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { TableEmptyState } from '../../../../components/common/TableEmptyState';
+import { WhatsAppIcon } from '../../../../components/common/WhatsAppIcon';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 import { TransferenciaService } from '../services/transferencia.service';
 import type { TransferenciaInventarioDto } from '../types/transferencia.types';
@@ -234,7 +235,7 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
 
           return (
             <TableCellLayout>
-              <Badge appearance="filled" color={color} size="small">
+              <Badge appearance="tint" shape="rounded" color={color} size="small">
                 {label}
               </Badge>
             </TableCellLayout>
@@ -286,6 +287,20 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
                   onClick={(e) => {
                     e.stopPropagation();
                     void TransferenciaService.abrirCargoPdf(x.id);
+                  }}
+                />
+              </Tooltip>
+              <Tooltip content="Compartir por WhatsApp" relationship="label">
+                <Button
+                  size="small"
+                  appearance="subtle"
+                  icon={<WhatsAppIcon size={16} />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void TransferenciaService.compartirCargoWhatsapp(x.id, x.numero, {
+                      tipoOperacion: x.tipoOperacion || 'Cargo Oficial',
+                      destinatario: x.almacenDestino,
+                    });
                   }}
                 />
               </Tooltip>
@@ -375,6 +390,19 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
                 }}
               >
                 Imprimir
+              </D365CommandButton>
+              <D365CommandButton
+                icon={<WhatsAppIcon size={16} />}
+                onClick={() => {
+                  const idSel = Array.from(seleccionados)[0] as string;
+                  const itemSel = datos.find((d) => d.id === idSel);
+                  void TransferenciaService.compartirCargoWhatsapp(idSel, itemSel?.numero, {
+                    tipoOperacion: itemSel?.tipoOperacion || 'Cargo Oficial',
+                    destinatario: itemSel?.almacenDestino,
+                  });
+                }}
+              >
+                WhatsApp
               </D365CommandButton>
               <D365CommandDivider />
             </>

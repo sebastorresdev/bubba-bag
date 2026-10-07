@@ -887,13 +887,13 @@ export function RecepcionCompraPage() {
                 onTabSelect={(_, d) => setFiltro(d.value as 'todas' | 'recibidas' | 'pendientes')}
               >
                 <Tab value="todas">
-                  Todas <Badge appearance={filtro === 'todas' ? 'filled' : 'tint'} size="small">{totalSeries}</Badge>
+                  Todas <Badge appearance="tint" shape="rounded" size="small">{totalSeries}</Badge>
                 </Tab>
                 <Tab value="pendientes">
-                  Pendientes <Badge appearance={filtro === 'pendientes' ? 'filled' : 'tint'} color={totalSeries - cantidadVerificadas > 0 ? 'warning' : 'subtle'} size="small">{totalSeries - cantidadVerificadas}</Badge>
+                  Pendientes <Badge appearance="tint" shape="rounded" color={totalSeries - cantidadVerificadas > 0 ? 'warning' : 'subtle'} size="small">{totalSeries - cantidadVerificadas}</Badge>
                 </Tab>
                 <Tab value="recibidas">
-                  Recibidas <Badge appearance={filtro === 'recibidas' ? 'filled' : 'tint'} color={cantidadVerificadas > 0 ? 'success' : 'subtle'} size="small">{cantidadVerificadas}</Badge>
+                  Recibidas <Badge appearance="tint" shape="rounded" color={cantidadVerificadas > 0 ? 'success' : 'subtle'} size="small">{cantidadVerificadas}</Badge>
                 </Tab>
               </TabList>
 
@@ -917,7 +917,8 @@ export function RecepcionCompraPage() {
                   Exportar CSV
                 </Button>
                 <Badge
-                  appearance={progresoPorcentaje === 100 ? 'filled' : 'tint'}
+                  appearance="tint"
+                  shape="rounded"
                   color={progresoPorcentaje === 100 ? 'success' : progresoPorcentaje > 0 ? 'brand' : 'subtle'}
                   size="small"
                 >
@@ -1153,7 +1154,7 @@ export function RecepcionCompraPage() {
               <Text weight="semibold" size={300}>
                 Insumos y materiales por cantidad
               </Text>
-              <Badge appearance="tint" color="brand" size="small">
+              <Badge appearance="tint" shape="rounded" color="brand" size="small">
                 {lineasNoSeriadas.length} {lineasNoSeriadas.length === 1 ? 'producto' : 'productos'}
               </Badge>
             </div>

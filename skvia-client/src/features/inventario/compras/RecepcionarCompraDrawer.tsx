@@ -448,6 +448,7 @@ export function RecepcionarCompraDrawer({
                 </span>
                 <Badge
                   appearance="tint"
+                  shape="rounded"
                   color={todasCompletadas ? 'success' : 'informative'}
                 >
                   {todasCompletadas ? 'Todas Pistoleadas' : 'Pistoleo en Curso'}
@@ -588,11 +589,11 @@ export function RecepcionarCompraDrawer({
                         >
                           <div>
                             {estaVerificada ? (
-                              <Badge appearance="tint" color="success" icon={<Checkmark16Regular />}>
+                              <Badge appearance="tint" shape="rounded" color="success" icon={<Checkmark16Regular />}>
                                 Recibida
                               </Badge>
                             ) : (
-                              <Badge appearance="outline" color="warning" icon={<Clock16Regular />}>
+                              <Badge appearance="outline" shape="rounded" color="warning" icon={<Clock16Regular />}>
                                 Faltante
                               </Badge>
                             )}

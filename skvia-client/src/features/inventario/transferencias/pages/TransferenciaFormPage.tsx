@@ -52,6 +52,7 @@ import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
 import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
+import { WhatsAppIcon } from '../../../../components/common/WhatsAppIcon';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { AlmacenService } from '../../almacenes/services/almacen.service';
 import type { AlmacenDto } from '../../almacenes/types/almacen.types';
@@ -748,7 +749,7 @@ export function TransferenciaFormPage() {
         renderHeaderCell: () => 'UOM',
         renderCell: (linea) => (
           <TableCellLayout>
-            <Badge appearance="tint" color="informative">
+            <Badge appearance="tint" shape="rounded" color="informative">
               {linea.unidad || 'UND'}
             </Badge>
           </TableCellLayout>
@@ -835,6 +836,7 @@ export function TransferenciaFormPage() {
           <TableCellLayout>
             <Badge
               appearance="tint"
+              shape="rounded"
               color={item.cantidadRecibida >= item.cantidadEnviada ? 'success' : 'informative'}
             >
               {item.cantidadRecibida.toLocaleString('es-PE')}
@@ -848,7 +850,7 @@ export function TransferenciaFormPage() {
         renderHeaderCell: () => 'Pendiente',
         renderCell: (item) => (
           <TableCellLayout>
-            <Badge appearance="filled" color={item.cantidadPendiente > 0 ? 'warning' : 'success'}>
+            <Badge appearance="tint" shape="rounded" color={item.cantidadPendiente > 0 ? 'warning' : 'success'}>
               {item.cantidadPendiente.toLocaleString('es-PE')}
             </Badge>
           </TableCellLayout>
@@ -982,6 +984,17 @@ export function TransferenciaFormPage() {
               >
                 Imprimir
               </D365CommandButton>
+              <D365CommandButton
+                icon={<WhatsAppIcon size={16} />}
+                onClick={() =>
+                  void TransferenciaService.compartirCargoWhatsapp(detalle.id, detalle.numero, {
+                    tipoOperacion: operacionModalidad?.titulo || 'Transferencia de Inventario',
+                    destinatario: detalle.almacenDestinoNombre,
+                  })
+                }
+              >
+                WhatsApp
+              </D365CommandButton>
               <D365CommandDivider />
             </>
           )}
@@ -1067,7 +1080,7 @@ export function TransferenciaFormPage() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
                     <Text weight="semibold">{operacionModalidad.titulo}</Text>
-                    <Badge appearance="tint" color={operacionModalidad.badgeColor} size="small">
+                    <Badge appearance="tint" shape="rounded" color={operacionModalidad.badgeColor} size="small">
                       {modalidad === 2 ? 'Con tránsito' : 'Inmediata'}
                     </Badge>
                   </div>
@@ -1505,7 +1518,7 @@ export function TransferenciaFormPage() {
                         </td>
                         <td style={{ padding: '8px' }}>{lr.cantidadEnviada}</td>
                         <td style={{ padding: '8px' }}>
-                          <Badge appearance="tint" color="warning">
+                          <Badge appearance="tint" shape="rounded" color="warning">
                             {lr.cantidadPendiente}
                           </Badge>
                         </td>

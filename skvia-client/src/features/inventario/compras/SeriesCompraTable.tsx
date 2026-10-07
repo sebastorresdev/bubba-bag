@@ -205,6 +205,7 @@ export function SeriesCompraTable({
                     <TableCell>
                       <Badge
                         appearance="tint"
+                        shape="rounded"
                         color={estaRecibida ? 'success' : 'danger'}
                         size="medium"
                       >

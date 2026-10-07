@@ -184,65 +184,65 @@ export function TrazabilidadSeriesPage() {
         </TableCellLayout>
       ),
     }),
-    createTableColumn({
-      columnId: 'estado',
-      compare: (a, b) => a.estado.localeCompare(b.estado),
-      renderHeaderCell: () => 'Estado de Custodia',
-      renderCell: (item: ItemSeriadoStockDto) => {
-        if (item.estado === 'EnAlmacen') {
+      createTableColumn({
+        columnId: 'estado',
+        compare: (a, b) => a.estado.localeCompare(b.estado),
+        renderHeaderCell: () => 'Estado de Custodia',
+        renderCell: (item: ItemSeriadoStockDto) => {
+          if (item.estado === 'EnAlmacen') {
+            return (
+              <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
+                <Badge appearance="tint" shape="rounded" color="success" icon={<CheckmarkCircle16Filled />} style={{ whiteSpace: 'nowrap' }}>
+                  En Almacén
+                </Badge>
+              </TableCellLayout>
+            );
+          }
+          if (item.estado === 'EnTransito') {
+            return (
+              <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
+                <Badge appearance="tint" shape="rounded" color="warning" icon={<ArrowClockwise16Regular />} style={{ whiteSpace: 'nowrap' }}>
+                  En Tránsito
+                </Badge>
+              </TableCellLayout>
+            );
+          }
+          if (item.estado === 'EnCustodiaTecnico') {
+            return (
+              <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
+                <Badge appearance="tint" shape="rounded" color="informative" icon={<VehicleCarProfile16Regular />} style={{ whiteSpace: 'nowrap' }}>
+                  Custodia Técnico
+                </Badge>
+              </TableCellLayout>
+            );
+          }
+          if (item.estado === 'InstaladoEnCliente') {
+            return (
+              <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
+                <Badge appearance="tint" shape="rounded" color="brand" icon={<Person16Regular />} style={{ whiteSpace: 'nowrap' }}>
+                  Instalado en Cliente
+                </Badge>
+              </TableCellLayout>
+            );
+          }
+          if (item.estado === 'AveriadoEnAlmacen' || item.estado === 'RetiradoPorAveria') {
+            return (
+              <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
+                <Badge appearance="tint" shape="rounded" color="danger" icon={<Warning16Filled />} style={{ whiteSpace: 'nowrap' }}>
+                  Averiado
+                </Badge>
+              </TableCellLayout>
+            );
+          }
           return (
-            <TableCellLayout>
-              <Badge appearance="tint" shape="rounded" color="success" icon={<CheckmarkCircle16Filled />}>
-                En Almacén
+            <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
+              <Badge appearance="outline" shape="rounded" color="subtle" style={{ whiteSpace: 'nowrap' }}>
+                {item.estado}
               </Badge>
             </TableCellLayout>
           );
-        }
-        if (item.estado === 'EnTransito') {
-          return (
-            <TableCellLayout>
-              <Badge appearance="tint" shape="rounded" color="warning" icon={<ArrowClockwise16Regular />}>
-                En Tránsito
-              </Badge>
-            </TableCellLayout>
-          );
-        }
-        if (item.estado === 'EnCustodiaTecnico') {
-          return (
-            <TableCellLayout>
-              <Badge appearance="tint" shape="rounded" color="informative" icon={<VehicleCarProfile16Regular />}>
-                En Camioneta / Técnico
-              </Badge>
-            </TableCellLayout>
-          );
-        }
-        if (item.estado === 'InstaladoEnCliente') {
-          return (
-            <TableCellLayout>
-              <Badge appearance="tint" shape="rounded" color="brand" icon={<Person16Regular />}>
-                Instalado en Cliente
-              </Badge>
-            </TableCellLayout>
-          );
-        }
-        if (item.estado === 'AveriadoEnAlmacen' || item.estado === 'RetiradoPorAveria') {
-          return (
-            <TableCellLayout>
-              <Badge appearance="tint" shape="rounded" color="danger" icon={<Warning16Filled />}>
-                Averiado
-              </Badge>
-            </TableCellLayout>
-          );
-        }
-        return (
-          <TableCellLayout>
-            <Badge appearance="outline" shape="rounded" color="subtle">
-              {item.estado}
-            </Badge>
-          </TableCellLayout>
-        );
-      },
-    }),
+        },
+      }),
     createTableColumn({
       columnId: 'almacen',
       compare: (a, b) => (a.nombreAlmacen ?? '').localeCompare(b.nombreAlmacen ?? ''),
@@ -429,7 +429,7 @@ export function TrazabilidadSeriesPage() {
                   <option value="TODOS">Todos los estados</option>
                   <option value="EnAlmacen">En Almacén</option>
                   <option value="EnTransito">En Tránsito</option>
-                  <option value="EnCustodiaTecnico">En Camioneta / Técnico</option>
+                  <option value="EnCustodiaTecnico">Custodia Técnico</option>
                   <option value="InstaladoEnCliente">Instalado en Cliente</option>
                   <option value="AveriadoEnAlmacen">Averiado</option>
                   <option value="DevueltoAProveedor">Devuelto a DIRECTV</option>

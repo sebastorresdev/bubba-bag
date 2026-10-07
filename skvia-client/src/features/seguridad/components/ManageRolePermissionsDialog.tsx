@@ -295,7 +295,7 @@ export function ManageRolePermissionsDialog({
                         )}
                       </div>
                       <div>
-                        <Badge appearance="tint" color="subtle">
+                        <Badge appearance="tint" shape="rounded" color="subtle">
                           {p.modulo}
                         </Badge>
                       </div>

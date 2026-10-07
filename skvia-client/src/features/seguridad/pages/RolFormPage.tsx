@@ -284,7 +284,7 @@ export function RolFormPage() {
               {
                 label: 'Tipo',
                 value: (
-                  <Badge appearance="tint" color={esSistema ? 'informative' : 'subtle'}>
+                  <Badge appearance="tint" shape="rounded" color={esSistema ? 'informative' : 'subtle'}>
                     {esSistema ? 'Rol del sistema' : 'Personalizado'}
                   </Badge>
                 ),
@@ -292,7 +292,7 @@ export function RolFormPage() {
               {
                 label: 'Permisos otorgados',
                 value: (
-                  <Badge appearance="filled" color={esSuperAdmin ? 'warning' : 'brand'}>
+                  <Badge appearance="tint" shape="rounded" color={esSuperAdmin ? 'warning' : 'brand'}>
                     {esSuperAdmin
                       ? 'Bypass Total (Todos)'
                       : `${permisosSeleccionados.length} de ${catalogoPermisos.length}`}
@@ -485,7 +485,7 @@ export function RolFormPage() {
                               )}
                             </div>
                             <div>
-                              <Badge appearance="tint" color="subtle">
+                              <Badge appearance="tint" shape="rounded" color="subtle">
                                 {p.modulo}
                               </Badge>
                             </div>

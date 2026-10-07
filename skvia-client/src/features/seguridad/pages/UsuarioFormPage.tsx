@@ -376,6 +376,7 @@ export function UsuarioFormPage() {
                 value: (
                   <Badge
                     appearance="tint"
+                    shape="rounded"
                     color={activo ? 'success' : 'subtle'}
                   >
                     {activo ? 'Activo' : 'Inactivo'}
@@ -627,13 +628,14 @@ export function UsuarioFormPage() {
                             <span>
                               <Badge
                                 appearance="tint"
+                                shape="rounded"
                                 color={rol.esSistema ? 'informative' : 'subtle'}
                               >
                                 {rol.esSistema ? 'Sistema' : 'Personalizado'}
                               </Badge>
                             </span>
                             <span style={{ textAlign: 'right' }}>
-                              <Badge appearance="outline">
+                              <Badge appearance="outline" shape="rounded">
                                 {rol.permisos.length} permisos
                               </Badge>
                             </span>

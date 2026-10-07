@@ -40,6 +40,7 @@ import { D365EntityHeader } from '../../../../components/common/D365EntityHeader
 import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { SelectorEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
+import { WhatsAppIcon } from '../../../../components/common/WhatsAppIcon';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { AlmacenService } from '../../almacenes/services/almacen.service';
 import type { AlmacenDto, UbicacionInventarioDto } from '../../almacenes/types/almacen.types';
@@ -336,17 +337,34 @@ export const DespachoTecnicoPage: React.FC = () => {
     return opcionesAlmacenes.find(o => o.id === almacenOrigenId) || null;
   }, [opcionesAlmacenes, almacenOrigenId]);
 
+  const almacenOrigenObj = useMemo(() => {
+    return almacenes.find(a => a.id === almacenOrigenId) || null;
+  }, [almacenes, almacenOrigenId]);
+
+  const tecnicosFiltrados = useMemo(() => {
+    if (!almacenOrigenObj?.unidadOrganizativaId) {
+      return tecnicos;
+    }
+    return tecnicos.filter(t => !t.unidadOrganizativaId || t.unidadOrganizativaId === almacenOrigenObj.unidadOrganizativaId);
+  }, [tecnicos, almacenOrigenObj]);
+
   const opcionesTecnicos = useMemo(() => {
-    return tecnicos.map(t => ({
+    return tecnicosFiltrados.map(t => ({
       id: t.id,
       nombre: t.nombreCompleto,
       detalle: `${t.documentoIdentidad ? `DNI: ${t.documentoIdentidad} · ` : ''}${t.unidadOrganizativaNombre || 'Cuadrilla de Campo'}`,
     }));
-  }, [tecnicos]);
+  }, [tecnicosFiltrados]);
 
   const tecnicoSeleccionado = useMemo(() => {
-    return opcionesTecnicos.find(o => o.id === tecnicoId) || null;
-  }, [opcionesTecnicos, tecnicoId]);
+    const seleccionado = tecnicos.find(t => t.id === tecnicoId);
+    if (!seleccionado) return null;
+    return {
+      id: seleccionado.id,
+      nombre: seleccionado.nombreCompleto,
+      detalle: `${seleccionado.documentoIdentidad ? `DNI: ${seleccionado.documentoIdentidad} · ` : ''}${seleccionado.unidadOrganizativaNombre || 'Cuadrilla de Campo'}`,
+    };
+  }, [tecnicos, tecnicoId]);
 
   const productoSeleccionado = useMemo(() => {
     return productosStock.find(p => p.productoId === productoSeleccionadoId);
@@ -467,8 +485,20 @@ export const DespachoTecnicoPage: React.FC = () => {
       setSubmitting(true);
       setMensaje(null);
 
+      let ubicOrigenId = ubicacionOrigenId;
+      if (!ubicOrigenId) {
+        const ubicsOrigen = await AlmacenService.getUbicaciones(almacenOrigenId);
+        const princOrigen = ubicsOrigen.find(u => u.codigo === 'PRINCIPAL') || ubicsOrigen[0];
+        ubicOrigenId = princOrigen?.id || '';
+        if (ubicOrigenId) setUbicacionOrigenId(ubicOrigenId);
+      }
+      if (!ubicOrigenId) {
+        throw new Error('La bodega de origen seleccionada no tiene una ubicación principal configurada.');
+      }
+
       const ubicsDestino = await AlmacenService.getUbicaciones(custodiaTecnico.id);
-      const ubicacionDestinoId = ubicsDestino[0]?.id;
+      const princDestino = ubicsDestino.find(u => u.codigo === 'PRINCIPAL') || ubicsDestino[0];
+      const ubicacionDestinoId = princDestino?.id;
       if (!ubicacionDestinoId) {
         throw new Error('El almacén de custodia del técnico no tiene una ubicación principal configurada.');
       }
@@ -477,7 +507,7 @@ export const DespachoTecnicoPage: React.FC = () => {
         transferenciaId: transferenciaId || undefined,
         almacenOrigenId,
         almacenDestinoId: custodiaTecnico.id,
-        ubicacionOrigenId,
+        ubicacionOrigenId: ubicOrigenId,
         ubicacionDestinoId,
         modalidad: 1, // Inmediata
         operacionId: operacionIdRef.current,
@@ -538,8 +568,20 @@ export const DespachoTecnicoPage: React.FC = () => {
       setSubmitting(true);
       setMensaje(null);
 
+      let ubicOrigenId = ubicacionOrigenId;
+      if (!ubicOrigenId) {
+        const ubicsOrigen = await AlmacenService.getUbicaciones(almacenOrigenId);
+        const princOrigen = ubicsOrigen.find(u => u.codigo === 'PRINCIPAL') || ubicsOrigen[0];
+        ubicOrigenId = princOrigen?.id || '';
+        if (ubicOrigenId) setUbicacionOrigenId(ubicOrigenId);
+      }
+      if (!ubicOrigenId) {
+        throw new Error('La bodega de origen seleccionada no tiene una ubicación principal configurada.');
+      }
+
       const ubicsDestino = await AlmacenService.getUbicaciones(custodiaTecnico.id);
-      const ubicacionDestinoId = ubicsDestino[0]?.id;
+      const princDestino = ubicsDestino.find(u => u.codigo === 'PRINCIPAL') || ubicsDestino[0];
+      const ubicacionDestinoId = princDestino?.id;
       if (!ubicacionDestinoId) {
         throw new Error('El almacén de custodia del técnico no tiene una ubicación principal configurada.');
       }
@@ -548,7 +590,7 @@ export const DespachoTecnicoPage: React.FC = () => {
         transferenciaId: transferenciaId || undefined,
         almacenOrigenId,
         almacenDestinoId: custodiaTecnico.id,
-        ubicacionOrigenId,
+        ubicacionOrigenId: ubicOrigenId,
         ubicacionDestinoId,
         modalidad: 1, // Inmediata
         operacionId: operacionIdRef.current,
@@ -592,6 +634,22 @@ export const DespachoTecnicoPage: React.FC = () => {
     if (!despachoExitoso?.id) return;
     try {
       await TransferenciaService.abrirCargoPdf(despachoExitoso.id);
+    } catch (err: any) {
+      setMensaje({ tipo: 'error', texto: err.message });
+    }
+  };
+
+  const handleCompartirWhatsApp = async () => {
+    const idCargo = despachoExitoso?.id || transferenciaId;
+    const numCargo = despachoExitoso?.numero || numeroTransferencia;
+    if (!idCargo) return;
+    try {
+      const tecnico = tecnicos.find((t) => t.id === tecnicoId);
+      await TransferenciaService.compartirCargoWhatsapp(idCargo, numCargo, {
+        tipoOperacion: 'Despacho a Técnico',
+        destinatario: tecnico?.nombreCompleto,
+        telefono: tecnico?.telefono || undefined,
+      });
     } catch (err: any) {
       setMensaje({ tipo: 'error', texto: err.message });
     }
@@ -679,6 +737,12 @@ export const DespachoTecnicoPage: React.FC = () => {
               >
                 Imprimir
               </D365CommandButton>
+              <D365CommandButton
+                icon={<WhatsAppIcon size={16} />}
+                onClick={() => void handleCompartirWhatsApp()}
+              >
+                WhatsApp
+              </D365CommandButton>
             </>
           )}
         </div>
@@ -727,7 +791,19 @@ export const DespachoTecnicoPage: React.FC = () => {
                     seleccionada={almacenSeleccionado}
                     textoBusqueda={busquedaAlmacen}
                     alCambiarBusqueda={setBusquedaAlmacen}
-                    alSeleccionar={(id) => setAlmacenOrigenId(id || '')}
+                    alSeleccionar={(id) => {
+                      setAlmacenOrigenId(id || '');
+                      setUbicacionOrigenId('');
+                      if (id) {
+                        const nuevaBodega = almacenes.find(a => a.id === id);
+                        if (nuevaBodega?.unidadOrganizativaId && tecnicoId) {
+                          const tecActual = tecnicos.find(t => t.id === tecnicoId);
+                          if (tecActual && tecActual.unidadOrganizativaId && tecActual.unidadOrganizativaId !== nuevaBodega.unidadOrganizativaId) {
+                            setTecnicoId('');
+                          }
+                        }
+                      }
+                    }}
                     alNavegar={(id) => navigate(`/almacenes/${id}`)}
                     icono={<Box16Regular />}
                     tituloEnlace="Ver ficha del almacén"
@@ -735,7 +811,13 @@ export const DespachoTecnicoPage: React.FC = () => {
                   />
                 </D365FormField>
 
-                <D365FormField label="Técnico Receptor" required info="Colaborador de campo que recibe y asume custodia del material">
+                <D365FormField
+                  label="Técnico Receptor"
+                  required
+                  info={almacenOrigenObj?.unidadOrganizativaNombre
+                    ? `Solo se listan técnicos asignados a la sede "${almacenOrigenObj.unidadOrganizativaNombre}"`
+                    : "Colaborador de campo que recibe y asume custodia del material"}
+                >
                   <SelectorEntidadRelacionada
                     etiquetaGrupo="Técnicos de Campo"
                     opciones={opcionesTecnicos}
@@ -746,7 +828,10 @@ export const DespachoTecnicoPage: React.FC = () => {
                     alNavegar={() => navigate(`/administracion/usuarios`)}
                     icono={<Person16Regular />}
                     tituloEnlace="Ver perfil del técnico"
-                    deshabilitado={estado === 'Cerrada'}
+                    textoVacio={almacenOrigenObj?.unidadOrganizativaNombre
+                      ? `No hay técnicos asignados a la sede ${almacenOrigenObj.unidadOrganizativaNombre}`
+                      : "No se encontraron técnicos"}
+                    deshabilitado={estado === 'Cerrada' || !almacenOrigenId}
                   />
                 </D365FormField>
 
@@ -864,6 +949,7 @@ export const DespachoTecnicoPage: React.FC = () => {
                       return (
                         <Badge
                           appearance="tint"
+                          shape="rounded"
                           color={remanente > 0 ? 'success' : 'danger'}
                           size="medium"
                         >
@@ -881,7 +967,7 @@ export const DespachoTecnicoPage: React.FC = () => {
                     <Text weight="semibold" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Tag16Regular /> Seleccione las {cantidadInput} serie(s) que entregará en mano:
                     </Text>
-                    <Badge appearance="tint" color={seriesSeleccionadas.length === cantidadInput ? 'success' : 'warning'}>
+                    <Badge appearance="tint" shape="rounded" color={seriesSeleccionadas.length === cantidadInput ? 'success' : 'warning'}>
                       {seriesSeleccionadas.length} de {cantidadInput} seleccionadas
                     </Badge>
                   </div>
@@ -954,7 +1040,7 @@ export const DespachoTecnicoPage: React.FC = () => {
                         <td className={classes.td}>{l.nombre}</td>
                         <td className={classes.td}><strong>{l.cantidad}</strong></td>
                         <td className={classes.td}>
-                          <Badge appearance="tint" color="informative" size="small">
+                          <Badge appearance="tint" shape="rounded" color="informative" size="small">
                             {l.unidad}
                           </Badge>
                         </td>
@@ -962,7 +1048,7 @@ export const DespachoTecnicoPage: React.FC = () => {
                           {l.series.length > 0 ? (
                             <div className={classes.seriesBadgeList}>
                               {l.series.map(s => (
-                                <Badge key={s} appearance="tint" color="brand">{s}</Badge>
+                                <Badge key={s} appearance="tint" shape="rounded" color="brand">{s}</Badge>
                               ))}
                             </div>
                           ) : (
@@ -1014,7 +1100,7 @@ export const DespachoTecnicoPage: React.FC = () => {
                   El material y los números de serie ahora se encuentran registrados bajo la custodia del técnico. Puede descargar o imprimir el Cargo Oficial de Custodia para que sea firmado.
                 </Text>
 
-                <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
                   <Button
                     appearance="primary"
                     icon={<ArrowDownload16Regular />}
@@ -1028,6 +1114,13 @@ export const DespachoTecnicoPage: React.FC = () => {
                     onClick={() => void handleImprimirCargo()}
                   >
                     Abrir / Imprimir
+                  </Button>
+                  <Button
+                    appearance="outline"
+                    icon={<WhatsAppIcon size={16} />}
+                    onClick={() => void handleCompartirWhatsApp()}
+                  >
+                    Compartir por WhatsApp
                   </Button>
                 </div>
               </div>
