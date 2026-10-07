@@ -85,6 +85,15 @@ public class Transferencia : Entity<Guid>
         };
     }
 
+    public void ActualizarBorrador(string? observaciones, string? numeroGuiaRemision = null)
+    {
+        if (Estado != EstadoTransferencia.Borrador)
+            throw new InvalidOperationException("Solo se pueden modificar los datos de una transferencia en estado Borrador.");
+        Observaciones = observaciones?.Trim();
+        if (!string.IsNullOrWhiteSpace(numeroGuiaRemision))
+            NumeroGuiaRemision = numeroGuiaRemision.Trim().ToUpperInvariant();
+    }
+
     public TransferenciaDetalle AgregarLinea(Guid productoId, decimal cantidad, CondicionInventario condicion = CondicionInventario.Utilizable, Guid? unidadMedidaId = null, string? unidadMedidaNombre = null)
     {
         if (Estado != EstadoTransferencia.Borrador)

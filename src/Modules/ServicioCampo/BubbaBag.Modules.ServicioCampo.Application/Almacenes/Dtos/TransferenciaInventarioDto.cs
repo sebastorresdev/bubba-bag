@@ -17,5 +17,9 @@ public record TransferenciaInventarioDto(
     string Modalidad = "Inmediata",
     decimal CantidadRecibida = 0,
     decimal CantidadPendiente = 0,
-    string? ResumenProductos = null
+    string? ResumenProductos = null,
+    string? TipoOperacion = null,
+    int? TipoAlmacenOrigen = null,
+    int? TipoAlmacenDestino = null,
+    string? NumeroGuiaRemision = null
 );

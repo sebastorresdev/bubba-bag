@@ -18,7 +18,7 @@ import { Add16Regular, Person16Regular } from '@fluentui/react-icons';
 import { EnlaceEntidad } from './EnlaceEntidad';
 
 const usarEstilos = makeStyles({
-  control: { width: '100%', minHeight: '32px', height: '32px', flexWrap: 'nowrap' },
+  control: { width: '100%', minHeight: '32px', flexWrap: 'nowrap' },
   grupo: { display: 'flex', alignItems: 'center', flexShrink: 0 },
   entrada: { minHeight: '28px' },
   pie: {
@@ -108,6 +108,7 @@ export const SelectorEntidadRelacionada: React.FC<SelectorEntidadRelacionadaProp
               nombre={seleccionada.nombre}
               icono={iconoFinal}
               alNavegar={alNavegar}
+              alEliminar={() => alSeleccionar(null)}
               titulo={tituloEnlace}
             />
           </TagPickerGroup>

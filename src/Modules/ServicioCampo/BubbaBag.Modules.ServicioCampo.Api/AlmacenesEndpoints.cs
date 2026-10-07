@@ -244,17 +244,24 @@ public static class AlmacenesEndpoints
 
     private static async Task<IResult> CrearTransferencia(
         CrearTransferenciaRequest request,
-        IDispatcher dispatcher)
+        IDispatcher dispatcher,
+        IServicioCampoDbContext context)
     {
         var command = new CrearTransferenciaInventarioCommand(
             request.AlmacenOrigenId,
             request.AlmacenDestinoId,
-            request.Lineas.Select(linea => new LineaTransferenciaInventario(linea.ProductoId, linea.Cantidad, linea.Series, linea.Condicion)).ToList(),
-            request.Observacion, request.GuiaRemision, request.UbicacionOrigenId, request.UbicacionDestinoId, request.Modalidad, request.OperacionId, request.FechaReal);
+            request.Lineas?.Select(linea => new LineaTransferenciaInventario(linea.ProductoId, linea.Cantidad, linea.Series, linea.Condicion)).ToList(),
+            request.Observacion, request.GuiaRemision, request.UbicacionOrigenId, request.UbicacionDestinoId, request.Modalidad, request.OperacionId, request.FechaReal, request.EsBorrador, request.TransferenciaId);
         var result = await dispatcher.SendAsync(command);
-        return result.IsSuccess
-            ? Results.Created($"/api/inventario/transferencias/{result.Value}", new { numero = result.Value })
-            : Results.BadRequest(result.Error);
+        if (!result.IsSuccess) return Results.BadRequest(result.Error);
+
+        var transf = await context.Transferencias.AsNoTracking().FirstOrDefaultAsync(t => t.Numero == result.Value);
+        return Results.Created($"/api/inventario/transferencias/{result.Value}", new {
+            numero = result.Value,
+            id = transf?.Id,
+            numeroGuiaRemision = transf?.NumeroGuiaRemision,
+            estado = transf?.Estado.ToString()
+        });
     }
 
     private static async Task<IResult> ObtenerTransferenciaPorId(Guid id, IDispatcher dispatcher)
@@ -506,7 +513,7 @@ public record ValidarSeriesResponse(IReadOnlyCollection<SerieExistenteDetalle> E
 
 public record CambiarEstadoRequest(bool Activo);
 
-public record CrearTransferenciaRequest(Guid AlmacenOrigenId,Guid AlmacenDestinoId,IReadOnlyCollection<CrearTransferenciaLineaRequest> Lineas,string? Observacion=null,Guid? UbicacionOrigenId=null,Guid? UbicacionDestinoId=null,ModalidadTransferencia? Modalidad=null,Guid OperacionId=default,DateTime? FechaReal=null,string? GuiaRemision=null);
+public record CrearTransferenciaRequest(Guid AlmacenOrigenId,Guid AlmacenDestinoId,IReadOnlyCollection<CrearTransferenciaLineaRequest>? Lineas=null,string? Observacion=null,Guid? UbicacionOrigenId=null,Guid? UbicacionDestinoId=null,ModalidadTransferencia? Modalidad=null,Guid OperacionId=default,DateTime? FechaReal=null,string? GuiaRemision=null,bool EsBorrador=false,Guid? TransferenciaId=null);
 
 public record CrearTransferenciaLineaRequest(
     Guid ProductoId,

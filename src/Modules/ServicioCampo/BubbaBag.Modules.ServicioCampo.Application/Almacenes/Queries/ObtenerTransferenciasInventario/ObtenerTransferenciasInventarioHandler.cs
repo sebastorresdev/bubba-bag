@@ -59,6 +59,12 @@ public class ObtenerTransferenciasInventarioHandler
                     _ => $"{nombresProds[0]} y {nombresProds.Count - 1} más"
                 };
 
+                var tipoOp = (t.AlmacenOrigen?.Tipo == TipoAlmacen.Bodega && t.AlmacenDestino?.Tipo == TipoAlmacen.CustodiaPersonal)
+                    ? "Despacho"
+                    : (t.AlmacenOrigen?.Tipo == TipoAlmacen.CustodiaPersonal && t.AlmacenDestino?.Tipo == TipoAlmacen.Bodega)
+                        ? "Devolucion"
+                        : "Traslado";
+
                 resultado.Add(new TransferenciaInventarioDto(
                     t.Id,
                     t.Numero,
@@ -74,7 +80,11 @@ public class ObtenerTransferenciasInventarioHandler
                     t.Modalidad.ToString(),
                     t.Lineas.Sum(l => l.CantidadRecibida),
                     t.Lineas.Sum(l => l.CantidadPendiente),
-                    resumen
+                    resumen,
+                    tipoOp,
+                    (int?)t.AlmacenOrigen?.Tipo,
+                    (int?)t.AlmacenDestino?.Tipo,
+                    t.NumeroGuiaRemision
                 ));
             }
 
@@ -98,6 +108,17 @@ public class ObtenerTransferenciasInventarioHandler
             .Select(g =>
             {
                 var primero = g.First();
+                var tipoOp = primero.Tipo switch
+                {
+                    TipoMovimientoInventario.DespachoATecnico => "Despacho",
+                    TipoMovimientoInventario.DevolucionTecnico => "Devolucion",
+                    _ => (primero.AlmacenOrigen?.Tipo == TipoAlmacen.Bodega && primero.AlmacenDestino?.Tipo == TipoAlmacen.CustodiaPersonal)
+                        ? "Despacho"
+                        : (primero.AlmacenOrigen?.Tipo == TipoAlmacen.CustodiaPersonal && primero.AlmacenDestino?.Tipo == TipoAlmacen.Bodega)
+                            ? "Devolucion"
+                            : "Traslado"
+                };
+
                 return new TransferenciaInventarioDto(
                     primero.Id,
                     primero.NumeroDocumento ?? $"MOV-{primero.Id.ToString()[..6]}",
@@ -113,7 +134,11 @@ public class ObtenerTransferenciasInventarioHandler
                     "Inmediata",
                     g.Sum(x => x.Cantidad),
                     0,
-                    g.First().Producto?.Nombre ?? "Producto"
+                    g.First().Producto?.Nombre ?? "Producto",
+                    tipoOp,
+                    (int?)primero.AlmacenOrigen?.Tipo,
+                    (int?)primero.AlmacenDestino?.Tipo,
+                    null
                 );
             })
             .ToList();

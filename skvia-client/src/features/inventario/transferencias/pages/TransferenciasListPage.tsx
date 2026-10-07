@@ -34,7 +34,6 @@ import {
   TableEdit16Regular,
   ArrowDownload16Regular,
   Print16Regular,
-  VehicleTruckProfile16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365ListState } from '../../../../components/common/D365ListState';
@@ -46,7 +45,11 @@ import type { TransferenciaInventarioDto } from '../types/transferencia.types';
 
 type Vista = 'recientes' | 'todas' | 'en_transito';
 
-export function TransferenciasListPage() {
+interface TransferenciasListPageProps {
+  tipoFiltro?: 'Despacho' | 'Devolucion' | 'Traslado';
+}
+
+export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPageProps) {
   const styles = useD365ListStyles();
   const navigate = useNavigate();
   const location = useLocation();
@@ -87,6 +90,18 @@ export function TransferenciasListPage() {
     const q = buscar.trim().toLowerCase();
 
     return datos.filter((item) => {
+      // Si tipoFiltro está definido, filtrar por tipo de operación
+      if (tipoFiltro) {
+        const itemTipo = item.tipoOperacion || (
+          (item.tipoAlmacenOrigen === 1 && item.tipoAlmacenDestino === 2)
+            ? 'Despacho'
+            : (item.tipoAlmacenOrigen === 2 && item.tipoAlmacenDestino === 1)
+              ? 'Devolucion'
+              : 'Traslado'
+        );
+        if (itemTipo !== tipoFiltro) return false;
+      }
+
       if (vista === 'recientes' && new Date(item.fecha) < limite) return false;
       if (vista === 'en_transito' && item.estado !== 'EnTransito' && item.estado !== 'ParcialmenteRecibida') {
         return false;
@@ -96,6 +111,7 @@ export function TransferenciasListPage() {
         [
           item.numero,
           item.producto,
+          item.resumenProductos ?? '',
           item.almacenOrigen,
           item.almacenDestino,
           item.modalidad ?? '',
@@ -103,7 +119,30 @@ export function TransferenciasListPage() {
         ].some((valor) => valor.toLowerCase().includes(q))
       );
     });
-  }, [buscar, datos, vista]);
+  }, [buscar, datos, tipoFiltro, vista]);
+
+  const getRutaDetalle = useCallback(
+    (item: TransferenciaInventarioDto) => {
+      // 1. Si la lista actual tiene un contexto/filtro explícito, ese contexto manda
+      if (tipoFiltro === 'Despacho') return `/servicio-campo/despacho-tecnicos/${item.id}`;
+      if (tipoFiltro === 'Devolucion') return `/servicio-campo/devolucion-tecnicos/${item.id}`;
+      if (tipoFiltro === 'Traslado') return `/servicio-campo/transferencias/${item.id}`;
+
+      // 2. Si es una vista global sin filtro explícito, deducir por tipo de operación y almacenes
+      const esDespacho =
+        item.tipoOperacion === 'Despacho' ||
+        (item.tipoAlmacenOrigen === 1 && item.tipoAlmacenDestino === 2);
+      if (esDespacho) return `/servicio-campo/despacho-tecnicos/${item.id}`;
+
+      const esDevolucion =
+        item.tipoOperacion === 'Devolucion' ||
+        (item.tipoAlmacenOrigen === 2 && item.tipoAlmacenDestino === 1);
+      if (esDevolucion) return `/servicio-campo/devolucion-tecnicos/${item.id}`;
+
+      return `/servicio-campo/transferencias/${item.id}`;
+    },
+    [tipoFiltro]
+  );
 
   const columns: TableColumnDefinition<TransferenciaInventarioDto>[] = useMemo(
     () => [
@@ -113,16 +152,31 @@ export function TransferenciasListPage() {
           a.numero.localeCompare(b.numero),
         renderHeaderCell: () => 'Número',
         renderCell: (x: TransferenciaInventarioDto) => (
-          <TableCellLayout>
+          <TableCellLayout truncate>
             <Link
               as="button"
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/servicio-campo/transferencias/${x.id}`);
+                navigate(getRutaDetalle(x));
               }}
             >
               {x.numero}
             </Link>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn({
+        columnId: 'guiaRemision',
+        compare: (a: TransferenciaInventarioDto, b: TransferenciaInventarioDto) =>
+          (a.numeroGuiaRemision ?? '').localeCompare(b.numeroGuiaRemision ?? ''),
+        renderHeaderCell: () => 'Guía de Remisión',
+        renderCell: (x: TransferenciaInventarioDto) => (
+          <TableCellLayout truncate>
+            {x.numeroGuiaRemision ? (
+              <span>{x.numeroGuiaRemision}</span>
+            ) : (
+              <Text style={{ color: tokens.colorNeutralForeground4 }}>—</Text>
+            )}
           </TableCellLayout>
         ),
       }),
@@ -153,26 +207,7 @@ export function TransferenciasListPage() {
           <TableCellLayout>{x.almacenDestino}</TableCellLayout>
         ),
       }),
-      createTableColumn({
-        columnId: 'modalidad',
-        compare: (a: TransferenciaInventarioDto, b: TransferenciaInventarioDto) =>
-          (a.modalidad ?? '').localeCompare(b.modalidad ?? ''),
-        renderHeaderCell: () => 'Modalidad',
-        renderCell: (x: TransferenciaInventarioDto) => {
-          const mod = x.modalidad ?? 'Inmediata';
-          return (
-            <TableCellLayout>
-              <Badge
-                appearance="tint"
-                color={mod === 'ConTransito' ? 'important' : 'informative'}
-                size="small"
-              >
-                {mod === 'ConTransito' ? 'Con Tránsito' : 'Inmediata'}
-              </Badge>
-            </TableCellLayout>
-          );
-        },
-      }),
+
       createTableColumn({
         columnId: 'estado',
         compare: (a: TransferenciaInventarioDto, b: TransferenciaInventarioDto) =>
@@ -211,14 +246,7 @@ export function TransferenciasListPage() {
         renderHeaderCell: () => 'Materiales transferidos',
         renderCell: (x: TransferenciaInventarioDto) => (
           <TableCellLayout truncate>
-            <div>
-              <Text weight="semibold">{x.resumenProductos || x.producto || 'Materiales'}</Text>
-              {x.totalLineas !== undefined && (
-                <Text size={200} style={{ color: tokens.colorNeutralForeground3, display: 'block' }}>
-                  {x.totalLineas} {x.totalLineas === 1 ? 'producto distinto' : 'productos distintos'}
-                </Text>
-              )}
-            </div>
+            <span>{x.resumenProductos || x.producto || '—'}</span>
           </TableCellLayout>
         ),
       }),
@@ -266,19 +294,20 @@ export function TransferenciasListPage() {
         ),
       }),
     ],
-    [navigate]
+    [navigate, getRutaDetalle]
   );
 
   const tituloVista = useMemo(() => {
+    const prefijo = tipoFiltro === 'Despacho' ? 'Despachos' : tipoFiltro === 'Devolucion' ? 'Devoluciones' : 'Transferencias';
     switch (vista) {
       case 'recientes':
-        return 'Transferencias recientes';
+        return `${prefijo} recientes`;
       case 'en_transito':
         return 'Pendientes en tránsito';
       case 'todas':
-        return 'Todas las transferencias';
+        return `${prefijo} (Todas)`;
     }
-  }, [vista]);
+  }, [tipoFiltro, vista]);
 
   return (
     <div className={styles.root}>
@@ -291,23 +320,19 @@ export function TransferenciasListPage() {
       <D365CommandBar ariaLabel="Comandos de transferencias">
         <div className={styles.toolbarLeft}>
           <D365CommandButton
-            icon={<VehicleTruckProfile16Regular />}
-            tone="create"
-            onClick={() => navigate('/servicio-campo/despacho-tecnicos')}
-          >
-            Despacho a Técnico
-          </D365CommandButton>
-          <D365CommandButton
-            icon={<ArrowClockwise16Regular />}
-            onClick={() => navigate('/servicio-campo/devolucion-tecnicos')}
-          >
-            Devolución de Técnico
-          </D365CommandButton>
-          <D365CommandButton
             icon={<Add16Regular />}
-            onClick={() => navigate('/servicio-campo/transferencias/nuevo')}
+            tone="create"
+            onClick={() => {
+              if (tipoFiltro === 'Despacho') {
+                navigate('/servicio-campo/despacho-tecnicos/nuevo');
+              } else if (tipoFiltro === 'Devolucion') {
+                navigate('/servicio-campo/devolucion-tecnicos/nuevo');
+              } else {
+                navigate('/servicio-campo/transferencias/nuevo');
+              }
+            }}
           >
-            Traslado entre Bodegas
+            Nuevo
           </D365CommandButton>
           <D365CommandDivider />
           {seleccionados.size === 1 && (
@@ -316,7 +341,18 @@ export function TransferenciasListPage() {
                 icon={<Eye16Regular />}
                 onClick={() => {
                   const idSel = Array.from(seleccionados)[0] as string;
-                  navigate(`/servicio-campo/transferencias/${idSel}`);
+                  const itemSel = datos.find((d) => d.id === idSel);
+                  if (itemSel) {
+                    navigate(getRutaDetalle(itemSel));
+                  } else {
+                    const fallbackRuta =
+                      tipoFiltro === 'Despacho'
+                        ? `/servicio-campo/despacho-tecnicos/${idSel}`
+                        : tipoFiltro === 'Devolucion'
+                        ? `/servicio-campo/devolucion-tecnicos/${idSel}`
+                        : `/servicio-campo/transferencias/${idSel}`;
+                    navigate(fallbackRuta);
+                  }
                 }}
               >
                 Ver detalle

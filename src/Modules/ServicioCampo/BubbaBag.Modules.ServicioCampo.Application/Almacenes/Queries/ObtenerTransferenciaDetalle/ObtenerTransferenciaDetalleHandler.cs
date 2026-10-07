@@ -53,7 +53,8 @@ public record TransferenciaDetalladaDto(
     string? NumeroGuiaRemision,
     string? Observaciones,
     IReadOnlyCollection<TransferenciaDetalleLineaDto> Lineas,
-    IReadOnlyCollection<RecepcionTransferenciaDto> Recepciones, Guid? UbicacionOrigenId, Guid? UbicacionDestinoId, bool PuedeRecepcionar, bool PuedeResolver, string? UbicacionOrigenNombre, string? UbicacionDestinoNombre, DateTime FechaReal, IReadOnlyCollection<ResolucionTransferenciaDto> Resoluciones
+    IReadOnlyCollection<RecepcionTransferenciaDto> Recepciones, Guid? UbicacionOrigenId, Guid? UbicacionDestinoId, bool PuedeRecepcionar, bool PuedeResolver, string? UbicacionOrigenNombre, string? UbicacionDestinoNombre, DateTime FechaReal, IReadOnlyCollection<ResolucionTransferenciaDto> Resoluciones,
+    Guid OperacionId = default
 );
 
 public record ObtenerTransferenciaDetalleQuery(Guid Id) : IQuery<Result<TransferenciaDetalladaDto>>;
@@ -131,7 +132,8 @@ public class ObtenerTransferenciaDetalleHandler
             await InventarioAcceso.PuedeAsync(_context,_user,t.AlmacenDestinoId,"recibir",cancellationToken),
             await InventarioAcceso.PuedeAsync(_context,_user,t.AlmacenDestinoId,"supervisar",cancellationToken),
             await _context.UbicacionesInventario.Where(x=>x.Id==t.UbicacionOrigenId).Select(x=>x.Nombre).FirstOrDefaultAsync(cancellationToken),
-            await _context.UbicacionesInventario.Where(x=>x.Id==t.UbicacionDestinoId).Select(x=>x.Nombre).FirstOrDefaultAsync(cancellationToken), t.FechaReal, resolucionesDto
+            await _context.UbicacionesInventario.Where(x=>x.Id==t.UbicacionDestinoId).Select(x=>x.Nombre).FirstOrDefaultAsync(cancellationToken), t.FechaReal, resolucionesDto,
+            t.OperacionId
         );
 
         return Result<TransferenciaDetalladaDto>.Success(dto);

@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Input,
-  Select,
   Tab,
   TabList,
   Spinner,
@@ -20,6 +19,8 @@ import {
   People16Regular,
   History16Regular,
   LockClosed16Regular,
+  Box16Regular,
+  Building16Regular,
 } from '@fluentui/react-icons';
 import { OrganizacionService } from '../services/organizacion.service';
 import type {
@@ -31,6 +32,7 @@ import { AlmacenService } from '../../inventario/almacenes/services/almacen.serv
 import type { AlmacenDto } from '../../inventario/almacenes/types/almacen.types';
 import { useD365FormStyles } from '../../../styles/d365FormStyles';
 import { D365FormField } from '../../../components/common/D365FormField';
+import { SelectorEntidadRelacionada } from '../../../components/common/SelectorEntidadRelacionada';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../components/common/D365CommandBar';
 import { D365MessageBar } from '../../../components/common/D365MessageBar';
 import { D365EntityHeader } from '../../../components/common/D365EntityHeader';
@@ -65,6 +67,8 @@ export function TerritorioFormPage() {
   const [sedes, setSedes] = useState<UnidadOrganizativaDto[]>([]);
   const [almacenes, setAlmacenes] = useState<AlmacenDto[]>([]);
   const [recursosAsignados, setRecursosAsignados] = useState<RecursoDto[]>([]);
+  const [busquedaSede, setBusquedaSede] = useState('');
+  const [busquedaAlmacen, setBusquedaAlmacen] = useState('');
 
   // UI state
   const [selectedTab, setSelectedTab] = useState<'general' | 'recursos' | 'detalle'>('general');
@@ -290,76 +294,106 @@ export function TerritorioFormPage() {
 
           <div className={styles.contentBody}>
             {selectedTab === 'general' ? (
-              <div className={styles.card}>
-                <div className={styles.grid2Cols}>
-                  <D365FormField label="Código de Territorio" required error={errors.codigo}>
-                    <Input
-                      className={styles.d365ControlFull}
-                      value={formData.codigo}
-                      maxLength={20}
-                      disabled={isEditMode}
-                      onChange={(_, d) => setFormData((p) => ({ ...p, codigo: d.value.toUpperCase() }))}
-                    />
-                  </D365FormField>
+              <div style={{ maxWidth: '680px', width: '100%' }}>
+                <div className={styles.card}>
+                  <div className={styles.cardSectionTitle}>Información del Territorio y Zona</div>
 
-                  <D365FormField label="Nombre del Territorio / Zona" required error={errors.nombre}>
-                    <Input
-                      className={styles.d365ControlFull}
-                      value={formData.nombre}
-                      maxLength={150}
-                      onChange={(_, d) => setFormData((p) => ({ ...p, nombre: d.value }))}
-                    />
-                  </D365FormField>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <D365FormField label="Código de Territorio" required error={errors.codigo}>
+                      <Input
+                        className={styles.d365ControlFull}
+                        value={formData.codigo}
+                        maxLength={20}
+                        disabled={isEditMode}
+                        onChange={(_, d) => setFormData((p) => ({ ...p, codigo: d.value.toUpperCase() }))}
+                      />
+                    </D365FormField>
 
-                  <D365FormField label="Unidad Organizativa (Sede a la que pertenece)" required error={errors.unidadOrganizativaId}>
-                    <Select
-                      className={styles.d365ControlFull}
-                      value={formData.unidadOrganizativaId}
-                      onChange={(_, d) => {
-                        setFormData((p) => ({ ...p, unidadOrganizativaId: d.value, almacenPredeterminadoId: '' }));
-                        if (errors.unidadOrganizativaId) setErrors((e) => ({ ...e, unidadOrganizativaId: '' }));
-                      }}
-                    >
-                      <option value="">Seleccione sede...</option>
-                      {sedes.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.nombre} ({s.codigo})
-                        </option>
-                      ))}
-                    </Select>
-                  </D365FormField>
+                    <D365FormField label="Nombre del Territorio / Zona" required error={errors.nombre}>
+                      <Input
+                        className={styles.d365ControlFull}
+                        value={formData.nombre}
+                        maxLength={150}
+                        onChange={(_, d) => setFormData((p) => ({ ...p, nombre: d.value }))}
+                      />
+                    </D365FormField>
 
-                  <D365FormField label="Almacén Base de Abastecimiento">
-                    <Select
-                      className={styles.d365ControlFull}
-                      value={formData.almacenPredeterminadoId || ''}
-                      onChange={(_, d) => setFormData((p) => ({ ...p, almacenPredeterminadoId: d.value }))}
-                    >
-                      <option value="">Seleccione almacén predeterminado...</option>
-                      {almacenes
-                        .filter(
-                          (a) =>
-                            !formData.unidadOrganizativaId ||
-                            !a.unidadOrganizativaId ||
-                            a.unidadOrganizativaId === formData.unidadOrganizativaId ||
-                            a.id === formData.almacenPredeterminadoId
-                        )
-                        .map((a) => (
-                          <option key={a.id} value={a.id}>
-                            {a.nombre}
-                          </option>
-                        ))}
-                    </Select>
-                  </D365FormField>
+                    <D365FormField label="Unidad Organizativa (Sede)" required error={errors.unidadOrganizativaId}>
+                      <SelectorEntidadRelacionada
+                        etiquetaGrupo="Sedes"
+                        icono={<Building16Regular />}
+                        opciones={sedes.map((s) => ({
+                          id: s.id,
+                          nombre: `${s.nombre} (${s.codigo})`,
+                        }))}
+                        seleccionada={
+                          formData.unidadOrganizativaId
+                            ? (() => {
+                                const s = sedes.find((item) => item.id === formData.unidadOrganizativaId);
+                                return s ? { id: s.id, nombre: `${s.nombre} (${s.codigo})` } : null;
+                              })()
+                            : null
+                        }
+                        textoBusqueda={busquedaSede}
+                        alCambiarBusqueda={setBusquedaSede}
+                        alSeleccionar={(sedeId) => {
+                          setFormData((p) => ({
+                            ...p,
+                            unidadOrganizativaId: sedeId || '',
+                            almacenPredeterminadoId: '',
+                          }));
+                          if (errors.unidadOrganizativaId && sedeId) {
+                            setErrors((e) => ({ ...e, unidadOrganizativaId: '' }));
+                          }
+                        }}
+                        alNavegar={(sedeId) => navigate(`/administracion/unidades-organizativas/${sedeId}`)}
+                        deshabilitado={saving}
+                      />
+                    </D365FormField>
 
-                  <D365FormField label="Código de Operación Proveedor (DIRECTV)" align="top">
-                    <Input
-                      className={styles.d365ControlFull}
-                      value={formData.descripcionProveedor || ''}
-                      maxLength={150}
-                      onChange={(_, d) => setFormData((p) => ({ ...p, descripcionProveedor: d.value }))}
-                    />
-                  </D365FormField>
+                    <D365FormField label="Almacén Base de Abastecimiento">
+                      <SelectorEntidadRelacionada
+                        etiquetaGrupo="Almacenes"
+                        icono={<Box16Regular />}
+                        opciones={almacenes
+                          .filter(
+                            (a) =>
+                              !formData.unidadOrganizativaId ||
+                              !a.unidadOrganizativaId ||
+                              a.unidadOrganizativaId === formData.unidadOrganizativaId ||
+                              a.id === formData.almacenPredeterminadoId
+                          )
+                          .map((a) => ({
+                            id: a.id,
+                            nombre: a.nombre,
+                          }))}
+                        seleccionada={
+                          formData.almacenPredeterminadoId
+                            ? (() => {
+                                const a = almacenes.find((item) => item.id === formData.almacenPredeterminadoId);
+                                return a ? { id: a.id, nombre: a.nombre } : null;
+                              })()
+                            : null
+                        }
+                        textoBusqueda={busquedaAlmacen}
+                        alCambiarBusqueda={setBusquedaAlmacen}
+                        alSeleccionar={(almId) =>
+                          setFormData((p) => ({ ...p, almacenPredeterminadoId: almId || '' }))
+                        }
+                        alNavegar={(almId) => navigate(`/almacenes/${almId}`)}
+                        deshabilitado={saving}
+                      />
+                    </D365FormField>
+
+                    <D365FormField label="Código de Operación Proveedor">
+                      <Input
+                        className={styles.d365ControlFull}
+                        value={formData.descripcionProveedor || ''}
+                        maxLength={150}
+                        onChange={(_, d) => setFormData((p) => ({ ...p, descripcionProveedor: d.value }))}
+                      />
+                    </D365FormField>
+                  </div>
                 </div>
               </div>
             ) : selectedTab === 'recursos' ? (

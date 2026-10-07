@@ -2,6 +2,7 @@ import { apiClient } from '../../../../services/apiClient';
 import type {
   CrearTransferenciaDto,
   RecepcionarTransferenciaDto,
+  TransferenciaCreadaRespuestaDto,
   TransferenciaDetalladaDto,
   TransferenciaInventarioDto,
 } from '../types/transferencia.types';
@@ -13,7 +14,7 @@ export const TransferenciaService = {
   obtenerDetalle: (id: string) => apiClient<TransferenciaDetalladaDto>(`/api/inventario/transferencias/${id}`),
 
   crear: (datos: CrearTransferenciaDto) =>
-    apiClient<{ numero: string }>('/api/inventario/transferencias', {
+    apiClient<TransferenciaCreadaRespuestaDto>('/api/inventario/transferencias', {
       method: 'POST',
       body: JSON.stringify(datos),
     }),

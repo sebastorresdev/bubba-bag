@@ -31,11 +31,13 @@ export const D365FormField: React.FC<D365FormFieldProps> = ({
     <div className={isTopAligned ? styles.d365FieldRowTop : styles.d365FieldRow}>
       <div className={isTopAligned ? styles.d365LabelColTop : styles.d365LabelCol}>
         {info ? (
-          <InfoLabel required={required} htmlFor={htmlFor} size={size} info={info}>
-            {label}
-          </InfoLabel>
+          <div style={{ display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+            <InfoLabel required={required} htmlFor={htmlFor} size={size} info={info}>
+              {label}
+            </InfoLabel>
+          </div>
         ) : (
-          <Label required={required} htmlFor={htmlFor} size={size}>
+          <Label required={required} htmlFor={htmlFor} size={size} style={{ whiteSpace: 'nowrap' }}>
             {label}
           </Label>
         )}

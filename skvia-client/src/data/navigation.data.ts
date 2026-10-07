@@ -55,7 +55,7 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
             items: [
               {
                 id: 'clientes',
-                title: 'Cuentas (Clientes)',
+                title: 'Cuentas',
                 path: '/servicio-campo/clientes',
                 iconName: 'PersonAccounts',
                 description: 'Directorio de empresas, contactos y cuentas comerciales.',
@@ -191,14 +191,14 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
             items: [
               {
                 id: 'unidades-organizativas',
-                title: 'Unidades Organizativas (Sedes)',
+                title: 'Unidades Organizativas',
                 path: '/servicio-campo/unidades-organizativas',
                 iconName: 'BuildingBank',
                 description: 'Sedes territoriales y bases operativas de la organización.',
               },
               {
                 id: 'territorios',
-                title: 'Territorios (Zonas)',
+                title: 'Territorios',
                 path: '/servicio-campo/territorios',
                 iconName: 'Globe',
                 description: 'Zonas y áreas de cobertura geográfica para asignación.',
@@ -218,7 +218,7 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
             items: [
               {
                 id: 'tipos-orden',
-                title: 'Tipos de Orden (Modalidad)',
+                title: 'Tipos de Orden',
                 path: '/servicio-campo/tipos-orden',
                 iconName: 'TaskList',
                 description: 'Modalidades de atención: preventiva, correctiva, instalación, etc.',

@@ -114,17 +114,21 @@ export const useD365FormStyles = makeStyles({
     gap: '16px',
   },
   d365LabelCol: {
-    width: '170px',
+    width: '220px',
+    minWidth: '220px',
     flexShrink: 0,
     display: 'flex',
     alignItems: 'center',
+    whiteSpace: 'nowrap',
   },
   d365LabelColTop: {
-    width: '170px',
+    width: '220px',
+    minWidth: '220px',
     flexShrink: 0,
     paddingTop: '6px',
     display: 'flex',
     alignItems: 'flex-start',
+    whiteSpace: 'nowrap',
   },
   d365ControlCol: {
     flex: 1,

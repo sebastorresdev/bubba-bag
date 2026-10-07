@@ -15,6 +15,7 @@ export interface EnlaceEntidadProps {
   nombre: string;
   icono?: React.ReactElement;
   alNavegar?: (id: string) => void;
+  alEliminar?: (id: string) => void;
   titulo?: string;
 }
 
@@ -24,12 +25,30 @@ export const EnlaceEntidad: React.FC<EnlaceEntidadProps> = ({
   nombre,
   icono,
   alNavegar,
+  alEliminar,
   titulo,
 }) => {
   const estilos = usarEstilos();
 
   return (
-    <Tag key={id} shape="rounded" size="small" media={icono} value={id}>
+    <Tag
+      key={id}
+      shape="rounded"
+      size="small"
+      media={icono}
+      value={id}
+      dismissible={Boolean(alEliminar)}
+      dismissIcon={
+        alEliminar
+          ? {
+              onClick: (evento: React.MouseEvent) => {
+                evento.stopPropagation();
+                alEliminar(id);
+              },
+            }
+          : undefined
+      }
+    >
       {alNavegar ? (
         <Link
           as="span"
@@ -42,7 +61,9 @@ export const EnlaceEntidad: React.FC<EnlaceEntidadProps> = ({
         >
           {nombre}
         </Link>
-      ) : nombre}
+      ) : (
+        nombre
+      )}
     </Tag>
   );
 };

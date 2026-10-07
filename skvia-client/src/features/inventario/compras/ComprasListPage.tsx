@@ -81,27 +81,27 @@ export function ComprasListPage() {
       compare: (a: CompraDto, b: CompraDto) => (a.recibidoPor || '').localeCompare(b.recibidoPor || ''),
       renderHeaderCell: () => 'Recibido por',
       renderCell: (x: CompraDto) => {
-        if (!x.estado.startsWith('Recibida')) {
+        if (!x.estado.startsWith('Recibida') || !x.recibidoPor) {
           return <TableCellLayout><Text style={{ color: tokens.colorNeutralForeground4 }}>—</Text></TableCellLayout>;
         }
         return (
           <TableCellLayout truncate>
-            {x.recibidoPor ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <Text weight="semibold">{x.recibidoPor}</Text>
-                {x.fechaRecepcion && (
-                  <span style={{ fontSize: '11px', color: tokens.colorNeutralForeground3 }}>
-                    {new Date(x.fechaRecepcion).toLocaleString('es-PE')}
-                  </span>
-                )}
-              </div>
-            ) : x.fechaRecepcion ? (
-              <span style={{ fontSize: '11px', color: tokens.colorNeutralForeground3 }}>
-                {new Date(x.fechaRecepcion).toLocaleString('es-PE')}
-              </span>
-            ) : (
-              <Text style={{ color: tokens.colorNeutralForeground4 }}>—</Text>
-            )}
+            <Text weight="semibold">{x.recibidoPor}</Text>
+          </TableCellLayout>
+        );
+      },
+    }),
+    createTableColumn({
+      columnId: 'fechaRecepcion',
+      compare: (a: CompraDto, b: CompraDto) => (a.fechaRecepcion || '').localeCompare(b.fechaRecepcion || ''),
+      renderHeaderCell: () => 'Fecha de recepción',
+      renderCell: (x: CompraDto) => {
+        if (!x.fechaRecepcion) {
+          return <TableCellLayout><Text style={{ color: tokens.colorNeutralForeground4 }}>—</Text></TableCellLayout>;
+        }
+        return (
+          <TableCellLayout>
+            <Text>{new Date(x.fechaRecepcion).toLocaleString('es-PE')}</Text>
           </TableCellLayout>
         );
       },

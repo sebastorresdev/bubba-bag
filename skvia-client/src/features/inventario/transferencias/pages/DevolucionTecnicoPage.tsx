@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Button,
   Input,
   Select,
-  Textarea,
   Text,
   Badge,
   Spinner,
@@ -18,10 +17,13 @@ import {
   DialogBody,
   DialogContent,
   DialogActions,
+  TabList,
+  Tab,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
   Save16Regular,
+  SaveMultiple16Regular,
   Add16Regular,
   Delete16Regular,
   ArrowDownload16Regular,
@@ -30,11 +32,15 @@ import {
   CheckmarkCircle16Regular,
   Box16Regular,
   Tag16Regular,
+  DocumentText16Regular,
+  DocumentBulletList16Regular,
+  Person16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
 import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
+import { SelectorEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { AlmacenService } from '../../almacenes/services/almacen.service';
 import type { AlmacenDto, UbicacionInventarioDto } from '../../almacenes/types/almacen.types';
@@ -43,13 +49,14 @@ import type { RecursoDto } from '../../../organizacion/types/organizacion.types'
 import { InventarioProductoService } from '../../inventario-productos/services/inventario-producto.service';
 import type { InventarioProductoDto, ItemSeriadoStockDto } from '../../inventario-productos/types/inventario-producto.types';
 import { TransferenciaService } from '../services/transferencia.service';
+import { TransferenciaEtapas } from '../components/TransferenciaEtapas';
 
 const useStyles = makeStyles({
   gridRow: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
     gap: '16px',
-    '@media (max-width: 800px)': {
+    '@media (max-width: 1100px)': {
       gridTemplateColumns: '1fr',
     },
   },
@@ -57,43 +64,81 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground2,
     border: `1px solid ${tokens.colorNeutralStroke2}`,
     borderRadius: tokens.borderRadiusMedium,
-    padding: '16px',
+    padding: '20px',
     marginBottom: '16px',
   },
-  scannerRow: {
+  scannerBar: {
     display: 'flex',
-    flexDirection: 'row',
-    gap: '12px',
+    gap: '16px',
     alignItems: 'flex-end',
     flexWrap: 'wrap',
   },
+  fieldGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  },
+  fieldLabel: {
+    fontSize: '12px',
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground2,
+  },
   productoField: {
-    flex: '1 1 300px',
-    minWidth: '250px',
+    flex: '1 1 320px',
+    minWidth: '260px',
   },
   cantidadField: {
-    width: '100px',
+    width: '120px',
     flexShrink: 0,
   },
   condicionField: {
-    width: '150px',
+    width: '160px',
     flexShrink: 0,
   },
   comboboxOption: {
     display: 'flex',
     flexDirection: 'column',
     gap: '2px',
+    padding: '4px 0',
   },
   comboboxOptionHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: '8px',
+    gap: '12px',
   },
   comboboxOptionCode: {
     fontFamily: tokens.fontFamilyMonospace,
     fontSize: '11px',
     color: tokens.colorNeutralForeground3,
+  },
+  stockInfoBanner: {
+    marginTop: '12px',
+    padding: '10px 14px',
+    backgroundColor: tokens.colorNeutralBackground3,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    borderRadius: tokens.borderRadiusMedium,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '12px',
+  },
+  seriesSelectorBox: {
+    marginTop: '16px',
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+    paddingTop: '16px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+  },
+  seriesBadgeList: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '8px',
+    marginTop: '4px',
+    maxHeight: '160px',
+    overflowY: 'auto',
+    padding: '4px',
   },
   table: {
     width: '100%',
@@ -106,15 +151,15 @@ const useStyles = makeStyles({
   },
   th: {
     backgroundColor: tokens.colorNeutralBackground3,
-    padding: '10px 12px',
+    padding: '10px 14px',
     textAlign: 'left',
-    fontWeight: 600,
+    fontWeight: tokens.fontWeightSemibold,
     fontSize: '12px',
     color: tokens.colorNeutralForeground2,
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   td: {
-    padding: '10px 12px',
+    padding: '12px 14px',
     fontSize: '13px',
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
     verticalAlign: 'middle',
@@ -123,17 +168,18 @@ const useStyles = makeStyles({
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '12px 16px',
+    padding: '12px 18px',
     backgroundColor: tokens.colorNeutralBackground2,
     border: `1px solid ${tokens.colorNeutralStroke2}`,
     borderRadius: tokens.borderRadiusMedium,
     marginTop: '12px',
   },
-  seriesBadgeList: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '4px',
-    marginTop: '4px',
+  emptyState: {
+    textAlign: 'center',
+    padding: '40px 20px',
+    backgroundColor: tokens.colorNeutralBackground2,
+    borderRadius: tokens.borderRadiusMedium,
+    border: `1px dashed ${tokens.colorNeutralStroke2}`,
   },
 });
 
@@ -152,16 +198,26 @@ export const DevolucionTecnicoPage: React.FC = () => {
   const formStyles = useD365FormStyles();
   const classes = useStyles();
   const navigate = useNavigate();
+  const { id } = useParams<{ id?: string }>();
 
   const [almacenes, setAlmacenes] = useState<AlmacenDto[]>([]);
   const [tecnicos, setTecnicos] = useState<RecursoDto[]>([]);
-  const [ubicacionesDestino, setUbicacionesDestino] = useState<UbicacionInventarioDto[]>([]);
+  const [, setUbicacionesDestino] = useState<UbicacionInventarioDto[]>([]);
   const [productosCustodia, setProductosCustodia] = useState<InventarioProductoDto[]>([]);
 
   // Form states
+  const [transferenciaId, setTransferenciaId] = useState<string | null>(null);
+  const [numeroTransferencia, setNumeroTransferencia] = useState('');
+  const [estado, setEstado] = useState<string>('Borrador');
+  const operacionIdRef = React.useRef(crypto.randomUUID());
+
+  const [selectedTab, setSelectedTab] = useState<'general' | 'productos'>('general');
   const [tecnicoId, setTecnicoId] = useState('');
+  const [busquedaTecnico, setBusquedaTecnico] = useState('');
   const [almacenDestinoId, setAlmacenDestinoId] = useState('');
+  const [busquedaDestino, setBusquedaDestino] = useState('');
   const [ubicacionDestinoId, setUbicacionDestinoId] = useState('');
+  const [numeroGuiaRemision, setNumeroGuiaRemision] = useState('');
   const [observaciones, setObservaciones] = useState('');
 
   // Selector de material
@@ -192,23 +248,84 @@ export const DevolucionTecnicoPage: React.FC = () => {
         setAlmacenes(alms);
         setTecnicos(tecs);
 
-        const bodegas = alms.filter(a => a.tipo === 1);
-        if (bodegas.length > 0) {
-          setAlmacenDestinoId(bodegas[0].id);
+        if (id && id !== 'nuevo') {
+          const det = await TransferenciaService.obtenerDetalle(id);
+          setTransferenciaId(det.id);
+          setNumeroTransferencia(det.numero);
+          if (det.numeroGuiaRemision) setNumeroGuiaRemision(det.numeroGuiaRemision);
+          setEstado(det.estado || 'Borrador');
+          setAlmacenDestinoId(det.almacenDestinoId);
+          setUbicacionDestinoId(det.ubicacionDestinoId || '');
+          setObservaciones(det.observaciones || '');
+
+          // Encontrar almacén de origen (custodia) y técnico asociado
+          const almOrigen = alms.find(a => a.id === det.almacenOrigenId);
+          if (almOrigen?.recursoId) {
+            setTecnicoId(almOrigen.recursoId);
+          } else {
+            const tec = tecs.find(t => t.id === det.almacenOrigenId || t.nombreCompleto === det.almacenOrigenNombre);
+            if (tec) setTecnicoId(tec.id);
+          }
+
+          if (det.lineas && det.lineas.length > 0) {
+            setLineas(
+              det.lineas.map(l => ({
+                idTemp: l.id,
+                productoId: l.productoId,
+                codigo: l.codigoProducto,
+                nombre: l.productoNombre,
+                unidad: l.unidadMedidaNombre || 'UND',
+                cantidad: l.cantidadEnviada,
+                condicion: l.condicion === 'Defectuoso' ? (2 as const) : (1 as const),
+                series: l.series ? l.series.map(s => s.numeroSerie) : [],
+              }))
+            );
+            setSelectedTab('productos');
+          }
+        } else {
+          const bodegas = alms.filter(a => a.tipo === 1);
+          if (bodegas.length > 0) {
+            setAlmacenDestinoId(bodegas[0].id);
+          }
         }
       } catch (err: any) {
-        setMensaje({ tipo: 'error', texto: err.message || 'Error al cargar catálogos.' });
+        setMensaje({ tipo: 'error', texto: err.message || 'Error al cargar los datos de la devolución.' });
       } finally {
         setLoading(false);
       }
     };
     void init();
-  }, []);
+  }, [id]);
 
   const custodiaTecnico = useMemo(() => {
     if (!tecnicoId) return null;
     return almacenes.find(a => a.recursoId === tecnicoId && a.tipo === 2);
   }, [tecnicoId, almacenes]);
+
+  const opcionesTecnicos = useMemo(() => {
+    return tecnicos.map(t => ({
+      id: t.id,
+      nombre: t.nombreCompleto,
+      detalle: `${t.documentoIdentidad ? `DNI: ${t.documentoIdentidad} · ` : ''}${t.unidadOrganizativaNombre || 'Cuadrilla de Campo'}`,
+    }));
+  }, [tecnicos]);
+
+  const tecnicoSeleccionado = useMemo(() => {
+    return opcionesTecnicos.find(o => o.id === tecnicoId) || null;
+  }, [opcionesTecnicos, tecnicoId]);
+
+  const opcionesBodegasDestino = useMemo(() => {
+    const bodegas = almacenes.filter(a => a.tipo === 1);
+    return bodegas.map(b => ({
+      id: b.id,
+      nombre: b.nombre,
+      detalle: `${b.codigo || 'BOD'} · ${b.unidadOrganizativaNombre || 'Central'}`,
+    }));
+  }, [almacenes]);
+
+  const bodegaDestinoSeleccionada = useMemo(() => {
+    return opcionesBodegasDestino.find(o => o.id === almacenDestinoId) || null;
+  }, [opcionesBodegasDestino, almacenDestinoId]);
 
   useEffect(() => {
     if (!custodiaTecnico) {
@@ -237,7 +354,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
         setUbicacionesDestino(ubics);
         if (ubics.length > 0) {
           const principal = ubics.find(u => u.codigo === 'PRINCIPAL') || ubics[0];
-          setUbicacionDestinoId(principal.id);
+          setUbicacionDestinoId(prev => prev || principal.id);
         }
       } catch (err: any) {
         console.error(err);
@@ -284,6 +401,19 @@ export const DevolucionTecnicoPage: React.FC = () => {
       return;
     }
 
+    const cantidadExistente = lineas
+      .filter(l => l.productoId === productoSeleccionado.productoId)
+      .reduce((acc, l) => acc + l.cantidad, 0);
+    const saldoDisponible = productoSeleccionado.cantidadDisponible - cantidadExistente;
+
+    if (cantidadInput > saldoDisponible) {
+      setMensaje({
+        tipo: 'error',
+        texto: `No puede devolver ${cantidadInput} unidades. Saldo restante en custodia: ${saldoDisponible} ${productoSeleccionado.nombreUnidadMedida || 'UND'}.`,
+      });
+      return;
+    }
+
     if (productoSeleccionado.esSerializado) {
       if (seriesSeleccionadas.length !== cantidadInput) {
         setMensaje({
@@ -294,18 +424,35 @@ export const DevolucionTecnicoPage: React.FC = () => {
       }
     }
 
-    const nuevaLinea: LineaDevolucion = {
-      idTemp: crypto.randomUUID(),
-      productoId: productoSeleccionado.productoId,
-      codigo: productoSeleccionado.codigoProducto,
-      nombre: productoSeleccionado.nombreProducto,
-      unidad: productoSeleccionado.nombreUnidadMedida || 'UND',
-      cantidad: cantidadInput,
-      condicion: condicionInput,
-      series: [...seriesSeleccionadas],
-    };
+    const indexExistente = lineas.findIndex(
+      l => l.productoId === productoSeleccionado.productoId && l.condicion === condicionInput
+    );
 
-    setLineas(prev => [...prev, nuevaLinea]);
+    if (indexExistente !== -1) {
+      setLineas(prev => {
+        const copia = [...prev];
+        const actual = copia[indexExistente];
+        copia[indexExistente] = {
+          ...actual,
+          cantidad: actual.cantidad + cantidadInput,
+          series: [...actual.series, ...seriesSeleccionadas],
+        };
+        return copia;
+      });
+    } else {
+      const nuevaLinea: LineaDevolucion = {
+        idTemp: crypto.randomUUID(),
+        productoId: productoSeleccionado.productoId,
+        codigo: productoSeleccionado.codigoProducto,
+        nombre: productoSeleccionado.nombreProducto,
+        unidad: productoSeleccionado.nombreUnidadMedida || 'UND',
+        cantidad: cantidadInput,
+        condicion: condicionInput,
+        series: [...seriesSeleccionadas],
+      };
+      setLineas(prev => [...prev, nuevaLinea]);
+    }
+
     setProductoSeleccionadoId('');
     setBusquedaProducto('');
     setCantidadInput(1);
@@ -315,6 +462,65 @@ export const DevolucionTecnicoPage: React.FC = () => {
 
   const handleEliminarLinea = (idTemp: string) => {
     setLineas(prev => prev.filter(l => l.idTemp !== idTemp));
+  };
+
+  const handleGuardar = async (cerrar: boolean) => {
+    if (!tecnicoId || !custodiaTecnico) {
+      setMensaje({ tipo: 'error', texto: 'Seleccione un técnico con almacén de custodia válido.' });
+      return;
+    }
+    if (!almacenDestinoId) {
+      setMensaje({ tipo: 'error', texto: 'Seleccione la bodega de destino.' });
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setMensaje(null);
+
+      const ubicsOrigen = await AlmacenService.getUbicaciones(custodiaTecnico.id);
+      const ubicacionOrigenId = ubicsOrigen[0]?.id;
+      if (!ubicacionOrigenId) {
+        throw new Error('El almacén de custodia del técnico no tiene ubicación principal.');
+      }
+
+      const res = await TransferenciaService.crear({
+        almacenOrigenId: custodiaTecnico.id,
+        almacenDestinoId,
+        ubicacionOrigenId,
+        ubicacionDestinoId,
+        modalidad: 1, // Inmediata
+        operacionId: operacionIdRef.current,
+        guiaRemision: numeroGuiaRemision.trim() || undefined,
+        observacion: observaciones.trim() || undefined,
+        esBorrador: true,
+        lineas: lineas.map(l => ({
+          productoId: l.productoId,
+          cantidad: l.cantidad,
+          series: l.series.length > 0 ? l.series : undefined,
+          condicion: l.condicion,
+        })),
+      });
+
+      setTransferenciaId(res.id || null);
+      setNumeroTransferencia(res.numero);
+      if (res.numeroGuiaRemision) setNumeroGuiaRemision(res.numeroGuiaRemision);
+      if (res.estado) setEstado(res.estado);
+
+      if (cerrar) {
+        navigate('/servicio-campo/devolucion-tecnicos');
+      } else {
+        setSelectedTab('productos');
+        setMensaje({
+          tipo: 'success',
+          texto: `Borrador guardado exitosamente (N° ${res.numero}${res.numeroGuiaRemision ? ` · Guía ${res.numeroGuiaRemision}` : ''}). Ya puede agregar los productos a devolver.`,
+        });
+      }
+    } catch (err: any) {
+      setMensaje({ tipo: 'error', texto: err.message || 'Error al guardar el borrador.' });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleConfirmarDevolucion = async () => {
@@ -347,8 +553,10 @@ export const DevolucionTecnicoPage: React.FC = () => {
         ubicacionOrigenId,
         ubicacionDestinoId,
         modalidad: 1, // Inmediata
-        operacionId: crypto.randomUUID(),
+        operacionId: operacionIdRef.current,
+        guiaRemision: numeroGuiaRemision.trim() || undefined,
         observacion: observaciones.trim() || undefined,
+        esBorrador: false,
         lineas: lineas.map(l => ({
           productoId: l.productoId,
           cantidad: l.cantidad,
@@ -357,11 +565,13 @@ export const DevolucionTecnicoPage: React.FC = () => {
         })),
       });
 
-      const ultimas = await TransferenciaService.obtener();
-      const creada = ultimas.find(t => t.numero === res.numero);
+      setTransferenciaId(res.id || null);
+      setNumeroTransferencia(res.numero);
+      if (res.numeroGuiaRemision) setNumeroGuiaRemision(res.numeroGuiaRemision);
+      setEstado(res.estado || 'Cerrada');
 
       setDevolucionExitosa({
-        id: creada?.id,
+        id: res.id,
         numero: res.numero,
       });
     } catch (err: any) {
@@ -390,15 +600,20 @@ export const DevolucionTecnicoPage: React.FC = () => {
   };
 
   const resetFormulario = () => {
+    setTransferenciaId(null);
+    setNumeroTransferencia('');
+    setNumeroGuiaRemision('');
+    setEstado('Borrador');
+    operacionIdRef.current = crypto.randomUUID();
     setLineas([]);
     setObservaciones('');
     setProductoSeleccionadoId('');
     setBusquedaProducto('');
     setSeriesSeleccionadas([]);
     setDevolucionExitosa(null);
+    setSelectedTab('general');
   };
 
-  const bodegasDestino = almacenes.filter(a => a.tipo === 1);
   const totalCantidad = lineas.reduce((acc, l) => acc + l.cantidad, 0);
 
   if (loading) {
@@ -411,132 +626,172 @@ export const DevolucionTecnicoPage: React.FC = () => {
 
   return (
     <div className={formStyles.root}>
+      {mensaje && (
+        <D365MessageBar intent={mensaje.tipo} onDismiss={() => setMensaje(null)}>
+          {mensaje.texto}
+        </D365MessageBar>
+      )}
+
       <D365CommandBar ariaLabel="Comandos de devolución de técnicos">
         <div className={formStyles.toolbarLeft}>
           <D365CommandButton
             icon={<ArrowLeft16Regular />}
             tone="brand"
             aria-label="Volver"
-            title="Volver a Transferencias"
-            onClick={() => navigate('/servicio-campo/transferencias')}
+            title="Volver a Devoluciones"
+            onClick={() => navigate('/servicio-campo/devolucion-tecnicos')}
           />
-          <D365CommandDivider />
-          <D365CommandButton
-            icon={<Save16Regular />}
-            tone="save"
-            onClick={() => void handleConfirmarDevolucion()}
-            disabled={submitting || lineas.length === 0}
-          >
-            {submitting ? 'Procesando...' : 'Confirmar Devolución'}
-          </D365CommandButton>
+          {estado !== 'Cerrada' && (
+            <>
+              <D365CommandDivider />
+              <D365CommandButton
+                icon={<Save16Regular />}
+                tone="save"
+                onClick={() => void handleGuardar(false)}
+                disabled={submitting}
+              >
+                Guardar
+              </D365CommandButton>
+              <D365CommandButton
+                icon={<SaveMultiple16Regular />}
+                tone="save"
+                onClick={() => void handleGuardar(true)}
+                disabled={submitting}
+              >
+                Guardar y cerrar
+              </D365CommandButton>
+              <D365CommandDivider />
+              <D365CommandButton
+                icon={<ArrowSync16Regular />}
+                tone="create"
+                onClick={() => void handleConfirmarDevolucion()}
+                disabled={submitting || lineas.length === 0}
+              >
+                {submitting ? 'Procesando...' : 'Confirmar Devolución'}
+              </D365CommandButton>
+            </>
+          )}
+          {transferenciaId && (
+            <>
+              <D365CommandDivider />
+              <D365CommandButton
+                icon={<ArrowDownload16Regular />}
+                onClick={() => void TransferenciaService.descargarCargoPdf(transferenciaId, numeroTransferencia)}
+              >
+                Cargo PDF
+              </D365CommandButton>
+              <D365CommandButton
+                icon={<Print16Regular />}
+                onClick={() => void TransferenciaService.abrirCargoPdf(transferenciaId)}
+              >
+                Imprimir
+              </D365CommandButton>
+            </>
+          )}
         </div>
       </D365CommandBar>
 
       <D365EntityHeader
-        title="Devolución de Material de Técnico"
+        title={numeroTransferencia ? `${numeroTransferencia}` : 'Devolución de Material de Técnico'}
         subtitle="Reingreso a bodega de materiales sobrantes o equipos averiados retirados en campo"
         avatarIcon={<ArrowSync16Regular />}
+        metadata={[
+          ...(numeroTransferencia ? [{ label: 'N° Devolución', value: numeroTransferencia }] : []),
+          ...(numeroGuiaRemision ? [{ label: 'Guía de Remisión', value: numeroGuiaRemision }] : []),
+          { label: 'Estado', value: estado === 'Cerrada' ? 'Recibida' : estado },
+        ]}
+        processFlow={<TransferenciaEtapas estado={estado} tipoOperacion="Devolucion" embedded />}
+        tabs={
+          <TabList
+            selectedValue={selectedTab}
+            onTabSelect={(_, data) => setSelectedTab(data.value as 'general' | 'productos')}
+          >
+            <Tab value="general" icon={<DocumentText16Regular />}>
+              General
+            </Tab>
+            <Tab
+              value="productos"
+              icon={<DocumentBulletList16Regular />}
+              disabled={!transferenciaId && lineas.length === 0}
+            >
+              Productos
+            </Tab>
+          </TabList>
+        }
       />
 
       <div className={formStyles.contentBody}>
-        {mensaje && (
-          <div style={{ marginBottom: '16px' }}>
-            <D365MessageBar intent={mensaje.tipo}>
-              {mensaje.texto}
-            </D365MessageBar>
+        {selectedTab === 'general' && (
+          <div style={{ maxWidth: '620px', width: '100%' }}>
+            <div className={formStyles.card}>
+              <div className={formStyles.cardSectionTitle}>Técnico que Devuelve y Bodega Receptora</div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <D365FormField label="Técnico de Campo" required info="Técnico que entrega el material que tenía bajo custodia">
+                  <SelectorEntidadRelacionada
+                    etiquetaGrupo="Técnicos de Campo"
+                    opciones={opcionesTecnicos}
+                    seleccionada={tecnicoSeleccionado}
+                    textoBusqueda={busquedaTecnico}
+                    alCambiarBusqueda={setBusquedaTecnico}
+                    alSeleccionar={(id) => setTecnicoId(id || '')}
+                    alNavegar={() => navigate(`/administracion/usuarios`)}
+                    icono={<Person16Regular />}
+                    tituloEnlace="Ver perfil del técnico"
+                    deshabilitado={estado === 'Cerrada'}
+                  />
+                </D365FormField>
+
+                <D365FormField label="Bodega Destino" required info="Almacén principal que recibe y resguarda los materiales">
+                  <SelectorEntidadRelacionada
+                    etiquetaGrupo="Bodegas Disponibles"
+                    opciones={opcionesBodegasDestino}
+                    seleccionada={bodegaDestinoSeleccionada}
+                    textoBusqueda={busquedaDestino}
+                    alCambiarBusqueda={setBusquedaDestino}
+                    alSeleccionar={(id) => setAlmacenDestinoId(id || '')}
+                    alNavegar={(id) => navigate(`/almacenes/${id}`)}
+                    icono={<Box16Regular />}
+                    tituloEnlace="Ver ficha del almacén"
+                    deshabilitado={estado === 'Cerrada'}
+                  />
+                </D365FormField>
+
+                <D365FormField label="Observaciones / Motivo" info="Información adicional o justificación del reingreso">
+                  <Input
+                    style={{ width: '100%' }}
+                    value={observaciones}
+                    onChange={(_, d) => setObservaciones(d.value)}
+                    maxLength={500}
+                    readOnly={estado === 'Cerrada'}
+                  />
+                </D365FormField>
+              </div>
+            </div>
           </div>
         )}
 
-        <div className={formStyles.card}>
-          <div className={formStyles.cardSectionTitle}>1. Técnico que Devuelve y Bodega Receptora</div>
+        {selectedTab === 'productos' && (
+          <div className={formStyles.card}>
+            <div className={formStyles.cardSectionTitle}>Materiales Retornados y Clasificación de Estado</div>
 
-          <div className={classes.gridRow}>
-            <D365FormField label="Técnico de Campo" required info="Técnico que entrega el material que tenía bajo custodia">
-              <Select
-                value={tecnicoId}
-                onChange={(_, d) => setTecnicoId(d.value)}
-              >
-                <option value="">-- Seleccione un técnico --</option>
-                {tecnicos.map(t => (
-                  <option key={t.id} value={t.id}>
-                    {t.nombreCompleto} {t.documentoIdentidad ? `[DNI: ${t.documentoIdentidad}]` : ''} - {t.unidadOrganizativaNombre || ''}
-                  </option>
-                ))}
-              </Select>
-            </D365FormField>
-
-            <D365FormField label="Custodia Personal">
-              <div style={{ padding: '8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {custodiaTecnico ? (
-                  <Badge appearance="filled" color="brand">
-                    {custodiaTecnico.nombre} ({custodiaTecnico.codigo})
-                  </Badge>
-                ) : (
-                  <Text style={{ color: tokens.colorNeutralForeground4, fontSize: '13px' }}>
-                    {tecnicoId ? '⚠️ Este técnico no tiene almacén de custodia activo.' : 'Seleccione un técnico para ver su custodia.'}
-                  </Text>
-                )}
-              </div>
-            </D365FormField>
-          </div>
-
-          <div className={classes.gridRow} style={{ marginTop: '12px' }}>
-            <D365FormField label="Bodega Destino" required info="Almacén principal que recibe y resguarda los materiales">
-              <Select
-                value={almacenDestinoId}
-                onChange={(_, d) => setAlmacenDestinoId(d.value)}
-              >
-                {bodegasDestino.map(b => (
-                  <option key={b.id} value={b.id}>
-                    {b.nombre} ({b.codigo || 'BOD'}) - {b.unidadOrganizativaNombre || 'Central'}
-                  </option>
-                ))}
-              </Select>
-            </D365FormField>
-
-            <D365FormField label="Ubicación Física de Destino" required>
-              <Select
-                value={ubicacionDestinoId}
-                onChange={(_, d) => setUbicacionDestinoId(d.value)}
-              >
-                {ubicacionesDestino.map(u => (
-                  <option key={u.id} value={u.id}>
-                    {u.nombre} ({u.codigo})
-                  </option>
-                ))}
-              </Select>
-            </D365FormField>
-          </div>
-
-          <div style={{ marginTop: '12px' }}>
-            <D365FormField label="Observaciones / Motivo" info="Justificación del reingreso o reporte de avería">
-              <Textarea
-                value={observaciones}
-                onChange={(_, d) => setObservaciones(d.value)}
-                placeholder="Ej. Devolución de sobrante de instalación o piezas averiadas retiradas en orden OT-1049..."
-                rows={2}
-              />
-            </D365FormField>
-          </div>
-        </div>
-
-        <div className={formStyles.card}>
-          <div className={formStyles.cardSectionTitle}>2. Materiales Retornados y Clasificación de Estado</div>
-
-          <div className={classes.scannerBox}>
-            <div className={classes.scannerRow}>
-              <div className={classes.productoField}>
-                <D365FormField label="Material en Custodia" required info="Escriba el código o nombre para autocompletar">
+            {estado !== 'Cerrada' && (
+              <div className={classes.scannerBox}>
+              <div className={classes.scannerBar}>
+                <div className={`${classes.fieldGroup} ${classes.productoField}`}>
+                  <label className={classes.fieldLabel}>
+                    Material en Custodia del Técnico *
+                  </label>
                   <Combobox
                     placeholder={
                       !custodiaTecnico
                         ? 'Seleccione primero un técnico con custodia'
-                        : 'Escriba código o nombre en custodia...'
+                        : 'Escriba código SKU o nombre del material en custodia...'
                     }
                     disabled={!custodiaTecnico}
                     value={
                       productoSeleccionado
-                        ? `${productoSeleccionado.codigoProducto} - ${productoSeleccionado.nombreProducto}`
+                        ? `${productoSeleccionado.codigoProducto} — ${productoSeleccionado.nombreProducto}`
                         : busquedaProducto
                     }
                     selectedOptions={productoSeleccionadoId ? [productoSeleccionadoId] : []}
@@ -567,28 +822,22 @@ export const DevolucionTecnicoPage: React.FC = () => {
                         <Option
                           key={p.productoId}
                           value={p.productoId}
-                          text={`${p.codigoProducto} - ${p.nombreProducto}`}
+                          text={`${p.codigoProducto} — ${p.nombreProducto}`}
                         >
                           <div className={classes.comboboxOption}>
-                            <div className={classes.comboboxOptionHeader}>
-                              <Text weight="semibold">{p.nombreProducto}</Text>
-                              <Badge size="small" appearance="tint" color={p.cantidadDisponible > 0 ? 'brand' : 'danger'}>
-                                En custodia: {p.cantidadDisponible} {p.nombreUnidadMedida || 'UND'}
-                              </Badge>
-                            </div>
+                            <Text weight="semibold">{p.nombreProducto}</Text>
                             <span className={classes.comboboxOptionCode}>
-                              SKU: {p.codigoProducto} {p.esSerializado ? '· Serializado' : ''}
+                              SKU: {p.codigoProducto} {p.esSerializado ? '· 🏷️ Serializado' : ''}
                             </span>
                           </div>
                         </Option>
                       ))
                     )}
                   </Combobox>
-                </D365FormField>
-              </div>
+                </div>
 
-              <div className={classes.cantidadField}>
-                <D365FormField label="Cantidad" required>
+                <div className={`${classes.fieldGroup} ${classes.cantidadField}`}>
+                  <label className={classes.fieldLabel}>Cantidad *</label>
                   <Input
                     type="number"
                     min={1}
@@ -596,11 +845,10 @@ export const DevolucionTecnicoPage: React.FC = () => {
                     onChange={(_, d) => setCantidadInput(Math.max(1, Number(d.value) || 1))}
                     style={{ width: '100%' }}
                   />
-                </D365FormField>
-              </div>
+                </div>
 
-              <div className={classes.condicionField}>
-                <D365FormField label="Condición" info="¿En qué estado retorna?">
+                <div className={`${classes.fieldGroup} ${classes.condicionField}`}>
+                  <label className={classes.fieldLabel}>Condición de Reingreso *</label>
                   <Select
                     value={condicionInput.toString()}
                     onChange={(_, d) => setCondicionInput(Number(d.value) as 1 | 2)}
@@ -609,26 +857,56 @@ export const DevolucionTecnicoPage: React.FC = () => {
                     <option value="1">🟢 Utilizable</option>
                     <option value="2">🔴 Defectuoso</option>
                   </Select>
-                </D365FormField>
+                </div>
+
+                <div>
+                  <Button
+                    icon={<Add16Regular />}
+                    appearance="primary"
+                    onClick={handleAgregarLinea}
+                    disabled={!productoSeleccionado}
+                    style={{ minWidth: '110px' }}
+                  >
+                    Agregar
+                  </Button>
+                </div>
               </div>
 
-              <div style={{ paddingBottom: '2px' }}>
-                <Button
-                  icon={<Add16Regular />}
-                  appearance="primary"
-                  onClick={handleAgregarLinea}
-                  disabled={!productoSeleccionado}
-                >
-                  Agregar
-                </Button>
-              </div>
-            </div>
+              {productoSeleccionado && (
+                <div className={classes.stockInfoBanner}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Box16Regular style={{ color: tokens.colorBrandForeground1 }} />
+                    <Text size={200} weight="semibold">
+                      {productoSeleccionado.nombreProducto} ({productoSeleccionado.codigoProducto})
+                    </Text>
+                  </div>
+                  <div>
+                    {(() => {
+                      const unidadTexto = productoSeleccionado.nombreUnidadMedida === 'Unidades' ? 'UND' : (productoSeleccionado.nombreUnidadMedida || 'UND');
+                      return (
+                        <Badge
+                          appearance="tint"
+                          color={productoSeleccionado.cantidadDisponible >= cantidadInput ? 'informative' : 'danger'}
+                          size="medium"
+                        >
+                          Stock en custodia: {productoSeleccionado.cantidadDisponible} {unidadTexto}
+                        </Badge>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
 
             {productoSeleccionado?.esSerializado && (
-              <div style={{ marginTop: '16px', borderTop: `1px solid ${tokens.colorNeutralStroke2}`, paddingTop: '12px' }}>
-                <Text weight="semibold" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Tag16Regular /> Seleccione las {cantidadInput} serie(s) que el técnico está devolviendo:
-                </Text>
+              <div className={classes.seriesSelectorBox}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text weight="semibold" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Tag16Regular /> Seleccione las {cantidadInput} serie(s) que el técnico está devolviendo:
+                  </Text>
+                  <Badge appearance="tint" color={seriesSeleccionadas.length === cantidadInput ? 'success' : 'warning'}>
+                    {seriesSeleccionadas.length} de {cantidadInput} seleccionadas
+                  </Badge>
+                </div>
                 {seriesDisponibles.length === 0 ? (
                   <Text style={{ color: tokens.colorPaletteRedForeground1, fontSize: '12px', display: 'block', marginTop: '6px' }}>
                     No hay series registradas en la custodia de este técnico para este ítem.
@@ -661,13 +939,17 @@ export const DevolucionTecnicoPage: React.FC = () => {
               </div>
             )}
           </div>
+          )}
 
           {/* Tabla de ítems agregados */}
           {lineas.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: tokens.borderRadiusMedium }}>
-              <Box16Regular style={{ fontSize: '24px', color: tokens.colorNeutralForeground4 }} />
-              <Text block style={{ color: tokens.colorNeutralForeground3, marginTop: '8px' }}>
-                Aún no ha agregado materiales a la devolución. Seleccione un producto arriba y haga clic en "Agregar".
+            <div className={classes.emptyState}>
+              <Box16Regular style={{ fontSize: '32px', color: tokens.colorNeutralForeground4 }} />
+              <Text block weight="semibold" style={{ color: tokens.colorNeutralForeground2, marginTop: '8px' }}>
+                Aún no ha agregado materiales a la devolución
+              </Text>
+              <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                Seleccione un producto en custodia arriba, configure la cantidad y haga clic en "Agregar".
               </Text>
             </div>
           ) : (
@@ -676,23 +958,29 @@ export const DevolucionTecnicoPage: React.FC = () => {
                 <thead>
                   <tr>
                     <th className={classes.th}>#</th>
-                    <th className={classes.th}>Código</th>
+                    <th className={classes.th}>Código SKU</th>
                     <th className={classes.th}>Descripción del Producto</th>
                     <th className={classes.th}>Cantidad</th>
                     <th className={classes.th}>Unidad</th>
                     <th className={classes.th}>Condición</th>
                     <th className={classes.th}>Series Devueltas</th>
-                    <th className={classes.th} style={{ textAlign: 'center' }}>Acciones</th>
+                    {estado !== 'Cerrada' && (
+                      <th className={classes.th} style={{ textAlign: 'center' }}>Acciones</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {lineas.map((l, idx) => (
                     <tr key={l.idTemp}>
                       <td className={classes.td}>{idx + 1}</td>
-                      <td className={classes.td}><strong>{l.codigo}</strong></td>
+                      <td className={classes.td}><strong style={{ fontFamily: 'monospace' }}>{l.codigo}</strong></td>
                       <td className={classes.td}>{l.nombre}</td>
                       <td className={classes.td}><strong>{l.cantidad}</strong></td>
-                      <td className={classes.td}>{l.unidad}</td>
+                      <td className={classes.td}>
+                        <Badge appearance="tint" color="informative" size="small">
+                          {l.unidad}
+                        </Badge>
+                      </td>
                       <td className={classes.td}>
                         <Badge
                           appearance="filled"
@@ -709,17 +997,20 @@ export const DevolucionTecnicoPage: React.FC = () => {
                             ))}
                           </div>
                         ) : (
-                          <Text style={{ color: tokens.colorNeutralForeground4 }}>-</Text>
+                          <Text style={{ color: tokens.colorNeutralForeground4 }}>—</Text>
                         )}
                       </td>
-                      <td className={classes.td} style={{ textAlign: 'center' }}>
-                        <Button
-                          icon={<Delete16Regular />}
-                          appearance="subtle"
-                          size="small"
-                          onClick={() => handleEliminarLinea(l.idTemp)}
-                        />
-                      </td>
+                      {estado !== 'Cerrada' && (
+                        <td className={classes.td} style={{ textAlign: 'center' }}>
+                          <Button
+                            icon={<Delete16Regular />}
+                            appearance="subtle"
+                            size="small"
+                            aria-label="Eliminar ítem"
+                            onClick={() => handleEliminarLinea(l.idTemp)}
+                          />
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -732,6 +1023,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
             </>
           )}
         </div>
+        )}
       </div>
 
       {/* Modal de éxito y descarga de acta */}
@@ -775,7 +1067,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
               <Button appearance="subtle" onClick={resetFormulario}>
                 Realizar otra devolución
               </Button>
-              <Button appearance="secondary" onClick={() => navigate('/servicio-campo/transferencias')}>
+              <Button appearance="secondary" onClick={() => navigate('/servicio-campo/devolucion-tecnicos')}>
                 Ir al Historial
               </Button>
             </DialogActions>

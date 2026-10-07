@@ -61,6 +61,7 @@ import type {
   ItemSeriadoStockDto,
 } from '../../inventario-productos/types/inventario-producto.types';
 import { ResolverDiferenciaDialog } from '../components/ResolverDiferenciaDialog';
+import { TransferenciaEtapas } from '../components/TransferenciaEtapas';
 import { TransferenciaService } from '../services/transferencia.service';
 import type {
   RecepcionTransferenciaItemDto,
@@ -196,7 +197,7 @@ export function TransferenciaFormPage() {
   const [ubicacionDestinoId,setUbicacionDestinoId]=useState('');
   const [modalidad,setModalidad]=useState<1|2>(1);
   const [condicion,setCondicion]=useState<1|2>(1);
-  const operacionId=useRef(crypto.randomUUID());
+  const operacionId=useRef<string>(crypto.randomUUID());
   const recepcionOperacionId=useRef(crypto.randomUUID());
   const [capturaRecepcion,setCapturaRecepcion]=useState('');
   const [cantidadCaptura,setCantidadCaptura]=useState('1');
@@ -234,6 +235,9 @@ export function TransferenciaFormPage() {
     try {
       const data = await TransferenciaService.obtenerDetalle(transfId);
       setDetalle(data);
+      if (data.operacionId) {
+        operacionId.current = data.operacionId;
+      }
       setNumeroGuardado(data.numero);
       setOrigenId(data.almacenOrigenId);
       setUbicacionOrigenId(data.ubicacionOrigenId || '');
@@ -604,6 +608,7 @@ export function TransferenciaFormPage() {
       setSaving(true);
       setError(null);
       const res = await TransferenciaService.crear({
+        transferenciaId: id || undefined,
         almacenOrigenId: origenId,
         almacenDestinoId: destinoId,
         observacion: observacion.trim() || null,
@@ -898,16 +903,6 @@ export function TransferenciaFormPage() {
     );
   }
 
-  const estadoBadgeColor =
-    detalle?.estado === 'Cerrada'
-      ? 'success'
-      : detalle?.estado === 'EnTransito'
-      ? 'warning'
-      : detalle?.estado === 'ParcialmenteRecibida'
-      ? 'important'
-      : detalle?.estado === 'Cancelada'
-      ? 'danger'
-      : 'informative';
 
   return (
     <div className={formStyles.root}>
@@ -1033,6 +1028,13 @@ export function TransferenciaFormPage() {
                 },
               ]
         }
+        processFlow={
+          <TransferenciaEtapas
+            estado={detalle?.estado ?? (numeroGuardado ? 'EnTransito' : 'Borrador')}
+            tipoOperacion="Traslado"
+            embedded
+          />
+        }
         tabs={
           <TabList
             selectedValue={selectedTab}
@@ -1073,18 +1075,6 @@ export function TransferenciaFormPage() {
               </div>
             )}
 
-            {isViewMode && detalle && (
-              <div className={styles.hintCard}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                    <Text weight="semibold">Estado actual: {detalle.estado}</Text>
-                    <Badge appearance="filled" color={estadoBadgeColor} size="small">
-                      {detalle.modalidad === 'ConTransito' ? 'Traslado Inter-Bodegas' : 'Despacho Directo'}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            )}
 
             <div className={formStyles.grid2Cols}>
               <D365FormField label="Número de transferencia">

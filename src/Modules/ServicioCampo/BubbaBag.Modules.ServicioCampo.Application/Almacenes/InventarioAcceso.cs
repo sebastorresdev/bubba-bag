@@ -20,7 +20,14 @@ public static class InventarioAcceso
             (accion == "consultar" && x.PuedeConsultar || accion == "despachar" && x.PuedeDespachar || accion == "recibir" && x.PuedeRecepcionar || accion == "supervisar" && x.EsSupervisor), ct);
     }
 
-    public static Task<UbicacionInventario?> UbicacionAsync(IServicioCampoDbContext db, Guid almacenId, Guid? ubicacionId, CancellationToken ct)
-        => db.UbicacionesInventario.Include(x => x.Almacen).FirstOrDefaultAsync(x => x.AlmacenId == almacenId && x.Activa && x.Almacen.Activo &&
-            (ubicacionId.HasValue ? x.Id == ubicacionId.Value : x.EsPrincipal), ct);
+    public static async Task<UbicacionInventario?> UbicacionAsync(IServicioCampoDbContext db, Guid almacenId, Guid? ubicacionId, CancellationToken ct)
+    {
+        if (ubicacionId.HasValue)
+            return await db.UbicacionesInventario.Include(x => x.Almacen).FirstOrDefaultAsync(x => x.AlmacenId == almacenId && x.Id == ubicacionId.Value && x.Activa && x.Almacen.Activo, ct);
+
+        var principal = await db.UbicacionesInventario.Include(x => x.Almacen).FirstOrDefaultAsync(x => x.AlmacenId == almacenId && x.Activa && x.Almacen.Activo && x.EsPrincipal, ct);
+        if (principal != null) return principal;
+
+        return await db.UbicacionesInventario.Include(x => x.Almacen).FirstOrDefaultAsync(x => x.AlmacenId == almacenId && x.Activa && x.Almacen.Activo, ct);
+    }
 }

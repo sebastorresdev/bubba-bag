@@ -107,11 +107,15 @@ export default function App() {
 
               {/* 5. Inventario - Almacenes y Bodegas */}
               <Route path="servicio-campo/inventario-productos" element={<InventarioProductosPage />} />
-              <Route path="servicio-campo/transferencias" element={<TransferenciasListPage />} />
+              <Route path="servicio-campo/transferencias" element={<TransferenciasListPage tipoFiltro="Traslado" />} />
               <Route path="servicio-campo/transferencias/nuevo" element={<TransferenciaFormPage />} />
               <Route path="servicio-campo/transferencias/:id" element={<TransferenciaFormPage />} />
-              <Route path="servicio-campo/despacho-tecnicos" element={<DespachoTecnicoPage />} />
-              <Route path="servicio-campo/devolucion-tecnicos" element={<DevolucionTecnicoPage />} />
+              <Route path="servicio-campo/despacho-tecnicos" element={<TransferenciasListPage tipoFiltro="Despacho" />} />
+              <Route path="servicio-campo/despacho-tecnicos/nuevo" element={<DespachoTecnicoPage />} />
+              <Route path="servicio-campo/despacho-tecnicos/:id" element={<DespachoTecnicoPage />} />
+              <Route path="servicio-campo/devolucion-tecnicos" element={<TransferenciasListPage tipoFiltro="Devolucion" />} />
+              <Route path="servicio-campo/devolucion-tecnicos/nuevo" element={<DevolucionTecnicoPage />} />
+              <Route path="servicio-campo/devolucion-tecnicos/:id" element={<DevolucionTecnicoPage />} />
               <Route path="servicio-campo/recepciones-compra" element={<ComprasListPage />} />
               <Route path="servicio-campo/recepciones-compra/nuevo" element={<CompraFormPage key="nueva-compra" />} />
               <Route path="servicio-campo/recepciones-compra/:id" element={<CompraFormPage />} />

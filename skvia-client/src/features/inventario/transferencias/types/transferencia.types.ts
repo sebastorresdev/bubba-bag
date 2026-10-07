@@ -14,6 +14,10 @@ export interface TransferenciaInventarioDto {
   cantidadRecibida?: number;
   cantidadPendiente?: number;
   resumenProductos?: string | null;
+  tipoOperacion?: 'Despacho' | 'Devolucion' | 'Traslado' | string;
+  tipoAlmacenOrigen?: number;
+  tipoAlmacenDestino?: number;
+  numeroGuiaRemision?: string | null;
   productoId?: string;
   codigoProducto?: string;
   producto?: string;
@@ -25,12 +29,22 @@ export interface CrearTransferenciaDto {
   almacenOrigenId: string;
   almacenDestinoId: string;
   observacion?: string | null;
+  guiaRemision?: string | null;
   ubicacionOrigenId: string;
   ubicacionDestinoId: string;
   modalidad: 1 | 2;
   operacionId: string;
   fechaReal?: string;
   lineas: Array<{ productoId: string; cantidad: number; series?: string[] | null; condicion?: number }>;
+  esBorrador?: boolean;
+  transferenciaId?: string;
+}
+
+export interface TransferenciaCreadaRespuestaDto {
+  numero: string;
+  id?: string;
+  numeroGuiaRemision?: string;
+  estado?: string;
 }
 
 export interface TransferenciaDetalleLineaDto {
@@ -85,6 +99,7 @@ export interface TransferenciaDetalladaDto {
   lineas: TransferenciaDetalleLineaDto[];
   recepciones: RecepcionTransferenciaItemDto[];
   resoluciones: Array<{id:string;detalleId:string;cantidad:number;resultado:string;motivo:string;evidencia?:string|null;supervisor:string;fecha:string;series:string[]}>;
+  operacionId?: string;
 }
 
 export interface RecepcionarTransferenciaLineaDto {
