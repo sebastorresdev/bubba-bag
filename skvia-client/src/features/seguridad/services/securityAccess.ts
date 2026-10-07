@@ -9,6 +9,9 @@ export function canAccessPath(path: string, permisos: readonly string[]): boolea
   if (path.startsWith('/configuracion/roles')) {
     return has('seguridad.acceso') && (!path.includes('/nuevo') || has('seguridad.roles.gestionar'));
   }
+  if (path.startsWith('/configuracion/empresa')) {
+    return has('seguridad.acceso');
+  }
   if (path.startsWith('/gestion-datos/') || path.includes('/gestion-datos/') || path.includes('/data-management/'))
     return has('inventario.catalogos.gestionar') || has('crm.clientes.eliminar');
   if (path.startsWith('/recursos-humanos') || path.startsWith('/rrhh')) return has('rrhh.acceso');

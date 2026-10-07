@@ -32,6 +32,9 @@ import {
   Eye16Regular,
   Search16Regular,
   TableEdit16Regular,
+  ArrowDownload16Regular,
+  Print16Regular,
+  VehicleTruckProfile16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365ListState } from '../../../../components/common/D365ListState';
@@ -230,6 +233,38 @@ export function TransferenciasListPage() {
           </TableCellLayout>
         ),
       }),
+      createTableColumn({
+        columnId: 'acciones',
+        renderHeaderCell: () => 'Cargo Oficial',
+        renderCell: (x: TransferenciaInventarioDto) => (
+          <TableCellLayout>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <Tooltip content="Descargar Cargo PDF" relationship="label">
+                <Button
+                  size="small"
+                  appearance="subtle"
+                  icon={<ArrowDownload16Regular />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void TransferenciaService.descargarCargoPdf(x.id, x.numero);
+                  }}
+                />
+              </Tooltip>
+              <Tooltip content="Abrir / Imprimir Cargo" relationship="label">
+                <Button
+                  size="small"
+                  appearance="subtle"
+                  icon={<Print16Regular />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void TransferenciaService.abrirCargoPdf(x.id);
+                  }}
+                />
+              </Tooltip>
+            </div>
+          </TableCellLayout>
+        ),
+      }),
     ],
     [navigate]
   );
@@ -256,24 +291,58 @@ export function TransferenciasListPage() {
       <D365CommandBar ariaLabel="Comandos de transferencias">
         <div className={styles.toolbarLeft}>
           <D365CommandButton
-            icon={<Add16Regular />}
+            icon={<VehicleTruckProfile16Regular />}
             tone="create"
+            onClick={() => navigate('/servicio-campo/despacho-tecnicos')}
+          >
+            Despacho a Técnico
+          </D365CommandButton>
+          <D365CommandButton
+            icon={<ArrowClockwise16Regular />}
+            onClick={() => navigate('/servicio-campo/devolucion-tecnicos')}
+          >
+            Devolución de Técnico
+          </D365CommandButton>
+          <D365CommandButton
+            icon={<Add16Regular />}
             onClick={() => navigate('/servicio-campo/transferencias/nuevo')}
           >
-            Nuevo
+            Traslado entre Bodegas
           </D365CommandButton>
-          {seleccionados.size === 1 && (
-            <D365CommandButton
-              icon={<Eye16Regular />}
-              onClick={() => {
-                const idSel = Array.from(seleccionados)[0];
-                navigate(`/servicio-campo/transferencias/${idSel}`);
-              }}
-            >
-              Ver detalle
-            </D365CommandButton>
-          )}
           <D365CommandDivider />
+          {seleccionados.size === 1 && (
+            <>
+              <D365CommandButton
+                icon={<Eye16Regular />}
+                onClick={() => {
+                  const idSel = Array.from(seleccionados)[0] as string;
+                  navigate(`/servicio-campo/transferencias/${idSel}`);
+                }}
+              >
+                Ver detalle
+              </D365CommandButton>
+              <D365CommandButton
+                icon={<ArrowDownload16Regular />}
+                onClick={() => {
+                  const idSel = Array.from(seleccionados)[0] as string;
+                  const itemSel = datos.find((d) => d.id === idSel);
+                  void TransferenciaService.descargarCargoPdf(idSel, itemSel?.numero);
+                }}
+              >
+                Cargo PDF
+              </D365CommandButton>
+              <D365CommandButton
+                icon={<Print16Regular />}
+                onClick={() => {
+                  const idSel = Array.from(seleccionados)[0] as string;
+                  void TransferenciaService.abrirCargoPdf(idSel);
+                }}
+              >
+                Imprimir
+              </D365CommandButton>
+              <D365CommandDivider />
+            </>
+          )}
           <D365CommandButton icon={<ArrowClockwise16Regular />} onClick={() => void cargar()}>
             Actualizar
           </D365CommandButton>

@@ -11,11 +11,13 @@ export interface LineaRecepcionDatos {
   productoId: string;
   cantidad: number;
   series: string[];
+  ubicacionId?: string;
 }
 export interface RecepcionCompraDatos {
   tipoDocumento: string;
   numeroDocumento: string;
   fechaDocumento: string;
+  ubicacionId?: string;
   lineas?: LineaRecepcionDatos[];
 }
 export interface CompraDto extends CrearCompra {

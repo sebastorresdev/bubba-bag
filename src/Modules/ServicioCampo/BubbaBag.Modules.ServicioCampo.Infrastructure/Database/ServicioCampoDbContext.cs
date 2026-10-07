@@ -2,6 +2,7 @@ using System.Reflection;
 using BubbaBag.Modules.ServicioCampo.Application;
 using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
 using BubbaBag.Modules.ServicioCampo.Domain.Clientes;
+using BubbaBag.Modules.ServicioCampo.Domain.Configuracion;
 using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 using BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
 using BubbaBag.Modules.ServicioCampo.Domain.Organizacion;
@@ -18,6 +19,8 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public ServicioCampoDbContext(DbContextOptions<ServicioCampoDbContext> options) : base(options)
     {
     }
+
+    public DbSet<ConfiguracionEmpresa> ConfiguracionEmpresas => Set<ConfiguracionEmpresa>();
 
     public DbSet<UnidadOrganizativa> UnidadesOrganizativas => Set<UnidadOrganizativa>();
     public DbSet<OrdenTrabajo> OrdenesTrabajo => Set<OrdenTrabajo>();

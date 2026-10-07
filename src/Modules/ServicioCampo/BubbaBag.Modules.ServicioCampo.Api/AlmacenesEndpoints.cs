@@ -61,6 +61,7 @@ public static class AlmacenesEndpoints
         transferenciasGroup.MapPost("/{id:guid}/resolver", ResolverDiferencia).RequireAuthorization(Permissions.Inventario.Operar);
         transferenciasGroup.MapPost("/", CrearTransferencia).RequireAuthorization(Permissions.Inventario.Operar);
         transferenciasGroup.MapGet("/{id:guid}", ObtenerTransferenciaPorId);
+        transferenciasGroup.MapGet("/{id:guid}/cargo-pdf", DescargarCargoPdf);
         transferenciasGroup.MapPost("/{id:guid}/recepcionar", RecepcionarTransferencia).RequireAuthorization(Permissions.Inventario.Operar);
 
         var compras = app.MapGroup("/api/inventario/compras").WithTags("Servicio de Campo - Compras").RequireAuthorization(Permissions.Inventario.Acceso);
@@ -260,6 +261,41 @@ public static class AlmacenesEndpoints
     {
         var result = await dispatcher.QueryAsync(new ObtenerTransferenciaDetalleQuery(id));
         return result.IsSuccess ? Results.Ok(result.Value) : Results.NotFound(result.Error);
+    }
+
+    private static async Task<IResult> DescargarCargoPdf(
+        Guid id,
+        IDispatcher dispatcher,
+        IServicioCampoDbContext context,
+        CancellationToken ct)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerTransferenciaDetalleQuery(id));
+        if (result.IsFailure) return Results.NotFound(result.Error);
+        var detalle = result.Value;
+
+        var almOrigen = await context.Almacenes.AsNoTracking().FirstOrDefaultAsync(a => a.Id == detalle.AlmacenOrigenId, ct);
+        var almDestino = await context.Almacenes.AsNoTracking().FirstOrDefaultAsync(a => a.Id == detalle.AlmacenDestinoId, ct);
+        var tipoOrigen = almOrigen?.Tipo ?? TipoAlmacen.Bodega;
+        var tipoDestino = almDestino?.Tipo ?? TipoAlmacen.Bodega;
+
+        string? dniReceptor = null;
+        if (almDestino != null && almDestino.RecursoId.HasValue)
+        {
+            var recurso = await context.Recursos.AsNoTracking().FirstOrDefaultAsync(r => r.Id == almDestino.RecursoId.Value, ct);
+            dniReceptor = recurso?.DocumentoIdentidad;
+        }
+
+        var empresa = await context.ConfiguracionEmpresas.AsNoTracking().FirstOrDefaultAsync(ct);
+
+        var pdfBytes = BubbaBag.Modules.ServicioCampo.Infrastructure.Services.CargoPdfGenerator.GenerarCargo(
+            detalle,
+            empresa,
+            tipoOrigen,
+            tipoDestino,
+            dniReceptor
+        );
+
+        return Results.File(pdfBytes, "application/pdf", $"Cargo-{detalle.Numero}.pdf");
     }
 
     private static async Task<IResult> RecepcionarTransferencia(

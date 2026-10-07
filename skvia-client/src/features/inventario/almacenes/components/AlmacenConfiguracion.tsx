@@ -604,6 +604,12 @@ export function AlmacenConfiguracion({
             <Text className={localStyles.cardSubtitle} block>
               Control de accesos y roles operativos para este almacén (consulta, despacho, recepción y supervisión).
             </Text>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+              <Info16Regular style={{ fontSize: '13px', color: tokens.colorNeutralForeground3 }} />
+              <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                Solo se pueden autorizar usuarios activos con roles de <strong>Almacenero</strong> o <strong>Administrador</strong> asignados en Seguridad.
+              </Text>
+            </div>
           </div>
           {administra && (
             <Button
@@ -827,6 +833,13 @@ export function AlmacenConfiguracion({
                     </option>
                   ))}
                 </Select>
+              )}
+              {usuarios.length === 0 && !ocupado && (
+                <div style={{ marginTop: '8px' }}>
+                  <D365MessageBar intent="warning">
+                    No se encontraron usuarios con rol elegible. Asigne el rol de "Almacenero" o "Administrador de inventario" a los usuarios en Seguridad para que aparezcan en esta lista.
+                  </D365MessageBar>
+                </div>
               )}
             </div>
 

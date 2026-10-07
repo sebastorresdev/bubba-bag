@@ -10,12 +10,14 @@ using BubbaBag.Modules.ServicioCampo.Domain.Plantillas;
 using BubbaBag.Modules.ServicioCampo.Domain.Productos;
 using BubbaBag.Modules.ServicioCampo.Domain.Recursos;
 using BubbaBag.Modules.ServicioCampo.Domain.Ubigeos;
+using BubbaBag.Modules.ServicioCampo.Domain.Configuracion;
 using Microsoft.EntityFrameworkCore;
 
 namespace BubbaBag.Modules.ServicioCampo.Application;
 
 public interface IServicioCampoDbContext
 {
+    DbSet<ConfiguracionEmpresa> ConfiguracionEmpresas { get; }
     DbSet<UnidadOrganizativa> UnidadesOrganizativas { get; }
     DbSet<OrdenTrabajo> OrdenesTrabajo { get; }
     DbSet<OrdenTrabajoVisita> OrdenTrabajoVisitas { get; }

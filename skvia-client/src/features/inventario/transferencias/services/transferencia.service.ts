@@ -23,4 +23,32 @@ export const TransferenciaService = {
       method: 'POST',
       body: JSON.stringify(datos),
     }),
+
+  descargarCargoPdf: async (id: string, numero?: string) => {
+    const token = await import('../../../../services/apiClient').then(m => m.getValidAuthToken());
+    const res = await fetch(`/api/inventario/transferencias/${id}/cargo-pdf`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error('No se pudo generar o descargar el cargo en PDF.');
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Cargo-${numero || id}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  },
+
+  abrirCargoPdf: async (id: string) => {
+    const token = await import('../../../../services/apiClient').then(m => m.getValidAuthToken());
+    const res = await fetch(`/api/inventario/transferencias/${id}/cargo-pdf`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error('No se pudo abrir el cargo en PDF.');
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  },
 };

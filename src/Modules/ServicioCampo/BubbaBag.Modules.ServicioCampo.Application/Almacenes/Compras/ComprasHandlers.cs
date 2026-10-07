@@ -17,8 +17,8 @@ public record CrearCompraCommand(string Proveedor, string TipoDocumento, string 
     string Moneda, Guid? AlmacenId, IReadOnlyList<LineaCompra>? Lineas, string? Observacion) : ICommand<Result<Guid>>;
 public record ActualizarCompraCommand(Guid Id, CrearCompraCommand Datos) : ICommand<Result<Guid>>;
 public record ProcesarCompraCommand(Guid Id, string Accion) : ICommand<Result<Guid>>;
-public record LineaRecepcion(Guid ProductoId, decimal Cantidad, IReadOnlyList<string>? Series);
-public record RecepcionCompraDatos(string TipoDocumento, string NumeroDocumento, DateOnly FechaDocumento, IReadOnlyList<LineaRecepcion>? Lineas = null);
+public record LineaRecepcion(Guid ProductoId, decimal Cantidad, IReadOnlyList<string>? Series, Guid? UbicacionId = null);
+public record RecepcionCompraDatos(string TipoDocumento, string NumeroDocumento, DateOnly FechaDocumento, IReadOnlyList<LineaRecepcion>? Lineas = null, Guid? UbicacionId = null);
 public record RecepcionarCompraCommand(Guid Id, RecepcionCompraDatos Datos) : ICommand<Result<Guid>>;
 
 public class ObtenerComprasHandler(IServicioCampoDbContext context, ICurrentUser user) : IQueryHandler<ObtenerComprasQuery, Result<List<CompraDto>>>
@@ -187,27 +187,48 @@ public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser us
         {
             await context.EjecutarEnTransaccionAsync(async ct =>
             {
-                var ubicacion = await InventarioAcceso.UbicacionAsync(context,command.AlmacenId!.Value,null,ct) ?? throw new InvalidOperationException("Falta la ubicación principal.");
-                var stocks = await context.StocksAlmacen.Where(x => x.UbicacionId == ubicacion.Id && x.Condicion == CondicionInventario.Utilizable && ids.Contains(x.ProductoId)).ToDictionaryAsync(x => x.ProductoId, ct);
+                var mapaLineasRecepcion = recepcion?.Lineas?.ToDictionary(x => x.ProductoId, x => x) ?? [];
+                var ubicacionPredeterminada = await InventarioAcceso.UbicacionAsync(context, command.AlmacenId!.Value, recepcion?.UbicacionId, ct)
+                    ?? await InventarioAcceso.UbicacionAsync(context, command.AlmacenId!.Value, null, ct)
+                    ?? throw new InvalidOperationException("Falta la ubicación de recepción en el almacén.");
+
+                var ubicacionesCache = new Dictionary<Guid, UbicacionInventario> { [ubicacionPredeterminada.Id] = ubicacionPredeterminada };
+
                 compra.CompletarComprobanteRecepcion(command.TipoDocumento, command.NumeroDocumento, command.FechaDocumento);
                 compra.Recepcionar(user.Id, conFaltantes, JsonSerializer.Serialize(lineasActualizadas));
+
                 foreach (var linea in lineasFinales)
                 {
-                    if (!stocks.TryGetValue(linea.ProductoId, out var stock))
+                    Guid idUbicacionFinal = ubicacionPredeterminada.Id;
+                    if (mapaLineasRecepcion.TryGetValue(linea.ProductoId, out var linRec) && linRec.UbicacionId.HasValue)
                     {
-                        stock = StockAlmacen.Crear(ubicacion.Id, linea.ProductoId);
+                        if (!ubicacionesCache.TryGetValue(linRec.UbicacionId.Value, out var ubEspecifica))
+                        {
+                            ubEspecifica = await InventarioAcceso.UbicacionAsync(context, command.AlmacenId!.Value, linRec.UbicacionId.Value, ct);
+                            if (ubEspecifica != null) ubicacionesCache[linRec.UbicacionId.Value] = ubEspecifica;
+                        }
+                        if (ubEspecifica != null) idUbicacionFinal = ubEspecifica.Id;
+                    }
+
+                    var stock = await context.StocksAlmacen.FirstOrDefaultAsync(x => x.UbicacionId == idUbicacionFinal && x.Condicion == CondicionInventario.Utilizable && x.ProductoId == linea.ProductoId, ct);
+                    if (stock == null)
+                    {
+                        stock = StockAlmacen.Crear(idUbicacionFinal, linea.ProductoId);
                         await context.StocksAlmacen.AddAsync(stock, ct);
                     }
                     stock.AumentarStock(linea.Cantidad);
+
                     if (linea.Series.Count == 0)
+                    {
                         await context.MovimientosInventario.AddAsync(MovimientoInventario.Registrar(TipoMovimientoInventario.IngresoProveedor, linea.ProductoId, linea.Cantidad,
-                            almacenDestinoId: command.AlmacenId, numeroDocumento: compra.Numero, usuarioResponsableId: user.Id, observaciones: command.Observacion, ubicacionDestinoId: ubicacion.Id, eventoId: compra.Id), ct);
+                            almacenDestinoId: command.AlmacenId, numeroDocumento: compra.Numero, usuarioResponsableId: user.Id, observaciones: command.Observacion, ubicacionDestinoId: idUbicacionFinal, eventoId: compra.Id), ct);
+                    }
                     foreach (var serie in linea.Series)
                     {
-                        var item = ItemSeriado.Crear(linea.ProductoId, serie, ubicacion.Id);
+                        var item = ItemSeriado.Crear(linea.ProductoId, serie, idUbicacionFinal);
                         await context.ItemsSeriados.AddAsync(item, ct);
                         await context.MovimientosInventario.AddAsync(MovimientoInventario.Registrar(TipoMovimientoInventario.IngresoProveedor, linea.ProductoId, 1,
-                            almacenDestinoId: command.AlmacenId, itemSeriadoId: item.Id, numeroDocumento: compra.Numero, usuarioResponsableId: user.Id, observaciones: command.Observacion, ubicacionDestinoId: ubicacion.Id, eventoId: compra.Id), ct);
+                            almacenDestinoId: command.AlmacenId, itemSeriadoId: item.Id, numeroDocumento: compra.Numero, usuarioResponsableId: user.Id, observaciones: command.Observacion, ubicacionDestinoId: idUbicacionFinal, eventoId: compra.Id), ct);
                     }
                 }
                 await context.SaveChangesAsync(ct);

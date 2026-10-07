@@ -16,6 +16,8 @@ import {
   TableCellLayout,
   Badge,
   tokens,
+  Button,
+  Link,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -35,6 +37,7 @@ import {
   Search16Regular,
 } from '@fluentui/react-icons';
 import { AlmacenConfiguracion } from '../components/AlmacenConfiguracion';
+import { CrearUnidadOrganizativaDrawer } from '../components/CrearUnidadOrganizativaDrawer';
 import { AlmacenService } from '../services/almacen.service';
 import type {
   CreateAlmacenDto,
@@ -133,6 +136,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
     text: string;
   } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [drawerSedeAbierto, setDrawerSedeAbierto] = useState<boolean>(false);
 
   // Cargar catálogos reales
   const cargarCatalogos = useCallback(async () => {
@@ -617,6 +621,23 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
             {/* PESTAÑA 1: GENERAL */}
             {selectedTab === 'general' && (
               <div className={styles.card}>
+                {unidades.length === 0 && !loading && (
+                  <div style={{ marginBottom: '16px' }}>
+                    <D365MessageBar intent="warning">
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: '8px' }}>
+                        <span>No se encontraron sedes organizacionales registradas. Debe crear al menos una sede (Unidad Organizativa) para asociar el almacén.</span>
+                        <Button
+                          size="small"
+                          appearance="primary"
+                          icon={<Building16Regular />}
+                          onClick={() => setDrawerSedeAbierto(true)}
+                        >
+                          Crear Sede
+                        </Button>
+                      </div>
+                    </D365MessageBar>
+                  </div>
+                )}
                 <div className={styles.grid2Cols}>
                   <D365FormField label="Nombre del almacén" required error={errors.nombre}>
                     <Input
@@ -660,14 +681,36 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
                     </Select>
                   </D365FormField>
 
-                  <D365FormField label="Unidad organizativa" required error={errors.unidadOrganizativaId}>
+                  <D365FormField
+                    label={
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                        <span>Unidad organizativa</span>
+                        {!isEditMode && (
+                          <Link
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setDrawerSedeAbierto(true);
+                            }}
+                            style={{ fontSize: '12px', fontWeight: 'normal', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                          >
+                            <Add16Regular style={{ fontSize: '12px' }} /> Nueva sede
+                          </Link>
+                        )}
+                      </span>
+                    }
+                    required
+                    error={errors.unidadOrganizativaId}
+                  >
                     <Select
                       className={styles.d365ControlFull}
                       value={formData.unidadOrganizativaId || ''}
                       disabled={isEditMode}
-                      onChange={(_e, d) =>
-                        setFormData((prev) => ({ ...prev, unidadOrganizativaId: d.value }))
-                      }
+                      onChange={(_e, d) => {
+                        setFormData((prev) => ({ ...prev, unidadOrganizativaId: d.value }));
+                        if (errors.unidadOrganizativaId) {
+                          setErrors((prev) => ({ ...prev, unidadOrganizativaId: '' }));
+                        }
+                      }}
                     >
                       <option value="">Seleccione sede organizacional...</option>
                       {unidades.map((u) => (
@@ -922,6 +965,22 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
           </div>
         </>
       )}
+
+      <CrearUnidadOrganizativaDrawer
+        abierto={drawerSedeAbierto}
+        alCerrar={() => setDrawerSedeAbierto(false)}
+        alGuardar={(nueva) => {
+          setUnidades((prev) => [...prev, nueva]);
+          setFormData((prev) => ({ ...prev, unidadOrganizativaId: nueva.id }));
+          if (errors.unidadOrganizativaId) {
+            setErrors((prev) => ({ ...prev, unidadOrganizativaId: '' }));
+          }
+          setStatusMessage({
+            type: 'success',
+            text: `Sede "${nueva.nombre}" creada y seleccionada exitosamente.`,
+          });
+        }}
+      />
     </div>
   );
 };

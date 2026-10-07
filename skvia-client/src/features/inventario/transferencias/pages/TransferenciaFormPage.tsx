@@ -45,6 +45,8 @@ import {
   History16Regular,
   Search16Regular,
   Dismiss16Regular,
+  ArrowDownload16Regular,
+  Print16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
@@ -971,6 +973,23 @@ export function TransferenciaFormPage() {
           )}
 
           {isViewMode && detalle && <ResolverDiferenciaDialog detalle={detalle} onResuelto={() => cargarDetalleTransferencia(detalle.id)} />}
+          {isViewMode && detalle && (
+            <>
+              <D365CommandButton
+                icon={<ArrowDownload16Regular />}
+                onClick={() => void TransferenciaService.descargarCargoPdf(detalle.id, detalle.numero)}
+              >
+                Cargo PDF
+              </D365CommandButton>
+              <D365CommandButton
+                icon={<Print16Regular />}
+                onClick={() => void TransferenciaService.abrirCargoPdf(detalle.id)}
+              >
+                Imprimir
+              </D365CommandButton>
+              <D365CommandDivider />
+            </>
+          )}
           {isViewMode && (
             <D365CommandButton
               icon={<ArrowSync16Regular />}

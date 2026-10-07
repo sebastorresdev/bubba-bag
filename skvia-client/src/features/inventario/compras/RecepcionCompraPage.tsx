@@ -21,6 +21,7 @@ import {
   Popover,
   PopoverTrigger,
   PopoverSurface,
+  Select,
 } from '@fluentui/react-components';
 import type { TableColumnDefinition } from '@fluentui/react-components';
 import {
@@ -35,6 +36,9 @@ import {
   ArrowClockwise16Regular,
   BarcodeScanner20Regular,
   ArrowUndo16Regular,
+  Copy16Regular,
+  ArrowDownload16Regular,
+  Location16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../components/common/D365CommandBar';
 import { D365EntityHeader } from '../../../components/common/D365EntityHeader';
@@ -44,6 +48,8 @@ import { CompraService } from './compra.service';
 import type { CompraDto, LineaRecepcionDatos } from './compra.service';
 import { ProductoService } from '../productos/services/producto.service';
 import type { ProductoDto } from '../productos/types/producto.types';
+import { AlmacenService } from '../almacenes/services/almacen.service';
+import type { UbicacionInventarioDto } from '../almacenes/types/almacen.types';
 
 const useStyles = makeStyles({
   scannerContainer: {
@@ -171,6 +177,8 @@ export function RecepcionCompraPage() {
   const [productosInfo, setProductosInfo] = useState<Record<string, ProductoDto>>({});
   const [popupRecibirTodoOpen, setPopupRecibirTodoOpen] = useState(false);
   const [popupRecibirTodoTopOpen, setPopupRecibirTodoTopOpen] = useState(false);
+  const [ubicaciones, setUbicaciones] = useState<UbicacionInventarioDto[]>([]);
+  const [ubicacionDestinoId, setUbicacionDestinoId] = useState<string>('');
 
   // Auto-eliminar mensaje de escaneo/recepción exitoso o aviso a los 3.5 segundos
   useEffect(() => {
@@ -193,6 +201,20 @@ export function RecepcionCompraPage() {
       setCompra(data);
 
       const yaRecepcionada = data.estado === 'Recibida' || data.estado === 'Recibida con faltantes';
+
+      // Cargar ubicaciones del almacén destino
+      if (data.almacenId) {
+        try {
+          const ubs = await AlmacenService.getUbicaciones(data.almacenId);
+          setUbicaciones(ubs || []);
+          const principal = ubs?.find(u => u.esPrincipal) || ubs?.[0];
+          if (principal) {
+            setUbicacionDestinoId(principal.id);
+          }
+        } catch (uErr) {
+          console.error('Error cargando ubicaciones del almacén:', uErr);
+        }
+      }
 
       // Inicializar series verificadas
       const verificadas = new Set<string>();
@@ -405,6 +427,37 @@ export function RecepcionCompraPage() {
     if (soloLectura) return;
     setSeriesVerificadas(new Set());
     setFeedback(null);
+  };
+
+  const copiarSeries = () => {
+    const seriesACopiar = seriesVisibles.map(s => s.serie);
+    if (seriesACopiar.length === 0) {
+      setFeedback({ tipo: 'aviso', texto: 'No hay series para copiar en la vista actual.' });
+      return;
+    }
+    navigator.clipboard.writeText(seriesACopiar.join('\n')).then(() => {
+      setFeedback({ tipo: 'ok', texto: `✓ ${seriesACopiar.length} series copiadas al portapapeles.` });
+    }).catch(() => {
+      setFeedback({ tipo: 'error', texto: 'No se pudo acceder al portapapeles.' });
+    });
+  };
+
+  const exportarSeriesCsv = () => {
+    if (todasLasSeries.length === 0) return;
+    const lineasCsv = ['"NumeroSerie","Producto","Estado"'];
+    todasLasSeries.forEach(s => {
+      const recibida = seriesVerificadas.has(s.serie) ? 'Recibida' : 'Pendiente';
+      lineasCsv.push(`"${s.serie}","${s.producto.replace(/"/g, '""')}","${recibida}"`);
+    });
+    const blob = new Blob([lineasCsv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Series_Recepcion_${compra?.numero || 'Compra'}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // Filtrado de series para la tabla
@@ -640,6 +693,7 @@ export function RecepcionCompraPage() {
         tipoDocumento: compra.tipoDocumento,
         numeroDocumento: compra.numeroDocumento,
         fechaDocumento: compra.fechaDocumento,
+        ubicacionId: ubicacionDestinoId || undefined,
         lineas: lineasARecepcionar,
       });
       setMensaje('Recepción registrada correctamente. El inventario ha sido actualizado.');
@@ -777,6 +831,52 @@ export function RecepcionCompraPage() {
       />
 
       <div className={formStyles.contentBody}>
+        {/* Selector de Ubicación de Destino en el Almacén */}
+        {ubicaciones.length > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              padding: '12px 16px',
+              backgroundColor: tokens.colorNeutralBackground1,
+              border: `1px solid ${tokens.colorNeutralStroke2}`,
+              borderRadius: tokens.borderRadiusMedium,
+              marginBottom: '16px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Location16Regular style={{ color: tokens.colorBrandForeground1 }} />
+              <div>
+                <Text weight="semibold" size={300} style={{ display: 'block' }}>
+                  Ubicación de destino en almacén:
+                </Text>
+                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                  El stock y las series ingresarán físicamente en esta ubicación
+                </Text>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Select
+                id="recepcion-ubicacion-destino"
+                aria-label="Ubicación de destino"
+                value={ubicacionDestinoId}
+                disabled={soloLectura || saving}
+                onChange={(_, d) => setUbicacionDestinoId(d.value)}
+                style={{ minWidth: '240px' }}
+              >
+                {ubicaciones.map(u => (
+                  <option key={u.id} value={u.id}>
+                    {u.nombre} ({u.codigo}) {u.esPrincipal ? '★ [Principal]' : ''}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+        )}
+
         {/* Recepción de Series con escáner y tabla integrados */}
         {tieneSerializados && (
           <div className={formStyles.card}>
@@ -797,13 +897,33 @@ export function RecepcionCompraPage() {
                 </Tab>
               </TabList>
 
-              <Badge
-                appearance={progresoPorcentaje === 100 ? 'filled' : 'tint'}
-                color={progresoPorcentaje === 100 ? 'success' : progresoPorcentaje > 0 ? 'brand' : 'subtle'}
-                size="small"
-              >
-                {cantidadVerificadas} de {totalSeries} recibidas ({progresoPorcentaje}%)
-              </Badge>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <Button
+                  size="small"
+                  appearance="subtle"
+                  icon={<Copy16Regular />}
+                  onClick={copiarSeries}
+                  title="Copiar series visibles al portapapeles"
+                >
+                  Copiar series
+                </Button>
+                <Button
+                  size="small"
+                  appearance="subtle"
+                  icon={<ArrowDownload16Regular />}
+                  onClick={exportarSeriesCsv}
+                  title="Exportar todas las series a formato CSV"
+                >
+                  Exportar CSV
+                </Button>
+                <Badge
+                  appearance={progresoPorcentaje === 100 ? 'filled' : 'tint'}
+                  color={progresoPorcentaje === 100 ? 'success' : progresoPorcentaje > 0 ? 'brand' : 'subtle'}
+                  size="small"
+                >
+                  {cantidadVerificadas} de {totalSeries} recibidas ({progresoPorcentaje}%)
+                </Badge>
+              </div>
             </div>
 
             {/* Input de escaneo directamente debajo del filtro */}

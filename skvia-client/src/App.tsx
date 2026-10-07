@@ -28,10 +28,13 @@ const ImportacionDetallePage = lazy(() => import('./features/gestion-datos').the
 const InventarioProductosPage = lazy(() => import('./features/inventario/inventario-productos').then((m) => ({ default: m.InventarioProductosPage })));
 const TransferenciasListPage = lazy(() => import('./features/inventario/transferencias').then((m) => ({ default: m.TransferenciasListPage })));
 const TransferenciaFormPage = lazy(() => import('./features/inventario/transferencias').then((m) => ({ default: m.TransferenciaFormPage })));
+const DespachoTecnicoPage = lazy(() => import('./features/inventario/transferencias/pages/DespachoTecnicoPage').then((m) => ({ default: m.DespachoTecnicoPage })));
+const DevolucionTecnicoPage = lazy(() => import('./features/inventario/transferencias/pages/DevolucionTecnicoPage').then((m) => ({ default: m.DevolucionTecnicoPage })));
 const ComprasListPage = lazy(() => import('./features/inventario/compras/ComprasListPage').then((m) => ({ default: m.ComprasListPage })));
 const CompraFormPage = lazy(() => import('./features/inventario/compras/CompraFormPage').then((m) => ({ default: m.CompraFormPage })));
 const RecepcionCompraPage = lazy(() => import('./features/inventario/compras/RecepcionCompraPage').then((m) => ({ default: m.RecepcionCompraPage })));
 const TrazabilidadSeriesPage = lazy(() => import('./features/inventario/series/TrazabilidadSeriesPage').then((m) => ({ default: m.TrazabilidadSeriesPage })));
+const ConfiguracionEmpresaPage = lazy(() => import('./features/configuracion-empresa/pages/ConfiguracionEmpresaPage').then((m) => ({ default: m.ConfiguracionEmpresaPage })));
 
 // Estructura Organizacional (CRUDs reales: Unidades Organizativas, Territorios, Recursos)
 const UnidadesOrganizativasListPage = lazy(() => import('./features/organizacion').then((m) => ({ default: m.UnidadesOrganizativasListPage })));
@@ -77,6 +80,7 @@ export default function App() {
               <Route path="configuracion/roles" element={<RolesListPage />} />
               <Route path="configuracion/roles/nuevo" element={<RolFormPage />} />
               <Route path="configuracion/roles/:id" element={<RolFormPage />} />
+              <Route path="configuracion/empresa" element={<ConfiguracionEmpresaPage />} />
               <Route index element={<Navigate to="/servicio-campo/productos" replace />} />
 
               {/* 1. Catálogo General - Unidades de Medida */}
@@ -106,6 +110,8 @@ export default function App() {
               <Route path="servicio-campo/transferencias" element={<TransferenciasListPage />} />
               <Route path="servicio-campo/transferencias/nuevo" element={<TransferenciaFormPage />} />
               <Route path="servicio-campo/transferencias/:id" element={<TransferenciaFormPage />} />
+              <Route path="servicio-campo/despacho-tecnicos" element={<DespachoTecnicoPage />} />
+              <Route path="servicio-campo/devolucion-tecnicos" element={<DevolucionTecnicoPage />} />
               <Route path="servicio-campo/recepciones-compra" element={<ComprasListPage />} />
               <Route path="servicio-campo/recepciones-compra/nuevo" element={<CompraFormPage key="nueva-compra" />} />
               <Route path="servicio-campo/recepciones-compra/:id" element={<CompraFormPage />} />

@@ -11,6 +11,7 @@ using BubbaBag.Modules.ServicioCampo.Domain.Clientes;
 using BubbaBag.Modules.ServicioCampo.Domain.Organizacion;
 using BubbaBag.Modules.ServicioCampo.Domain.Productos;
 using BubbaBag.Modules.ServicioCampo.Domain.Recursos;
+using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
 using Microsoft.EntityFrameworkCore;
 
 namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Services;
@@ -195,11 +196,42 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                     new("DescripcionProveedor", "Descripción / Cód. Proveedor", isRequired: false, isPrimary: false, type: "text", null, null,
                         "descripción / cód. proveedor", "descripción proveedor", "descripcion proveedor", "código proveedor", "codigo proveedor", "proveedor externo", "notas", "observaciones")
                 }
+            },
+
+            // 7. INVENTARIO INICIAL (SALDO DE APERTURA)
+            new()
+            {
+                EntityName = "InventarioInicial",
+                DisplayName = "Inventario Inicial (Saldo de Apertura)",
+                Description = "Carga de existencias iniciales con series y costos por almacén y ubicación.",
+                IconName = "Cube",
+                PrimaryKeyField = "Producto",
+                Fields = new List<EntityFieldDescriptorDto>
+                {
+                    new("Almacen", "Almacén*", isRequired: true, isPrimary: false, type: "lookup", null, "Almacenes",
+                        "almacén*", "almacen*", "almacén", "almacen", "bodega", "warehouse"),
+                    new("Producto", "Código de Producto*", isRequired: true, isPrimary: true, type: "lookup", null, "Productos",
+                        "código de producto*", "codigo de producto*", "producto*", "producto", "código", "codigo", "sku", "item"),
+                    new("Cantidad", "Cantidad*", isRequired: true, isPrimary: false, type: "decimal", null, null,
+                        "cantidad*", "cantidad", "stock", "stock inicial", "qty", "quantity"),
+                    new("Ubicacion", "Ubicación", isRequired: false, isPrimary: false, type: "text", null, null,
+                        "ubicación", "ubicacion", "zona", "estante", "rack", "location"),
+                    new("CostoUnitario", "Costo Unitario", isRequired: false, isPrimary: false, type: "decimal", null, null,
+                        "costo unitario", "costo", "unit cost", "cost"),
+                    new("Series", "Números de Serie", isRequired: false, isPrimary: false, type: "text", null, null,
+                        "números de serie", "numeros de serie", "series", "serie", "serials", "serial numbers"),
+                    new("Condicion", "Condición", isRequired: false, isPrimary: false, type: "enum",
+                        new List<string> { "Utilizable", "Dañado" }, null,
+                        "condición", "condicion", "estado fisico", "condition"),
+                    new("Observacion", "Observación / Motivo", isRequired: false, isPrimary: false, type: "text", null, null,
+                        "observación / motivo", "observación", "observacion", "motivo", "notas", "comentario")
+                }
             }
         };
-        return descriptores.Where(x => _usuario.HasPermission(x.EntityName == "Cliente"
-            ? BubbaBag.SharedKernel.Authorization.Permissions.Crm.ClientesCrear
-            : BubbaBag.SharedKernel.Authorization.Permissions.Inventario.CatalogosGestionar));
+        return descriptores.Where(x =>
+            x.EntityName == "Cliente" ? _usuario.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Crm.ClientesCrear) :
+            x.EntityName == "InventarioInicial" ? (_usuario.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Inventario.Operar) || _usuario.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Inventario.CatalogosGestionar)) :
+            _usuario.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Inventario.CatalogosGestionar));
     }
 
     public bool Supports(string entityName)
@@ -209,7 +241,8 @@ public class ServicioCampoImportProvider : IEntityImportProvider
             || entityName.Equals("UnidadMedida", StringComparison.OrdinalIgnoreCase)
             || entityName.Equals("Cliente", StringComparison.OrdinalIgnoreCase)
             || entityName.Equals("UnidadOrganizativa", StringComparison.OrdinalIgnoreCase)
-            || entityName.Equals("Territorio", StringComparison.OrdinalIgnoreCase);
+            || entityName.Equals("Territorio", StringComparison.OrdinalIgnoreCase)
+            || entityName.Equals("InventarioInicial", StringComparison.OrdinalIgnoreCase);
     }
 
     public async Task<EntityImportExecutionResult> ImportAsync(
@@ -220,8 +253,11 @@ public class ServicioCampoImportProvider : IEntityImportProvider
     {
         var permiso = entityName.Equals("Cliente", StringComparison.OrdinalIgnoreCase)
             ? BubbaBag.SharedKernel.Authorization.Permissions.Crm.ClientesCrear
-            : BubbaBag.SharedKernel.Authorization.Permissions.Inventario.CatalogosGestionar;
-        if (!_usuario.IsAuthenticated || !_usuario.HasPermission(permiso)) throw new UnauthorizedAccessException("No tiene permiso para importar esta entidad.");
+            : entityName.Equals("InventarioInicial", StringComparison.OrdinalIgnoreCase)
+                ? BubbaBag.SharedKernel.Authorization.Permissions.Inventario.Operar
+                : BubbaBag.SharedKernel.Authorization.Permissions.Inventario.CatalogosGestionar;
+        if (!_usuario.IsAuthenticated || (!_usuario.HasPermission(permiso) && !_usuario.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Inventario.CatalogosGestionar)))
+            throw new UnauthorizedAccessException("No tiene permiso para importar esta entidad.");
         if (entityName.Equals("Producto", StringComparison.OrdinalIgnoreCase))
         {
             return await ImportProductosAsync(mappedRows, duplicateMode, cancellationToken);
@@ -245,6 +281,10 @@ public class ServicioCampoImportProvider : IEntityImportProvider
         if (entityName.Equals("Territorio", StringComparison.OrdinalIgnoreCase))
         {
             return await ImportTerritoriosAsync(mappedRows, duplicateMode, cancellationToken);
+        }
+        if (entityName.Equals("InventarioInicial", StringComparison.OrdinalIgnoreCase))
+        {
+            return await ImportInventarioInicialAsync(mappedRows, duplicateMode, cancellationToken);
         }
 
         throw new NotSupportedException($"La entidad '{entityName}' no es soportada por este proveedor.");
@@ -809,6 +849,224 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                 zonasDb.Add(nueva);
                 exitosos++;
             }
+        }
+
+        await _context.SaveChangesAsync(ct);
+        return new EntityImportExecutionResult(rows.Count, exitosos, fallidos, parciales, errores);
+    }
+
+    private async Task<EntityImportExecutionResult> ImportInventarioInicialAsync(
+        IReadOnlyList<Dictionary<string, string>> rows,
+        string duplicateMode,
+        CancellationToken ct)
+    {
+        var errores = new List<EntityImportRowError>();
+        var almacenesDb = await _context.Almacenes.Where(a => a.Activo).ToListAsync(ct);
+        var productosDb = await _context.Productos.Where(p => p.Activo && p.Tipo == TipoProducto.Inventario).ToListAsync(ct);
+        var ubicacionesDb = await _context.UbicacionesInventario.Where(u => u.Activa).ToListAsync(ct);
+        var stocksDb = await _context.StocksAlmacen.ToListAsync(ct);
+        var seriesExistentesDb = await _context.ItemsSeriados.Select(s => s.NumeroSerie).ToListAsync(ct);
+        var seriesExistentesSet = new HashSet<string>(seriesExistentesDb, StringComparer.OrdinalIgnoreCase);
+
+        int exitosos = 0;
+        int fallidos = 0;
+        int parciales = 0;
+
+        for (int i = 0; i < rows.Count; i++)
+        {
+            int rowNumber = i + 2;
+            var row = rows[i];
+
+            string? almacenStr = GetVal(row, "Almacen")?.Trim();
+            string? productoStr = GetVal(row, "Producto")?.Trim().ToUpperInvariant();
+            string? cantidadStr = GetVal(row, "Cantidad")?.Trim();
+
+            if (string.IsNullOrWhiteSpace(almacenStr) && string.IsNullOrWhiteSpace(productoStr) && string.IsNullOrWhiteSpace(cantidadStr))
+                continue;
+
+            if (string.IsNullOrWhiteSpace(almacenStr))
+            {
+                errores.Add(new EntityImportRowError(rowNumber, "El almacén es obligatorio.", productoStr, "Almacen"));
+                fallidos++;
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(productoStr))
+            {
+                errores.Add(new EntityImportRowError(rowNumber, "El código del producto es obligatorio.", null, "Producto"));
+                fallidos++;
+                continue;
+            }
+
+            decimal cantidad = ParseDecimal(cantidadStr, 0m);
+            if (cantidad <= 0)
+            {
+                errores.Add(new EntityImportRowError(rowNumber, "La cantidad debe ser mayor a 0.", productoStr, "Cantidad", cantidadStr));
+                fallidos++;
+                continue;
+            }
+
+            var almacen = almacenesDb.FirstOrDefault(a =>
+                a.Codigo.Equals(almacenStr, StringComparison.OrdinalIgnoreCase) ||
+                a.Nombre.Equals(almacenStr, StringComparison.OrdinalIgnoreCase));
+
+            if (almacen == null)
+            {
+                errores.Add(new EntityImportRowError(rowNumber, $"No se encontró el almacén activo '{almacenStr}'.", productoStr, "Almacen", almacenStr));
+                fallidos++;
+                continue;
+            }
+
+            if (almacen.Tipo == TipoAlmacen.CustodiaPersonal)
+            {
+                errores.Add(new EntityImportRowError(rowNumber, "El inventario inicial solo puede cargarse en bodegas físicas, no en custodia personal.", productoStr, "Almacen", almacenStr));
+                fallidos++;
+                continue;
+            }
+
+            var producto = productosDb.FirstOrDefault(p =>
+                p.Codigo.Equals(productoStr, StringComparison.OrdinalIgnoreCase));
+
+            if (producto == null)
+            {
+                errores.Add(new EntityImportRowError(rowNumber, $"No se encontró el producto inventariable activo con código '{productoStr}'.", productoStr, "Producto", productoStr));
+                fallidos++;
+                continue;
+            }
+
+            // Ubicación dentro del almacén
+            string? ubicacionStr = GetVal(row, "Ubicacion")?.Trim();
+            UbicacionInventario? ubicacion = null;
+            if (!string.IsNullOrWhiteSpace(ubicacionStr))
+            {
+                ubicacion = ubicacionesDb.FirstOrDefault(u => u.AlmacenId == almacen.Id &&
+                    (u.Codigo.Equals(ubicacionStr, StringComparison.OrdinalIgnoreCase) || u.Nombre.Equals(ubicacionStr, StringComparison.OrdinalIgnoreCase)));
+                if (ubicacion == null)
+                {
+                    ubicacion = UbicacionInventario.Crear(almacen.Id, ubicacionStr.ToUpperInvariant(), ubicacionStr);
+                    _context.UbicacionesInventario.Add(ubicacion);
+                    ubicacionesDb.Add(ubicacion);
+                }
+            }
+            else
+            {
+                ubicacion = ubicacionesDb.FirstOrDefault(u => u.AlmacenId == almacen.Id && u.EsPrincipal);
+                if (ubicacion == null)
+                {
+                    ubicacion = UbicacionInventario.Crear(almacen.Id, "PRINCIPAL", "Principal", true);
+                    _context.UbicacionesInventario.Add(ubicacion);
+                    ubicacionesDb.Add(ubicacion);
+                }
+            }
+
+            // Condición física
+            string? condStr = GetVal(row, "Condicion")?.Trim();
+            CondicionInventario condicion = CondicionInventario.Utilizable;
+            if (!string.IsNullOrWhiteSpace(condStr) && (condStr.Contains("Dañ", StringComparison.OrdinalIgnoreCase) || condStr.Contains("Defec", StringComparison.OrdinalIgnoreCase)))
+            {
+                condicion = CondicionInventario.Defectuoso;
+            }
+
+            // Validación de series si el producto es serializado
+            List<string> seriesList = new();
+            if (producto.EsSerializado)
+            {
+                string? seriesRaw = GetVal(row, "Series");
+                if (!string.IsNullOrWhiteSpace(seriesRaw))
+                {
+                    seriesList = seriesRaw
+                        .Split(new[] { ',', ';', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(s => s.Trim().ToUpperInvariant())
+                        .Where(s => !string.IsNullOrEmpty(s))
+                        .Distinct()
+                        .ToList();
+                }
+
+                if (seriesList.Count != (int)cantidad)
+                {
+                    errores.Add(new EntityImportRowError(rowNumber, $"El producto '{producto.Nombre}' es serializado. Debe ingresar exactamente {cantidad} números de serie (se encontraron {seriesList.Count}).", productoStr, "Series"));
+                    fallidos++;
+                    continue;
+                }
+
+                var serieDuplicada = seriesList.FirstOrDefault(s => seriesExistentesSet.Contains(s));
+                if (serieDuplicada != null)
+                {
+                    errores.Add(new EntityImportRowError(rowNumber, $"La serie '{serieDuplicada}' ya existe en el sistema.", productoStr, "Series", serieDuplicada));
+                    fallidos++;
+                    continue;
+                }
+            }
+
+            decimal costoUnitario = ParseDecimal(GetVal(row, "CostoUnitario"), producto.CostoActual > 0 ? producto.CostoActual : producto.CostoEstandar);
+            string observacion = GetVal(row, "Observacion")?.Trim() ?? "Carga de inventario inicial (Apertura)";
+
+            // Aplicar alta de existencias
+            var stock = stocksDb.FirstOrDefault(s => s.UbicacionId == ubicacion.Id && s.ProductoId == producto.Id && s.Condicion == condicion);
+            if (stock == null)
+            {
+                stock = StockAlmacen.Crear(ubicacion.Id, producto.Id, cantidad, condicion);
+                _context.StocksAlmacen.Add(stock);
+                stocksDb.Add(stock);
+            }
+            else
+            {
+                stock.AumentarStock(cantidad);
+            }
+
+            // Registrar equipos seriados y su kardex
+            foreach (var numSerie in seriesList)
+            {
+                var itemSeriado = ItemSeriado.Crear(producto.Id, numSerie, ubicacion.Id, null, null, observacion);
+                _context.ItemsSeriados.Add(itemSeriado);
+                seriesExistentesSet.Add(numSerie);
+
+                var movSerie = MovimientoInventario.Registrar(
+                    TipoMovimientoInventario.AjusteInventario,
+                    producto.Id,
+                    1m,
+                    null,
+                    almacen.Id,
+                    itemSeriado.Id,
+                    null,
+                    null,
+                    "SALDO-INICIAL",
+                    _usuario.Id == Guid.Empty ? null : _usuario.Id,
+                    observacion,
+                    null,
+                    ubicacion.Id,
+                    null,
+                    null,
+                    DateTime.UtcNow,
+                    condicion);
+                _context.MovimientosInventario.Add(movSerie);
+            }
+
+            // Kardex para insumos no serializados
+            if (!producto.EsSerializado)
+            {
+                var movInsumo = MovimientoInventario.Registrar(
+                    TipoMovimientoInventario.AjusteInventario,
+                    producto.Id,
+                    cantidad,
+                    null,
+                    almacen.Id,
+                    null,
+                    null,
+                    null,
+                    "SALDO-INICIAL",
+                    _usuario.Id == Guid.Empty ? null : _usuario.Id,
+                    observacion,
+                    null,
+                    ubicacion.Id,
+                    null,
+                    null,
+                    DateTime.UtcNow,
+                    condicion);
+                _context.MovimientosInventario.Add(movInsumo);
+            }
+
+            exitosos++;
         }
 
         await _context.SaveChangesAsync(ct);

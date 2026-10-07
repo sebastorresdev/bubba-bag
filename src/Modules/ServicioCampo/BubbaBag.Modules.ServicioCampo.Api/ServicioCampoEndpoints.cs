@@ -13,5 +13,6 @@ public static class ServicioCampoEndpoints
         app.MapCatalogosProductoEndpoints();
         app.MapMantenimientosEndpoints();
         app.MapOrganizacionEndpoints();
+        app.MapEmpresaEndpoints();
     }
 }
