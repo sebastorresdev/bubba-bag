@@ -1370,8 +1370,9 @@ export function TransferenciaFormPage() {
 
       <div className={formStyles.contentBody}>
         {selectedTab === 'general' ? (
-          <div className={formStyles.card}>
-            <div className={formStyles.grid2Cols}>
+          <div className={formStyles.halfCardWrapper}>
+            <div className={formStyles.card}>
+              <div className={formStyles.grid2Cols}>
               <D365FormField label="Número de transferencia">
                 <Input
                   className={formStyles.d365ControlFull}
@@ -1516,16 +1517,19 @@ export function TransferenciaFormPage() {
                 </D365FormField>
               </div>
             ) : (
-              <D365FormField label="Fecha real del despacho (opcional)">
-                <DatePicker
-                  className={formStyles.d365ControlFull}
-                  disabled={bloqueado}
-                  placeholder="Seleccionar fecha..."
-                  value={fechaReal ? new Date(fechaReal) : undefined}
-                  formatDate={(d) => (d ? d.toLocaleDateString('es-PE') : '')}
-                  onSelectDate={(d) => setFechaReal(d ? d.toISOString() : '')}
-                />
-              </D365FormField>
+              <div className={formStyles.grid2Cols}>
+                <D365FormField label="Fecha real del despacho (opcional)">
+                  <DatePicker
+                    className={formStyles.d365ControlFull}
+                    disabled={bloqueado}
+                    placeholder="Seleccionar fecha..."
+                    value={fechaReal ? new Date(fechaReal) : undefined}
+                    formatDate={(d) => (d ? d.toLocaleDateString('es-PE') : '')}
+                    onSelectDate={(d) => setFechaReal(d ? d.toISOString() : '')}
+                  />
+                </D365FormField>
+                <div />
+              </div>
             )}
             <D365FormField label="Motivo u observación" align="top">
               <Textarea
@@ -1537,6 +1541,7 @@ export function TransferenciaFormPage() {
                 onChange={(_, d) => setObservacion(d.value)}
               />
             </D365FormField>
+            </div>
           </div>
         ) : selectedTab === 'productos' ? (
           <div className={formStyles.card}>

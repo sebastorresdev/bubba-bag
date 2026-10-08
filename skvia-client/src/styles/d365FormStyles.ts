@@ -88,6 +88,16 @@ export const useD365FormStyles = makeStyles({
     width: '100%',
     boxSizing: 'border-box',
   },
+  halfCardWrapper: {
+    width: '50%',
+    minWidth: 'min(100%, 640px)',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
+    '@media (max-width: 900px)': {
+      width: '100%',
+      minWidth: '0',
+    },
+  },
   cardSectionTitle: {
     fontSize: tokens.fontSizeBase200,
     fontWeight: tokens.fontWeightSemibold,
