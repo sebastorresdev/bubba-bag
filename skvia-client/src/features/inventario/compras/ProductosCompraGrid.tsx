@@ -36,6 +36,7 @@ import {
   Checkmark16Regular,
   CheckmarkCircle16Filled,
   Search16Regular,
+  LockClosed16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton } from '../../../components/common/D365CommandBar';
 import { D365FormField } from '../../../components/common/D365FormField';
@@ -157,13 +158,13 @@ export function ProductosCompraGrid({
   const productoId = linea?.productoId;
 
   useEffect(() => {
-    setResultados([]);
-    if (!abierto || soloLectura || soloSeries || productoId || consulta.length < 2) {
+    if (!abierto || soloLectura || soloSeries || productoId) {
       setBuscando(false);
       return;
     }
     const controller = new AbortController();
     setBuscando(true);
+    const delay = consulta ? 300 : 0;
     const timer = setTimeout(() => {
       void ProductoService.buscarInventariables(consulta, controller.signal)
         .then(ps => {
@@ -175,14 +176,18 @@ export function ProductosCompraGrid({
         .finally(() => {
           if (!controller.signal.aborted) setBuscando(false);
         });
-    }, 300);
+    }, delay);
     return () => {
       clearTimeout(timer);
       controller.abort();
     };
   }, [abierto, consulta, productoId, soloLectura, soloSeries]);
 
-  const opciones = producto ? [producto] : resultados;
+  const opciones = producto
+    ? [producto]
+    : resultados.length > 0
+    ? resultados
+    : productos.filter(p => p.activo && p.tipo === 'Inventario');
   const dinero = (valor: number) => valor.toLocaleString('es-PE', { style: 'currency', currency: moneda });
 
   const abrir = (x?: LineaCompraForm) => {
@@ -668,38 +673,64 @@ export function ProductosCompraGrid({
                       <Combobox
                         id="compra-producto"
                         className={styles.control}
+                        placeholder="Seleccione o busque un producto..."
                         value={producto ? `${producto.codigo} · ${producto.nombre}` : busqueda}
                         selectedOptions={linea.productoId ? [linea.productoId] : []}
                         disabled={soloLectura}
+                        onOpenChange={(_, data) => {
+                          if (data.open && resultados.length === 0 && !linea.productoId) {
+                            void ProductoService.buscarInventariables(consulta)
+                              .then(ps => setResultados(ps))
+                              .catch(() => {});
+                          }
+                        }}
                         onChange={e => {
-                          setResultados([]);
                           setError('');
                           setBusqueda(e.target.value);
                           setLinea({ ...linea, productoId: '', series: '' });
                         }}
                         onOptionSelect={(_, d) => {
-                          const p = resultados.find(p => p.id === d.optionValue);
+                          const p = (producto && producto.id === d.optionValue)
+                            ? producto
+                            : [...resultados, ...productos].find(x => x.id === d.optionValue);
                           if (!p) return;
                           alCargarProducto(p);
-                          setLinea({ ...linea, productoId: p.id, series: '' });
+                          setLinea({
+                            ...linea,
+                            productoId: p.id,
+                            series: '',
+                            costo: linea.costo || (p.costoActual ? String(p.costoActual) : p.costoEstandar ? String(p.costoEstandar) : ''),
+                          });
                           setBusqueda('');
                         }}
                       >
-                        {buscando && <Option value="cargando" disabled>Cargando…</Option>}
+                        {buscando && <Option value="cargando" disabled>Cargando productos…</Option>}
                         {opciones.map(p => (
                           <Option key={p.id} value={p.id} text={`${p.codigo} · ${p.nombre}`}>
                             <div className={styles.opcion}>
-                              <Text>{p.nombre}</Text>
+                              <Text weight="medium">{p.nombre}</Text>
                               <Text size={200} className={styles.codigo}>
-                                {p.codigo}
+                                {p.codigo} {p.nombreUnidadMedidaDefecto ? `(${p.nombreUnidadMedidaDefecto})` : ''}
                               </Text>
                             </div>
                           </Option>
                         ))}
+                        {!buscando && opciones.length === 0 && (
+                          <Option value="sin_resultados" disabled>
+                            No se encontraron productos inventariables
+                          </Option>
+                        )}
                       </Combobox>
                     </D365FormField>
-                    <D365FormField label="Unidad">
-                      <Text>{producto?.nombreUnidadMedidaDefecto ?? '---'}</Text>
+                    <D365FormField label="Unidad" htmlFor="compra-unidad">
+                      <Input
+                        id="compra-unidad"
+                        className={styles.control}
+                        value={producto?.nombreUnidadMedidaDefecto ?? '---'}
+                        readOnly
+                        appearance="filled-darker"
+                        contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />}
+                      />
                     </D365FormField>
                     <D365FormField label="Cantidad" required htmlFor="compra-cantidad">
                       <Input
@@ -725,8 +756,15 @@ export function ProductosCompraGrid({
                         onChange={(_, d) => setLinea({ ...linea, costo: d.value })}
                       />
                     </D365FormField>
-                    <D365FormField label="Importe">
-                      <Text>{dinero(importeLinea(linea))}</Text>
+                    <D365FormField label="Importe" htmlFor="compra-importe">
+                      <Input
+                        id="compra-importe"
+                        className={styles.control}
+                        value={dinero(importeLinea(linea))}
+                        readOnly
+                        appearance="filled-darker"
+                        contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />}
+                      />
                     </D365FormField>
                   </>
                 )}

@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Button,
-  Input,
-  Select,
   TableCellLayout,
   Badge,
   createTableColumn,
@@ -14,11 +11,8 @@ import {
   MenuPopover,
   MenuList,
   MenuItem,
-  Popover,
-  PopoverTrigger,
-  PopoverSurface,
-  Tooltip,
   Text,
+  Input,
 } from '@fluentui/react-components';
 import type { TableColumnDefinition, SelectionItemId } from '@fluentui/react-components';
 import {
@@ -32,19 +26,37 @@ import {
   Box16Regular,
   ChevronDown16Regular,
   Checkmark16Regular,
-  DataFunnel20Regular,
+  DocumentTable20Regular,
+  DocumentText20Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton } from '../../../components/common/D365CommandBar';
 import {
   D365EntityTable,
   D365TableToolbarTools,
   type D365EntityTableRef,
+  type D365FilterField,
 } from '../../../components/common/D365EntityTable';
 import { useD365ListStyles } from '../../../styles/d365ListStyles';
 import { AlmacenService } from '../almacenes/services/almacen.service';
 import type { AlmacenDto } from '../almacenes/types/almacen.types';
 import { InventarioProductoService } from '../inventario-productos/services/inventario-producto.service';
 import type { ItemSeriadoStockDto } from '../inventario-productos/types/inventario-producto.types';
+import { exportToExcel, exportToCSV, type ExportColumn } from '../../../utils/exportUtils';
+
+
+
+const columnasExportacion: ExportColumn<ItemSeriadoStockDto>[] = [
+  { header: 'Número de Serie', accessor: s => s.numeroSerie },
+  { header: 'Código de Producto', accessor: s => s.codigoProducto },
+  { header: 'Producto', accessor: s => s.nombreProducto },
+  { header: 'Estado de Custodia', accessor: s => s.estado },
+  { header: 'Almacén / Custodio', accessor: s => (s.nombreAlmacen || '').replace(/^[\p{Emoji}\s]+/u, '').trim() },
+  { header: 'Ubicación', accessor: s => s.nombreUbicacion || '' },
+  { header: 'Condición', accessor: s => s.condicion || '' },
+  { header: 'SmartCard', accessor: s => s.numeroSmartCard || '' },
+  { header: 'MAC Address', accessor: s => s.macAddress || '' },
+  { header: 'Fecha de Ingreso', accessor: s => new Date(s.createdAt).toLocaleDateString('es-PE') },
+];
 
 const useStyles = makeStyles({
   serieText: {
@@ -61,14 +73,42 @@ export function TrazabilidadSeriesPage() {
   const tableRef = useRef<D365EntityTableRef>(null);
   const [series, setSeries] = useState<ItemSeriadoStockDto[]>([]);
   const [almacenes, setAlmacenes] = useState<AlmacenDto[]>([]);
-  const [almacenId, setAlmacenId] = useState('');
+  const [almacenId] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState('TODOS');
   const [vistaActual, setVistaActual] = useState<'todas' | 'almacen' | 'transito' | 'tecnico' | 'cliente' | 'averiado'>('todas');
   const [selectedIds, setSelectedIds] = useState<Set<SelectionItemId>>(new Set());
-  const [filtroPopoverOpen, setFiltroPopoverOpen] = useState(false);
   const [buscar, setBuscar] = useState('');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const filterFields = useMemo<D365FilterField[]>(() => [
+    { id: 'numeroSerie', label: 'Número de Serie', type: 'string' },
+    { id: 'codigoProducto', label: 'Código', type: 'string' },
+    { id: 'nombreProducto', label: 'Producto', type: 'string' },
+    {
+      id: 'estado',
+      label: 'Estado de Custodia',
+      type: 'string',
+      options: [
+        { value: 'EnAlmacen', label: 'En Almacén' },
+        { value: 'EnTransito', label: 'En Tránsito' },
+        { value: 'EnCustodiaTecnico', label: 'Custodia Técnico' },
+        { value: 'InstaladoEnCliente', label: 'Instalado en Cliente' },
+        { value: 'AveriadoEnAlmacen', label: 'Averiado' },
+        { value: 'DevueltoAProveedor', label: 'Devuelto a DIRECTV' },
+      ],
+    },
+    {
+      id: 'nombreAlmacen',
+      label: 'Almacén / Custodio',
+      type: 'string',
+      options: almacenes.map(a => ({ value: a.nombre, label: a.nombre })),
+    },
+    { id: 'nombreUbicacion', label: 'Ubicación', type: 'string' },
+    { id: 'condicion', label: 'Condición', type: 'string' },
+    { id: 'numeroSmartCard', label: 'SmartCard', type: 'string' },
+    { id: 'macAddress', label: 'MAC', type: 'string' },
+  ], [almacenes]);
 
   const vistas = useMemo(() => [
     { id: 'todas', nombre: 'Todas las Series', estado: 'TODOS' },
@@ -121,32 +161,17 @@ export function TrazabilidadSeriesPage() {
     });
   }, [series, estadoFiltro, buscar]);
 
-  // Exportar a CSV (Auditorías DIRECTV)
+  // Exportar a Excel (.xlsx) y CSV (.csv)
+  const exportarExcel = () => {
+    if (seriesFiltradas.length === 0) return;
+    const fecha = new Date().toISOString().slice(0, 10);
+    exportToExcel(seriesFiltradas, columnasExportacion, `Trazabilidad_Series_${fecha}`);
+  };
+
   const exportarCSV = () => {
     if (seriesFiltradas.length === 0) return;
-    const encabezados = ['Serie', 'CodigoProducto', 'Producto', 'Estado', 'Almacen', 'Ubicacion', 'Condicion', 'SmartCard', 'MAC', 'FechaIngreso'];
-    const filas = seriesFiltradas.map(s => [
-      `"${s.numeroSerie}"`,
-      `"${s.codigoProducto}"`,
-      `"${s.nombreProducto}"`,
-      `"${s.estado}"`,
-      `"${(s.nombreAlmacen || '').replace(/^[\p{Emoji}\s]+/u, '').trim()}"`,
-      `"${s.nombreUbicacion || ''}"`,
-      `"${s.condicion || ''}"`,
-      `"${s.numeroSmartCard || ''}"`,
-      `"${s.macAddress || ''}"`,
-      `"${new Date(s.createdAt).toISOString()}"`,
-    ]);
-    const contenido = [encabezados.join(','), ...filas.map(f => f.join(','))].join('\r\n');
-    const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Trazabilidad_Series_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const fecha = new Date().toISOString().slice(0, 10);
+    exportToCSV(seriesFiltradas, columnasExportacion, `Trazabilidad_Series_${fecha}`);
   };
 
   const columns: TableColumnDefinition<ItemSeriadoStockDto>[] = useMemo(() => [
@@ -324,13 +349,26 @@ export function TrazabilidadSeriesPage() {
           <D365CommandButton icon={<ArrowClockwise16Regular />} onClick={() => void cargar()}>
             Actualizar
           </D365CommandButton>
-          <D365CommandButton
-            icon={<ArrowDownload16Regular />}
-            disabled={seriesFiltradas.length === 0}
-            onClick={exportarCSV}
-          >
-            Exportar a Excel / CSV
-          </D365CommandButton>
+          <Menu>
+            <MenuTrigger disableButtonEnhancement>
+              <D365CommandButton
+                icon={<ArrowDownload16Regular />}
+                disabled={seriesFiltradas.length === 0}
+              >
+                Exportar a Excel / CSV
+              </D365CommandButton>
+            </MenuTrigger>
+            <MenuPopover>
+              <MenuList>
+                <MenuItem icon={<DocumentTable20Regular />} onClick={exportarExcel}>
+                  Libro de Excel estático (*.xlsx)
+                </MenuItem>
+                <MenuItem icon={<DocumentText20Regular />} onClick={exportarCSV}>
+                  Valores separados por comas (*.csv)
+                </MenuItem>
+              </MenuList>
+            </MenuPopover>
+          </Menu>
         </div>
       </D365CommandBar>
 
@@ -364,78 +402,6 @@ export function TrazabilidadSeriesPage() {
         </Menu>
 
         <div className={listStyles.viewToolsRight}>
-          <Popover
-            open={filtroPopoverOpen}
-            onOpenChange={(_, data) => setFiltroPopoverOpen(data.open)}
-            positioning="below-end"
-          >
-            <PopoverTrigger disableButtonEnhancement>
-              <Tooltip content="Filtrar por almacén y estado" relationship="label">
-                <Button
-                  appearance={almacenId || (estadoFiltro !== 'TODOS' && vistaActual === 'todas') ? 'primary' : 'subtle'}
-                  size="medium"
-                  icon={<DataFunnel20Regular className={almacenId ? undefined : listStyles.iconBrand} />}
-                >
-                  {almacenId ? 'Filtros (1)' : 'Editar filtros'}
-                </Button>
-              </Tooltip>
-            </PopoverTrigger>
-            <PopoverSurface style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px', minWidth: '280px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text weight="semibold">Filtros de consulta</Text>
-                {(almacenId || estadoFiltro !== 'TODOS') && (
-                  <Button
-                    size="small"
-                    appearance="subtle"
-                    onClick={() => {
-                      setAlmacenId('');
-                      setEstadoFiltro('TODOS');
-                      setVistaActual('todas');
-                    }}
-                  >
-                    Restablecer
-                  </Button>
-                )}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground3 }}>ALMACÉN</Text>
-                <Select
-                  size="small"
-                  value={almacenId}
-                  onChange={(_, d) => setAlmacenId(d.value)}
-                >
-                  <option value="">Todos los almacenes</option>
-                  {almacenes.map(a => (
-                    <option key={a.id} value={a.id}>
-                      {a.nombre}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground3 }}>ESTADO DE CUSTODIA</Text>
-                <Select
-                  size="small"
-                  value={estadoFiltro}
-                  onChange={(_, d) => {
-                    setEstadoFiltro(d.value);
-                    const match = vistas.find(v => v.estado === d.value);
-                    if (match) setVistaActual(match.id as any);
-                    else setVistaActual('todas');
-                  }}
-                >
-                  <option value="TODOS">Todos los estados</option>
-                  <option value="EnAlmacen">En Almacén</option>
-                  <option value="EnTransito">En Tránsito</option>
-                  <option value="EnCustodiaTecnico">Custodia Técnico</option>
-                  <option value="InstaladoEnCliente">Instalado en Cliente</option>
-                  <option value="AveriadoEnAlmacen">Averiado</option>
-                  <option value="DevueltoAProveedor">Devuelto a DIRECTV</option>
-                </Select>
-              </div>
-            </PopoverSurface>
-          </Popover>
-
           <D365TableToolbarTools tableRef={tableRef} />
           <Input
             className={listStyles.searchBox}
@@ -456,6 +422,7 @@ export function TrazabilidadSeriesPage() {
         tableId="series-inventario"
         items={seriesFiltradas}
         columns={columns}
+        filterFields={filterFields}
         loading={cargando}
         error={error}
         onRetry={() => void cargar()}
