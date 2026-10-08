@@ -23,16 +23,20 @@ public class Compra : Entity<Guid>
 
     private Compra() { }
 
-    public static Compra Registrar(Guid id, string proveedor, string tipoDocumento, string documento,
+    public static Compra Registrar(Guid id, string numero, string proveedor, string tipoDocumento, string documento,
         DateOnly fecha, string moneda, Guid? almacenId, string? observacion, string lineasJson, decimal total, Guid usuarioId)
         => new()
         {
-            Id = id, Numero = $"CMP-{DateTime.UtcNow:yyyyMMdd}-{id.ToString("N")[..8].ToUpperInvariant()}",
+            Id = id, Numero = numero.Trim().ToUpperInvariant(),
             Proveedor = proveedor.Trim().ToUpperInvariant(), TipoDocumento = tipoDocumento,
             NumeroDocumento = documento.Trim().ToUpperInvariant(), FechaDocumento = fecha,
             Moneda = moneda, AlmacenId = almacenId, Observacion = observacion?.Trim(),
             LineasJson = lineasJson, Total = total, UsuarioId = usuarioId, FechaRegistro = DateTime.UtcNow
         };
+
+    public static Compra Registrar(Guid id, string proveedor, string tipoDocumento, string documento,
+        DateOnly fecha, string moneda, Guid? almacenId, string? observacion, string lineasJson, decimal total, Guid usuarioId)
+        => Registrar(id, $"CMP-{DateTime.UtcNow:yyyyMMdd}-{id.ToString("N")[..8].ToUpperInvariant()}", proveedor, tipoDocumento, documento, fecha, moneda, almacenId, observacion, lineasJson, total, usuarioId);
 
     public void Actualizar(string proveedor, string tipoDocumento, string documento, DateOnly fecha,
         string moneda, Guid? almacenId, string? observacion, string lineasJson, decimal total)

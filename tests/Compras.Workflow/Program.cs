@@ -15,7 +15,7 @@ var creado = await handler.HandleAsync(datos);
 Check(creado.IsSuccess, "Se puede guardar un borrador sin productos ni comprobante");
 var compra = await db.Compras.SingleAsync();
 var codigo = compra.Numero;
-Check(codigo.StartsWith("CMP-") && compra.Estado == "Borrador", "El primer guardado asigna código y estado");
+Check(codigo == "CMP-000001" && compra.Estado == "Borrador", "El primer guardado asigna código correlativo y estado");
 Check(!await db.StocksAlmacen.AnyAsync() && !await db.MovimientosInventario.AnyAsync(), "Guardar no altera inventario");
 Check((await handler.ProcesarAsync(compra.Id, true, default)).IsFailure, "No se puede recepcionar un borrador");
 Check((await handler.ProcesarAsync(compra.Id, false, default)).IsFailure, "No se puede solicitar un borrador incompleto");

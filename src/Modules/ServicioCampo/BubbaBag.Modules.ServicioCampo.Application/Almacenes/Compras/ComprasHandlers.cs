@@ -34,7 +34,7 @@ public class ObtenerComprasHandler(IServicioCampoDbContext context, ICurrentUser
     }
 }
 
-public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser user) : ICommandHandler<CrearCompraCommand, Result<Guid>>
+public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser user, ICodigoSecuencialService? seqService = null) : ICommandHandler<CrearCompraCommand, Result<Guid>>
 {
     public Task<Result<Guid>> HandleAsync(CrearCompraCommand command, CancellationToken cancellationToken = default)
         => GuardarAsync(command, null, cancellationToken);
@@ -75,7 +75,32 @@ public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser us
         if (total >= 10000000000000000m) return Result<Guid>.Failure("El importe excede el límite permitido.");
         if (compra is null)
         {
-            compra = Compra.Registrar(Guid.NewGuid(), command.Proveedor, command.TipoDocumento, command.NumeroDocumento, command.FechaDocumento, command.Moneda, command.AlmacenId, command.Observacion, JsonSerializer.Serialize(detalles), total, user.Id);
+            string numeroCompra;
+            if (seqService != null)
+            {
+                do
+                {
+                    numeroCompra = await seqService.SiguienteCodigoAsync(
+                        prefijo: "CMP",
+                        nombreSecuencia: "seq_compras",
+                        esquema: "inventario",
+                        longitud: 6,
+                        cancellationToken: ct);
+                } while (await context.Compras.AnyAsync(x => x.Numero == numeroCompra, ct));
+            }
+            else
+            {
+                var count = await context.Compras.CountAsync(ct);
+                numeroCompra = $"CMP-{(count + 1):D6}";
+                var i = 1;
+                while (await context.Compras.AnyAsync(x => x.Numero == numeroCompra, ct))
+                {
+                    numeroCompra = $"CMP-{(count + 1 + i):D6}";
+                    i++;
+                }
+            }
+
+            compra = Compra.Registrar(Guid.NewGuid(), numeroCompra, command.Proveedor, command.TipoDocumento, command.NumeroDocumento, command.FechaDocumento, command.Moneda, command.AlmacenId, command.Observacion, JsonSerializer.Serialize(detalles), total, user.Id);
             await context.Compras.AddAsync(compra, ct);
         }
         else compra.Actualizar(command.Proveedor, command.TipoDocumento, command.NumeroDocumento, command.FechaDocumento, command.Moneda, command.AlmacenId, command.Observacion, JsonSerializer.Serialize(detalles), total);
@@ -243,18 +268,18 @@ public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser us
     }
 }
 
-public class ActualizarCompraHandler(IServicioCampoDbContext context, ICurrentUser user) : ICommandHandler<ActualizarCompraCommand, Result<Guid>>
+public class ActualizarCompraHandler(IServicioCampoDbContext context, ICurrentUser user, ICodigoSecuencialService? seqService = null) : ICommandHandler<ActualizarCompraCommand, Result<Guid>>
 {
     public Task<Result<Guid>> HandleAsync(ActualizarCompraCommand command, CancellationToken cancellationToken = default)
-        => new CrearCompraHandler(context, user).GuardarAsync(command.Datos, command.Id, cancellationToken);
+        => new CrearCompraHandler(context, user, seqService).GuardarAsync(command.Datos, command.Id, cancellationToken);
 }
-public class ProcesarCompraHandler(IServicioCampoDbContext context, ICurrentUser user) : ICommandHandler<ProcesarCompraCommand, Result<Guid>>
+public class ProcesarCompraHandler(IServicioCampoDbContext context, ICurrentUser user, ICodigoSecuencialService? seqService = null) : ICommandHandler<ProcesarCompraCommand, Result<Guid>>
 {
     public Task<Result<Guid>> HandleAsync(ProcesarCompraCommand command, CancellationToken cancellationToken = default)
-        => new CrearCompraHandler(context, user).ProcesarAsync(command.Id, command.Accion == "recepcionar", cancellationToken, command.Accion == "enviar");
+        => new CrearCompraHandler(context, user, seqService).ProcesarAsync(command.Id, command.Accion == "recepcionar", cancellationToken, command.Accion == "enviar");
 }
-public class RecepcionarCompraHandler(IServicioCampoDbContext context, ICurrentUser user) : ICommandHandler<RecepcionarCompraCommand, Result<Guid>>
+public class RecepcionarCompraHandler(IServicioCampoDbContext context, ICurrentUser user, ICodigoSecuencialService? seqService = null) : ICommandHandler<RecepcionarCompraCommand, Result<Guid>>
 {
     public Task<Result<Guid>> HandleAsync(RecepcionarCompraCommand command, CancellationToken cancellationToken = default)
-        => new CrearCompraHandler(context, user).ProcesarAsync(command.Id, true, cancellationToken, recepcion: command.Datos);
+        => new CrearCompraHandler(context, user, seqService).ProcesarAsync(command.Id, true, cancellationToken, recepcion: command.Datos);
 }

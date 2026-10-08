@@ -1,6 +1,6 @@
 # Compras
 
-Inventario → Compra → Recepciones contiene el listado y la ficha de compras. El código interno `CMP-…` se genera al primer Guardar y se conserva en las ediciones y cambios de estado; es independiente del comprobante.
+Inventario → Compra → Recepciones contiene el listado y la ficha de compras. El código interno correlativo `CMP-000001` se genera al primer Guardar mediante secuencia atómica y se conserva en las ediciones y cambios de estado; es independiente del comprobante.
 
 ## Flujo
 
