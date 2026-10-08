@@ -1,14 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  DataGrid,
-  DataGridBody,
-  DataGridCell,
-  DataGridHeader,
-  DataGridHeaderCell,
-  DataGridRow,
-  Button,
-  Input,
   Link,
   Menu,
   MenuItem,
@@ -17,7 +9,6 @@ import {
   MenuTrigger,
   TableCellLayout,
   Text,
-  Tooltip,
   createTableColumn,
 } from '@fluentui/react-components';
 import type { SelectionItemId, TableColumnDefinition } from '@fluentui/react-components';
@@ -25,13 +16,14 @@ import {
   ArrowClockwise16Regular,
   Checkmark16Regular,
   ChevronDown16Regular,
-  DataFunnel20Regular,
-  Search16Regular,
-  TableEdit16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton } from '../../../../components/common/D365CommandBar';
-import { D365ListState } from '../../../../components/common/D365ListState';
-import { TableEmptyState } from '../../../../components/common/TableEmptyState';
+import {
+  D365EntityTable,
+  D365TableToolbarTools,
+  type D365EntityTableRef,
+} from '../../../../components/common/D365EntityTable';
+import type { D365FilterField } from '../../../../components/common/D365FiltrosAvanzadosDrawer';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 import { AlmacenService } from '../../almacenes/services/almacen.service';
 import type { AlmacenDto } from '../../almacenes/types/almacen.types';
@@ -42,9 +34,25 @@ import { SeriesAlmacenDrawer } from '../components/SeriesAlmacenDrawer';
 const formatoCantidad = new Intl.NumberFormat('es-PE', { maximumFractionDigits: 4 });
 const formatoMoneda = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
 
+export type InventarioProductoItem = InventarioProductoDto & { id: string };
+
+const filterFields: D365FilterField[] = [
+  { id: 'codigoProducto', label: 'Código de producto', type: 'string' },
+  { id: 'nombreProducto', label: 'Producto', type: 'string' },
+  { id: 'nombreAlmacen', label: 'Almacén', type: 'string' },
+  { id: 'nombreUbicacion', label: 'Ubicación', type: 'string' },
+  { id: 'condicion', label: 'Condición', type: 'string' },
+  { id: 'nombreUnidadMedida', label: 'Unidad', type: 'string' },
+  { id: 'cantidadDisponible', label: 'Disponible', type: 'number' },
+  { id: 'cantidadReservada', label: 'Reservado', type: 'number' },
+  { id: 'cantidadTotal', label: 'Existencia', type: 'number' },
+  { id: 'valorInventario', label: 'Valor', type: 'number' },
+];
+
 export function InventarioProductosPage() {
   const styles = useD365ListStyles();
   const navigate = useNavigate();
+  const tableRef = useRef<D365EntityTableRef>(null);
   const [registros, setRegistros] = useState<InventarioProductoDto[]>([]);
   const [almacenes, setAlmacenes] = useState<AlmacenDto[]>([]);
   const [almacenId, setAlmacenId] = useState('');
@@ -85,6 +93,13 @@ export function InventarioProductosPage() {
     });
   }, [almacenId, buscar, registros]);
 
+  const itemsConId: InventarioProductoItem[] = useMemo(() => {
+    return registrosFiltrados.map((item) => ({
+      ...item,
+      id: item.stockId,
+    }));
+  }, [registrosFiltrados]);
+
   const totales = useMemo(() => registrosFiltrados.reduce(
     (acumulado, registro) => ({
       disponible: acumulado.disponible + registro.cantidadDisponible,
@@ -94,61 +109,94 @@ export function InventarioProductosPage() {
     { disponible: 0, reservado: 0, valor: 0 },
   ), [registrosFiltrados]);
 
-  const columns: TableColumnDefinition<InventarioProductoDto>[] = useMemo(() => [
+  const columns: TableColumnDefinition<InventarioProductoItem>[] = useMemo(() => [
     createTableColumn({
-      columnId: 'codigo',
+      columnId: 'codigoProducto',
+      compare: (a, b) => a.codigoProducto.localeCompare(b.codigoProducto),
       renderHeaderCell: () => 'Código',
-      renderCell: (item: InventarioProductoDto) => <TableCellLayout>{item.codigoProducto}</TableCellLayout>,
+      renderCell: (item: InventarioProductoItem) => <TableCellLayout>{item.codigoProducto}</TableCellLayout>,
     }),
     createTableColumn({
-      columnId: 'producto',
+      columnId: 'nombreProducto',
+      compare: (a, b) => a.nombreProducto.localeCompare(b.nombreProducto),
       renderHeaderCell: () => 'Producto',
-      renderCell: (item: InventarioProductoDto) => (
+      renderCell: (item: InventarioProductoItem) => (
         <TableCellLayout truncate>
-          <Link as="button" onClick={() => navigate(`/servicio-campo/productos/${item.productoId}`)}>
+          <Link
+            as="button"
+            className={styles.primaryLink}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/servicio-campo/productos/${item.productoId}`);
+            }}
+          >
             {item.nombreProducto}
           </Link>
         </TableCellLayout>
       ),
     }),
     createTableColumn({
-      columnId: 'almacen',
+      columnId: 'nombreAlmacen',
+      compare: (a, b) => a.nombreAlmacen.localeCompare(b.nombreAlmacen),
       renderHeaderCell: () => 'Almacén',
-      renderCell: (item: InventarioProductoDto) => (
+      renderCell: (item: InventarioProductoItem) => (
         <TableCellLayout truncate>
-          <Link as="button" onClick={() => navigate(`/servicio-campo/almacenes/${item.almacenId}`)}>
+          <Link
+            as="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/servicio-campo/almacenes/${item.almacenId}`);
+            }}
+          >
             {item.nombreAlmacen}
           </Link>
         </TableCellLayout>
       ),
     }),
-    createTableColumn({ columnId: 'ubicacion', renderHeaderCell: () => 'Ubicación', renderCell: item => item.nombreUbicacion }),
-    createTableColumn({ columnId: 'condicion', renderHeaderCell: () => 'Condición', renderCell: item => item.condicion }),
     createTableColumn({
-      columnId: 'unidad',
+      columnId: 'nombreUbicacion',
+      compare: (a, b) => (a.nombreUbicacion || '').localeCompare(b.nombreUbicacion || ''),
+      renderHeaderCell: () => 'Ubicación',
+      renderCell: (item: InventarioProductoItem) => <TableCellLayout>{item.nombreUbicacion || '—'}</TableCellLayout>,
+    }),
+    createTableColumn({
+      columnId: 'condicion',
+      compare: (a, b) => (a.condicion || '').localeCompare(b.condicion || ''),
+      renderHeaderCell: () => 'Condición',
+      renderCell: (item: InventarioProductoItem) => <TableCellLayout>{item.condicion || '—'}</TableCellLayout>,
+    }),
+    createTableColumn({
+      columnId: 'nombreUnidadMedida',
+      compare: (a, b) => (a.nombreUnidadMedida || '').localeCompare(b.nombreUnidadMedida || ''),
       renderHeaderCell: () => 'Unidad',
-      renderCell: (item: InventarioProductoDto) => <TableCellLayout>{item.nombreUnidadMedida ?? '—'}</TableCellLayout>,
+      renderCell: (item: InventarioProductoItem) => <TableCellLayout>{item.nombreUnidadMedida ?? '—'}</TableCellLayout>,
     }),
     createTableColumn({
-      columnId: 'disponible',
+      columnId: 'cantidadDisponible',
+      compare: (a, b) => a.cantidadDisponible - b.cantidadDisponible,
       renderHeaderCell: () => 'Disponible',
-      renderCell: (item: InventarioProductoDto) => <TableCellLayout>{formatoCantidad.format(item.cantidadDisponible)}</TableCellLayout>,
+      renderCell: (item: InventarioProductoItem) => <TableCellLayout>{formatoCantidad.format(item.cantidadDisponible)}</TableCellLayout>,
     }),
     createTableColumn({
-      columnId: 'reservado',
+      columnId: 'cantidadReservada',
+      compare: (a, b) => a.cantidadReservada - b.cantidadReservada,
       renderHeaderCell: () => 'Reservado',
-      renderCell: (item: InventarioProductoDto) => <TableCellLayout>{formatoCantidad.format(item.cantidadReservada)}</TableCellLayout>,
+      renderCell: (item: InventarioProductoItem) => <TableCellLayout>{formatoCantidad.format(item.cantidadReservada)}</TableCellLayout>,
     }),
     createTableColumn({
-      columnId: 'total',
+      columnId: 'cantidadTotal',
+      compare: (a, b) => a.cantidadTotal - b.cantidadTotal,
       renderHeaderCell: () => 'Existencia',
-      renderCell: (item: InventarioProductoDto) => (
+      renderCell: (item: InventarioProductoItem) => (
         <TableCellLayout>
           {item.esSerializado && item.cantidadTotal > 0 ? (
             <Link
               as="button"
               style={{ fontWeight: 600, textDecoration: 'underline' }}
-              onClick={() => setItemParaVerSeries(item)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setItemParaVerSeries(item);
+              }}
               title="Clic para ver detalle de series registradas"
             >
               {formatoCantidad.format(item.cantidadTotal)} (Ver series)
@@ -160,11 +208,12 @@ export function InventarioProductosPage() {
       ),
     }),
     createTableColumn({
-      columnId: 'valor',
+      columnId: 'valorInventario',
+      compare: (a, b) => a.valorInventario - b.valorInventario,
       renderHeaderCell: () => 'Valor',
-      renderCell: (item: InventarioProductoDto) => <TableCellLayout>{formatoMoneda.format(item.valorInventario)}</TableCellLayout>,
+      renderCell: (item: InventarioProductoItem) => <TableCellLayout>{formatoMoneda.format(item.valorInventario)}</TableCellLayout>,
     }),
-  ], [navigate]);
+  ], [navigate, styles.primaryLink]);
 
   return (
     <div className={styles.root}>
@@ -209,56 +258,30 @@ export function InventarioProductosPage() {
           </MenuPopover>
         </Menu>
         <div className={styles.viewToolsRight}>
-          <Tooltip content="Modificar orden y visibilidad de columnas" relationship="label">
-            <Button appearance="subtle" size="medium" icon={<TableEdit16Regular className={styles.iconBrand} />}>
-              Editar columnas
-            </Button>
-          </Tooltip>
-          <Tooltip content="Filtrar por almacén desde el selector de vista" relationship="label">
-            <Button appearance="subtle" size="medium" icon={<DataFunnel20Regular className={styles.iconBrand} />}>
-              Editar filtros
-            </Button>
-          </Tooltip>
-          <Input
-            className={styles.searchBox}
-            size="medium"
-            contentBefore={<Search16Regular />}
-            placeholder="Buscar" aria-label="Buscar"
-            value={buscar}
-            onChange={(_, data) => setBuscar(data.value)}
+          <D365TableToolbarTools
+            tableRef={tableRef}
+            searchValue={buscar}
+            onSearchChange={setBuscar}
+            searchPlaceholder="Buscar en inventario"
           />
         </div>
       </div>
 
-      <div className={styles.gridContainer}>
-        <D365ListState loading={cargando} error={error} onRetry={() => void cargar()} loadingLabel="Cargando inventario...">
-          <DataGrid
-            items={registrosFiltrados}
-            columns={columns}
-            sortable
-            selectionMode="multiselect"
-            selectedItems={seleccionados}
-            onSelectionChange={(_, data) => setSeleccionados(data.selectedItems)}
-            getRowId={(item) => item.stockId}
-            focusMode="composite"
-            size="medium"
-            className={styles.table}
-          >
-            <DataGridHeader>
-              <DataGridRow>{({ renderHeaderCell }) => <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>}</DataGridRow>
-            </DataGridHeader>
-            {registrosFiltrados.length === 0 ? <TableEmptyState /> : (
-              <DataGridBody<InventarioProductoDto>>
-                {({ item, rowId }) => (
-                  <DataGridRow<InventarioProductoDto> key={rowId} className={styles.dataRow}>
-                    {({ renderCell }) => <DataGridCell className={styles.dataCell}>{renderCell(item)}</DataGridCell>}
-                  </DataGridRow>
-                )}
-              </DataGridBody>
-            )}
-          </DataGrid>
-        </D365ListState>
-      </div>
+      <D365EntityTable
+        ref={tableRef}
+        entityName="Inventario de Productos"
+        tableId="inventario-productos"
+        items={itemsConId}
+        columns={columns}
+        loading={cargando}
+        error={error}
+        onRetry={cargar}
+        filterFields={filterFields}
+        selectionMode="multiselect"
+        selectedItems={seleccionados}
+        onSelectionChange={(_, data) => setSeleccionados(data.selectedItems)}
+        onRowDoubleClick={(item) => navigate(`/servicio-campo/productos/${item.productoId}`)}
+      />
 
       <footer className={styles.footer}>
         <div>
