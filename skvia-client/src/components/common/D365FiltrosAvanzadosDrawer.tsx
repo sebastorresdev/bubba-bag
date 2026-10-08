@@ -129,6 +129,9 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     gap: '8px',
+    width: '100%',
+    alignSelf: 'stretch',
+    boxSizing: 'border-box',
   },
   treeRootHeader: {
     display: 'flex',
@@ -224,6 +227,9 @@ const useStyles = makeStyles({
     display: 'flex',
     justifyContent: 'flex-end',
     gap: '8px',
+    width: '100%',
+    alignSelf: 'stretch',
+    boxSizing: 'border-box',
   },
   emptyNotice: {
     padding: '24px',

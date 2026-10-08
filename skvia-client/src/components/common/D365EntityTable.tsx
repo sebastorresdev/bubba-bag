@@ -10,19 +10,15 @@ import {
   type SelectionItemId,
   type OnSelectionChangeData,
   Button,
+  Badge,
   Input,
-  Menu,
-  MenuItem,
-  MenuList,
-  MenuPopover,
-  MenuTrigger,
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
 import {
   ArrowSortDown16Regular,
   ArrowSortUp16Regular,
-  ChevronDown16Regular,
+  DataFunnel20Regular,
   Search16Regular,
   TableEdit16Regular,
 } from '@fluentui/react-icons';
@@ -30,22 +26,23 @@ import { useD365ListStyles } from '../../styles/d365ListStyles';
 import { D365ListState } from './D365ListState';
 import { TableEmptyState } from './TableEmptyState';
 import {
+  D365FiltrosAvanzadosDrawer,
+  type D365FilterCondition,
+  type D365FilterField,
+} from './D365FiltrosAvanzadosDrawer';
+import {
   D365EditarColumnasDrawer,
   type D365ColumnConfig,
 } from './D365EditarColumnasDrawer';
 
-export interface D365FilterField {
-  id: string;
-  label: string;
-  type?: 'string' | 'number' | 'date' | 'boolean';
-  options?: Array<{ value: string; label: string }>;
-}
+export { type D365FilterField };
 
 const useStyles = makeStyles({
   headerCell: {
     cursor: 'pointer',
     transitionProperty: 'background-color',
     transitionDuration: tokens.durationFaster,
+    userSelect: 'none',
     ':hover': {
       backgroundColor: tokens.colorSubtleBackgroundHover,
     },
@@ -65,8 +62,7 @@ const useStyles = makeStyles({
   headerTitleBtn: {
     display: 'flex',
     alignItems: 'center',
-    gap: '4px',
-    cursor: 'pointer',
+    gap: '6px',
     flexGrow: 1,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -76,15 +72,9 @@ const useStyles = makeStyles({
       color: tokens.colorCompoundBrandForeground1,
     },
   },
-  headerActions: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '2px',
-    marginLeft: '4px',
-    flexShrink: 0,
-  },
   sortIcon: {
     color: tokens.colorCompoundBrandForeground1,
+    fontSize: '14px',
   },
   resizeHandle: {
     position: 'absolute',
@@ -104,12 +94,42 @@ const useStyles = makeStyles({
   resizingLine: {
     backgroundColor: tokens.colorCompoundBrandBackground,
   },
-  tableToolsContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-  },
 });
+
+export function matchFilterCondition<T>(item: T, cond: D365FilterCondition): boolean {
+  const rawValue = (item as Record<string, unknown>)[cond.field];
+  const strVal = rawValue === null || rawValue === undefined ? '' : String(rawValue);
+  const target = cond.value || '';
+
+  switch (cond.operator) {
+    case 'contains':
+      return strVal.toLowerCase().includes(target.toLowerCase());
+    case 'not_contains':
+      return !strVal.toLowerCase().includes(target.toLowerCase());
+    case 'equals':
+      return strVal.toLowerCase() === target.toLowerCase();
+    case 'not_equals':
+      return strVal.toLowerCase() !== target.toLowerCase();
+    case 'starts_with':
+      return strVal.toLowerCase().startsWith(target.toLowerCase());
+    case 'ends_with':
+      return strVal.toLowerCase().endsWith(target.toLowerCase());
+    case 'greater_than':
+      return Number(rawValue) > Number(target);
+    case 'less_than':
+      return Number(rawValue) < Number(target);
+    case 'greater_or_equal':
+      return Number(rawValue) >= Number(target);
+    case 'less_or_equal':
+      return Number(rawValue) <= Number(target);
+    case 'is_empty':
+      return strVal.trim() === '';
+    case 'not_empty':
+      return strVal.trim() !== '';
+    default:
+      return true;
+  }
+}
 
 export interface D365EntityTableProps<T extends { id: string }> {
   items: T[];
@@ -128,9 +148,9 @@ export interface D365EntityTableProps<T extends { id: string }> {
 }
 
 export interface D365EntityTableRef {
+  openFilters: () => void;
   openColumns: () => void;
-  openFilters?: () => void;
-  getActiveFilterCount?: () => number;
+  getActiveFilterCount: () => number;
 }
 
 export interface D365TableToolbarToolsProps {
@@ -145,17 +165,26 @@ export interface D365TableToolbarToolsProps {
 }
 
 export function D365TableToolbarTools({
+  onOpenFilters,
   onOpenColumns,
+  activeFilterCount = 0,
   tableRef,
   searchValue,
   onSearchChange,
   searchPlaceholder = 'Buscar',
   searchAriaLabel,
 }: D365TableToolbarToolsProps) {
+  const handleFilters = () => {
+    if (tableRef?.current) tableRef.current.openFilters();
+    else if (onOpenFilters) onOpenFilters();
+  };
+
   const handleColumns = () => {
     if (tableRef?.current) tableRef.current.openColumns();
     else if (onOpenColumns) onOpenColumns();
   };
+
+  const count = tableRef?.current ? tableRef.current.getActiveFilterCount() : activeFilterCount;
 
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
@@ -170,7 +199,23 @@ export function D365TableToolbarTools({
         Editar columnas
       </Button>
 
-      {/* 2° Cuadro de búsqueda al final a la derecha */}
+      {/* 2° Editar filtros (con Drawer) */}
+      <Button
+        appearance={count > 0 ? 'secondary' : 'subtle'}
+        icon={<DataFunnel20Regular />}
+        title="Editar filtros (aplicar filtros)"
+        aria-label="Editar filtros"
+        onClick={handleFilters}
+      >
+        Editar filtros
+        {count > 0 && (
+          <Badge appearance="filled" color="brand" size="small" style={{ marginLeft: '4px' }}>
+            {count}
+          </Badge>
+        )}
+      </Button>
+
+      {/* 3° Cuadro de búsqueda al final a la derecha */}
       {onSearchChange !== undefined && (
         <Input
           size="medium"
@@ -197,6 +242,7 @@ function D365EntityTableInner<T extends { id: string }>(
     onSelectionChange,
     entityName = 'Registros',
     tableId,
+    filterFields,
     onRowDoubleClick,
     showToolbarTools = false,
   }: D365EntityTableProps<T>,
@@ -317,10 +363,83 @@ function D365EntityTableInner<T extends { id: string }>(
     }
   };
 
-  // 4. Ordenamiento de Datos
-  const processedItems = useMemo(() => {
-    const result = [...items];
+  // 4. Advanced Filter Drawer State (Dynamics 365)
+  const [drawerFiltrosOpen, setDrawerFiltrosOpen] = useState(false);
+  const [advancedConditions, setAdvancedConditions] = useState<D365FilterCondition[]>(() => {
+    const saved = localStorage.getItem(`d365_grid_filters_${storageId}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+        if (parsed && Array.isArray(parsed.conditions)) return parsed.conditions;
+      } catch {
+        // fallback
+      }
+    }
+    return [];
+  });
 
+  const [advancedLogicalOp, setAdvancedLogicalOp] = useState<'and' | 'or'>(() => {
+    const saved = localStorage.getItem(`d365_grid_filters_${storageId}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.logicalOperator === 'and' || parsed.logicalOperator === 'or')) {
+          return parsed.logicalOperator;
+        }
+      } catch {
+        // fallback
+      }
+    }
+    return 'and';
+  });
+
+  const handleApplyAdvancedFilters = (
+    conditions: D365FilterCondition[],
+    logicalOperator: 'and' | 'or' = 'and'
+  ) => {
+    setAdvancedConditions(conditions);
+    setAdvancedLogicalOp(logicalOperator);
+    localStorage.setItem(
+      `d365_grid_filters_${storageId}`,
+      JSON.stringify({ conditions, logicalOperator })
+    );
+  };
+
+  const handleResetAdvancedFilters = () => {
+    setAdvancedConditions([]);
+    setAdvancedLogicalOp('and');
+    localStorage.removeItem(`d365_grid_filters_${storageId}`);
+  };
+
+  // Campos para Filtros Avanzados
+  const derivedFields = useMemo<D365FilterField[]>(() => {
+    if (filterFields && filterFields.length > 0) return filterFields;
+    return columnsConfig.map((c) => ({
+      id: c.id,
+      label: c.label,
+      type: 'string',
+    }));
+  }, [filterFields, columnsConfig]);
+
+  // 5. Filtrado & Ordenamiento de Datos
+  const processedItems = useMemo(() => {
+    let result = [...items];
+
+    // Aplicar Filtros Avanzados
+    if (advancedConditions.length > 0) {
+      if (advancedLogicalOp === 'or') {
+        result = result.filter((item) =>
+          advancedConditions.some((cond) => matchFilterCondition(item, cond))
+        );
+      } else {
+        result = result.filter((item) =>
+          advancedConditions.every((cond) => matchFilterCondition(item, cond))
+        );
+      }
+    }
+
+    // Aplicar Ordenamiento
     if (sortColumn) {
       const colDef = columns.find((c) => String(c.columnId) === sortColumn);
       result.sort((a, b) => {
@@ -343,7 +462,7 @@ function D365EntityTableInner<T extends { id: string }>(
     }
 
     return result;
-  }, [items, sortColumn, sortDirection, columns]);
+  }, [items, advancedConditions, advancedLogicalOp, sortColumn, sortDirection, columns]);
 
   // Columnas visibles y ordenadas
   const activeColumns = useMemo(() => {
@@ -354,9 +473,9 @@ function D365EntityTableInner<T extends { id: string }>(
   }, [columns, columnsConfig]);
 
   React.useImperativeHandle(ref, () => ({
+    openFilters: () => setDrawerFiltrosOpen(true),
     openColumns: () => setDrawerColumnasOpen(true),
-    openFilters: () => {},
-    getActiveFilterCount: () => 0,
+    getActiveFilterCount: () => advancedConditions.length,
   }));
 
   return (
@@ -364,7 +483,9 @@ function D365EntityTableInner<T extends { id: string }>(
       {showToolbarTools && (
         <div style={{ padding: '4px 16px', display: 'flex', justifyContent: 'flex-end' }}>
           <D365TableToolbarTools
+            onOpenFilters={() => setDrawerFiltrosOpen(true)}
             onOpenColumns={() => setDrawerColumnasOpen(true)}
+            activeFilterCount={advancedConditions.length}
           />
         </div>
       )}
@@ -391,6 +512,7 @@ function D365EntityTableInner<T extends { id: string }>(
                     <DataGridHeaderCell
                       sortIcon={null}
                       className={customStyles.headerCell}
+                      onClick={() => handleToggleSort(idStr)}
                       style={{
                         width: width ? `${width}px` : undefined,
                         minWidth: width ? `${width}px` : '70px',
@@ -404,7 +526,6 @@ function D365EntityTableInner<T extends { id: string }>(
                       <div className={customStyles.headerCellContent}>
                         <div
                           className={customStyles.headerTitleBtn}
-                          onClick={() => handleToggleSort(idStr)}
                           title="Haga clic para ordenar"
                         >
                           {renderHeaderCell()}
@@ -414,43 +535,6 @@ function D365EntityTableInner<T extends { id: string }>(
                             ) : (
                               <ArrowSortDown16Regular className={customStyles.sortIcon} />
                             ))}
-                        </div>
-
-                        <div className={customStyles.headerActions}>
-                          <Menu>
-                            <MenuTrigger disableButtonEnhancement>
-                              <Button
-                                size="small"
-                                appearance="subtle"
-                                icon={<ChevronDown16Regular />}
-                                title="Opciones de columna"
-                                aria-label="Opciones de columna"
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                            </MenuTrigger>
-                            <MenuPopover>
-                              <MenuList>
-                                <MenuItem
-                                  icon={<ArrowSortUp16Regular />}
-                                  onClick={() => {
-                                    setSortColumn(idStr);
-                                    setSortDirection('asc');
-                                  }}
-                                >
-                                  Ordenar de menor a mayor
-                                </MenuItem>
-                                <MenuItem
-                                  icon={<ArrowSortDown16Regular />}
-                                  onClick={() => {
-                                    setSortColumn(idStr);
-                                    setSortDirection('desc');
-                                  }}
-                                >
-                                  Ordenar de mayor a menor
-                                </MenuItem>
-                              </MenuList>
-                            </MenuPopover>
-                          </Menu>
                         </div>
 
                         {/* Control de redimensionamiento de columna */}
@@ -501,6 +585,18 @@ function D365EntityTableInner<T extends { id: string }>(
           </DataGrid>
         </D365ListState>
       </div>
+
+      {/* Drawer Filtros Avanzados (Dynamics 365) */}
+      <D365FiltrosAvanzadosDrawer
+        open={drawerFiltrosOpen}
+        onClose={() => setDrawerFiltrosOpen(false)}
+        entityName={entityName}
+        fields={derivedFields}
+        conditions={advancedConditions}
+        logicalOperator={advancedLogicalOp}
+        onApply={handleApplyAdvancedFilters}
+        onReset={handleResetAdvancedFilters}
+      />
 
       {/* Drawer Editar Columnas (Dynamics 365) */}
       <D365EditarColumnasDrawer
