@@ -305,16 +305,30 @@ public static class OrganizacionEndpoints
         IServicioCampoDbContext context,
         CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(request.Codigo) || string.IsNullOrWhiteSpace(request.Nombre))
-            return Results.BadRequest("El código y nombre del territorio son obligatorios.");
+        if (string.IsNullOrWhiteSpace(request.Nombre))
+            return Results.BadRequest("El nombre del territorio es obligatorio.");
         if (request.UnidadOrganizativaId == Guid.Empty)
             return Results.BadRequest("Debe seleccionar la unidad organizativa (sede) a la que pertenece el territorio.");
 
-        var existe = await context.ZonasOperativas.AnyAsync(z => z.Codigo.ToUpper() == request.Codigo.Trim().ToUpper(), ct);
-        if (existe) return Results.BadRequest($"Ya existe un territorio con el código '{request.Codigo.Trim().ToUpper()}'.");
+        var codigo = request.Codigo?.Trim().ToUpper();
+        if (string.IsNullOrWhiteSpace(codigo))
+        {
+            var totalZonas = await context.ZonasOperativas.CountAsync(ct) + 1;
+            codigo = $"TER-{totalZonas:D4}";
+            while (await context.ZonasOperativas.AnyAsync(z => z.Codigo == codigo, ct))
+            {
+                totalZonas++;
+                codigo = $"TER-{totalZonas:D4}";
+            }
+        }
+        else
+        {
+            var existe = await context.ZonasOperativas.AnyAsync(z => z.Codigo.ToUpper() == codigo, ct);
+            if (existe) return Results.BadRequest($"Ya existe un territorio con el código '{codigo}'.");
+        }
 
         var territorio = ZonaOperativa.Crear(
-            request.Codigo,
+            codigo,
             request.Nombre,
             request.UnidadOrganizativaId,
             request.AlmacenPredeterminadoId,
@@ -618,17 +632,32 @@ public static class OrganizacionEndpoints
         IServicioCampoDbContext context,
         CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(request.Codigo) || string.IsNullOrWhiteSpace(request.NombreCompleto))
-            return Results.BadRequest("El código y nombre completo del recurso son obligatorios.");
+        if (string.IsNullOrWhiteSpace(request.NombreCompleto))
+            return Results.BadRequest("El nombre completo del recurso es obligatorio.");
 
-        var existe = await context.Recursos.AnyAsync(r => r.Codigo.ToUpper() == request.Codigo.Trim().ToUpper(), ct);
-        if (existe) return Results.BadRequest($"Ya existe un recurso con el código '{request.Codigo.Trim().ToUpper()}'.");
+        var codigo = request.Codigo?.Trim().ToUpper();
+        if (string.IsNullOrWhiteSpace(codigo))
+        {
+            var prefijo = request.Tipo == 1 ? "TEC" : "REC";
+            var total = await context.Recursos.CountAsync(ct) + 1;
+            codigo = $"{prefijo}-{total:D4}";
+            while (await context.Recursos.AnyAsync(r => r.Codigo == codigo, ct))
+            {
+                total++;
+                codigo = $"{prefijo}-{total:D4}";
+            }
+        }
+        else
+        {
+            var existe = await context.Recursos.AnyAsync(r => r.Codigo.ToUpper() == codigo, ct);
+            if (existe) return Results.BadRequest($"Ya existe un recurso con el código '{codigo}'.");
+        }
 
         var errorUsuario = await ValidarUsuarioRecurso(request.UsuarioId, usuarios, null, context, ct);
         if (errorUsuario != null) return Results.BadRequest(errorUsuario);
         var tipo = (TipoRecurso)(request.Tipo <= 0 ? 1 : request.Tipo);
         var recurso = Recurso.Crear(
-            request.Codigo,
+            codigo,
             request.NombreCompleto,
             tipo,
             request.ZonaOperativaId,

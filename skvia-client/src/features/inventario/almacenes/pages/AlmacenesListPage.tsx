@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  Input,
   Text,
   Link,
   Badge,
@@ -10,14 +9,13 @@ import {
   MenuList,
   MenuItem,
   MenuPopover,
-  DataGrid,
-  DataGridHeader,
-  DataGridHeaderCell,
-  DataGridBody,
-  DataGridRow,
-  DataGridCell,
   TableCellLayout,
   createTableColumn,
+  Toast,
+  Toaster,
+  ToastTitle,
+  useId,
+  useToastController,
 } from '@fluentui/react-components';
 import type { TableColumnDefinition, SelectionItemId } from '@fluentui/react-components';
 import {
@@ -25,16 +23,13 @@ import {
   ArrowClockwise16Regular,
   Checkmark16Regular,
   ChevronDown16Regular,
-  Search16Regular,
   TableEdit16Regular,
 } from '@fluentui/react-icons';
 import { AlmacenService } from '../services/almacen.service';
 import type { AlmacenDto } from '../types/almacen.types';
-import { TableEmptyState } from '../../../../components/common/TableEmptyState';
-import { D365ListState } from '../../../../components/common/D365ListState';
+import { D365EntityTable, D365TableToolbarTools, type D365EntityTableRef } from '../../../../components/common/D365EntityTable';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
-import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 
 export interface AlmacenesListPageProps {
   onNewAlmacen?: () => void;
@@ -52,7 +47,18 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
   const [almacenes, setAlmacenes] = useState<AlmacenDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const toasterId = useId('almacenes-toaster');
+  const { dispatchToast } = useToastController(toasterId);
+
+  const notifySuccess = useCallback((title: string) => {
+    dispatchToast(
+      <Toast>
+        <ToastTitle>{title}</ToastTitle>
+      </Toast>,
+      { intent: 'success', position: 'top-end' }
+    );
+  }, [dispatchToast]);
 
   // Filters & Search
   const [searchKeyword, setSearchKeyword] = useState<string>('');
@@ -62,6 +68,7 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
 
   // Fluent UI v9 DataGrid Selection
   const [selectedIds, setSelectedIds] = useState<Set<SelectionItemId>>(new Set());
+  const tableRef = useRef<D365EntityTableRef>(null);
 
   const loadData = async () => {
     try {
@@ -85,9 +92,9 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
     const flashMessage = (location.state as { successMessage?: string } | null)?.successMessage;
     if (!flashMessage) return;
 
-    setSuccessMessage(flashMessage);
+    notifySuccess(flashMessage);
     navigate(location.pathname, { replace: true, state: null });
-  }, [location.key, location.pathname, location.state, navigate]);
+  }, [location.key, location.pathname, location.state, navigate, notifySuccess]);
 
   const filteredAlmacenes = useMemo(() => {
     let result = [...almacenes];
@@ -250,11 +257,7 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
 
   return (
     <div className={styles.root}>
-      {successMessage && (
-        <D365MessageBar intent="success" onDismiss={() => setSuccessMessage(null)}>
-          {successMessage}
-        </D365MessageBar>
-      )}
+      <Toaster toasterId={toasterId} position="top-end" />
 
       {/* 1. TOP COMMAND BAR */}
       <D365CommandBar ariaLabel="Comandos de almacenes">
@@ -350,70 +353,36 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
         </Menu>
 
         <div className={styles.viewToolsRight}>
-          <Input
-            className={styles.searchBox}
-            size="medium"
-            contentBefore={<Search16Regular />}
-            placeholder="Buscar" aria-label="Buscar por nombre o descripción"
-            value={searchKeyword}
-            onChange={(_, data) => setSearchKeyword(data.value)}
+          <D365TableToolbarTools
+            tableRef={tableRef}
+            searchValue={searchKeyword}
+            onSearchChange={setSearchKeyword}
+            searchPlaceholder="Buscar por nombre o descripción"
           />
         </div>
       </div>
 
-      {/* 3. FLUENT UI V9 NATIVE DATAGRID */}
-      <div className={styles.gridContainer}>
-        <D365ListState loading={loading} error={error} onRetry={loadData} loadingLabel="Cargando almacenes...">
-          <DataGrid
-            items={filteredAlmacenes}
-            columns={columns}
-            sortable
-            selectionMode="multiselect"
-            selectedItems={selectedIds}
-            onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
-            getRowId={(item) => item.id}
-            focusMode="composite"
-            size="medium"
-            className={styles.table}
-          >
-            <DataGridHeader>
-              <DataGridRow>
-                {({ renderHeaderCell }) => (
-                  <DataGridHeaderCell>
-                    {renderHeaderCell()}
-                  </DataGridHeaderCell>
-                )}
-              </DataGridRow>
-            </DataGridHeader>
-
-            {filteredAlmacenes.length === 0 ? (
-              <TableEmptyState />
-            ) : (
-              <DataGridBody<AlmacenDto>>
-                {({ item, rowId }) => (
-                  <DataGridRow<AlmacenDto>
-                    key={rowId}
-                    className={styles.dataRow}
-                    onDoubleClick={() => {
-                      if (onSelectAlmacen) {
-                        onSelectAlmacen(item);
-                      } else {
-                        navigate(`/servicio-campo/almacenes/${item.id}`);
-                      }
-                    }}
-                  >
-                    {({ renderCell }) => (
-                      <DataGridCell className={styles.dataCell}>
-                        {renderCell(item)}
-                      </DataGridCell>
-                    )}
-                  </DataGridRow>
-                )}
-              </DataGridBody>
-            )}
-          </DataGrid>
-        </D365ListState>
-      </div>
+      {/* 3. D365 ADVANCED ENTITY TABLE */}
+      <D365EntityTable
+        ref={tableRef}
+        entityName="Almacenes"
+        tableId="almacenes"
+        items={filteredAlmacenes}
+        columns={columns}
+        loading={loading}
+        error={error}
+        onRetry={loadData}
+        selectionMode="multiselect"
+        selectedItems={selectedIds}
+        onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
+        onRowDoubleClick={(item) => {
+          if (onSelectAlmacen) {
+            onSelectAlmacen(item);
+          } else {
+            navigate(`/servicio-campo/almacenes/${item.id}`);
+          }
+        }}
+      />
 
       {/* 4. BOTTOM STATUS BAR */}
       <footer className={styles.footer}>

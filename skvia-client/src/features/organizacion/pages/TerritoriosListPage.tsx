@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Badge,
-  Input,
   Link,
   Menu,
   MenuTrigger,
@@ -23,10 +22,13 @@ import {
   ChevronDown16Regular,
   DismissCircle16Regular,
   Eye16Regular,
-  Search16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../components/common/D365CommandBar';
-import { D365EntityTable } from '../../../components/common/D365EntityTable';
+import {
+  D365EntityTable,
+  D365TableToolbarTools,
+  type D365EntityTableRef,
+} from '../../../components/common/D365EntityTable';
 import { D365MessageBar } from '../../../components/common/D365MessageBar';
 import { ImportacionDrawer } from '../../../components/common/ImportacionDrawer';
 import { useD365ListStyles } from '../../../styles/d365ListStyles';
@@ -44,6 +46,7 @@ const nombresVistaTerritorios: Record<VistaTerritorios, string> = {
 export function TerritoriosListPage() {
   const styles = useD365ListStyles();
   const navigate = useNavigate();
+  const tableRef = useRef<D365EntityTableRef>(null);
   const [datos, setDatos] = useState<TerritorioDto[]>([]);
   const [buscar, setBuscar] = useState('');
   const [vista, setVista] = useState<VistaTerritorios>('activos');
@@ -266,19 +269,20 @@ export function TerritoriosListPage() {
         </Menu>
 
         <div className={styles.viewToolsRight}>
-          <Input
-            className={styles.searchBox}
-            size="medium"
-            contentBefore={<Search16Regular />}
-            placeholder="Buscar por territorio, código o sede..."
-            aria-label="Buscar en esta vista"
-            value={buscar}
-            onChange={(_, d) => setBuscar(d.value)}
+          <D365TableToolbarTools
+            tableRef={tableRef}
+            searchValue={buscar}
+            onSearchChange={setBuscar}
+            searchPlaceholder="Buscar por territorio, código o sede..."
+            searchAriaLabel="Buscar en esta vista"
           />
         </div>
       </div>
 
       <D365EntityTable
+        ref={tableRef}
+        entityName="Territorios"
+        tableId="territorios"
         items={filtrados}
         columns={columns}
         loading={loading}

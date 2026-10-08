@@ -25,6 +25,11 @@ export const TransferenciaService = {
       body: JSON.stringify(datos),
     }),
 
+  eliminar: (id: string) =>
+    apiClient<void>(`/api/inventario/transferencias/${id}`, {
+      method: 'DELETE',
+    }),
+
   descargarCargoPdf: async (id: string, numero?: string) => {
     const token = await import('../../../../services/apiClient').then(m => m.getValidAuthToken());
     const res = await fetch(`/api/inventario/transferencias/${id}/cargo-pdf`, {

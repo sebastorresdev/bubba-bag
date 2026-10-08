@@ -14,7 +14,7 @@ import {
   tokens,
   type TagPickerProps,
 } from '@fluentui/react-components';
-import { Add16Regular, Person16Regular } from '@fluentui/react-icons';
+import { Add16Regular, Person16Regular, Search16Regular } from '@fluentui/react-icons';
 import { EnlaceEntidad } from './EnlaceEntidad';
 
 const usarEstilos = makeStyles({
@@ -100,7 +100,10 @@ export const SelectorEntidadRelacionada: React.FC<SelectorEntidadRelacionadaProp
       onOptionSelect={alElegir}
       disabled={deshabilitado}
     >
-      <TagPickerControl className={estilos.control}>
+      <TagPickerControl
+        className={estilos.control}
+        expandIcon={{ children: <Search16Regular style={{ color: tokens.colorNeutralForeground3 }} /> }}
+      >
         {seleccionada && (
           <TagPickerGroup className={estilos.grupo} aria-label={`${etiquetaGrupo} seleccionada`}>
             <EnlaceEntidad
@@ -110,6 +113,7 @@ export const SelectorEntidadRelacionada: React.FC<SelectorEntidadRelacionadaProp
               alNavegar={alNavegar}
               alEliminar={() => alSeleccionar(null)}
               titulo={tituloEnlace}
+              esLink={true}
             />
           </TagPickerGroup>
         )}

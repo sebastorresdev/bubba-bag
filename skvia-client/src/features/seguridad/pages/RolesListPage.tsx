@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Badge,
@@ -9,7 +9,6 @@ import {
   DialogContent,
   DialogSurface,
   DialogTitle,
-  Input,
   Link,
   Menu,
   MenuTrigger,
@@ -33,10 +32,13 @@ import {
   Delete16Regular,
   Eye16Regular,
   Key16Regular,
-  Search16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton } from '../../../components/common/D365CommandBar';
-import { D365EntityTable } from '../../../components/common/D365EntityTable';
+import {
+  D365EntityTable,
+  D365TableToolbarTools,
+  type D365EntityTableRef,
+} from '../../../components/common/D365EntityTable';
 import { useD365ListStyles } from '../../../styles/d365ListStyles';
 import { useAuthSession } from '../../../services/authSession';
 import { SeguridadService, type PermisoDefinicionDto, type RolDto } from '../services/seguridad.service';
@@ -54,6 +56,7 @@ const nombresVistaRoles: Record<VistaRoles, string> = {
 export function RolesListPage() {
   const styles = useD365ListStyles();
   const navigate = useNavigate();
+  const tableRef = useRef<D365EntityTableRef>(null);
   const session = useAuthSession();
   const canEdit = session.permisos.includes('seguridad.roles.gestionar');
 
@@ -319,19 +322,20 @@ export function RolesListPage() {
           </MenuPopover>
         </Menu>
         <div className={styles.viewToolsRight}>
-          <Input
-            className={styles.searchBox}
-            size="medium"
-            contentBefore={<Search16Regular />}
-            placeholder="Buscar"
-            aria-label="Buscar roles"
-            value={search}
-            onChange={(_, d) => setSearch(d.value)}
+          <D365TableToolbarTools
+            tableRef={tableRef}
+            searchValue={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Buscar"
+            searchAriaLabel="Buscar roles"
           />
         </div>
       </div>
 
       <D365EntityTable
+        ref={tableRef}
+        entityName="Roles"
+        tableId="roles"
         items={filtered}
         columns={columns}
         loading={loading}

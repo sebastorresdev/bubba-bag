@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Input,
   Text,
   Link,
   Menu,
@@ -9,12 +8,6 @@ import {
   MenuList,
   MenuItem,
   MenuPopover,
-  DataGrid,
-  DataGridHeader,
-  DataGridHeaderCell,
-  DataGridBody,
-  DataGridRow,
-  DataGridCell,
   TableCellLayout,
   createTableColumn,
 } from '@fluentui/react-components';
@@ -25,11 +18,13 @@ import {
   Delete16Regular,
   Checkmark16Regular,
   ChevronDown16Regular,
-  Search16Regular,
 } from '@fluentui/react-icons';
 import { useD365ListStyles } from '../../../styles/d365ListStyles';
-import { TableEmptyState } from '../../../components/common/TableEmptyState';
-import { D365ListState } from '../../../components/common/D365ListState';
+import {
+  D365EntityTable,
+  D365TableToolbarTools,
+  type D365EntityTableRef,
+} from '../../../components/common/D365EntityTable';
 import { ImportacionDrawer } from '../../../components/common/ImportacionDrawer';
 import { D365CommandBar, D365CommandButton } from '../../../components/common/D365CommandBar';
 import {
@@ -42,6 +37,7 @@ type ImportacionViewType = 'todos' | 'completados' | 'fallidos' | 'procesando';
 export const ImportacionesListPage: React.FC = () => {
   const styles = useD365ListStyles();
   const navigate = useNavigate();
+  const tableRef = useRef<D365EntityTableRef>(null);
 
   const [jobs, setJobs] = useState<TrabajoImportacionDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -359,63 +355,37 @@ export const ImportacionesListPage: React.FC = () => {
         </Menu>
 
         <div className={styles.viewToolsRight}>
-          <Input
-            className={styles.searchBox}
-            size="medium"
-            contentBefore={<Search16Regular />}
-            placeholder="Buscar" aria-label="Buscar importaciones"
-            value={searchKeyword}
-            onChange={(_, data) => setSearchKeyword(data.value)}
+          <D365TableToolbarTools
+            tableRef={tableRef}
+            searchValue={searchKeyword}
+            onSearchChange={setSearchKeyword}
+            searchPlaceholder="Buscar"
+            searchAriaLabel="Buscar importaciones"
           />
         </div>
       </div>
 
-      {/* 3. FLUENT UI V9 NATIVE DATAGRID */}
-      <div className={styles.gridContainer}>
-        <D365ListState loading={loading} error={error} onRetry={fetchJobs} loadingLabel="Cargando historial de importaciones...">
-          <DataGrid
-            items={filteredJobs}
-            columns={columns}
-            sortable
-            selectionMode="multiselect"
-            selectedItems={selectedIds}
-            onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
-            getRowId={(item) => item.id}
-            focusMode="composite"
-            size="medium"
-            className={styles.table}
-          >
-            <DataGridHeader>
-              <DataGridRow>
-                {({ renderHeaderCell }) => (
-                  <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
-                )}
-              </DataGridRow>
-            </DataGridHeader>
-            {filteredJobs.length === 0 ? (
-              <TableEmptyState message={jobs.length === 0 ? 'Aún no hay importaciones registradas' : 'No hay importaciones que coincidan con la búsqueda'} />
-            ) : (
-              <DataGridBody<TrabajoImportacionDto>>
-                {({ item, rowId }) => (
-                  <DataGridRow<TrabajoImportacionDto>
-                    key={rowId}
-                    className={styles.dataRow}
-                    onDoubleClick={() => {
-                      navigate(`/gestion-datos/importaciones/${item.id}`);
-                    }}
-                  >
-                    {({ renderCell }) => (
-                      <DataGridCell className={styles.dataCell}>
-                        {renderCell(item)}
-                      </DataGridCell>
-                    )}
-                  </DataGridRow>
-                )}
-              </DataGridBody>
-            )}
-          </DataGrid>
-        </D365ListState>
-      </div>
+      <D365EntityTable
+        ref={tableRef}
+        entityName="Importaciones"
+        tableId="importaciones"
+        items={filteredJobs}
+        columns={columns}
+        loading={loading}
+        error={error}
+        onRetry={fetchJobs}
+        selectionMode="multiselect"
+        selectedItems={selectedIds}
+        onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
+      />
+
+      <footer className={styles.footer}>
+        <div>
+          1-{filteredJobs.length} de {filteredJobs.length}
+          {selectedIds.size > 0 && ` (${selectedIds.size} seleccionados)`}
+        </div>
+        <div>Página 1</div>
+      </footer>
 
       {/* Asistente de importación compartido con las listas de entidad */}
       <ImportacionDrawer

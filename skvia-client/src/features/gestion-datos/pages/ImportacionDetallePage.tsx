@@ -25,9 +25,6 @@ import {
   ArrowLeft16Regular,
   ArrowClockwise16Regular,
   Delete16Regular,
-  DocumentText16Regular,
-  ErrorCircle16Regular,
-  CheckmarkCircle16Regular,
   Calendar16Regular,
   LockClosed16Regular,
   Search16Regular,
@@ -438,9 +435,9 @@ export const ImportacionDetallePage: React.FC = () => {
         ]}
         tabs={(
           <TabList selectedValue={activeTab} onTabSelect={(_, data) => setActiveTab(data.value as string)}>
-            <Tab value="general" icon={<DocumentText16Regular />}>General</Tab>
-            <Tab value="failures" icon={<ErrorCircle16Regular />}>Errores</Tab>
-            <Tab value="success" icon={<CheckmarkCircle16Regular />}>Completados</Tab>
+            <Tab value="general">General</Tab>
+            <Tab value="failures">Errores</Tab>
+            <Tab value="success">Completados</Tab>
           </TabList>
         )}
       />

@@ -27,6 +27,11 @@ import {
   DialogBody,
   DialogContent,
   DialogActions,
+  Toast,
+  Toaster,
+  ToastTitle,
+  useId,
+  useToastController,
 } from '@fluentui/react-components';
 import type { TableColumnDefinition } from '@fluentui/react-components';
 import {
@@ -35,14 +40,12 @@ import {
   Delete16Regular,
   Save16Regular,
   SaveMultiple16Regular,
-  Table16Regular,
   Box16Regular,
   Warning16Filled,
   LockClosed16Regular,
   CheckmarkCircle16Regular,
   VehicleTruckProfile16Regular,
   ArrowSync16Regular,
-  History16Regular,
   Search16Regular,
   Dismiss16Regular,
   ArrowDownload16Regular,
@@ -52,6 +55,8 @@ import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
 import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
+import { SelectorEntidadRelacionada, type OpcionEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
+import { TableEmptyState } from '../../../../components/common/TableEmptyState';
 import { WhatsAppIcon } from '../../../../components/common/WhatsAppIcon';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { AlmacenService } from '../../almacenes/services/almacen.service';
@@ -179,6 +184,18 @@ export function TransferenciaFormPage() {
 
   const isViewMode = Boolean(id && id !== 'nuevo');
 
+  const toasterId = useId('transferencia-form-toaster');
+  const { dispatchToast } = useToastController(toasterId);
+
+  const notifySuccess = useCallback((title: string) => {
+    dispatchToast(
+      <Toast>
+        <ToastTitle>{title}</ToastTitle>
+      </Toast>,
+      { intent: 'success', position: 'top-end' }
+    );
+  }, [dispatchToast]);
+
   // Catálogos y datos
   const [almacenes, setAlmacenes] = useState<AlmacenDto[]>([]);
   const [stocksOrigen, setStocksOrigen] = useState<InventarioProductoDto[]>([]);
@@ -191,17 +208,19 @@ export function TransferenciaFormPage() {
   // Campos de formulario en nuevo
   const [origenId, setOrigenId] = useState('');
   const [destinoId, setDestinoId] = useState('');
-  const [destinos,setDestinos]=useState<AlmacenDto[]>([]);
-  const [ubicacionesOrigen,setUbicacionesOrigen]=useState<import('../../almacenes/types/almacen.types').UbicacionInventarioDto[]>([]);
-  const [ubicacionesDestino,setUbicacionesDestino]=useState<import('../../almacenes/types/almacen.types').UbicacionInventarioDto[]>([]);
-  const [ubicacionOrigenId,setUbicacionOrigenId]=useState('');
-  const [ubicacionDestinoId,setUbicacionDestinoId]=useState('');
-  const [modalidad,setModalidad]=useState<1|2>(1);
-  const [condicion,setCondicion]=useState<1|2>(1);
-  const operacionId=useRef<string>(crypto.randomUUID());
-  const recepcionOperacionId=useRef(crypto.randomUUID());
-  const [capturaRecepcion,setCapturaRecepcion]=useState('');
-  const [cantidadCaptura,setCantidadCaptura]=useState('1');
+  const [busquedaOrigen, setBusquedaOrigen] = useState('');
+  const [busquedaDestino, setBusquedaDestino] = useState('');
+  const [destinos, setDestinos] = useState<AlmacenDto[]>([]);
+  const [ubicacionesOrigen, setUbicacionesOrigen] = useState<import('../../almacenes/types/almacen.types').UbicacionInventarioDto[]>([]);
+  const [ubicacionesDestino, setUbicacionesDestino] = useState<import('../../almacenes/types/almacen.types').UbicacionInventarioDto[]>([]);
+  const [ubicacionOrigenId, setUbicacionOrigenId] = useState('');
+  const [ubicacionDestinoId, setUbicacionDestinoId] = useState('');
+  const [modalidad, setModalidad] = useState<1|2>(2);
+  const [condicion, setCondicion] = useState<1|2>(1);
+  const operacionId = useRef<string>(crypto.randomUUID());
+  const recepcionOperacionId = useRef(crypto.randomUUID());
+  const [capturaRecepcion, setCapturaRecepcion] = useState('');
+  const [cantidadCaptura, setCantidadCaptura] = useState('1');
   const [observacion, setObservacion] = useState('');
   const [fechaReal, setFechaReal] = useState('');
   const [fechaRecepcionReal, setFechaRecepcionReal] = useState('');
@@ -222,14 +241,25 @@ export function TransferenciaFormPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mensaje, setMensaje] = useState<string | null>(null);
   const [numeroGuardado, setNumeroGuardado] = useState<string | null>(null);
+  const [numeroGuiaGuardado, setNumeroGuiaGuardado] = useState<string | null>(null);
 
   // Estado para modal de recepción
   const [dialogRecepcionAbierto, setDialogRecepcionAbierto] = useState(false);
   const [lineasRecepcion, setLineasRecepcion] = useState<LineaRecepcionForm[]>([]);
   const [observacionRecepcion, setObservacionRecepcion] = useState('');
   const [guardandoRecepcion, setGuardandoRecepcion] = useState(false);
+
+  // Estado para eliminar borrador
+  const [dialogEliminarBorrador, setDialogEliminarBorrador] = useState(false);
+  const [eliminandoBorrador, setEliminandoBorrador] = useState(false);
+
+  const isBorrador = !detalle || detalle.estado === 'Borrador';
+  const esSoloLectura = Boolean(id && id !== 'nuevo' && !isBorrador);
+  const bloqueado = esSoloLectura || saving || guardandoRecepcion;
+
+  const origenPrevioRef = useRef<string>('');
+  const destinoPrevioRef = useRef<string>('');
 
   // Cargar detalle
   const cargarDetalleTransferencia = useCallback(async (transfId: string) => {
@@ -240,12 +270,69 @@ export function TransferenciaFormPage() {
         operacionId.current = data.operacionId;
       }
       setNumeroGuardado(data.numero);
+      if (data.numeroGuiaRemision) {
+        setNumeroGuiaGuardado(data.numeroGuiaRemision);
+      }
       setOrigenId(data.almacenOrigenId);
       setUbicacionOrigenId(data.ubicacionOrigenId || '');
       setUbicacionDestinoId(data.ubicacionDestinoId || '');
       setDestinoId(data.almacenDestinoId);
       setObservacion(data.observaciones || '');
       setFechaRegistro(data.fechaRegistro ? data.fechaRegistro.split('T')[0] : '');
+
+      if (data.estado === 'Borrador') {
+        if (data.almacenOrigenId) {
+          try {
+            const [us, ds] = await Promise.all([
+              AlmacenService.getUbicaciones(data.almacenOrigenId),
+              AlmacenService.getDestinos(data.almacenOrigenId),
+            ]);
+            setUbicacionesOrigen(us);
+            setDestinos(ds);
+            if (data.almacenDestinoId) {
+              const ud = await AlmacenService.getUbicaciones(data.almacenDestinoId, data.almacenOrigenId);
+              setUbicacionesDestino(ud);
+            }
+          } catch {
+            // Silencioso
+          }
+        }
+        if (data.lineas && data.lineas.length > 0) {
+          const lineasForm: LineaTransferenciaForm[] = [];
+          data.lineas.forEach((dl) => {
+            if (dl.series && dl.series.length > 0) {
+              dl.series.forEach((s) => {
+                lineasForm.push({
+                  clave: crypto.randomUUID(),
+                  productoId: dl.productoId,
+                  codigo: dl.codigoProducto,
+                  nombre: dl.productoNombre,
+                  unidad: dl.unidadMedidaNombre || 'UND',
+                  serie: s.numeroSerie,
+                  condicion: dl.condicion === 'Defectuoso' ? 2 : 1,
+                  stockDisponible: 1,
+                  cantidad: 1,
+                  esSerializado: true,
+                });
+              });
+            } else {
+              lineasForm.push({
+                clave: crypto.randomUUID(),
+                productoId: dl.productoId,
+                codigo: dl.codigoProducto,
+                nombre: dl.productoNombre,
+                unidad: dl.unidadMedidaNombre || 'UND',
+                serie: null,
+                condicion: dl.condicion === 'Defectuoso' ? 2 : 1,
+                stockDisponible: dl.cantidadEnviada,
+                cantidad: dl.cantidadEnviada,
+                esSerializado: false,
+              });
+            }
+          });
+          setLineas(lineasForm);
+        }
+      }
       return data;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al cargar detalle de transferencia.');
@@ -263,7 +350,7 @@ export function TransferenciaFormPage() {
     ])
       .then(([alms]) => {
         if (!activo) return;
-        setAlmacenes(alms.filter(a=>a.puedeDespachar));
+        setAlmacenes(alms.filter(a => a.tipo === 1));
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Error al cargar datos iniciales.'))
       .finally(() => {
@@ -299,52 +386,145 @@ export function TransferenciaFormPage() {
   }, [ubicacionOrigenId,condicion]);
 
   useEffect(() => {
-    if (origenId && !isViewMode) {
+    if (origenId && !esSoloLectura) {
       void cargarStocksAlmacenOrigen(origenId);
     }
-  }, [origenId, isViewMode, cargarStocksAlmacenOrigen]);
+  }, [origenId, esSoloLectura, cargarStocksAlmacenOrigen]);
 
   // Filtrado de almacenes de destino
+  // Filtrado de almacenes de origen y destino
   const almacenOrigen = useMemo(() => almacenes.find((a) => a.id === origenId), [almacenes, origenId]);
-  const almacenDestino = useMemo(() => destinos.find((a) => a.id === destinoId), [destinos, destinoId]);
+  const almacenDestino = useMemo(() => destinos.find((a) => a.id === destinoId) || almacenes.find((a) => a.id === destinoId), [destinos, almacenes, destinoId]);
+
+  const almacenesOrigenDisponibles = useMemo(() => {
+    return almacenes.filter((a) => a.tipo === 1);
+  }, [almacenes]);
+
+  const opcionesOrigen: OpcionEntidadRelacionada[] = useMemo(() => {
+    return almacenesOrigenDisponibles.map((a) => ({
+      id: a.id,
+      nombre: a.nombre,
+      detalle: a.unidadOrganizativaNombre ? `Sede: ${a.unidadOrganizativaNombre}` : undefined,
+    }));
+  }, [almacenesOrigenDisponibles]);
+
+  const origenSeleccionado = useMemo(() => {
+    if (detalle) {
+      const full = almacenes.find((a) => a.id === detalle.almacenOrigenId);
+      return {
+        id: detalle.almacenOrigenId,
+        nombre: detalle.almacenOrigenNombre,
+        detalle: full?.unidadOrganizativaNombre ? `Sede: ${full.unidadOrganizativaNombre}` : undefined,
+      };
+    }
+    const alm = almacenes.find((a) => a.id === origenId);
+    if (!alm) return null;
+    return {
+      id: alm.id,
+      nombre: alm.nombre,
+      detalle: alm.unidadOrganizativaNombre ? `Sede: ${alm.unidadOrganizativaNombre}` : undefined,
+    };
+  }, [detalle, almacenes, origenId]);
 
   const almacenesDestinoDisponibles = useMemo(() => {
     if (!almacenOrigen) return [];
 
-    return destinos.filter((cand) => {
-      if (cand.id === almacenOrigen.id) return true;
+    const candidatos = destinos.length > 0 ? destinos : almacenes;
 
-      // Si el origen es Bodega Base (Tipo = 1)
-      if (almacenOrigen.tipo === 1) {
-        if (cand.tipo === 1) return true;
-        if (cand.tipo === 2 && cand.unidadOrganizativaId === almacenOrigen.unidadOrganizativaId)
-          return true;
+    return candidatos.filter((cand) => {
+      // Solo almacenes centrales / bodegas físicas (tipo 1), no custodias de técnicos
+      if (cand.tipo !== 1) return false;
+      // No transferir al mismo almacén
+      if (cand.id === almacenOrigen.id) return false;
+      // Movimiento entre almacenes de otra organización/sede: excluir cualquier almacén de la misma sede del origen
+      if (almacenOrigen.unidadOrganizativaId && cand.unidadOrganizativaId === almacenOrigen.unidadOrganizativaId) {
         return false;
       }
-
-      // Si el origen es Custodia personal (Tipo = 2)
-      if (almacenOrigen.tipo === 2) {
-        return cand.tipo === 1 && cand.unidadOrganizativaId === almacenOrigen.unidadOrganizativaId;
-      }
-
       return true;
     });
-  }, [almacenOrigen, destinos]);
+  }, [almacenOrigen, destinos, almacenes]);
 
-  useEffect(()=>{
-    if(!origenId || isViewMode)return;
-    let vigente=true;
-    setLineas([]);setProductoSeleccionado(null);setSerieSeleccionada(null);setUbicacionOrigenId('');setUbicacionDestinoId('');setDestinos([]);
-    Promise.all([AlmacenService.getUbicaciones(origenId),AlmacenService.getDestinos(origenId)]).then(([us,ds])=>{if(vigente){setUbicacionesOrigen(us);setUbicacionOrigenId(us.find(u=>u.esPrincipal)?.id||'');setDestinos(ds);}}).catch(e=>{if(vigente)setError(String(e));});
-    return()=>{vigente=false;};
-  },[origenId,isViewMode]);
-  useEffect(()=>{
-    if(!destinoId || !origenId || isViewMode)return;
-    let vigente=true;setUbicacionDestinoId('');
-    AlmacenService.getUbicaciones(destinoId,origenId).then(us=>{if(vigente){setUbicacionesDestino(us);setUbicacionDestinoId(us.find(u=>u.esPrincipal)?.id||'');}}).catch(e=>{if(vigente)setError(String(e));});
-    setModalidad(almacenOrigen?.unidadOrganizativaId!==almacenDestino?.unidadOrganizativaId?2:1);
-    return()=>{vigente=false;};
-  },[destinoId,origenId,isViewMode,almacenOrigen?.unidadOrganizativaId,almacenDestino?.unidadOrganizativaId]);
+  const opcionesDestino: OpcionEntidadRelacionada[] = useMemo(() => {
+    return almacenesDestinoDisponibles.map((d) => {
+      const fullAlm = almacenes.find((a) => a.id === d.id);
+      const sedeNombre = fullAlm?.unidadOrganizativaNombre || d.unidadOrganizativaNombre;
+      return {
+        id: d.id,
+        nombre: d.nombre,
+        detalle: sedeNombre ? `Sede: ${sedeNombre}` : undefined,
+      };
+    });
+  }, [almacenesDestinoDisponibles, almacenes]);
+
+  const destinoSeleccionado = useMemo(() => {
+    if (detalle) {
+      const full = almacenes.find((a) => a.id === detalle.almacenDestinoId);
+      return {
+        id: detalle.almacenDestinoId,
+        nombre: detalle.almacenDestinoNombre,
+        detalle: full?.unidadOrganizativaNombre ? `Sede: ${full.unidadOrganizativaNombre}` : undefined,
+      };
+    }
+    const alm = destinos.find((a) => a.id === destinoId) || almacenes.find((a) => a.id === destinoId);
+    if (!alm) return null;
+    const fullAlm = almacenes.find((a) => a.id === alm.id);
+    return {
+      id: alm.id,
+      nombre: alm.nombre,
+      detalle: fullAlm?.unidadOrganizativaNombre || alm.unidadOrganizativaNombre ? `Sede: ${fullAlm?.unidadOrganizativaNombre || alm.unidadOrganizativaNombre}` : undefined,
+    };
+  }, [detalle, destinos, almacenes, destinoId]);
+
+  useEffect(() => {
+    if (!origenId || esSoloLectura) return;
+    if (origenPrevioRef.current && origenPrevioRef.current !== origenId) {
+      setLineas([]);
+      setProductoSeleccionado(null);
+      setSerieSeleccionada(null);
+      setUbicacionOrigenId('');
+      setUbicacionDestinoId('');
+      setDestinos([]);
+    }
+    origenPrevioRef.current = origenId;
+    let vigente = true;
+    Promise.all([AlmacenService.getUbicaciones(origenId), AlmacenService.getDestinos(origenId)])
+      .then(([us, ds]) => {
+        if (vigente) {
+          setUbicacionesOrigen(us);
+          setUbicacionOrigenId((prev) => prev || us.find((u) => u.esPrincipal)?.id || us[0]?.id || '');
+          setDestinos(ds);
+        }
+      })
+      .catch((e) => {
+        if (vigente) setError(String(e));
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [origenId, esSoloLectura]);
+
+  useEffect(() => {
+    if (!destinoId || !origenId || esSoloLectura) return;
+    if (destinoPrevioRef.current && destinoPrevioRef.current !== destinoId) {
+      setUbicacionDestinoId('');
+    }
+    destinoPrevioRef.current = destinoId;
+    let vigente = true;
+    AlmacenService.getUbicaciones(destinoId, origenId)
+      .then((us) => {
+        if (vigente) {
+          setUbicacionesDestino(us);
+          setUbicacionDestinoId((prev) => prev || us.find((u) => u.esPrincipal)?.id || us[0]?.id || '');
+        }
+      })
+      .catch((e) => {
+        if (vigente) setError(String(e));
+      });
+    setModalidad(2);
+    return () => {
+      vigente = false;
+    };
+  }, [destinoId, origenId, esSoloLectura]);
 
   const capturarRecepcion=()=>{
     const codigo=capturaRecepcion.trim().toUpperCase();
@@ -546,43 +726,52 @@ export function TransferenciaFormPage() {
   };
 
   // Validación y guardado
-  const validarFormulario = (): boolean => {
+  const resolverUbicaciones = (): { uOrig: string; uDest: string } | null => {
+    let uOrig = ubicacionOrigenId;
+    let uDest = ubicacionDestinoId;
+    if (!uOrig && ubicacionesOrigen.length > 0) {
+      uOrig = ubicacionesOrigen.find((u) => u.esPrincipal)?.id || ubicacionesOrigen[0].id;
+      setUbicacionOrigenId(uOrig);
+    }
+    if (!uDest && ubicacionesDestino.length > 0) {
+      uDest = ubicacionesDestino.find((u) => u.esPrincipal)?.id || ubicacionesDestino[0].id;
+      setUbicacionDestinoId(uDest);
+    }
+    if (!uOrig || !uDest) {
+      return null;
+    }
+    return { uOrig, uDest };
+  };
+
+  const handleGuardar = async (cerrar: boolean) => {
+    if (bloqueado) {
+      if (cerrar) navigate('/servicio-campo/transferencias');
+      return;
+    }
     if (!origenId) {
       setError('Seleccione el almacén de origen en General.');
       setSelectedTab('general');
-      return false;
+      return;
     }
     if (!destinoId) {
       setError('Seleccione el almacén de destino en General.');
       setSelectedTab('general');
-      return false;
+      return;
     }
-    if (!ubicacionOrigenId || !ubicacionDestinoId) {setError('Seleccione las ubicaciones de origen y destino.');return false;}
-    if (ubicacionOrigenId === ubicacionDestinoId) {
+    if (origenId === destinoId) {
       setError('El almacén de origen y destino deben ser diferentes.');
       setSelectedTab('general');
-      return false;
-    }
-
-    if (lineas.length === 0) {
-      setError('Debe agregar al menos un producto a la transferencia.');
-      setSelectedTab('productos');
-      return false;
-    }
-
-    return true;
-  };
-
-  const guardar = async (cerrar: boolean) => {
-    if (isViewMode || numeroGuardado) {
-      if (cerrar) navigate('/servicio-campo/transferencias');
       return;
     }
 
-    if (!validarFormulario()) return;
+    const ubics = resolverUbicaciones();
+    if (!ubics) {
+      setError('Cargando ubicaciones de los almacenes seleccionados. Reintente en un instante.');
+      return;
+    }
 
     // Agrupar por productoId para la llamada al backend
-    const lineasPayload: Array<{ productoId: string; cantidad: number; series?: string[] | null;condicion?:number }> = [];
+    const lineasPayload: Array<{ productoId: string; cantidad: number; series?: string[] | null; condicion?: number }> = [];
     const agrupadoNoSeriados = new Map<string, number>();
 
     lineas.forEach((l) => {
@@ -590,7 +779,8 @@ export function TransferenciaFormPage() {
         lineasPayload.push({
           productoId: l.productoId,
           cantidad: 1,
-          series: [l.serie],condicion:l.condicion,
+          series: [l.serie],
+          condicion: l.condicion,
         });
       } else {
         const actual = agrupadoNoSeriados.get(l.productoId) || 0;
@@ -609,21 +799,121 @@ export function TransferenciaFormPage() {
       setSaving(true);
       setError(null);
       const res = await TransferenciaService.crear({
-        transferenciaId: id || undefined,
+        transferenciaId: (id && id !== 'nuevo') ? id : undefined,
         almacenOrigenId: origenId,
         almacenDestinoId: destinoId,
         observacion: observacion.trim() || null,
-        lineas: lineasPayload.map(l=>({...l,condicion:l.condicion??condicion})),
-        ubicacionOrigenId,ubicacionDestinoId,modalidad,operacionId:operacionId.current,fechaReal:fechaReal?new Date(fechaReal).toISOString():undefined,
+        lineas: lineasPayload.map((l) => ({ ...l, condicion: l.condicion ?? condicion })),
+        ubicacionOrigenId: ubics.uOrig,
+        ubicacionDestinoId: ubics.uDest,
+        modalidad: 2,
+        operacionId: operacionId.current,
+        fechaReal: fechaReal ? new Date(fechaReal).toISOString() : undefined,
+        esBorrador: true,
       });
 
       setNumeroGuardado(res.numero);
-      setMensaje(`Transferencia ${res.numero} registrada exitosamente.`);
+      if (res.numeroGuiaRemision) setNumeroGuiaGuardado(res.numeroGuiaRemision);
+
+      if (res.id && (!id || id === 'nuevo')) {
+        navigate(`/servicio-campo/transferencias/${res.id}`, { replace: true });
+      }
 
       if (cerrar) {
         navigate('/servicio-campo/transferencias', {
-          state: { successMessage: `Transferencia ${res.numero} registrada exitosamente.` },
+          state: { successMessage: `Borrador guardado exitosamente (N° ${res.numero}${res.numeroGuiaRemision ? ` · Guía ${res.numeroGuiaRemision}` : ''}).` },
         });
+      } else {
+        setSelectedTab('productos');
+        notifySuccess(`Borrador guardado exitosamente (N° ${res.numero}${res.numeroGuiaRemision ? ` · Guía ${res.numeroGuiaRemision}` : ''}). Ya puede agregar los productos a trasladar.`);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al registrar el borrador.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleConfirmarTraslado = async (cerrar: boolean) => {
+    if (bloqueado) {
+      if (cerrar) navigate('/servicio-campo/transferencias');
+      return;
+    }
+    if (!origenId) {
+      setError('Seleccione el almacén de origen en General.');
+      setSelectedTab('general');
+      return;
+    }
+    if (!destinoId) {
+      setError('Seleccione el almacén de destino en General.');
+      setSelectedTab('general');
+      return;
+    }
+    if (lineas.length === 0) {
+      setError('Debe agregar al menos un producto a la transferencia antes de confirmar.');
+      setSelectedTab('productos');
+      return;
+    }
+
+    const ubics = resolverUbicaciones();
+    if (!ubics) {
+      setError('Cargando ubicaciones de los almacenes seleccionados. Reintente en un instante.');
+      return;
+    }
+
+    const lineasPayload: Array<{ productoId: string; cantidad: number; series?: string[] | null; condicion?: number }> = [];
+    const agrupadoNoSeriados = new Map<string, number>();
+
+    lineas.forEach((l) => {
+      if (l.esSerializado && l.serie) {
+        lineasPayload.push({
+          productoId: l.productoId,
+          cantidad: 1,
+          series: [l.serie],
+          condicion: l.condicion,
+        });
+      } else {
+        const actual = agrupadoNoSeriados.get(l.productoId) || 0;
+        agrupadoNoSeriados.set(l.productoId, actual + l.cantidad);
+      }
+    });
+
+    agrupadoNoSeriados.forEach((cant, prodId) => {
+      lineasPayload.push({
+        productoId: prodId,
+        cantidad: cant,
+      });
+    });
+
+    try {
+      setSaving(true);
+      setError(null);
+      const res = await TransferenciaService.crear({
+        transferenciaId: (id && id !== 'nuevo') ? id : undefined,
+        almacenOrigenId: origenId,
+        almacenDestinoId: destinoId,
+        observacion: observacion.trim() || null,
+        lineas: lineasPayload.map((l) => ({ ...l, condicion: l.condicion ?? condicion })),
+        ubicacionOrigenId: ubics.uOrig,
+        ubicacionDestinoId: ubics.uDest,
+        modalidad: 2,
+        operacionId: operacionId.current,
+        fechaReal: fechaReal ? new Date(fechaReal).toISOString() : undefined,
+        esBorrador: false,
+      });
+
+      setNumeroGuardado(res.numero);
+      if (res.numeroGuiaRemision) setNumeroGuiaGuardado(res.numeroGuiaRemision);
+
+      if (cerrar) {
+        navigate('/servicio-campo/transferencias', {
+          state: { successMessage: `Transferencia ${res.numero} confirmada exitosamente.` },
+        });
+      } else {
+        notifySuccess(`Transferencia ${res.numero} confirmada y despachada exitosamente.`);
+        if (res.id) {
+          void cargarDetalleTransferencia(res.id);
+        }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al registrar la transferencia.');
@@ -679,7 +969,7 @@ export function TransferenciaFormPage() {
         observaciones: observacionRecepcion.trim() || null,
       });
 
-      setMensaje(`Recepción ${res.numeroRecepcion} confirmada exitosamente.`);
+      notifySuccess(`Recepción ${res.numeroRecepcion} confirmada exitosamente.`);
       setDialogRecepcionAbierto(false);
 
       await cargarDetalleTransferencia(detalle.id);
@@ -697,23 +987,22 @@ export function TransferenciaFormPage() {
     setObservacion('');
     setLineas([]);
     setNumeroGuardado(null);
+    setNumeroGuiaGuardado(null);
     setDetalle(null);
     setSelectedTab('general');
     setError(null);
-    setMensaje(null);
     if (isViewMode) {
       navigate('/servicio-campo/transferencias/nuevo');
     }
   };
 
   const totalCantidad = useMemo(() => {
-    if (isViewMode && detalle) {
+    if (esSoloLectura && detalle) {
       return detalle.lineas.reduce((acc, l) => acc + l.cantidadEnviada, 0);
     }
     return lineas.reduce((acc, l) => acc + (Number(l.cantidad) || 0), 0);
-  }, [isViewMode, detalle, lineas]);
+  }, [esSoloLectura, detalle, lineas]);
 
-  const bloqueado = isViewMode || Boolean(numeroGuardado) || saving;
   const pestanaProductosHabilitada = Boolean(origenId && destinoId) || isViewMode;
   const puedeRecepcionar =
     isViewMode &&
@@ -783,7 +1072,7 @@ export function TransferenciaFormPage() {
       }),
       createTableColumn({
         columnId: 'acciones',
-        renderHeaderCell: () => '',
+        renderHeaderCell: () => 'Acciones',
         renderCell: (linea) => (
           <TableCellLayout style={{ width: '48px', justifyContent: 'center' }}>
             <Button
@@ -908,14 +1197,11 @@ export function TransferenciaFormPage() {
 
   return (
     <div className={formStyles.root}>
+      <Toaster toasterId={toasterId} position="top-end" />
+
       {error && (
         <D365MessageBar intent="error" onDismiss={() => setError(null)}>
           {error}
-        </D365MessageBar>
-      )}
-      {mensaje && (
-        <D365MessageBar intent="success" onDismiss={() => setMensaje(null)}>
-          {mensaje}
         </D365MessageBar>
       )}
 
@@ -934,24 +1220,51 @@ export function TransferenciaFormPage() {
           />
           <D365CommandDivider />
 
-          {!bloqueado && (
+          {!esSoloLectura && (
             <>
               <D365CommandButton
                 icon={<Save16Regular />}
                 tone="save"
-                disabled={saving || !origenId || !destinoId || lineas.length === 0}
-                onClick={() => void guardar(false)}
+                disabled={saving || !origenId || !destinoId}
+                onClick={() => void handleGuardar(false)}
               >
-                Confirmar despacho
+                Guardar
               </D365CommandButton>
               <D365CommandButton
                 icon={<SaveMultiple16Regular />}
                 tone="save"
-                disabled={saving || !origenId || !destinoId || lineas.length === 0}
-                onClick={() => void guardar(true)}
+                disabled={saving || !origenId || !destinoId}
+                onClick={() => void handleGuardar(true)}
               >
-                Confirmar despacho y cerrar
+                Guardar y cerrar
               </D365CommandButton>
+              <D365CommandDivider />
+              <D365CommandButton
+                icon={<VehicleTruckProfile16Regular />}
+                tone="create"
+                disabled={saving || !origenId || !destinoId || lineas.length === 0}
+                onClick={() => void handleConfirmarTraslado(false)}
+              >
+                Confirmar traslado
+              </D365CommandButton>
+              <D365CommandButton
+                icon={<SaveMultiple16Regular />}
+                tone="create"
+                disabled={saving || !origenId || !destinoId || lineas.length === 0}
+                onClick={() => void handleConfirmarTraslado(true)}
+              >
+                Confirmar traslado y cerrar
+              </D365CommandButton>
+              {isViewMode && isBorrador && detalle && (
+                <D365CommandButton
+                  icon={<Delete16Regular />}
+                  tone="danger"
+                  disabled={saving}
+                  onClick={() => setDialogEliminarBorrador(true)}
+                >
+                  Eliminar borrador
+                </D365CommandButton>
+              )}
               <D365CommandDivider />
             </>
           )}
@@ -1014,33 +1327,17 @@ export function TransferenciaFormPage() {
       </D365CommandBar>
 
       <D365EntityHeader
-        title={detalle?.numero ?? numeroGuardado ?? 'Nueva transferencia'}
-        subtitle="Transferencia de inventario y despacho logístico"
-        avatarName={detalle?.numero ?? numeroGuardado ?? 'Transferencia'}
-        metadata={
-          isViewMode && detalle
-            ? [
-                { label: 'Estado', value: detalle.estado },
-                {
-                  label: 'Modalidad',
-                  value: detalle.modalidad === 'ConTransito' ? 'Con Tránsito' : 'Inmediata',
-                },
-                { label: 'Origen', value: detalle.almacenOrigenNombre },
-                { label: 'Destino', value: detalle.almacenDestinoNombre },
-                { label: 'Total Cantidad', value: totalCantidad.toLocaleString('es-PE') },
-              ]
-            : [
-                { label: 'Estado', value: 'Borrador' },
-                {
-                  label: 'Origen',
-                  value: almacenOrigen?.nombre ?? 'Sin seleccionar',
-                },
-                {
-                  label: 'Destino',
-                  value: almacenDestino?.nombre ?? 'Sin seleccionar',
-                },
-              ]
-        }
+        title={detalle?.numero ?? numeroGuardado ?? 'Nuevo traslado entre almacenes'}
+        subtitle="Traslado de inventario entre sedes y almacenes centrales"
+        avatarName={detalle?.numero ?? numeroGuardado ?? 'Traslado'}
+        metadata={[
+          { label: 'Origen', value: detalle?.almacenOrigenNombre || almacenOrigen?.nombre || 'Sin seleccionar' },
+          { label: 'Destino', value: detalle?.almacenDestinoNombre || almacenDestino?.nombre || 'Sin seleccionar' },
+          ...(detalle?.numeroGuiaRemision || numeroGuiaGuardado
+            ? [{ label: 'Guía de Remisión', value: (detalle?.numeroGuiaRemision || numeroGuiaGuardado)! }]
+            : []),
+          { label: 'Total Cantidad', value: totalCantidad.toLocaleString('es-PE') },
+        ]}
         processFlow={
           <TransferenciaEtapas
             estado={detalle?.estado ?? (numeroGuardado ? 'EnTransito' : 'Borrador')}
@@ -1055,14 +1352,14 @@ export function TransferenciaFormPage() {
               setSelectedTab(data.value as 'general' | 'productos' | 'recepciones')
             }
           >
-            <Tab value="general" icon={<Box16Regular />}>
+            <Tab value="general">
               General
             </Tab>
-            <Tab value="productos" disabled={!pestanaProductosHabilitada} icon={<Table16Regular />}>
+            <Tab value="productos" disabled={!pestanaProductosHabilitada}>
               Productos
             </Tab>
-            {isViewMode && (
-              <Tab value="recepciones" icon={<History16Regular />}>
+            {esSoloLectura && (
+              <Tab value="recepciones">
                 Recepciones
               </Tab>
             )}
@@ -1073,22 +1370,6 @@ export function TransferenciaFormPage() {
       <div className={formStyles.contentBody}>
         {selectedTab === 'general' ? (
           <div className={formStyles.card}>
-            {/* Modalidad operativa detectada */}
-            {operacionModalidad && !isViewMode && (
-              <div className={styles.hintCard}>
-                <VehicleTruckProfile16Regular style={{ fontSize: '20px' }} />
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                    <Text weight="semibold">{operacionModalidad.titulo}</Text>
-                    <Badge appearance="tint" shape="rounded" color={operacionModalidad.badgeColor} size="small">
-                      {modalidad === 2 ? 'Con tránsito' : 'Inmediata'}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            )}
-
-
             <div className={formStyles.grid2Cols}>
               <D365FormField label="Número de transferencia">
                 <Input
@@ -1097,6 +1378,16 @@ export function TransferenciaFormPage() {
                   readOnly
                   appearance="filled-darker"
                   contentAfter={<LockClosed16Regular title="Generado automáticamente por el servidor" />}
+                />
+              </D365FormField>
+
+              <D365FormField label="Guía de Remisión">
+                <Input
+                  className={formStyles.d365ControlFull}
+                  value={detalle?.numeroGuiaRemision ?? numeroGuiaGuardado ?? 'Automático al guardar (GR-0000001)'}
+                  readOnly
+                  appearance="filled-darker"
+                  contentAfter={<LockClosed16Regular title="Generado con correlativo secuencial" />}
                 />
               </D365FormField>
 
@@ -1111,74 +1402,108 @@ export function TransferenciaFormPage() {
                 />
               </D365FormField>
 
-              {/* Selector Almacén de Origen: SOLO el nombre */}
-              <D365FormField label="Almacén de origen" required>
-                {isViewMode && detalle ? (
-                  <Input
-                    className={formStyles.d365ControlFull}
-                    value={detalle.almacenOrigenNombre}
-                    readOnly
-                    appearance="filled-darker"
-                  />
-                ) : (
-                  <Select
-                    className={formStyles.d365ControlFull}
-                    value={origenId}
-                    disabled={bloqueado}
-                    onChange={(_, d) => {
-                      setOrigenId(d.value);
-                      setDestinoId('');
-                      setLineas([]);
-                    }}
-                  >
-                    <option value="">Seleccione almacén de origen...</option>
-                    {almacenes.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.nombre}
-                      </option>
-                    ))}
-                  </Select>
-                )}
+              <D365FormField label="Condición del material">
+                <Select
+                  disabled={bloqueado}
+                  value={String(condicion)}
+                  onChange={(_, d) => {
+                    setCondicion(Number(d.value) as 1 | 2);
+                    setLineas([]);
+                    setProductoSeleccionado(null);
+                    setSerieSeleccionada(null);
+                  }}
+                >
+                  <option value="1">Utilizable</option>
+                  <option value="2">Defectuoso</option>
+                </Select>
               </D365FormField>
 
-              {/* Selector Almacén de Destino: SOLO el nombre */}
-              <D365FormField label="Almacén de destino" required>
-                {isViewMode && detalle ? (
-                  <Input
-                    className={formStyles.d365ControlFull}
-                    value={detalle.almacenDestinoNombre}
-                    readOnly
-                    appearance="filled-darker"
-                  />
-                ) : (
-                  <Select
-                    className={formStyles.d365ControlFull}
-                    value={destinoId}
-                    disabled={bloqueado || !origenId}
-                    onChange={(_, d) => setDestinoId(d.value)}
-                  >
-                    <option value="">
-                      {!origenId
-                        ? 'Primero elija almacén de origen...'
-                        : 'Seleccione almacén de destino...'}
-                    </option>
-                    {almacenesDestinoDisponibles.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.nombre}
-                      </option>
-                    ))}
-                  </Select>
-                )}
+              {/* Selector Almacén de Origen con SelectorEntidadRelacionada */}
+              <D365FormField label="Almacén de origen" required info="Almacén central / bodega remitente">
+                <SelectorEntidadRelacionada
+                  etiquetaGrupo="Almacenes Disponibles"
+                  opciones={opcionesOrigen}
+                  seleccionada={origenSeleccionado}
+                  textoBusqueda={busquedaOrigen}
+                  alCambiarBusqueda={setBusquedaOrigen}
+                  alSeleccionar={(nuevoId) => {
+                    setOrigenId(nuevoId || '');
+                    setDestinoId('');
+                    setLineas([]);
+                    setUbicacionOrigenId('');
+                    setUbicacionDestinoId('');
+                  }}
+                  alNavegar={(nuevoId) => navigate(`/servicio-campo/almacenes/${nuevoId}`)}
+                  icono={<Box16Regular />}
+                  tituloEnlace="Ver ficha del almacén de origen"
+                  deshabilitado={bloqueado}
+                  textoVacio="No hay almacenes centrales disponibles"
+                />
+              </D365FormField>
+
+              {/* Selector Almacén de Destino con SelectorEntidadRelacionada */}
+              <D365FormField
+                label="Almacén de destino"
+                required
+                info={almacenOrigen?.unidadOrganizativaNombre
+                  ? `Solo se listan almacenes centrales fuera de "${almacenOrigen.unidadOrganizativaNombre}"`
+                  : "Almacén central de otra sede/organización receptora"}
+              >
+                <SelectorEntidadRelacionada
+                  etiquetaGrupo="Almacenes de Destino"
+                  opciones={opcionesDestino}
+                  seleccionada={destinoSeleccionado}
+                  textoBusqueda={busquedaDestino}
+                  alCambiarBusqueda={setBusquedaDestino}
+                  alSeleccionar={(nuevoId) => {
+                    setDestinoId(nuevoId || '');
+                    setUbicacionDestinoId('');
+                  }}
+                  alNavegar={(nuevoId) => navigate(`/servicio-campo/almacenes/${nuevoId}`)}
+                  icono={<Box16Regular />}
+                  tituloEnlace="Ver ficha del almacén de destino"
+                  deshabilitado={bloqueado || !origenId}
+                  textoVacio={!origenId ? "Primero seleccione el almacén de origen" : "No hay almacenes en otras organizaciones disponibles"}
+                />
               </D365FormField>
             </div>
 
-            {!isViewMode && <div className={formStyles.grid2Cols}>
-              <D365FormField label="Ubicación de origen" required><Select disabled={bloqueado} value={ubicacionOrigenId} onChange={(_,d)=>{setUbicacionOrigenId(d.value);setLineas([]);setProductoSeleccionado(null);setSerieSeleccionada(null);}}>{ubicacionesOrigen.map(u=><option key={u.id} value={u.id}>{u.nombre}</option>)}</Select></D365FormField>
-              <D365FormField label="Ubicación de destino" required><Select disabled={bloqueado} value={ubicacionDestinoId} onChange={(_,d)=>setUbicacionDestinoId(d.value)}>{ubicacionesDestino.map(u=><option key={u.id} value={u.id}>{u.nombre}</option>)}</Select></D365FormField>
-              <D365FormField label="Entrega"><Select value={String(modalidad)} onChange={(_,d)=>setModalidad(Number(d.value) as 1|2)} disabled={bloqueado || almacenOrigen?.unidadOrganizativaId!==almacenDestino?.unidadOrganizativaId}><option value="1">Presencial: confirmar salida e ingreso</option><option value="2">Con tránsito: el destino recepciona</option></Select></D365FormField>
-              <D365FormField label="Condición del material"><Select disabled={bloqueado} value={String(condicion)} onChange={(_,d)=>{setCondicion(Number(d.value) as 1|2);setLineas([]);setProductoSeleccionado(null);setSerieSeleccionada(null);}}><option value="1">Utilizable</option><option value="2">Defectuoso</option></Select></D365FormField>
-            </div>}
-            {isViewMode && detalle ? <div className={formStyles.grid2Cols}><D365FormField label="Ubicación de origen"><Input readOnly value={detalle.ubicacionOrigenNombre ?? 'No registrada en el histórico'} /></D365FormField><D365FormField label="Ubicación de destino"><Input readOnly value={detalle.ubicacionDestinoNombre ?? 'No registrada en el histórico'} /></D365FormField><D365FormField label="Fecha real"><Input readOnly value={new Date(detalle.fechaReal).toLocaleString('es-PE')} /></D365FormField></div> : <D365FormField label="Fecha real del despacho (opcional)"><Input type="datetime-local" disabled={bloqueado} value={fechaReal} onChange={(_,d)=>setFechaReal(d.value)} /></D365FormField>}
+            {!esSoloLectura && (
+              <div className={formStyles.grid2Cols}>
+                <D365FormField label="Ubicación de origen" required>
+                  <Select
+                    disabled={bloqueado}
+                    value={ubicacionOrigenId}
+                    onChange={(_, d) => {
+                      setUbicacionOrigenId(d.value);
+                      setLineas([]);
+                      setProductoSeleccionado(null);
+                      setSerieSeleccionada(null);
+                    }}
+                  >
+                    {ubicacionesOrigen.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.nombre}
+                      </option>
+                    ))}
+                  </Select>
+                </D365FormField>
+                <D365FormField label="Ubicación de destino" required>
+                  <Select
+                    disabled={bloqueado}
+                    value={ubicacionDestinoId}
+                    onChange={(_, d) => setUbicacionDestinoId(d.value)}
+                  >
+                    {ubicacionesDestino.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.nombre}
+                      </option>
+                    ))}
+                  </Select>
+                </D365FormField>
+              </div>
+            )}
+            {esSoloLectura && detalle ? <div className={formStyles.grid2Cols}><D365FormField label="Ubicación de origen"><Input readOnly value={detalle.ubicacionOrigenNombre ?? 'No registrada en el histórico'} /></D365FormField><D365FormField label="Ubicación de destino"><Input readOnly value={detalle.ubicacionDestinoNombre ?? 'No registrada en el histórico'} /></D365FormField><D365FormField label="Fecha real"><Input readOnly value={new Date(detalle.fechaReal).toLocaleString('es-PE')} /></D365FormField></div> : <D365FormField label="Fecha real del despacho (opcional)"><Input type="datetime-local" disabled={bloqueado} value={fechaReal} onChange={(_,d)=>setFechaReal(d.value)} /></D365FormField>}
             <D365FormField label="Motivo u observación" align="top">
               <Textarea
                 className={formStyles.d365ControlFull}
@@ -1192,7 +1517,7 @@ export function TransferenciaFormPage() {
           </div>
         ) : selectedTab === 'productos' ? (
           <div className={formStyles.card}>
-            {isViewMode && detalle ? (
+            {esSoloLectura && detalle ? (
               // Modo solo consulta de productos
               <>
                 <div style={{ marginBottom: '8px' }}>
@@ -1208,13 +1533,17 @@ export function TransferenciaFormPage() {
                         {({ renderHeaderCell }) => <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>}
                       </DataGridRow>
                     </DataGridHeader>
-                    <DataGridBody<TransferenciaDetalleLineaDto>>
-                      {({ item, rowId }) => (
-                        <DataGridRow<TransferenciaDetalleLineaDto> key={rowId}>
-                          {({ renderCell }) => <DataGridCell>{renderCell(item)}</DataGridCell>}
-                        </DataGridRow>
-                      )}
-                    </DataGridBody>
+                    {detalle.lineas.length === 0 ? (
+                      <TableEmptyState />
+                    ) : (
+                      <DataGridBody<TransferenciaDetalleLineaDto>>
+                        {({ item, rowId }) => (
+                          <DataGridRow<TransferenciaDetalleLineaDto> key={rowId}>
+                            {({ renderCell }) => <DataGridCell>{renderCell(item)}</DataGridCell>}
+                          </DataGridRow>
+                        )}
+                      </DataGridBody>
+                    )}
                   </DataGrid>
                 </div>
 
@@ -1381,59 +1710,48 @@ export function TransferenciaFormPage() {
                 )}
 
                 {/* 2. TABLA INFERIOR DE PRODUCTOS AGREGADOS (ESTILO SYMBAR) */}
-                {lineas.length === 0 ? (
-                  <div className={styles.emptyBox}>
-                    <Text
-                      weight="semibold"
-                      style={{
-                        display: 'block',
-                        color: tokens.colorNeutralForeground2,
-                        marginBottom: '6px',
-                      }}
-                    >
-                      No se han agregado productos a la transferencia
-                    </Text>
-                  </div>
-                ) : (
-                  <>
-                    <div className={styles.tableWrapper}>
-                      <DataGrid
-                        items={lineas}
-                        columns={columnasProductosCreacion}
-                        getRowId={(l) => l.clave}
-                        size="medium"
-                      >
-                        <DataGridHeader>
-                          <DataGridRow>
-                            {({ renderHeaderCell }) => (
-                              <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
-                            )}
+                <div className={styles.tableWrapper}>
+                  <DataGrid
+                    items={lineas}
+                    columns={columnasProductosCreacion}
+                    getRowId={(l) => l.clave}
+                    size="medium"
+                  >
+                    <DataGridHeader>
+                      <DataGridRow>
+                        {({ renderHeaderCell }) => (
+                          <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
+                        )}
+                      </DataGridRow>
+                    </DataGridHeader>
+                    {lineas.length === 0 ? (
+                      <TableEmptyState />
+                    ) : (
+                      <DataGridBody<LineaTransferenciaForm>>
+                        {({ item, rowId }) => (
+                          <DataGridRow<LineaTransferenciaForm> key={rowId}>
+                            {({ renderCell }) => <DataGridCell>{renderCell(item)}</DataGridCell>}
                           </DataGridRow>
-                        </DataGridHeader>
-                        <DataGridBody<LineaTransferenciaForm>>
-                          {({ item, rowId }) => (
-                            <DataGridRow<LineaTransferenciaForm> key={rowId}>
-                              {({ renderCell }) => <DataGridCell>{renderCell(item)}</DataGridCell>}
-                            </DataGridRow>
-                          )}
-                        </DataGridBody>
-                      </DataGrid>
-                    </div>
+                        )}
+                      </DataGridBody>
+                    )}
+                  </DataGrid>
+                </div>
 
-                    <div className={styles.totalsBar}>
+                {lineas.length > 0 && (
+                  <div className={styles.totalsBar}>
+                    <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                      Líneas en transferencia: {lineas.length}
+                    </Text>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                        Líneas en transferencia: {lineas.length}
+                        Total unidades a transferir:
                       </Text>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                          Total unidades a transferir:
-                        </Text>
-                        <Text weight="bold" size={400}>
-                          {totalCantidad.toLocaleString('es-PE')}
-                        </Text>
-                      </div>
+                      <Text weight="bold" size={400}>
+                        {totalCantidad.toLocaleString('es-PE')}
+                      </Text>
                     </div>
-                  </>
+                  </div>
                 )}
               </>
             )}
@@ -1573,6 +1891,59 @@ export function TransferenciaFormPage() {
                 onClick={() => void confirmarRecepcion()}
               >
                 {guardandoRecepcion ? 'Confirmando...' : 'Confirmar ingreso'}
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
+      <Dialog
+        open={dialogEliminarBorrador}
+        onOpenChange={(_, data) => {
+          if (!data.open && !eliminandoBorrador) setDialogEliminarBorrador(false);
+        }}
+      >
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Eliminar borrador</DialogTitle>
+            <DialogContent>
+              ¿Está seguro de que desea eliminar el borrador{' '}
+              <strong>{detalle?.numero ?? numeroGuardado}</strong>? Esta acción no se puede deshacer.
+            </DialogContent>
+            <DialogActions>
+              <Button
+                appearance="secondary"
+                disabled={eliminandoBorrador}
+                onClick={() => setDialogEliminarBorrador(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                appearance="primary"
+                style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: '#fff' }}
+                disabled={eliminandoBorrador}
+                onClick={async () => {
+                  const targetId = detalle?.id || (id && id !== 'nuevo' ? id : null);
+                  if (!targetId) return;
+                  try {
+                    setEliminandoBorrador(true);
+                    await TransferenciaService.eliminar(targetId);
+                    navigate('/servicio-campo/transferencias', {
+                      state: { successMessage: `Borrador ${detalle?.numero ?? ''} eliminado exitosamente.` },
+                    });
+                  } catch (e) {
+                    dispatchToast(
+                      <Toast>
+                        <ToastTitle>{e instanceof Error ? e.message : 'Error al eliminar el borrador'}</ToastTitle>
+                      </Toast>,
+                      { intent: 'error', position: 'top-end' }
+                    );
+                  } finally {
+                    setEliminandoBorrador(false);
+                  }
+                }}
+              >
+                {eliminandoBorrador ? 'Eliminando...' : 'Eliminar'}
               </Button>
             </DialogActions>
           </DialogBody>

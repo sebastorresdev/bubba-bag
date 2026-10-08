@@ -41,8 +41,8 @@ public class PostgresCodigoSecuencialService : ICodigoSecuencialService
             await connection.OpenAsync(cancellationToken);
         }
 
-        // Asegurar que la secuencia exista en PostgreSQL
-        var ensureSql = $"CREATE SEQUENCE IF NOT EXISTS \"{esquema}\".\"{nombreSecuencia}\" START WITH 1 INCREMENT BY 1;";
+        // Asegurar que el esquema y la secuencia existan en PostgreSQL
+        var ensureSql = $"CREATE SCHEMA IF NOT EXISTS \"{esquema}\"; CREATE SEQUENCE IF NOT EXISTS \"{esquema}\".\"{nombreSecuencia}\" START WITH 1 INCREMENT BY 1;";
         await using (var cmdEnsure = new NpgsqlCommand(ensureSql, connection))
         {
             await cmdEnsure.ExecuteNonQueryAsync(cancellationToken);

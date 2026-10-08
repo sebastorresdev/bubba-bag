@@ -61,6 +61,7 @@ public static class AlmacenesEndpoints
         transferenciasGroup.MapPost("/{id:guid}/resolver", ResolverDiferencia).RequireAuthorization(Permissions.Inventario.Operar);
         transferenciasGroup.MapPost("/", CrearTransferencia).RequireAuthorization(Permissions.Inventario.Operar);
         transferenciasGroup.MapGet("/{id:guid}", ObtenerTransferenciaPorId);
+        transferenciasGroup.MapDelete("/{id:guid}", EliminarTransferencia).RequireAuthorization(Permissions.Inventario.Operar);
         transferenciasGroup.MapGet("/{id:guid}/cargo-pdf", DescargarCargoPdf);
         transferenciasGroup.MapPost("/{id:guid}/recepcionar", RecepcionarTransferencia).RequireAuthorization(Permissions.Inventario.Operar);
 
@@ -69,6 +70,7 @@ public static class AlmacenesEndpoints
         compras.MapPost("/", CrearCompra).RequireAuthorization(Permissions.Inventario.Operar);
         compras.MapGet("/{id:guid}", ObtenerCompra);
         compras.MapPut("/{id:guid}", ActualizarCompra).RequireAuthorization(Permissions.Inventario.Operar);
+        compras.MapDelete("/{id:guid}", EliminarCompra).RequireAuthorization(Permissions.Inventario.Operar);
         compras.MapPost("/{id:guid}/solicitar", SolicitarCompra).RequireAuthorization(Permissions.Inventario.Operar);
         compras.MapPost("/{id:guid}/enviar", EnviarCompra).RequireAuthorization(Permissions.Inventario.Operar);
         compras.MapPost("/{id:guid}/recepcionar", RecepcionarCompra).RequireAuthorization(Permissions.Inventario.Operar);
@@ -222,6 +224,55 @@ public static class AlmacenesEndpoints
     {
         var resultado = await dispatcher.SendAsync(new RecepcionarCompraCommand(id, datos));
         return resultado.IsSuccess ? Results.Ok() : Results.BadRequest(resultado.Error);
+    }
+
+    private static async Task<IResult> EliminarCompra(
+        Guid id,
+        IServicioCampoDbContext context,
+        CancellationToken ct)
+    {
+        var compra = await context.Compras.FirstOrDefaultAsync(c => c.Id == id, ct);
+        if (compra == null)
+            return Results.NotFound(new { mensaje = "Compra no encontrada." });
+
+        if (compra.Estado != "Borrador")
+            return Results.BadRequest(new { mensaje = "Solo se pueden eliminar compras que se encuentren en estado Borrador." });
+
+        context.Compras.Remove(compra);
+        await context.SaveChangesAsync(ct);
+
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> EliminarTransferencia(
+        Guid id,
+        IServicioCampoDbContext context,
+        CancellationToken ct)
+    {
+        var transf = await context.Transferencias
+            .Include(t => t.Lineas)
+            .ThenInclude(l => l.Series)
+            .FirstOrDefaultAsync(t => t.Id == id, ct);
+
+        if (transf == null)
+            return Results.NotFound(new { mensaje = "Transferencia no encontrada." });
+
+        if (transf.Estado != EstadoTransferencia.Borrador)
+            return Results.BadRequest(new { mensaje = "Solo se pueden eliminar transferencias que se encuentren en estado Borrador." });
+
+        foreach (var linea in transf.Lineas)
+        {
+            if (linea.Series?.Any() == true)
+            {
+                context.TransferenciaDetalleSeries.RemoveRange(linea.Series);
+            }
+        }
+        context.TransferenciaDetalles.RemoveRange(transf.Lineas);
+        context.Transferencias.Remove(transf);
+
+        await context.SaveChangesAsync(ct);
+
+        return Results.NoContent();
     }
 
     private static async Task<IResult> ObtenerSeries(Guid? almacenId,Guid? productoId,string? buscar,Guid? ubicacionId,bool? incluirTransito,IDispatcher dispatcher)

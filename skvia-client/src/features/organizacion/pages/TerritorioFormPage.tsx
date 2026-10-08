@@ -15,12 +15,10 @@ import {
   SaveMultiple16Regular,
   Add16Regular,
   ArrowClockwise16Regular,
-  Shield20Regular,
-  People16Regular,
-  History16Regular,
   LockClosed16Regular,
   Box16Regular,
   Building16Regular,
+  Shield20Regular,
 } from '@fluentui/react-icons';
 import { OrganizacionService } from '../services/organizacion.service';
 import type {
@@ -142,7 +140,6 @@ export function TerritorioFormPage() {
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!formData.codigo.trim()) newErrors.codigo = 'El código del territorio es obligatorio (ej. I280010).';
     if (!formData.nombre.trim()) newErrors.nombre = 'El nombre del territorio es obligatorio.';
     if (!formData.unidadOrganizativaId) newErrors.unidadOrganizativaId = 'Debe seleccionar la sede a la que pertenece.';
     setErrors(newErrors);
@@ -178,7 +175,7 @@ export function TerritorioFormPage() {
         if (closeAfterSave) navigate('/servicio-campo/territorios');
       } else {
         const res = await OrganizacionService.createTerritorio({
-          codigo: formData.codigo.trim().toUpperCase(),
+          codigo: formData.codigo?.trim() ? formData.codigo.trim().toUpperCase() : undefined,
           nombre: formData.nombre.trim(),
           unidadOrganizativaId: formData.unidadOrganizativaId,
           almacenPredeterminadoId: formData.almacenPredeterminadoId || null,
@@ -279,15 +276,9 @@ export function TerritorioFormPage() {
                 selectedValue={selectedTab}
                 onTabSelect={(_, d) => setSelectedTab(d.value as 'general' | 'recursos' | 'detalle')}
               >
-                <Tab value="general" icon={<Shield20Regular />}>
-                  General
-                </Tab>
-                <Tab value="recursos" disabled={!isEditMode} icon={<People16Regular />}>
-                  Técnicos Asignados
-                </Tab>
-                <Tab value="detalle" disabled={!isEditMode} icon={<History16Regular />}>
-                  Detalle / Auditoría
-                </Tab>
+                <Tab value="general">General</Tab>
+                <Tab value="recursos" disabled={!isEditMode}>Técnicos Asignados</Tab>
+                <Tab value="detalle" disabled={!isEditMode}>Detalle / Auditoría</Tab>
               </TabList>
             }
           />
@@ -299,15 +290,16 @@ export function TerritorioFormPage() {
                   <div className={styles.cardSectionTitle}>Información del Territorio y Zona</div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <D365FormField label="Código de Territorio" required error={errors.codigo}>
-                      <Input
-                        className={styles.d365ControlFull}
-                        value={formData.codigo}
-                        maxLength={20}
-                        disabled={isEditMode}
-                        onChange={(_, d) => setFormData((p) => ({ ...p, codigo: d.value.toUpperCase() }))}
-                      />
-                    </D365FormField>
+                    {isEditMode && formData.codigo && (
+                      <D365FormField label="Código de Territorio">
+                        <Input
+                          className={styles.d365ControlFull}
+                          value={formData.codigo}
+                          readOnly
+                          appearance="filled-darker"
+                        />
+                      </D365FormField>
+                    )}
 
                     <D365FormField label="Nombre del Territorio / Zona" required error={errors.nombre}>
                       <Input

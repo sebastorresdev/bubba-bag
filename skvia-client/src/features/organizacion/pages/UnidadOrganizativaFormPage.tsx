@@ -16,11 +16,8 @@ import {
   SaveMultiple16Regular,
   Add16Regular,
   ArrowClockwise16Regular,
-  BuildingBank20Regular,
-  Box16Regular,
-  Shield16Regular,
-  History16Regular,
   LockClosed16Regular,
+  BuildingBank20Regular,
 } from '@fluentui/react-icons';
 import { OrganizacionService } from '../services/organizacion.service';
 import type {
@@ -266,18 +263,10 @@ export function UnidadOrganizativaFormPage() {
                   setSelectedTab(d.value as 'general' | 'territorios' | 'almacenes' | 'detalle')
                 }
               >
-                <Tab value="general" icon={<BuildingBank20Regular />}>
-                  General
-                </Tab>
-                <Tab value="territorios" disabled={!isEditMode} icon={<Shield16Regular />}>
-                  Territorios
-                </Tab>
-                <Tab value="almacenes" disabled={!isEditMode} icon={<Box16Regular />}>
-                  Almacenes
-                </Tab>
-                <Tab value="detalle" disabled={!isEditMode} icon={<History16Regular />}>
-                  Detalle / Auditoría
-                </Tab>
+                <Tab value="general">General</Tab>
+                <Tab value="territorios" disabled={!isEditMode}>Territorios</Tab>
+                <Tab value="almacenes" disabled={!isEditMode}>Almacenes</Tab>
+                <Tab value="detalle" disabled={!isEditMode}>Detalle / Auditoría</Tab>
               </TabList>
             }
           />

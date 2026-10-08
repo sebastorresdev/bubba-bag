@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Input, Select, Skeleton, SkeletonItem, Tab, TabList, Textarea } from '@fluentui/react-components';
+import { Button, Dialog, DialogSurface, DialogTitle, DialogBody, DialogContent, DialogActions, Input, Select, Skeleton, SkeletonItem, Tab, TabList, Textarea, tokens } from '@fluentui/react-components';
 import { DatePicker } from '@fluentui/react-datepicker-compat';
-import { Add16Regular, ArrowLeft16Regular, Box16Regular, Checkmark16Regular, LockClosed16Regular, Save16Regular, SaveMultiple16Regular, Table16Regular } from '@fluentui/react-icons';
+import { Add16Regular, ArrowLeft16Regular, Box16Regular, Checkmark16Regular, Delete16Regular, LockClosed16Regular, Save16Regular, SaveMultiple16Regular } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../components/common/D365CommandBar';
 import { D365EntityHeader } from '../../../components/common/D365EntityHeader';
 import { D365FormField } from '../../../components/common/D365FormField';
@@ -32,6 +32,8 @@ export function CompraFormPage() {
   const [tab, setTab] = useState('general'); const [saving, setSaving] = useState(false); const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null); const [mensaje, setMensaje] = useState<string | null>(null);
   const [busquedaAlmacen, setBusquedaAlmacen] = useState('');
+  const [dialogEliminarBorrador, setDialogEliminarBorrador] = useState(false);
+  const [eliminandoBorrador, setEliminandoBorrador] = useState(false);
   const guardando = useRef(false);
   useEffect(() => {
     let activo = true; setLoading(true); setError(null);
@@ -115,6 +117,16 @@ export function CompraFormPage() {
       <D365CommandButton icon={<Save16Regular />} tone="save" disabled={bloqueado} onClick={() => void guardar(false)}>Guardar</D365CommandButton>
       <D365CommandButton icon={<SaveMultiple16Regular />} tone="save" disabled={bloqueado} onClick={() => void guardar(true)}>Guardar y cerrar</D365CommandButton>
       {!cargandoDatos && estado === 'Borrador' && <D365CommandButton icon={<Checkmark16Regular />} disabled={loading || saving || !id} onClick={() => void procesar('solicitar')}>Solicitar compra</D365CommandButton>}
+      {!cargandoDatos && estado === 'Borrador' && Boolean(id) && (
+        <D365CommandButton
+          icon={<Delete16Regular />}
+          tone="danger"
+          disabled={loading || saving}
+          onClick={() => setDialogEliminarBorrador(true)}
+        >
+          Eliminar borrador
+        </D365CommandButton>
+      )}
       {!cargandoDatos && estado === 'Solicitada' && <D365CommandButton icon={<Box16Regular />} disabled={loading || saving || lineas.some(x => productos.find(p => p.id === x.productoId)?.esSerializado && x.series.split(/\r?\n/).filter(s => s.trim()).length !== Number(x.cantidad))} onClick={() => void procesar('enviar')}>Registrar envío</D365CommandButton>}
       {!cargandoDatos && estado === 'Enviada' && (
         <D365CommandButton
@@ -151,8 +163,8 @@ export function CompraFormPage() {
       processFlow={!cargandoDatos ? <CompraEtapas estado={estado} embedded /> : undefined}
       tabs={
         <TabList selectedValue={tab} onTabSelect={(_, d) => setTab(String(d.value))}>
-          <Tab value="general" disabled={cargandoDatos} icon={<Box16Regular />}>General</Tab>
-          <Tab value="productos" disabled={cargandoDatos} icon={<Table16Regular />}>Productos</Tab>
+          <Tab value="general" disabled={cargandoDatos}>General</Tab>
+          <Tab value="productos" disabled={cargandoDatos}>Productos</Tab>
         </TabList>
       }
     />
@@ -229,5 +241,52 @@ export function CompraFormPage() {
       </div>
       <D365FormField label="Observación" align="top"><Textarea aria-label="Observación" className={form.d365ControlFull} value={observacion} maxLength={500} disabled={bloqueado} onChange={(_, d) => setObservacion(d.value)} /></D365FormField>
     </div> : <div className={form.card}><ProductosCompraGrid lineas={lineas} productos={productos} moneda={moneda} bloqueado={bloqueado} soloLectura={estado === 'Recibida' || estado === 'Enviada'} soloSeries={estado === 'Solicitada'} alCambiar={setLineas} alCargarProducto={p => setProductos(ps => [...ps.filter(x => x.id !== p.id), p])} /></div>}</div>
+
+    <Dialog
+      open={dialogEliminarBorrador}
+      onOpenChange={(_, data) => {
+        if (!data.open && !eliminandoBorrador) setDialogEliminarBorrador(false);
+      }}
+    >
+      <DialogSurface>
+        <DialogBody>
+          <DialogTitle>Eliminar borrador de compra</DialogTitle>
+          <DialogContent>
+            ¿Está seguro de que desea eliminar el borrador de compra{' '}
+            <strong>{compra?.numero}</strong>? Esta acción no se puede deshacer.
+          </DialogContent>
+          <DialogActions>
+            <Button
+              appearance="secondary"
+              disabled={eliminandoBorrador}
+              onClick={() => setDialogEliminarBorrador(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              appearance="primary"
+              style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: '#fff' }}
+              disabled={eliminandoBorrador}
+              onClick={async () => {
+                if (!id) return;
+                try {
+                  setEliminandoBorrador(true);
+                  await CompraService.eliminar(id);
+                  navigate('/servicio-campo/recepciones-compra', {
+                    state: { successMessage: `Borrador ${compra?.numero ?? ''} eliminado exitosamente.` },
+                  });
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : 'Error al eliminar el borrador.');
+                } finally {
+                  setEliminandoBorrador(false);
+                }
+              }}
+            >
+              {eliminandoBorrador ? 'Eliminando...' : 'Eliminar'}
+            </Button>
+          </DialogActions>
+        </DialogBody>
+      </DialogSurface>
+    </Dialog>
   </div>;
 }

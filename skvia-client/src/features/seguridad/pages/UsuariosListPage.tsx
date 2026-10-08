@@ -1,8 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Badge,
-  Input,
   Link,
   Menu,
   MenuTrigger,
@@ -24,13 +23,16 @@ import {
   ArrowUpload16Regular,
   ChevronDown16Regular,
   Checkmark16Regular,
-  Search16Regular,
   ShieldPerson20Regular,
   PersonStar20Regular,
   LockClosed16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton } from '../../../components/common/D365CommandBar';
-import { D365EntityTable } from '../../../components/common/D365EntityTable';
+import {
+  D365EntityTable,
+  D365TableToolbarTools,
+  type D365EntityTableRef,
+} from '../../../components/common/D365EntityTable';
 import { ImportacionDrawer } from '../../../components/common/ImportacionDrawer';
 import { useD365ListStyles } from '../../../styles/d365ListStyles';
 import { useAuthSession } from '../../../services/authSession';
@@ -48,6 +50,7 @@ const nombresVistaUsuarios: Record<VistaUsuarios, string> = {
 
 export function UsuariosListPage() {
   const styles = useD365ListStyles(), navigate = useNavigate(), location = useLocation();
+  const tableRef = useRef<D365EntityTableRef>(null);
   const toasterId = useId('usuarios-toaster');
   const { dispatchToast } = useToastController(toasterId);
   const { permisos } = useAuthSession(), canEdit = permisos.includes('seguridad.usuarios.gestionar');
@@ -217,19 +220,20 @@ export function UsuariosListPage() {
           </MenuPopover>
         </Menu>
         <div className={styles.viewToolsRight}>
-          <Input
-            className={styles.searchBox}
-            size="medium"
-            contentBefore={<Search16Regular />}
-            placeholder="Buscar"
-            aria-label="Buscar usuarios"
-            value={search}
-            onChange={(_, d) => setSearch(d.value)}
+          <D365TableToolbarTools
+            tableRef={tableRef}
+            searchValue={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Buscar"
+            searchAriaLabel="Buscar usuarios"
           />
         </div>
       </div>
 
       <D365EntityTable
+        ref={tableRef}
+        entityName="Usuarios"
+        tableId="usuarios"
         items={filtered}
         columns={columns}
         loading={loading}

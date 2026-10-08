@@ -41,7 +41,7 @@ export interface TerritorioDto {
 }
 
 export interface CreateTerritorioDto {
-  codigo: string;
+  codigo?: string;
   nombre: string;
   unidadOrganizativaId: string;
   almacenPredeterminadoId?: string | null;
@@ -79,7 +79,7 @@ export interface RecursoDto {
 }
 
 export interface CreateRecursoDto {
-  codigo: string;
+  codigo?: string;
   nombreCompleto: string;
   tipo: number;
   unidadOrganizativaId?: string | null;

@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Button,
-  Input,
   Text,
   Link,
   Menu,
@@ -10,13 +8,6 @@ import {
   MenuList,
   MenuItem,
   MenuPopover,
-  Tooltip,
-  DataGrid,
-  DataGridHeader,
-  DataGridHeaderCell,
-  DataGridBody,
-  DataGridRow,
-  DataGridCell,
   TableCellLayout,
   createTableColumn,
 } from '@fluentui/react-components';
@@ -29,16 +20,12 @@ import {
   Checkmark16Regular,
   ChevronDown12Regular,
   ChevronDown16Regular,
-  DataFunnel20Regular,
-  Search16Regular,
   Share16Regular,
-  TableEdit16Regular,
 } from '@fluentui/react-icons';
 import { ProductoService } from '../services/producto.service';
 import type { ProductoDto } from '../types/producto.types';
 import { ImportacionDrawer } from '../../../../components/common/ImportacionDrawer';
-import { TableEmptyState } from '../../../../components/common/TableEmptyState';
-import { D365ListState } from '../../../../components/common/D365ListState';
+import { D365EntityTable, D365TableToolbarTools, type D365EntityTableRef } from '../../../../components/common/D365EntityTable';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 
@@ -65,6 +52,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
 
   // Fluent UI v9 DataGrid Selection
   const [selectedIds, setSelectedIds] = useState<Set<SelectionItemId>>(new Set());
+  const tableRef = useRef<D365EntityTableRef>(null);
 
   const loadData = async () => {
     try {
@@ -326,87 +314,36 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
         </Menu>
 
         <div className={styles.viewToolsRight}>
-          <Tooltip content="Modificar orden y visibilidad de columnas" relationship="label">
-            <Button
-              appearance="subtle"
-              size="medium"
-              icon={<TableEdit16Regular className={styles.iconBrand} />}
-            >
-              Editar columnas
-            </Button>
-          </Tooltip>
-
-          <Tooltip content="Editar filtros de la consulta" relationship="label">
-            <Button
-              appearance="subtle"
-              size="medium"
-              icon={<DataFunnel20Regular className={styles.iconBrand} />}
-            >
-              Editar filtros
-            </Button>
-          </Tooltip>
-
-          <Input
-            className={styles.searchBox}
-            size="medium"
-            contentBefore={<Search16Regular />}
-            placeholder="Buscar" aria-label="Buscar en esta vista"
-            value={searchKeyword}
-            onChange={(_, data) => setSearchKeyword(data.value)}
+          <D365TableToolbarTools
+            tableRef={tableRef}
+            searchValue={searchKeyword}
+            onSearchChange={setSearchKeyword}
+            searchPlaceholder="Buscar en esta vista"
           />
         </div>
       </div>
 
-      {/* 3. FLUENT UI V9 NATIVE DATAGRID */}
-      <div className={styles.gridContainer}>
-        <D365ListState loading={loading} error={error} onRetry={loadData} loadingLabel="Cargando productos...">
-          <DataGrid
-            items={filteredProductos}
-            columns={columns}
-            sortable
-            selectionMode="multiselect"
-            selectedItems={selectedIds}
-            onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
-            getRowId={(item) => item.id}
-            focusMode="composite"
-            size="medium"
-            className={styles.table}
-          >
-            <DataGridHeader>
-              <DataGridRow>
-                {({ renderHeaderCell }) => (
-                  <DataGridHeaderCell>
-                    {renderHeaderCell()}
-                  </DataGridHeaderCell>
-                )}
-              </DataGridRow>
-            </DataGridHeader>
-            {filteredProductos.length === 0 ? (
-              <TableEmptyState />
-            ) : (
-              <DataGridBody<ProductoDto>>
-                {({ item, rowId }) => (
-                  <DataGridRow<ProductoDto>
-                    key={rowId}
-                    className={styles.dataRow}
-                    onDoubleClick={() => {
-                      if (onSelectProduct) {
-                        onSelectProduct(item);
-                      } else {
-                        navigate(`/servicio-campo/productos/${item.id}`);
-                      }
-                    }}
-                  >
-                    {({ renderCell }) => (
-                      <DataGridCell className={styles.dataCell}>{renderCell(item)}</DataGridCell>
-                    )}
-                  </DataGridRow>
-                )}
-              </DataGridBody>
-            )}
-          </DataGrid>
-        </D365ListState>
-      </div>
+      {/* 3. D365 ADVANCED ENTITY TABLE */}
+      <D365EntityTable
+        ref={tableRef}
+        entityName="Productos"
+        tableId="productos"
+        items={filteredProductos}
+        columns={columns}
+        loading={loading}
+        error={error}
+        onRetry={loadData}
+        selectionMode="multiselect"
+        selectedItems={selectedIds}
+        onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
+        onRowDoubleClick={(item) => {
+          if (onSelectProduct) {
+            onSelectProduct(item);
+          } else {
+            navigate(`/servicio-campo/productos/${item.id}`);
+          }
+        }}
+      />
 
       {/* 4. BOTTOM STATUS BAR */}
       <footer className={styles.footer}>

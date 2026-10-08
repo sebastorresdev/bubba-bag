@@ -32,10 +32,6 @@ import {
   DismissCircle16Regular,
   LockClosed16Regular,
   Box16Regular,
-  Info16Regular,
-  DocumentBulletList16Regular,
-  Location16Regular,
-  People16Regular,
   Person16Regular,
   Search16Regular,
 } from '@fluentui/react-icons';
@@ -564,26 +560,26 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
               )
             }
           >
-            <Tab value="general" icon={<Box16Regular />}>
+            <Tab value="general">
               General
             </Tab>
             {currentId && (
-              <Tab value="existencias" icon={<DocumentBulletList16Regular />}>
+              <Tab value="existencias">
                 Existencias / Stock
               </Tab>
             )}
             {currentId && (
-              <Tab value="ubicaciones" icon={<Location16Regular />}>
+              <Tab value="ubicaciones">
                 Ubicaciones
               </Tab>
             )}
             {currentId && formData.tipo !== 2 && (esAdminAlmacenes || puedeSupervisar) && (
-              <Tab value="autorizados" icon={<People16Regular />}>
+              <Tab value="autorizados">
                 Usuarios autorizados
               </Tab>
             )}
             {currentId && (
-              <Tab value="detalle" icon={<Info16Regular />}>
+              <Tab value="detalle">
                 Detalle / Auditoría
               </Tab>
             )}
@@ -656,15 +652,6 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
                             setErrors((prev) => ({ ...prev, nombre: '' }));
                           }
                         }}
-                      />
-                    </D365FormField>
-
-                    <D365FormField label="Código identificador">
-                      <Input
-                        className={styles.d365ControlFull}
-                        value={formData.codigo || ''}
-                        maxLength={30}
-                        onChange={(_e, d) => setFormData((prev) => ({ ...prev, codigo: d.value }))}
                       />
                     </D365FormField>
 

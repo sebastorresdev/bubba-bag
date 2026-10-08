@@ -10,7 +10,7 @@ public record CrearTransferenciaInventarioCommand(Guid AlmacenOrigenId, Guid Alm
     string? Observacion = null, string? GuiaRemision = null, Guid? UbicacionOrigenId = null, Guid? UbicacionDestinoId = null,
     ModalidadTransferencia? Modalidad = null, Guid OperacionId = default, DateTime? FechaReal = null, bool EsBorrador = false, Guid? TransferenciaId = null) : ICommand<Result<string>>;
 
-public class CrearTransferenciaInventarioHandler(IServicioCampoDbContext db, ICurrentUser user) : ICommandHandler<CrearTransferenciaInventarioCommand, Result<string>>
+public class CrearTransferenciaInventarioHandler(IServicioCampoDbContext db, ICurrentUser user, ICodigoSecuencialService? seqService = null) : ICommandHandler<CrearTransferenciaInventarioCommand, Result<string>>
 {
     public async Task<Result<string>> HandleAsync(CrearTransferenciaInventarioCommand c, CancellationToken cancellationToken = default)
     {
@@ -69,7 +69,29 @@ public class CrearTransferenciaInventarioHandler(IServicioCampoDbContext db, ICu
 
         var correlativo = $"{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}"[..15].ToUpperInvariant();
         var numeroTransferencia = $"TRF-{correlativo}";
-        var numeroGuia = string.IsNullOrWhiteSpace(c.GuiaRemision) ? $"GR-{correlativo}" : c.GuiaRemision.Trim().ToUpperInvariant();
+        string numeroGuia;
+        if (!string.IsNullOrWhiteSpace(c.GuiaRemision))
+        {
+            numeroGuia = c.GuiaRemision.Trim().ToUpperInvariant();
+        }
+        else if (anterior != null && !string.IsNullOrWhiteSpace(anterior.NumeroGuiaRemision))
+        {
+            numeroGuia = anterior.NumeroGuiaRemision;
+        }
+        else if (seqService != null)
+        {
+            numeroGuia = await seqService.SiguienteCodigoAsync(
+                prefijo: "GR",
+                nombreSecuencia: "seq_guias_remision",
+                esquema: "serviciocampo",
+                longitud: 7,
+                cancellationToken: cancellationToken);
+        }
+        else
+        {
+            var count = await db.Transferencias.CountAsync(cancellationToken);
+            numeroGuia = $"GR-{(count + 1):D7}";
+        }
 
         var t = anterior ?? Transferencia.Crear(numeroTransferencia, a.Id, b.Id, a.UnidadOrganizativaId.Value, b.UnidadOrganizativaId.Value, modalidad, user.Id, user.Nombre, c.Observacion, numeroGuia, origen.Id, destino.Id, c.OperacionId, c.FechaReal);
         if (anterior != null)

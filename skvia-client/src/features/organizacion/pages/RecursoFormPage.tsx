@@ -13,11 +13,9 @@ import {
   SaveMultiple16Regular,
   Add16Regular,
   ArrowClockwise16Regular,
-  People20Regular,
-  Clock16Regular,
-  History16Regular,
   LockClosed16Regular,
   Person16Regular,
+  People20Regular,
 } from '@fluentui/react-icons';
 import { SeguridadService, type UsuarioDto } from '../../seguridad';
 import { SelectorEntidadRelacionada } from '../../../components/common/SelectorEntidadRelacionada';
@@ -172,7 +170,6 @@ export function RecursoFormPage() {
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!formData.codigo.trim()) newErrors.codigo = 'El código identificador es obligatorio (ej. TEC-001).';
     if (!formData.nombreCompleto.trim()) newErrors.nombreCompleto = 'El nombre completo es obligatorio.';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -215,7 +212,7 @@ export function RecursoFormPage() {
       } else {
         const res = await OrganizacionService.createRecurso({
           ...payload,
-          codigo: formData.codigo.trim().toUpperCase(),
+          codigo: formData.codigo?.trim() ? formData.codigo.trim().toUpperCase() : undefined,
         });
 
         if (closeAfterSave) {
@@ -312,15 +309,9 @@ export function RecursoFormPage() {
                 selectedValue={selectedTab}
                 onTabSelect={(_, d) => setSelectedTab(d.value as 'general' | 'despacho' | 'detalle')}
               >
-                <Tab value="general" icon={<People20Regular />}>
-                  General
-                </Tab>
-                <Tab value="despacho" icon={<Clock16Regular />}>
-                  Parámetros de Despacho
-                </Tab>
-                <Tab value="detalle" disabled={!isEditMode} icon={<History16Regular />}>
-                  Detalle / Auditoría
-                </Tab>
+                <Tab value="general">General</Tab>
+                <Tab value="despacho">Parámetros de Despacho</Tab>
+                <Tab value="detalle" disabled={!isEditMode}>Detalle / Auditoría</Tab>
               </TabList>
             }
           />
@@ -332,15 +323,16 @@ export function RecursoFormPage() {
                   <div className={styles.cardSectionTitle}>Información del Recurso</div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <D365FormField label="Código de Recurso" required error={errors.codigo}>
-                      <Input
-                        className={styles.d365ControlFull}
-                        value={formData.codigo}
-                        maxLength={20}
-                        disabled={isEditMode}
-                        onChange={(_, d) => setFormData((p) => ({ ...p, codigo: d.value.toUpperCase() }))}
-                      />
-                    </D365FormField>
+                    {isEditMode && formData.codigo && (
+                      <D365FormField label="Código de Recurso">
+                        <Input
+                          className={styles.d365ControlFull}
+                          value={formData.codigo}
+                          readOnly
+                          appearance="filled-darker"
+                        />
+                      </D365FormField>
+                    )}
 
                     <D365FormField label="Nombre Completo" required error={errors.nombreCompleto}>
                       <Input

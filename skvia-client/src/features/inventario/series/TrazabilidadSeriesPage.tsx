@@ -1,12 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Button,
-  DataGrid,
-  DataGridBody,
-  DataGridCell,
-  DataGridHeader,
-  DataGridHeaderCell,
-  DataGridRow,
   Input,
   Select,
   TableCellLayout,
@@ -26,7 +20,7 @@ import {
   Tooltip,
   Text,
 } from '@fluentui/react-components';
-import type { TableColumnDefinition } from '@fluentui/react-components';
+import type { TableColumnDefinition, SelectionItemId } from '@fluentui/react-components';
 import {
   ArrowClockwise16Regular,
   ArrowDownload16Regular,
@@ -41,8 +35,11 @@ import {
   DataFunnel20Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton } from '../../../components/common/D365CommandBar';
-import { D365ListState } from '../../../components/common/D365ListState';
-import { TableEmptyState } from '../../../components/common/TableEmptyState';
+import {
+  D365EntityTable,
+  D365TableToolbarTools,
+  type D365EntityTableRef,
+} from '../../../components/common/D365EntityTable';
 import { useD365ListStyles } from '../../../styles/d365ListStyles';
 import { AlmacenService } from '../almacenes/services/almacen.service';
 import type { AlmacenDto } from '../almacenes/types/almacen.types';
@@ -61,12 +58,13 @@ const useStyles = makeStyles({
 export function TrazabilidadSeriesPage() {
   const styles = useStyles();
   const listStyles = useD365ListStyles();
+  const tableRef = useRef<D365EntityTableRef>(null);
   const [series, setSeries] = useState<ItemSeriadoStockDto[]>([]);
   const [almacenes, setAlmacenes] = useState<AlmacenDto[]>([]);
   const [almacenId, setAlmacenId] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState('TODOS');
   const [vistaActual, setVistaActual] = useState<'todas' | 'almacen' | 'transito' | 'tecnico' | 'cliente' | 'averiado'>('todas');
-  const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<SelectionItemId>>(new Set());
   const [filtroPopoverOpen, setFiltroPopoverOpen] = useState(false);
   const [buscar, setBuscar] = useState('');
   const [cargando, setCargando] = useState(true);
@@ -438,6 +436,7 @@ export function TrazabilidadSeriesPage() {
             </PopoverSurface>
           </Popover>
 
+          <D365TableToolbarTools tableRef={tableRef} />
           <Input
             className={listStyles.searchBox}
             size="medium"
@@ -450,49 +449,20 @@ export function TrazabilidadSeriesPage() {
         </div>
       </div>
 
-      {/* Grid de Series */}
-      <div className={listStyles.gridContainer}>
-        <D365ListState
-          loading={cargando}
-          error={error}
-          onRetry={() => void cargar()}
-          loadingLabel="Cargando trazabilidad de series..."
-        >
-          <DataGrid
-            items={seriesFiltradas}
-            columns={columns}
-            sortable
-            selectionMode="multiselect"
-            selectedItems={selectedIds}
-            onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
-            getRowId={item => item.id}
-            focusMode="composite"
-            size="medium"
-            className={listStyles.table}
-          >
-            <DataGridHeader>
-              <DataGridRow>
-                {({ renderHeaderCell }) => (
-                  <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
-                )}
-              </DataGridRow>
-            </DataGridHeader>
-            {seriesFiltradas.length === 0 ? (
-              <TableEmptyState />
-            ) : (
-              <DataGridBody<ItemSeriadoStockDto>>
-                {({ item, rowId }) => (
-                  <DataGridRow<ItemSeriadoStockDto> key={rowId} className={listStyles.dataRow}>
-                    {({ renderCell }) => (
-                      <DataGridCell className={listStyles.dataCell}>{renderCell(item)}</DataGridCell>
-                    )}
-                  </DataGridRow>
-                )}
-              </DataGridBody>
-            )}
-          </DataGrid>
-        </D365ListState>
-      </div>
+      {/* Grid de Series con Redimensionamiento, Ordenamiento y Filtros Dynamics 365 */}
+      <D365EntityTable
+        ref={tableRef}
+        entityName="Series de Inventario"
+        tableId="series-inventario"
+        items={seriesFiltradas}
+        columns={columns}
+        loading={cargando}
+        error={error}
+        onRetry={() => void cargar()}
+        selectionMode="multiselect"
+        selectedItems={selectedIds}
+        onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
+      />
 
       {/* Footer Estándar D365 */}
       <footer className={listStyles.footer}>

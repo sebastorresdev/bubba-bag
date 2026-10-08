@@ -8,8 +8,8 @@ import {
 } from '@fluentui/react-components';
 import type { TableColumnDefinition, TableRowId } from '@fluentui/react-components';
 import {
-  Add16Regular, ArrowClockwise16Regular, ArrowLeft16Regular, Box16Regular,
-  Checkmark16Regular, DismissCircle16Regular, Ruler16Regular,
+  Add16Regular, ArrowClockwise16Regular, ArrowLeft16Regular,
+  Checkmark16Regular, DismissCircle16Regular,
   LockClosed16Regular, Save16Regular, Search16Regular,
 } from '@fluentui/react-icons';
 import { GrupoUnidadMedidaService, UnidadMedidaService } from '../services/unidadMedida.service';
@@ -261,8 +261,8 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
         ]}
         tabs={(
           <TabList selectedValue={selectedTab} onTabSelect={(_, data) => setSelectedTab(data.value as 'general' | 'unidades')}>
-            <Tab value="general" icon={<Box16Regular />}>General</Tab>
-            <Tab value="unidades" icon={<Ruler16Regular />}>Unidades</Tab>
+            <Tab value="general">General</Tab>
+            <Tab value="unidades">Unidades</Tab>
           </TabList>
         )}
       />

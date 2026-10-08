@@ -42,6 +42,7 @@ export const CompraService = {
   obtenerPorId: (id: string) => apiClient<CompraDto>(`/api/inventario/compras/${id}`),
   crear: (datos: CrearCompra) => apiClient<{ id: string }>('/api/inventario/compras', { method: 'POST', body: JSON.stringify(datos) }),
   actualizar: (id: string, datos: CrearCompra) => apiClient<{ id: string }>(`/api/inventario/compras/${id}`, { method: 'PUT', body: JSON.stringify(datos) }),
+  eliminar: (id: string) => apiClient<void>(`/api/inventario/compras/${id}`, { method: 'DELETE' }),
   solicitar: (id: string) => apiClient<void>(`/api/inventario/compras/${id}/solicitar`, { method: 'POST' }),
   enviar: (id: string) => apiClient<void>(`/api/inventario/compras/${id}/enviar`, { method: 'POST' }),
   recepcionar: (id: string, datos: RecepcionCompraDatos) => apiClient<void>(`/api/inventario/compras/${id}/recepcionar`, { method: 'POST', body: JSON.stringify(datos) }),

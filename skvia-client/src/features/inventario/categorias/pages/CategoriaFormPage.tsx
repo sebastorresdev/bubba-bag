@@ -16,7 +16,6 @@ import {
   SaveMultiple16Regular,
   Add16Regular,
   ArrowClockwise16Regular,
-  Box16Regular,
   Folder16Regular,
 } from '@fluentui/react-icons';
 import { CategoriaService } from '../services/categoria.service';
@@ -316,7 +315,7 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
         metadata={[{ label: 'Estado', value: savedHeader.activo ? 'Activo' : 'Inactivo' }]}
         tabs={(
           <TabList selectedValue="detalles">
-            <Tab value="detalles" icon={<Box16Regular />}>General</Tab>
+            <Tab value="detalles">General</Tab>
           </TabList>
         )}
       />

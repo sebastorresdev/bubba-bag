@@ -1,15 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Badge,
   Button,
-  DataGrid,
-  DataGridBody,
-  DataGridCell,
-  DataGridHeader,
-  DataGridHeaderCell,
-  DataGridRow,
-  Input,
   Link,
   Menu,
   MenuItem,
@@ -21,6 +14,17 @@ import {
   Tooltip,
   createTableColumn,
   tokens,
+  Toast,
+  Toaster,
+  ToastTitle,
+  useId,
+  useToastController,
+  Dialog,
+  DialogSurface,
+  DialogTitle,
+  DialogBody,
+  DialogContent,
+  DialogActions,
 } from '@fluentui/react-components';
 import type { SelectionItemId, TableColumnDefinition } from '@fluentui/react-components';
 import {
@@ -28,19 +32,17 @@ import {
   ArrowClockwise16Regular,
   Checkmark16Regular,
   ChevronDown16Regular,
-  DataFunnel20Regular,
   Eye16Regular,
-  Search16Regular,
-  TableEdit16Regular,
   ArrowDownload16Regular,
   Print16Regular,
+  Box16Regular,
+  Delete16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
-import { D365ListState } from '../../../../components/common/D365ListState';
-import { D365MessageBar } from '../../../../components/common/D365MessageBar';
-import { TableEmptyState } from '../../../../components/common/TableEmptyState';
+import { D365EntityTable, D365TableToolbarTools, type D365EntityTableRef } from '../../../../components/common/D365EntityTable';
 import { WhatsAppIcon } from '../../../../components/common/WhatsAppIcon';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
+import { DetalleMaterialesTransferenciaDrawer } from '../components/DetalleMaterialesTransferenciaDrawer';
 import { TransferenciaService } from '../services/transferencia.service';
 import type { TransferenciaInventarioDto } from '../types/transferencia.types';
 
@@ -60,7 +62,21 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
   const [seleccionados, setSeleccionados] = useState<Set<SelectionItemId>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mensaje, setMensaje] = useState<string | null>(null);
+  const [drawerTransferencia, setDrawerTransferencia] = useState<TransferenciaInventarioDto | null>(null);
+  const [transferenciasAEliminar, setTransferenciasAEliminar] = useState<TransferenciaInventarioDto[] | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+  const tableRef = useRef<D365EntityTableRef>(null);
+  const toasterId = useId('transferencias-toaster');
+  const { dispatchToast } = useToastController(toasterId);
+
+  const notifySuccess = useCallback((title: string) => {
+    dispatchToast(
+      <Toast>
+        <ToastTitle>{title}</ToastTitle>
+      </Toast>,
+      { intent: 'success', position: 'top-end' }
+    );
+  }, [dispatchToast]);
 
   const cargar = useCallback(async () => {
     try {
@@ -81,9 +97,9 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
   useEffect(() => {
     const texto = (location.state as { successMessage?: string } | null)?.successMessage;
     if (!texto) return;
-    setMensaje(texto);
+    notifySuccess(texto);
     navigate(location.pathname, { replace: true, state: null });
-  }, [location.pathname, location.state, navigate]);
+  }, [location.pathname, location.state, navigate, notifySuccess]);
 
   const filtrados = useMemo(() => {
     const limite = new Date();
@@ -245,11 +261,58 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
       createTableColumn({
         columnId: 'items',
         renderHeaderCell: () => 'Materiales transferidos',
-        renderCell: (x: TransferenciaInventarioDto) => (
-          <TableCellLayout truncate>
-            <span>{x.resumenProductos || x.producto || '—'}</span>
-          </TableCellLayout>
-        ),
+        renderCell: (x: TransferenciaInventarioDto) => {
+          const cantidadTotal = x.totalCantidad ?? x.cantidad ?? 0;
+          const tieneItems =
+            (x.totalLineas !== undefined && x.totalLineas > 0) ||
+            (x.resumenProductos && x.resumenProductos !== 'Sin items' && x.resumenProductos !== '—') ||
+            cantidadTotal > 0;
+
+          if (!tieneItems) {
+            return (
+              <TableCellLayout>
+                <Badge appearance="tint" color="informative" shape="rounded" size="small">
+                  Sin ítems
+                </Badge>
+              </TableCellLayout>
+            );
+          }
+
+          const etiquetaTexto = x.totalLineas
+            ? `${x.totalLineas} ${x.totalLineas === 1 ? 'material' : 'materiales'}`
+            : (x.resumenProductos && x.resumenProductos !== 'Sin items' ? x.resumenProductos : 'Ver materiales');
+
+          return (
+            <TableCellLayout>
+              <Tooltip content="Ver materiales y números de serie en el panel lateral" relationship="label">
+                <Button
+                  appearance="subtle"
+                  size="small"
+                  icon={<Box16Regular style={{ color: tokens.colorBrandForeground1 }} />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDrawerTransferencia(x);
+                  }}
+                  style={{
+                    borderRadius: tokens.borderRadiusCircular,
+                    backgroundColor: tokens.colorBrandBackground2,
+                    color: tokens.colorBrandForeground1,
+                    padding: '3px 10px',
+                    height: '26px',
+                    fontWeight: tokens.fontWeightSemibold,
+                    fontSize: '12px',
+                    maxWidth: '190px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {etiquetaTexto}
+                </Button>
+              </Tooltip>
+            </TableCellLayout>
+          );
+        },
       }),
       createTableColumn({
         columnId: 'cantidad',
@@ -324,13 +387,17 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
     }
   }, [tipoFiltro, vista]);
 
+  const itemsSeleccionados = useMemo(() => {
+    return datos.filter((d) => seleccionados.has(d.id));
+  }, [datos, seleccionados]);
+
+  const borradoresSeleccionados = useMemo(() => {
+    return itemsSeleccionados.filter((d) => d.estado === 'Borrador');
+  }, [itemsSeleccionados]);
+
   return (
     <div className={styles.root}>
-      {mensaje && (
-        <D365MessageBar intent="success" onDismiss={() => setMensaje(null)}>
-          {mensaje}
-        </D365MessageBar>
-      )}
+      <Toaster toasterId={toasterId} position="top-end" />
 
       <D365CommandBar ariaLabel="Comandos de transferencias">
         <div className={styles.toolbarLeft}>
@@ -350,60 +417,83 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
             Nuevo
           </D365CommandButton>
           <D365CommandDivider />
-          {seleccionados.size === 1 && (
+          {seleccionados.size === 1 && (() => {
+            const itemSel = itemsSeleccionados[0] ?? datos.find((d) => seleccionados.has(d.id));
+            const esBorrador = itemSel?.estado === 'Borrador';
+            const idSel = itemSel?.id;
+            return (
+              <>
+                <D365CommandButton
+                  icon={<Eye16Regular />}
+                  onClick={() => {
+                    if (itemSel) {
+                      navigate(getRutaDetalle(itemSel));
+                    } else if (idSel) {
+                      const fallbackRuta =
+                        tipoFiltro === 'Despacho'
+                          ? `/servicio-campo/despacho-tecnicos/${idSel}`
+                          : tipoFiltro === 'Devolucion'
+                          ? `/servicio-campo/devolucion-tecnicos/${idSel}`
+                          : `/servicio-campo/transferencias/${idSel}`;
+                      navigate(fallbackRuta);
+                    }
+                  }}
+                >
+                  Ver detalle
+                </D365CommandButton>
+                {esBorrador && (
+                  <D365CommandButton
+                    icon={<Delete16Regular />}
+                    tone="danger"
+                    onClick={() => itemSel && setTransferenciasAEliminar([itemSel])}
+                  >
+                    Eliminar
+                  </D365CommandButton>
+                )}
+                <D365CommandButton
+                  icon={<ArrowDownload16Regular />}
+                  onClick={() => {
+                    if (idSel) void TransferenciaService.descargarCargoPdf(idSel, itemSel?.numero);
+                  }}
+                >
+                  Cargo PDF
+                </D365CommandButton>
+                <D365CommandButton
+                  icon={<Print16Regular />}
+                  onClick={() => {
+                    if (idSel) void TransferenciaService.abrirCargoPdf(idSel);
+                  }}
+                >
+                  Imprimir
+                </D365CommandButton>
+                <D365CommandButton
+                  icon={<WhatsAppIcon size={16} />}
+                  onClick={() => {
+                    if (idSel) {
+                      void TransferenciaService.compartirCargoWhatsapp(idSel, itemSel?.numero, {
+                        tipoOperacion: itemSel?.tipoOperacion || 'Cargo Oficial',
+                        destinatario: itemSel?.almacenDestino,
+                      });
+                    }
+                  }}
+                >
+                  WhatsApp
+                </D365CommandButton>
+                <D365CommandDivider />
+              </>
+            );
+          })()}
+          {seleccionados.size > 1 && (
             <>
-              <D365CommandButton
-                icon={<Eye16Regular />}
-                onClick={() => {
-                  const idSel = Array.from(seleccionados)[0] as string;
-                  const itemSel = datos.find((d) => d.id === idSel);
-                  if (itemSel) {
-                    navigate(getRutaDetalle(itemSel));
-                  } else {
-                    const fallbackRuta =
-                      tipoFiltro === 'Despacho'
-                        ? `/servicio-campo/despacho-tecnicos/${idSel}`
-                        : tipoFiltro === 'Devolucion'
-                        ? `/servicio-campo/devolucion-tecnicos/${idSel}`
-                        : `/servicio-campo/transferencias/${idSel}`;
-                    navigate(fallbackRuta);
-                  }
-                }}
-              >
-                Ver detalle
-              </D365CommandButton>
-              <D365CommandButton
-                icon={<ArrowDownload16Regular />}
-                onClick={() => {
-                  const idSel = Array.from(seleccionados)[0] as string;
-                  const itemSel = datos.find((d) => d.id === idSel);
-                  void TransferenciaService.descargarCargoPdf(idSel, itemSel?.numero);
-                }}
-              >
-                Cargo PDF
-              </D365CommandButton>
-              <D365CommandButton
-                icon={<Print16Regular />}
-                onClick={() => {
-                  const idSel = Array.from(seleccionados)[0] as string;
-                  void TransferenciaService.abrirCargoPdf(idSel);
-                }}
-              >
-                Imprimir
-              </D365CommandButton>
-              <D365CommandButton
-                icon={<WhatsAppIcon size={16} />}
-                onClick={() => {
-                  const idSel = Array.from(seleccionados)[0] as string;
-                  const itemSel = datos.find((d) => d.id === idSel);
-                  void TransferenciaService.compartirCargoWhatsapp(idSel, itemSel?.numero, {
-                    tipoOperacion: itemSel?.tipoOperacion || 'Cargo Oficial',
-                    destinatario: itemSel?.almacenDestino,
-                  });
-                }}
-              >
-                WhatsApp
-              </D365CommandButton>
+              {borradoresSeleccionados.length > 0 && (
+                <D365CommandButton
+                  icon={<Delete16Regular />}
+                  tone="danger"
+                  onClick={() => setTransferenciasAEliminar(borradoresSeleccionados)}
+                >
+                  Eliminar ({borradoresSeleccionados.length})
+                </D365CommandButton>
+              )}
               <D365CommandDivider />
             </>
           )}
@@ -448,75 +538,29 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
         </Menu>
 
         <div className={styles.viewToolsRight}>
-          <Tooltip content="Modificar orden y visibilidad de columnas" relationship="label">
-            <Button
-              appearance="subtle"
-              size="medium"
-              icon={<TableEdit16Regular className={styles.iconBrand} />}
-            >
-              Editar columnas
-            </Button>
-          </Tooltip>
-          <Tooltip content="Editar filtros de la consulta" relationship="label">
-            <Button
-              appearance="subtle"
-              size="medium"
-              icon={<DataFunnel20Regular className={styles.iconBrand} />}
-            >
-              Editar filtros
-            </Button>
-          </Tooltip>
-          <Input
-            className={styles.searchBox}
-            size="medium"
-            contentBefore={<Search16Regular />}
-            placeholder="Buscar" aria-label="Buscar por número, almacén, producto"
-            value={buscar}
-            onChange={(_, d) => setBuscar(d.value)}
+          <D365TableToolbarTools
+            tableRef={tableRef}
+            searchValue={buscar}
+            onSearchChange={setBuscar}
+            searchPlaceholder="Buscar por número, almacén, producto"
           />
         </div>
       </div>
 
-      <div className={styles.gridContainer}>
-        <D365ListState
-          loading={loading}
-          error={error}
-          onRetry={() => void cargar()}
-          loadingLabel="Cargando transferencias..."
-        >
-          <DataGrid
-            items={filtrados}
-            columns={columns}
-            sortable
-            selectionMode="multiselect"
-            selectedItems={seleccionados}
-            onSelectionChange={(_, data) => setSeleccionados(data.selectedItems)}
-            getRowId={(item) => item.id}
-            focusMode="composite"
-            size="medium"
-            className={styles.table}
-          >
-            <DataGridHeader>
-              <DataGridRow>
-                {({ renderHeaderCell }) => <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>}
-              </DataGridRow>
-            </DataGridHeader>
-            {filtrados.length === 0 ? (
-              <TableEmptyState />
-            ) : (
-              <DataGridBody<TransferenciaInventarioDto>>
-                {({ item, rowId }) => (
-                  <DataGridRow<TransferenciaInventarioDto> key={rowId} className={styles.dataRow}>
-                    {({ renderCell }) => (
-                      <DataGridCell className={styles.dataCell}>{renderCell(item)}</DataGridCell>
-                    )}
-                  </DataGridRow>
-                )}
-              </DataGridBody>
-            )}
-          </DataGrid>
-        </D365ListState>
-      </div>
+      <D365EntityTable
+        ref={tableRef}
+        entityName={tipoFiltro ? `${tipoFiltro}s` : 'Transferencias'}
+        tableId="transferencias"
+        items={filtrados}
+        columns={columns}
+        loading={loading}
+        error={error}
+        onRetry={() => void cargar()}
+        selectionMode="multiselect"
+        selectedItems={seleccionados}
+        onSelectionChange={(_, data) => setSeleccionados(data.selectedItems)}
+        onRowDoubleClick={(item) => navigate(getRutaDetalle(item))}
+      />
 
       <footer className={styles.footer}>
         <div>
@@ -524,6 +568,132 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
         </div>
         <div>Página 1</div>
       </footer>
+
+      <DetalleMaterialesTransferenciaDrawer
+        open={Boolean(drawerTransferencia)}
+        transferencia={drawerTransferencia}
+        onClose={() => setDrawerTransferencia(null)}
+        onVerFichaCompleta={(id) => {
+          if (drawerTransferencia) {
+            navigate(getRutaDetalle(drawerTransferencia));
+          } else {
+            navigate(`/servicio-campo/transferencias/${id}`);
+          }
+          setDrawerTransferencia(null);
+        }}
+      />
+
+      <Dialog
+        open={Boolean(transferenciasAEliminar && transferenciasAEliminar.length > 0)}
+        onOpenChange={(_, data) => {
+          if (!data.open && !eliminando) setTransferenciasAEliminar(null);
+        }}
+      >
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>
+              {transferenciasAEliminar?.length === 1
+                ? 'Eliminar borrador'
+                : `Eliminar ${transferenciasAEliminar?.length} borradores`}
+            </DialogTitle>
+            <DialogContent>
+              {transferenciasAEliminar?.length === 1 ? (
+                <>
+                  ¿Está seguro de que desea eliminar el borrador{' '}
+                  <strong>{transferenciasAEliminar[0]?.numero}</strong>? Esta acción no se puede deshacer.
+                </>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div>
+                    ¿Está seguro de que desea eliminar los{' '}
+                    <strong>{transferenciasAEliminar?.length}</strong> borradores seleccionados? Esta acción no se puede deshacer.
+                  </div>
+                  <div
+                    style={{
+                      maxHeight: '120px',
+                      overflowY: 'auto',
+                      backgroundColor: tokens.colorNeutralBackground2,
+                      padding: '8px 12px',
+                      borderRadius: tokens.borderRadiusMedium,
+                      fontSize: '12px',
+                    }}
+                  >
+                    {transferenciasAEliminar?.map((t) => t.numero).join(', ')}
+                  </div>
+                  {itemsSeleccionados.length > (transferenciasAEliminar?.length ?? 0) && (
+                    <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                      ℹ️ Nota: {itemsSeleccionados.length - (transferenciasAEliminar?.length ?? 0)} registro(s) seleccionados
+                      no se encuentran en estado Borrador y se mantendrán intactos.
+                    </Text>
+                  )}
+                </div>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button
+                appearance="secondary"
+                disabled={eliminando}
+                onClick={() => setTransferenciasAEliminar(null)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                appearance="primary"
+                style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: '#fff' }}
+                disabled={eliminando}
+                onClick={async () => {
+                  if (!transferenciasAEliminar || transferenciasAEliminar.length === 0) return;
+                  try {
+                    setEliminando(true);
+                    let exitosos = 0;
+                    const errores: string[] = [];
+                    for (const t of transferenciasAEliminar) {
+                      try {
+                        await TransferenciaService.eliminar(t.id);
+                        exitosos++;
+                      } catch (err) {
+                        errores.push(`${t.numero}: ${err instanceof Error ? err.message : 'Error al eliminar'}`);
+                      }
+                    }
+
+                    if (exitosos > 0) {
+                      notifySuccess(
+                        exitosos === 1
+                          ? `Borrador ${transferenciasAEliminar[0].numero} eliminado exitosamente.`
+                          : `Se eliminaron ${exitosos} borradores exitosamente.`
+                      );
+                    }
+
+                    if (errores.length > 0) {
+                      dispatchToast(
+                        <Toast>
+                          <ToastTitle>{`No se pudieron eliminar ${errores.length} registros: ${errores.join('; ')}`}</ToastTitle>
+                        </Toast>,
+                        { intent: 'error', position: 'top-end' }
+                      );
+                    }
+
+                    setTransferenciasAEliminar(null);
+                    setSeleccionados(new Set());
+                    await cargar();
+                  } catch (e) {
+                    dispatchToast(
+                      <Toast>
+                        <ToastTitle>{e instanceof Error ? e.message : 'Error al eliminar'}</ToastTitle>
+                      </Toast>,
+                      { intent: 'error', position: 'top-end' }
+                    );
+                  } finally {
+                    setEliminando(false);
+                  }
+                }}
+              >
+                {eliminando ? 'Eliminando...' : 'Eliminar'}
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
     </div>
   );
 }

@@ -19,9 +19,6 @@ import {
   SaveMultiple16Regular,
   Add16Regular,
   ArrowClockwise16Regular,
-  Box16Regular,
-  Wrench16Regular,
-  DocumentText16Regular,
   Cube16Regular,
   Folder16Regular,
   LockClosed16Regular,
@@ -487,9 +484,9 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
         ]}
         tabs={(
           <TabList selectedValue={selectedTab} onTabSelect={(_, data) => setSelectedTab(data.value as string)}>
-            <Tab value="detalles" icon={<Box16Regular />}>Detalles del Producto</Tab>
-            <Tab value="field-service" icon={<Wrench16Regular />}>Servicio de Campo</Tab>
-            <Tab value="notas" icon={<DocumentText16Regular />}>Notas</Tab>
+            <Tab value="detalles">Detalles del Producto</Tab>
+            <Tab value="field-service">Servicio de Campo</Tab>
+            <Tab value="notas">Notas</Tab>
           </TabList>
         )}
       />
