@@ -46,6 +46,17 @@ import {
 } from './D365EditarColumnasDrawer';
 
 const useStyles = makeStyles({
+  headerCell: {
+    cursor: 'pointer',
+    transitionProperty: 'background-color',
+    transitionDuration: tokens.durationFaster,
+    ':hover': {
+      backgroundColor: tokens.colorSubtleBackgroundHover,
+    },
+    ':active': {
+      backgroundColor: tokens.colorSubtleBackgroundPressed,
+    },
+  },
   headerCellContent: {
     display: 'flex',
     alignItems: 'center',
@@ -560,6 +571,7 @@ function D365EntityTableInner<T extends { id: string }>(
                   return (
                     <DataGridHeaderCell
                       sortIcon={null}
+                      className={customStyles.headerCell}
                       style={{
                         width: width ? `${width}px` : undefined,
                         minWidth: width ? `${width}px` : '70px',
