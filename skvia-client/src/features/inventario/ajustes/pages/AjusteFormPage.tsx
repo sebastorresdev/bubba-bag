@@ -325,11 +325,11 @@ export function AjusteFormPage() {
           { label: 'Unidades', value: totalCantidad.toLocaleString('es-PE') },
           { label: 'Valorización', value: formatoMoneda.format(totalValor) },
         ]}
-        processFlow={<AjusteEtapas estado={estado} />}
+        processFlow={<AjusteEtapas estado={estado} embedded />}
         tabs={
           <TabList selectedValue={tab} onTabSelect={(_, d) => setTab(String(d.value))}>
             <Tab value="general">General</Tab>
-            <Tab value="lineas">Líneas de ajuste ({lineas.length})</Tab>
+            <Tab value="lineas">Líneas de ajuste</Tab>
             <Tab value="auditoria">Auditoría</Tab>
           </TabList>
         }

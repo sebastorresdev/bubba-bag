@@ -1,131 +1,267 @@
-import { makeStyles, tokens, shorthands } from '@fluentui/react-components';
-import { Checkmark16Regular } from '@fluentui/react-icons';
+import React from 'react';
+import { Text, makeStyles, tokens, Tooltip } from '@fluentui/react-components';
+import {
+  CheckmarkCircle16Filled,
+  DismissCircle16Filled,
+} from '@fluentui/react-icons';
 import type { EstadoAjuste } from '../types/ajuste.types';
 
-const ETAPAS = [
-  { id: 'Borrador', numero: 1, nombre: 'Borrador' },
-  { id: 'EnRevision', numero: 2, nombre: 'En revisión' },
-  { id: 'Aplicado', numero: 3, nombre: 'Aplicado' },
+export interface EtapaConfig {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  subtitulo: string;
+}
+
+const ETAPAS_AJUSTE: EtapaConfig[] = [
+  { id: 'Borrador', nombre: 'Borrador', descripcion: 'Información base y preparación de líneas de ajuste', subtitulo: 'Registro inicial' },
+  { id: 'EnRevision', nombre: 'En Revisión', descripcion: 'Verificación de diferencias y autorizaciones', subtitulo: 'En revisión' },
+  { id: 'Aplicado', nombre: 'Aplicado', descripcion: 'Ajuste consolidado e impacto en stock registrado', subtitulo: 'Completado' },
 ];
 
 const useStyles = makeStyles({
   container: {
-    padding: '8px 16px',
-    backgroundColor: tokens.colorNeutralBackground2,
+    padding: '8px 24px 12px 24px',
+    backgroundColor: tokens.colorNeutralBackground1,
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+  },
+  containerEmbedded: {
+    padding: '0',
+    backgroundColor: 'transparent',
+    borderBottom: 'none',
+  },
+  scrollWrapper: {
+    overflowX: 'auto',
+    width: '100%',
   },
   track: {
     display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-    listStyleType: 'none',
-    margin: 0,
-    padding: 0,
-    overflowX: 'auto',
-  },
-  step: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '6px 14px',
+    alignItems: 'stretch',
+    minWidth: '540px',
+    height: '46px',
     borderRadius: tokens.borderRadiusMedium,
-    fontSize: tokens.fontSizeBase200,
-    cursor: 'default',
-    userSelect: 'none',
     border: `1px solid ${tokens.colorNeutralStroke2}`,
     backgroundColor: tokens.colorNeutralBackground1,
-    color: tokens.colorNeutralForeground3,
+    overflow: 'hidden',
+    boxShadow: tokens.shadow2,
+    margin: 0,
+    padding: 0,
+    listStyleType: 'none',
   },
-  stepActive: {
-    backgroundColor: tokens.colorBrandBackground,
-    ...shorthands.borderColor(tokens.colorBrandBackground),
-    color: tokens.colorNeutralForegroundOnBrand,
-    fontWeight: tokens.fontWeightSemibold,
-  },
-  stepCompleted: {
-    backgroundColor: tokens.colorNeutralBackground3,
-    ...shorthands.borderColor(tokens.colorNeutralStroke2),
-    color: tokens.colorNeutralForeground1,
-  },
-  circle: {
-    width: '20px',
-    height: '20px',
-    borderRadius: '50%',
+  step: {
+    flex: '1 1 0',
     display: 'flex',
     alignItems: 'center',
+    gap: '10px',
+    position: 'relative',
+    padding: '0 16px 0 24px',
+    userSelect: 'none',
+    transition: 'background-color 0.15s ease',
+  },
+  stepFirst: {
+    paddingLeft: '16px',
+  },
+  content: {
+    display: 'flex',
+    flexDirection: 'column',
     justifyContent: 'center',
-    fontSize: '11px',
-    fontWeight: tokens.fontWeightBold,
-    backgroundColor: tokens.colorNeutralBackground3,
-    color: tokens.colorNeutralForeground2,
+    minWidth: 0,
+    lineHeight: '1.2',
   },
-  circleActive: {
-    backgroundColor: tokens.colorNeutralBackground1,
-    color: tokens.colorBrandForeground1,
+  title: {
+    fontSize: '13px',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
-  circleCompleted: {
-    backgroundColor: tokens.colorBrandBackground,
-    color: tokens.colorNeutralForegroundOnBrand,
-  },
-  arrow: {
-    color: tokens.colorNeutralForeground4,
-    fontSize: '12px',
-    margin: '0 2px',
+  subtitle: {
+    fontSize: '10px',
+    whiteSpace: 'nowrap',
+    textTransform: 'uppercase',
+    letterSpacing: '0.4px',
+    marginTop: '2px',
   },
 });
 
-export function AjusteEtapas({ estado }: { estado: EstadoAjuste }) {
+interface AjusteEtapasProps {
+  estado?: EstadoAjuste | string | null;
+  embedded?: boolean;
+}
+
+export const AjusteEtapas: React.FC<AjusteEtapasProps> = ({
+  estado = 'Borrador',
+  embedded = false,
+}) => {
   const styles = useStyles();
 
-  const getStepIndex = (e: EstadoAjuste) => {
-    if (e === 'Aplicado') return 2;
-    if (e === 'Anulado') return -1;
-    return 0; // Borrador
-  };
+  const esAnulado = estado === 'Anulado';
+  const esAplicado = estado === 'Aplicado';
+  const esRevision = estado === 'EnRevision' || estado === 'En revisión';
 
-  const activeIndex = getStepIndex(estado);
-
-  if (estado === 'Anulado') {
-    return (
-      <div className={styles.container}>
-        <div style={{ color: tokens.colorPaletteRedForeground1, fontWeight: tokens.fontWeightSemibold, fontSize: '13px' }}>
-          Este ajuste de inventario ha sido anulado.
-        </div>
-      </div>
-    );
+  let actual = 0;
+  if (esAplicado) {
+    actual = 2;
+  } else if (esRevision) {
+    actual = 1;
+  } else {
+    actual = 0;
   }
 
   return (
-    <div className={styles.container}>
-      <ol className={styles.track}>
-        {ETAPAS.map((etapa, idx) => {
-          const isCompleted = idx < activeIndex;
-          const isActive = idx === activeIndex;
+    <div
+      className={embedded ? styles.containerEmbedded : styles.container}
+      aria-label="Progreso del ciclo de ajuste de inventario"
+    >
+      <div className={styles.scrollWrapper}>
+        <ol className={styles.track} role="list">
+          {ETAPAS_AJUSTE.map((etapa, index) => {
+            const esUltima = index === ETAPAS_AJUSTE.length - 1;
+            const esCompletada = esAplicado ? true : index < actual;
+            const esActiva = !esAplicado && index === actual;
 
-          let stepClass = styles.step;
-          let circleClass = styles.circle;
+            let bg = tokens.colorNeutralBackground1;
+            let stroke = tokens.colorNeutralStroke2;
 
-          if (isActive) {
-            stepClass = `${styles.step} ${styles.stepActive}`;
-            circleClass = `${styles.circle} ${styles.circleActive}`;
-          } else if (isCompleted) {
-            stepClass = `${styles.step} ${styles.stepCompleted}`;
-            circleClass = `${styles.circle} ${styles.circleCompleted}`;
-          }
+            if (esAnulado) {
+              bg = tokens.colorNeutralBackground3;
+              stroke = tokens.colorNeutralStroke3;
+            } else if (esActiva) {
+              bg = tokens.colorBrandBackground;
+              stroke = tokens.colorBrandStroke1;
+            } else if (esCompletada) {
+              bg = tokens.colorNeutralBackground2;
+              stroke = tokens.colorNeutralStroke2;
+            } else {
+              bg = tokens.colorNeutralBackground1;
+              stroke = tokens.colorNeutralStroke2;
+            }
 
-          return (
-            <li key={etapa.id} style={{ display: 'flex', alignItems: 'center' }}>
-              <div className={stepClass}>
-                <div className={circleClass}>
-                  {isCompleted ? <Checkmark16Regular /> : etapa.numero}
-                </div>
-                <span>{etapa.nombre}</span>
-              </div>
-              {idx < ETAPAS.length - 1 && <span className={styles.arrow}>›</span>}
-            </li>
-          );
-        })}
-      </ol>
+            return (
+              <Tooltip
+                key={etapa.id}
+                content={esAnulado ? 'Ajuste anulado' : etapa.descripcion}
+                relationship="description"
+              >
+                <li
+                  className={`${styles.step} ${index === 0 ? styles.stepFirst : ''}`}
+                  style={{
+                    backgroundColor: bg,
+                    zIndex: ETAPAS_AJUSTE.length - index,
+                  }}
+                  aria-current={esActiva ? 'step' : undefined}
+                >
+                  {/* Indicador de estado */}
+                  {esAnulado ? (
+                    <DismissCircle16Filled
+                      style={{ color: tokens.colorPaletteRedForeground1, fontSize: '18px', flexShrink: 0 }}
+                      aria-label="Anulado"
+                    />
+                  ) : esCompletada ? (
+                    <CheckmarkCircle16Filled
+                      style={{ color: tokens.colorPaletteGreenForeground1, fontSize: '18px', flexShrink: 0 }}
+                      aria-label="Completado"
+                    />
+                  ) : esActiva ? (
+                    <div
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: tokens.colorNeutralForegroundOnBrand,
+                        color: tokens.colorBrandForeground1,
+                        fontWeight: 'bold',
+                        fontSize: '11px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        boxShadow: tokens.shadow2,
+                      }}
+                    >
+                      {index + 1}
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        border: `1.5px solid ${tokens.colorNeutralStroke2}`,
+                        color: tokens.colorNeutralForeground4,
+                        fontWeight: 'bold',
+                        fontSize: '11px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {index + 1}
+                    </div>
+                  )}
+
+                  {/* Textos de la etapa */}
+                  <div className={styles.content}>
+                    <Text
+                      className={styles.title}
+                      weight={esActiva ? 'bold' : esCompletada ? 'semibold' : 'regular'}
+                      style={{
+                        color: esActiva
+                          ? tokens.colorNeutralForegroundOnBrand
+                          : esCompletada
+                          ? tokens.colorNeutralForeground1
+                          : tokens.colorNeutralForeground4,
+                      }}
+                    >
+                      {etapa.nombre}
+                    </Text>
+                    <span
+                      className={styles.subtitle}
+                      style={{
+                        color: esActiva
+                          ? tokens.colorNeutralForegroundOnBrand
+                          : esCompletada
+                          ? tokens.colorNeutralForeground3
+                          : tokens.colorNeutralForeground4,
+                        opacity: esActiva ? 0.85 : 1,
+                      }}
+                    >
+                      {esAnulado
+                        ? 'Anulada'
+                        : esActiva
+                        ? 'Etapa actual'
+                        : esCompletada
+                        ? 'Completada'
+                        : 'Pendiente'}
+                    </span>
+                  </div>
+
+                  {/* Flecha Chevron conectora */}
+                  {!esUltima && (
+                    <svg
+                      style={{
+                        position: 'absolute',
+                        right: '-13px',
+                        top: 0,
+                        width: '14px',
+                        height: '100%',
+                        zIndex: 10,
+                        pointerEvents: 'none',
+                      }}
+                      viewBox="0 0 14 46"
+                      preserveAspectRatio="none"
+                      aria-hidden="true"
+                    >
+                      <path d="M0,0 L14,23 L0,46 Z" fill={bg} />
+                      <path d="M0,0 L14,23 L0,46" fill="none" stroke={stroke} strokeWidth="1.5" />
+                    </svg>
+                  )}
+                </li>
+              </Tooltip>
+            );
+          })}
+        </ol>
+      </div>
     </div>
   );
-}
+};

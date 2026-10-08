@@ -33,6 +33,7 @@ import {
   useId,
   useToastController,
 } from '@fluentui/react-components';
+import { DatePicker } from '@fluentui/react-datepicker-compat';
 import type { TableColumnDefinition } from '@fluentui/react-components';
 import {
   Add16Regular,
@@ -1393,9 +1394,8 @@ export function TransferenciaFormPage() {
 
               <D365FormField label="Fecha de registro">
                 <Input
-                  type="date"
                   className={formStyles.d365ControlFull}
-                  value={fechaRegistro}
+                  value={fechaRegistro ? new Date(fechaRegistro + 'T00:00:00').toLocaleDateString('es-PE') : new Date().toLocaleDateString('es-PE')}
                   readOnly
                   appearance="filled-darker"
                   contentAfter={<LockClosed16Regular title="Fecha de movimiento" />}
@@ -1503,7 +1503,30 @@ export function TransferenciaFormPage() {
                 </D365FormField>
               </div>
             )}
-            {esSoloLectura && detalle ? <div className={formStyles.grid2Cols}><D365FormField label="Ubicación de origen"><Input readOnly value={detalle.ubicacionOrigenNombre ?? 'No registrada en el histórico'} /></D365FormField><D365FormField label="Ubicación de destino"><Input readOnly value={detalle.ubicacionDestinoNombre ?? 'No registrada en el histórico'} /></D365FormField><D365FormField label="Fecha real"><Input readOnly value={new Date(detalle.fechaReal).toLocaleString('es-PE')} /></D365FormField></div> : <D365FormField label="Fecha real del despacho (opcional)"><Input type="datetime-local" disabled={bloqueado} value={fechaReal} onChange={(_,d)=>setFechaReal(d.value)} /></D365FormField>}
+            {esSoloLectura && detalle ? (
+              <div className={formStyles.grid2Cols}>
+                <D365FormField label="Ubicación de origen">
+                  <Input readOnly value={detalle.ubicacionOrigenNombre ?? 'No registrada en el histórico'} />
+                </D365FormField>
+                <D365FormField label="Ubicación de destino">
+                  <Input readOnly value={detalle.ubicacionDestinoNombre ?? 'No registrada en el histórico'} />
+                </D365FormField>
+                <D365FormField label="Fecha real">
+                  <Input readOnly value={new Date(detalle.fechaReal).toLocaleString('es-PE')} />
+                </D365FormField>
+              </div>
+            ) : (
+              <D365FormField label="Fecha real del despacho (opcional)">
+                <DatePicker
+                  className={formStyles.d365ControlFull}
+                  disabled={bloqueado}
+                  placeholder="Seleccionar fecha..."
+                  value={fechaReal ? new Date(fechaReal) : undefined}
+                  formatDate={(d) => (d ? d.toLocaleDateString('es-PE') : '')}
+                  onSelectDate={(d) => setFechaReal(d ? d.toISOString() : '')}
+                />
+              </D365FormField>
+            )}
             <D365FormField label="Motivo u observación" align="top">
               <Textarea
                 className={formStyles.d365ControlFull}
@@ -1810,8 +1833,17 @@ export function TransferenciaFormPage() {
           <DialogBody>
             <DialogTitle>Recepción física de mercadería en destino</DialogTitle>
             <DialogContent>
-              {error && <D365MessageBar intent="error">{error}</D365MessageBar>}
-              <Input type="datetime-local" aria-label="Fecha real de recepción (opcional)" value={fechaRecepcionReal} onChange={(_,d)=>setFechaRecepcionReal(d.value)} />
+              <div style={{ marginBottom: '12px' }}>
+                <D365FormField label="Fecha real de recepción (opcional)">
+                  <DatePicker
+                    className={formStyles.d365ControlFull}
+                    placeholder="Seleccionar fecha de recepción..."
+                    value={fechaRecepcionReal ? new Date(fechaRecepcionReal) : undefined}
+                    formatDate={(d) => (d ? d.toLocaleDateString('es-PE') : '')}
+                    onSelectDate={(d) => setFechaRecepcionReal(d ? d.toISOString() : '')}
+                  />
+                </D365FormField>
+              </div>
 
               <div className={styles.modalTableWrapper}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
