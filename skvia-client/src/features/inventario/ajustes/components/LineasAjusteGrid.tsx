@@ -57,17 +57,19 @@ const useStyles = makeStyles({
     padding: '4px 0',
   },
   drawer: {
-    width: '460px',
-    maxWidth: '92vw',
+    width: '520px',
+    maxWidth: '95vw',
   },
   body: {
     display: 'flex',
     flexDirection: 'column',
     gap: '16px',
-    padding: '20px',
+    padding: '24px',
+    overflowX: 'hidden',
   },
   control: {
     width: '100%',
+    minWidth: 0,
   },
   opcion: {
     display: 'flex',

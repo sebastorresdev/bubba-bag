@@ -20,8 +20,8 @@ import type { UnidadOrganizativaDto } from '../types/almacen.types';
 
 const useStyles = makeStyles({
   drawer: {
-    width: '460px',
-    maxWidth: '92vw',
+    width: '520px',
+    maxWidth: '95vw',
   },
   header: {
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
@@ -37,6 +37,7 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: '16px',
     padding: '24px',
+    overflowX: 'hidden',
   },
   footer: {
     display: 'flex',

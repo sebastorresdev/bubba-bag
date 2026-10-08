@@ -142,6 +142,7 @@ export const useD365FormStyles = makeStyles({
   },
   d365ControlCol: {
     flex: 1,
+    minWidth: 0,
     display: 'flex',
     flexDirection: 'column',
     gap: '2px',
