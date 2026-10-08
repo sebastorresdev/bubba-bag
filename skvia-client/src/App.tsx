@@ -34,6 +34,8 @@ const ComprasListPage = lazy(() => import('./features/inventario/compras/Compras
 const CompraFormPage = lazy(() => import('./features/inventario/compras/CompraFormPage').then((m) => ({ default: m.CompraFormPage })));
 const RecepcionCompraPage = lazy(() => import('./features/inventario/compras/RecepcionCompraPage').then((m) => ({ default: m.RecepcionCompraPage })));
 const TrazabilidadSeriesPage = lazy(() => import('./features/inventario/series/TrazabilidadSeriesPage').then((m) => ({ default: m.TrazabilidadSeriesPage })));
+const AjustesListPage = lazy(() => import('./features/inventario/ajustes').then((m) => ({ default: m.AjustesListPage })));
+const AjusteFormPage = lazy(() => import('./features/inventario/ajustes').then((m) => ({ default: m.AjusteFormPage })));
 const ConfiguracionEmpresaPage = lazy(() => import('./features/configuracion-empresa/pages/ConfiguracionEmpresaPage').then((m) => ({ default: m.ConfiguracionEmpresaPage })));
 
 // Estructura Organizacional (CRUDs reales: Unidades Organizativas, Territorios, Recursos)
@@ -124,6 +126,9 @@ export default function App() {
               <Route path="servicio-campo/almacenes/nuevo" element={<AlmacenFormPage />} />
               <Route path="servicio-campo/almacenes/:id" element={<AlmacenFormPage />} />
               <Route path="servicio-campo/series" element={<TrazabilidadSeriesPage />} />
+              <Route path="servicio-campo/ajustes-inventario" element={<AjustesListPage />} />
+              <Route path="servicio-campo/ajustes-inventario/nuevo" element={<AjusteFormPage key="nuevo-ajuste" />} />
+              <Route path="servicio-campo/ajustes-inventario/:id" element={<AjusteFormPage />} />
 
               {/* 6. Estructura Organizacional (CRUDs Reales: Sedes, Zonas/Territorios, Recursos) */}
               <Route path="servicio-campo/unidades-organizativas" element={<UnidadesOrganizativasListPage />} />
