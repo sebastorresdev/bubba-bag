@@ -10,15 +10,12 @@ import {
   type SelectionItemId,
   type OnSelectionChangeData,
   Button,
-  Badge,
   Input,
   Menu,
   MenuItem,
   MenuList,
   MenuPopover,
   MenuTrigger,
-  MenuDivider,
-  Text,
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
@@ -26,9 +23,6 @@ import {
   ArrowSortDown16Regular,
   ArrowSortUp16Regular,
   ChevronDown16Regular,
-  DataFunnel20Regular,
-  Dismiss16Regular,
-  Filter16Regular,
   Search16Regular,
   TableEdit16Regular,
 } from '@fluentui/react-icons';
@@ -36,14 +30,16 @@ import { useD365ListStyles } from '../../styles/d365ListStyles';
 import { D365ListState } from './D365ListState';
 import { TableEmptyState } from './TableEmptyState';
 import {
-  D365FiltrosAvanzadosDrawer,
-  type D365FilterCondition,
-  type D365FilterField,
-} from './D365FiltrosAvanzadosDrawer';
-import {
   D365EditarColumnasDrawer,
   type D365ColumnConfig,
 } from './D365EditarColumnasDrawer';
+
+export interface D365FilterField {
+  id: string;
+  label: string;
+  type?: 'string' | 'number' | 'date' | 'boolean';
+  options?: Array<{ value: string; label: string }>;
+}
 
 const useStyles = makeStyles({
   headerCell: {
@@ -90,11 +86,6 @@ const useStyles = makeStyles({
   sortIcon: {
     color: tokens.colorCompoundBrandForeground1,
   },
-  colFilterIcon: {
-    color: tokens.colorCompoundBrandForeground1,
-    backgroundColor: tokens.colorCompoundBrandBackgroundHover,
-    borderRadius: '4px',
-  },
   resizeHandle: {
     position: 'absolute',
     right: 0,
@@ -118,55 +109,7 @@ const useStyles = makeStyles({
     alignItems: 'center',
     gap: '6px',
   },
-  activeFilterBtn: {
-    color: tokens.colorCompoundBrandForeground1,
-  },
-  filterBadge: {
-    marginLeft: '4px',
-  },
-  quickFilterPopup: {
-    padding: '10px 14px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-    minWidth: '220px',
-  },
 });
-
-export function matchFilterCondition<T>(item: T, cond: D365FilterCondition): boolean {
-  const rawValue = (item as Record<string, unknown>)[cond.field];
-  const strVal = rawValue === null || rawValue === undefined ? '' : String(rawValue);
-  const target = cond.value || '';
-
-  switch (cond.operator) {
-    case 'contains':
-      return strVal.toLowerCase().includes(target.toLowerCase());
-    case 'not_contains':
-      return !strVal.toLowerCase().includes(target.toLowerCase());
-    case 'equals':
-      return strVal.toLowerCase() === target.toLowerCase();
-    case 'not_equals':
-      return strVal.toLowerCase() !== target.toLowerCase();
-    case 'starts_with':
-      return strVal.toLowerCase().startsWith(target.toLowerCase());
-    case 'ends_with':
-      return strVal.toLowerCase().endsWith(target.toLowerCase());
-    case 'greater_than':
-      return Number(rawValue) > Number(target);
-    case 'less_than':
-      return Number(rawValue) < Number(target);
-    case 'greater_or_equal':
-      return Number(rawValue) >= Number(target);
-    case 'less_or_equal':
-      return Number(rawValue) <= Number(target);
-    case 'is_empty':
-      return strVal.trim() === '';
-    case 'not_empty':
-      return strVal.trim() !== '';
-    default:
-      return true;
-  }
-}
 
 export interface D365EntityTableProps<T extends { id: string }> {
   items: T[];
@@ -185,9 +128,9 @@ export interface D365EntityTableProps<T extends { id: string }> {
 }
 
 export interface D365EntityTableRef {
-  openFilters: () => void;
   openColumns: () => void;
-  getActiveFilterCount: () => number;
+  openFilters?: () => void;
+  getActiveFilterCount?: () => number;
 }
 
 export interface D365TableToolbarToolsProps {
@@ -202,26 +145,17 @@ export interface D365TableToolbarToolsProps {
 }
 
 export function D365TableToolbarTools({
-  onOpenFilters,
   onOpenColumns,
-  activeFilterCount = 0,
   tableRef,
   searchValue,
   onSearchChange,
   searchPlaceholder = 'Buscar',
   searchAriaLabel,
 }: D365TableToolbarToolsProps) {
-  const handleFilters = () => {
-    if (tableRef?.current) tableRef.current.openFilters();
-    else if (onOpenFilters) onOpenFilters();
-  };
-
   const handleColumns = () => {
     if (tableRef?.current) tableRef.current.openColumns();
     else if (onOpenColumns) onOpenColumns();
   };
-
-  const count = tableRef?.current ? tableRef.current.getActiveFilterCount() : activeFilterCount;
 
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
@@ -236,23 +170,7 @@ export function D365TableToolbarTools({
         Editar columnas
       </Button>
 
-      {/* 2° Editar filtros */}
-      <Button
-        appearance={count > 0 ? 'secondary' : 'subtle'}
-        icon={<DataFunnel20Regular />}
-        title="Editar filtros (aplicar filtros)"
-        aria-label="Editar filtros"
-        onClick={handleFilters}
-      >
-        Editar filtros
-        {count > 0 && (
-          <Badge appearance="filled" color="brand" size="small" style={{ marginLeft: '4px' }}>
-            {count}
-          </Badge>
-        )}
-      </Button>
-
-      {/* 3° Cuadro de búsqueda al final a la derecha */}
+      {/* 2° Cuadro de búsqueda al final a la derecha */}
       {onSearchChange !== undefined && (
         <Input
           size="medium"
@@ -261,7 +179,6 @@ export function D365TableToolbarTools({
           aria-label={searchAriaLabel || searchPlaceholder}
           value={searchValue || ''}
           onChange={(_, d) => onSearchChange(d.value)}
-          style={{ minWidth: '220px' }}
         />
       )}
     </div>
@@ -272,40 +189,33 @@ function D365EntityTableInner<T extends { id: string }>(
   {
     items,
     columns,
-    loading,
-    error,
+    loading = false,
+    error = null,
     onRetry,
     selectionMode,
     selectedItems,
     onSelectionChange,
     entityName = 'Registros',
     tableId,
-    filterFields,
     onRowDoubleClick,
     showToolbarTools = false,
   }: D365EntityTableProps<T>,
-  ref: React.ForwardedRef<D365EntityTableRef>
+  ref: React.Ref<D365EntityTableRef>
 ) {
   const styles = useD365ListStyles();
   const customStyles = useStyles();
   const storageId = tableId || entityName.toLowerCase().replace(/\s+/g, '_');
 
-  // 1. Column Config & Visibility State
+  // 1. Columnas y persistencia
   const defaultColumnsConfig = useMemo<D365ColumnConfig[]>(() => {
-    return columns.map((c) => {
-      let label = String(c.columnId);
-      try {
-        const rendered = c.renderHeaderCell();
-        if (typeof rendered === 'string') label = rendered;
-      } catch {
-        // fallback
-      }
-      return {
-        id: String(c.columnId),
-        label,
-        visible: true,
-      };
-    });
+    return columns.map((c) => ({
+      id: String(c.columnId),
+      label:
+        typeof c.renderHeaderCell === 'function' && typeof c.renderHeaderCell() === 'string'
+          ? (c.renderHeaderCell() as string)
+          : String(c.columnId),
+      visible: true,
+    }));
   }, [columns]);
 
   const [columnsConfig, setColumnsConfig] = useState<D365ColumnConfig[]>(() => {
@@ -313,18 +223,16 @@ function D365EntityTableInner<T extends { id: string }>(
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as D365ColumnConfig[];
-        // Combinar con default para asegurar que no falten nuevas columnas
-        const merged: D365ColumnConfig[] = [];
-        parsed.forEach((p) => {
-          if (defaultColumnsConfig.some((d) => d.id === p.id)) {
-            const def = defaultColumnsConfig.find((d) => d.id === p.id);
-            merged.push({ ...p, label: def?.label || p.label });
-          }
-        });
-        defaultColumnsConfig.forEach((d) => {
-          if (!merged.some((m) => m.id === d.id)) merged.push(d);
-        });
-        return merged;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const currentMap = new Map(columns.map((c) => [String(c.columnId), c]));
+          const merged: D365ColumnConfig[] = parsed.filter((p) => currentMap.has(p.id));
+          currentMap.forEach((_, id) => {
+            if (!merged.some((m) => m.id === id)) {
+              merged.push({ id, label: id, visible: true });
+            }
+          });
+          return merged;
+        }
       } catch {
         // fallback
       }
@@ -332,13 +240,14 @@ function D365EntityTableInner<T extends { id: string }>(
     return defaultColumnsConfig;
   });
 
-  // Guardar columnas
-  const handleApplyColumns = (newCols: D365ColumnConfig[]) => {
-    setColumnsConfig(newCols);
-    localStorage.setItem(`d365_grid_cols_${storageId}`, JSON.stringify(newCols));
+  const [drawerColumnasOpen, setDrawerColumnasOpen] = useState(false);
+
+  const handleApplyColumns = (updated: D365ColumnConfig[]) => {
+    setColumnsConfig(updated);
+    localStorage.setItem(`d365_grid_cols_${storageId}`, JSON.stringify(updated));
   };
 
-  // 2. Column Widths & Resizing State
+  // 2. Ancho de Columnas (Resizing)
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => {
     const saved = localStorage.getItem(`d365_grid_widths_${storageId}`);
     if (saved) {
@@ -356,22 +265,22 @@ function D365EntityTableInner<T extends { id: string }>(
   const handleResizeStart = (colId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const headerCellEl = (e.currentTarget as HTMLElement).closest('[role="columnheader"]') as HTMLElement | null;
-    const measuredWidth = headerCellEl ? Math.round(headerCellEl.getBoundingClientRect().width) : 160;
-    const currentWidth = columnWidths[colId] || measuredWidth;
+    const cellEl = (e.currentTarget.parentElement?.parentElement as HTMLElement) || null;
+    const currentWidth = cellEl ? cellEl.getBoundingClientRect().width : (columnWidths[colId] || 150);
+
     resizingRef.current = {
       colId,
       startX: e.clientX,
-      startWidth: currentWidth,
+      startWidth: Math.max(70, currentWidth),
     };
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       if (!resizingRef.current) return;
-      const delta = moveEvent.clientX - resizingRef.current.startX;
-      const newWidth = Math.max(70, resizingRef.current.startWidth + delta);
+      const deltaX = moveEvent.clientX - resizingRef.current.startX;
+      const newWidth = Math.max(70, resizingRef.current.startWidth + deltaX);
       setColumnWidths((prev) => ({
         ...prev,
-        [resizingRef.current!.colId]: newWidth,
+        [resizingRef.current!.colId]: Math.round(newWidth),
       }));
     };
 
@@ -408,92 +317,10 @@ function D365EntityTableInner<T extends { id: string }>(
     }
   };
 
-  // 4. Per-column quick filter State
-  const [colQuickFilters, setColQuickFilters] = useState<Record<string, string>>({});
-
-  // 5. Advanced Filter Drawer State
-  const [drawerFiltrosOpen, setDrawerFiltrosOpen] = useState(false);
-  const [drawerColumnasOpen, setDrawerColumnasOpen] = useState(false);
-  const [advancedConditions, setAdvancedConditions] = useState<D365FilterCondition[]>(() => {
-    const saved = localStorage.getItem(`d365_grid_filters_${storageId}`);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-        if (parsed && Array.isArray(parsed.conditions)) return parsed.conditions;
-      } catch {
-        // fallback
-      }
-    }
-    return [];
-  });
-
-  const [advancedLogicalOp, setAdvancedLogicalOp] = useState<'and' | 'or'>(() => {
-    const saved = localStorage.getItem(`d365_grid_filters_${storageId}`);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed && (parsed.logicalOperator === 'and' || parsed.logicalOperator === 'or')) {
-          return parsed.logicalOperator;
-        }
-      } catch {
-        // fallback
-      }
-    }
-    return 'and';
-  });
-
-  const handleApplyAdvancedFilters = (
-    conditions: D365FilterCondition[],
-    logicalOperator: 'and' | 'or' = 'and'
-  ) => {
-    setAdvancedConditions(conditions);
-    setAdvancedLogicalOp(logicalOperator);
-    localStorage.setItem(
-      `d365_grid_filters_${storageId}`,
-      JSON.stringify({ conditions, logicalOperator })
-    );
-  };
-
-  const handleResetAdvancedFilters = () => {
-    setAdvancedConditions([]);
-    setAdvancedLogicalOp('and');
-    setColQuickFilters({});
-    localStorage.removeItem(`d365_grid_filters_${storageId}`);
-  };
-
-  // 6. Campos para Filtros Avanzados
-  const derivedFields = useMemo<D365FilterField[]>(() => {
-    if (filterFields && filterFields.length > 0) return filterFields;
-    return columnsConfig.map((c) => ({
-      id: c.id,
-      label: c.label,
-      type: 'string',
-    }));
-  }, [filterFields, columnsConfig]);
-
-  // 7. Filtrado & Ordenamiento de Datos
+  // 4. Ordenamiento de Datos
   const processedItems = useMemo(() => {
-    let result = [...items];
+    const result = [...items];
 
-    // Aplicar Filtros Avanzados
-    if (advancedConditions.length > 0) {
-      result = result.filter((item) =>
-        advancedConditions.every((cond) => matchFilterCondition(item, cond))
-      );
-    }
-
-    // Aplicar Filtros rápidos por columna
-    Object.entries(colQuickFilters).forEach(([colId, filterText]) => {
-      const q = filterText.trim().toLowerCase();
-      if (!q) return;
-      result = result.filter((item) => {
-        const val = (item as Record<string, unknown>)[colId];
-        return val !== null && val !== undefined && String(val).toLowerCase().includes(q);
-      });
-    });
-
-    // Aplicar Ordenamiento
     if (sortColumn) {
       const colDef = columns.find((c) => String(c.columnId) === sortColumn);
       result.sort((a, b) => {
@@ -516,7 +343,7 @@ function D365EntityTableInner<T extends { id: string }>(
     }
 
     return result;
-  }, [items, advancedConditions, colQuickFilters, sortColumn, sortDirection, columns]);
+  }, [items, sortColumn, sortDirection, columns]);
 
   // Columnas visibles y ordenadas
   const activeColumns = useMemo(() => {
@@ -526,14 +353,10 @@ function D365EntityTableInner<T extends { id: string }>(
       .map((c) => colMap.get(c.id)!);
   }, [columns, columnsConfig]);
 
-  const activeFilterCount =
-    advancedConditions.length +
-    Object.values(colQuickFilters).filter((v) => v.trim().length > 0).length;
-
   React.useImperativeHandle(ref, () => ({
-    openFilters: () => setDrawerFiltrosOpen(true),
     openColumns: () => setDrawerColumnasOpen(true),
-    getActiveFilterCount: () => activeFilterCount,
+    openFilters: () => {},
+    getActiveFilterCount: () => 0,
   }));
 
   return (
@@ -541,9 +364,7 @@ function D365EntityTableInner<T extends { id: string }>(
       {showToolbarTools && (
         <div style={{ padding: '4px 16px', display: 'flex', justifyContent: 'flex-end' }}>
           <D365TableToolbarTools
-            onOpenFilters={() => setDrawerFiltrosOpen(true)}
             onOpenColumns={() => setDrawerColumnasOpen(true)}
-            activeFilterCount={activeFilterCount}
           />
         </div>
       )}
@@ -564,9 +385,7 @@ function D365EntityTableInner<T extends { id: string }>(
                 {({ renderHeaderCell, columnId }) => {
                   const idStr = String(columnId);
                   const isSorted = sortColumn === idStr;
-                  const isColFiltered = Boolean(colQuickFilters[idStr]?.trim());
                   const width = columnWidths[idStr];
-                  const colConfig = columnsConfig.find((c) => c.id === idStr);
 
                   return (
                     <DataGridHeaderCell
@@ -598,21 +417,14 @@ function D365EntityTableInner<T extends { id: string }>(
                         </div>
 
                         <div className={customStyles.headerActions}>
-                          {/* Menu de filtro por columna */}
                           <Menu>
                             <MenuTrigger disableButtonEnhancement>
                               <Button
                                 size="small"
                                 appearance="subtle"
-                                icon={
-                                  isColFiltered ? (
-                                    <Filter16Regular className={customStyles.colFilterIcon} />
-                                  ) : (
-                                    <ChevronDown16Regular />
-                                  )
-                                }
-                                title="Opciones y filtro de columna"
-                                aria-label="Opciones y filtro de columna"
+                                icon={<ChevronDown16Regular />}
+                                title="Opciones de columna"
+                                aria-label="Opciones de columna"
                                 onClick={(e) => e.stopPropagation()}
                               />
                             </MenuTrigger>
@@ -636,37 +448,6 @@ function D365EntityTableInner<T extends { id: string }>(
                                 >
                                   Ordenar de mayor a menor
                                 </MenuItem>
-                                <MenuDivider />
-                                <div className={customStyles.quickFilterPopup}>
-                                  <Text size={200} weight="semibold">
-                                    Filtrar por {colConfig?.label || idStr}
-                                  </Text>
-                                  <Input
-                                    size="small"
-                                    placeholder="Escriba para filtrar..."
-                                    value={colQuickFilters[idStr] || ''}
-                                    onChange={(_, d) =>
-                                      setColQuickFilters((prev) => ({
-                                        ...prev,
-                                        [idStr]: d.value,
-                                      }))
-                                    }
-                                  />
-                                </div>
-                                {isColFiltered && (
-                                  <MenuItem
-                                    icon={<Dismiss16Regular />}
-                                    onClick={() =>
-                                      setColQuickFilters((prev) => {
-                                        const next = { ...prev };
-                                        delete next[idStr];
-                                        return next;
-                                      })
-                                    }
-                                  >
-                                    Limpiar filtro de columna
-                                  </MenuItem>
-                                )}
                               </MenuList>
                             </MenuPopover>
                           </Menu>
@@ -693,8 +474,7 @@ function D365EntityTableInner<T extends { id: string }>(
                   <DataGridRow<T>
                     key={rowId}
                     className={styles.dataRow}
-                    selectionCell={selectionMode ? {} : undefined}
-                    onDoubleClick={() => onRowDoubleClick && onRowDoubleClick(item)}
+                    onDoubleClick={() => onRowDoubleClick?.(item)}
                   >
                     {({ renderCell, columnId }) => {
                       const idStr = String(columnId);
@@ -721,18 +501,6 @@ function D365EntityTableInner<T extends { id: string }>(
           </DataGrid>
         </D365ListState>
       </div>
-
-      {/* Drawer Filtros Avanzados (Dynamics 365) */}
-      <D365FiltrosAvanzadosDrawer
-        open={drawerFiltrosOpen}
-        onClose={() => setDrawerFiltrosOpen(false)}
-        entityName={entityName}
-        fields={derivedFields}
-        conditions={advancedConditions}
-        logicalOperator={advancedLogicalOp}
-        onApply={handleApplyAdvancedFilters}
-        onReset={handleResetAdvancedFilters}
-      />
 
       {/* Drawer Editar Columnas (Dynamics 365) */}
       <D365EditarColumnasDrawer

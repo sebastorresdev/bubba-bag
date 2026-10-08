@@ -23,7 +23,6 @@ import {
   D365TableToolbarTools,
   type D365EntityTableRef,
 } from '../../../../components/common/D365EntityTable';
-import type { D365FilterField } from '../../../../components/common/D365FiltrosAvanzadosDrawer';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 import { AlmacenService } from '../../almacenes/services/almacen.service';
 import type { AlmacenDto } from '../../almacenes/types/almacen.types';
@@ -35,19 +34,6 @@ const formatoCantidad = new Intl.NumberFormat('es-PE', { maximumFractionDigits: 
 const formatoMoneda = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
 
 export type InventarioProductoItem = InventarioProductoDto & { id: string };
-
-const filterFields: D365FilterField[] = [
-  { id: 'codigoProducto', label: 'Código de producto', type: 'string' },
-  { id: 'nombreProducto', label: 'Producto', type: 'string' },
-  { id: 'nombreAlmacen', label: 'Almacén', type: 'string' },
-  { id: 'nombreUbicacion', label: 'Ubicación', type: 'string' },
-  { id: 'condicion', label: 'Condición', type: 'string' },
-  { id: 'nombreUnidadMedida', label: 'Unidad', type: 'string' },
-  { id: 'cantidadDisponible', label: 'Disponible', type: 'number' },
-  { id: 'cantidadReservada', label: 'Reservado', type: 'number' },
-  { id: 'cantidadTotal', label: 'Existencia', type: 'number' },
-  { id: 'valorInventario', label: 'Valor', type: 'number' },
-];
 
 export function InventarioProductosPage() {
   const styles = useD365ListStyles();
@@ -276,7 +262,6 @@ export function InventarioProductosPage() {
         loading={cargando}
         error={error}
         onRetry={cargar}
-        filterFields={filterFields}
         selectionMode="multiselect"
         selectedItems={seleccionados}
         onSelectionChange={(_, data) => setSeleccionados(data.selectedItems)}

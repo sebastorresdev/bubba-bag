@@ -88,6 +88,9 @@ const useStyles = makeStyles({
   drawerHeader: {
     padding: '16px 20px',
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    width: '100%',
+    alignSelf: 'stretch',
+    boxSizing: 'border-box',
   },
   headerTitle: {
     ...typographyStyles.subtitle2,
@@ -101,6 +104,9 @@ const useStyles = makeStyles({
     padding: '10px 20px',
     backgroundColor: tokens.colorNeutralBackground2,
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    width: '100%',
+    alignSelf: 'stretch',
+    boxSizing: 'border-box',
   },
   actionLink: {
     display: 'inline-flex',

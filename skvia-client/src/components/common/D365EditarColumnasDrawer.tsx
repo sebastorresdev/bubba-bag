@@ -38,6 +38,9 @@ const useStyles = makeStyles({
   drawerHeader: {
     padding: '16px 20px',
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    width: '100%',
+    alignSelf: 'stretch',
+    boxSizing: 'border-box',
   },
   headerTitle: {
     ...typographyStyles.subtitle2,
@@ -51,6 +54,9 @@ const useStyles = makeStyles({
     padding: '10px 20px',
     backgroundColor: tokens.colorNeutralBackground2,
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    width: '100%',
+    alignSelf: 'stretch',
+    boxSizing: 'border-box',
   },
   actionLink: {
     display: 'inline-flex',
@@ -73,6 +79,9 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     gap: '12px',
+    width: '100%',
+    alignSelf: 'stretch',
+    boxSizing: 'border-box',
   },
   searchBox: {
     width: '100%',
@@ -126,6 +135,9 @@ const useStyles = makeStyles({
     display: 'flex',
     justifyContent: 'flex-end',
     gap: '8px',
+    width: '100%',
+    alignSelf: 'stretch',
+    boxSizing: 'border-box',
   },
 });
 
