@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Link,
+  Button,
+  Tooltip,
+  tokens,
   Menu,
   MenuItem,
   MenuList,
@@ -14,6 +17,7 @@ import {
 import type { SelectionItemId, TableColumnDefinition } from '@fluentui/react-components';
 import {
   ArrowClockwise16Regular,
+  BarcodeScanner20Regular,
   Checkmark16Regular,
   ChevronDown16Regular,
 } from '@fluentui/react-icons';
@@ -45,7 +49,7 @@ const filterFields: D365FilterField[] = [
   { id: 'nombreUnidadMedida', label: 'Unidad', type: 'string' },
   { id: 'cantidadDisponible', label: 'Disponible', type: 'number' },
   { id: 'cantidadReservada', label: 'Reservado', type: 'number' },
-  { id: 'cantidadTotal', label: 'Existencia', type: 'number' },
+  { id: 'cantidadTotal', label: 'Cantidad', type: 'number' },
   { id: 'valorInventario', label: 'Valor', type: 'number' },
 ];
 
@@ -186,22 +190,33 @@ export function InventarioProductosPage() {
     createTableColumn({
       columnId: 'cantidadTotal',
       compare: (a, b) => a.cantidadTotal - b.cantidadTotal,
-      renderHeaderCell: () => 'Existencia',
+      renderHeaderCell: () => 'Cantidad',
+      renderCell: (item: InventarioProductoItem) => (
+        <TableCellLayout>
+          {formatoCantidad.format(item.cantidadTotal)}
+        </TableCellLayout>
+      ),
+    }),
+    createTableColumn({
+      columnId: 'series',
+      renderHeaderCell: () => 'Series',
       renderCell: (item: InventarioProductoItem) => (
         <TableCellLayout>
           {item.esSerializado && item.cantidadTotal > 0 ? (
-            <Link
-              as="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setItemParaVerSeries(item);
-              }}
-              title="Clic para ver detalle de series registradas"
-            >
-              {formatoCantidad.format(item.cantidadTotal)} (Ver series)
-            </Link>
+            <Tooltip content="Ver detalle de series" relationship="label">
+              <Button
+                size="small"
+                appearance="subtle"
+                icon={<BarcodeScanner20Regular />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setItemParaVerSeries(item);
+                }}
+                aria-label="Ver series registradas"
+              />
+            </Tooltip>
           ) : (
-            formatoCantidad.format(item.cantidadTotal)
+            <Text style={{ color: tokens.colorNeutralForeground4 }}>—</Text>
           )}
         </TableCellLayout>
       ),

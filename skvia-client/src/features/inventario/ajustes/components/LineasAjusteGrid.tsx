@@ -236,11 +236,14 @@ export function LineasAjusteGrid({
 
   const confirmar = () => {
     if (!linea || soloLectura || bloqueado) return;
-    const prod = productoSeleccionado;
+    const prod =
+      productoSeleccionado ||
+      productosRegistrados.find(p => p.id === linea.productoId) ||
+      resultados.find(p => p.id === linea.productoId);
     const cant = Number(linea.cantidad);
     const costo = Number(linea.costo);
 
-    if (!linea.productoId || !prod) {
+    if (!linea.productoId || (!prod && !linea.nombreProducto)) {
       setError('Seleccione un producto inventariable válido.');
       return;
     }
@@ -252,7 +255,7 @@ export function LineasAjusteGrid({
       setError('El costo unitario no puede ser negativo.');
       return;
     }
-    if (prod.esSerializado && !Number.isInteger(cant)) {
+    if (prod?.esSerializado && !Number.isInteger(cant)) {
       setError('Los productos serializados deben tener cantidad entera.');
       return;
     }
@@ -262,21 +265,21 @@ export function LineasAjusteGrid({
       .map(s => s.trim().toUpperCase())
       .filter(Boolean);
 
-    if (prod.esSerializado && seriesArr.length !== cant) {
+    if (prod?.esSerializado && seriesArr.length !== cant) {
       setError(`Debe ingresar exactamente ${cant} series (ingresadas: ${seriesArr.length}).`);
       return;
     }
-    if (prod.esSerializado && new Set(seriesArr).size !== seriesArr.length) {
+    if (prod?.esSerializado && new Set(seriesArr).size !== seriesArr.length) {
       setError('Hay números de serie duplicados en la lista.');
       return;
     }
 
     const nueva: LineaAjusteForm = {
       ...linea,
-      codigoProducto: prod.codigo,
-      nombreProducto: prod.nombre,
-      unidad: prod.nombreUnidadMedidaDefecto || 'UND',
-      series: prod.esSerializado ? seriesArr.join('\n') : '',
+      codigoProducto: prod?.codigo || linea.codigoProducto || '---',
+      nombreProducto: prod?.nombre || linea.nombreProducto || 'Producto',
+      unidad: prod?.nombreUnidadMedidaDefecto || linea.unidad || 'UND',
+      series: prod?.esSerializado ? seriesArr.join('\n') : '',
     };
 
     if (editando) {
@@ -535,16 +538,23 @@ export function LineasAjusteGrid({
                   disabled={soloLectura || bloqueado}
                   onChange={e => {
                     setError('');
-                    setBusqueda(e.target.value);
-                    setLinea({ ...linea, productoId: '', series: '' });
+                    const val = e.target.value;
+                    setBusqueda(val);
+                    if (!val.trim()) {
+                      setLinea({ ...linea, productoId: '', series: '' });
+                    }
                   }}
                   onOptionSelect={(_, d) => {
+                    if (!d.optionValue || d.optionValue === 'cargando' || d.optionValue === 'sin_resultados') return;
                     const p = [...resultados, ...productosRegistrados].find(x => x.id === d.optionValue);
                     if (!p) return;
                     alCargarProducto(p);
                     setLinea({
                         ...linea,
                         productoId: p.id,
+                        codigoProducto: p.codigo,
+                        nombreProducto: p.nombre,
+                        unidad: p.nombreUnidadMedidaDefecto || 'UND',
                         costo: String(p.costoActual ?? p.costoEstandar ?? '0'),
                         series: '',
                     });

@@ -50,7 +50,7 @@ const useStyles = makeStyles({
   metadataDivider: { height: '28px' },
   processFlow: {
     margin: '0 -24px',
-    padding: '8px 24px',
+    padding: '0',
     borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
     backgroundColor: tokens.colorNeutralBackground1,

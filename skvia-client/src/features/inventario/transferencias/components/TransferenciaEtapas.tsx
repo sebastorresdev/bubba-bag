@@ -33,14 +33,16 @@ const ETAPAS_TRASLADO: EtapaConfig[] = [
 
 const useStyles = makeStyles({
   container: {
-    padding: '8px 24px 12px 24px',
+    padding: '0',
     backgroundColor: tokens.colorNeutralBackground1,
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    width: '100%',
   },
   containerEmbedded: {
     padding: '0',
     backgroundColor: 'transparent',
     borderBottom: 'none',
+    width: '100%',
   },
   scrollWrapper: {
     overflowX: 'auto',
@@ -49,13 +51,14 @@ const useStyles = makeStyles({
   track: {
     display: 'flex',
     alignItems: 'stretch',
+    width: '100%',
     minWidth: '540px',
     height: '46px',
-    borderRadius: tokens.borderRadiusMedium,
-    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    borderRadius: 0,
+    border: 'none',
     backgroundColor: tokens.colorNeutralBackground1,
     overflow: 'hidden',
-    boxShadow: tokens.shadow2,
+    boxShadow: 'none',
     margin: 0,
     padding: 0,
     listStyleType: 'none',

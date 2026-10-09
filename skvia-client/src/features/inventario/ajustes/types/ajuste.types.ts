@@ -64,6 +64,10 @@ export interface GuardarAjusteInput {
   observaciones?: string | null;
   lineas: Array<{
     productoId: string;
+    codigoProducto?: string;
+    nombreProducto?: string;
+    unidad?: string;
+    esSerializado?: boolean;
     tipo: 'Entrada' | 'Salida';
     cantidad: number;
     costoUnitario: number;

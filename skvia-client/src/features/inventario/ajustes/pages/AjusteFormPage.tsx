@@ -226,6 +226,9 @@ export function AjusteFormPage() {
         observaciones: observaciones.trim() || null,
         lineas: lineas.map(l => ({
           productoId: l.productoId,
+          codigoProducto: l.codigoProducto,
+          nombreProducto: l.nombreProducto,
+          unidad: l.unidad,
           tipo: l.tipo,
           cantidad: Number(l.cantidad) || 0,
           costoUnitario: Number(l.costo) || 0,
@@ -252,22 +255,52 @@ export function AjusteFormPage() {
   };
 
   const handleSolicitarAprobacion = async () => {
-    if (!id) {
-      setError('Debe guardar el ajuste antes de solicitar aprobación.');
-      return;
-    }
     if (lineas.length === 0) {
       setError('Debe ingresar al menos una línea de producto antes de solicitar aprobación.');
+      return;
+    }
+    const errorVal = validar();
+    if (errorVal) {
+      setError(errorVal);
       return;
     }
     try {
       setGuardando(true);
       setError(null);
-      const res = await AjusteService.solicitarAprobacion(id);
+      const almNombre = almacenes.find(a => a.id === almacenId)?.nombre || 'Almacén';
+
+      const payload: GuardarAjusteInput = {
+        tipo,
+        almacenId,
+        fecha: (fecha || new Date()).toISOString().slice(0, 10),
+        motivo,
+        documentoReferencia: documentoReferencia.trim() || null,
+        observaciones: observaciones.trim() || null,
+        lineas: lineas.map(l => ({
+          productoId: l.productoId,
+          codigoProducto: l.codigoProducto,
+          nombreProducto: l.nombreProducto,
+          unidad: l.unidad,
+          tipo: l.tipo,
+          cantidad: Number(l.cantidad) || 0,
+          costoUnitario: Number(l.costo) || 0,
+          series: l.series.split(/\r?\n/).map(s => s.trim()).filter(Boolean),
+          motivoLinea: l.motivoLinea.trim() || undefined,
+        })),
+      };
+
+      const resGuardado = await AjusteService.guardarAjuste(id || null, payload, almNombre, productosCache);
+      const targetId = id || resGuardado.id;
+
+      const res = await AjusteService.solicitarAprobacion(targetId);
       setMensaje(
         `Ajuste enviado a revisión exitosamente. N° de Aprobación generado: ${res.numeroAprobacion}. Pendiente de visto bueno por el Supervisor de Almacén o SuperAdmin.`
       );
-      await cargarAjuste();
+      if (!id) {
+        navigate(`/servicio-campo/ajustes-inventario/${targetId}`, { replace: true });
+      } else {
+        await cargarAjuste();
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo enviar el ajuste a revisión.');
     } finally {
