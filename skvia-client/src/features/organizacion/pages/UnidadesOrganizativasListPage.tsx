@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Badge,
   Link,
   Menu,
   MenuTrigger,
@@ -159,16 +158,8 @@ export function UnidadesOrganizativasListPage() {
         columnId: 'tipo',
         renderHeaderCell: () => 'Jerarquía',
         renderCell: (x) => (
-          <TableCellLayout>
-            {x.esSedePrincipal ? (
-              <Badge appearance="tint" shape="rounded" color="important">
-                Sede Principal
-              </Badge>
-            ) : (
-              <Badge appearance="tint" shape="rounded" color="informative">
-                Base Zonal
-              </Badge>
-            )}
+          <TableCellLayout truncate>
+            <Text>{x.esSedePrincipal ? 'Sede Principal' : 'Base Zonal'}</Text>
           </TableCellLayout>
         ),
       }),
@@ -176,14 +167,8 @@ export function UnidadesOrganizativasListPage() {
         columnId: 'estado',
         renderHeaderCell: () => 'Estado',
         renderCell: (x) => (
-          <TableCellLayout>
-            <Badge
-              appearance="tint"
-              shape="rounded"
-              color={x.activo ? 'success' : 'danger'}
-            >
-              {x.activo ? 'Activo' : 'Inactivo'}
-            </Badge>
+          <TableCellLayout truncate>
+            <Text>{x.activo ? 'Activo' : 'Inactivo'}</Text>
           </TableCellLayout>
         ),
       }),

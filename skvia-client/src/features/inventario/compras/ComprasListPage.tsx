@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Link, Badge, Button, Dialog, DialogSurface, DialogTitle, DialogBody, DialogContent, DialogActions, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, TableCellLayout, Text, createTableColumn, tokens } from '@fluentui/react-components';
+import { Link, Button, Dialog, DialogSurface, DialogTitle, DialogBody, DialogContent, DialogActions, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, TableCellLayout, Text, createTableColumn, tokens } from '@fluentui/react-components';
 import type { SelectionItemId, TableColumnDefinition } from '@fluentui/react-components';
 import { Add16Regular, ArrowClockwise16Regular, Checkmark16Regular, ChevronDown16Regular, Delete16Regular, Eye16Regular } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../components/common/D365CommandBar';
@@ -58,37 +58,26 @@ export function ComprasListPage() {
       columnId: 'estado',
       compare: (a: CompraDto, b: CompraDto) => a.estado.localeCompare(b.estado),
       renderHeaderCell: () => 'Estado',
-      renderCell: (x: CompraDto) => {
-        const esFaltante = x.estado === 'Recibida con faltantes';
-        const esRecibida = x.estado === 'Recibida';
-        const esEnviada = x.estado === 'Enviada';
-        return (
-          <TableCellLayout>
-            <Badge
-              appearance="tint"
-              shape="rounded"
-              color={esRecibida ? 'success' : esFaltante ? 'warning' : esEnviada ? 'informative' : 'subtle'}
-            >
-              {x.estado}
-            </Badge>
-          </TableCellLayout>
-        );
-      },
+      renderCell: (x: CompraDto) => (
+        <TableCellLayout truncate>
+          <Text>{x.estado}</Text>
+        </TableCellLayout>
+      ),
     }),
-    createTableColumn({ columnId: 'fecha', compare: (a: CompraDto, b: CompraDto) => a.fechaDocumento.localeCompare(b.fechaDocumento), renderHeaderCell: () => 'Fecha', renderCell: (x: CompraDto) => <TableCellLayout>{new Date(x.fechaDocumento + 'T00:00:00').toLocaleDateString('es-PE')}</TableCellLayout> }),
-    createTableColumn({ columnId: 'origen', compare: (a: CompraDto, b: CompraDto) => a.proveedor.localeCompare(b.proveedor), renderHeaderCell: () => 'Proveedor', renderCell: (x: CompraDto) => <TableCellLayout>{x.proveedor}</TableCellLayout> }),
-    createTableColumn({ columnId: 'destino', compare: (a: CompraDto, b: CompraDto) => a.almacen.localeCompare(b.almacen), renderHeaderCell: () => 'Almacén', renderCell: (x: CompraDto) => <TableCellLayout>{x.almacen}</TableCellLayout> }),
+    createTableColumn({ columnId: 'fecha', compare: (a: CompraDto, b: CompraDto) => a.fechaDocumento.localeCompare(b.fechaDocumento), renderHeaderCell: () => 'Fecha', renderCell: (x: CompraDto) => <TableCellLayout truncate><Text>{new Date(x.fechaDocumento + 'T00:00:00').toLocaleDateString('es-PE')}</Text></TableCellLayout> }),
+    createTableColumn({ columnId: 'origen', compare: (a: CompraDto, b: CompraDto) => a.proveedor.localeCompare(b.proveedor), renderHeaderCell: () => 'Proveedor', renderCell: (x: CompraDto) => <TableCellLayout truncate><Text>{x.proveedor}</Text></TableCellLayout> }),
+    createTableColumn({ columnId: 'destino', compare: (a: CompraDto, b: CompraDto) => a.almacen.localeCompare(b.almacen), renderHeaderCell: () => 'Almacén', renderCell: (x: CompraDto) => <TableCellLayout truncate><Text>{x.almacen}</Text></TableCellLayout> }),
     createTableColumn({
       columnId: 'recibidoPor',
       compare: (a: CompraDto, b: CompraDto) => (a.recibidoPor || '').localeCompare(b.recibidoPor || ''),
       renderHeaderCell: () => 'Recibido por',
       renderCell: (x: CompraDto) => {
         if (!x.estado.startsWith('Recibida') || !x.recibidoPor) {
-          return <TableCellLayout><Text style={{ color: tokens.colorNeutralForeground4 }}>—</Text></TableCellLayout>;
+          return <TableCellLayout truncate><Text style={{ color: tokens.colorNeutralForeground4 }}>—</Text></TableCellLayout>;
         }
         return (
           <TableCellLayout truncate>
-            <Text weight="semibold">{x.recibidoPor}</Text>
+            <Text>{x.recibidoPor}</Text>
           </TableCellLayout>
         );
       },

@@ -223,4 +223,16 @@ export const AjusteService = {
       }
     }
   },
+
+  async eliminarAjuste(id: string): Promise<void> {
+    try {
+      await apiClient(`/api/inventario/ajustes/${id}`, { method: 'DELETE' });
+    } catch {
+      // fallback local si no hay backend activo
+    }
+    const items = getStoredAjustes();
+    const filtrados = items.filter(a => a.id !== id);
+    saveStoredAjustes(filtrados);
+  },
 };
+

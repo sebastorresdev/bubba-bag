@@ -2,7 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   TableCellLayout,
-  Badge,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogBody,
+  DialogContent,
+  DialogSurface,
+  DialogTitle,
   createTableColumn,
   tokens,
   Menu,
@@ -22,18 +28,15 @@ import {
   ArrowClockwise16Regular,
   ArrowDownload16Regular,
   Search16Regular,
-  Box16Regular,
   ChevronDown16Regular,
   Checkmark16Regular,
+  Delete16Regular,
+  Eye16Regular,
   DocumentTable20Regular,
   DocumentText20Regular,
-  ArrowDownLeft16Regular,
-  ArrowUpRight16Regular,
-  CheckmarkCircle16Filled,
-  Clock16Regular,
-  DismissCircle16Filled,
 } from '@fluentui/react-icons';
-import { D365CommandBar, D365CommandButton } from '../../../../components/common/D365CommandBar';
+import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
+import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import {
   D365EntityTable,
   D365TableToolbarTools,
@@ -103,6 +106,17 @@ export function AjustesListPage() {
   const [buscar, setBuscar] = useState('');
   const [vistaActual, setVistaActual] = useState<VistaId>('todos');
   const [selectedIds, setSelectedIds] = useState<Set<SelectionItemId>>(new Set());
+  const [mensaje, setMensaje] = useState<string | null>(null);
+  const [ajustesAEliminar, setAjustesAEliminar] = useState<AjusteInventarioDto[] | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+
+  const itemsSeleccionados = useMemo(() => {
+    return ajustes.filter(a => selectedIds.has(a.id));
+  }, [ajustes, selectedIds]);
+
+  const borradoresSeleccionados = useMemo(() => {
+    return itemsSeleccionados.filter(a => a.estado === 'Borrador');
+  }, [itemsSeleccionados]);
 
   const vistas = useMemo(() => [
     { id: 'todos', nombre: 'Todos los Ajustes' },
@@ -170,24 +184,16 @@ export function AjustesListPage() {
       renderHeaderCell: () => 'Código de Ajuste',
       renderCell: (item: AjusteInventarioDto) => (
         <TableCellLayout truncate>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <Link
-              as="button"
-              title={`Abrir ajuste ${item.numero}`}
-              style={{ textDecoration: 'none' }}
-              onClick={e => {
-                e.stopPropagation();
-                navigate(`/servicio-campo/ajustes-inventario/${item.id}`);
-              }}
-            >
-              {item.numero}
-            </Link>
-            {item.numeroAprobacion && (
-              <span style={{ fontSize: '11px', color: tokens.colorNeutralForeground4, fontFamily: 'Consolas, monospace' }}>
-                N° Aprob: {item.numeroAprobacion}
-              </span>
-            )}
-          </div>
+          <Link
+            as="button"
+            title={`Abrir ajuste ${item.numero}`}
+            onClick={e => {
+              e.stopPropagation();
+              navigate(`/servicio-campo/ajustes-inventario/${item.id}`);
+            }}
+          >
+            {item.numero}
+          </Link>
         </TableCellLayout>
       ),
     }),
@@ -195,24 +201,11 @@ export function AjustesListPage() {
       columnId: 'tipo',
       compare: (a, b) => a.tipo.localeCompare(b.tipo),
       renderHeaderCell: () => 'Tipo',
-      renderCell: (item: AjusteInventarioDto) => {
-        if (item.tipo === 'Entrada') {
-          return (
-            <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
-              <Badge appearance="tint" shape="rounded" color="success" icon={<ArrowDownLeft16Regular />}>
-                Ingreso (+)
-              </Badge>
-            </TableCellLayout>
-          );
-        }
-        return (
-          <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
-            <Badge appearance="tint" shape="rounded" color="danger" icon={<ArrowUpRight16Regular />}>
-              Salida (-)
-            </Badge>
-          </TableCellLayout>
-        );
-      },
+      renderCell: (item: AjusteInventarioDto) => (
+        <TableCellLayout truncate>
+          <Text>{item.tipo === 'Entrada' ? 'Entrada (+)' : 'Salida (-)'}</Text>
+        </TableCellLayout>
+      ),
     }),
     createTableColumn({
       columnId: 'almacen',
@@ -220,10 +213,7 @@ export function AjustesListPage() {
       renderHeaderCell: () => 'Almacén',
       renderCell: (item: AjusteInventarioDto) => (
         <TableCellLayout truncate>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Box16Regular style={{ color: tokens.colorNeutralForeground3, flexShrink: 0 }} />
-            <span>{item.nombreAlmacen}</span>
-          </div>
+          <Text>{item.nombreAlmacen}</Text>
         </TableCellLayout>
       ),
     }),
@@ -233,7 +223,7 @@ export function AjustesListPage() {
       renderHeaderCell: () => 'Motivo',
       renderCell: (item: AjusteInventarioDto) => (
         <TableCellLayout truncate>
-          <span title={item.motivo}>{item.motivo}</span>
+          <Text title={item.motivo}>{item.motivo}</Text>
         </TableCellLayout>
       ),
     }),
@@ -243,9 +233,7 @@ export function AjustesListPage() {
       renderHeaderCell: () => 'Doc. Referencia',
       renderCell: (item: AjusteInventarioDto) => (
         <TableCellLayout truncate>
-          <span style={{ fontFamily: 'Consolas, monospace', fontSize: '12px' }}>
-            {item.documentoReferencia || '—'}
-          </span>
+          <Text>{item.documentoReferencia || '—'}</Text>
         </TableCellLayout>
       ),
     }),
@@ -254,8 +242,8 @@ export function AjustesListPage() {
       compare: (a, b) => a.fecha.localeCompare(b.fecha),
       renderHeaderCell: () => 'Fecha',
       renderCell: (item: AjusteInventarioDto) => (
-        <TableCellLayout>
-          {new Date(item.fecha + 'T00:00:00').toLocaleDateString('es-PE')}
+        <TableCellLayout truncate>
+          <Text>{new Date(item.fecha + 'T00:00:00').toLocaleDateString('es-PE')}</Text>
         </TableCellLayout>
       ),
     }),
@@ -264,8 +252,8 @@ export function AjustesListPage() {
       compare: (a, b) => a.totalCantidad - b.totalCantidad,
       renderHeaderCell: () => 'Cantidad',
       renderCell: (item: AjusteInventarioDto) => (
-        <TableCellLayout>
-          <span>{item.totalCantidad.toLocaleString('es-PE')}</span>
+        <TableCellLayout truncate>
+          <Text>{item.totalCantidad.toLocaleString('es-PE')}</Text>
         </TableCellLayout>
       ),
     }),
@@ -274,8 +262,8 @@ export function AjustesListPage() {
       compare: (a, b) => a.valorTotal - b.valorTotal,
       renderHeaderCell: () => 'Valor Total',
       renderCell: (item: AjusteInventarioDto) => (
-        <TableCellLayout>
-          <span style={{ fontWeight: 500 }}>{formatoMoneda.format(item.valorTotal)}</span>
+        <TableCellLayout truncate>
+          <Text>{formatoMoneda.format(item.valorTotal)}</Text>
         </TableCellLayout>
       ),
     }),
@@ -283,47 +271,35 @@ export function AjustesListPage() {
       columnId: 'estado',
       compare: (a, b) => a.estado.localeCompare(b.estado),
       renderHeaderCell: () => 'Estado',
-      renderCell: (item: AjusteInventarioDto) => {
-        if (item.estado === 'Aplicado') {
-          return (
-            <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
-              <Badge appearance="filled" shape="rounded" color="success" icon={<CheckmarkCircle16Filled />}>
-                Aplicado
-              </Badge>
-            </TableCellLayout>
-          );
-        }
-        if (item.estado === 'EnRevision') {
-          return (
-            <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
-              <Badge appearance="tint" shape="rounded" color="brand" icon={<Clock16Regular />}>
-                En Revisión
-              </Badge>
-            </TableCellLayout>
-          );
-        }
-        if (item.estado === 'Borrador') {
-          return (
-            <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
-              <Badge appearance="tint" shape="rounded" color="warning" icon={<Clock16Regular />}>
-                Borrador
-              </Badge>
-            </TableCellLayout>
-          );
-        }
-        return (
-          <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
-            <Badge appearance="tint" shape="rounded" color="danger" icon={<DismissCircle16Filled />}>
-              Anulado
-            </Badge>
-          </TableCellLayout>
-        );
-      },
+      renderCell: (item: AjusteInventarioDto) => (
+        <TableCellLayout truncate>
+          <Text>
+            {item.estado === 'Aplicado'
+              ? 'Aplicado'
+              : item.estado === 'EnRevision'
+              ? 'En revisión'
+              : item.estado === 'Borrador'
+              ? 'Borrador'
+              : 'Anulado'}
+          </Text>
+        </TableCellLayout>
+      ),
     }),
   ], [navigate]);
 
   return (
     <div className={listStyles.root}>
+      {mensaje && (
+        <D365MessageBar intent="success" onDismiss={() => setMensaje(null)}>
+          {mensaje}
+        </D365MessageBar>
+      )}
+      {error && (
+        <D365MessageBar intent="error" onDismiss={() => setError(null)}>
+          {error}
+        </D365MessageBar>
+      )}
+
       {/* 1. Barra de comandos estándar D365 */}
       <D365CommandBar ariaLabel="Comandos de Ajustes de Inventario">
         <div className={listStyles.toolbarLeft}>
@@ -334,6 +310,49 @@ export function AjustesListPage() {
           >
             Nuevo
           </D365CommandButton>
+          <D365CommandDivider />
+
+          {selectedIds.size === 1 && (() => {
+            const itemSel = itemsSeleccionados[0] ?? ajustes.find((a) => selectedIds.has(a.id));
+            const esBorrador = itemSel?.estado === 'Borrador';
+            const idSel = itemSel?.id;
+            return (
+              <>
+                <D365CommandButton
+                  icon={<Eye16Regular />}
+                  onClick={() => idSel && navigate(`/servicio-campo/ajustes-inventario/${idSel}`)}
+                >
+                  Ver detalle
+                </D365CommandButton>
+                {esBorrador && (
+                  <D365CommandButton
+                    icon={<Delete16Regular />}
+                    tone="danger"
+                    onClick={() => itemSel && setAjustesAEliminar([itemSel])}
+                  >
+                    Eliminar
+                  </D365CommandButton>
+                )}
+                <D365CommandDivider />
+              </>
+            );
+          })()}
+
+          {selectedIds.size > 1 && (
+            <>
+              {borradoresSeleccionados.length > 0 && (
+                <D365CommandButton
+                  icon={<Delete16Regular />}
+                  tone="danger"
+                  onClick={() => setAjustesAEliminar(borradoresSeleccionados)}
+                >
+                  Eliminar ({borradoresSeleccionados.length})
+                </D365CommandButton>
+              )}
+              <D365CommandDivider />
+            </>
+          )}
+
           <D365CommandButton icon={<ArrowClockwise16Regular />} onClick={() => void cargar()}>
             Actualizar
           </D365CommandButton>
@@ -423,6 +442,7 @@ export function AjustesListPage() {
         selectionMode="multiselect"
         selectedItems={selectedIds}
         onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
+        onRowDoubleClick={(item) => navigate(`/servicio-campo/ajustes-inventario/${item.id}`)}
       />
 
       {/* 4. Footer estándar D365 */}
@@ -433,6 +453,86 @@ export function AjustesListPage() {
         </div>
         <div>Página 1</div>
       </footer>
+
+      {/* Diálogo de confirmación para eliminar borrador(es) */}
+      <Dialog
+        open={Boolean(ajustesAEliminar && ajustesAEliminar.length > 0)}
+        onOpenChange={(_, data) => {
+          if (!data.open && !eliminando) setAjustesAEliminar(null);
+        }}
+      >
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>
+              {ajustesAEliminar?.length === 1
+                ? 'Eliminar borrador'
+                : `Eliminar ${ajustesAEliminar?.length} borradores`}
+            </DialogTitle>
+            <DialogContent>
+              {ajustesAEliminar?.length === 1 ? (
+                <Text>
+                  ¿Está seguro de que desea eliminar el borrador{' '}
+                  <strong>{ajustesAEliminar[0]?.numero}</strong>? Esta acción no se puede deshacer.
+                </Text>
+              ) : (
+                <>
+                  <Text>
+                    ¿Está seguro de que desea eliminar los{' '}
+                    <strong>{ajustesAEliminar?.length}</strong> borradores seleccionados? Esta acción no se puede deshacer.
+                  </Text>
+                  <div style={{ marginTop: '8px', fontSize: '12px', color: tokens.colorNeutralForeground3 }}>
+                    {ajustesAEliminar?.map((t) => t.numero).join(', ')}
+                  </div>
+                  {itemsSeleccionados.length > (ajustesAEliminar?.length ?? 0) && (
+                    <div style={{ marginTop: '8px', color: tokens.colorPaletteGoldForeground2, fontSize: '12px' }}>
+                      ℹ️ Nota: {itemsSeleccionados.length - (ajustesAEliminar?.length ?? 0)} registro(s) seleccionados no están en estado Borrador y no serán eliminados.
+                    </div>
+                  )}
+                </>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button
+                appearance="secondary"
+                disabled={eliminando}
+                onClick={() => setAjustesAEliminar(null)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                appearance="primary"
+                style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: '#fff' }}
+                disabled={eliminando}
+                onClick={async () => {
+                  if (!ajustesAEliminar || ajustesAEliminar.length === 0) return;
+                  setEliminando(true);
+                  try {
+                    let exitosos = 0;
+                    for (const a of ajustesAEliminar) {
+                      await AjusteService.eliminarAjuste(a.id);
+                      exitosos++;
+                    }
+                    setSelectedIds(new Set());
+                    setAjustesAEliminar(null);
+                    setMensaje(
+                      ajustesAEliminar.length === 1
+                        ? `Borrador ${ajustesAEliminar[0].numero} eliminado exitosamente.`
+                        : `Se eliminaron ${exitosos} borradores exitosamente.`
+                    );
+                    await cargar();
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : 'Error al eliminar');
+                  } finally {
+                    setEliminando(false);
+                  }
+                }}
+              >
+                {eliminando ? 'Eliminando...' : 'Eliminar'}
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
     </div>
   );
 }

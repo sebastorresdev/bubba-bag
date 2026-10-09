@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Badge,
   Button,
   Dialog,
   DialogActions,
@@ -16,6 +15,7 @@ import {
   MenuList,
   MenuItem,
   Text,
+  TableCellLayout,
   Toast,
   Toaster,
   ToastTitle,
@@ -207,9 +207,9 @@ export function RolesListPage() {
         columnId: 'tipo',
         renderHeaderCell: () => 'Tipo',
         renderCell: (x) => (
-          <Badge appearance="tint" shape="rounded" color={x.esSistema ? 'informative' : 'subtle'}>
-            {x.esSistema ? 'Sistema' : 'Personalizado'}
-          </Badge>
+          <TableCellLayout truncate>
+            <Text>{x.esSistema ? 'Sistema' : 'Personalizado'}</Text>
+          </TableCellLayout>
         ),
       }),
       createTableColumn<RolDto>({

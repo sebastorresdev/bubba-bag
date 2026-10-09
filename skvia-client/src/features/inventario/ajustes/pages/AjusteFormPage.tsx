@@ -30,6 +30,7 @@ import {
   Send16Regular,
   ArrowReset20Regular,
   Box16Regular,
+  Delete16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
@@ -103,6 +104,8 @@ export function AjusteFormPage() {
   const [dialogRechazarOpen, setDialogRechazarOpen] = useState(false);
   const [motivoRechazo, setMotivoRechazo] = useState('');
   const [dialogAnularOpen, setDialogAnularOpen] = useState(false);
+  const [dialogEliminarOpen, setDialogEliminarOpen] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
   const [dialogExitoOpen, setDialogExitoOpen] = useState(false);
   const [mensajeExito, setMensajeExito] = useState('');
 
@@ -330,6 +333,19 @@ export function AjusteFormPage() {
     }
   };
 
+  const handleEliminar = async () => {
+    if (!id) return;
+    try {
+      setEliminando(true);
+      setError(null);
+      await AjusteService.eliminarAjuste(id);
+      navigate('/servicio-campo/ajustes-inventario');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo eliminar el ajuste.');
+      setEliminando(false);
+    }
+  };
+
   const totalCantidad = lineas.reduce((s, x) => s + (Number(x.cantidad) || 0), 0);
   const totalValor = lineas.reduce(
     (s, x) => s + (Number(x.cantidad) || 0) * (Number(x.costo) || 0),
@@ -396,6 +412,14 @@ export function AjusteFormPage() {
                   Aprobar y aplicar
                 </D365CommandButton>
               )}
+              <D365CommandButton
+                icon={<Delete16Regular />}
+                tone="danger"
+                disabled={guardando || cargando}
+                onClick={() => setDialogEliminarOpen(true)}
+              >
+                Eliminar borrador
+              </D365CommandButton>
               <D365CommandButton
                 icon={<Dismiss16Regular />}
                 tone="danger"
@@ -807,6 +831,31 @@ export function AjusteFormPage() {
               </Button>
               <Button appearance="primary" onClick={handleAnular} disabled={guardando}>
                 Sí, anular ajuste
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
+      {/* Diálogo Confirmar Eliminar Borrador de Ajuste */}
+      <Dialog open={dialogEliminarOpen} onOpenChange={(_, d) => !d.open && !eliminando && setDialogEliminarOpen(false)}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Eliminar borrador de ajuste</DialogTitle>
+            <DialogContent>
+              ¿Está seguro de que desea eliminar el borrador del ajuste <strong>{ajuste?.numero}</strong>? Esta acción no se puede deshacer.
+            </DialogContent>
+            <DialogActions>
+              <Button appearance="secondary" disabled={eliminando} onClick={() => setDialogEliminarOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                appearance="primary"
+                style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: '#fff' }}
+                disabled={eliminando}
+                onClick={() => void handleEliminar()}
+              >
+                {eliminando ? 'Eliminando...' : 'Eliminar'}
               </Button>
             </DialogActions>
           </DialogBody>

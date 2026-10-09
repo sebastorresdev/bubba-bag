@@ -192,7 +192,6 @@ export function InventarioProductosPage() {
           {item.esSerializado && item.cantidadTotal > 0 ? (
             <Link
               as="button"
-              style={{ fontWeight: 600, textDecoration: 'underline' }}
               onClick={(e) => {
                 e.stopPropagation();
                 setItemParaVerSeries(item);

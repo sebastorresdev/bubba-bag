@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Badge,
   Link,
   Menu,
   MenuTrigger,
@@ -174,10 +173,8 @@ export function TerritoriosListPage() {
         columnId: 'estado',
         renderHeaderCell: () => 'Estado',
         renderCell: (x) => (
-          <TableCellLayout>
-            <Badge appearance="tint" shape="rounded" color={x.activo ? 'success' : 'danger'}>
-              {x.activo ? 'Activo' : 'Inactivo'}
-            </Badge>
+          <TableCellLayout truncate>
+            <Text>{x.activo ? 'Activo' : 'Inactivo'}</Text>
           </TableCellLayout>
         ),
       }),

@@ -81,10 +81,16 @@ export const useD365ListStyles = makeStyles({
     width: '100%',
     minWidth: '800px',
     userSelect: 'text',
+    fontSize: tokens.fontSizeBase300,
+    fontFamily: tokens.fontFamilyBase,
   },
   dataRow: {
     userSelect: 'text',
     cursor: 'pointer',
+    height: '38px',
+    minHeight: '38px',
+    fontSize: tokens.fontSizeBase300,
+    fontWeight: tokens.fontWeightRegular,
     ':hover': {
       backgroundColor: tokens.colorNeutralBackground1Hover,
     },
@@ -92,9 +98,18 @@ export const useD365ListStyles = makeStyles({
   dataCell: {
     userSelect: 'text',
     cursor: 'text',
+    fontSize: tokens.fontSizeBase300,
+    fontWeight: tokens.fontWeightRegular,
+    lineHeight: tokens.lineHeightBase300,
+    '& *': {
+      fontSize: tokens.fontSizeBase300,
+      fontWeight: tokens.fontWeightRegular,
+    },
   },
   primaryLink: {
+    fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightRegular,
+    color: tokens.colorBrandForegroundLink,
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -103,6 +118,7 @@ export const useD365ListStyles = makeStyles({
     textDecoration: 'none',
     ':hover': {
       textDecoration: 'underline',
+      color: tokens.colorBrandForegroundLinkHover,
     },
   },
   footer: {

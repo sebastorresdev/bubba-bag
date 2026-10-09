@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  Badge,
   Link,
   Menu,
   MenuTrigger,
@@ -13,6 +12,7 @@ import {
   Toaster,
   ToastTitle,
   createTableColumn,
+  TableCellLayout,
   useId,
   useToastController,
   type SelectionItemId,
@@ -145,7 +145,7 @@ export function UsuariosListPage() {
     createTableColumn<UsuarioDto>({
       columnId: 'estado',
       renderHeaderCell: () => 'Estado',
-      renderCell: x => <Badge appearance="tint" shape="rounded" color={x.esActivo ? 'success' : 'subtle'}>{x.esActivo ? 'Activo' : 'Inactivo'}</Badge>
+      renderCell: x => <TableCellLayout truncate><Text>{x.esActivo ? 'Activo' : 'Inactivo'}</Text></TableCellLayout>
     }),
   ], [navigate]);
 

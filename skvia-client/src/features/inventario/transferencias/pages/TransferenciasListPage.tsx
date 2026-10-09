@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  Badge,
   Button,
   Link,
   Menu,
@@ -35,7 +34,6 @@ import {
   Eye16Regular,
   ArrowDownload16Regular,
   Print16Regular,
-  Box16Regular,
   Delete16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
@@ -232,28 +230,21 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
         renderHeaderCell: () => 'Estado',
         renderCell: (x: TransferenciaInventarioDto) => {
           const est = x.estado ?? 'Cerrada';
-          let color: 'informative' | 'warning' | 'important' | 'success' | 'danger' = 'informative';
           let label = est;
 
           if (est === 'EnTransito') {
-            color = 'warning';
             label = 'En Tránsito';
           } else if (est === 'ParcialmenteRecibida') {
-            color = 'important';
             label = 'Parcialmente Recibida';
           } else if (est === 'Cerrada') {
-            color = 'success';
             label = 'Cerrada';
           } else if (est === 'Cancelada') {
-            color = 'danger';
             label = 'Cancelada';
           }
 
           return (
-            <TableCellLayout>
-              <Badge appearance="tint" shape="rounded" color={color} size="small">
-                {label}
-              </Badge>
+            <TableCellLayout truncate>
+              <Text>{label}</Text>
             </TableCellLayout>
           );
         },
@@ -270,10 +261,8 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
 
           if (!tieneItems) {
             return (
-              <TableCellLayout>
-                <Badge appearance="tint" color="informative" shape="rounded" size="small">
-                  Sin ítems
-                </Badge>
+              <TableCellLayout truncate>
+                <Text style={{ color: tokens.colorNeutralForeground4 }}>Sin ítems</Text>
               </TableCellLayout>
             );
           }
@@ -283,33 +272,17 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
             : (x.resumenProductos && x.resumenProductos !== 'Sin items' ? x.resumenProductos : 'Ver materiales');
 
           return (
-            <TableCellLayout>
-              <Tooltip content="Ver materiales y números de serie en el panel lateral" relationship="label">
-                <Button
-                  appearance="subtle"
-                  size="small"
-                  icon={<Box16Regular style={{ color: tokens.colorBrandForeground1 }} />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDrawerTransferencia(x);
-                  }}
-                  style={{
-                    borderRadius: tokens.borderRadiusCircular,
-                    backgroundColor: tokens.colorBrandBackground2,
-                    color: tokens.colorBrandForeground1,
-                    padding: '3px 10px',
-                    height: '26px',
-                    fontWeight: tokens.fontWeightSemibold,
-                    fontSize: '12px',
-                    maxWidth: '190px',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {etiquetaTexto}
-                </Button>
-              </Tooltip>
+            <TableCellLayout truncate>
+              <Link
+                as="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDrawerTransferencia(x);
+                }}
+                title="Ver materiales y números de serie en el panel lateral"
+              >
+                {etiquetaTexto}
+              </Link>
             </TableCellLayout>
           );
         },
@@ -320,8 +293,8 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
           (a.totalCantidad ?? a.cantidad ?? 0) - (b.totalCantidad ?? b.cantidad ?? 0),
         renderHeaderCell: () => 'Total Unidades',
         renderCell: (x: TransferenciaInventarioDto) => (
-          <TableCellLayout>
-            <Text weight="bold">{(x.totalCantidad ?? x.cantidad ?? 0).toLocaleString('es-PE')}</Text>
+          <TableCellLayout truncate>
+            <Text>{(x.totalCantidad ?? x.cantidad ?? 0).toLocaleString('es-PE')}</Text>
           </TableCellLayout>
         ),
       }),

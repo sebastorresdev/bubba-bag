@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Text,
   Link,
-  Badge,
   Menu,
   MenuTrigger,
   MenuList,
@@ -184,14 +183,8 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
         compare: (a, b) => (a.tipo || 0) - (b.tipo || 0),
         renderHeaderCell: () => 'Tipo de almacén',
         renderCell: (item) => (
-          <TableCellLayout>
-            <Badge
-              appearance="tint"
-              shape="rounded"
-              color={item.tipo === 2 ? 'brand' : 'informative'}
-            >
-              {item.tipo === 2 ? 'Custodia personal' : 'Bodega'}
-            </Badge>
+          <TableCellLayout truncate>
+            <Text>{item.tipo === 2 ? 'Custodia personal' : 'Bodega'}</Text>
           </TableCellLayout>
         ),
       }),
@@ -260,13 +253,7 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
         renderHeaderCell: () => 'Estado',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Badge
-              appearance="tint"
-              shape="rounded"
-              color={item.activo ? 'success' : 'subtle'}
-            >
-              {item.activo ? 'Activo' : 'Inactivo'}
-            </Badge>
+            <Text>{item.activo ? 'Activo' : 'Inactivo'}</Text>
           </TableCellLayout>
         ),
       }),

@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   TableCellLayout,
-  Badge,
   createTableColumn,
-  makeStyles,
-  tokens,
-  typographyStyles,
   Menu,
   MenuTrigger,
   MenuPopover,
@@ -21,11 +17,6 @@ import {
   ArrowClockwise16Regular,
   ArrowDownload16Regular,
   Search16Regular,
-  CheckmarkCircle16Filled,
-  VehicleCarProfile16Regular,
-  Person16Regular,
-  Warning16Filled,
-  Box16Regular,
   ChevronDown16Regular,
   Checkmark16Regular,
   DocumentTable20Regular,
@@ -60,17 +51,7 @@ const columnasExportacion: ExportColumn<ItemSeriadoStockDto>[] = [
   { header: 'Fecha de Ingreso', accessor: s => new Date(s.createdAt).toLocaleDateString('es-PE') },
 ];
 
-const useStyles = makeStyles({
-  serieText: {
-    fontFamily: 'monospace',
-    fontWeight: tokens.fontWeightSemibold,
-    fontSize: '13px',
-    color: tokens.colorNeutralForeground1,
-  },
-});
-
 export function TrazabilidadSeriesPage() {
-  const styles = useStyles();
   const listStyles = useD365ListStyles();
   const tableRef = useRef<D365EntityTableRef>(null);
   const [series, setSeries] = useState<ItemSeriadoStockDto[]>([]);
@@ -182,8 +163,8 @@ export function TrazabilidadSeriesPage() {
       compare: (a, b) => a.numeroSerie.localeCompare(b.numeroSerie),
       renderHeaderCell: () => 'Número de Serie',
       renderCell: (item: ItemSeriadoStockDto) => (
-        <TableCellLayout>
-          <span className={styles.serieText}>{item.numeroSerie}</span>
+        <TableCellLayout truncate>
+          <Text>{item.numeroSerie}</Text>
         </TableCellLayout>
       ),
     }),
@@ -192,10 +173,8 @@ export function TrazabilidadSeriesPage() {
       compare: (a, b) => a.codigoProducto.localeCompare(b.codigoProducto),
       renderHeaderCell: () => 'Código',
       renderCell: (item: ItemSeriadoStockDto) => (
-        <TableCellLayout>
-          <span style={{ fontFamily: 'Consolas, Monaco, monospace', fontWeight: 600, fontSize: '13px' }}>
-            {item.codigoProducto}
-          </span>
+        <TableCellLayout truncate>
+          <Text>{item.codigoProducto}</Text>
         </TableCellLayout>
       ),
     }),
@@ -205,69 +184,34 @@ export function TrazabilidadSeriesPage() {
       renderHeaderCell: () => 'Producto',
       renderCell: (item: ItemSeriadoStockDto) => (
         <TableCellLayout truncate>
-          <span style={{ fontWeight: 600 }}>{item.nombreProducto}</span>
+          <Text>{item.nombreProducto}</Text>
         </TableCellLayout>
       ),
     }),
-      createTableColumn({
-        columnId: 'estado',
-        compare: (a, b) => a.estado.localeCompare(b.estado),
-        renderHeaderCell: () => 'Estado de Custodia',
-        renderCell: (item: ItemSeriadoStockDto) => {
-          if (item.estado === 'EnAlmacen') {
-            return (
-              <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
-                <Badge appearance="tint" shape="rounded" color="success" icon={<CheckmarkCircle16Filled />} style={{ whiteSpace: 'nowrap' }}>
-                  En Almacén
-                </Badge>
-              </TableCellLayout>
-            );
-          }
-          if (item.estado === 'EnTransito') {
-            return (
-              <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
-                <Badge appearance="tint" shape="rounded" color="warning" icon={<ArrowClockwise16Regular />} style={{ whiteSpace: 'nowrap' }}>
-                  En Tránsito
-                </Badge>
-              </TableCellLayout>
-            );
-          }
-          if (item.estado === 'EnCustodiaTecnico') {
-            return (
-              <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
-                <Badge appearance="tint" shape="rounded" color="informative" icon={<VehicleCarProfile16Regular />} style={{ whiteSpace: 'nowrap' }}>
-                  Custodia Técnico
-                </Badge>
-              </TableCellLayout>
-            );
-          }
-          if (item.estado === 'InstaladoEnCliente') {
-            return (
-              <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
-                <Badge appearance="tint" shape="rounded" color="brand" icon={<Person16Regular />} style={{ whiteSpace: 'nowrap' }}>
-                  Instalado en Cliente
-                </Badge>
-              </TableCellLayout>
-            );
-          }
-          if (item.estado === 'AveriadoEnAlmacen' || item.estado === 'RetiradoPorAveria') {
-            return (
-              <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
-                <Badge appearance="tint" shape="rounded" color="danger" icon={<Warning16Filled />} style={{ whiteSpace: 'nowrap' }}>
-                  Averiado
-                </Badge>
-              </TableCellLayout>
-            );
-          }
-          return (
-            <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
-              <Badge appearance="outline" shape="rounded" color="subtle" style={{ whiteSpace: 'nowrap' }}>
-                {item.estado}
-              </Badge>
-            </TableCellLayout>
-          );
-        },
-      }),
+    createTableColumn({
+      columnId: 'estado',
+      compare: (a, b) => a.estado.localeCompare(b.estado),
+      renderHeaderCell: () => 'Estado de Custodia',
+      renderCell: (item: ItemSeriadoStockDto) => {
+        const estadoTexto =
+          item.estado === 'EnAlmacen'
+            ? 'En Almacén'
+            : item.estado === 'EnTransito'
+            ? 'En Tránsito'
+            : item.estado === 'EnCustodiaTecnico'
+            ? 'Custodia Técnico'
+            : item.estado === 'InstaladoEnCliente'
+            ? 'Instalado en Cliente'
+            : item.estado === 'AveriadoEnAlmacen' || item.estado === 'RetiradoPorAveria'
+            ? 'Averiado'
+            : item.estado;
+        return (
+          <TableCellLayout truncate>
+            <Text>{estadoTexto}</Text>
+          </TableCellLayout>
+        );
+      },
+    }),
     createTableColumn({
       columnId: 'almacen',
       compare: (a, b) => (a.nombreAlmacen ?? '').localeCompare(b.nombreAlmacen ?? ''),
@@ -278,10 +222,7 @@ export function TrazabilidadSeriesPage() {
           : '—';
         return (
           <TableCellLayout truncate>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Box16Regular style={{ color: tokens.colorNeutralForeground3, flexShrink: 0 }} />
-              <span>{item.estado === 'EnTransito' ? `En tránsito · ${item.transferenciaNumero ?? ''}` : nombreLimpio}</span>
-            </div>
+            <Text>{item.estado === 'EnTransito' ? `En tránsito · ${item.transferenciaNumero ?? ''}` : nombreLimpio}</Text>
           </TableCellLayout>
         );
       },
@@ -292,7 +233,7 @@ export function TrazabilidadSeriesPage() {
       renderHeaderCell: () => 'Ubicación',
       renderCell: (item: ItemSeriadoStockDto) => (
         <TableCellLayout truncate>
-          <span>{item.nombreUbicacion || '—'}</span>
+          <Text>{item.nombreUbicacion || '—'}</Text>
         </TableCellLayout>
       ),
     }),
@@ -301,20 +242,8 @@ export function TrazabilidadSeriesPage() {
       compare: (a, b) => (a.condicion ?? '').localeCompare(b.condicion ?? ''),
       renderHeaderCell: () => 'Condición',
       renderCell: (item: ItemSeriadoStockDto) => (
-        <TableCellLayout>
-          {item.condicion === 'Utilizable' ? (
-            <Badge appearance="tint" shape="rounded" color="success">
-              Utilizable
-            </Badge>
-          ) : item.condicion === 'Defectuoso' ? (
-            <Badge appearance="tint" shape="rounded" color="danger">
-              Defectuoso
-            </Badge>
-          ) : (
-            <Badge appearance="outline" shape="rounded" color="subtle">
-              {item.condicion || '—'}
-            </Badge>
-          )}
+        <TableCellLayout truncate>
+          <Text>{item.condicion || '—'}</Text>
         </TableCellLayout>
       ),
     }),
@@ -322,12 +251,8 @@ export function TrazabilidadSeriesPage() {
       columnId: 'smartcard',
       renderHeaderCell: () => 'SmartCard / MAC',
       renderCell: (item: ItemSeriadoStockDto) => (
-        <TableCellLayout>
-          <div style={typographyStyles.caption1}>
-            {item.numeroSmartCard && <div>SC: {item.numeroSmartCard}</div>}
-            {item.macAddress && <div>MAC: {item.macAddress}</div>}
-            {!item.numeroSmartCard && !item.macAddress && <span style={{ color: tokens.colorNeutralForeground4 }}>—</span>}
-          </div>
+        <TableCellLayout truncate>
+          <Text>{item.numeroSmartCard || item.macAddress || '—'}</Text>
         </TableCellLayout>
       ),
     }),
@@ -336,12 +261,12 @@ export function TrazabilidadSeriesPage() {
       compare: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       renderHeaderCell: () => 'Fecha Ingreso',
       renderCell: (item: ItemSeriadoStockDto) => (
-        <TableCellLayout>
-          {new Date(item.createdAt).toLocaleDateString('es-PE')}
+        <TableCellLayout truncate>
+          <Text>{new Date(item.createdAt).toLocaleDateString('es-PE')}</Text>
         </TableCellLayout>
       ),
     }),
-  ], [styles.serieText]);
+  ], []);
 
   return (
     <div className={listStyles.root}>

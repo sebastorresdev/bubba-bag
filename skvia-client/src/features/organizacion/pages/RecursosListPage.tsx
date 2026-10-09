@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Badge,
   Link,
   Menu,
   MenuTrigger,
@@ -148,14 +147,8 @@ export function RecursosListPage() {
         compare: (a, b) => a.tipo - b.tipo,
         renderHeaderCell: () => 'Rol / Tipo',
         renderCell: (x) => (
-          <TableCellLayout>
-            <Badge
-              appearance="tint"
-              shape="rounded"
-              color={x.tipo === 1 ? 'informative' : x.tipo === 4 ? 'important' : 'subtle'}
-            >
-              {x.tipoNombre}
-            </Badge>
+          <TableCellLayout truncate>
+            <Text>{x.tipoNombre}</Text>
           </TableCellLayout>
         ),
       }),
@@ -165,15 +158,7 @@ export function RecursosListPage() {
         renderHeaderCell: () => 'Usuario de Acceso',
         renderCell: (x) => (
           <TableCellLayout truncate>
-            {x.usuarioId ? (
-              <Badge appearance="tint" shape="rounded" color="success">
-                {x.usuarioNombre || x.usuarioEmail || 'Vinculado'}
-              </Badge>
-            ) : (
-              <Badge appearance="tint" shape="rounded" color="warning">
-                Sin usuario
-              </Badge>
-            )}
+            <Text>{x.usuarioId ? (x.usuarioNombre || x.usuarioEmail || 'Vinculado') : 'Sin usuario'}</Text>
           </TableCellLayout>
         ),
       }),
@@ -182,7 +167,7 @@ export function RecursosListPage() {
         compare: (a, b) => (a.unidadOrganizativaNombre || '').localeCompare(b.unidadOrganizativaNombre || ''),
         renderHeaderCell: () => 'Unidad Organizativa',
         renderCell: (x) => (
-          <TableCellLayout>
+          <TableCellLayout truncate>
             {x.unidadOrganizativaId ? (
               <Link
                 as="button"
@@ -194,7 +179,7 @@ export function RecursosListPage() {
                 {x.unidadOrganizativaNombre}
               </Link>
             ) : (
-              x.unidadOrganizativaNombre || '—'
+              <Text>{x.unidadOrganizativaNombre || '—'}</Text>
             )}
           </TableCellLayout>
         ),
@@ -202,30 +187,24 @@ export function RecursosListPage() {
       createTableColumn({
         columnId: 'dni',
         renderHeaderCell: () => 'DNI / Doc',
-        renderCell: (x) => <TableCellLayout>{x.documentoIdentidad || '—'}</TableCellLayout>,
+        renderCell: (x) => <TableCellLayout truncate><Text>{x.documentoIdentidad || '—'}</Text></TableCellLayout>,
       }),
       createTableColumn({
         columnId: 'telefono',
         renderHeaderCell: () => 'Teléfono',
-        renderCell: (x) => <TableCellLayout>{x.telefono || '—'}</TableCellLayout>,
+        renderCell: (x) => <TableCellLayout truncate><Text>{x.telefono || '—'}</Text></TableCellLayout>,
       }),
       createTableColumn({
         columnId: 'almacenBase',
         renderHeaderCell: () => 'Bodega Base Asignada',
-        renderCell: (x) => <TableCellLayout>{x.almacenBaseNombre || '—'}</TableCellLayout>,
+        renderCell: (x) => <TableCellLayout truncate><Text>{x.almacenBaseNombre || '—'}</Text></TableCellLayout>,
       }),
       createTableColumn({
         columnId: 'estado',
         renderHeaderCell: () => 'Estado',
         renderCell: (x) => (
-          <TableCellLayout>
-            <Badge
-              appearance="tint"
-              shape="rounded"
-              color={x.activo ? 'success' : 'danger'}
-            >
-              {x.activo ? 'Activo' : 'Inactivo'}
-            </Badge>
+          <TableCellLayout truncate>
+            <Text>{x.activo ? 'Activo' : 'Inactivo'}</Text>
           </TableCellLayout>
         ),
       }),
