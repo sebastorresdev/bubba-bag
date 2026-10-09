@@ -22,7 +22,6 @@ import {
   createTableColumn,
   makeStyles,
   tokens,
-  Select,
   Textarea,
 } from '@fluentui/react-components';
 import type { SelectionItemId, TableColumnDefinition } from '@fluentui/react-components';
@@ -527,7 +526,6 @@ export function LineasAjusteGrid({
                 <Combobox
                   id="ajuste-producto"
                   className={styles.control}
-                  placeholder="Seleccione o busque un producto..."
                   value={
                     productoSeleccionado
                       ? `${productoSeleccionado.codigo} · ${productoSeleccionado.nombre}`
@@ -585,18 +583,6 @@ export function LineasAjusteGrid({
                 />
               </D365FormField>
 
-              <D365FormField label="Tipo de movimiento" required htmlFor="ajuste-tipo-mov">
-                <Select
-                  id="ajuste-tipo-mov"
-                  className={styles.control}
-                  value={linea.tipo}
-                  onChange={(_, d) => setLinea({ ...linea, tipo: d.value as 'Entrada' | 'Salida' })}
-                >
-                  <option value="Entrada">Ingreso (+) / Sobrante</option>
-                  <option value="Salida">Salida (-) / Merma o Faltante</option>
-                </Select>
-              </D365FormField>
-
               <D365FormField label="Cantidad" required htmlFor="ajuste-cantidad">
                 <Input
                   id="ajuste-cantidad"
@@ -636,7 +622,6 @@ export function LineasAjusteGrid({
                 <Input
                   id="ajuste-justif"
                   className={styles.control}
-                  placeholder="Detalle o causa del ajuste para este ítem..."
                   value={linea.motivoLinea}
                   onChange={(_, d) => setLinea({ ...linea, motivoLinea: d.value })}
                 />
@@ -648,7 +633,6 @@ export function LineasAjusteGrid({
                     id="ajuste-series"
                     className={styles.control}
                     rows={4}
-                    placeholder="Pegue o ingrese una serie por fila..."
                     value={linea.series}
                     onChange={(_, d) => setLinea({ ...linea, series: d.value })}
                   />

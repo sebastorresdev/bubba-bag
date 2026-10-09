@@ -13,6 +13,8 @@ import {
   MenuItem,
   Text,
   Input,
+  SplitButton,
+  type MenuButtonProps,
 } from '@fluentui/react-components';
 import type { TableColumnDefinition, SelectionItemId } from '@fluentui/react-components';
 import {
@@ -349,14 +351,23 @@ export function TrazabilidadSeriesPage() {
           <D365CommandButton icon={<ArrowClockwise16Regular />} onClick={() => void cargar()}>
             Actualizar
           </D365CommandButton>
-          <Menu>
+          <Menu positioning="below-start">
             <MenuTrigger disableButtonEnhancement>
-              <D365CommandButton
-                icon={<ArrowDownload16Regular />}
-                disabled={seriesFiltradas.length === 0}
-              >
-                Exportar a Excel / CSV
-              </D365CommandButton>
+              {(triggerProps: MenuButtonProps) => (
+                <SplitButton
+                  menuButton={triggerProps}
+                  primaryActionButton={{
+                    onClick: exportarExcel,
+                    title: 'Exportar a Excel (*.xlsx)',
+                  }}
+                  icon={<ArrowDownload16Regular />}
+                  appearance="subtle"
+                  size="medium"
+                  disabled={seriesFiltradas.length === 0}
+                >
+                  Exportar a Excel
+                </SplitButton>
+              )}
             </MenuTrigger>
             <MenuPopover>
               <MenuList>

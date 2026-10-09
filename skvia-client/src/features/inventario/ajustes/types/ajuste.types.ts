@@ -1,4 +1,4 @@
-export type TipoAjuste = 'Entrada' | 'Salida' | 'ConteoFisico';
+export type TipoAjuste = 'Entrada' | 'Salida';
 export type EstadoAjuste = 'Borrador' | 'EnRevision' | 'Aplicado' | 'Anulado';
 
 export const MOTIVOS_AJUSTE = [

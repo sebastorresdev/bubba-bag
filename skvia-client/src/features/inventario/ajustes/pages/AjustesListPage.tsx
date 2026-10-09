@@ -13,6 +13,8 @@ import {
   Text,
   Input,
   Link,
+  SplitButton,
+  type MenuButtonProps,
 } from '@fluentui/react-components';
 import type { TableColumnDefinition, SelectionItemId } from '@fluentui/react-components';
 import {
@@ -25,7 +27,6 @@ import {
   Checkmark16Regular,
   DocumentTable20Regular,
   DocumentText20Regular,
-  ArrowTrendingLines20Regular,
   ArrowDownLeft16Regular,
   ArrowUpRight16Regular,
   CheckmarkCircle16Filled,
@@ -204,19 +205,10 @@ export function AjustesListPage() {
             </TableCellLayout>
           );
         }
-        if (item.tipo === 'Salida') {
-          return (
-            <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
-              <Badge appearance="tint" shape="rounded" color="danger" icon={<ArrowUpRight16Regular />}>
-                Salida (-)
-              </Badge>
-            </TableCellLayout>
-          );
-        }
         return (
           <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
-            <Badge appearance="tint" shape="rounded" color="informative" icon={<ArrowTrendingLines20Regular />}>
-              Conteo Físico
+            <Badge appearance="tint" shape="rounded" color="danger" icon={<ArrowUpRight16Regular />}>
+              Salida (-)
             </Badge>
           </TableCellLayout>
         );
@@ -345,14 +337,23 @@ export function AjustesListPage() {
           <D365CommandButton icon={<ArrowClockwise16Regular />} onClick={() => void cargar()}>
             Actualizar
           </D365CommandButton>
-          <Menu>
+          <Menu positioning="below-start">
             <MenuTrigger disableButtonEnhancement>
-              <D365CommandButton
-                icon={<ArrowDownload16Regular />}
-                disabled={ajustesFiltrados.length === 0}
-              >
-                Exportar a Excel / CSV
-              </D365CommandButton>
+              {(triggerProps: MenuButtonProps) => (
+                <SplitButton
+                  menuButton={triggerProps}
+                  primaryActionButton={{
+                    onClick: handleExportarExcel,
+                    title: 'Exportar a Excel (*.xlsx)',
+                  }}
+                  icon={<ArrowDownload16Regular />}
+                  appearance="subtle"
+                  size="medium"
+                  disabled={ajustesFiltrados.length === 0}
+                >
+                  Exportar a Excel
+                </SplitButton>
+              )}
             </MenuTrigger>
             <MenuPopover>
               <MenuList>

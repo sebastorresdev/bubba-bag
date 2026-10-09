@@ -489,23 +489,6 @@ export function AjusteFormPage() {
         }
       />
 
-      {/* Banners Informativos de Estado */}
-      {estado === 'EnRevision' && (
-        <div style={{ padding: '8px 24px 0 24px' }}>
-          <D365MessageBar intent="warning">
-            <strong>Ajuste en revisión {ajuste?.numeroAprobacion ? `(N° de Aprobación: ${ajuste.numeroAprobacion})` : ''}:</strong> Pendiente de aprobación por el Supervisor de Almacén o SuperAdmin.
-            {!esSupervisorAlmacen && ' Los almaceneros no tienen permisos para aprobar ajustes.'}
-          </D365MessageBar>
-        </div>
-      )}
-      {estado === 'Aplicado' && (
-        <div style={{ padding: '8px 24px 0 24px' }}>
-          <D365MessageBar intent="success">
-            <strong>Ajuste aprobado y aplicado:</strong> {ajuste?.numeroAprobacion ? `N° de Aprobación: ${ajuste.numeroAprobacion} · ` : ''}Aprobado por <strong>{ajuste?.usuarioAprobacion || 'Supervisor'}</strong> el {ajuste?.fechaAprobacion ? new Date(ajuste.fechaAprobacion).toLocaleString('es-PE') : ''}. Las existencias fueron impactadas en Kardex.
-          </D365MessageBar>
-        </div>
-      )}
-
       {/* 3. Contenedor del Cuerpo */}
       <div className={formStyles.contentBody}>
         {cargando ? (
@@ -574,7 +557,6 @@ export function AjusteFormPage() {
                       >
                         <option value="Entrada">Ingreso por ajuste (+)</option>
                         <option value="Salida">Salida por ajuste (-)</option>
-                        <option value="ConteoFisico">Ajuste por conteo físico / inventario</option>
                       </Select>
                     </D365FormField>
 
@@ -613,7 +595,6 @@ export function AjusteFormPage() {
                       <Input
                         id="ajuste-doc"
                         className={formStyles.d365ControlFull}
-                        placeholder="Ej. ACTA-INV-2026-001 o INF-MERMA-12"
                         value={documentoReferencia}
                         disabled={esSoloLectura}
                         onChange={(_, d) => setDocumentoReferencia(d.value)}
@@ -641,7 +622,6 @@ export function AjusteFormPage() {
                         id="ajuste-obs"
                         className={formStyles.d365ControlFull}
                         rows={3}
-                        placeholder="Describa el motivo o justificación detallada de este ajuste de inventario..."
                         value={observaciones}
                         disabled={esSoloLectura}
                         onChange={(_, d) => setObservaciones(d.value)}
@@ -796,7 +776,6 @@ export function AjusteFormPage() {
                 </p>
                 <Textarea
                   rows={3}
-                  placeholder="Detalle de observaciones o inconsistencias encontradas..."
                   value={motivoRechazo}
                   onChange={(_, d) => setMotivoRechazo(d.value)}
                 />
