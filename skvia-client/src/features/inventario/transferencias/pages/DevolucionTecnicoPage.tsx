@@ -282,7 +282,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
     return lista.map((a) => ({
       id: a.id,
       nombre: a.nombre,
-      detalle: `${a.codigo ? `${a.codigo} · ` : ''}${a.recursoNombre ? `Responsable: ${a.recursoNombre} · ` : ''}${a.unidadOrganizativaNombre || 'Custodia personal'}`,
+      detalle: null,
     }));
   }, [almacenes, almacenDestinoId]);
 
@@ -314,16 +314,17 @@ export const DevolucionTecnicoPage: React.FC = () => {
 
   const opcionesBodegasDestino = useMemo(() => {
     const bodegas = almacenes.filter(a => a.tipo === 1);
-    const filtradas = tecnicoObj?.unidadOrganizativaId
-      ? bodegas.filter(b => !b.unidadOrganizativaId || b.unidadOrganizativaId === tecnicoObj.unidadOrganizativaId)
+    const orgId = custodiaTecnico?.unidadOrganizativaId || tecnicoObj?.unidadOrganizativaId;
+    const filtradas = orgId
+      ? bodegas.filter(b => !b.unidadOrganizativaId || b.unidadOrganizativaId === orgId)
       : bodegas;
 
     return filtradas.map(b => ({
       id: b.id,
       nombre: b.nombre,
-      detalle: `${b.codigo || 'BOD'} · ${b.unidadOrganizativaNombre || 'Central'}`,
+      detalle: null,
     }));
-  }, [almacenes, tecnicoObj]);
+  }, [almacenes, custodiaTecnico, tecnicoObj]);
 
   const bodegaDestinoSeleccionada = useMemo(() => {
     return opcionesBodegasDestino.find(o => o.id === almacenDestinoId) || null;

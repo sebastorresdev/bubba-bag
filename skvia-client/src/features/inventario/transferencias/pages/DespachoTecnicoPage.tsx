@@ -308,7 +308,7 @@ export const DespachoTecnicoPage: React.FC = () => {
     return bodegas.map(b => ({
       id: b.id,
       nombre: b.nombre,
-      detalle: `${b.codigo || 'BOD'} · ${b.unidadOrganizativaNombre || 'Central'}`,
+      detalle: null,
     }));
   }, [almacenes]);
 
@@ -321,17 +321,32 @@ export const DespachoTecnicoPage: React.FC = () => {
   }, [almacenes, almacenOrigenId]);
 
   // Almacenes de custodia / receptor disponibles (tipo 2: Custodia personal / Técnicos)
+  // El recurso/almacén debe pertenecer a la misma organización que la bodega de origen
   const opcionesAlmacenesDestino = useMemo(() => {
     let lista = almacenes.filter(a => a.tipo === 2 && a.id !== almacenOrigenId);
     if (lista.length === 0) {
       lista = almacenes.filter(a => a.id !== almacenOrigenId);
     }
+
+    // Filtrar estrictamente por la misma organización que la bodega de origen
+    if (almacenOrigenObj?.unidadOrganizativaId) {
+      const orgId = almacenOrigenObj.unidadOrganizativaId;
+      lista = lista.filter(a => {
+        if (a.unidadOrganizativaId && a.unidadOrganizativaId === orgId) return true;
+        if (a.recursoId) {
+          const tec = tecnicos.find(t => t.id === a.recursoId);
+          if (tec?.unidadOrganizativaId === orgId) return true;
+        }
+        return false;
+      });
+    }
+
     return lista.map(a => ({
       id: a.id,
       nombre: a.nombre,
-      detalle: `${a.codigo ? `${a.codigo} · ` : ''}${a.recursoNombre ? `Responsable: ${a.recursoNombre} · ` : ''}${a.unidadOrganizativaNombre || 'Custodia personal'}`,
+      detalle: null,
     }));
-  }, [almacenes, almacenOrigenId]);
+  }, [almacenes, almacenOrigenId, almacenOrigenObj, tecnicos]);
 
   const almacenDestinoSeleccionado = useMemo(() => {
     return opcionesAlmacenesDestino.find(o => o.id === almacenDestinoId) || null;
@@ -961,12 +976,18 @@ export const DespachoTecnicoPage: React.FC = () => {
                       setUbicacionOrigenId('');
                       if (id) {
                         const nuevaBodega = almacenes.find(a => a.id === id);
-                        if (nuevaBodega?.unidadOrganizativaId && tecnicoId) {
-                          const tecActual = tecnicos.find(t => t.id === tecnicoId);
-                          if (tecActual && tecActual.unidadOrganizativaId && tecActual.unidadOrganizativaId !== nuevaBodega.unidadOrganizativaId) {
+                        if (nuevaBodega?.unidadOrganizativaId && almacenDestinoId) {
+                          const almDestActual = almacenes.find(a => a.id === almacenDestinoId);
+                          const tecDestActual = almDestActual?.recursoId ? tecnicos.find(t => t.id === almDestActual.recursoId) : null;
+                          const orgDest = almDestActual?.unidadOrganizativaId || tecDestActual?.unidadOrganizativaId;
+                          if (orgDest && orgDest !== nuevaBodega.unidadOrganizativaId) {
+                            setAlmacenDestinoId('');
                             setTecnicoId('');
                           }
                         }
+                      } else {
+                        setAlmacenDestinoId('');
+                        setTecnicoId('');
                       }
                     }}
                     alNavegar={(id) => navigate(`/almacenes/${id}`)}
@@ -992,12 +1013,18 @@ export const DespachoTecnicoPage: React.FC = () => {
                       const alm = almacenes.find((a) => a.id === id);
                       if (alm?.recursoId) {
                         setTecnicoId(alm.recursoId);
+                      } else {
+                        setTecnicoId('');
                       }
                     }}
                     alNavegar={(id) => navigate(`/almacenes/${id}`)}
                     icono={<Box16Regular />}
                     tituloEnlace="Ver ficha del almacén"
-                    textoVacio="No se encontraron almacenes de custodia disponibles"
+                    textoVacio={
+                      almacenOrigenObj?.unidadOrganizativaNombre
+                        ? `No se encontraron técnicos en la sede ${almacenOrigenObj.unidadOrganizativaNombre}`
+                        : "No se encontraron almacenes de custodia disponibles"
+                    }
                     deshabilitado={estado === 'Cerrada' || !almacenOrigenId}
                   />
                 </D365FormField>
