@@ -301,7 +301,7 @@ export const OrdenesTrabajoListPage: React.FC = () => {
             tone="create"
             onClick={() => navigate('/servicio-campo/ordenes/nuevo')}
           >
-            Nueva Orden
+            Nuevo
           </D365CommandButton>
 
           <D365CommandButton

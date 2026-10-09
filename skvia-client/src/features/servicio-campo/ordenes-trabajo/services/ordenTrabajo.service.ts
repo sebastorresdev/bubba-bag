@@ -8,164 +8,8 @@ import type {
   TipoOrdenTrabajoOpcion,
 } from '../types/ordenTrabajo.types';
 
-// Mock temporal o cache en memoria para demostración fluida
-let localMockStore: OrdenTrabajoDetalleDto[] = [
-  {
-    id: 'wo-101-demo-uuid',
-    codigoWo: 'WO-2026-000001',
-    tipoOrdenId: 'tipo-instalacion-uuid',
-    tipoOrdenNombre: 'Instalación DTH Residencial',
-    tipoOrdenColor: '#0f6cbd',
-    clienteFacturacionId: 'cli-directv-uuid',
-    clienteFacturacionNombre: 'DIRECTV PERU S.R.L.',
-    clienteFacturacionRuc: '20338573211',
-    clienteServicioId: 'cli-juan-perez-uuid',
-    clienteServicioNombre: 'Juan Carlos Pérez Huamán',
-    clienteServicioDni: '44889922',
-    clienteServicioTelefono: '987654321',
-    clienteServicioEmail: 'juan.perez@gmail.com',
-    zonaOperativaId: 'zona-lima-norte-uuid',
-    zonaOperativaNombre: 'Lima Norte - Los Olivos',
-    numeroOrden: '1-86131756103',
-    referenciaExterna: 'SGA-448291',
-    codigoContrato: '40757240',
-    numeroPedido: 'PED-2026-88',
-    estado: 'Programada',
-    estadoSistema: 'Programado',
-    observacionesCierre: null,
-    observacionesGenerales: 'Cliente solicita instalación por la mañana. Casa de rejas blancas.',
-    recursoTecnicoId: 'rec-tec-carlos-uuid',
-    recursoTecnicoNombre: 'Carlos Santana (Técnico Nivel 2)',
-    fechaProgramada: new Date().toISOString().slice(0, 10),
-    bloqueHorario: '09:00 - 13:00',
-    direccionServicio: 'Av. Las Palmeras 1234, Los Olivos',
-    referenciaUbicacion: 'A media cuadra de la Municipalidad',
-    ubigeoTexto: '150117',
-    fechaCreacion: new Date(Date.now() - 3600000 * 24).toISOString(),
-    materiales: [
-      {
-        id: 'mat-1',
-        productoId: 'p-1',
-        codigoProducto: 'DECO-HD-01',
-        nombreProducto: 'Decodificador HD Zapper LH01',
-        cantidad: 1,
-        tipoAccion: 'Instalacion',
-        numeroSerie: 'SN-99882211',
-        observaciones: 'Equipo nuevo sellado',
-      },
-      {
-        id: 'mat-2',
-        productoId: 'p-2',
-        codigoProducto: 'CBL-RG6',
-        nombreProducto: 'Cable Coaxial RG6 Negro (Metros)',
-        cantidad: 25,
-        tipoAccion: 'Instalacion',
-        numeroSerie: null,
-        observaciones: 'Tirada exterior',
-      },
-    ],
-    tareas: [
-      {
-        id: 'tar-1',
-        nombreTarea: 'Instalación de Antena y Orientación Satelital',
-        estadoTarea: 'Completa',
-        esObligatoria: true,
-        observaciones: 'Potencia 98%',
-      },
-      {
-        id: 'tar-2',
-        nombreTarea: 'Cableado y Conexión Decodificador',
-        estadoTarea: 'Pendiente',
-        esObligatoria: true,
-        observaciones: 'Cable pasado por ductería',
-      },
-    ],
-    visitas: [
-      {
-        id: 'vis-1',
-        codigoVisita: 'WO-2026-000001-V1',
-        numeroVisita: 1,
-        recursoId: 'rec-tec-carlos-uuid',
-        recursoNombre: 'Carlos Santana',
-        fechaProgramada: new Date().toISOString().slice(0, 10),
-        bloqueHorario: '09:00 - 13:00',
-        estado: 'Programada',
-      },
-    ],
-  },
-  {
-    id: 'wo-102-demo-uuid',
-    codigoWo: 'WO-2026-000002',
-    tipoOrdenId: 'tipo-mantenimiento-uuid',
-    tipoOrdenNombre: 'Mantenimiento Correctivo / Avería',
-    tipoOrdenColor: '#d83b01',
-    clienteFacturacionId: 'cli-claro-uuid',
-    clienteFacturacionNombre: 'AMERICA MOVIL PERU S.A.C.',
-    clienteFacturacionRuc: '20467534026',
-    clienteServicioId: 'cli-maria-quispe-uuid',
-    clienteServicioNombre: 'María Quispe Mendoza',
-    clienteServicioDni: '71223344',
-    clienteServicioTelefono: '991223344',
-    clienteServicioEmail: 'mquispe@hotmail.com',
-    zonaOperativaId: 'zona-lima-este-uuid',
-    zonaOperativaNombre: 'Lima Este - San Juan de Lurigancho',
-    numeroOrden: '1-8911002231',
-    referenciaExterna: 'AV-77401',
-    codigoContrato: '50119283',
-    numeroPedido: null,
-    estado: 'Pendiente',
-    estadoSistema: 'PendienteProgramar',
-    observacionesCierre: null,
-    observacionesGenerales: 'Sin señal en decodificador principal desde el día de ayer.',
-    recursoTecnicoId: null,
-    recursoTecnicoNombre: null,
-    fechaProgramada: null,
-    bloqueHorario: null,
-    direccionServicio: 'Jr. Próceres de la Independencia 540',
-    referenciaUbicacion: 'Cerca a la estación Los Postes',
-    ubigeoTexto: '150132',
-    fechaCreacion: new Date(Date.now() - 3600000 * 5).toISOString(),
-    materiales: [],
-    tareas: [],
-    visitas: [],
-  },
-  {
-    id: 'wo-103-demo-uuid',
-    codigoWo: 'WO-2026-000003',
-    tipoOrdenId: 'tipo-instalacion-uuid',
-    tipoOrdenNombre: 'Instalación Fibra Óptica FTTH',
-    tipoOrdenColor: '#107c41',
-    clienteFacturacionId: 'cli-claro-uuid',
-    clienteFacturacionNombre: 'AMERICA MOVIL PERU S.A.C.',
-    clienteFacturacionRuc: '20467534026',
-    clienteServicioId: 'cli-empresa-logistica-uuid',
-    clienteServicioNombre: 'Servicios Logísticos del Sur S.A.C.',
-    clienteServicioDni: '20601234567',
-    clienteServicioTelefono: '955112233',
-    clienteServicioEmail: 'contacto@logistica-sur.pe',
-    zonaOperativaId: 'zona-lima-sur-uuid',
-    zonaOperativaNombre: 'Lima Sur - Miraflores',
-    numeroOrden: '1-902233441',
-    referenciaExterna: 'FTTH-9901',
-    codigoContrato: '88112200',
-    numeroPedido: 'PED-F-110',
-    estado: 'EnProgreso',
-    estadoSistema: 'EnProgreso',
-    observacionesCierre: null,
-    observacionesGenerales: 'Empalme de fibra óptica en caja CTO 14.',
-    recursoTecnicoId: 'rec-tec-miguel-uuid',
-    recursoTecnicoNombre: 'Miguel Flores (Cuadrilla Fibra)',
-    fechaProgramada: new Date().toISOString().slice(0, 10),
-    bloqueHorario: '14:00 - 18:00',
-    direccionServicio: 'Av. Larco 880 Of. 402, Miraflores',
-    referenciaUbicacion: 'Frente al parque Kennedy',
-    ubigeoTexto: '150122',
-    fechaCreacion: new Date(Date.now() - 3600000 * 12).toISOString(),
-    materiales: [],
-    tareas: [],
-    visitas: [],
-  },
-];
+// Almacén en memoria inicial vacío para órdenes creadas en sesión
+let localMockStore: OrdenTrabajoDetalleDto[] = [];
 
 export const OrdenTrabajoService = {
   async obtenerOrdenes(params?: {
@@ -185,11 +29,11 @@ export const OrdenTrabajoService = {
       const data = await apiClient<OrdenTrabajoListadoItemDto[]>(
         `/api/serviciocampo/ordenes${qs ? `?${qs}` : ''}`
       );
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         return data;
       }
     } catch (err) {
-      console.warn('Backend API no devolvió datos de órdenes, usando almacén en memoria:', err);
+      console.warn('Backend API no devolvió datos de órdenes, usando almacén local:', err);
     }
 
     // Filtrar local mock store

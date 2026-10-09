@@ -92,6 +92,10 @@ export const OrdenTrabajoFormPage: React.FC = () => {
   const [fechaProgramada, setFechaProgramada] = useState('');
   const [bloqueHorario, setBloqueHorario] = useState('09:00 - 13:00');
 
+  // Encabezado estático durante edición (solo cambia al cargar o al guardar)
+  const [savedTitle, setSavedTitle] = useState(esNuevo ? 'Nuevo' : '');
+  const [savedSubtitle, setSavedSubtitle] = useState(esNuevo ? 'Ficha de orden de trabajo' : '');
+
   const notifySuccess = useCallback((title: string) => {
     dispatchToast(
       <Toast>
@@ -141,6 +145,8 @@ export const OrdenTrabajoFormPage: React.FC = () => {
         setLoading(true);
         const data = await OrdenTrabajoService.obtenerOrdenPorId(id);
         setOrden(data);
+        setSavedTitle(data.codigoWo || 'Orden de Trabajo');
+        setSavedSubtitle(`${data.tipoOrdenNombre || 'Servicio'} — ${data.clienteServicioNombre || ''}`);
         setCodigoWo(data.codigoWo);
         setTipoOrdenId(data.tipoOrdenId);
         setClienteFacturacionId(data.clienteFacturacionId);
@@ -207,6 +213,10 @@ export const OrdenTrabajoFormPage: React.FC = () => {
         };
 
         const res = await OrdenTrabajoService.crearOrden(dto);
+        const tipoNombre = tiposOrden.find((t) => t.id === tipoOrdenId)?.nombre || 'Servicio';
+        const clienteNombre = clientesServicio.find((c) => c.id === clienteServicioId)?.nombreCompletoODenominacion || '';
+        setSavedTitle(res.codigoWo || 'Orden de Trabajo');
+        setSavedSubtitle(`${tipoNombre} — ${clienteNombre}`);
         notifySuccess('Orden de Trabajo registrada exitosamente.');
         if (cerrar) {
           navigate('/servicio-campo/ordenes');
@@ -222,6 +232,10 @@ export const OrdenTrabajoFormPage: React.FC = () => {
         };
 
         await OrdenTrabajoService.actualizarOrden(id, dto);
+        const tipoNombre = tiposOrden.find((t) => t.id === tipoOrdenId)?.nombre || 'Servicio';
+        const clienteNombre = clientesServicio.find((c) => c.id === clienteServicioId)?.nombreCompletoODenominacion || '';
+        setSavedTitle(codigoWo || 'Orden de Trabajo');
+        setSavedSubtitle(`${tipoNombre} — ${clienteNombre}`);
         notifySuccess('Orden de Trabajo actualizada con éxito.');
         if (cerrar) {
           navigate('/servicio-campo/ordenes');
@@ -270,11 +284,6 @@ export const OrdenTrabajoFormPage: React.FC = () => {
     }
   };
 
-  const tituloEncabezado = esNuevo ? 'Nueva Orden de Trabajo' : (codigoWo || 'Orden de Trabajo');
-  const subtituloEncabezado = esNuevo
-    ? 'Registro de servicio en campo'
-    : `${orden?.tipoOrdenNombre || 'Servicio'} — ${orden?.clienteServicioNombre || ''}`;
-
   return (
     <div className={formStyles.root}>
       <Toaster toasterId={toasterId} />
@@ -285,8 +294,8 @@ export const OrdenTrabajoFormPage: React.FC = () => {
           <D365CommandButton
             icon={<ArrowLeft16Regular />}
             tone="brand"
-            aria-label="Volver"
-            title="Volver a la lista"
+            aria-label="Atrás"
+            title="Atrás"
             onClick={() => navigate('/servicio-campo/ordenes')}
           />
           <D365CommandDivider />
@@ -391,7 +400,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                 tone="create"
                 onClick={() => navigate('/servicio-campo/ordenes/nuevo')}
               >
-                Nueva
+                Nuevo
               </D365CommandButton>
             </>
           )}
@@ -400,8 +409,8 @@ export const OrdenTrabajoFormPage: React.FC = () => {
 
       {/* 2. ENTITY HEADER CON PROCESS FLOW EDGE-TO-EDGE Y TABS (SIN ICONOS NI NÚMEROS) */}
       <D365EntityHeader
-        title={tituloEncabezado}
-        subtitle={subtituloEncabezado}
+        title={savedTitle || (esNuevo ? 'Nuevo' : 'Orden de Trabajo')}
+        subtitle={savedSubtitle || 'Ficha de orden de trabajo'}
         avatarIcon={<ClipboardTask24Regular />}
         metadata={[
           { label: 'System Status', value: estadoSistema },

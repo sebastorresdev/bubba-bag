@@ -79,6 +79,10 @@ export const ClienteFormPage: React.FC = () => {
   const [esClienteServicio, setEsClienteServicio] = useState(true);
   const [activo, setActivo] = useState(true);
 
+  // El encabezado solo cambia al guardar o al cargar (no mientras se escribe)
+  const [savedTitle, setSavedTitle] = useState(esNuevo ? 'Nuevo' : '');
+  const [savedSubtitle, setSavedSubtitle] = useState(esNuevo ? 'Ficha de cuenta / cliente' : '');
+
   const notifySuccess = useCallback((title: string) => {
     dispatchToast(
       <Toast>
@@ -127,6 +131,12 @@ export const ClienteFormPage: React.FC = () => {
         setEsClienteFacturacion(cli.esClienteFacturacion);
         setEsClienteServicio(cli.esClienteServicio);
         setActivo(cli.activo);
+
+        const nom = cli.tipoPersona === 'JURIDICA'
+          ? (cli.razonSocial || cli.nombreCompletoODenominacion || 'Cuenta')
+          : (cli.nombreCompletoODenominacion || `${cli.nombres} ${cli.apellidos || ''}`.trim() || 'Cliente');
+        setSavedTitle(nom);
+        setSavedSubtitle(cli.documentoIdentidad ? `${cli.tipoDocumento}: ${cli.documentoIdentidad}` : 'Ficha de cuenta / cliente');
       } catch (err: any) {
         setMensaje({ tipo: 'error', texto: err.message || 'Error al cargar los datos del cliente.' });
       } finally {
@@ -135,14 +145,6 @@ export const ClienteFormPage: React.FC = () => {
     };
     void cargarDetalle();
   }, [id, esNuevo]);
-
-  const nombreEncabezado = useMemo(() => {
-    if (tipoPersona === 'JURIDICA') {
-      return razonSocial.trim() || nombreComercial.trim() || 'Nueva Cuenta';
-    }
-    const full = `${nombres.trim()} ${apellidos.trim()}`.trim();
-    return full || 'Nuevo Cliente';
-  }, [tipoPersona, razonSocial, nombreComercial, nombres, apellidos]);
 
   const ubigeosFiltrados = useMemo(() => {
     if (!busquedaUbigeo.trim()) return ubigeos.slice(0, 100);
@@ -226,6 +228,10 @@ export const ClienteFormPage: React.FC = () => {
           coordenadaLng: !isNaN(lngNum as number) ? lngNum : undefined,
         };
 
+        const nom = tipoPersona === 'JURIDICA' ? razonSocial.trim() : `${nombres.trim()} ${apellidos.trim()}`.trim();
+        setSavedTitle(nom || 'Cliente');
+        setSavedSubtitle(documentoIdentidad ? `${tipoDocumento}: ${documentoIdentidad}` : 'Ficha de cuenta / cliente');
+
         const res = await ClienteService.crearCliente(dto);
         notifySuccess('Cliente registrado exitosamente.');
         if (cerrar) {
@@ -244,6 +250,10 @@ export const ClienteFormPage: React.FC = () => {
           esClienteFacturacion,
           esClienteServicio,
         };
+
+        const nom = tipoPersona === 'JURIDICA' ? razonSocial.trim() : `${nombres.trim()} ${apellidos.trim()}`.trim();
+        setSavedTitle(nom || 'Cliente');
+        setSavedSubtitle(documentoIdentidad ? `${tipoDocumento}: ${documentoIdentidad}` : 'Ficha de cuenta / cliente');
 
         await ClienteService.actualizarCliente(id!, dto);
         notifySuccess('Cliente actualizado exitosamente.');
@@ -289,10 +299,11 @@ export const ClienteFormPage: React.FC = () => {
         <div className={formStyles.toolbarLeft}>
           <D365CommandButton
             icon={<ArrowLeft16Regular />}
+            tone="brand"
+            aria-label="Atrás"
+            title="Atrás"
             onClick={() => navigate('/servicio-campo/clientes')}
-          >
-            Volver
-          </D365CommandButton>
+          />
           <D365CommandDivider />
           <D365CommandButton
             icon={<Save16Regular />}
@@ -334,12 +345,8 @@ export const ClienteFormPage: React.FC = () => {
 
       {/* 2. ENTITY HEADER CON TABS (SIN ICONOS NI NÚMEROS) */}
       <D365EntityHeader
-        title={nombreEncabezado}
-        subtitle={
-          documentoIdentidad
-            ? `${tipoDocumento}: ${documentoIdentidad}`
-            : 'Ficha de cuenta / cliente'
-        }
+        title={savedTitle || (esNuevo ? 'Nuevo' : 'Cliente')}
+        subtitle={savedSubtitle || 'Ficha de cuenta / cliente'}
         avatarIcon={
           tipoPersona === 'JURIDICA' ? (
             <Building24Regular />
