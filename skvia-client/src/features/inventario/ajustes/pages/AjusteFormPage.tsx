@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Input,
@@ -29,11 +29,13 @@ import {
   CheckmarkCircle24Filled,
   Send16Regular,
   ArrowReset20Regular,
+  Box16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
 import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
+import { SelectorEntidadRelacionada, type OpcionEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
 import { useCurrentUser } from '../../../../hooks/useCurrentUser';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { AlmacenService } from '../../almacenes/services/almacen.service';
@@ -73,11 +75,28 @@ export function AjusteFormPage() {
   // Estados del formulario
   const [tipo, setTipo] = useState<TipoAjuste>('Entrada');
   const [almacenId, setAlmacenId] = useState('');
+  const [busquedaAlmacen, setBusquedaAlmacen] = useState('');
   const [fecha, setFecha] = useState<Date | null>(new Date());
   const [motivo, setMotivo] = useState<string>(MOTIVOS_AJUSTE[0]);
   const [documentoReferencia, setDocumentoReferencia] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [lineas, setLineas] = useState<LineaAjusteForm[]>([]);
+
+  // Opciones para SelectorEntidadRelacionada (TagPicker)
+  const opcionesAlmacen: OpcionEntidadRelacionada[] = useMemo(
+    () =>
+      almacenes.map(a => ({
+        id: a.id,
+        nombre: a.nombre,
+        detalle: a.codigo ? `Código: ${a.codigo}` : String(a.tipo ?? ''),
+      })),
+    [almacenes]
+  );
+
+  const almacenSeleccionado = useMemo(
+    () => opcionesAlmacen.find(a => a.id === almacenId) || null,
+    [opcionesAlmacen, almacenId]
+  );
 
   // Diálogo de confirmación para aplicar, rechazar o anular
   const [dialogAplicarOpen, setDialogAplicarOpen] = useState(false);
@@ -559,20 +578,24 @@ export function AjusteFormPage() {
                       </Select>
                     </D365FormField>
 
-                    <D365FormField label="Almacén de ajuste" required htmlFor="ajuste-almacen">
-                      <Select
-                        id="ajuste-almacen"
-                        className={formStyles.d365ControlFull}
-                        value={almacenId}
-                        disabled={esSoloLectura}
-                        onChange={(_, d) => setAlmacenId(d.value)}
-                      >
-                        {almacenes.map(a => (
-                          <option key={a.id} value={a.id}>
-                            {a.nombre}
-                          </option>
-                        ))}
-                      </Select>
+                    <D365FormField
+                      label="Almacén de ajuste"
+                      required
+                      info="Almacén físico donde se realiza el ajuste de existencias"
+                    >
+                      <SelectorEntidadRelacionada
+                        etiquetaGrupo="Almacenes Disponibles"
+                        opciones={opcionesAlmacen}
+                        seleccionada={almacenSeleccionado}
+                        textoBusqueda={busquedaAlmacen}
+                        alCambiarBusqueda={setBusquedaAlmacen}
+                        alSeleccionar={nuevoId => setAlmacenId(nuevoId || '')}
+                        alNavegar={nuevoId => navigate(`/servicio-campo/almacenes/${nuevoId}`)}
+                        icono={<Box16Regular />}
+                        tituloEnlace="Ver ficha del almacén"
+                        deshabilitado={esSoloLectura}
+                        textoVacio="No hay almacenes disponibles"
+                      />
                     </D365FormField>
 
                     <D365FormField label="Fecha del ajuste" required htmlFor="ajuste-fecha">
