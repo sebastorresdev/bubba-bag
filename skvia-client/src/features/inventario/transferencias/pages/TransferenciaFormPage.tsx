@@ -1370,177 +1370,177 @@ export function TransferenciaFormPage() {
 
       <div className={formStyles.contentBody}>
         {selectedTab === 'general' ? (
-          <div className={formStyles.halfCardWrapper}>
+          <div style={{ maxWidth: '620px', width: '100%' }}>
             <div className={formStyles.card}>
-              <div className={formStyles.grid2Cols}>
-              <D365FormField label="Número de transferencia">
-                <Input
-                  className={formStyles.d365ControlFull}
-                  value={detalle?.numero ?? numeroGuardado ?? 'Automático al guardar'}
-                  readOnly
-                  appearance="filled-darker"
-                  contentAfter={<LockClosed16Regular title="Generado automáticamente por el servidor" />}
-                />
-              </D365FormField>
+              <div className={formStyles.cardSectionTitle}>Información de la Transferencia</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <D365FormField label="Número de transferencia">
+                  <Input
+                    className={formStyles.d365ControlFull}
+                    value={detalle?.numero ?? numeroGuardado ?? 'Automático al guardar'}
+                    readOnly
+                    appearance="filled-darker"
+                    contentAfter={<LockClosed16Regular title="Generado automáticamente por el servidor" />}
+                  />
+                </D365FormField>
 
-              <D365FormField label="Guía de Remisión">
-                <Input
-                  className={formStyles.d365ControlFull}
-                  value={detalle?.numeroGuiaRemision ?? numeroGuiaGuardado ?? 'Automático al guardar (GR-0000001)'}
-                  readOnly
-                  appearance="filled-darker"
-                  contentAfter={<LockClosed16Regular title="Generado con correlativo secuencial" />}
-                />
-              </D365FormField>
+                <D365FormField label="Guía de Remisión">
+                  <Input
+                    className={formStyles.d365ControlFull}
+                    value={detalle?.numeroGuiaRemision ?? numeroGuiaGuardado ?? 'Automático al guardar (GR-0000001)'}
+                    readOnly
+                    appearance="filled-darker"
+                    contentAfter={<LockClosed16Regular title="Generado con correlativo secuencial" />}
+                  />
+                </D365FormField>
 
-              <D365FormField label="Fecha de registro">
-                <Input
-                  className={formStyles.d365ControlFull}
-                  value={fechaRegistro ? new Date(fechaRegistro + 'T00:00:00').toLocaleDateString('es-PE') : new Date().toLocaleDateString('es-PE')}
-                  readOnly
-                  appearance="filled-darker"
-                  contentAfter={<LockClosed16Regular title="Fecha de movimiento" />}
-                />
-              </D365FormField>
+                <D365FormField label="Fecha de registro">
+                  <Input
+                    className={formStyles.d365ControlFull}
+                    value={fechaRegistro ? new Date(fechaRegistro + 'T00:00:00').toLocaleDateString('es-PE') : new Date().toLocaleDateString('es-PE')}
+                    readOnly
+                    appearance="filled-darker"
+                    contentAfter={<LockClosed16Regular title="Fecha de movimiento" />}
+                  />
+                </D365FormField>
 
-              <D365FormField label="Condición del material">
-                <Select
-                  disabled={bloqueado}
-                  value={String(condicion)}
-                  onChange={(_, d) => {
-                    setCondicion(Number(d.value) as 1 | 2);
-                    setLineas([]);
-                    setProductoSeleccionado(null);
-                    setSerieSeleccionada(null);
-                  }}
-                >
-                  <option value="1">Utilizable</option>
-                  <option value="2">Defectuoso</option>
-                </Select>
-              </D365FormField>
-
-              {/* Selector Almacén de Origen con SelectorEntidadRelacionada */}
-              <D365FormField label="Almacén de origen" required info="Almacén central / bodega remitente">
-                <SelectorEntidadRelacionada
-                  etiquetaGrupo="Almacenes Disponibles"
-                  opciones={opcionesOrigen}
-                  seleccionada={origenSeleccionado}
-                  textoBusqueda={busquedaOrigen}
-                  alCambiarBusqueda={setBusquedaOrigen}
-                  alSeleccionar={(nuevoId) => {
-                    setOrigenId(nuevoId || '');
-                    setDestinoId('');
-                    setLineas([]);
-                    setUbicacionOrigenId('');
-                    setUbicacionDestinoId('');
-                  }}
-                  alNavegar={(nuevoId) => navigate(`/servicio-campo/almacenes/${nuevoId}`)}
-                  icono={<Box16Regular />}
-                  tituloEnlace="Ver ficha del almacén de origen"
-                  deshabilitado={bloqueado}
-                  textoVacio="No hay almacenes centrales disponibles"
-                />
-              </D365FormField>
-
-              {/* Selector Almacén de Destino con SelectorEntidadRelacionada */}
-              <D365FormField
-                label="Almacén de destino"
-                required
-                info={almacenOrigen?.unidadOrganizativaNombre
-                  ? `Solo se listan almacenes centrales fuera de "${almacenOrigen.unidadOrganizativaNombre}"`
-                  : "Almacén central de otra sede/organización receptora"}
-              >
-                <SelectorEntidadRelacionada
-                  etiquetaGrupo="Almacenes de Destino"
-                  opciones={opcionesDestino}
-                  seleccionada={destinoSeleccionado}
-                  textoBusqueda={busquedaDestino}
-                  alCambiarBusqueda={setBusquedaDestino}
-                  alSeleccionar={(nuevoId) => {
-                    setDestinoId(nuevoId || '');
-                    setUbicacionDestinoId('');
-                  }}
-                  alNavegar={(nuevoId) => navigate(`/servicio-campo/almacenes/${nuevoId}`)}
-                  icono={<Box16Regular />}
-                  tituloEnlace="Ver ficha del almacén de destino"
-                  deshabilitado={bloqueado || !origenId}
-                  textoVacio={!origenId ? "Primero seleccione el almacén de origen" : "No hay almacenes en otras organizaciones disponibles"}
-                />
-              </D365FormField>
-            </div>
-
-            {!esSoloLectura && (
-              <div className={formStyles.grid2Cols}>
-                <D365FormField label="Ubicación de origen" required>
+                <D365FormField label="Condición del material">
                   <Select
                     disabled={bloqueado}
-                    value={ubicacionOrigenId}
+                    value={String(condicion)}
                     onChange={(_, d) => {
-                      setUbicacionOrigenId(d.value);
+                      setCondicion(Number(d.value) as 1 | 2);
                       setLineas([]);
                       setProductoSeleccionado(null);
                       setSerieSeleccionada(null);
                     }}
                   >
-                    {ubicacionesOrigen.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.nombre}
-                      </option>
-                    ))}
+                    <option value="1">Utilizable</option>
+                    <option value="2">Defectuoso</option>
                   </Select>
                 </D365FormField>
-                <D365FormField label="Ubicación de destino" required>
-                  <Select
-                    disabled={bloqueado}
-                    value={ubicacionDestinoId}
-                    onChange={(_, d) => setUbicacionDestinoId(d.value)}
-                  >
-                    {ubicacionesDestino.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.nombre}
-                      </option>
-                    ))}
-                  </Select>
-                </D365FormField>
-              </div>
-            )}
-            {esSoloLectura && detalle ? (
-              <div className={formStyles.grid2Cols}>
-                <D365FormField label="Ubicación de origen">
-                  <Input readOnly value={detalle.ubicacionOrigenNombre ?? 'No registrada en el histórico'} />
-                </D365FormField>
-                <D365FormField label="Ubicación de destino">
-                  <Input readOnly value={detalle.ubicacionDestinoNombre ?? 'No registrada en el histórico'} />
-                </D365FormField>
-                <D365FormField label="Fecha real">
-                  <Input readOnly value={new Date(detalle.fechaReal).toLocaleString('es-PE')} />
-                </D365FormField>
-              </div>
-            ) : (
-              <div className={formStyles.grid2Cols}>
-                <D365FormField label="Fecha real del despacho (opcional)">
-                  <DatePicker
-                    className={formStyles.d365ControlFull}
-                    disabled={bloqueado}
-                    placeholder="Seleccionar fecha..."
-                    value={fechaReal ? new Date(fechaReal) : undefined}
-                    formatDate={(d) => (d ? d.toLocaleDateString('es-PE') : '')}
-                    onSelectDate={(d) => setFechaReal(d ? d.toISOString() : '')}
+
+                {/* Selector Almacén de Origen con SelectorEntidadRelacionada */}
+                <D365FormField label="Almacén de origen" required info="Almacén central / bodega remitente">
+                  <SelectorEntidadRelacionada
+                    etiquetaGrupo="Almacenes Disponibles"
+                    opciones={opcionesOrigen}
+                    seleccionada={origenSeleccionado}
+                    textoBusqueda={busquedaOrigen}
+                    alCambiarBusqueda={setBusquedaOrigen}
+                    alSeleccionar={(nuevoId) => {
+                      setOrigenId(nuevoId || '');
+                      setDestinoId('');
+                      setLineas([]);
+                      setUbicacionOrigenId('');
+                      setUbicacionDestinoId('');
+                    }}
+                    alNavegar={(nuevoId) => navigate(`/servicio-campo/almacenes/${nuevoId}`)}
+                    icono={<Box16Regular />}
+                    tituloEnlace="Ver ficha del almacén de origen"
+                    deshabilitado={bloqueado}
+                    textoVacio="No hay almacenes centrales disponibles"
                   />
                 </D365FormField>
-                <div />
+
+                {/* Selector Almacén de Destino con SelectorEntidadRelacionada */}
+                <D365FormField
+                  label="Almacén de destino"
+                  required
+                  info={almacenOrigen?.unidadOrganizativaNombre
+                    ? `Solo se listan almacenes centrales fuera de "${almacenOrigen.unidadOrganizativaNombre}"`
+                    : "Almacén central de otra sede/organización receptora"}
+                >
+                  <SelectorEntidadRelacionada
+                    etiquetaGrupo="Almacenes de Destino"
+                    opciones={opcionesDestino}
+                    seleccionada={destinoSeleccionado}
+                    textoBusqueda={busquedaDestino}
+                    alCambiarBusqueda={setBusquedaDestino}
+                    alSeleccionar={(nuevoId) => {
+                      setDestinoId(nuevoId || '');
+                      setUbicacionDestinoId('');
+                    }}
+                    alNavegar={(nuevoId) => navigate(`/servicio-campo/almacenes/${nuevoId}`)}
+                    icono={<Box16Regular />}
+                    tituloEnlace="Ver ficha del almacén de destino"
+                    deshabilitado={bloqueado || !origenId}
+                    textoVacio={!origenId ? "Primero seleccione el almacén de origen" : "No hay almacenes en otras organizaciones disponibles"}
+                  />
+                </D365FormField>
+
+                {!esSoloLectura && (
+                  <>
+                    <D365FormField label="Ubicación de origen" required>
+                      <Select
+                        disabled={bloqueado}
+                        value={ubicacionOrigenId}
+                        onChange={(_, d) => {
+                          setUbicacionOrigenId(d.value);
+                          setLineas([]);
+                          setProductoSeleccionado(null);
+                          setSerieSeleccionada(null);
+                        }}
+                      >
+                        {ubicacionesOrigen.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.nombre}
+                          </option>
+                        ))}
+                      </Select>
+                    </D365FormField>
+                    <D365FormField label="Ubicación de destino" required>
+                      <Select
+                        disabled={bloqueado}
+                        value={ubicacionDestinoId}
+                        onChange={(_, d) => setUbicacionDestinoId(d.value)}
+                      >
+                        {ubicacionesDestino.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.nombre}
+                          </option>
+                        ))}
+                      </Select>
+                    </D365FormField>
+                  </>
+                )}
+
+                {esSoloLectura && detalle ? (
+                  <>
+                    <D365FormField label="Ubicación de origen">
+                      <Input readOnly value={detalle.ubicacionOrigenNombre ?? 'No registrada en el histórico'} />
+                    </D365FormField>
+                    <D365FormField label="Ubicación de destino">
+                      <Input readOnly value={detalle.ubicacionDestinoNombre ?? 'No registrada en el histórico'} />
+                    </D365FormField>
+                    <D365FormField label="Fecha real">
+                      <Input readOnly value={new Date(detalle.fechaReal).toLocaleString('es-PE')} />
+                    </D365FormField>
+                  </>
+                ) : (
+                  <D365FormField label="Fecha real del despacho (opcional)">
+                    <DatePicker
+                      className={formStyles.d365ControlFull}
+                      disabled={bloqueado}
+                      placeholder="Seleccionar fecha..."
+                      value={fechaReal ? new Date(fechaReal) : undefined}
+                      formatDate={(d) => (d ? d.toLocaleDateString('es-PE') : '')}
+                      onSelectDate={(d) => setFechaReal(d ? d.toISOString() : '')}
+                    />
+                  </D365FormField>
+                )}
+
+                <D365FormField label="Motivo u observación" align="top">
+                  <Textarea
+                    className={formStyles.d365ControlFull}
+                    rows={3}
+                    value={observacion}
+                    disabled={bloqueado}
+                    maxLength={500}
+                    onChange={(_, d) => setObservacion(d.value)}
+                  />
+                </D365FormField>
               </div>
-            )}
-            <D365FormField label="Motivo u observación" align="top">
-              <Textarea
-                className={formStyles.d365ControlFull}
-                rows={3}
-                value={observacion}
-                disabled={bloqueado}
-                maxLength={500}
-                onChange={(_, d) => setObservacion(d.value)}
-              />
-            </D365FormField>
             </div>
           </div>
         ) : selectedTab === 'productos' ? (

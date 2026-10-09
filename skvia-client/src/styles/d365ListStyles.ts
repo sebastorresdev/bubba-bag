@@ -94,7 +94,7 @@ export const useD365ListStyles = makeStyles({
     cursor: 'text',
   },
   primaryLink: {
-    fontWeight: tokens.fontWeightSemibold,
+    fontWeight: tokens.fontWeightRegular,
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',

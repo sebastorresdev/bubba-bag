@@ -172,7 +172,7 @@ export function AjustesListPage() {
           <Link
             as="button"
             title={`Abrir ajuste ${item.numero}`}
-            style={{ fontWeight: tokens.fontWeightSemibold, textDecoration: 'none' }}
+            style={{ textDecoration: 'none' }}
             onClick={e => {
               e.stopPropagation();
               navigate(`/servicio-campo/ajustes-inventario/${item.id}`);

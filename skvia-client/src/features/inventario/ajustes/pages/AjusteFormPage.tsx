@@ -34,6 +34,7 @@ import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { AlmacenService } from '../../almacenes/services/almacen.service';
 import type { AlmacenDto } from '../../almacenes/types/almacen.types';
+import { ProductoService } from '../../productos/services/producto.service';
 import type { ProductoDto } from '../../productos/types/producto.types';
 import { AjusteEtapas } from '../components/AjusteEtapas';
 import { LineasAjusteGrid, type LineaAjusteForm } from '../components/LineasAjusteGrid';
@@ -93,6 +94,11 @@ export function AjusteFormPage() {
         }
       }
     });
+    void ProductoService.getProductos(undefined, undefined, true).then(prods => {
+      if (activo && Array.isArray(prods)) {
+        setProductosCache(prods.filter(p => p.tipo === 'Inventario'));
+      }
+    });
     return () => {
       activo = false;
     };
@@ -121,6 +127,9 @@ export function AjusteFormPage() {
           clave: crypto.randomUUID(),
           id: l.id,
           productoId: l.productoId,
+          codigoProducto: l.codigoProducto,
+          nombreProducto: l.nombreProducto,
+          unidad: l.unidad,
           tipo: l.tipo,
           cantidad: String(l.cantidad),
           costo: String(l.costoUnitario),

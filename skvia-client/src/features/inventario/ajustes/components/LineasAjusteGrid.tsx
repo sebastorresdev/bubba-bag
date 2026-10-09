@@ -57,7 +57,7 @@ const useStyles = makeStyles({
     padding: '4px 0',
   },
   drawer: {
-    width: '520px',
+    width: '540px',
     maxWidth: '95vw',
   },
   body: {
@@ -98,6 +98,9 @@ export interface LineaAjusteForm {
   clave: string;
   id?: string;
   productoId: string;
+  codigoProducto?: string;
+  nombreProducto?: string;
+  unidad?: string;
   tipo: 'Entrada' | 'Salida';
   cantidad: string;
   costo: string;
@@ -141,9 +144,24 @@ export function LineasAjusteGrid({
   const consulta = busqueda.trim();
   const abierto = Boolean(linea);
 
-  // Carga inmediata de productos inventariables al abrir el Drawer
+  // Precarga inicial de productos inventariables
   useEffect(() => {
-    if (!abierto || soloLectura || linea?.productoId) {
+    let activo = true;
+    void ProductoService.getProductos(undefined, undefined, true)
+      .then(prods => {
+        if (activo && Array.isArray(prods)) {
+          setResultados(prods.filter(p => p.tipo === 'Inventario'));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  // Carga inmediata de productos inventariables al buscar en el Drawer
+  useEffect(() => {
+    if (!abierto || soloLectura || (linea?.productoId && !consulta)) {
       setBuscando(false);
       return;
     }
@@ -191,7 +209,10 @@ export function LineasAjusteGrid({
           }
     );
     setEditando(Boolean(x));
-    setBusqueda('');
+    const prod = x ? [...productosRegistrados, ...resultados].find(p => p.id === x.productoId) : null;
+    setBusqueda(
+      prod ? `${prod.codigo} · ${prod.nombre}` : x?.codigoProducto ? `${x.codigoProducto} · ${x.nombreProducto}` : ''
+    );
     setError('');
   };
 
@@ -234,6 +255,9 @@ export function LineasAjusteGrid({
 
     const nueva: LineaAjusteForm = {
       ...linea,
+      codigoProducto: prod.codigo,
+      nombreProducto: prod.nombre,
+      unidad: prod.nombreUnidadMedidaDefecto || 'UND',
       series: prod.esSerializado ? seriesArr.join('\n') : '',
     };
 
@@ -257,17 +281,22 @@ export function LineasAjusteGrid({
       renderHeaderCell: () => 'Producto',
       renderCell: item => {
         const prod = [...productosRegistrados, ...resultados].find(p => p.id === item.productoId);
+        const texto = prod
+          ? `${prod.codigo} · ${prod.nombre}`
+          : item.codigoProducto
+          ? `${item.codigoProducto} · ${item.nombreProducto}`
+          : item.nombreProducto || '---';
+
         return (
           <TableCellLayout truncate>
             <Link
               as="button"
-              style={{ fontWeight: tokens.fontWeightSemibold }}
               onClick={e => {
                 e.stopPropagation();
                 abrir(item);
               }}
             >
-              {prod ? `${prod.codigo} · ${prod.nombre}` : 'Producto no identificado'}
+              {texto}
             </Link>
           </TableCellLayout>
         );
@@ -278,7 +307,7 @@ export function LineasAjusteGrid({
       renderHeaderCell: () => 'Unidad',
       renderCell: item => {
         const prod = [...productosRegistrados, ...resultados].find(p => p.id === item.productoId);
-        return <TableCellLayout>{prod?.nombreUnidadMedidaDefecto || 'UND'}</TableCellLayout>;
+        return <TableCellLayout>{prod?.nombreUnidadMedidaDefecto || item.unidad || 'UND'}</TableCellLayout>;
       },
     }),
     createTableColumn({
@@ -463,7 +492,7 @@ export function LineasAjusteGrid({
           </DrawerHeaderTitle>
         </DrawerHeader>
 
-        <DrawerBody className={styles.body}>
+        <DrawerBody className={styles.body} style={{ overflowX: 'hidden' }}>
           {error && <D365MessageBar intent="error" onDismiss={() => setError('')}>{error}</D365MessageBar>}
 
           {linea && (
