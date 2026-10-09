@@ -169,17 +169,24 @@ export function AjustesListPage() {
       renderHeaderCell: () => 'Código de Ajuste',
       renderCell: (item: AjusteInventarioDto) => (
         <TableCellLayout truncate>
-          <Link
-            as="button"
-            title={`Abrir ajuste ${item.numero}`}
-            style={{ textDecoration: 'none' }}
-            onClick={e => {
-              e.stopPropagation();
-              navigate(`/servicio-campo/ajustes-inventario/${item.id}`);
-            }}
-          >
-            {item.numero}
-          </Link>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <Link
+              as="button"
+              title={`Abrir ajuste ${item.numero}`}
+              style={{ textDecoration: 'none' }}
+              onClick={e => {
+                e.stopPropagation();
+                navigate(`/servicio-campo/ajustes-inventario/${item.id}`);
+              }}
+            >
+              {item.numero}
+            </Link>
+            {item.numeroAprobacion && (
+              <span style={{ fontSize: '11px', color: tokens.colorNeutralForeground4, fontFamily: 'Consolas, monospace' }}>
+                N° Aprob: {item.numeroAprobacion}
+              </span>
+            )}
+          </div>
         </TableCellLayout>
       ),
     }),
@@ -290,6 +297,15 @@ export function AjustesListPage() {
             <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
               <Badge appearance="filled" shape="rounded" color="success" icon={<CheckmarkCircle16Filled />}>
                 Aplicado
+              </Badge>
+            </TableCellLayout>
+          );
+        }
+        if (item.estado === 'EnRevision') {
+          return (
+            <TableCellLayout style={{ whiteSpace: 'nowrap' }}>
+              <Badge appearance="tint" shape="rounded" color="brand" icon={<Clock16Regular />}>
+                En Revisión
               </Badge>
             </TableCellLayout>
           );

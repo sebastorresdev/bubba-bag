@@ -15,6 +15,7 @@ import {
   DialogActions,
   DialogContent,
   Button,
+  tokens,
 } from '@fluentui/react-components';
 import { DatePicker } from '@fluentui/react-datepicker-compat';
 import {
@@ -26,11 +27,14 @@ import {
   Add16Regular,
   LockClosed16Regular,
   CheckmarkCircle24Filled,
+  Send16Regular,
+  ArrowReset20Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
 import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
+import { useCurrentUser } from '../../../../hooks/useCurrentUser';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { AlmacenService } from '../../almacenes/services/almacen.service';
 import type { AlmacenDto } from '../../almacenes/types/almacen.types';
@@ -53,6 +57,7 @@ export function AjusteFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const formStyles = useD365FormStyles();
+  const currentUser = useCurrentUser();
 
   const [ajuste, setAjuste] = useState<AjusteInventarioDto | null>(null);
   const [cargando, setCargando] = useState(Boolean(id));
@@ -74,14 +79,29 @@ export function AjusteFormPage() {
   const [observaciones, setObservaciones] = useState('');
   const [lineas, setLineas] = useState<LineaAjusteForm[]>([]);
 
-  // Diálogo de confirmación para aplicar o anular
+  // Diálogo de confirmación para aplicar, rechazar o anular
   const [dialogAplicarOpen, setDialogAplicarOpen] = useState(false);
+  const [dialogRechazarOpen, setDialogRechazarOpen] = useState(false);
+  const [motivoRechazo, setMotivoRechazo] = useState('');
   const [dialogAnularOpen, setDialogAnularOpen] = useState(false);
   const [dialogExitoOpen, setDialogExitoOpen] = useState(false);
   const [mensajeExito, setMensajeExito] = useState('');
 
+  // Roles y permisos
+  const esSuperAdmin =
+    currentUser.roles.some(r => ['SuperAdmin', 'ServicioCampoAdmin', 'InventarioAdmin'].includes(r)) ||
+    currentUser.rol === 'SuperAdmin';
+  const esSupervisorAlmacen =
+    esSuperAdmin ||
+    currentUser.roles.some(r => ['Supervisor', 'SupervisorAlmacen'].includes(r)) ||
+    currentUser.rol === 'Supervisor' ||
+    Boolean(almacenes.find(a => a.id === almacenId)?.esSupervisor);
+
   const estado: EstadoAjuste = ajuste?.estado || 'Borrador';
-  const esSoloLectura = estado === 'Aplicado' || estado === 'Anulado';
+  const esSoloLectura =
+    estado === 'Aplicado' ||
+    estado === 'Anulado' ||
+    (estado === 'EnRevision' && !esSupervisorAlmacen);
 
   // Carga de catálogos y datos existentes
   useEffect(() => {
@@ -209,6 +229,30 @@ export function AjusteFormPage() {
     }
   };
 
+  const handleSolicitarAprobacion = async () => {
+    if (!id) {
+      setError('Debe guardar el ajuste antes de solicitar aprobación.');
+      return;
+    }
+    if (lineas.length === 0) {
+      setError('Debe ingresar al menos una línea de producto antes de solicitar aprobación.');
+      return;
+    }
+    try {
+      setGuardando(true);
+      setError(null);
+      const res = await AjusteService.solicitarAprobacion(id);
+      setMensaje(
+        `Ajuste enviado a revisión exitosamente. N° de Aprobación generado: ${res.numeroAprobacion}. Pendiente de visto bueno por el Supervisor de Almacén o SuperAdmin.`
+      );
+      await cargarAjuste();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo enviar el ajuste a revisión.');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
   const handleAplicar = async () => {
     if (!id || !ajuste) return;
     if (lineas.length === 0) {
@@ -218,13 +262,34 @@ export function AjusteFormPage() {
     try {
       setGuardando(true);
       setError(null);
-      await AjusteService.aplicarAjuste(id);
+      await AjusteService.aplicarAjuste(id, currentUser.nombre || 'Supervisor');
       setDialogAplicarOpen(false);
-      setMensajeExito(`El ajuste ${ajuste.numero} fue aplicado con éxito. El inventario físico y Kardex fueron actualizados.`);
+      setMensajeExito(
+        `El ajuste ${ajuste.numero} fue aprobado y aplicado con éxito. N° de Aprobación: ${
+          ajuste.numeroAprobacion || 'Consolidado'
+        }. El inventario físico y Kardex fueron actualizados.`
+      );
       setDialogExitoOpen(true);
       await cargarAjuste();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo aplicar el ajuste.');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const handleRechazar = async () => {
+    if (!id) return;
+    try {
+      setGuardando(true);
+      setError(null);
+      await AjusteService.rechazarAjuste(id, motivoRechazo);
+      setDialogRechazarOpen(false);
+      setMotivoRechazo('');
+      setMensaje('El ajuste fue observado y devuelto a Borrador para correcciones.');
+      await cargarAjuste();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo observar el ajuste.');
     } finally {
       setGuardando(false);
     }
@@ -267,10 +332,11 @@ export function AjusteFormPage() {
             title="Volver al listado"
             onClick={() => navigate('/servicio-campo/ajustes-inventario')}
           />
-          <D365CommandDivider />
 
-          {!esSoloLectura && (
+          {/* Botones de guardado para creación o edición en Borrador */}
+          {estado === 'Borrador' && (
             <>
+              <D365CommandDivider />
               <D365CommandButton
                 icon={<Save16Regular />}
                 tone="save"
@@ -290,15 +356,27 @@ export function AjusteFormPage() {
             </>
           )}
 
+          {/* En Borrador ya guardado: Enviar a revisión / Solicitar aprobación */}
           {id && estado === 'Borrador' && (
             <>
               <D365CommandButton
-                icon={<Checkmark16Regular />}
+                icon={<Send16Regular />}
+                tone="brand"
                 disabled={guardando || cargando || lineas.length === 0}
-                onClick={() => setDialogAplicarOpen(true)}
+                onClick={() => void handleSolicitarAprobacion()}
               >
-                Aplicar ajuste
+                Confirmar y solicitar aprobación
               </D365CommandButton>
+              {esSupervisorAlmacen && (
+                <D365CommandButton
+                  icon={<Checkmark16Regular />}
+                  tone="brand"
+                  disabled={guardando || cargando || lineas.length === 0}
+                  onClick={() => setDialogAplicarOpen(true)}
+                >
+                  Aprobar y aplicar
+                </D365CommandButton>
+              )}
               <D365CommandButton
                 icon={<Dismiss16Regular />}
                 tone="danger"
@@ -307,6 +385,53 @@ export function AjusteFormPage() {
               >
                 Anular
               </D365CommandButton>
+            </>
+          )}
+
+          {/* En Revisión: el Supervisor o SuperAdmin puede Aprobar o Devolver */}
+          {id && estado === 'EnRevision' && (
+            <>
+              <D365CommandDivider />
+              {esSupervisorAlmacen ? (
+                <>
+                  <D365CommandButton
+                    icon={<Checkmark16Regular />}
+                    tone="brand"
+                    disabled={guardando || cargando}
+                    onClick={() => setDialogAplicarOpen(true)}
+                  >
+                    Aprobar ajuste
+                  </D365CommandButton>
+                  <D365CommandButton
+                    icon={<ArrowReset20Regular />}
+                    tone="default"
+                    disabled={guardando || cargando}
+                    onClick={() => setDialogRechazarOpen(true)}
+                  >
+                    Devolver a borrador
+                  </D365CommandButton>
+                  <D365CommandButton
+                    icon={<Dismiss16Regular />}
+                    tone="danger"
+                    disabled={guardando || cargando}
+                    onClick={() => setDialogAnularOpen(true)}
+                  >
+                    Anular
+                  </D365CommandButton>
+                </>
+              ) : (
+                <span
+                  style={{
+                    fontSize: '12px',
+                    color: tokens.colorNeutralForeground3,
+                    padding: '0 8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  Pendiente de visto bueno por Supervisor
+                </span>
+              )}
             </>
           )}
 
@@ -328,7 +453,8 @@ export function AjusteFormPage() {
         subtitle="Ajuste de Inventario"
         avatarName={ajuste?.nombreAlmacen || 'Ajuste'}
         metadata={[
-          { label: 'Estado', value: estado },
+          { label: 'Estado', value: estado === 'EnRevision' ? 'En Revisión' : estado },
+          ...(ajuste?.numeroAprobacion ? [{ label: 'N° Aprobación', value: ajuste.numeroAprobacion }] : []),
           { label: 'Tipo', value: tipo },
           { label: 'Ítems', value: String(lineas.length) },
           { label: 'Unidades', value: totalCantidad.toLocaleString('es-PE') },
@@ -344,101 +470,133 @@ export function AjusteFormPage() {
         }
       />
 
+      {/* Banners Informativos de Estado */}
+      {estado === 'EnRevision' && (
+        <div style={{ padding: '8px 24px 0 24px' }}>
+          <D365MessageBar intent="warning">
+            <strong>Ajuste en revisión {ajuste?.numeroAprobacion ? `(N° de Aprobación: ${ajuste.numeroAprobacion})` : ''}:</strong> Pendiente de aprobación por el Supervisor de Almacén o SuperAdmin.
+            {!esSupervisorAlmacen && ' Los almaceneros no tienen permisos para aprobar ajustes.'}
+          </D365MessageBar>
+        </div>
+      )}
+      {estado === 'Aplicado' && (
+        <div style={{ padding: '8px 24px 0 24px' }}>
+          <D365MessageBar intent="success">
+            <strong>Ajuste aprobado y aplicado:</strong> {ajuste?.numeroAprobacion ? `N° de Aprobación: ${ajuste.numeroAprobacion} · ` : ''}Aprobado por <strong>{ajuste?.usuarioAprobacion || 'Supervisor'}</strong> el {ajuste?.fechaAprobacion ? new Date(ajuste.fechaAprobacion).toLocaleString('es-PE') : ''}. Las existencias fueron impactadas en Kardex.
+          </D365MessageBar>
+        </div>
+      )}
+
       {/* 3. Contenedor del Cuerpo */}
       <div className={formStyles.contentBody}>
         {cargando ? (
-          <div className={formStyles.card}>
-            <Skeleton animation="pulse">
-              <SkeletonItem size={16} className={formStyles.skeletonHeader} />
-              <div className={formStyles.grid2Cols}>
-                {Array.from({ length: 6 }, (_, i) => (
-                  <SkeletonItem key={i} size={32} className={formStyles.skeletonFull} />
-                ))}
-              </div>
-            </Skeleton>
+          <div style={{ maxWidth: '620px', width: '100%' }}>
+            <div className={formStyles.card}>
+              <Skeleton animation="pulse">
+                <SkeletonItem size={16} className={formStyles.skeletonHeader} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {Array.from({ length: 6 }, (_, i) => (
+                    <SkeletonItem key={i} size={32} className={formStyles.skeletonFull} />
+                  ))}
+                </div>
+              </Skeleton>
+            </div>
           </div>
         ) : (
           <>
             {/* PESTAÑA: GENERAL */}
             {tab === 'general' && (
-              <div className={formStyles.card}>
-                <div className={formStyles.cardSectionTitle}>Información del Ajuste</div>
-                <div className={formStyles.grid2Cols}>
-                  <D365FormField label="Código de ajuste" htmlFor="ajuste-numero">
-                    <Input
-                      id="ajuste-numero"
-                      className={formStyles.d365ControlFull}
-                      value={ajuste?.numero || 'Se generará al guardar'}
-                      readOnly
-                      appearance="filled-darker"
-                      contentAfter={<LockClosed16Regular title="Solo lectura" aria-label="Solo lectura" />}
-                    />
-                  </D365FormField>
+              <div style={{ maxWidth: '620px', width: '100%' }}>
+                <div className={formStyles.card}>
+                  <div className={formStyles.cardSectionTitle}>Información del Ajuste</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <D365FormField label="Código de ajuste" htmlFor="ajuste-numero">
+                      <Input
+                        id="ajuste-numero"
+                        className={formStyles.d365ControlFull}
+                        value={ajuste?.numero || 'Se generará al guardar'}
+                        readOnly
+                        appearance="filled-darker"
+                        contentAfter={<LockClosed16Regular title="Solo lectura" aria-label="Solo lectura" />}
+                      />
+                    </D365FormField>
 
-                  <D365FormField label="Estado" htmlFor="ajuste-estado">
-                    <Input
-                      id="ajuste-estado"
-                      className={formStyles.d365ControlFull}
-                      value={estado}
-                      readOnly
-                      appearance="filled-darker"
-                      contentAfter={<LockClosed16Regular title="Solo lectura" aria-label="Solo lectura" />}
-                    />
-                  </D365FormField>
+                    <D365FormField label="Estado" htmlFor="ajuste-estado">
+                      <Input
+                        id="ajuste-estado"
+                        className={formStyles.d365ControlFull}
+                        value={estado === 'EnRevision' ? 'En Revisión (Pendiente de Aprobación)' : estado}
+                        readOnly
+                        appearance="filled-darker"
+                        contentAfter={<LockClosed16Regular title="Solo lectura" aria-label="Solo lectura" />}
+                      />
+                    </D365FormField>
 
-                  <D365FormField label="Tipo de ajuste" required htmlFor="ajuste-tipo">
-                    <Select
-                      id="ajuste-tipo"
-                      className={formStyles.d365ControlFull}
-                      value={tipo}
-                      disabled={esSoloLectura}
-                      onChange={(_, d) => setTipo(d.value as TipoAjuste)}
-                    >
-                      <option value="Entrada">Ingreso por ajuste (+)</option>
-                      <option value="Salida">Salida por ajuste (-)</option>
-                      <option value="ConteoFisico">Ajuste por conteo físico / inventario</option>
-                    </Select>
-                  </D365FormField>
+                    {ajuste?.numeroAprobacion && (
+                      <D365FormField label="N° de aprobación" htmlFor="ajuste-num-aprob">
+                        <Input
+                          id="ajuste-num-aprob"
+                          className={formStyles.d365ControlFull}
+                          value={ajuste.numeroAprobacion}
+                          readOnly
+                          appearance="filled-darker"
+                          contentAfter={<LockClosed16Regular title="Código de aprobación" aria-label="Código de aprobación" />}
+                        />
+                      </D365FormField>
+                    )}
 
-                  <D365FormField label="Almacén de ajuste" required htmlFor="ajuste-almacen">
-                    <Select
-                      id="ajuste-almacen"
-                      className={formStyles.d365ControlFull}
-                      value={almacenId}
-                      disabled={esSoloLectura}
-                      onChange={(_, d) => setAlmacenId(d.value)}
-                    >
-                      {almacenes.map(a => (
-                        <option key={a.id} value={a.id}>
-                          {a.nombre}
-                        </option>
-                      ))}
-                    </Select>
-                  </D365FormField>
+                    <D365FormField label="Tipo de ajuste" required htmlFor="ajuste-tipo">
+                      <Select
+                        id="ajuste-tipo"
+                        className={formStyles.d365ControlFull}
+                        value={tipo}
+                        disabled={esSoloLectura}
+                        onChange={(_, d) => setTipo(d.value as TipoAjuste)}
+                      >
+                        <option value="Entrada">Ingreso por ajuste (+)</option>
+                        <option value="Salida">Salida por ajuste (-)</option>
+                        <option value="ConteoFisico">Ajuste por conteo físico / inventario</option>
+                      </Select>
+                    </D365FormField>
 
-                  <D365FormField label="Fecha del ajuste" required htmlFor="ajuste-fecha">
-                    <DatePicker
-                      id="ajuste-fecha"
-                      className={formStyles.d365ControlFull}
-                      value={fecha}
-                      disabled={esSoloLectura}
-                      onSelectDate={d => setFecha(d || null)}
-                      formatDate={d => (d ? d.toLocaleDateString('es-PE') : '')}
-                    />
-                  </D365FormField>
+                    <D365FormField label="Almacén de ajuste" required htmlFor="ajuste-almacen">
+                      <Select
+                        id="ajuste-almacen"
+                        className={formStyles.d365ControlFull}
+                        value={almacenId}
+                        disabled={esSoloLectura}
+                        onChange={(_, d) => setAlmacenId(d.value)}
+                      >
+                        {almacenes.map(a => (
+                          <option key={a.id} value={a.id}>
+                            {a.nombre}
+                          </option>
+                        ))}
+                      </Select>
+                    </D365FormField>
 
-                  <D365FormField label="Doc. Referencia / Acta" htmlFor="ajuste-doc">
-                    <Input
-                      id="ajuste-doc"
-                      className={formStyles.d365ControlFull}
-                      placeholder="Ej. ACTA-INV-2026-001 o INF-MERMA-12"
-                      value={documentoReferencia}
-                      disabled={esSoloLectura}
-                      onChange={(_, d) => setDocumentoReferencia(d.value)}
-                    />
-                  </D365FormField>
+                    <D365FormField label="Fecha del ajuste" required htmlFor="ajuste-fecha">
+                      <DatePicker
+                        id="ajuste-fecha"
+                        className={formStyles.d365ControlFull}
+                        value={fecha}
+                        disabled={esSoloLectura}
+                        onSelectDate={d => setFecha(d || null)}
+                        formatDate={d => (d ? d.toLocaleDateString('es-PE') : '')}
+                      />
+                    </D365FormField>
 
-                  <div style={{ gridColumn: '1 / -1' }}>
+                    <D365FormField label="Doc. Referencia / Acta" htmlFor="ajuste-doc">
+                      <Input
+                        id="ajuste-doc"
+                        className={formStyles.d365ControlFull}
+                        placeholder="Ej. ACTA-INV-2026-001 o INF-MERMA-12"
+                        value={documentoReferencia}
+                        disabled={esSoloLectura}
+                        onChange={(_, d) => setDocumentoReferencia(d.value)}
+                      />
+                    </D365FormField>
+
                     <D365FormField label="Motivo del ajuste" required htmlFor="ajuste-motivo">
                       <Select
                         id="ajuste-motivo"
@@ -454,10 +612,8 @@ export function AjusteFormPage() {
                         ))}
                       </Select>
                     </D365FormField>
-                  </div>
 
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <D365FormField label="Observaciones / Justificación" htmlFor="ajuste-obs">
+                    <D365FormField label="Observaciones / Justificación" align="top" htmlFor="ajuste-obs">
                       <Textarea
                         id="ajuste-obs"
                         className={formStyles.d365ControlFull}
@@ -491,80 +647,92 @@ export function AjusteFormPage() {
 
             {/* PESTAÑA: AUDITORÍA */}
             {tab === 'auditoria' && (
-              <div className={formStyles.card}>
-                <div className={formStyles.cardSectionTitle}>Trazabilidad y Kardex</div>
-                <div className={formStyles.grid2Cols}>
-                  <D365FormField label="Registrado por">
-                    <Input
-                      className={formStyles.d365ControlFull}
-                      value={ajuste?.usuarioRegistro || 'SuperAdmin'}
-                      readOnly
-                      appearance="filled-darker"
-                      contentAfter={<LockClosed16Regular />}
-                    />
-                  </D365FormField>
+              <div style={{ maxWidth: '620px', width: '100%' }}>
+                <div className={formStyles.card}>
+                  <div className={formStyles.cardSectionTitle}>Trazabilidad y Control de Aprobación</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <D365FormField label="Registrado por">
+                      <Input
+                        className={formStyles.d365ControlFull}
+                        value={ajuste?.usuarioRegistro || currentUser.nombre || 'Almacenero'}
+                        readOnly
+                        appearance="filled-darker"
+                        contentAfter={<LockClosed16Regular />}
+                      />
+                    </D365FormField>
 
-                  <D365FormField label="Fecha de registro">
-                    <Input
-                      className={formStyles.d365ControlFull}
-                      value={
-                        ajuste?.fechaRegistro
-                          ? new Date(ajuste.fechaRegistro).toLocaleString('es-PE')
-                          : 'Pendiente'
-                      }
-                      readOnly
-                      appearance="filled-darker"
-                      contentAfter={<LockClosed16Regular />}
-                    />
-                  </D365FormField>
+                    <D365FormField label="Fecha de registro">
+                      <Input
+                        className={formStyles.d365ControlFull}
+                        value={
+                          ajuste?.fechaRegistro
+                            ? new Date(ajuste.fechaRegistro).toLocaleString('es-PE')
+                            : 'Pendiente'
+                        }
+                        readOnly
+                        appearance="filled-darker"
+                        contentAfter={<LockClosed16Regular />}
+                      />
+                    </D365FormField>
 
-                  <D365FormField label="Aprobado por">
-                    <Input
-                      className={formStyles.d365ControlFull}
-                      value={ajuste?.usuarioAprobacion || '—'}
-                      readOnly
-                      appearance="filled-darker"
-                      contentAfter={<LockClosed16Regular />}
-                    />
-                  </D365FormField>
+                    <D365FormField label="N° de Aprobación">
+                      <Input
+                        className={formStyles.d365ControlFull}
+                        value={ajuste?.numeroAprobacion || (estado === 'Borrador' ? 'Pendiente de solicitud' : 'Generado al enviar a revisión')}
+                        readOnly
+                        appearance="filled-darker"
+                        contentAfter={<LockClosed16Regular />}
+                      />
+                    </D365FormField>
 
-                  <D365FormField label="Fecha de aprobación">
-                    <Input
-                      className={formStyles.d365ControlFull}
-                      value={
-                        ajuste?.fechaAprobacion
-                          ? new Date(ajuste.fechaAprobacion).toLocaleString('es-PE')
-                          : '—'
-                      }
-                      readOnly
-                      appearance="filled-darker"
-                      contentAfter={<LockClosed16Regular />}
-                    />
-                  </D365FormField>
+                    <D365FormField label="Aprobado por">
+                      <Input
+                        className={formStyles.d365ControlFull}
+                        value={ajuste?.usuarioAprobacion || 'Pendiente de aprobación'}
+                        readOnly
+                        appearance="filled-darker"
+                        contentAfter={<LockClosed16Regular />}
+                      />
+                    </D365FormField>
 
-                  <D365FormField label="Tipo Movimiento Kardex">
-                    <Input
-                      className={formStyles.d365ControlFull}
-                      value="Tipo 7 · AjusteInventario (Auditado)"
-                      readOnly
-                      appearance="filled-darker"
-                      contentAfter={<LockClosed16Regular />}
-                    />
-                  </D365FormField>
+                    <D365FormField label="Fecha de aprobación">
+                      <Input
+                        className={formStyles.d365ControlFull}
+                        value={
+                          ajuste?.fechaAprobacion
+                            ? new Date(ajuste.fechaAprobacion).toLocaleString('es-PE')
+                            : 'Pendiente de aprobación'
+                        }
+                        readOnly
+                        appearance="filled-darker"
+                        contentAfter={<LockClosed16Regular />}
+                      />
+                    </D365FormField>
 
-                  <D365FormField label="Impacto en Kardex">
-                    <Input
-                      className={formStyles.d365ControlFull}
-                      value={
-                        estado === 'Aplicado'
-                          ? 'Existencias actualizadas en almacén'
-                          : 'Sin impacto (Borrador no afecta stock)'
-                      }
-                      readOnly
-                      appearance="filled-darker"
-                      contentAfter={<LockClosed16Regular />}
-                    />
-                  </D365FormField>
+                    <D365FormField label="Tipo Movimiento Kardex">
+                      <Input
+                        className={formStyles.d365ControlFull}
+                        value="Tipo 7 · AjusteInventario (Auditado)"
+                        readOnly
+                        appearance="filled-darker"
+                        contentAfter={<LockClosed16Regular />}
+                      />
+                    </D365FormField>
+
+                    <D365FormField label="Impacto en Kardex">
+                      <Input
+                        className={formStyles.d365ControlFull}
+                        value={
+                          estado === 'Aplicado'
+                            ? 'Existencias actualizadas en almacén'
+                            : 'Sin impacto (Pendiente de aprobación)'
+                        }
+                        readOnly
+                        appearance="filled-darker"
+                        contentAfter={<LockClosed16Regular />}
+                      />
+                    </D365FormField>
+                  </div>
                 </div>
               </div>
             )}
@@ -572,21 +740,71 @@ export function AjusteFormPage() {
         )}
       </div>
 
-      {/* Diálogo Confirmar Aplicar Ajuste */}
+      {/* Diálogo Confirmar Aplicar/Aprobar Ajuste */}
       <Dialog open={dialogAplicarOpen} onOpenChange={(_, d) => setDialogAplicarOpen(d.open)}>
         <DialogSurface>
           <DialogBody>
-            <DialogTitle>¿Aplicar este ajuste de inventario?</DialogTitle>
+            <DialogTitle>¿Aprobar y aplicar este ajuste de inventario?</DialogTitle>
             <DialogContent>
-              Esta acción modificará el stock físico y registrará los movimientos oficiales de Kardex.
-              Una vez aplicado, el ajuste quedará en estado <strong>Aplicado</strong> y no podrá ser modificado.
+              Esta acción modificará el stock físico y registrará los movimientos oficiales de Kardex bajo la autorización de <strong>{currentUser.nombre || 'Supervisor'}</strong>.
+              Una vez aprobado, el ajuste quedará en estado <strong>Aplicado</strong> y no podrá ser modificado.
             </DialogContent>
             <DialogActions>
               <Button appearance="secondary" onClick={() => setDialogAplicarOpen(false)}>
                 Cancelar
               </Button>
               <Button appearance="primary" onClick={handleAplicar} disabled={guardando}>
-                Sí, aplicar ajuste
+                Sí, aprobar y aplicar
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
+      {/* Diálogo Observar / Devolver a Borrador */}
+      <Dialog open={dialogRechazarOpen} onOpenChange={(_, d) => setDialogRechazarOpen(d.open)}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Observar y devolver a borrador</DialogTitle>
+            <DialogContent>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '8px' }}>
+                <p style={{ margin: 0 }}>
+                  Indique la observación o motivo por el cual se devuelve este ajuste al almacenero para su corrección:
+                </p>
+                <Textarea
+                  rows={3}
+                  placeholder="Detalle de observaciones o inconsistencias encontradas..."
+                  value={motivoRechazo}
+                  onChange={(_, d) => setMotivoRechazo(d.value)}
+                />
+              </div>
+            </DialogContent>
+            <DialogActions>
+              <Button appearance="secondary" onClick={() => setDialogRechazarOpen(false)}>
+                Cancelar
+              </Button>
+              <Button appearance="primary" onClick={handleRechazar} disabled={guardando}>
+                Devolver a borrador
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
+      {/* Diálogo Confirmar Anular Ajuste */}
+      <Dialog open={dialogAnularOpen} onOpenChange={(_, d) => setDialogAnularOpen(d.open)}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>¿Anular ajuste de inventario?</DialogTitle>
+            <DialogContent>
+              El ajuste quedará anulado y no alterará las existencias de almacén.
+            </DialogContent>
+            <DialogActions>
+              <Button appearance="secondary" onClick={() => setDialogAnularOpen(false)}>
+                Cancelar
+              </Button>
+              <Button appearance="primary" onClick={handleAnular} disabled={guardando}>
+                Sí, anular ajuste
               </Button>
             </DialogActions>
           </DialogBody>

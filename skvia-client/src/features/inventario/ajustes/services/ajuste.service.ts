@@ -143,18 +143,65 @@ export const AjusteService = {
     }
   },
 
-  async aplicarAjuste(id: string): Promise<void> {
+  async solicitarAprobacion(id: string): Promise<{ numeroAprobacion: string }> {
     try {
-      await apiClient(`/api/inventario/ajustes/${id}/aplicar`, { method: 'POST' });
+      return await apiClient<{ numeroAprobacion: string }>(`/api/inventario/ajustes/${id}/solicitar-aprobacion`, { method: 'POST' });
+    } catch {
+      const items = getStoredAjustes();
+      const index = items.findIndex(a => a.id === id);
+      if (index >= 0) {
+        const numAprob = items[index].numeroAprobacion || `APR-${String(index + 1).padStart(6, '0')}`;
+        items[index] = {
+          ...items[index],
+          estado: 'EnRevision',
+          numeroAprobacion: numAprob,
+        };
+        saveStoredAjustes(items);
+        return { numeroAprobacion: numAprob };
+      }
+      return { numeroAprobacion: 'APR-000001' };
+    }
+  },
+
+  async aplicarAjuste(id: string, usuarioAprobador?: string): Promise<void> {
+    try {
+      await apiClient(`/api/inventario/ajustes/${id}/aplicar`, {
+        method: 'POST',
+        body: JSON.stringify({ usuarioAprobador }),
+      });
+    } catch {
+      const items = getStoredAjustes();
+      const index = items.findIndex(a => a.id === id);
+      if (index >= 0) {
+        const numAprob = items[index].numeroAprobacion || `APR-${String(index + 1).padStart(6, '0')}`;
+        items[index] = {
+          ...items[index],
+          estado: 'Aplicado',
+          numeroAprobacion: numAprob,
+          usuarioAprobacion: usuarioAprobador || 'SuperAdmin',
+          fechaAprobacion: new Date().toISOString(),
+        };
+        saveStoredAjustes(items);
+      }
+    }
+  },
+
+  async rechazarAjuste(id: string, motivoObservacion?: string): Promise<void> {
+    try {
+      await apiClient(`/api/inventario/ajustes/${id}/rechazar`, {
+        method: 'POST',
+        body: JSON.stringify({ motivo: motivoObservacion }),
+      });
     } catch {
       const items = getStoredAjustes();
       const index = items.findIndex(a => a.id === id);
       if (index >= 0) {
         items[index] = {
           ...items[index],
-          estado: 'Aplicado',
-          usuarioAprobacion: 'SuperAdmin',
-          fechaAprobacion: new Date().toISOString(),
+          estado: 'Borrador',
+          observaciones: motivoObservacion
+            ? `${items[index].observaciones || ''}\n[Observación de Supervisor]: ${motivoObservacion}`.trim()
+            : items[index].observaciones,
         };
         saveStoredAjustes(items);
       }

@@ -1,5 +1,5 @@
 export type TipoAjuste = 'Entrada' | 'Salida' | 'ConteoFisico';
-export type EstadoAjuste = 'Borrador' | 'Aplicado' | 'Anulado';
+export type EstadoAjuste = 'Borrador' | 'EnRevision' | 'Aplicado' | 'Anulado';
 
 export const MOTIVOS_AJUSTE = [
   'Diferencia en inventario físico',
@@ -33,6 +33,7 @@ export interface LineaAjusteDto {
 export interface AjusteInventarioDto {
   id: string;
   numero: string;
+  numeroAprobacion?: string | null;
   tipo: TipoAjuste;
   almacenId: string;
   nombreAlmacen: string;

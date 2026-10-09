@@ -57,15 +57,31 @@ const useStyles = makeStyles({
     padding: '4px 0',
   },
   drawer: {
-    width: '540px',
+    width: '580px',
     maxWidth: '95vw',
+  },
+  header: {
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    paddingBottom: '14px',
   },
   body: {
     display: 'flex',
     flexDirection: 'column',
     gap: '16px',
-    padding: '24px',
+    padding: '20px 24px',
     overflowX: 'hidden',
+    '& [class*="d365LabelCol"]': {
+      width: '150px',
+      minWidth: '150px',
+    },
+  },
+  footer: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '8px',
+    padding: '16px 24px',
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+    backgroundColor: tokens.colorNeutralBackground1,
   },
   control: {
     width: '100%',
@@ -73,14 +89,17 @@ const useStyles = makeStyles({
   },
   opcion: {
     display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-    padding: '4px 0',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: '12px',
+    minWidth: 0,
   },
   codigo: {
     color: tokens.colorNeutralForeground4,
     fontSize: '11px',
     fontFamily: 'Consolas, monospace',
+    flexShrink: 0,
   },
   totalBar: {
     display: 'flex',
@@ -477,7 +496,7 @@ export function LineasAjusteGrid({
           if (!d.open) setLinea(null);
         }}
       >
-        <DrawerHeader>
+        <DrawerHeader className={styles.header}>
           <DrawerHeaderTitle
             action={
               <Button
@@ -488,7 +507,14 @@ export function LineasAjusteGrid({
               />
             }
           >
-            {editando ? 'Editar línea de ajuste' : 'Agregar producto al ajuste'}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <Text weight="semibold" size={400}>
+                {editando ? 'Editar línea de ajuste' : 'Agregar producto al ajuste'}
+              </Text>
+              <Text size={200} style={{ color: tokens.colorNeutralForeground3, fontWeight: 'normal' }}>
+                Seleccione el producto, cantidad, costo unitario y motivo.
+              </Text>
+            </div>
           </DrawerHeaderTitle>
         </DrawerHeader>
 
@@ -519,10 +545,10 @@ export function LineasAjusteGrid({
                     if (!p) return;
                     alCargarProducto(p);
                     setLinea({
-                      ...linea,
-                      productoId: p.id,
-                      costo: String(p.costoActual ?? p.costoEstandar ?? '0'),
-                      series: '',
+                        ...linea,
+                        productoId: p.id,
+                        costo: String(p.costoActual ?? p.costoEstandar ?? '0'),
+                        series: '',
                     });
                     setBusqueda('');
                   }}
@@ -531,8 +557,10 @@ export function LineasAjusteGrid({
                   {opciones.map(p => (
                     <Option key={p.id} value={p.id} text={`${p.codigo} · ${p.nombre}`}>
                       <div className={styles.opcion}>
-                        <Text weight="medium">{p.nombre}</Text>
-                        <Text size={200} className={styles.codigo}>
+                        <Text truncate style={{ fontSize: '13px', fontWeight: tokens.fontWeightRegular }}>
+                          {p.nombre}
+                        </Text>
+                        <Text className={styles.codigo}>
                           {p.codigo} {p.nombreUnidadMedidaDefecto ? `(${p.nombreUnidadMedidaDefecto})` : ''}
                         </Text>
                       </div>
@@ -630,12 +658,12 @@ export function LineasAjusteGrid({
           )}
         </DrawerBody>
 
-        <DrawerFooter>
+        <DrawerFooter className={styles.footer}>
           <Button appearance="secondary" onClick={() => setLinea(null)}>
             Cancelar
           </Button>
           <Button appearance="primary" onClick={confirmar}>
-            Guardar línea
+            {editando ? 'Guardar cambios' : 'Guardar línea'}
           </Button>
         </DrawerFooter>
       </OverlayDrawer>
