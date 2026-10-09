@@ -8,6 +8,7 @@ public static class ServicioCampoEndpoints
     {
         // Submódulos consolidados en Servicio de Campo
         app.MapClientesEndpoints();
+        app.MapOrdenesTrabajoEndpoints();
         app.MapAlmacenesEndpoints();
         app.MapProductosEndpoints();
         app.MapCatalogosProductoEndpoints();

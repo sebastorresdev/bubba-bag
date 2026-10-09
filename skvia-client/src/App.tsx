@@ -46,6 +46,14 @@ const TerritorioFormPage = lazy(() => import('./features/organizacion').then((m)
 const RecursosListPage = lazy(() => import('./features/organizacion').then((m) => ({ default: m.RecursosListPage })));
 const RecursoFormPage = lazy(() => import('./features/organizacion').then((m) => ({ default: m.RecursoFormPage })));
 
+// CRM y Clientes / Cuentas
+const ClientesListPage = lazy(() => import('./features/crm/clientes/pages/ClientesListPage').then((m) => ({ default: m.ClientesListPage })));
+const ClienteFormPage = lazy(() => import('./features/crm/clientes/pages/ClienteFormPage').then((m) => ({ default: m.ClienteFormPage })));
+
+// Servicio de Campo - Órdenes de Trabajo (Field Service Work Orders)
+const OrdenesTrabajoListPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/OrdenesTrabajoListPage').then((m) => ({ default: m.OrdenesTrabajoListPage })));
+const OrdenTrabajoFormPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/OrdenTrabajoFormPage').then((m) => ({ default: m.OrdenTrabajoFormPage })));
+
 const PlaceholderPage = lazy(() => import('./components/common/PlaceholderPage').then((m) => ({ default: m.PlaceholderPage })));
 
 const RouteLoadingFallback: React.FC = () => (
@@ -84,6 +92,19 @@ export default function App() {
               <Route path="configuracion/roles/:id" element={<RolFormPage />} />
               <Route path="configuracion/empresa" element={<ConfiguracionEmpresaPage />} />
               <Route index element={<Navigate to="/servicio-campo/productos" replace />} />
+
+              {/* Servicio de Campo - Órdenes de Trabajo (Work Orders) */}
+              <Route path="servicio-campo/ordenes" element={<OrdenesTrabajoListPage />} />
+              <Route path="servicio-campo/ordenes/nuevo" element={<OrdenTrabajoFormPage />} />
+              <Route path="servicio-campo/ordenes/:id" element={<OrdenTrabajoFormPage />} />
+
+              {/* CRM / Clientes y Cuentas */}
+              <Route path="servicio-campo/clientes" element={<ClientesListPage />} />
+              <Route path="servicio-campo/clientes/nuevo" element={<ClienteFormPage />} />
+              <Route path="servicio-campo/clientes/:id" element={<ClienteFormPage />} />
+              <Route path="crm/clientes" element={<Navigate to="/servicio-campo/clientes" replace />} />
+              <Route path="crm/clientes/nuevo" element={<Navigate to="/servicio-campo/clientes/nuevo" replace />} />
+              <Route path="crm/clientes/:id" element={<Navigate to="/servicio-campo/clientes/:id" replace />} />
 
               {/* 1. Catálogo General - Unidades de Medida */}
               <Route path="servicio-campo/unidades-medida" element={<UnidadesMedidaListPage />} />
