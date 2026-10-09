@@ -26,6 +26,7 @@ function normalizarAlmacen(a: AlmacenDto): AlmacenDto {
   return {
     ...a,
     tipo: tipoNum,
+    tipoNombre: tipoNum === 2 ? 'Custodia personal' : 'Bodega',
   };
 }
 

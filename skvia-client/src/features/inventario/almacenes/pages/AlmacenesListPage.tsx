@@ -27,9 +27,35 @@ import {
 } from '@fluentui/react-icons';
 import { AlmacenService } from '../services/almacen.service';
 import type { AlmacenDto } from '../types/almacen.types';
-import { D365EntityTable, D365TableToolbarTools, type D365EntityTableRef } from '../../../../components/common/D365EntityTable';
+import { D365EntityTable, D365TableToolbarTools, type D365EntityTableRef, type D365FilterField } from '../../../../components/common/D365EntityTable';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
+
+const filterFields: D365FilterField[] = [
+  { id: 'nombre', label: 'Nombre', type: 'string' },
+  {
+    id: 'tipo',
+    label: 'Tipo de almacén',
+    type: 'string',
+    options: [
+      { value: '1', label: 'Bodega' },
+      { value: '2', label: 'Custodia personal' },
+    ],
+  },
+  { id: 'unidadOrganizativaNombre', label: 'Unidad Organizativa', type: 'string' },
+  { id: 'descripcion', label: 'Descripción', type: 'string' },
+  { id: 'creadoPorNombre', label: 'Creado por', type: 'string' },
+  { id: 'createdAt', label: 'Fecha de creación', type: 'date' },
+  {
+    id: 'activo',
+    label: 'Estado',
+    type: 'boolean',
+    options: [
+      { value: 'true', label: 'Activo' },
+      { value: 'false', label: 'Inactivo' },
+    ],
+  },
+];
 
 export interface AlmacenesListPageProps {
   onNewAlmacen?: () => void;
@@ -367,6 +393,7 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
         ref={tableRef}
         entityName="Almacenes"
         tableId="almacenes"
+        filterFields={filterFields}
         items={filteredAlmacenes}
         columns={columns}
         loading={loading}

@@ -58,7 +58,6 @@ const filterFields: D365FilterField[] = [
     options: [
       { value: 'Entrada', label: 'Ingreso por ajuste (+)' },
       { value: 'Salida', label: 'Salida por ajuste (-)' },
-      { value: 'ConteoFisico', label: 'Ajuste por conteo físico' },
     ],
   },
   { id: 'nombreAlmacen', label: 'Almacén', type: 'string' },
@@ -70,6 +69,7 @@ const filterFields: D365FilterField[] = [
     type: 'string',
     options: [
       { value: 'Borrador', label: 'Borrador' },
+      { value: 'EnRevision', label: 'En revisión' },
       { value: 'Aplicado', label: 'Aplicado' },
       { value: 'Anulado', label: 'Anulado' },
     ],

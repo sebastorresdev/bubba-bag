@@ -588,7 +588,13 @@ export function D365FiltrosAvanzadosDrawer({
                           fieldDef?.options && fieldDef.options.length > 0 ? (
                             <Select
                               className={styles.valueInput}
-                              value={cond.value}
+                              value={
+                                fieldDef.options.find(
+                                  (opt) =>
+                                    opt.value.toLowerCase() === cond.value.toLowerCase() ||
+                                    opt.label.toLowerCase() === cond.value.toLowerCase()
+                                )?.value ?? cond.value
+                              }
                               onChange={(_, d) => handleUpdateCondition(cond.id, { value: d.value })}
                               aria-label="Seleccionar valor"
                             >
@@ -602,7 +608,6 @@ export function D365FiltrosAvanzadosDrawer({
                           ) : (
                             <Input
                               className={styles.valueInput}
-                              placeholder="Valor"
                               value={cond.value}
                               type={fieldDef?.type === 'number' ? 'number' : fieldDef?.type === 'date' ? 'date' : 'text'}
                               onChange={(_, d) => handleUpdateCondition(cond.id, { value: d.value })}

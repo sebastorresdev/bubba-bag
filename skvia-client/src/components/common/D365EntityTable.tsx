@@ -96,39 +96,128 @@ const useStyles = makeStyles({
   },
 });
 
-export function matchFilterCondition<T>(item: T, cond: D365FilterCondition): boolean {
-  const rawValue = (item as Record<string, unknown>)[cond.field];
-  const strVal = rawValue === null || rawValue === undefined ? '' : String(rawValue);
-  const target = cond.value || '';
+export function matchFilterCondition<T>(
+  item: T,
+  cond: D365FilterCondition,
+  fields?: D365FilterField[]
+): boolean {
+  const record = item as Record<string, unknown>;
+  const rawValue = record[cond.field];
+  const fieldDef = fields?.find((f) => f.id === cond.field);
+  const target = (cond.value || '').trim();
 
-  switch (cond.operator) {
-    case 'contains':
-      return strVal.toLowerCase().includes(target.toLowerCase());
-    case 'not_contains':
-      return !strVal.toLowerCase().includes(target.toLowerCase());
-    case 'equals':
-      return strVal.toLowerCase() === target.toLowerCase();
-    case 'not_equals':
-      return strVal.toLowerCase() !== target.toLowerCase();
-    case 'starts_with':
-      return strVal.toLowerCase().startsWith(target.toLowerCase());
-    case 'ends_with':
-      return strVal.toLowerCase().endsWith(target.toLowerCase());
-    case 'greater_than':
-      return Number(rawValue) > Number(target);
-    case 'less_than':
-      return Number(rawValue) < Number(target);
-    case 'greater_or_equal':
-      return Number(rawValue) >= Number(target);
-    case 'less_or_equal':
-      return Number(rawValue) <= Number(target);
-    case 'is_empty':
-      return strVal.trim() === '';
-    case 'not_empty':
-      return strVal.trim() !== '';
-    default:
-      return true;
+  // Operadores de presencia/vacío
+  if (cond.operator === 'is_empty') {
+    if (rawValue === null || rawValue === undefined) return true;
+    return String(rawValue).trim() === '';
   }
+  if (cond.operator === 'not_empty') {
+    if (rawValue === null || rawValue === undefined) return false;
+    return String(rawValue).trim() !== '';
+  }
+
+  // Candidatos de valor para este item en este campo
+  const candidateValues: string[] = [];
+
+  if (rawValue !== null && rawValue !== undefined) {
+    candidateValues.push(String(rawValue));
+  }
+
+  // Si existe una versión con nombre legible (ej. cond.field + 'Nombre', o 'tipo' -> 'tipoNombre')
+  const fieldNombre = record[`${cond.field}Nombre`];
+  if (fieldNombre !== null && fieldNombre !== undefined) {
+    candidateValues.push(String(fieldNombre));
+  }
+
+  // Si es booleano
+  if (typeof rawValue === 'boolean') {
+    candidateValues.push(rawValue ? 'activo' : 'inactivo');
+    candidateValues.push(rawValue ? 'sí' : 'no');
+    candidateValues.push(rawValue ? 'si' : 'no');
+    candidateValues.push(rawValue ? 'true' : 'false');
+  }
+
+  // Si existen opciones en la definición del campo
+  if (fieldDef?.options) {
+    for (const opt of fieldDef.options) {
+      if (
+        String(rawValue).toLowerCase() === opt.value.toLowerCase() ||
+        String(rawValue).toLowerCase() === opt.label.toLowerCase()
+      ) {
+        candidateValues.push(opt.value);
+        candidateValues.push(opt.label);
+      }
+    }
+  }
+
+  // Equivalencias estándar de dominio para tipo de almacén (1 = Bodega, 2 = Custodia personal)
+  if (cond.field === 'tipo') {
+    if (rawValue === 1 || String(rawValue) === '1' || String(rawValue).toLowerCase() === 'bodega') {
+      candidateValues.push('1', 'bodega');
+    } else if (rawValue === 2 || String(rawValue) === '2' || String(rawValue).toLowerCase().includes('custodia')) {
+      candidateValues.push('2', 'custodia personal', 'custodia');
+    }
+  }
+
+  // Resolver tokens de destino esperados
+  const targetTokens: string[] = [target];
+  if (fieldDef?.options) {
+    for (const opt of fieldDef.options) {
+      if (opt.value.toLowerCase() === target.toLowerCase()) {
+        targetTokens.push(opt.label);
+      } else if (opt.label.toLowerCase() === target.toLowerCase()) {
+        targetTokens.push(opt.value);
+      }
+    }
+  }
+
+  // Comparaciones numéricas
+  if (
+    cond.operator === 'greater_than' ||
+    cond.operator === 'less_than' ||
+    cond.operator === 'greater_or_equal' ||
+    cond.operator === 'less_or_equal'
+  ) {
+    const numRaw = Number(rawValue);
+    const numTarget = Number(target);
+    if (!isNaN(numRaw) && !isNaN(numTarget)) {
+      switch (cond.operator) {
+        case 'greater_than':
+          return numRaw > numTarget;
+        case 'less_than':
+          return numRaw < numTarget;
+        case 'greater_or_equal':
+          return numRaw >= numTarget;
+        case 'less_or_equal':
+          return numRaw <= numTarget;
+      }
+    }
+  }
+
+  const isNegation = cond.operator === 'not_equals' || cond.operator === 'not_contains';
+
+  const matchesAny = candidateValues.some((val) => {
+    const v = val.toLowerCase();
+    return targetTokens.some((t) => {
+      const tgt = t.toLowerCase();
+      switch (cond.operator) {
+        case 'equals':
+        case 'not_equals':
+          return v === tgt;
+        case 'contains':
+        case 'not_contains':
+          return v.includes(tgt);
+        case 'starts_with':
+          return v.startsWith(tgt);
+        case 'ends_with':
+          return v.endsWith(tgt);
+        default:
+          return true;
+      }
+    });
+  });
+
+  return isNegation ? !matchesAny : matchesAny;
 }
 
 export interface D365EntityTableProps<T extends { id: string }> {
@@ -430,11 +519,11 @@ function D365EntityTableInner<T extends { id: string }>(
     if (advancedConditions.length > 0) {
       if (advancedLogicalOp === 'or') {
         result = result.filter((item) =>
-          advancedConditions.some((cond) => matchFilterCondition(item, cond))
+          advancedConditions.some((cond) => matchFilterCondition(item, cond, derivedFields))
         );
       } else {
         result = result.filter((item) =>
-          advancedConditions.every((cond) => matchFilterCondition(item, cond))
+          advancedConditions.every((cond) => matchFilterCondition(item, cond, derivedFields))
         );
       }
     }

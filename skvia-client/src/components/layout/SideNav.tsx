@@ -65,7 +65,6 @@ import {
   ArrowUpload20Regular,
 } from '@fluentui/react-icons';
 import type { NavArea, NavItem as NavItemData } from '../../types/navigation.types';
-import { semanticTokens } from '../../styles/semanticTokens';
 
 // Bundled Fluent UI v9 icons: switches between Filled and Regular automatically on active state
 const ICONS_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -228,23 +227,23 @@ const useStyles = makeStyles({
   compactAreaBadge: {
     width: '24px',
     height: '24px',
-    borderRadius: '3px',
-    backgroundColor: semanticTokens.navigation.background,
-    color: tokens.colorNeutralForegroundOnBrand,
+    borderRadius: '2px',
+    backgroundColor: '#0078d4',
+    color: '#ffffff',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontWeight: semanticTokens.typography.bold,
-    fontSize: '10px',
+    fontWeight: tokens.fontWeightSemibold,
+    fontSize: '11px',
   },
   compactFlyoutMenu: {
     minWidth: '200px',
   },
   flyoutHeader: {
-    padding: '6px 12px',
-    color: tokens.colorNeutralForeground3,
-    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-    marginBottom: '4px',
+    padding: '8px 16px 6px 16px',
+    color: tokens.colorNeutralForeground2,
+    fontSize: '13px',
+    fontWeight: tokens.fontWeightSemibold,
   },
 
   // Expanded NavDrawer mode (Dynamics 365 style)
@@ -267,11 +266,11 @@ const useStyles = makeStyles({
     marginBottom: '4px',
   },
   drawerFooter: {
-    padding: '8px 12px',
+    padding: '6px 8px',
     borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   bottomAreaSwitcher: {
-    height: '40px',
+    height: '42px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -280,6 +279,7 @@ const useStyles = makeStyles({
     width: '100%',
     boxSizing: 'border-box',
     borderRadius: tokens.borderRadiusMedium,
+    backgroundColor: 'transparent',
     transition: 'background-color 0.12s ease',
     ':hover': {
       backgroundColor: tokens.colorNeutralBackground4Hover,
@@ -288,48 +288,53 @@ const useStyles = makeStyles({
   areaNameGroup: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
+    gap: '10px',
     overflow: 'hidden',
   },
   areaBadge: {
-    width: '22px',
-    height: '22px',
+    width: '24px',
+    height: '24px',
     borderRadius: '2px',
-    backgroundColor: semanticTokens.navigation.background,
-    color: tokens.colorNeutralForegroundOnBrand,
+    backgroundColor: '#0078d4',
+    color: '#ffffff',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontWeight: semanticTokens.typography.bold,
-    fontSize: semanticTokens.typography.caption,
+    fontWeight: tokens.fontWeightSemibold,
+    fontSize: '12px',
     flexShrink: 0,
   },
   areaText: {
-    fontSize: semanticTokens.typography.bodySmall,
-    fontWeight: semanticTokens.typography.semibold,
+    fontSize: '14px',
+    fontWeight: tokens.fontWeightRegular,
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     color: tokens.colorNeutralForeground1,
   },
-  areaMenu: { minWidth: '220px' },
-  areaMenuHeader: {
-    padding: '8px 12px 4px 12px',
-    color: semanticTokens.text.muted,
+  chevronIcon: {
+    color: tokens.colorNeutralForeground2,
+    fontSize: '18px',
+    flexShrink: 0,
   },
-  areaMenuBadge: {
+  areaMenu: {
+    minWidth: '210px',
+  },
+  areaMenuHeader: {
+    padding: '8px 16px 6px 16px',
+    color: tokens.colorNeutralForeground2,
+    fontSize: '13px',
+    fontWeight: tokens.fontWeightSemibold,
+  },
+  selectedCheck: {
+    color: tokens.colorNeutralForeground1,
+    fontSize: '18px',
+  },
+  menuCheckSpacer: {
     width: '20px',
     height: '20px',
-    borderRadius: tokens.borderRadiusSmall,
-    backgroundColor: semanticTokens.navigation.background,
-    color: semanticTokens.navigation.foreground,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: semanticTokens.typography.bold,
-    fontSize: semanticTokens.typography.caption,
+    display: 'inline-block',
   },
-  selectedCheck: { color: tokens.colorCompoundBrandForeground1 },
 });
 
 export interface SideNavProps {
@@ -503,30 +508,28 @@ export const SideNav: React.FC<SideNavProps> = ({
             <MenuPopover>
               <MenuList className={styles.areaMenu}>
                 <div className={styles.areaMenuHeader}>
-                  <Text size={200} weight="semibold">
-                    CAMBIAR ÁREA
-                  </Text>
+                  Cambiar área
                 </div>
-                {areas.map((area) => (
-                  <MenuItem
-                    key={area.id}
-                    icon={
-                      <div className={styles.areaMenuBadge}>
-                        {area.shortCode}
-                      </div>
-                    }
-                    secondaryContent={
-                      area.id === activeArea.id ? (
-                        <Checkmark20Regular className={styles.selectedCheck} />
-                      ) : undefined
-                    }
-                    onClick={() => handleAreaSelect(area)}
-                  >
-                    <Text weight={area.id === activeArea.id ? 'semibold' : 'regular'}>
-                      {area.name}
-                    </Text>
-                  </MenuItem>
-                ))}
+                {areas.map((area) => {
+                  const isSelected = area.id === activeArea.id;
+                  return (
+                    <MenuItem
+                      key={area.id}
+                      icon={
+                        isSelected ? (
+                          <Checkmark20Regular className={styles.selectedCheck} />
+                        ) : (
+                          <span className={styles.menuCheckSpacer} />
+                        )
+                      }
+                      onClick={() => handleAreaSelect(area)}
+                    >
+                      <Text weight={isSelected ? 'semibold' : 'regular'}>
+                        {area.name}
+                      </Text>
+                    </MenuItem>
+                  );
+                })}
               </MenuList>
             </MenuPopover>
           </Menu>
@@ -639,7 +642,7 @@ export const SideNav: React.FC<SideNavProps> = ({
 
       {/* Footer: Area Switcher Menu at bottom */}
       <NavDrawerFooter className={styles.drawerFooter}>
-        <Menu>
+        <Menu positioning="above-start">
           <MenuTrigger disableButtonEnhancement>
             <div
               className={styles.bottomAreaSwitcher}
@@ -653,37 +656,35 @@ export const SideNav: React.FC<SideNavProps> = ({
                 </div>
                 <span className={styles.areaText}>{activeArea.name}</span>
               </div>
-              <ChevronUpDown20Regular />
+              <ChevronUpDown20Regular className={styles.chevronIcon} />
             </div>
           </MenuTrigger>
 
           <MenuPopover>
             <MenuList className={styles.areaMenu}>
-              <div>
-                <Text size={200} weight="semibold" className={styles.areaMenuHeader}>
-                  CAMBIAR ÁREA
-                </Text>
+              <div className={styles.areaMenuHeader}>
+                Cambiar área
               </div>
-              {areas.map((area) => (
-                <MenuItem
-                  key={area.id}
-                  icon={
-                    <div className={styles.areaMenuBadge}>
-                      {area.shortCode}
-                    </div>
-                  }
-                  secondaryContent={
-                    area.id === activeArea.id ? (
-                      <Checkmark20Regular className={styles.selectedCheck} />
-                    ) : undefined
-                  }
-                  onClick={() => handleAreaSelect(area)}
-                >
-                  <Text weight={area.id === activeArea.id ? 'semibold' : 'regular'}>
-                    {area.name}
-                  </Text>
-                </MenuItem>
-              ))}
+              {areas.map((area) => {
+                const isSelected = area.id === activeArea.id;
+                return (
+                  <MenuItem
+                    key={area.id}
+                    icon={
+                      isSelected ? (
+                        <Checkmark20Regular className={styles.selectedCheck} />
+                      ) : (
+                        <span className={styles.menuCheckSpacer} />
+                      )
+                    }
+                    onClick={() => handleAreaSelect(area)}
+                  >
+                    <Text weight={isSelected ? 'semibold' : 'regular'}>
+                      {area.name}
+                    </Text>
+                  </MenuItem>
+                );
+              })}
             </MenuList>
           </MenuPopover>
         </Menu>

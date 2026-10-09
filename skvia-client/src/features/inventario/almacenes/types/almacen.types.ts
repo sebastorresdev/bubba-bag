@@ -6,6 +6,7 @@ export interface AlmacenDto {
   nombre: string;
   descripcion?: string | null;
   tipo?: TipoAlmacen;
+  tipoNombre?: string;
   unidadOrganizativaId?: string | null;
   unidadOrganizativaNombre?: string | null;
   recursoId?: string | null;
