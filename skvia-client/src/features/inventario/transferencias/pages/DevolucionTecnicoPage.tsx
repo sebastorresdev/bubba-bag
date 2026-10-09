@@ -43,7 +43,6 @@ import {
   Print16Regular,
   ArrowSync16Regular,
   Box16Regular,
-  Person16Regular,
   Search16Regular,
   Dismiss16Regular,
   Warning16Filled,
@@ -163,8 +162,9 @@ export const DevolucionTecnicoPage: React.FC = () => {
   const operacionIdRef = React.useRef(crypto.randomUUID());
 
   const [selectedTab, setSelectedTab] = useState<'general' | 'productos'>('general');
+  const [almacenOrigenId, setAlmacenOrigenId] = useState('');
+  const [busquedaAlmacenOrigen, setBusquedaAlmacenOrigen] = useState('');
   const [tecnicoId, setTecnicoId] = useState('');
-  const [busquedaTecnico, setBusquedaTecnico] = useState('');
   const [almacenDestinoId, setAlmacenDestinoId] = useState('');
   const [busquedaDestino, setBusquedaDestino] = useState('');
   const [ubicacionDestinoId, setUbicacionDestinoId] = useState('');
@@ -230,6 +230,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
           setNumeroTransferencia(det.numero);
           if (det.numeroGuiaRemision) setNumeroGuiaRemision(det.numeroGuiaRemision);
           setEstado(det.estado || 'Borrador');
+          setAlmacenOrigenId(det.almacenOrigenId);
           setAlmacenDestinoId(det.almacenDestinoId);
           setUbicacionDestinoId(det.ubicacionDestinoId || '');
           setObservaciones(det.observaciones || '');
@@ -273,26 +274,43 @@ export const DevolucionTecnicoPage: React.FC = () => {
     void init();
   }, [id]);
 
-  const custodiaTecnico = useMemo(() => {
-    if (!tecnicoId) return null;
-    return almacenes.find(a => a.recursoId === tecnicoId && a.tipo === 2);
-  }, [tecnicoId, almacenes]);
-
-  const opcionesTecnicos = useMemo(() => {
-    return tecnicos.map(t => ({
-      id: t.id,
-      nombre: t.nombreCompleto,
-      detalle: `${t.documentoIdentidad ? `DNI: ${t.documentoIdentidad} · ` : ''}${t.unidadOrganizativaNombre || 'Cuadrilla de Campo'}`,
+  const opcionesAlmacenesOrigen = useMemo(() => {
+    let lista = almacenes.filter((a) => a.tipo === 2 && a.id !== almacenDestinoId);
+    if (lista.length === 0) {
+      lista = almacenes.filter((a) => a.id !== almacenDestinoId);
+    }
+    return lista.map((a) => ({
+      id: a.id,
+      nombre: a.nombre,
+      detalle: `${a.codigo ? `${a.codigo} · ` : ''}${a.recursoNombre ? `Responsable: ${a.recursoNombre} · ` : ''}${a.unidadOrganizativaNombre || 'Custodia personal'}`,
     }));
-  }, [tecnicos]);
+  }, [almacenes, almacenDestinoId]);
 
-  const tecnicoSeleccionado = useMemo(() => {
-    return opcionesTecnicos.find(o => o.id === tecnicoId) || null;
-  }, [opcionesTecnicos, tecnicoId]);
+  const almacenOrigenSeleccionado = useMemo(() => {
+    return opcionesAlmacenesOrigen.find((o) => o.id === almacenOrigenId) || null;
+  }, [opcionesAlmacenesOrigen, almacenOrigenId]);
+
+  const custodiaTecnico = useMemo(() => {
+    if (!almacenOrigenId) {
+      if (!tecnicoId) return null;
+      return almacenes.find((a) => a.recursoId === tecnicoId && a.tipo === 2) || null;
+    }
+    return almacenes.find((a) => a.id === almacenOrigenId) || null;
+  }, [almacenOrigenId, tecnicoId, almacenes]);
 
   const tecnicoObj = useMemo(() => {
-    return tecnicos.find(t => t.id === tecnicoId) || null;
-  }, [tecnicos, tecnicoId]);
+    if (!custodiaTecnico) return null;
+    if (custodiaTecnico.recursoId) {
+      return tecnicos.find((t) => t.id === custodiaTecnico.recursoId) || null;
+    }
+    return (
+      tecnicos.find(
+        (t) =>
+          t.nombreCompleto === custodiaTecnico.nombre ||
+          t.nombreCompleto === custodiaTecnico.recursoNombre
+      ) || null
+    );
+  }, [custodiaTecnico, tecnicos]);
 
   const opcionesBodegasDestino = useMemo(() => {
     const bodegas = almacenes.filter(a => a.tipo === 1);
@@ -966,28 +984,26 @@ export const DevolucionTecnicoPage: React.FC = () => {
               <div className={formStyles.cardSectionTitle}>Técnico que Devuelve y Bodega Receptora</div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <D365FormField label="Técnico de Campo" required info="Técnico que entrega el material que tenía bajo custodia">
+                <D365FormField
+                  label="Almacén que entrega"
+                  required
+                  info="Almacén móvil o de custodia personal asignado al técnico que realiza la devolución"
+                >
                   <SelectorEntidadRelacionada
-                    etiquetaGrupo="Técnicos de Campo"
-                    opciones={opcionesTecnicos}
-                    seleccionada={tecnicoSeleccionado}
-                    textoBusqueda={busquedaTecnico}
-                    alCambiarBusqueda={setBusquedaTecnico}
+                    etiquetaGrupo="Almacenes de Custodia (Técnicos)"
+                    opciones={opcionesAlmacenesOrigen}
+                    seleccionada={almacenOrigenSeleccionado}
+                    textoBusqueda={busquedaAlmacenOrigen}
+                    alCambiarBusqueda={setBusquedaAlmacenOrigen}
                     alSeleccionar={(id) => {
-                      setTecnicoId(id || '');
-                      if (id) {
-                        const nuevoTec = tecnicos.find(t => t.id === id);
-                        if (nuevoTec?.unidadOrganizativaId && almacenDestinoId) {
-                          const bodegaActual = almacenes.find(a => a.id === almacenDestinoId);
-                          if (bodegaActual && bodegaActual.unidadOrganizativaId && bodegaActual.unidadOrganizativaId !== nuevoTec.unidadOrganizativaId) {
-                            setAlmacenDestinoId('');
-                          }
-                        }
-                      }
+                      setAlmacenOrigenId(id || '');
+                      const alm = almacenes.find((a) => a.id === id);
+                      if (alm?.recursoId) setTecnicoId(alm.recursoId);
                     }}
-                    alNavegar={() => navigate(`/administracion/usuarios`)}
-                    icono={<Person16Regular />}
-                    tituloEnlace="Ver perfil del técnico"
+                    alNavegar={(id) => navigate(`/almacenes/${id}`)}
+                    icono={<Box16Regular />}
+                    tituloEnlace="Ver ficha del almacén"
+                    textoVacio="No se encontraron almacenes de custodia disponibles"
                     deshabilitado={estado === 'Cerrada'}
                   />
                 </D365FormField>

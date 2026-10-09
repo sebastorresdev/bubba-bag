@@ -43,6 +43,7 @@ import {
   type D365EntityTableRef,
   type D365FilterField,
 } from '../../../../components/common/D365EntityTable';
+import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 import { AjusteService } from '../services/ajuste.service';
 import type { AjusteInventarioDto } from '../types/ajuste.types';
@@ -273,15 +274,7 @@ export function AjustesListPage() {
       renderHeaderCell: () => 'Estado',
       renderCell: (item: AjusteInventarioDto) => (
         <TableCellLayout truncate>
-          <Text>
-            {item.estado === 'Aplicado'
-              ? 'Aplicado'
-              : item.estado === 'EnRevision'
-              ? 'En revisión'
-              : item.estado === 'Borrador'
-              ? 'Borrador'
-              : 'Anulado'}
-          </Text>
+          <D365StatusBadge status={item.estado} />
         </TableCellLayout>
       ),
     }),

@@ -68,12 +68,8 @@ const useStyles = makeStyles({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     fontWeight: tokens.fontWeightSemibold,
-    ':hover': {
-      color: tokens.colorCompoundBrandForeground1,
-    },
   },
   sortIcon: {
-    color: tokens.colorCompoundBrandForeground1,
     fontSize: '14px',
   },
   resizeHandle: {

@@ -28,6 +28,7 @@ import {
   D365TableToolbarTools,
   type D365EntityTableRef,
 } from '../../../components/common/D365EntityTable';
+import { D365StatusBadge } from '../../../components/common/D365StatusBadge';
 import { D365MessageBar } from '../../../components/common/D365MessageBar';
 import { ImportacionDrawer } from '../../../components/common/ImportacionDrawer';
 import { useD365ListStyles } from '../../../styles/d365ListStyles';
@@ -174,7 +175,7 @@ export function TerritoriosListPage() {
         renderHeaderCell: () => 'Estado',
         renderCell: (x) => (
           <TableCellLayout truncate>
-            <Text>{x.activo ? 'Activo' : 'Inactivo'}</Text>
+            <D365StatusBadge status={x.activo} />
           </TableCellLayout>
         ),
       }),

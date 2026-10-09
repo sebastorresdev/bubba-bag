@@ -28,6 +28,7 @@ import {
   D365TableToolbarTools,
   type D365EntityTableRef,
 } from '../../../components/common/D365EntityTable';
+import { D365StatusBadge } from '../../../components/common/D365StatusBadge';
 import { D365MessageBar } from '../../../components/common/D365MessageBar';
 import { ImportacionDrawer } from '../../../components/common/ImportacionDrawer';
 import { useD365ListStyles } from '../../../styles/d365ListStyles';
@@ -159,7 +160,10 @@ export function UnidadesOrganizativasListPage() {
         renderHeaderCell: () => 'Jerarquía',
         renderCell: (x) => (
           <TableCellLayout truncate>
-            <Text>{x.esSedePrincipal ? 'Sede Principal' : 'Base Zonal'}</Text>
+            <D365StatusBadge
+              status={x.esSedePrincipal ? 'Sede Principal' : 'Base Zonal'}
+              color={x.esSedePrincipal ? 'brand' : 'subtle'}
+            />
           </TableCellLayout>
         ),
       }),
@@ -168,7 +172,7 @@ export function UnidadesOrganizativasListPage() {
         renderHeaderCell: () => 'Estado',
         renderCell: (x) => (
           <TableCellLayout truncate>
-            <Text>{x.activo ? 'Activo' : 'Inactivo'}</Text>
+            <D365StatusBadge status={x.activo} />
           </TableCellLayout>
         ),
       }),

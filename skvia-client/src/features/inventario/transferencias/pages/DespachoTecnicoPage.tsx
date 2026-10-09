@@ -43,7 +43,6 @@ import {
   Print16Regular,
   VehicleTruckProfile16Regular,
   Box16Regular,
-  Person16Regular,
   Search16Regular,
   Dismiss16Regular,
   Warning16Filled,
@@ -164,8 +163,9 @@ export const DespachoTecnicoPage: React.FC = () => {
   const [almacenOrigenId, setAlmacenOrigenId] = useState('');
   const [busquedaAlmacen, setBusquedaAlmacen] = useState('');
   const [ubicacionOrigenId, setUbicacionOrigenId] = useState('');
+  const [almacenDestinoId, setAlmacenDestinoId] = useState('');
+  const [busquedaAlmacenDestino, setBusquedaAlmacenDestino] = useState('');
   const [tecnicoId, setTecnicoId] = useState('');
-  const [busquedaTecnico, setBusquedaTecnico] = useState('');
   const [numeroGuiaRemision, setNumeroGuiaRemision] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [selectedTab, setSelectedTab] = useState<'general' | 'productos'>('general');
@@ -231,6 +231,7 @@ export const DespachoTecnicoPage: React.FC = () => {
           if (det.numeroGuiaRemision) setNumeroGuiaRemision(det.numeroGuiaRemision);
           setEstado(det.estado || 'Borrador');
           setAlmacenOrigenId(det.almacenOrigenId);
+          setAlmacenDestinoId(det.almacenDestinoId);
           setUbicacionOrigenId(det.ubicacionOrigenId || '');
           setObservaciones(det.observaciones || '');
 
@@ -302,12 +303,6 @@ export const DespachoTecnicoPage: React.FC = () => {
     void cargarOrigen();
   }, [almacenOrigenId]);
 
-  // Encontrar almacén de custodia del técnico seleccionado
-  const custodiaTecnico = useMemo(() => {
-    if (!tecnicoId) return null;
-    return almacenes.find(a => a.recursoId === tecnicoId && a.tipo === 2);
-  }, [tecnicoId, almacenes]);
-
   const opcionesAlmacenes = useMemo(() => {
     const bodegas = almacenes.filter(a => a.tipo === 1);
     return bodegas.map(b => ({
@@ -325,30 +320,38 @@ export const DespachoTecnicoPage: React.FC = () => {
     return almacenes.find(a => a.id === almacenOrigenId) || null;
   }, [almacenes, almacenOrigenId]);
 
-  const tecnicosFiltrados = useMemo(() => {
-    if (!almacenOrigenObj?.unidadOrganizativaId) {
-      return tecnicos;
+  // Almacenes de custodia / receptor disponibles (tipo 2: Custodia personal / Técnicos)
+  const opcionesAlmacenesDestino = useMemo(() => {
+    let lista = almacenes.filter(a => a.tipo === 2 && a.id !== almacenOrigenId);
+    if (lista.length === 0) {
+      lista = almacenes.filter(a => a.id !== almacenOrigenId);
     }
-    return tecnicos.filter(t => !t.unidadOrganizativaId || t.unidadOrganizativaId === almacenOrigenObj.unidadOrganizativaId);
-  }, [tecnicos, almacenOrigenObj]);
-
-  const opcionesTecnicos = useMemo(() => {
-    return tecnicosFiltrados.map(t => ({
-      id: t.id,
-      nombre: t.nombreCompleto,
-      detalle: `${t.documentoIdentidad ? `DNI: ${t.documentoIdentidad} · ` : ''}${t.unidadOrganizativaNombre || 'Cuadrilla de Campo'}`,
+    return lista.map(a => ({
+      id: a.id,
+      nombre: a.nombre,
+      detalle: `${a.codigo ? `${a.codigo} · ` : ''}${a.recursoNombre ? `Responsable: ${a.recursoNombre} · ` : ''}${a.unidadOrganizativaNombre || 'Custodia personal'}`,
     }));
-  }, [tecnicosFiltrados]);
+  }, [almacenes, almacenOrigenId]);
 
-  const tecnicoSeleccionado = useMemo(() => {
-    const seleccionado = tecnicos.find(t => t.id === tecnicoId);
-    if (!seleccionado) return null;
-    return {
-      id: seleccionado.id,
-      nombre: seleccionado.nombreCompleto,
-      detalle: `${seleccionado.documentoIdentidad ? `DNI: ${seleccionado.documentoIdentidad} · ` : ''}${seleccionado.unidadOrganizativaNombre || 'Cuadrilla de Campo'}`,
-    };
-  }, [tecnicos, tecnicoId]);
+  const almacenDestinoSeleccionado = useMemo(() => {
+    return opcionesAlmacenesDestino.find(o => o.id === almacenDestinoId) || null;
+  }, [opcionesAlmacenesDestino, almacenDestinoId]);
+
+  const custodiaTecnico = useMemo(() => {
+    if (!almacenDestinoId) {
+      if (!tecnicoId) return null;
+      return almacenes.find(a => a.recursoId === tecnicoId && a.tipo === 2) || null;
+    }
+    return almacenes.find(a => a.id === almacenDestinoId) || null;
+  }, [almacenDestinoId, tecnicoId, almacenes]);
+
+  const tecnicoObj = useMemo(() => {
+    if (!custodiaTecnico) return null;
+    if (custodiaTecnico.recursoId) {
+      return tecnicos.find(t => t.id === custodiaTecnico.recursoId) || null;
+    }
+    return tecnicos.find(t => t.nombreCompleto === custodiaTecnico.nombre || t.nombreCompleto === custodiaTecnico.recursoNombre) || null;
+  }, [custodiaTecnico, tecnicos]);
 
   // Series libres del almacén (que no están ya asignadas en lineas)
   const seriesLibresAlmacen = useMemo(() => {
@@ -527,15 +530,9 @@ export const DespachoTecnicoPage: React.FC = () => {
       setMensaje({ tipo: 'error', texto: 'Seleccione la bodega de origen.' });
       return;
     }
-    if (!tecnicoId) {
-      setMensaje({ tipo: 'error', texto: 'Seleccione al técnico receptor.' });
-      return;
-    }
-    if (!custodiaTecnico) {
-      setMensaje({
-        tipo: 'error',
-        texto: 'El técnico seleccionado no tiene un almacén de custodia personal asociado en su sede.',
-      });
+    const idDestino = almacenDestinoId || custodiaTecnico?.id;
+    if (!idDestino) {
+      setMensaje({ tipo: 'error', texto: 'Seleccione el almacén que recepciona.' });
       return;
     }
 
@@ -554,17 +551,17 @@ export const DespachoTecnicoPage: React.FC = () => {
         throw new Error('La bodega de origen seleccionada no tiene una ubicación principal configurada.');
       }
 
-      const ubicsDestino = await AlmacenService.getUbicaciones(custodiaTecnico.id);
+      const ubicsDestino = await AlmacenService.getUbicaciones(idDestino);
       const princDestino = ubicsDestino.find(u => u.codigo === 'PRINCIPAL') || ubicsDestino[0];
       const ubicacionDestinoId = princDestino?.id;
       if (!ubicacionDestinoId) {
-        throw new Error('El almacén de custodia del técnico no tiene una ubicación principal configurada.');
+        throw new Error('El almacén receptor no tiene una ubicación principal configurada.');
       }
 
       const res = await TransferenciaService.crear({
         transferenciaId: transferenciaId || undefined,
         almacenOrigenId,
-        almacenDestinoId: custodiaTecnico.id,
+        almacenDestinoId: idDestino,
         ubicacionOrigenId: ubicOrigenId,
         ubicacionDestinoId,
         modalidad: 1, // Inmediata
@@ -605,15 +602,9 @@ export const DespachoTecnicoPage: React.FC = () => {
       setMensaje({ tipo: 'error', texto: 'Seleccione el almacén de origen.' });
       return;
     }
-    if (!tecnicoId) {
-      setMensaje({ tipo: 'error', texto: 'Seleccione al técnico receptor.' });
-      return;
-    }
-    if (!custodiaTecnico) {
-      setMensaje({
-        tipo: 'error',
-        texto: 'El técnico seleccionado no tiene un almacén de custodia personal asociado en su sede.',
-      });
+    const idDestino = almacenDestinoId || custodiaTecnico?.id;
+    if (!idDestino) {
+      setMensaje({ tipo: 'error', texto: 'Seleccione el almacén que recepciona.' });
       return;
     }
     if (lineas.length === 0) {
@@ -636,17 +627,17 @@ export const DespachoTecnicoPage: React.FC = () => {
         throw new Error('La bodega de origen seleccionada no tiene una ubicación principal configurada.');
       }
 
-      const ubicsDestino = await AlmacenService.getUbicaciones(custodiaTecnico.id);
+      const ubicsDestino = await AlmacenService.getUbicaciones(idDestino);
       const princDestino = ubicsDestino.find(u => u.codigo === 'PRINCIPAL') || ubicsDestino[0];
       const ubicacionDestinoId = princDestino?.id;
       if (!ubicacionDestinoId) {
-        throw new Error('El almacén de custodia del técnico no tiene una ubicación principal configurada.');
+        throw new Error('El almacén receptor no tiene una ubicación principal configurada.');
       }
 
       const res = await TransferenciaService.crear({
         transferenciaId: transferenciaId || undefined,
         almacenOrigenId,
-        almacenDestinoId: custodiaTecnico.id,
+        almacenDestinoId: idDestino,
         ubicacionOrigenId: ubicOrigenId,
         ubicacionDestinoId,
         modalidad: 1, // Inmediata
@@ -667,14 +658,13 @@ export const DespachoTecnicoPage: React.FC = () => {
       if (res.numeroGuiaRemision) setNumeroGuiaRemision(res.numeroGuiaRemision);
       setEstado(res.estado || 'Cerrada');
 
-      const tecnicoObj = tecnicos.find((t) => t.id === tecnicoId);
-      const almacenOrigenObj = almacenes.find((a) => a.id === almacenOrigenId);
+      const tecnicoNombre = tecnicoObj?.nombreCompleto || custodiaTecnico?.recursoNombre || custodiaTecnico?.nombre || 'Técnico asignado';
       const cantTotal = lineas.reduce((acc, l) => acc + (Number(l.cantidad) || 0), 0);
 
       setDespachoExitoso({
         id: res.id,
         numero: res.numero,
-        tecnicoNombre: tecnicoObj?.nombreCompleto || 'Técnico asignado',
+        tecnicoNombre,
         almacenOrigenNombre: almacenOrigenObj?.nombre || 'Almacén de despacho',
         guiaRemision: res.numeroGuiaRemision || numeroGuiaRemision || undefined,
         totalItems: cantTotal,
@@ -987,25 +977,27 @@ export const DespachoTecnicoPage: React.FC = () => {
                 </D365FormField>
 
                 <D365FormField
-                  label="Técnico Receptor"
+                  label="Almacén que recepciona"
                   required
-                  info={almacenOrigenObj?.unidadOrganizativaNombre
-                    ? `Solo se listan técnicos asignados a la sede "${almacenOrigenObj.unidadOrganizativaNombre}"`
-                    : "Colaborador de campo que recibe y asume custodia del material"}
+                  info="Almacén móvil o de custodia personal asignado al técnico receptor"
                 >
                   <SelectorEntidadRelacionada
-                    etiquetaGrupo="Técnicos de Campo"
-                    opciones={opcionesTecnicos}
-                    seleccionada={tecnicoSeleccionado}
-                    textoBusqueda={busquedaTecnico}
-                    alCambiarBusqueda={setBusquedaTecnico}
-                    alSeleccionar={(id) => setTecnicoId(id || '')}
-                    alNavegar={() => navigate(`/administracion/usuarios`)}
-                    icono={<Person16Regular />}
-                    tituloEnlace="Ver perfil del técnico"
-                    textoVacio={almacenOrigenObj?.unidadOrganizativaNombre
-                      ? `No hay técnicos asignados a la sede ${almacenOrigenObj.unidadOrganizativaNombre}`
-                      : "No se encontraron técnicos"}
+                    etiquetaGrupo="Almacenes de Custodia (Técnicos)"
+                    opciones={opcionesAlmacenesDestino}
+                    seleccionada={almacenDestinoSeleccionado}
+                    textoBusqueda={busquedaAlmacenDestino}
+                    alCambiarBusqueda={setBusquedaAlmacenDestino}
+                    alSeleccionar={(id) => {
+                      setAlmacenDestinoId(id || '');
+                      const alm = almacenes.find((a) => a.id === id);
+                      if (alm?.recursoId) {
+                        setTecnicoId(alm.recursoId);
+                      }
+                    }}
+                    alNavegar={(id) => navigate(`/almacenes/${id}`)}
+                    icono={<Box16Regular />}
+                    tituloEnlace="Ver ficha del almacén"
+                    textoVacio="No se encontraron almacenes de custodia disponibles"
                     deshabilitado={estado === 'Cerrada' || !almacenOrigenId}
                   />
                 </D365FormField>

@@ -29,6 +29,7 @@ import type { AlmacenDto } from '../types/almacen.types';
 import { D365EntityTable, D365TableToolbarTools, type D365EntityTableRef, type D365FilterField } from '../../../../components/common/D365EntityTable';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
+import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
 
 const filterFields: D365FilterField[] = [
   { id: 'nombre', label: 'Nombre', type: 'string' },
@@ -184,7 +185,9 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
         renderHeaderCell: () => 'Tipo de almacén',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text>{item.tipo === 2 ? 'Custodia personal' : 'Bodega'}</Text>
+            <D365StatusBadge
+              status={item.tipo === 2 ? 'Custodia personal' : 'Bodega'}
+            />
           </TableCellLayout>
         ),
       }),
@@ -253,7 +256,7 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
         renderHeaderCell: () => 'Estado',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text>{item.activo ? 'Activo' : 'Inactivo'}</Text>
+            <D365StatusBadge status={item.activo} />
           </TableCellLayout>
         ),
       }),

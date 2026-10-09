@@ -13,6 +13,7 @@ import {
   D365TableToolbarTools,
   type D365EntityTableRef,
 } from '../../../../components/common/D365EntityTable';
+import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 import { CrearGrupoModal } from '../components/CrearGrupoModal';
 
@@ -102,7 +103,11 @@ export const UnidadesMedidaListPage: React.FC<UnidadesMedidaListPageProps> = ({ 
         columnId: 'estado',
         compare: (a, b) => Number(a.estaActivo) - Number(b.estaActivo),
         renderHeaderCell: () => 'Estado',
-        renderCell: (g) => <TableCellLayout><Text>{g.estaActivo ? 'Activo' : 'Inactivo'}</Text></TableCellLayout>,
+        renderCell: (g) => (
+          <TableCellLayout>
+            <D365StatusBadge status={g.estaActivo} />
+          </TableCellLayout>
+        ),
       }),
     ],
     []

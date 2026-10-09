@@ -33,6 +33,7 @@ import {
   D365TableToolbarTools,
   type D365EntityTableRef,
 } from '../../../components/common/D365EntityTable';
+import { D365StatusBadge } from '../../../components/common/D365StatusBadge';
 import { ImportacionDrawer } from '../../../components/common/ImportacionDrawer';
 import { useD365ListStyles } from '../../../styles/d365ListStyles';
 import { useAuthSession } from '../../../services/authSession';
@@ -145,7 +146,11 @@ export function UsuariosListPage() {
     createTableColumn<UsuarioDto>({
       columnId: 'estado',
       renderHeaderCell: () => 'Estado',
-      renderCell: x => <TableCellLayout truncate><Text>{x.esActivo ? 'Activo' : 'Inactivo'}</Text></TableCellLayout>
+      renderCell: x => (
+        <TableCellLayout truncate>
+          <D365StatusBadge status={x.esActivo} />
+        </TableCellLayout>
+      ),
     }),
   ], [navigate]);
 

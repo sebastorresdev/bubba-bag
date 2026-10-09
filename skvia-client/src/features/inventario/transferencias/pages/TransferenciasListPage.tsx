@@ -38,6 +38,7 @@ import {
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365EntityTable, D365TableToolbarTools, type D365EntityTableRef } from '../../../../components/common/D365EntityTable';
+import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
 import { WhatsAppIcon } from '../../../../components/common/WhatsAppIcon';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 import { DetalleMaterialesTransferenciaDrawer } from '../components/DetalleMaterialesTransferenciaDrawer';
@@ -228,26 +229,11 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
         compare: (a: TransferenciaInventarioDto, b: TransferenciaInventarioDto) =>
           (a.estado ?? '').localeCompare(b.estado ?? ''),
         renderHeaderCell: () => 'Estado',
-        renderCell: (x: TransferenciaInventarioDto) => {
-          const est = x.estado ?? 'Cerrada';
-          let label = est;
-
-          if (est === 'EnTransito') {
-            label = 'En Tránsito';
-          } else if (est === 'ParcialmenteRecibida') {
-            label = 'Parcialmente Recibida';
-          } else if (est === 'Cerrada') {
-            label = 'Cerrada';
-          } else if (est === 'Cancelada') {
-            label = 'Cancelada';
-          }
-
-          return (
-            <TableCellLayout truncate>
-              <Text>{label}</Text>
-            </TableCellLayout>
-          );
-        },
+        renderCell: (x: TransferenciaInventarioDto) => (
+          <TableCellLayout truncate>
+            <D365StatusBadge status={x.estado ?? 'Cerrada'} />
+          </TableCellLayout>
+        ),
       }),
       createTableColumn({
         columnId: 'items',

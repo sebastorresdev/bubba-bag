@@ -1,6 +1,7 @@
 import React, { type ReactNode } from 'react';
 import { Avatar, Divider, makeStyles, Skeleton, SkeletonItem, Text, tokens } from '@fluentui/react-components';
 import { semanticTokens } from '../../styles/semanticTokens';
+import { D365StatusBadge } from './D365StatusBadge';
 
 const useStyles = makeStyles({
   root: {
@@ -138,6 +139,8 @@ export const D365EntityHeader: React.FC<D365EntityHeaderProps> = ({
                   <Text className={styles.metadataLabel}>{item.label}</Text>
                   {loading ? (
                     <Skeleton animation="pulse"><SkeletonItem size={16} className={styles.metadataSkeleton} /></Skeleton>
+                  ) : typeof item.label === 'string' && (item.label.toLowerCase() === 'estado' || item.label.toLowerCase() === 'status') ? (
+                    <D365StatusBadge status={item.value as string} size="small" />
                   ) : (
                     <Text className={styles.metadataValue}>{item.value}</Text>
                   )}

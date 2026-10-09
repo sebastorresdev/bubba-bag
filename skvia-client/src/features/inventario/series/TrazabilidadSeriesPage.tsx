@@ -29,6 +29,7 @@ import {
   type D365EntityTableRef,
   type D365FilterField,
 } from '../../../components/common/D365EntityTable';
+import { D365StatusBadge } from '../../../components/common/D365StatusBadge';
 import { useD365ListStyles } from '../../../styles/d365ListStyles';
 import { AlmacenService } from '../almacenes/services/almacen.service';
 import type { AlmacenDto } from '../almacenes/types/almacen.types';
@@ -207,7 +208,7 @@ export function TrazabilidadSeriesPage() {
             : item.estado;
         return (
           <TableCellLayout truncate>
-            <Text>{estadoTexto}</Text>
+            <D365StatusBadge status={estadoTexto} />
           </TableCellLayout>
         );
       },
