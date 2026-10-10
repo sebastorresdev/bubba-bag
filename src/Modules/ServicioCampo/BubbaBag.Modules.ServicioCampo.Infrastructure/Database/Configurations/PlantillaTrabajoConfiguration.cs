@@ -39,6 +39,7 @@ public class PlantillaTrabajoConfiguration : IEntityTypeConfiguration<PlantillaT
             .HasDefaultValue(true);
 
         builder.Property(p => p.ProductoId)
+            .HasColumnName("ServicioId")
             .IsRequired();
 
         builder.HasOne(p => p.Producto)

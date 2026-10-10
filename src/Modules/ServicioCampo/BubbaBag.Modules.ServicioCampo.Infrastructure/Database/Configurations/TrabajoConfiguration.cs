@@ -41,6 +41,7 @@ public class TrabajoConfiguration : IEntityTypeConfiguration<Trabajo>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Property(t => t.ProductoId)
+            .HasColumnName("ServicioId")
             .IsRequired();
 
         builder.HasOne(t => t.Producto)

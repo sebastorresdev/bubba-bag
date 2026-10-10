@@ -52,7 +52,7 @@ export const ClienteFormPage: React.FC = () => {
   const [loading, setLoading] = useState(!esNuevo);
   const [submitting, setSubmitting] = useState(false);
   const [mensaje, setMensaje] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
-  const [selectedTab, setSelectedTab] = useState<'resumen' | 'contacto' | 'clasificacion'>('resumen');
+  const [selectedTab, setSelectedTab] = useState<'resumen' | 'clasificacion'>('resumen');
 
   // Catálogo de Ubigeos
   const [ubigeos, setUbigeos] = useState<UbigeoDto[]>([]);
@@ -185,19 +185,19 @@ export const ClienteFormPage: React.FC = () => {
 
     if (!telefonoPrincipal.trim()) {
       setMensaje({ tipo: 'error', texto: 'Ingrese el teléfono principal de contacto.' });
-      setSelectedTab('contacto');
+      setSelectedTab('resumen');
       return;
     }
 
     if (!direccion.trim()) {
       setMensaje({ tipo: 'error', texto: 'Ingrese la dirección de servicio.' });
-      setSelectedTab('contacto');
+      setSelectedTab('resumen');
       return;
     }
 
     if (!ubigeoCodigo.trim()) {
       setMensaje({ tipo: 'error', texto: 'Seleccione el distrito o ubigeo correspondiente.' });
-      setSelectedTab('contacto');
+      setSelectedTab('resumen');
       return;
     }
 
@@ -366,11 +366,10 @@ export const ClienteFormPage: React.FC = () => {
           <TabList
             selectedValue={selectedTab}
             onTabSelect={(_, data) =>
-              setSelectedTab(data.value as 'resumen' | 'contacto' | 'clasificacion')
+              setSelectedTab(data.value as 'resumen' | 'clasificacion')
             }
           >
             <Tab value="resumen">Resumen</Tab>
-            <Tab value="contacto">Contacto y Dirección</Tab>
             <Tab value="clasificacion">Configuración Comercial</Tab>
           </TabList>
         }
@@ -388,7 +387,8 @@ export const ClienteFormPage: React.FC = () => {
       {/* 4. CONTENIDO POR TAB */}
       <div className={formStyles.contentBody}>
         {selectedTab === 'resumen' && (
-          <div style={{ maxWidth: '640px', width: '100%' }}>
+          <div className={formStyles.grid2Cols}>
+            {/* Tarjeta 1: Identificación Principal */}
             <div className={formStyles.card}>
               <div className={formStyles.cardSectionTitle}>Identificación Principal</div>
 
@@ -489,15 +489,23 @@ export const ClienteFormPage: React.FC = () => {
                     </D365FormField>
                   </>
                 )}
+
+                <D365FormField label="Correo Electrónico">
+                  <Input
+                    style={{ width: '100%' }}
+                    type="email"
+                    value={email}
+                    onChange={(_, d) => setEmail(d.value)}
+                    maxLength={150}
+                    disabled={!esNuevo}
+                  />
+                </D365FormField>
               </div>
             </div>
-          </div>
-        )}
 
-        {selectedTab === 'contacto' && (
-          <div style={{ maxWidth: '640px', width: '100%' }}>
+            {/* Tarjeta 2: Comunicación y Domicilio de Servicio */}
             <div className={formStyles.card}>
-              <div className={formStyles.cardSectionTitle}>Comunicación y Domicilio</div>
+              <div className={formStyles.cardSectionTitle}>Comunicación y Domicilio de Servicio</div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <D365FormField label="Teléfono Principal" required info="Teléfono móvil o de contacto preferido">
@@ -515,17 +523,6 @@ export const ClienteFormPage: React.FC = () => {
                     value={telefonoSecundario}
                     onChange={(_, d) => setTelefonoSecundario(d.value)}
                     maxLength={30}
-                    disabled={!esNuevo}
-                  />
-                </D365FormField>
-
-                <D365FormField label="Correo Electrónico">
-                  <Input
-                    style={{ width: '100%' }}
-                    type="email"
-                    value={email}
-                    onChange={(_, d) => setEmail(d.value)}
-                    maxLength={150}
                     disabled={!esNuevo}
                   />
                 </D365FormField>
@@ -579,29 +576,27 @@ export const ClienteFormPage: React.FC = () => {
                   </Combobox>
                 </D365FormField>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <D365FormField label="Latitud GPS">
-                    <Input
-                      style={{ width: '100%' }}
-                      type="number"
-                      step="any"
-                      value={coordenadaLat}
-                      onChange={(_, d) => setCoordenadaLat(d.value)}
-                      placeholder="-12.046374"
-                    />
-                  </D365FormField>
+                <D365FormField label="Latitud GPS" info="Coordenada geográfica de latitud">
+                  <Input
+                    style={{ width: '100%' }}
+                    type="number"
+                    step="any"
+                    value={coordenadaLat}
+                    onChange={(_, d) => setCoordenadaLat(d.value)}
+                    placeholder="-12.046374"
+                  />
+                </D365FormField>
 
-                  <D365FormField label="Longitud GPS">
-                    <Input
-                      style={{ width: '100%' }}
-                      type="number"
-                      step="any"
-                      value={coordenadaLng}
-                      onChange={(_, d) => setCoordenadaLng(d.value)}
-                      placeholder="-77.042793"
-                    />
-                  </D365FormField>
-                </div>
+                <D365FormField label="Longitud GPS" info="Coordenada geográfica de longitud">
+                  <Input
+                    style={{ width: '100%' }}
+                    type="number"
+                    step="any"
+                    value={coordenadaLng}
+                    onChange={(_, d) => setCoordenadaLng(d.value)}
+                    placeholder="-77.042793"
+                  />
+                </D365FormField>
               </div>
             </div>
           </div>

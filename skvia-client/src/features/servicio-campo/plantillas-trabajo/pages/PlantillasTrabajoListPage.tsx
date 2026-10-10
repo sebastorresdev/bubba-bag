@@ -279,7 +279,7 @@ export function PlantillasTrabajoListPage() {
       )}
 
       {/* Selector de Vistas y Buscador Estándar */}
-      <div className={styles.toolbarLeft}>
+      <div className={styles.viewHeader}>
         <Menu>
           <MenuTrigger disableButtonEnhancement>
             <div className={styles.viewSelectorTab} title="Seleccionar vista">
