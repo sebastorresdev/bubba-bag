@@ -275,116 +275,118 @@ export function TipoOrdenFormPage() {
       />
 
       {/* Formulario */}
-      <div style={{ maxWidth: 900, margin: '24px auto', padding: '0 16px' }}>
-        <div className={styles.card}>
-          <Text size={400} weight="semibold" style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, paddingBottom: 8, display: 'block' }}>
-            Información General
-          </Text>
+      <div className={styles.contentBody}>
+        <div className={styles.halfCardWrapper}>
+          <div className={styles.card}>
+            <Text size={400} weight="semibold" style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, paddingBottom: 8, display: 'block' }}>
+              Información General
+            </Text>
 
-          <D365FormField
-            label="Nombre del Tipo de Orden"
-            required
-            error={errors.nombre}
-            info="Identificador público del tipo de orden (ej: 'Instalación Residencial (DTH)', 'Mantenimiento Correctivo')."
-          >
-            <Input
-              value={formData.nombre}
-              onChange={(_, d) => setFormData((prev) => ({ ...prev, nombre: d.value }))}
-              placeholder="Ej: Instalación Fibra Óptica"
-            />
-          </D365FormField>
-
-          <D365FormField
-            label="Color Identificador"
-            info="Color visual distintivo en tableros de programación, calendario y badges."
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <input
-                type="color"
-                value={formData.colorHex}
-                onChange={(e) => setFormData((prev) => ({ ...prev, colorHex: e.target.value }))}
-                style={{
-                  width: 38,
-                  height: 38,
-                  border: `1px solid ${tokens.colorNeutralStroke1}`,
-                  borderRadius: tokens.borderRadiusMedium,
-                  cursor: 'pointer',
-                  padding: 2,
-                }}
-              />
+            <D365FormField
+              label="Nombre del Tipo de Orden"
+              required
+              error={errors.nombre}
+              info="Identificador público del tipo de orden (ej: 'Instalación Residencial (DTH)', 'Mantenimiento Correctivo')."
+            >
               <Input
-                value={formData.colorHex}
-                onChange={(_, d) => setFormData((prev) => ({ ...prev, colorHex: d.value }))}
-                style={{ width: 120 }}
+                value={formData.nombre}
+                onChange={(_, d) => setFormData((prev) => ({ ...prev, nombre: d.value }))}
+                placeholder="Ej: Instalación Fibra Óptica"
               />
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                {PRESET_COLORS.map((col) => (
-                  <button
-                    key={col}
-                    type="button"
-                    onClick={() => setFormData((prev) => ({ ...prev, colorHex: col }))}
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: '50%',
-                      backgroundColor: col,
-                      border: formData.colorHex.toLowerCase() === col.toLowerCase() ? `2px solid ${tokens.colorBrandBackground}` : '1px solid rgba(0,0,0,0.1)',
-                      cursor: 'pointer',
-                      outline: 'none',
-                    }}
-                    title={col}
-                  />
-                ))}
+            </D365FormField>
+
+            <D365FormField
+              label="Color Identificador"
+              info="Color visual distintivo en tableros de programación, calendario y badges."
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <input
+                  type="color"
+                  value={formData.colorHex}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, colorHex: e.target.value }))}
+                  style={{
+                    width: 38,
+                    height: 38,
+                    border: `1px solid ${tokens.colorNeutralStroke1}`,
+                    borderRadius: tokens.borderRadiusMedium,
+                    cursor: 'pointer',
+                    padding: 2,
+                  }}
+                />
+                <Input
+                  value={formData.colorHex}
+                  onChange={(_, d) => setFormData((prev) => ({ ...prev, colorHex: d.value }))}
+                  style={{ width: 120 }}
+                />
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  {PRESET_COLORS.map((col) => (
+                    <button
+                      key={col}
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, colorHex: col }))}
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: '50%',
+                        backgroundColor: col,
+                        border: formData.colorHex.toLowerCase() === col.toLowerCase() ? `2px solid ${tokens.colorBrandBackground}` : '1px solid rgba(0,0,0,0.1)',
+                        cursor: 'pointer',
+                        outline: 'none',
+                      }}
+                      title={col}
+                    />
+                  ))}
+                </div>
               </div>
+            </D365FormField>
+
+            <D365FormField
+              label="Descripción"
+              info="Instrucciones, alcance técnico o notas operativas para este tipo de orden."
+            >
+              <Textarea
+                value={formData.descripcion}
+                onChange={(_, d) => setFormData((prev) => ({ ...prev, descripcion: d.value }))}
+                rows={3}
+                placeholder="Detalle el alcance de esta tipología..."
+              />
+            </D365FormField>
+
+            <Text size={400} weight="semibold" style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, paddingBottom: 8, marginTop: 16, display: 'block' }}>
+              Reglas Operativas y Validación de Cierre
+            </Text>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
+              <Checkbox
+                checked={formData.requiereVisitaCampo}
+                onChange={(_, d) => setFormData((prev) => ({ ...prev, requiereVisitaCampo: Boolean(d.checked) }))}
+                label={
+                  <Text>
+                    <strong>Requiere Desplazamiento / Visita de Campo</strong> — Activa la reserva de técnicos de campo, asignación de vehículos y georreferenciación en mapa.
+                  </Text>
+                }
+              />
+
+              <Checkbox
+                checked={formData.exigeFirmaCliente}
+                onChange={(_, d) => setFormData((prev) => ({ ...prev, exigeFirmaCliente: Boolean(d.checked) }))}
+                label={
+                  <Text>
+                    <strong>Exige Firma de Conformidad del Cliente</strong> — Impide que el operario finalice la orden en la app móvil si no se captura la firma digital.
+                  </Text>
+                }
+              />
+
+              <Checkbox
+                checked={formData.exigeEvidenciasFotograficas}
+                onChange={(_, d) => setFormData((prev) => ({ ...prev, exigeEvidenciasFotograficas: Boolean(d.checked) }))}
+                label={
+                  <Text>
+                    <strong>Exige Evidencias Fotográficas Obligatorias</strong> — Requiere fotos antes/después para permitir la liquidación de la orden.
+                  </Text>
+                }
+              />
             </div>
-          </D365FormField>
-
-          <D365FormField
-            label="Descripción"
-            info="Instrucciones, alcance técnico o notas operativas para este tipo de orden."
-          >
-            <Textarea
-              value={formData.descripcion}
-              onChange={(_, d) => setFormData((prev) => ({ ...prev, descripcion: d.value }))}
-              rows={3}
-              placeholder="Detalle el alcance de esta tipología..."
-            />
-          </D365FormField>
-
-          <Text size={400} weight="semibold" style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, paddingBottom: 8, marginTop: 16, display: 'block' }}>
-            Reglas Operativas y Validación de Cierre
-          </Text>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
-            <Checkbox
-              checked={formData.requiereVisitaCampo}
-              onChange={(_, d) => setFormData((prev) => ({ ...prev, requiereVisitaCampo: Boolean(d.checked) }))}
-              label={
-                <Text>
-                  <strong>Requiere Desplazamiento / Visita de Campo</strong> — Activa la reserva de técnicos de campo, asignación de vehículos y georreferenciación en mapa.
-                </Text>
-              }
-            />
-
-            <Checkbox
-              checked={formData.exigeFirmaCliente}
-              onChange={(_, d) => setFormData((prev) => ({ ...prev, exigeFirmaCliente: Boolean(d.checked) }))}
-              label={
-                <Text>
-                  <strong>Exige Firma de Conformidad del Cliente</strong> — Impide que el operario finalice la orden en la app móvil si no se captura la firma digital.
-                </Text>
-              }
-            />
-
-            <Checkbox
-              checked={formData.exigeEvidenciasFotograficas}
-              onChange={(_, d) => setFormData((prev) => ({ ...prev, exigeEvidenciasFotograficas: Boolean(d.checked) }))}
-              label={
-                <Text>
-                  <strong>Exige Evidencias Fotográficas Obligatorias</strong> — Requiere fotos antes/después para permitir la liquidación de la orden.
-                </Text>
-              }
-            />
           </div>
         </div>
       </div>

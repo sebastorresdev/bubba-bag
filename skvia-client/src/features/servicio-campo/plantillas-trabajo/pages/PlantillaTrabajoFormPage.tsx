@@ -529,9 +529,10 @@ export function PlantillaTrabajoFormPage() {
       </div>
 
       {/* Contenido de Pestañas */}
-      <div style={{ maxWidth: 1000, margin: '24px auto', padding: '0 16px' }}>
+      <div className={styles.contentBody}>
         {selectedTab === 'general' && (
-          <div className={styles.card}>
+          <div className={styles.halfCardWrapper}>
+            <div className={styles.card}>
             <Text size={400} weight="semibold" style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, paddingBottom: 8, display: 'block' }}>
               Identificación y Servicio Asociado
             </Text>
@@ -621,6 +622,7 @@ export function PlantillaTrabajoFormPage() {
               />
             </div>
           </div>
+        </div>
         )}
 
         {selectedTab === 'tareas' && (
