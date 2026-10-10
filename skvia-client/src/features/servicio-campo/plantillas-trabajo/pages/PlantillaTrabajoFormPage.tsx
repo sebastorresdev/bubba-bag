@@ -84,6 +84,10 @@ export function PlantillaTrabajoFormPage() {
   const [esPredeterminada, setEsPredeterminada] = useState(false);
   const [activo, setActivo] = useState(true);
 
+  // Títulos estáticos del encabezado (solo cambian al cargar o guardar)
+  const [savedTitle, setSavedTitle] = useState(isEditMode ? '' : 'Nuevo');
+  const [savedSubtitle, setSavedSubtitle] = useState('Receta Técnica • Ficha de plantilla de trabajo');
+
   // Colecciones hijas
   const [tareas, setTareas] = useState<TareaLocalItem[]>([]);
   const [materiales, setMateriales] = useState<MaterialLocalItem[]>([]);
@@ -129,6 +133,8 @@ export function PlantillaTrabajoFormPage() {
         const plantilla = await PlantillaTrabajoService.getPlantillaById(id);
         setCodigo(plantilla.codigo);
         setNombre(plantilla.nombre);
+        setSavedTitle(plantilla.nombre);
+        setSavedSubtitle(`Receta Técnica • ${plantilla.codigo || 'Código autogenerado'}`);
         setProductoId(plantilla.productoId);
         setDuracionEstimadaMinutos(plantilla.duracionEstimadaMinutos);
         setDescripcion(plantilla.descripcion || '');
@@ -238,10 +244,14 @@ export function PlantillaTrabajoFormPage() {
       let savedId = id;
       if (isEditMode && id) {
         await PlantillaTrabajoService.actualizarPlantilla(id, dto);
+        setSavedTitle(nombre.trim());
+        setSavedSubtitle(`Receta Técnica • ${codigo.trim() || 'Código autogenerado'}`);
         setStatusMessage({ type: 'success', text: 'Plantilla de trabajo actualizada con éxito.' });
       } else {
         const res = await PlantillaTrabajoService.crearPlantilla(dto);
         savedId = res.id;
+        setSavedTitle(nombre.trim());
+        setSavedSubtitle(`Receta Técnica • ${codigo.trim() || 'Código autogenerado'}`);
         setStatusMessage({ type: 'success', text: 'Plantilla de trabajo creada con éxito.' });
       }
 
@@ -421,11 +431,11 @@ export function PlantillaTrabajoFormPage() {
       <D365CommandBar ariaLabel="Barra de comandos de plantilla de trabajo">
         <D365CommandButton
           icon={<ArrowLeft16Regular />}
+          tone="brand"
+          aria-label="Atrás"
+          title="Atrás"
           onClick={() => navigate('/servicio-campo/plantillas-trabajo')}
-          title="Volver"
-        >
-          Volver
-        </D365CommandButton>
+        />
         <D365CommandDivider />
         <D365CommandButton
           icon={<Save16Regular />}
@@ -482,8 +492,8 @@ export function PlantillaTrabajoFormPage() {
 
       {/* Encabezado Principal D365 */}
       <D365EntityHeader
-        title={nombre.trim() || 'Nueva Plantilla de Trabajo'}
-        subtitle={`Receta Técnica • ${codigo || 'Código autogenerado'}`}
+        title={savedTitle || (isEditMode ? 'Plantilla de Trabajo' : 'Nuevo')}
+        subtitle={savedSubtitle}
         avatarIcon={<DocumentBulletList20Regular />}
         avatarSize={48}
         metadata={[
@@ -506,19 +516,15 @@ export function PlantillaTrabajoFormPage() {
         ]}
       />
 
-      {/* Selector de Pestañas */}
+      {/* Selector de Pestañas (sin iconos ni números) */}
       <div style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, padding: '0 16px', backgroundColor: tokens.colorNeutralBackground1 }}>
         <TabList
           selectedValue={selectedTab}
           onTabSelect={(_, d) => setSelectedTab(d.value as 'general' | 'tareas' | 'materiales')}
         >
           <Tab value="general">Información General</Tab>
-          <Tab value="tareas">
-            Tareas Previstas ({tareas.length})
-          </Tab>
-          <Tab value="materiales">
-            Materiales y Equipos ({materiales.length})
-          </Tab>
+          <Tab value="tareas">Tareas Previstas</Tab>
+          <Tab value="materiales">Materiales y Equipos</Tab>
         </TabList>
       </div>
 

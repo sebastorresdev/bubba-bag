@@ -51,6 +51,9 @@ export function TipoOrdenFormPage() {
     colorHex: '#0f6cbd',
   });
 
+  const [savedTitle, setSavedTitle] = useState(isEditMode ? '' : 'Nuevo');
+  const savedSubtitle = 'Configuración Operativa • Naturaleza de Servicio';
+
   const [activo, setActivo] = useState(true);
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
@@ -69,6 +72,7 @@ export function TipoOrdenFormPage() {
         descripcion: data.descripcion || '',
         colorHex: data.colorHex || '#0f6cbd',
       });
+      setSavedTitle(data.nombre);
       setActivo(data.activo);
     } catch (e) {
       setStatusMessage({
@@ -108,10 +112,12 @@ export function TipoOrdenFormPage() {
       let savedId = id;
       if (isEditMode && id) {
         await TipoOrdenService.actualizarTipoOrden(id, formData);
+        setSavedTitle(formData.nombre.trim());
         setStatusMessage({ type: 'success', text: 'Tipo de orden actualizado correctamente.' });
       } else {
         const res = await TipoOrdenService.crearTipoOrden(formData);
         savedId = res.id;
+        setSavedTitle(formData.nombre.trim());
         setStatusMessage({ type: 'success', text: 'Tipo de orden registrado exitosamente.' });
       }
 
@@ -183,11 +189,11 @@ export function TipoOrdenFormPage() {
       <D365CommandBar ariaLabel="Barra de comandos de tipo de orden">
         <D365CommandButton
           icon={<ArrowLeft16Regular />}
+          tone="brand"
+          aria-label="Atrás"
+          title="Atrás"
           onClick={() => navigate('/servicio-campo/tipos-orden')}
-          title="Volver"
-        >
-          Volver
-        </D365CommandButton>
+        />
         <D365CommandDivider />
         <D365CommandButton
           icon={<Save16Regular />}
@@ -244,8 +250,8 @@ export function TipoOrdenFormPage() {
 
       {/* Encabezado D365 */}
       <D365EntityHeader
-        title={formData.nombre.trim() || 'Nuevo Tipo de Orden'}
-        subtitle="Configuración Operativa • Naturaleza de Servicio"
+        title={savedTitle || (isEditMode ? 'Tipo de Orden' : 'Nuevo')}
+        subtitle={savedSubtitle}
         avatarIcon={<ClipboardTask20Regular />}
         avatarSize={48}
         metadata={[
