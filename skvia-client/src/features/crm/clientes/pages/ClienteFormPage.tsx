@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Input,
@@ -92,18 +92,32 @@ export const ClienteFormPage: React.FC = () => {
     );
   }, [dispatchToast]);
 
-  // Cargar Ubigeos
+  // Cargar Ubigeos iniciales o por búsqueda
   useEffect(() => {
-    const cargarUbigeos = async () => {
+    let activo = true;
+    const buscar = async () => {
       try {
-        const ubs = await ClienteService.obtenerUbigeos();
-        setUbigeos(ubs);
+        const queryTerm = busquedaUbigeo.trim();
+        const ubs = await ClienteService.obtenerUbigeos(
+          queryTerm.length >= 2 ? { search: queryTerm } : undefined
+        );
+        if (activo) {
+          setUbigeos(ubs || []);
+        }
       } catch (e) {
         console.error('Error cargando ubigeos', e);
       }
     };
-    void cargarUbigeos();
-  }, []);
+
+    const timer = setTimeout(() => {
+      void buscar();
+    }, 250);
+
+    return () => {
+      activo = false;
+      clearTimeout(timer);
+    };
+  }, [busquedaUbigeo]);
 
   // Cargar Cliente existente
   useEffect(() => {
@@ -145,24 +159,6 @@ export const ClienteFormPage: React.FC = () => {
     };
     void cargarDetalle();
   }, [id, esNuevo]);
-
-  const ubigeosFiltrados = useMemo(() => {
-    if (!busquedaUbigeo.trim()) return ubigeos.slice(0, 100);
-    const q = busquedaUbigeo.toLowerCase();
-    return ubigeos
-      .filter(
-        (u) =>
-          u.distrito.toLowerCase().includes(q) ||
-          u.provincia.toLowerCase().includes(q) ||
-          u.departamento.toLowerCase().includes(q) ||
-          u.codigo.includes(q)
-      )
-      .slice(0, 100);
-  }, [ubigeos, busquedaUbigeo]);
-
-  const ubigeoSeleccionadoObj = useMemo(() => {
-    return ubigeos.find((u) => u.codigo === ubigeoCodigo) || null;
-  }, [ubigeos, ubigeoCodigo]);
 
   const handleGuardar = async (cerrar: boolean) => {
     if (!documentoIdentidad.trim()) {
@@ -549,11 +545,7 @@ export const ClienteFormPage: React.FC = () => {
                   <Combobox
                     style={{ width: '100%' }}
                     placeholder="Escriba para buscar distrito o departamento..."
-                    value={
-                      ubigeoSeleccionadoObj
-                        ? `${ubigeoSeleccionadoObj.distrito} - ${ubigeoSeleccionadoObj.provincia}, ${ubigeoSeleccionadoObj.departamento}`
-                        : busquedaUbigeo
-                    }
+                    value={busquedaUbigeo}
                     selectedOptions={ubigeoCodigo ? [ubigeoCodigo] : []}
                     onOptionSelect={(_, d) => {
                       if (d.optionValue) {
@@ -563,12 +555,17 @@ export const ClienteFormPage: React.FC = () => {
                           setBusquedaUbigeo(
                             `${sel.distrito} - ${sel.provincia}, ${sel.departamento}`
                           );
+                        } else if (d.optionText) {
+                          setBusquedaUbigeo(d.optionText);
                         }
                       }
                     }}
-                    onChange={(e) => setBusquedaUbigeo((e.target as HTMLInputElement).value)}
+                    onChange={(e) => {
+                      setBusquedaUbigeo((e.target as HTMLInputElement).value);
+                      if (ubigeoCodigo) setUbigeoCodigo('');
+                    }}
                   >
-                    {ubigeosFiltrados.map((u) => (
+                    {ubigeos.map((u) => (
                       <Option key={u.codigo} value={u.codigo} text={`${u.distrito} - ${u.provincia}, ${u.departamento}`}>
                         {u.distrito} — {u.provincia}, {u.departamento} ({u.codigo})
                       </Option>

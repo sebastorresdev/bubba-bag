@@ -566,6 +566,9 @@ public static class WebApplicationExtensions
 
             await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.MigracionUbicacionesInventario.AplicarAsync(servicioCampoDbContext);
             await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.InventarioSeeder.AsegurarUnidadesMedidaAsync(servicioCampoDbContext);
+            
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<WebApplication>>();
+            await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.UbigeoSeeder.SeedAsync(servicioCampoDbContext, logger);
 
             await servicioCampoDbContext.Database.ExecuteSqlRawAsync("""
                 CREATE TABLE IF NOT EXISTS public."ConfiguracionEmpresa" (
