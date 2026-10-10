@@ -78,7 +78,8 @@ public class PlantillaTrabajo : Entity<Guid>
         string nombre,
         int duracionEstimadaMinutos,
         string? descripcion,
-        bool esPredeterminada)
+        bool esPredeterminada,
+        Guid? productoId = null)
     {
         if (string.IsNullOrWhiteSpace(nombre))
             throw new ArgumentException("El nombre de la plantilla es obligatorio.", nameof(nombre));
@@ -87,6 +88,8 @@ public class PlantillaTrabajo : Entity<Guid>
         DuracionEstimadaMinutos = Math.Max(1, duracionEstimadaMinutos);
         Descripcion = descripcion?.Trim();
         EsPredeterminada = esPredeterminada;
+        if (productoId.HasValue && productoId.Value != Guid.Empty)
+            ProductoId = productoId.Value;
     }
 
     public void AgregarTarea(Guid tareaId, int ordenSecuencia, bool esObligatoria = true, bool requiereEvidencia = false, string? instrucciones = null)

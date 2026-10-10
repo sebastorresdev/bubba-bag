@@ -40,6 +40,7 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public DbSet<RecepcionTransferenciaDetalle> RecepcionTransferenciaDetalles => Set<RecepcionTransferenciaDetalle>();
     public DbSet<ResolucionDiferenciaTransferencia> ResolucionDiferenciaTransferencias => Set<ResolucionDiferenciaTransferencia>();
     public DbSet<Compra> Compras => Set<Compra>();
+    public DbSet<AjusteInventario> AjustesInventario => Set<AjusteInventario>();
     public DbSet<StockAlmacen> StocksAlmacen => Set<StockAlmacen>();
     public DbSet<MovimientoInventario> MovimientosInventario => Set<MovimientoInventario>();
     public DbSet<MotivoIncidencia> MotivosIncidencia => Set<MotivoIncidencia>();

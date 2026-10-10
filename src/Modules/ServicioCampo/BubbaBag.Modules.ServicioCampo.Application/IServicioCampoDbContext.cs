@@ -36,6 +36,7 @@ public interface IServicioCampoDbContext
     DbSet<RecepcionTransferenciaDetalle> RecepcionTransferenciaDetalles { get; }
     DbSet<ResolucionDiferenciaTransferencia> ResolucionDiferenciaTransferencias { get; }
     DbSet<Compra> Compras { get; }
+    DbSet<AjusteInventario> AjustesInventario { get; }
     DbSet<StockAlmacen> StocksAlmacen { get; }
     DbSet<MovimientoInventario> MovimientosInventario { get; }
     DbSet<MotivoIncidencia> MotivosIncidencia { get; }

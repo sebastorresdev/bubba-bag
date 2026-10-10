@@ -10,9 +10,11 @@ public static class ServicioCampoEndpoints
         app.MapClientesEndpoints();
         app.MapOrdenesTrabajoEndpoints();
         app.MapAlmacenesEndpoints();
+        app.MapAjustesEndpoints();
         app.MapProductosEndpoints();
         app.MapCatalogosProductoEndpoints();
         app.MapMantenimientosEndpoints();
+        app.MapPlantillasTrabajoEndpoints();
         app.MapOrganizacionEndpoints();
         app.MapEmpresaEndpoints();
     }

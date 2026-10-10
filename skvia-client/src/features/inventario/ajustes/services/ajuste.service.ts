@@ -3,13 +3,16 @@ import type { AjusteInventarioDto, GuardarAjusteInput } from '../types/ajuste.ty
 
 const STORAGE_KEY = 'skvia_ajustes_inventario_v1';
 
+function isGuid(val: string | null | undefined): boolean {
+  return Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
+}
+
 function getStoredAjustes(): AjusteInventarioDto[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        // Limpiar cualquier semilla o dato de prueba previo
         const limpios = parsed.filter(a => !a.id?.startsWith('ajuste-seed-'));
         if (limpios.length !== parsed.length) {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(limpios));
@@ -34,7 +37,62 @@ function saveStoredAjustes(items: AjusteInventarioDto[]) {
 export const AjusteService = {
   async obtenerAjustes(): Promise<AjusteInventarioDto[]> {
     try {
-      return await apiClient<AjusteInventarioDto[]>('/api/inventario/ajustes');
+      const serverItems = await apiClient<AjusteInventarioDto[]>('/api/inventario/ajustes');
+      const localItems = getStoredAjustes();
+
+      // Si existían ajustes locales previos (creados en localStorage antes de conectar el backend)
+      // migrarlos automáticamente al servidor para que impacten en la base de datos y Kardex
+      if (localItems.length > 0) {
+        for (const local of localItems) {
+          const yaEnServer = serverItems.some(s => s.numero === local.numero || s.id === local.id);
+          if (!yaEnServer && local.lineas && local.lineas.length > 0 && isGuid(local.almacenId)) {
+            try {
+              const payload: GuardarAjusteInput = {
+                tipo: local.tipo,
+                almacenId: local.almacenId,
+                ubicacionId: isGuid(local.ubicacionId) ? local.ubicacionId : null,
+                fecha: local.fecha,
+                motivo: local.motivo,
+                documentoReferencia: local.documentoReferencia || null,
+                observaciones: local.observaciones || null,
+                lineas: local.lineas.map(l => ({
+                  productoId: l.productoId,
+                  codigoProducto: l.codigoProducto,
+                  nombreProducto: l.nombreProducto,
+                  unidad: l.unidad,
+                  esSerializado: l.esSerializado,
+                  tipo: l.tipo,
+                  cantidad: Number(l.cantidad) || 0,
+                  costoUnitario: Number(l.costoUnitario) || 0,
+                  series: l.series || [],
+                  motivoLinea: l.motivoLinea,
+                })),
+              };
+
+              const nuevo = await apiClient<{ id: string; numero: string }>('/api/inventario/ajustes', {
+                method: 'POST',
+                body: JSON.stringify(payload),
+              });
+
+              if (local.estado === 'EnRevision' || local.estado === 'Aplicado') {
+                await apiClient(`/api/inventario/ajustes/${nuevo.id}/solicitar-aprobacion`, { method: 'POST' });
+              }
+              if (local.estado === 'Aplicado') {
+                await apiClient(`/api/inventario/ajustes/${nuevo.id}/aplicar`, {
+                  method: 'POST',
+                  body: JSON.stringify({ usuarioAprobador: local.usuarioAprobacion || 'SuperAdmin' }),
+                });
+              }
+            } catch {
+              // si falla la sincronización individual, continuar
+            }
+          }
+        }
+        localStorage.removeItem(STORAGE_KEY);
+        return await apiClient<AjusteInventarioDto[]>('/api/inventario/ajustes');
+      }
+
+      return serverItems;
     } catch {
       return getStoredAjustes();
     }
@@ -42,7 +100,11 @@ export const AjusteService = {
 
   async obtenerAjustePorId(id: string): Promise<AjusteInventarioDto | null> {
     try {
-      return await apiClient<AjusteInventarioDto>(`/api/inventario/ajustes/${id}`);
+      if (isGuid(id)) {
+        return await apiClient<AjusteInventarioDto>(`/api/inventario/ajustes/${id}`);
+      }
+      const items = getStoredAjustes();
+      return items.find(a => a.id === id) || null;
     } catch {
       const items = getStoredAjustes();
       return items.find(a => a.id === id) || null;
@@ -56,7 +118,7 @@ export const AjusteService = {
     productosRef: Array<{ id: string; codigo: string; nombre: string; unidad?: string; esSerializado: boolean }>
   ): Promise<{ id: string; numero: string }> {
     try {
-      if (id) {
+      if (id && isGuid(id)) {
         return await apiClient<{ id: string; numero: string }>(`/api/inventario/ajustes/${id}`, {
           method: 'PUT',
           body: JSON.stringify(datos),
@@ -145,7 +207,10 @@ export const AjusteService = {
 
   async solicitarAprobacion(id: string): Promise<{ numeroAprobacion: string }> {
     try {
-      return await apiClient<{ numeroAprobacion: string }>(`/api/inventario/ajustes/${id}/solicitar-aprobacion`, { method: 'POST' });
+      if (isGuid(id)) {
+        return await apiClient<{ numeroAprobacion: string }>(`/api/inventario/ajustes/${id}/solicitar-aprobacion`, { method: 'POST' });
+      }
+      throw new Error('ID no es válido en el servidor');
     } catch {
       const items = getStoredAjustes();
       const index = items.findIndex(a => a.id === id);
@@ -165,10 +230,14 @@ export const AjusteService = {
 
   async aplicarAjuste(id: string, usuarioAprobador?: string): Promise<void> {
     try {
-      await apiClient(`/api/inventario/ajustes/${id}/aplicar`, {
-        method: 'POST',
-        body: JSON.stringify({ usuarioAprobador }),
-      });
+      if (isGuid(id)) {
+        await apiClient(`/api/inventario/ajustes/${id}/aplicar`, {
+          method: 'POST',
+          body: JSON.stringify({ usuarioAprobador }),
+        });
+        return;
+      }
+      throw new Error('ID no es válido en el servidor');
     } catch {
       const items = getStoredAjustes();
       const index = items.findIndex(a => a.id === id);
@@ -188,10 +257,14 @@ export const AjusteService = {
 
   async rechazarAjuste(id: string, motivoObservacion?: string): Promise<void> {
     try {
-      await apiClient(`/api/inventario/ajustes/${id}/rechazar`, {
-        method: 'POST',
-        body: JSON.stringify({ motivo: motivoObservacion }),
-      });
+      if (isGuid(id)) {
+        await apiClient(`/api/inventario/ajustes/${id}/rechazar`, {
+          method: 'POST',
+          body: JSON.stringify({ motivo: motivoObservacion }),
+        });
+        return;
+      }
+      throw new Error('ID no es válido en el servidor');
     } catch {
       const items = getStoredAjustes();
       const index = items.findIndex(a => a.id === id);
@@ -210,7 +283,11 @@ export const AjusteService = {
 
   async anularAjuste(id: string): Promise<void> {
     try {
-      await apiClient(`/api/inventario/ajustes/${id}/anular`, { method: 'POST' });
+      if (isGuid(id)) {
+        await apiClient(`/api/inventario/ajustes/${id}/anular`, { method: 'POST' });
+        return;
+      }
+      throw new Error('ID no es válido en el servidor');
     } catch {
       const items = getStoredAjustes();
       const index = items.findIndex(a => a.id === id);
@@ -226,7 +303,9 @@ export const AjusteService = {
 
   async eliminarAjuste(id: string): Promise<void> {
     try {
-      await apiClient(`/api/inventario/ajustes/${id}`, { method: 'DELETE' });
+      if (isGuid(id)) {
+        await apiClient(`/api/inventario/ajustes/${id}`, { method: 'DELETE' });
+      }
     } catch {
       // fallback local si no hay backend activo
     }
@@ -235,4 +314,3 @@ export const AjusteService = {
     saveStoredAjustes(filtrados);
   },
 };
-

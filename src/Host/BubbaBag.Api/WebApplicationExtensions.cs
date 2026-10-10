@@ -241,6 +241,29 @@ public static class WebApplicationExtensions
                 CREATE UNIQUE INDEX "IX_Compras_Proveedor_TipoDocumento_NumeroDocumento"
                     ON inventario."Compras" ("Proveedor", "TipoDocumento", "NumeroDocumento") WHERE "NumeroDocumento" <> '';
 
+                CREATE TABLE IF NOT EXISTS inventario."AjustesInventario" (
+                    "Id" uuid NOT NULL PRIMARY KEY,
+                    "Numero" character varying(50) NOT NULL UNIQUE,
+                    "NumeroAprobacion" character varying(50),
+                    "Tipo" character varying(20) NOT NULL,
+                    "AlmacenId" uuid NOT NULL REFERENCES inventario."Almacenes"("Id"),
+                    "UbicacionId" uuid REFERENCES inventario."UbicacionesInventario"("Id"),
+                    "Fecha" date NOT NULL,
+                    "Motivo" character varying(250) NOT NULL,
+                    "DocumentoReferencia" character varying(100),
+                    "Observaciones" character varying(1000),
+                    "Estado" character varying(50) NOT NULL DEFAULT 'Borrador',
+                    "TotalItems" integer NOT NULL DEFAULT 0,
+                    "TotalCantidad" numeric(18,4) NOT NULL DEFAULT 0,
+                    "ValorTotal" numeric(18,2) NOT NULL DEFAULT 0,
+                    "LineasJson" text NOT NULL,
+                    "UsuarioId" uuid NOT NULL,
+                    "UsuarioRegistro" character varying(150) NOT NULL,
+                    "FechaRegistro" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    "UsuarioAprobacion" character varying(150),
+                    "FechaAprobacion" timestamp with time zone
+                );
+
                 CREATE TABLE IF NOT EXISTS serviciocampo."UnidadesOrganizativas" (
                     "Id" uuid NOT NULL PRIMARY KEY,
                     "Codigo" character varying(20) NOT NULL UNIQUE,

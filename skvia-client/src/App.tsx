@@ -54,6 +54,12 @@ const ClienteFormPage = lazy(() => import('./features/crm/clientes/pages/Cliente
 const OrdenesTrabajoListPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/OrdenesTrabajoListPage').then((m) => ({ default: m.OrdenesTrabajoListPage })));
 const OrdenTrabajoFormPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/OrdenTrabajoFormPage').then((m) => ({ default: m.OrdenTrabajoFormPage })));
 
+// Configuración Operativa (Tipos de Orden y Plantillas de Trabajo)
+const TiposOrdenListPage = lazy(() => import('./features/servicio-campo/tipos-orden/pages/TiposOrdenListPage').then((m) => ({ default: m.TiposOrdenListPage })));
+const TipoOrdenFormPage = lazy(() => import('./features/servicio-campo/tipos-orden/pages/TipoOrdenFormPage').then((m) => ({ default: m.TipoOrdenFormPage })));
+const PlantillasTrabajoListPage = lazy(() => import('./features/servicio-campo/plantillas-trabajo/pages/PlantillasTrabajoListPage').then((m) => ({ default: m.PlantillasTrabajoListPage })));
+const PlantillaTrabajoFormPage = lazy(() => import('./features/servicio-campo/plantillas-trabajo/pages/PlantillaTrabajoFormPage').then((m) => ({ default: m.PlantillaTrabajoFormPage })));
+
 const PlaceholderPage = lazy(() => import('./components/common/PlaceholderPage').then((m) => ({ default: m.PlaceholderPage })));
 
 const RouteLoadingFallback: React.FC = () => (
@@ -163,6 +169,16 @@ export default function App() {
               <Route path="servicio-campo/recursos" element={<RecursosListPage />} />
               <Route path="servicio-campo/recursos/nuevo" element={<RecursoFormPage />} />
               <Route path="servicio-campo/recursos/:id" element={<RecursoFormPage />} />
+
+              {/* 7. Configuración Operativa (Tipos de Orden & Plantillas de Trabajo) */}
+              <Route path="servicio-campo/tipos-orden" element={<TiposOrdenListPage />} />
+              <Route path="servicio-campo/tipos-orden/nuevo" element={<TipoOrdenFormPage />} />
+              <Route path="servicio-campo/tipos-orden/:id" element={<TipoOrdenFormPage />} />
+
+              <Route path="servicio-campo/plantillas-trabajo" element={<PlantillasTrabajoListPage />} />
+              <Route path="servicio-campo/plantillas-trabajo/nuevo" element={<PlantillaTrabajoFormPage />} />
+              <Route path="servicio-campo/plantillas-trabajo/:id" element={<PlantillaTrabajoFormPage />} />
+              <Route path="servicio-campo/motivos-incidencia" element={<Navigate to="/servicio-campo/plantillas-trabajo" replace />} />
 
               {/* Gestión global de datos e importaciones */}
               <Route path="gestion-datos/importaciones" element={<ImportacionesListPage />} />

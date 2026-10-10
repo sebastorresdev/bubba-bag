@@ -55,5 +55,8 @@ public class PlantillaTrabajoConfiguration : IEntityTypeConfiguration<PlantillaT
             .WithOne(m => m.PlantillaTrabajo)
             .HasForeignKey(m => m.PlantillaTrabajoId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(p => p.Tareas).UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Navigation(p => p.Materiales).UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

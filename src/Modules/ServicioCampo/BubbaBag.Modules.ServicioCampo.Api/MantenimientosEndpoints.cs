@@ -11,6 +11,7 @@ using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.TiposOrdenTrabaj
 using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.TiposOrdenTrabajo.Commands.CrearTipoOrdenTrabajo;
 using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.TiposOrdenTrabajo.Commands.ActualizarTipoOrdenTrabajo;
 using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.TiposOrdenTrabajo.Commands.CambiarEstadoTipoOrdenTrabajo;
+using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.TiposOrdenTrabajo.Commands.EliminarTipoOrdenTrabajo;
 using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.TiposOrdenTrabajo.Queries.ObtenerTiposOrdenTrabajo;
 using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.TiposOrdenTrabajo.Queries.ObtenerTipoOrdenTrabajoPorId;
 
@@ -76,6 +77,23 @@ public static class MantenimientosEndpoints
         tiposOrdenGroup.MapPut("/{id:guid}", ActualizarTipoOrden)
             .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
         tiposOrdenGroup.MapPatch("/{id:guid}/estado", CambiarEstadoTipoOrden)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        tiposOrdenGroup.MapDelete("/{id:guid}", EliminarTipoOrden)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+
+        // Alias /tipos-orden-trabajo para compatibilidad total
+        var tiposOrdenAliasGroup = rootGroup.MapGroup("/tipos-orden-trabajo");
+        tiposOrdenAliasGroup.MapGet("/", ObtenerTiposOrden)
+            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
+        tiposOrdenAliasGroup.MapGet("/{id:guid}", ObtenerTipoOrdenPorId)
+            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
+        tiposOrdenAliasGroup.MapPost("/", CrearTipoOrden)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        tiposOrdenAliasGroup.MapPut("/{id:guid}", ActualizarTipoOrden)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        tiposOrdenAliasGroup.MapPatch("/{id:guid}/estado", CambiarEstadoTipoOrden)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        tiposOrdenAliasGroup.MapDelete("/{id:guid}", EliminarTipoOrden)
             .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
 
         // =====================================================================
@@ -188,6 +206,15 @@ public static class MantenimientosEndpoints
         var result = await dispatcher.SendAsync(command);
         return result.IsSuccess
             ? Results.Ok(new { message = $"Tipo de orden {(request.Activo ? "activado" : "desactivado")} correctamente." })
+            : Results.BadRequest(new { message = result.Error });
+    }
+
+    private static async Task<IResult> EliminarTipoOrden(Guid id, IDispatcher dispatcher)
+    {
+        var command = new EliminarTipoOrdenTrabajoCommand(id);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Ok(new { message = "Tipo de orden eliminado correctamente." })
             : Results.BadRequest(new { message = result.Error });
     }
 
