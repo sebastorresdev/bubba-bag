@@ -514,101 +514,97 @@ export function PlantillaTrabajoFormPage() {
             value: activo ? 'Activo' : 'Inactivo',
           },
         ]}
+        tabs={
+          <TabList
+            selectedValue={selectedTab}
+            onTabSelect={(_, d) => setSelectedTab(d.value as 'general' | 'tareas' | 'materiales')}
+          >
+            <Tab value="general">Información General</Tab>
+            <Tab value="tareas">Tareas Previstas</Tab>
+            <Tab value="materiales">Materiales y Equipos</Tab>
+          </TabList>
+        }
       />
-
-      {/* Selector de Pestañas (sin iconos ni números) */}
-      <div style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, padding: '0 16px', backgroundColor: tokens.colorNeutralBackground1 }}>
-        <TabList
-          selectedValue={selectedTab}
-          onTabSelect={(_, d) => setSelectedTab(d.value as 'general' | 'tareas' | 'materiales')}
-        >
-          <Tab value="general">Información General</Tab>
-          <Tab value="tareas">Tareas Previstas</Tab>
-          <Tab value="materiales">Materiales y Equipos</Tab>
-        </TabList>
-      </div>
 
       {/* Contenido de Pestañas */}
       <div className={styles.contentBody}>
         {selectedTab === 'general' && (
           <div className={styles.halfCardWrapper}>
             <div className={styles.card}>
-            <Text size={400} weight="semibold" style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, paddingBottom: 8, display: 'block' }}>
-              Identificación y Servicio Asociado
-            </Text>
+              <Text size={400} weight="semibold" style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, paddingBottom: 8, display: 'block' }}>
+                Identificación y Servicio Asociado
+              </Text>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginTop: 8 }}>
-              <D365FormField
-                label="Código de Plantilla"
-                info="Código único de la plantilla (dejar vacío para asignación automática)."
-              >
-                <Input
-                  value={codigo}
-                  onChange={(_, d) => setCodigo(d.value)}
-                  placeholder="Ej: PLN-00001 (Auto)"
-                />
-              </D365FormField>
-
-              <D365FormField
-                label="Nombre de la Plantilla"
-                required
-                error={errors.nombre}
-                info="Nombre descriptivo de la receta técnica de trabajo."
-              >
-                <Input
-                  value={nombre}
-                  onChange={(_, d) => setNombre(d.value)}
-                  placeholder="Ej: Instalación DTH Estándar + 1 Deco HD"
-                />
-              </D365FormField>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-              <D365FormField
-                label="Servicio de Catálogo Asociado"
-                required
-                error={errors.productoId}
-                info="Servicio facturable o comercial al que aplica esta plantilla operativa."
-              >
-                <Select
-                  value={productoId}
-                  onChange={(e) => setProductoId(e.target.value)}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
+                <D365FormField
+                  label="Código de Plantilla"
+                  info="Código único de la plantilla (dejar vacío para asignación automática)."
                 >
-                  <option value="">-- Seleccionar servicio --</option>
-                  {productosServicio.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      [{p.codigo}] {p.nombre} {p.tipo === 'Servicio' ? '(Servicio)' : ''}
-                    </option>
-                  ))}
-                </Select>
-              </D365FormField>
+                  <Input
+                    value={codigo}
+                    onChange={(_, d) => setCodigo(d.value)}
+                    placeholder="Ej: PLN-00001 (Auto)"
+                  />
+                </D365FormField>
 
-              <D365FormField
-                label="Duración Técnica Estimada (Minutos)"
-                required
-                error={errors.duracion}
-                info="Suma estimada de tiempos en campo para la ejecución de este servicio."
-              >
-                <Input
-                  type="number"
-                  min={1}
-                  value={duracionEstimadaMinutos.toString()}
-                  onChange={(_, d) => setDuracionEstimadaMinutos(Math.max(1, parseInt(d.value) || 1))}
-                />
-              </D365FormField>
-            </div>
+                <D365FormField
+                  label="Nombre de la Plantilla"
+                  required
+                  error={errors.nombre}
+                  info="Nombre descriptivo de la receta técnica de trabajo."
+                >
+                  <Input
+                    value={nombre}
+                    onChange={(_, d) => setNombre(d.value)}
+                    placeholder="Ej: Instalación DTH Estándar + 1 Deco HD"
+                  />
+                </D365FormField>
 
-            <D365FormField
-              label="Descripción / Procedimiento Estándar"
-              info="Resumen de los lineamientos técnicos u objetivos de esta plantilla."
-            >
-              <Textarea
-                value={descripcion}
-                onChange={(_, d) => setDescripcion(d.value)}
-                rows={3}
-                placeholder="Instrucciones generales de calidad para el personal técnico..."
-              />
-            </D365FormField>
+                <D365FormField
+                  label="Servicio de Catálogo Asociado"
+                  required
+                  error={errors.productoId}
+                  info="Servicio facturable o comercial al que aplica esta plantilla operativa."
+                >
+                  <Select
+                    value={productoId}
+                    onChange={(e) => setProductoId(e.target.value)}
+                  >
+                    <option value="">-- Seleccionar servicio --</option>
+                    {productosServicio.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        [{p.codigo}] {p.nombre} {p.tipo === 'Servicio' ? '(Servicio)' : ''}
+                      </option>
+                    ))}
+                  </Select>
+                </D365FormField>
+
+                <D365FormField
+                  label="Duración Técnica Estimada (Minutos)"
+                  required
+                  error={errors.duracion}
+                  info="Suma estimada de tiempos en campo para la ejecución de este servicio."
+                >
+                  <Input
+                    type="number"
+                    min={1}
+                    value={duracionEstimadaMinutos.toString()}
+                    onChange={(_, d) => setDuracionEstimadaMinutos(Math.max(1, parseInt(d.value) || 1))}
+                  />
+                </D365FormField>
+
+                <D365FormField
+                  label="Descripción / Procedimiento Estándar"
+                  info="Resumen de los lineamientos técnicos u objetivos de esta plantilla."
+                >
+                  <Textarea
+                    value={descripcion}
+                    onChange={(_, d) => setDescripcion(d.value)}
+                    rows={3}
+                    placeholder="Instrucciones generales de calidad para el personal técnico..."
+                  />
+                </D365FormField>
+              </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
               <Checkbox
