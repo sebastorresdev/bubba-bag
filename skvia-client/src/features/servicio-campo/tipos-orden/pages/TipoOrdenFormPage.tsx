@@ -283,10 +283,6 @@ export function TipoOrdenFormPage() {
             value: formData.exigeFirmaCliente ? 'Obligatoria' : 'Opcional',
           },
           {
-            label: 'Evidencias',
-            value: formData.exigeEvidenciasFotograficas ? 'Exigidas' : 'No requeridas',
-          },
-          {
             label: 'Estado',
             value: activo ? 'Activo' : 'Inactivo',
           },
@@ -372,7 +368,7 @@ export function TipoOrdenFormPage() {
             </D365FormField>
 
             <Text size={400} weight="semibold" style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, paddingBottom: 8, marginTop: 16, display: 'block' }}>
-              Reglas Operativas y Validación de Cierre
+              Reglas Operativas
             </Text>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
@@ -392,16 +388,6 @@ export function TipoOrdenFormPage() {
                 label={
                   <Text>
                     <strong>Exige Firma de Conformidad del Cliente</strong> — Impide que el operario finalice la orden en la app móvil si no se captura la firma digital.
-                  </Text>
-                }
-              />
-
-              <Checkbox
-                checked={formData.exigeEvidenciasFotograficas}
-                onChange={(_, d) => setFormData((prev) => ({ ...prev, exigeEvidenciasFotograficas: Boolean(d.checked) }))}
-                label={
-                  <Text>
-                    <strong>Exige Evidencias Fotográficas Obligatorias</strong> — Requiere fotos antes/después para permitir la liquidación de la orden.
                   </Text>
                 }
               />

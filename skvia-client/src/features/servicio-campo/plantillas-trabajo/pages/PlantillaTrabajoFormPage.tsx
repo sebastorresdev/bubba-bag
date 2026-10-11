@@ -580,10 +580,10 @@ export function PlantillaTrabajoFormPage() {
                 </D365FormField>
 
                 <D365FormField
-                  label="Servicio de Catálogo Asociado"
+                  label="Servicio Asociado"
                   required
                   error={errors.productoId}
-                  info="Servicio facturable o comercial al que aplica esta plantilla operativa."
+                  info="Servicio de catálogo facturable al que aplica esta plantilla operativa."
                 >
                   <Select
                     value={productoId}
@@ -599,7 +599,7 @@ export function PlantillaTrabajoFormPage() {
                 </D365FormField>
 
                 <D365FormField
-                  label="Duración Técnica Estimada (Minutos)"
+                  label="Duración Estimada (min)"
                   required
                   error={errors.duracion}
                   info="Suma estimada de tiempos en campo para la ejecución de este servicio."
@@ -613,7 +613,7 @@ export function PlantillaTrabajoFormPage() {
                 </D365FormField>
 
                 <D365FormField
-                  label="Descripción / Procedimiento Estándar"
+                  label="Descripción / Procedimiento"
                   info="Resumen de los lineamientos técnicos u objetivos de esta plantilla."
                 >
                   <Textarea
