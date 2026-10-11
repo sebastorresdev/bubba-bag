@@ -171,13 +171,27 @@ export function TareasListPage() {
   };
 
   const eliminarTarea = async () => {
-    if (!itemSeleccionado) return;
-    if (!window.confirm(`¿Está seguro de eliminar la tarea "${itemSeleccionado.nombre}"?`)) return;
+    if (seleccionados.size === 0) return;
+    const itemsAEliminar = datos.filter((x) => seleccionados.has(x.id));
+    if (itemsAEliminar.length === 0) return;
+
+    const mensajeConfirm =
+      itemsAEliminar.length === 1
+        ? `¿Está seguro de eliminar la tarea "${itemsAEliminar[0].nombre}"?`
+        : `¿Está seguro de eliminar las ${itemsAEliminar.length} tareas seleccionadas?`;
+
+    if (!window.confirm(mensajeConfirm)) return;
 
     try {
       setLoading(true);
-      await TareaService.eliminarTarea(itemSeleccionado.id);
-      notifySuccess('Tarea eliminada del catálogo.');
+      for (const item of itemsAEliminar) {
+        await TareaService.eliminarTarea(item.id);
+      }
+      notifySuccess(
+        itemsAEliminar.length === 1
+          ? 'Tarea eliminada del catálogo.'
+          : `${itemsAEliminar.length} tareas eliminadas del catálogo.`
+      );
       setSeleccionados(new Set());
       void cargar();
     } catch (e) {
@@ -271,7 +285,7 @@ export function TareasListPage() {
         <D365CommandButton
           icon={<Edit16Regular />}
           tone="save"
-          disabled={!itemSeleccionado}
+          disabled={seleccionados.size !== 1}
           onClick={() => abrirEditar()}
         >
           Editar
@@ -279,7 +293,7 @@ export function TareasListPage() {
         <D365CommandButton
           icon={<Delete16Regular />}
           tone="danger"
-          disabled={!itemSeleccionado}
+          disabled={seleccionados.size === 0}
           onClick={() => void eliminarTarea()}
         >
           Eliminar
@@ -332,7 +346,7 @@ export function TareasListPage() {
         loading={loading}
         error={error}
         onRetry={() => void cargar()}
-        selectionMode="single"
+        selectionMode="multiselect"
         selectedItems={seleccionados}
         onSelectionChange={(_, data) => setSeleccionados(data.selectedItems)}
         onRowDoubleClick={(row) => abrirEditar(row)}

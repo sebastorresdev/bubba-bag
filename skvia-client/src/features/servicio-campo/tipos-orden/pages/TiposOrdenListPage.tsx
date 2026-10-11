@@ -108,26 +108,51 @@ export function TiposOrdenListPage() {
   }, [seleccionados, datos]);
 
   const cambiarEstado = async () => {
-    if (!itemSeleccionado) return;
+    if (seleccionados.size === 0) return;
+    const itemsACambiar = datos.filter((x) => seleccionados.has(x.id));
     try {
-      await TipoOrdenService.cambiarEstado(itemSeleccionado.id, !itemSeleccionado.activo);
-      notifySuccess(`Tipo de orden ${itemSeleccionado.activo ? 'desactivado' : 'activado'} correctamente.`);
+      setLoading(true);
+      for (const item of itemsACambiar) {
+        await TipoOrdenService.cambiarEstado(item.id, !item.activo);
+      }
+      notifySuccess(
+        itemsACambiar.length === 1
+          ? `Tipo de orden ${itemsACambiar[0].activo ? 'desactivado' : 'activado'} correctamente.`
+          : `${itemsACambiar.length} tipos de orden actualizados correctamente.`
+      );
+      setSeleccionados(new Set());
       await cargar();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al cambiar estado.');
+      setLoading(false);
     }
   };
 
   const eliminarSeleccionado = async () => {
-    if (!itemSeleccionado) return;
-    if (!window.confirm(`¿Está seguro de eliminar el tipo de orden "${itemSeleccionado.nombre}"?`)) return;
+    if (seleccionados.size === 0) return;
+    const itemsAEliminar = datos.filter((x) => seleccionados.has(x.id));
+    const confirmMsg =
+      itemsAEliminar.length === 1
+        ? `¿Está seguro de eliminar el tipo de orden "${itemsAEliminar[0].nombre}"?`
+        : `¿Está seguro de eliminar los ${itemsAEliminar.length} tipos de orden seleccionados?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
     try {
-      await TipoOrdenService.eliminarTipoOrden(itemSeleccionado.id);
-      notifySuccess('Tipo de orden eliminado correctamente.');
+      setLoading(true);
+      for (const item of itemsAEliminar) {
+        await TipoOrdenService.eliminarTipoOrden(item.id);
+      }
+      notifySuccess(
+        itemsAEliminar.length === 1
+          ? 'Tipo de orden eliminado correctamente.'
+          : `${itemsAEliminar.length} tipos de orden eliminados correctamente.`
+      );
       setSeleccionados(new Set());
       await cargar();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al eliminar tipo de orden.');
+      setLoading(false);
     }
   };
 
@@ -249,21 +274,24 @@ export function TiposOrdenListPage() {
         </D365CommandButton>
         <D365CommandButton
           icon={<Edit16Regular />}
-          disabled={!itemSeleccionado}
+          disabled={seleccionados.size !== 1}
           onClick={() => itemSeleccionado && navigate(`/servicio-campo/tipos-orden/${itemSeleccionado.id}`)}
         >
           Editar
         </D365CommandButton>
         <D365CommandButton
           icon={itemSeleccionado?.activo ? <DismissCircle16Regular /> : <Checkmark16Regular />}
-          disabled={!itemSeleccionado}
+          disabled={seleccionados.size === 0}
           onClick={() => void cambiarEstado()}
         >
-          {itemSeleccionado?.activo ? 'Desactivar' : 'Activar'}
+          {seleccionados.size === 1
+            ? (itemSeleccionado?.activo ? 'Desactivar' : 'Activar')
+            : 'Cambiar Estado'}
         </D365CommandButton>
         <D365CommandButton
           icon={<Delete16Regular />}
-          disabled={!itemSeleccionado}
+          tone="danger"
+          disabled={seleccionados.size === 0}
           onClick={() => void eliminarSeleccionado()}
         >
           Eliminar
@@ -334,7 +362,7 @@ export function TiposOrdenListPage() {
         loading={loading}
         error={error}
         onRetry={() => void cargar()}
-        selectionMode="single"
+        selectionMode="multiselect"
         selectedItems={seleccionados}
         onSelectionChange={(_, data) => setSeleccionados(data.selectedItems)}
         onRowDoubleClick={(row) => navigate(`/servicio-campo/tipos-orden/${row.id}`)}

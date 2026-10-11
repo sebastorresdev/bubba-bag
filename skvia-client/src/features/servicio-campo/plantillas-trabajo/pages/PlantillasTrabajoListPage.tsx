@@ -111,26 +111,51 @@ export function PlantillasTrabajoListPage() {
   }, [seleccionados, datos]);
 
   const cambiarEstado = async () => {
-    if (!itemSeleccionado) return;
+    if (seleccionados.size === 0) return;
+    const itemsACambiar = datos.filter((x) => seleccionados.has(x.id));
     try {
-      await PlantillaTrabajoService.cambiarEstado(itemSeleccionado.id, !itemSeleccionado.activo);
-      notifySuccess(`Plantilla ${itemSeleccionado.activo ? 'desactivada' : 'activada'} correctamente.`);
+      setLoading(true);
+      for (const item of itemsACambiar) {
+        await PlantillaTrabajoService.cambiarEstado(item.id, !item.activo);
+      }
+      notifySuccess(
+        itemsACambiar.length === 1
+          ? `Plantilla ${itemsACambiar[0].activo ? 'desactivada' : 'activada'} correctamente.`
+          : `${itemsACambiar.length} plantillas actualizadas correctamente.`
+      );
+      setSeleccionados(new Set());
       await cargar();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al cambiar estado.');
+      setLoading(false);
     }
   };
 
   const eliminarSeleccionado = async () => {
-    if (!itemSeleccionado) return;
-    if (!window.confirm(`¿Está seguro de eliminar la plantilla "${itemSeleccionado.nombre}"?`)) return;
+    if (seleccionados.size === 0) return;
+    const itemsAEliminar = datos.filter((x) => seleccionados.has(x.id));
+    const confirmMsg =
+      itemsAEliminar.length === 1
+        ? `¿Está seguro de eliminar la plantilla "${itemsAEliminar[0].nombre}"?`
+        : `¿Está seguro de eliminar las ${itemsAEliminar.length} plantillas seleccionadas?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
     try {
-      await PlantillaTrabajoService.eliminarPlantilla(itemSeleccionado.id);
-      notifySuccess('Plantilla de trabajo eliminada correctamente.');
+      setLoading(true);
+      for (const item of itemsAEliminar) {
+        await PlantillaTrabajoService.eliminarPlantilla(item.id);
+      }
+      notifySuccess(
+        itemsAEliminar.length === 1
+          ? 'Plantilla de trabajo eliminada correctamente.'
+          : `${itemsAEliminar.length} plantillas de trabajo eliminadas correctamente.`
+      );
       setSeleccionados(new Set());
       await cargar();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al eliminar plantilla.');
+      setLoading(false);
     }
   };
 
@@ -251,21 +276,24 @@ export function PlantillasTrabajoListPage() {
         </D365CommandButton>
         <D365CommandButton
           icon={<Edit16Regular />}
-          disabled={!itemSeleccionado}
+          disabled={seleccionados.size !== 1}
           onClick={() => itemSeleccionado && navigate(`/servicio-campo/plantillas-trabajo/${itemSeleccionado.id}`)}
         >
           Editar
         </D365CommandButton>
         <D365CommandButton
           icon={itemSeleccionado?.activo ? <DismissCircle16Regular /> : <Checkmark16Regular />}
-          disabled={!itemSeleccionado}
+          disabled={seleccionados.size === 0}
           onClick={() => void cambiarEstado()}
         >
-          {itemSeleccionado?.activo ? 'Desactivar' : 'Activar'}
+          {seleccionados.size === 1
+            ? (itemSeleccionado?.activo ? 'Desactivar' : 'Activar')
+            : 'Cambiar Estado'}
         </D365CommandButton>
         <D365CommandButton
           icon={<Delete16Regular />}
-          disabled={!itemSeleccionado}
+          tone="danger"
+          disabled={seleccionados.size === 0}
           onClick={() => void eliminarSeleccionado()}
         >
           Eliminar
@@ -336,7 +364,7 @@ export function PlantillasTrabajoListPage() {
         loading={loading}
         error={error}
         onRetry={() => void cargar()}
-        selectionMode="single"
+        selectionMode="multiselect"
         selectedItems={seleccionados}
         onSelectionChange={(_, data) => setSeleccionados(data.selectedItems)}
         onRowDoubleClick={(row) => navigate(`/servicio-campo/plantillas-trabajo/${row.id}`)}
