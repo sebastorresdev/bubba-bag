@@ -10,6 +10,14 @@ import {
   Text,
   Badge,
   Button,
+  DataGrid,
+  DataGridHeader,
+  DataGridRow,
+  DataGridHeaderCell,
+  DataGridBody,
+  DataGridCell,
+  TableCellLayout,
+  createTableColumn,
   OverlayDrawer,
   DrawerHeader,
   DrawerHeaderTitle,
@@ -22,6 +30,7 @@ import {
   useId,
   tokens,
 } from '@fluentui/react-components';
+import type { TableColumnDefinition } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
   Save16Regular,
@@ -477,6 +486,261 @@ export function PlantillaTrabajoFormPage() {
     setMateriales((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Columnas DataGrid para Checklist de Tareas
+  const columnasTareas: TableColumnDefinition<TareaLocalItem>[] = useMemo(
+    () => [
+      createTableColumn<TareaLocalItem>({
+        columnId: 'orden',
+        renderHeaderCell: () => '#',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Text weight="semibold" style={{ color: tokens.colorBrandForeground1 }}>
+              {item.ordenSecuencia}
+            </Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<TareaLocalItem>({
+        columnId: 'tarea',
+        renderHeaderCell: () => 'Tarea',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Text weight="semibold">{item.tareaNombre}</Text>
+            {item.tareaCodigo && (
+              <span style={{ marginLeft: 6, fontSize: 11, color: tokens.colorNeutralForeground4 }}>
+                ({item.tareaCodigo})
+              </span>
+            )}
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<TareaLocalItem>({
+        columnId: 'duracion',
+        renderHeaderCell: () => 'Duración',
+        renderCell: (item) => (
+          <TableCellLayout>
+            {item.duracionEstimadaMinutos} min
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<TareaLocalItem>({
+        columnId: 'obligatoria',
+        renderHeaderCell: () => 'Obligatoria',
+        renderCell: (item) => {
+          const idx = tareas.findIndex((x) => x.id === item.id);
+          return (
+            <TableCellLayout>
+              <Checkbox
+                checked={item.esObligatoria}
+                onChange={(_, d) =>
+                  setTareas((prev) =>
+                    prev.map((t, i) => (i === idx ? { ...t, esObligatoria: Boolean(d.checked) } : t))
+                  )
+                }
+              />
+            </TableCellLayout>
+          );
+        },
+      }),
+      createTableColumn<TareaLocalItem>({
+        columnId: 'evidencia',
+        renderHeaderCell: () => 'Foto Evidencia',
+        renderCell: (item) => {
+          const idx = tareas.findIndex((x) => x.id === item.id);
+          return (
+            <TableCellLayout>
+              <Checkbox
+                checked={item.requiereEvidencia}
+                onChange={(_, d) =>
+                  setTareas((prev) =>
+                    prev.map((t, i) => (i === idx ? { ...t, requiereEvidencia: Boolean(d.checked) } : t))
+                  )
+                }
+              />
+            </TableCellLayout>
+          );
+        },
+      }),
+      createTableColumn<TareaLocalItem>({
+        columnId: 'instrucciones',
+        renderHeaderCell: () => 'Instrucciones Técnicas',
+        renderCell: (item) => {
+          const idx = tareas.findIndex((x) => x.id === item.id);
+          return (
+            <TableCellLayout style={{ width: '100%' }}>
+              <Input
+                size="small"
+                value={item.instrucciones}
+                onChange={(_, d) =>
+                  setTareas((prev) =>
+                    prev.map((t, i) => (i === idx ? { ...t, instrucciones: d.value } : t))
+                  )
+                }
+                style={{ width: '100%' }}
+              />
+            </TableCellLayout>
+          );
+        },
+      }),
+      createTableColumn<TareaLocalItem>({
+        columnId: 'acciones',
+        renderHeaderCell: () => 'Acciones',
+        renderCell: (item) => {
+          const idx = tareas.findIndex((x) => x.id === item.id);
+          return (
+            <TableCellLayout>
+              <div style={{ display: 'flex', gap: 2 }}>
+                <Button
+                  size="small"
+                  appearance="subtle"
+                  icon={<ArrowUp16Regular />}
+                  disabled={idx === 0}
+                  onClick={() => moverTarea(idx, 'arriba')}
+                  title="Subir"
+                />
+                <Button
+                  size="small"
+                  appearance="subtle"
+                  icon={<ArrowDown16Regular />}
+                  disabled={idx === tareas.length - 1}
+                  onClick={() => moverTarea(idx, 'abajo')}
+                  title="Bajar"
+                />
+                <Button
+                  size="small"
+                  appearance="subtle"
+                  icon={<Delete16Regular />}
+                  onClick={() => eliminarTareaFila(idx)}
+                  title="Eliminar"
+                />
+              </div>
+            </TableCellLayout>
+          );
+        },
+      }),
+    ],
+    [tareas]
+  );
+
+  // Columnas DataGrid para Receta de Materiales
+  const columnasMateriales: TableColumnDefinition<MaterialLocalItem>[] = useMemo(
+    () => [
+      createTableColumn<MaterialLocalItem>({
+        columnId: 'producto',
+        renderHeaderCell: () => 'Producto / Material',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Text weight="semibold">{item.productoNombre}</Text>
+              <span style={{ fontSize: 11, color: tokens.colorNeutralForeground4 }}>
+                [{item.productoCodigo}]
+              </span>
+              {item.esSerializado && (
+                <Badge appearance="tint" shape="rounded" color="informative" size="small">
+                  Seriado
+                </Badge>
+              )}
+            </div>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<MaterialLocalItem>({
+        columnId: 'cantidad',
+        renderHeaderCell: () => 'Cantidad Sugerida',
+        renderCell: (item) => {
+          const idx = materiales.findIndex((x) => x.id === item.id);
+          return (
+            <TableCellLayout>
+              <Input
+                size="small"
+                type="number"
+                min={0.01}
+                step="any"
+                value={item.cantidadPrevista.toString()}
+                onChange={(_, d) =>
+                  setMateriales((prev) =>
+                    prev.map((m, i) =>
+                      i === idx ? { ...m, cantidadPrevista: Math.max(0.01, parseFloat(d.value) || 1) } : m
+                    )
+                  )
+                }
+                style={{ width: 90 }}
+              />
+            </TableCellLayout>
+          );
+        },
+      }),
+      createTableColumn<MaterialLocalItem>({
+        columnId: 'um',
+        renderHeaderCell: () => 'U.M.',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Text size={200}>{item.unidadMedida}</Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<MaterialLocalItem>({
+        columnId: 'obligatorio',
+        renderHeaderCell: () => 'Obligatorio',
+        renderCell: (item) => {
+          const idx = materiales.findIndex((x) => x.id === item.id);
+          return (
+            <TableCellLayout>
+              <Checkbox
+                checked={item.esObligatorio}
+                onChange={(_, d) =>
+                  setMateriales((prev) =>
+                    prev.map((m, i) => (i === idx ? { ...m, esObligatorio: Boolean(d.checked) } : m))
+                  )
+                }
+              />
+            </TableCellLayout>
+          );
+        },
+      }),
+      createTableColumn<MaterialLocalItem>({
+        columnId: 'observaciones',
+        renderHeaderCell: () => 'Observaciones',
+        renderCell: (item) => {
+          const idx = materiales.findIndex((x) => x.id === item.id);
+          return (
+            <TableCellLayout style={{ width: '100%' }}>
+              <Input
+                size="small"
+                value={item.observaciones}
+                onChange={(_, d) =>
+                  setMateriales((prev) =>
+                    prev.map((m, i) => (i === idx ? { ...m, observaciones: d.value } : m))
+                  )
+                }
+                style={{ width: '100%' }}
+              />
+            </TableCellLayout>
+          );
+        },
+      }),
+      createTableColumn<MaterialLocalItem>({
+        columnId: 'acciones',
+        renderHeaderCell: () => 'Acciones',
+        renderCell: (item) => {
+          const idx = materiales.findIndex((x) => x.id === item.id);
+          return (
+            <TableCellLayout>
+              <Button
+                size="small"
+                appearance="subtle"
+                icon={<Delete16Regular />}
+                onClick={() => eliminarMaterialFila(idx)}
+                title="Eliminar"
+              />
+            </TableCellLayout>
+          );
+        },
+      }),
+    ],
+    [materiales]
+  );
+
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
@@ -711,106 +975,29 @@ export function PlantillaTrabajoFormPage() {
             </div>
 
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ borderBottom: `2px solid ${tokens.colorNeutralStroke2}`, color: tokens.colorNeutralForeground3 }}>
-                    <th style={{ padding: '8px 4px', width: 40 }}>#</th>
-                    <th style={{ padding: '8px 8px' }}>Tarea</th>
-                    <th style={{ padding: '8px 8px', width: 100 }}>Duración</th>
-                    <th style={{ padding: '8px 8px', width: 110 }}>Obligatoria</th>
-                    <th style={{ padding: '8px 8px', width: 120 }}>Foto Evidencia</th>
-                    <th style={{ padding: '8px 8px' }}>Instrucciones Técnicas</th>
-                    <th style={{ padding: '8px 8px', width: 90, textAlign: 'center' }}>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tareas.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} style={{ padding: '32px 16px' }}>
-                        <TableEmptyState />
-                      </td>
-                    </tr>
-                  ) : (
-                    tareas.map((t, idx) => (
-                      <tr key={t.id} style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke3}` }}>
-                        <td style={{ padding: '10px 4px', fontWeight: 600, color: tokens.colorBrandForeground1 }}>
-                          {t.ordenSecuencia}
-                        </td>
-                        <td style={{ padding: '10px 8px' }}>
-                          <strong>{t.tareaNombre}</strong>
-                          {t.tareaCodigo && (
-                            <span style={{ marginLeft: 6, fontSize: 11, color: tokens.colorNeutralForeground4 }}>
-                              ({t.tareaCodigo})
-                            </span>
-                          )}
-                        </td>
-                        <td style={{ padding: '10px 8px' }}>
-                          {t.duracionEstimadaMinutos} min
-                        </td>
-                        <td style={{ padding: '10px 8px' }}>
-                          <Checkbox
-                            checked={t.esObligatoria}
-                            onChange={(_, d) =>
-                              setTareas((prev) =>
-                                prev.map((item, i) => (i === idx ? { ...item, esObligatoria: Boolean(d.checked) } : item))
-                              )
-                            }
-                          />
-                        </td>
-                        <td style={{ padding: '10px 8px' }}>
-                          <Checkbox
-                            checked={t.requiereEvidencia}
-                            onChange={(_, d) =>
-                              setTareas((prev) =>
-                                prev.map((item, i) => (i === idx ? { ...item, requiereEvidencia: Boolean(d.checked) } : item))
-                              )
-                            }
-                          />
-                        </td>
-                        <td style={{ padding: '10px 8px' }}>
-                          <Input
-                            size="small"
-                            value={t.instrucciones}
-                            onChange={(_, d) =>
-                              setTareas((prev) =>
-                                prev.map((item, i) => (i === idx ? { ...item, instrucciones: d.value } : item))
-                              )
-                            }
-                            style={{ width: '100%' }}
-                          />
-                        </td>
-                        <td style={{ padding: '10px 8px', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-                            <Button
-                              size="small"
-                              appearance="subtle"
-                              icon={<ArrowUp16Regular />}
-                              disabled={idx === 0}
-                              onClick={() => moverTarea(idx, 'arriba')}
-                              title="Subir"
-                            />
-                            <Button
-                              size="small"
-                              appearance="subtle"
-                              icon={<ArrowDown16Regular />}
-                              disabled={idx === tareas.length - 1}
-                              onClick={() => moverTarea(idx, 'abajo')}
-                              title="Bajar"
-                            />
-                            <Button
-                              size="small"
-                              appearance="subtle"
-                              icon={<Delete16Regular />}
-                              onClick={() => eliminarTareaFila(idx)}
-                              title="Eliminar"
-                            />
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+              <DataGrid
+                items={tareas}
+                columns={columnasTareas}
+                getRowId={(t) => t.id}
+                style={{ width: '100%', minWidth: 650 }}
+              >
+                <DataGridHeader>
+                  <DataGridRow>
+                    {({ renderHeaderCell }) => <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>}
+                  </DataGridRow>
+                </DataGridHeader>
+                {tareas.length === 0 ? (
+                  <TableEmptyState />
+                ) : (
+                  <DataGridBody<TareaLocalItem>>
+                    {({ item, rowId }) => (
+                      <DataGridRow<TareaLocalItem> key={rowId}>
+                        {({ renderCell }) => <DataGridCell>{renderCell(item)}</DataGridCell>}
+                      </DataGridRow>
+                    )}
+                  </DataGridBody>
+                )}
+              </DataGrid>
             </div>
           </div>
         )}
@@ -835,96 +1022,29 @@ export function PlantillaTrabajoFormPage() {
             </div>
 
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ borderBottom: `2px solid ${tokens.colorNeutralStroke2}`, color: tokens.colorNeutralForeground3 }}>
-                    <th style={{ padding: '8px 8px' }}>Producto / Material</th>
-                    <th style={{ padding: '8px 8px', width: 120 }}>Cantidad Sugerida</th>
-                    <th style={{ padding: '8px 8px', width: 90 }}>U.M.</th>
-                    <th style={{ padding: '8px 8px', width: 110 }}>Obligatorio</th>
-                    <th style={{ padding: '8px 8px' }}>Observaciones</th>
-                    <th style={{ padding: '8px 8px', width: 60, textAlign: 'center' }}>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {materiales.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} style={{ padding: '32px 16px' }}>
-                        <TableEmptyState />
-                      </td>
-                    </tr>
-                  ) : (
-                    materiales.map((m, idx) => (
-                      <tr key={m.id} style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke3}` }}>
-                        <td style={{ padding: '10px 8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <strong>{m.productoNombre}</strong>
-                            <span style={{ fontSize: 11, color: tokens.colorNeutralForeground4 }}>
-                              [{m.productoCodigo}]
-                            </span>
-                            {m.esSerializado && (
-                              <Badge appearance="tint" shape="rounded" color="informative" size="small">
-                                Seriado
-                              </Badge>
-                            )}
-                          </div>
-                        </td>
-                        <td style={{ padding: '10px 8px' }}>
-                          <Input
-                            size="small"
-                            type="number"
-                            min={0.01}
-                            step="any"
-                            value={m.cantidadPrevista.toString()}
-                            onChange={(_, d) =>
-                              setMateriales((prev) =>
-                                prev.map((item, i) =>
-                                  i === idx ? { ...item, cantidadPrevista: parseFloat(d.value) || 1 } : item
-                                )
-                              )
-                            }
-                            style={{ width: 90 }}
-                          />
-                        </td>
-                        <td style={{ padding: '10px 8px', color: tokens.colorNeutralForeground3 }}>
-                          {m.unidadMedida}
-                        </td>
-                        <td style={{ padding: '10px 8px' }}>
-                          <Checkbox
-                            checked={m.esObligatorio}
-                            onChange={(_, d) =>
-                              setMateriales((prev) =>
-                                prev.map((item, i) => (i === idx ? { ...item, esObligatorio: Boolean(d.checked) } : item))
-                              )
-                            }
-                          />
-                        </td>
-                        <td style={{ padding: '10px 8px' }}>
-                          <Input
-                            size="small"
-                            value={m.observaciones}
-                            onChange={(_, d) =>
-                              setMateriales((prev) =>
-                                prev.map((item, i) => (i === idx ? { ...item, observaciones: d.value } : item))
-                              )
-                            }
-                            style={{ width: '100%' }}
-                          />
-                        </td>
-                        <td style={{ padding: '10px 8px', textAlign: 'center' }}>
-                          <Button
-                            size="small"
-                            appearance="subtle"
-                            icon={<Delete16Regular />}
-                            onClick={() => eliminarMaterialFila(idx)}
-                            title="Eliminar"
-                          />
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+              <DataGrid
+                items={materiales}
+                columns={columnasMateriales}
+                getRowId={(m) => m.id}
+                style={{ width: '100%', minWidth: 650 }}
+              >
+                <DataGridHeader>
+                  <DataGridRow>
+                    {({ renderHeaderCell }) => <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>}
+                  </DataGridRow>
+                </DataGridHeader>
+                {materiales.length === 0 ? (
+                  <TableEmptyState />
+                ) : (
+                  <DataGridBody<MaterialLocalItem>>
+                    {({ item, rowId }) => (
+                      <DataGridRow<MaterialLocalItem> key={rowId}>
+                        {({ renderCell }) => <DataGridCell>{renderCell(item)}</DataGridCell>}
+                      </DataGridRow>
+                    )}
+                  </DataGridBody>
+                )}
+              </DataGrid>
             </div>
           </div>
         )}
