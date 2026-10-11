@@ -188,7 +188,6 @@ export const OrdenesTrabajoListPage: React.FC = () => {
           <TableCellLayout media={<ClipboardTask20Regular style={{ color: tokens.colorBrandForeground1 }} />}>
             <Link
               as="button"
-              style={{ fontWeight: tokens.fontWeightSemibold, cursor: 'pointer' }}
               onClick={(e) => {
                 e.stopPropagation();
                 navigate(`/servicio-campo/ordenes/${item.id}`);

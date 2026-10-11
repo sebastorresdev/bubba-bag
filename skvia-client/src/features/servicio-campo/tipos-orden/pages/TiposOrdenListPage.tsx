@@ -181,7 +181,6 @@ export function TiposOrdenListPage() {
                   e.stopPropagation();
                   navigate(`/servicio-campo/tipos-orden/${item.id}`);
                 }}
-                style={{ fontWeight: 600, color: tokens.colorBrandForeground1 }}
               >
                 {item.nombre}
               </Link>

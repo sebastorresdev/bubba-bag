@@ -172,7 +172,6 @@ export function PlantillasTrabajoListPage() {
                 e.stopPropagation();
                 navigate(`/servicio-campo/plantillas-trabajo/${item.id}`);
               }}
-              style={{ fontWeight: 600, color: tokens.colorBrandForeground1 }}
             >
               {item.codigo}
             </Link>
