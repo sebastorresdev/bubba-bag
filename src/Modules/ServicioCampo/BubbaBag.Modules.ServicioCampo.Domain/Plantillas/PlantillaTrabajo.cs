@@ -38,7 +38,7 @@ public class PlantillaTrabajo : Entity<Guid>
 
     // Colección de tareas previstas (checklist y pasos)
     private readonly List<PlantillaTarea> _tareas = new();
-    public IReadOnlyCollection<PlantillaTarea> Tareas => _tareas.OrderBy(t => t.OrdenSecuencia).ToList().AsReadOnly();
+    public IReadOnlyCollection<PlantillaTarea> Tareas => _tareas.AsReadOnly();
 
     // Colección de materiales y equipos previstos (receta teórica)
     private readonly List<PlantillaMaterial> _materiales = new();

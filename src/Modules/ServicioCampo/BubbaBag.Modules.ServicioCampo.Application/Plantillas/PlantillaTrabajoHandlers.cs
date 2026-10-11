@@ -125,8 +125,14 @@ public class PlantillaTrabajoHandlers :
 
         plantilla.Actualizar(req.Nombre, req.DuracionEstimadaMinutos, req.Descripcion, req.EsPredeterminada, req.ProductoId);
 
-        plantilla.LimpiarTareas();
-        plantilla.LimpiarMateriales();
+        if (plantilla.Tareas.Any())
+        {
+            _context.PlantillasTareas.RemoveRange(plantilla.Tareas);
+        }
+        if (plantilla.Materiales.Any())
+        {
+            _context.PlantillasMateriales.RemoveRange(plantilla.Materiales);
+        }
 
         if (req.Tareas != null)
         {
@@ -135,7 +141,15 @@ public class PlantillaTrabajoHandlers :
             {
                 if (t.TareaId != Guid.Empty)
                 {
-                    plantilla.AgregarTarea(t.TareaId, t.OrdenSecuencia > 0 ? t.OrdenSecuencia : sec, t.EsObligatoria, t.RequiereEvidencia, t.Instrucciones);
+                    var nuevaTarea = PlantillaTarea.Crear(
+                        plantilla.Id,
+                        t.TareaId,
+                        t.OrdenSecuencia > 0 ? t.OrdenSecuencia : sec,
+                        t.EsObligatoria,
+                        t.RequiereEvidencia,
+                        t.Instrucciones
+                    );
+                    _context.PlantillasTareas.Add(nuevaTarea);
                     sec++;
                 }
             }
@@ -147,7 +161,14 @@ public class PlantillaTrabajoHandlers :
             {
                 if (m.ProductoId != Guid.Empty && m.CantidadPrevista > 0)
                 {
-                    plantilla.AgregarMaterial(m.ProductoId, m.CantidadPrevista, m.EsObligatorio, m.Observaciones);
+                    var nuevoMaterial = PlantillaMaterial.Crear(
+                        plantilla.Id,
+                        m.ProductoId,
+                        m.CantidadPrevista,
+                        m.EsObligatorio,
+                        m.Observaciones
+                    );
+                    _context.PlantillasMateriales.Add(nuevoMaterial);
                 }
             }
         }
