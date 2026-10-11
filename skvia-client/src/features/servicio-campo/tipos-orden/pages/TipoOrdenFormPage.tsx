@@ -6,6 +6,11 @@ import {
   Textarea,
   Spinner,
   Text,
+  Toast,
+  Toaster,
+  ToastTitle,
+  useToastController,
+  useId,
   tokens,
 } from '@fluentui/react-components';
 import {
@@ -39,6 +44,18 @@ export function TipoOrdenFormPage() {
   const styles = useD365FormStyles();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+
+  const toasterId = useId('tipo-orden-toaster');
+  const { dispatchToast } = useToastController(toasterId);
+
+  const notifySuccess = useCallback((title: string) => {
+    dispatchToast(
+      <Toast>
+        <ToastTitle>{title}</ToastTitle>
+      </Toast>,
+      { intent: 'success', position: 'top-end' }
+    );
+  }, [dispatchToast]);
 
   const isEditMode = Boolean(id && id !== 'nuevo');
 
@@ -113,12 +130,12 @@ export function TipoOrdenFormPage() {
       if (isEditMode && id) {
         await TipoOrdenService.actualizarTipoOrden(id, formData);
         setSavedTitle(formData.nombre.trim());
-        setStatusMessage({ type: 'success', text: 'Tipo de orden actualizado correctamente.' });
+        notifySuccess('Tipo de orden actualizado correctamente.');
       } else {
         const res = await TipoOrdenService.crearTipoOrden(formData);
         savedId = res.id;
         setSavedTitle(formData.nombre.trim());
-        setStatusMessage({ type: 'success', text: 'Tipo de orden registrado exitosamente.' });
+        notifySuccess('Tipo de orden registrado exitosamente.');
       }
 
       if (cerrarAlFinal) {
@@ -185,6 +202,8 @@ export function TipoOrdenFormPage() {
 
   return (
     <div className={styles.root}>
+      <Toaster toasterId={toasterId} />
+
       {/* Barra de Comandos */}
       <D365CommandBar ariaLabel="Barra de comandos de tipo de orden">
         <D365CommandButton

@@ -89,8 +89,8 @@ export const useD365FormStyles = makeStyles({
     boxSizing: 'border-box',
   },
   halfCardWrapper: {
-    width: '50%',
-    minWidth: 'min(100%, 640px)',
+    width: '65%',
+    minWidth: 'min(100%, 760px)',
     maxWidth: '100%',
     boxSizing: 'border-box',
     '@media (max-width: 900px)': {

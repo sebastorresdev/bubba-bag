@@ -11,12 +11,16 @@ import {
   Text,
   Badge,
   Button,
-  Dialog,
-  DialogSurface,
-  DialogTitle,
-  DialogBody,
-  DialogActions,
-  DialogContent,
+  OverlayDrawer,
+  DrawerHeader,
+  DrawerHeaderTitle,
+  DrawerBody,
+  DrawerFooter,
+  Toast,
+  Toaster,
+  ToastTitle,
+  useToastController,
+  useId,
   tokens,
 } from '@fluentui/react-components';
 import {
@@ -30,6 +34,7 @@ import {
   ArrowDown16Regular,
   Box16Regular,
   Checkmark16Regular,
+  Dismiss24Regular,
 } from '@fluentui/react-icons';
 import { PlantillaTrabajoService } from '../services/plantillaTrabajo.service';
 import type {
@@ -74,6 +79,18 @@ export function PlantillaTrabajoFormPage() {
   const navigate = useNavigate();
 
   const isEditMode = Boolean(id && id !== 'nuevo');
+
+  const toasterId = useId('plantilla-toaster');
+  const { dispatchToast } = useToastController(toasterId);
+
+  const notifySuccess = useCallback((title: string) => {
+    dispatchToast(
+      <Toast>
+        <ToastTitle>{title}</ToastTitle>
+      </Toast>,
+      { intent: 'success', position: 'top-end' }
+    );
+  }, [dispatchToast]);
 
   // Estado del formulario principal
   const [codigo, setCodigo] = useState('');
@@ -246,13 +263,13 @@ export function PlantillaTrabajoFormPage() {
         await PlantillaTrabajoService.actualizarPlantilla(id, dto);
         setSavedTitle(nombre.trim());
         setSavedSubtitle(`Receta Técnica • ${codigo.trim() || 'Código autogenerado'}`);
-        setStatusMessage({ type: 'success', text: 'Plantilla de trabajo actualizada con éxito.' });
+        notifySuccess('Plantilla de trabajo actualizada con éxito.');
       } else {
         const res = await PlantillaTrabajoService.crearPlantilla(dto);
         savedId = res.id;
         setSavedTitle(nombre.trim());
         setSavedSubtitle(`Receta Técnica • ${codigo.trim() || 'Código autogenerado'}`);
-        setStatusMessage({ type: 'success', text: 'Plantilla de trabajo creada con éxito.' });
+        notifySuccess('Plantilla de trabajo creada con éxito.');
       }
 
       if (cerrarAlFinal) {
@@ -427,6 +444,8 @@ export function PlantillaTrabajoFormPage() {
 
   return (
     <div className={styles.root}>
+      <Toaster toasterId={toasterId} />
+
       {/* Barra de Comandos */}
       <D365CommandBar ariaLabel="Barra de comandos de plantilla de trabajo">
         <D365CommandButton
@@ -866,147 +885,181 @@ export function PlantillaTrabajoFormPage() {
         )}
       </div>
 
-      {/* Diálogo para agregar tarea */}
-      <Dialog open={dialogTareaOpen} onOpenChange={(_, data) => setDialogTareaOpen(data.open)}>
-        <DialogSurface style={{ maxWidth: 500 }}>
-          <DialogBody>
-            <DialogTitle>Agregar Tarea a la Plantilla</DialogTitle>
-            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 12 }}>
-              <D365FormField
-                label="Seleccionar del Catálogo de Tareas"
-                info="O ingrese una nueva tarea abajo si no existe en el catálogo."
-              >
-                <Select
-                  value={nuevaTareaId}
-                  onChange={(e) => {
-                    setNuevaTareaId(e.target.value);
-                    if (e.target.value) setNuevaTareaNombre('');
-                  }}
-                >
-                  <option value="">-- Seleccionar tarea existente --</option>
-                  {catalogoTareas.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      [{t.codigo}] {t.nombre} ({t.duracionEstimadaMinutos} min)
-                    </option>
-                  ))}
-                </Select>
-              </D365FormField>
-
-              {!nuevaTareaId && (
-                <D365FormField
-                  label="O Crear Nueva Tarea Rápida"
-                  info="Se registrará en el catálogo maestro automáticamente."
-                >
-                  <Input
-                    value={nuevaTareaNombre}
-                    onChange={(_, d) => setNuevaTareaNombre(d.value)}
-                    placeholder="Ej: Fijación y apuntamiento de antena"
-                  />
-                </D365FormField>
-              )}
-
-              <D365FormField label="Instrucciones para el Operario">
-                <Input
-                  value={nuevaTareaInstrucciones}
-                  onChange={(_, d) => setNuevaTareaInstrucciones(d.value)}
-                  placeholder="Ej: Medir nivel de señal con medidor de campo"
-                />
-              </D365FormField>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <Checkbox
-                  checked={nuevaTareaObligatoria}
-                  onChange={(_, d) => setNuevaTareaObligatoria(Boolean(d.checked))}
-                  label="Tarea obligatoria para finalizar el trabajo"
-                />
-                <Checkbox
-                  checked={nuevaTareaEvidencia}
-                  onChange={(_, d) => setNuevaTareaEvidencia(Boolean(d.checked))}
-                  label="Exigir fotografía / evidencia antes de marcar completada"
-                />
-              </div>
-            </DialogContent>
-            <DialogActions style={{ marginTop: 16 }}>
-              <Button appearance="secondary" onClick={() => setDialogTareaOpen(false)}>
-                Cancelar
-              </Button>
+      {/* Panel Lateral (Drawer Derecho) para agregar tarea */}
+      <OverlayDrawer
+        position="end"
+        open={dialogTareaOpen}
+        onOpenChange={(_, { open }) => setDialogTareaOpen(open)}
+        style={{ width: 440, maxWidth: '95vw' }}
+      >
+        <DrawerHeader style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}` }}>
+          <DrawerHeaderTitle
+            action={
               <Button
-                appearance="primary"
-                icon={<Checkmark16Regular />}
-                disabled={!nuevaTareaId && !nuevaTareaNombre.trim()}
-                onClick={() => void agregarTareaFila()}
-              >
-                Agregar a Checklist
-              </Button>
-            </DialogActions>
-          </DialogBody>
-        </DialogSurface>
-      </Dialog>
-
-      {/* Diálogo para agregar material */}
-      <Dialog open={dialogMaterialOpen} onOpenChange={(_, data) => setDialogMaterialOpen(data.open)}>
-        <DialogSurface style={{ maxWidth: 500 }}>
-          <DialogBody>
-            <DialogTitle>Agregar Material / Equipo a la Receta</DialogTitle>
-            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 12 }}>
-              <D365FormField
-                label="Producto / Repuesto / Equipo"
-                required
-                info="Seleccione el material del inventario de la empresa."
-              >
-                <Select
-                  value={nuevoMaterialProductoId}
-                  onChange={(e) => setNuevoMaterialProductoId(e.target.value)}
-                >
-                  <option value="">-- Seleccionar producto/material --</option>
-                  {productosMateriales.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      [{p.codigo}] {p.nombre} {p.esSerializado ? '(Seriado)' : ''}
-                    </option>
-                  ))}
-                </Select>
-              </D365FormField>
-
-              <D365FormField label="Cantidad Sugerida / Prevista" required>
-                <Input
-                  type="number"
-                  min={0.01}
-                  step="any"
-                  value={nuevoMaterialCantidad.toString()}
-                  onChange={(_, d) => setNuevoMaterialCantidad(parseFloat(d.value) || 1)}
-                />
-              </D365FormField>
-
-              <D365FormField label="Observaciones / Aplicación">
-                <Input
-                  value={nuevoMaterialObservaciones}
-                  onChange={(_, d) => setNuevoMaterialObservaciones(d.value)}
-                  placeholder="Ej: Utilizar únicamente grapas galvanizadas"
-                />
-              </D365FormField>
-
-              <Checkbox
-                checked={nuevoMaterialObligatorio}
-                onChange={(_, d) => setNuevoMaterialObligatorio(Boolean(d.checked))}
-                label="Consumo obligatorio para liquidar la orden"
+                appearance="subtle"
+                aria-label="Cerrar"
+                icon={<Dismiss24Regular />}
+                onClick={() => setDialogTareaOpen(false)}
               />
-            </DialogContent>
-            <DialogActions style={{ marginTop: 16 }}>
-              <Button appearance="secondary" onClick={() => setDialogMaterialOpen(false)}>
-                Cancelar
-              </Button>
+            }
+          >
+            Agregar Tarea a la Plantilla
+          </DrawerHeaderTitle>
+        </DrawerHeader>
+
+        <DrawerBody style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '20px' }}>
+          <D365FormField
+            label="Seleccionar del Catálogo de Tareas"
+            info="O ingrese una nueva tarea abajo si no existe en el catálogo."
+          >
+            <Select
+              value={nuevaTareaId}
+              onChange={(e) => {
+                setNuevaTareaId(e.target.value);
+                if (e.target.value) setNuevaTareaNombre('');
+              }}
+            >
+              <option value="">-- Seleccionar tarea existente --</option>
+              {catalogoTareas.map((t) => (
+                <option key={t.id} value={t.id}>
+                  [{t.codigo}] {t.nombre} ({t.duracionEstimadaMinutos} min)
+                </option>
+              ))}
+            </Select>
+          </D365FormField>
+
+          {!nuevaTareaId && (
+            <D365FormField
+              label="O Crear Nueva Tarea Rápida"
+              info="Se registrará en el catálogo maestro automáticamente."
+            >
+              <Input
+                value={nuevaTareaNombre}
+                onChange={(_, d) => setNuevaTareaNombre(d.value)}
+                placeholder="Ej: Fijación y apuntamiento de antena"
+              />
+            </D365FormField>
+          )}
+
+          <D365FormField label="Instrucciones para el Operario">
+            <Input
+              value={nuevaTareaInstrucciones}
+              onChange={(_, d) => setNuevaTareaInstrucciones(d.value)}
+              placeholder="Ej: Medir nivel de señal con medidor de campo"
+            />
+          </D365FormField>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}>
+            <Checkbox
+              checked={nuevaTareaObligatoria}
+              onChange={(_, d) => setNuevaTareaObligatoria(Boolean(d.checked))}
+              label="Tarea obligatoria para finalizar el trabajo"
+            />
+            <Checkbox
+              checked={nuevaTareaEvidencia}
+              onChange={(_, d) => setNuevaTareaEvidencia(Boolean(d.checked))}
+              label="Exigir fotografía / evidencia antes de marcar completada"
+            />
+          </div>
+        </DrawerBody>
+
+        <DrawerFooter style={{ borderTop: `1px solid ${tokens.colorNeutralStroke2}`, padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <Button appearance="secondary" onClick={() => setDialogTareaOpen(false)}>
+            Cancelar
+          </Button>
+          <Button
+            appearance="primary"
+            icon={<Checkmark16Regular />}
+            disabled={!nuevaTareaId && !nuevaTareaNombre.trim()}
+            onClick={() => void agregarTareaFila()}
+          >
+            Agregar a Checklist
+          </Button>
+        </DrawerFooter>
+      </OverlayDrawer>
+
+      {/* Panel Lateral (Drawer Derecho) para agregar material */}
+      <OverlayDrawer
+        position="end"
+        open={dialogMaterialOpen}
+        onOpenChange={(_, { open }) => setDialogMaterialOpen(open)}
+        style={{ width: 440, maxWidth: '95vw' }}
+      >
+        <DrawerHeader style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}` }}>
+          <DrawerHeaderTitle
+            action={
               <Button
-                appearance="primary"
-                icon={<Checkmark16Regular />}
-                disabled={!nuevoMaterialProductoId || nuevoMaterialCantidad <= 0}
-                onClick={agregarMaterialFila}
-              >
-                Agregar Material
-              </Button>
-            </DialogActions>
-          </DialogBody>
-        </DialogSurface>
-      </Dialog>
+                appearance="subtle"
+                aria-label="Cerrar"
+                icon={<Dismiss24Regular />}
+                onClick={() => setDialogMaterialOpen(false)}
+              />
+            }
+          >
+            Agregar Material / Equipo
+          </DrawerHeaderTitle>
+        </DrawerHeader>
+
+        <DrawerBody style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '20px' }}>
+          <D365FormField
+            label="Producto / Repuesto / Equipo"
+            required
+            info="Seleccione el material del inventario de la empresa."
+          >
+            <Select
+              value={nuevoMaterialProductoId}
+              onChange={(e) => setNuevoMaterialProductoId(e.target.value)}
+            >
+              <option value="">-- Seleccionar producto/material --</option>
+              {productosMateriales.map((p) => (
+                <option key={p.id} value={p.id}>
+                  [{p.codigo}] {p.nombre} {p.esSerializado ? '(Seriado)' : ''}
+                </option>
+              ))}
+            </Select>
+          </D365FormField>
+
+          <D365FormField label="Cantidad Sugerida / Prevista" required>
+            <Input
+              type="number"
+              min={0.01}
+              step="any"
+              value={nuevoMaterialCantidad.toString()}
+              onChange={(_, d) => setNuevoMaterialCantidad(parseFloat(d.value) || 1)}
+            />
+          </D365FormField>
+
+          <D365FormField label="Observaciones / Aplicación">
+            <Input
+              value={nuevoMaterialObservaciones}
+              onChange={(_, d) => setNuevoMaterialObservaciones(d.value)}
+              placeholder="Ej: Utilizar únicamente grapas galvanizadas"
+            />
+          </D365FormField>
+
+          <div style={{ marginTop: 4 }}>
+            <Checkbox
+              checked={nuevoMaterialObligatorio}
+              onChange={(_, d) => setNuevoMaterialObligatorio(Boolean(d.checked))}
+              label="Consumo obligatorio para liquidar la orden"
+            />
+          </div>
+        </DrawerBody>
+
+        <DrawerFooter style={{ borderTop: `1px solid ${tokens.colorNeutralStroke2}`, padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <Button appearance="secondary" onClick={() => setDialogMaterialOpen(false)}>
+            Cancelar
+          </Button>
+          <Button
+            appearance="primary"
+            icon={<Checkmark16Regular />}
+            disabled={!nuevoMaterialProductoId || nuevoMaterialCantidad <= 0}
+            onClick={agregarMaterialFila}
+          >
+            Agregar Material
+          </Button>
+        </DrawerFooter>
+      </OverlayDrawer>
     </div>
   );
 }
