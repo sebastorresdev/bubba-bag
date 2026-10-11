@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Input,
-  Checkbox,
   Textarea,
   Spinner,
   Text,
@@ -20,25 +19,21 @@ import {
   Add16Regular,
   Delete16Regular,
   ClipboardTask20Regular,
+  Person16Regular,
+  Money16Regular,
 } from '@fluentui/react-icons';
 import { TipoOrdenService } from '../services/tipoOrden.service';
 import type { GuardarTipoOrdenTrabajoDto } from '../types/tipoOrden.types';
+import { ListaPreciosService } from '../../../inventario/listas-precios/services/listaPrecios.service';
+import type { ListaPreciosDto } from '../../../inventario/listas-precios/types/listaPrecios.types';
+import { useAuthSession } from '../../../../services/authSession';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
+import { SelectorEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
 
-const PRESET_COLORS = [
-  '#0f6cbd', // Brand Blue
-  '#107c41', // Green
-  '#d83b01', // Orange / Alert
-  '#5c2d91', // Purple
-  '#008272', // Teal
-  '#a4262c', // Red / Critical
-  '#69797e', // Neutral / Gray
-  '#4f6bed', // Indigo
-];
 
 export function TipoOrdenFormPage() {
   const styles = useD365FormStyles();
@@ -71,11 +66,24 @@ export function TipoOrdenFormPage() {
   const [savedTitle, setSavedTitle] = useState(isEditMode ? '' : 'Nuevo');
   const savedSubtitle = 'Configuración Operativa • Naturaleza de Servicio';
 
+  const auth = useAuthSession();
+  const creadorNombre = auth.usuario?.nombreCompleto || 'Usuario del Sistema';
+
+  const [listasPrecios, setListasPrecios] = useState<ListaPreciosDto[]>([]);
+  const [listaPrecioId, setListaPrecioId] = useState<string>('');
+  const [busquedaLista, setBusquedaLista] = useState<string>('');
+
   const [activo, setActivo] = useState(true);
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    void ListaPreciosService.getListasPrecios(undefined, true)
+      .then((res) => setListasPrecios(res))
+      .catch(() => {});
+  }, []);
 
   const cargarDatos = useCallback(async (tipoId: string) => {
     try {
@@ -275,12 +283,12 @@ export function TipoOrdenFormPage() {
         avatarSize={48}
         metadata={[
           {
-            label: 'Visita de Campo',
-            value: formData.requiereVisitaCampo ? 'Requerida' : 'Remota',
+            label: 'Propietario',
+            value: creadorNombre,
           },
           {
-            label: 'Firma Cliente',
-            value: formData.exigeFirmaCliente ? 'Obligatoria' : 'Opcional',
+            label: 'Lista de Precios',
+            value: listasPrecios.find((l) => l.id === listaPrecioId)?.nombre || 'Predeterminada',
           },
           {
             label: 'Estado',
@@ -294,103 +302,81 @@ export function TipoOrdenFormPage() {
         <div className={styles.halfCardWrapper}>
           <div className={styles.card}>
             <Text size={400} weight="semibold" style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, paddingBottom: 8, display: 'block' }}>
-              Información General
+              General
             </Text>
 
-            <D365FormField
-              label="Nombre del Tipo de Orden"
-              required
-              error={errors.nombre}
-              info="Identificador público del tipo de orden (ej: 'Instalación Residencial (DTH)', 'Mantenimiento Correctivo')."
-            >
-              <Input
-                value={formData.nombre}
-                onChange={(_, d) => setFormData((prev) => ({ ...prev, nombre: d.value }))}
-                placeholder="Ej: Instalación Fibra Óptica"
-              />
-            </D365FormField>
-
-            <D365FormField
-              label="Color Identificador"
-              info="Color visual distintivo en tableros de programación, calendario y badges."
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                <input
-                  type="color"
-                  value={formData.colorHex}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, colorHex: e.target.value }))}
-                  style={{
-                    width: 38,
-                    height: 38,
-                    border: `1px solid ${tokens.colorNeutralStroke1}`,
-                    borderRadius: tokens.borderRadiusMedium,
-                    cursor: 'pointer',
-                    padding: 2,
-                  }}
-                />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
+              <D365FormField
+                label="Nombre"
+                required
+                error={errors.nombre}
+                info="Identificador público del tipo de orden (ej: 'Instalación Residencial', 'Mantenimiento Correctivo')."
+              >
                 <Input
-                  value={formData.colorHex}
-                  onChange={(_, d) => setFormData((prev) => ({ ...prev, colorHex: d.value }))}
-                  style={{ width: 120 }}
+                  value={formData.nombre}
+                  onChange={(_, d) => setFormData((prev) => ({ ...prev, nombre: d.value }))}
                 />
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  {PRESET_COLORS.map((col) => (
-                    <button
-                      key={col}
-                      type="button"
-                      onClick={() => setFormData((prev) => ({ ...prev, colorHex: col }))}
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: '50%',
-                        backgroundColor: col,
-                        border: formData.colorHex.toLowerCase() === col.toLowerCase() ? `2px solid ${tokens.colorBrandBackground}` : '1px solid rgba(0,0,0,0.1)',
-                        cursor: 'pointer',
-                        outline: 'none',
-                      }}
-                      title={col}
-                    />
-                  ))}
-                </div>
-              </div>
-            </D365FormField>
+              </D365FormField>
 
-            <D365FormField
-              label="Descripción"
-              info="Instrucciones, alcance técnico o notas operativas para este tipo de orden."
-            >
-              <Textarea
-                value={formData.descripcion}
-                onChange={(_, d) => setFormData((prev) => ({ ...prev, descripcion: d.value }))}
-                rows={3}
-                placeholder="Detalle el alcance de esta tipología..."
-              />
-            </D365FormField>
+              <D365FormField
+                label="Propietario"
+                info="Usuario responsable de la creación o gestión de este registro."
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Person16Regular style={{ color: tokens.colorNeutralForeground3 }} />
+                  <Input
+                    value={creadorNombre}
+                    readOnly
+                    appearance="filled-darker"
+                    style={{ flex: 1 }}
+                  />
+                </div>
+              </D365FormField>
+            </div>
 
             <Text size={400} weight="semibold" style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, paddingBottom: 8, marginTop: 16, display: 'block' }}>
-              Reglas Operativas
+              Detalles
             </Text>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
-              <Checkbox
-                checked={formData.requiereVisitaCampo}
-                onChange={(_, d) => setFormData((prev) => ({ ...prev, requiereVisitaCampo: Boolean(d.checked) }))}
-                label={
-                  <Text>
-                    <strong>Requiere Desplazamiento / Visita de Campo</strong> — Activa la reserva de técnicos de campo, asignación de vehículos y georreferenciación en mapa.
-                  </Text>
-                }
-              />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
+              <D365FormField
+                label="Lista de Precios"
+                info="Lista de precios por defecto que heredarán las órdenes de este tipo si el cliente no tiene una pactada."
+              >
+                <SelectorEntidadRelacionada
+                  etiquetaGrupo="Listas de Precios"
+                  icono={<Money16Regular />}
+                  opciones={listasPrecios.map((l) => ({
+                    id: l.id,
+                    nombre: l.nombre,
+                    detalle: l.moneda ? `Moneda: ${l.moneda}` : undefined,
+                  }))}
+                  seleccionada={
+                    listasPrecios.find((l) => l.id === listaPrecioId)
+                      ? {
+                          id: listaPrecioId,
+                          nombre: listasPrecios.find((l) => l.id === listaPrecioId)!.nombre,
+                          detalle: listasPrecios.find((l) => l.id === listaPrecioId)!.moneda ? `Moneda: ${listasPrecios.find((l) => l.id === listaPrecioId)!.moneda}` : undefined,
+                        }
+                      : null
+                  }
+                  textoBusqueda={busquedaLista}
+                  alCambiarBusqueda={setBusquedaLista}
+                  alSeleccionar={(id) => setListaPrecioId(id || '')}
+                  textoVacio="No se encontraron listas de precios"
+                />
+              </D365FormField>
 
-              <Checkbox
-                checked={formData.exigeFirmaCliente}
-                onChange={(_, d) => setFormData((prev) => ({ ...prev, exigeFirmaCliente: Boolean(d.checked) }))}
-                label={
-                  <Text>
-                    <strong>Exige Firma de Conformidad del Cliente</strong> — Impide que el operario finalice la orden en la app móvil si no se captura la firma digital.
-                  </Text>
-                }
-              />
+              <D365FormField
+                label="Descripción"
+                info="Instrucciones, alcance técnico o notas operativas para este tipo de orden."
+              >
+                <Textarea
+                  value={formData.descripcion}
+                  onChange={(_, d) => setFormData((prev) => ({ ...prev, descripcion: d.value }))}
+                  rows={3}
+                />
+              </D365FormField>
             </div>
           </div>
         </div>

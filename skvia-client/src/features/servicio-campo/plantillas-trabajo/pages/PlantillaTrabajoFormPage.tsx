@@ -48,6 +48,8 @@ import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
+import { SelectorEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
+import { TableEmptyState } from '../../../../components/common/TableEmptyState';
 
 interface TareaLocalItem {
   id: string; // temp id
@@ -96,6 +98,7 @@ export function PlantillaTrabajoFormPage() {
   const [codigo, setCodigo] = useState('');
   const [nombre, setNombre] = useState('');
   const [productoId, setProductoId] = useState('');
+  const [busquedaServicio, setBusquedaServicio] = useState('');
   const [duracionEstimadaMinutos, setDuracionEstimadaMinutos] = useState<number>(60);
   const [descripcion, setDescripcion] = useState('');
   const [esPredeterminada, setEsPredeterminada] = useState(false);
@@ -562,7 +565,6 @@ export function PlantillaTrabajoFormPage() {
                   <Input
                     value={codigo}
                     onChange={(_, d) => setCodigo(d.value)}
-                    placeholder="Ej: PLN-00001 (Auto)"
                   />
                 </D365FormField>
 
@@ -575,7 +577,6 @@ export function PlantillaTrabajoFormPage() {
                   <Input
                     value={nombre}
                     onChange={(_, d) => setNombre(d.value)}
-                    placeholder="Ej: Instalación DTH Estándar + 1 Deco HD"
                   />
                 </D365FormField>
 
@@ -585,17 +586,28 @@ export function PlantillaTrabajoFormPage() {
                   error={errors.productoId}
                   info="Servicio de catálogo facturable al que aplica esta plantilla operativa."
                 >
-                  <Select
-                    value={productoId}
-                    onChange={(e) => setProductoId(e.target.value)}
-                  >
-                    <option value="">-- Seleccionar servicio --</option>
-                    {productosServicio.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        [{p.codigo}] {p.nombre} {p.tipo === 'Servicio' ? '(Servicio)' : ''}
-                      </option>
-                    ))}
-                  </Select>
+                  <SelectorEntidadRelacionada
+                    etiquetaGrupo="Servicios"
+                    icono={<Box16Regular />}
+                    opciones={productosServicio.map((p) => ({
+                      id: p.id,
+                      nombre: `[${p.codigo}] ${p.nombre}`,
+                      detalle: p.tipo === 'Servicio' ? 'Servicio facturable' : 'Inventario',
+                    }))}
+                    seleccionada={
+                      productoSeleccionado
+                        ? {
+                            id: productoSeleccionado.id,
+                            nombre: `[${productoSeleccionado.codigo}] ${productoSeleccionado.nombre}`,
+                            detalle: productoSeleccionado.tipo === 'Servicio' ? 'Servicio facturable' : undefined,
+                          }
+                        : null
+                    }
+                    textoBusqueda={busquedaServicio}
+                    alCambiarBusqueda={setBusquedaServicio}
+                    alSeleccionar={(id) => setProductoId(id || '')}
+                    textoVacio="No se encontraron servicios disponibles"
+                  />
                 </D365FormField>
 
                 <D365FormField
@@ -613,14 +625,13 @@ export function PlantillaTrabajoFormPage() {
                 </D365FormField>
 
                 <D365FormField
-                  label="Descripción / Procedimiento"
+                  label="Descripción"
                   info="Resumen de los lineamientos técnicos u objetivos de esta plantilla."
                 >
                   <Textarea
                     value={descripcion}
                     onChange={(_, d) => setDescripcion(d.value)}
                     rows={3}
-                    placeholder="Instrucciones generales de calidad para el personal técnico..."
                   />
                 </D365FormField>
               </div>
@@ -659,30 +670,35 @@ export function PlantillaTrabajoFormPage() {
               </Button>
             </div>
 
-            {tareas.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 16px', color: tokens.colorNeutralForeground4 }}>
-                <DocumentBulletList20Regular style={{ fontSize: 36, marginBottom: 8 }} />
-                <p>No hay tareas agregadas en esta plantilla.</p>
-                <Button appearance="secondary" size="small" onClick={() => setDialogTareaOpen(true)}>
-                  Agregar primera tarea
-                </Button>
-              </div>
-            ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ borderBottom: `2px solid ${tokens.colorNeutralStroke2}`, color: tokens.colorNeutralForeground3 }}>
-                      <th style={{ padding: '8px 4px', width: 40 }}>#</th>
-                      <th style={{ padding: '8px 8px' }}>Tarea</th>
-                      <th style={{ padding: '8px 8px', width: 100 }}>Duración</th>
-                      <th style={{ padding: '8px 8px', width: 110 }}>Obligatoria</th>
-                      <th style={{ padding: '8px 8px', width: 120 }}>Foto Evidencia</th>
-                      <th style={{ padding: '8px 8px' }}>Instrucciones Técnicas</th>
-                      <th style={{ padding: '8px 8px', width: 90, textAlign: 'center' }}>Acciones</th>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: `2px solid ${tokens.colorNeutralStroke2}`, color: tokens.colorNeutralForeground3 }}>
+                    <th style={{ padding: '8px 4px', width: 40 }}>#</th>
+                    <th style={{ padding: '8px 8px' }}>Tarea</th>
+                    <th style={{ padding: '8px 8px', width: 100 }}>Duración</th>
+                    <th style={{ padding: '8px 8px', width: 110 }}>Obligatoria</th>
+                    <th style={{ padding: '8px 8px', width: 120 }}>Foto Evidencia</th>
+                    <th style={{ padding: '8px 8px' }}>Instrucciones Técnicas</th>
+                    <th style={{ padding: '8px 8px', width: 90, textAlign: 'center' }}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tareas.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ padding: '32px 16px' }}>
+                        <TableEmptyState
+                          message="No hay tareas agregadas en esta plantilla"
+                          icon={<DocumentBulletList20Regular />}
+                        >
+                          <Button appearance="secondary" size="small" icon={<Add16Regular />} onClick={() => setDialogTareaOpen(true)}>
+                            Agregar primera tarea
+                          </Button>
+                        </TableEmptyState>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {tareas.map((t, idx) => (
+                  ) : (
+                    tareas.map((t, idx) => (
                       <tr key={t.id} style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke3}` }}>
                         <td style={{ padding: '10px 4px', fontWeight: 600, color: tokens.colorBrandForeground1 }}>
                           {t.ordenSecuencia}
@@ -722,7 +738,6 @@ export function PlantillaTrabajoFormPage() {
                           <Input
                             size="small"
                             value={t.instrucciones}
-                            placeholder="Notas o checklist para el técnico..."
                             onChange={(_, d) =>
                               setTareas((prev) =>
                                 prev.map((item, i) => (i === idx ? { ...item, instrucciones: d.value } : item))
@@ -759,11 +774,11 @@ export function PlantillaTrabajoFormPage() {
                           </div>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
@@ -786,29 +801,34 @@ export function PlantillaTrabajoFormPage() {
               </Button>
             </div>
 
-            {materiales.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 16px', color: tokens.colorNeutralForeground4 }}>
-                <Box16Regular style={{ fontSize: 36, marginBottom: 8 }} />
-                <p>No hay materiales asignados a esta plantilla.</p>
-                <Button appearance="secondary" size="small" onClick={() => setDialogMaterialOpen(true)}>
-                  Agregar primer material
-                </Button>
-              </div>
-            ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ borderBottom: `2px solid ${tokens.colorNeutralStroke2}`, color: tokens.colorNeutralForeground3 }}>
-                      <th style={{ padding: '8px 8px' }}>Producto / Material</th>
-                      <th style={{ padding: '8px 8px', width: 120 }}>Cantidad Sugerida</th>
-                      <th style={{ padding: '8px 8px', width: 90 }}>U.M.</th>
-                      <th style={{ padding: '8px 8px', width: 110 }}>Obligatorio</th>
-                      <th style={{ padding: '8px 8px' }}>Observaciones</th>
-                      <th style={{ padding: '8px 8px', width: 60, textAlign: 'center' }}>Acciones</th>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: `2px solid ${tokens.colorNeutralStroke2}`, color: tokens.colorNeutralForeground3 }}>
+                    <th style={{ padding: '8px 8px' }}>Producto / Material</th>
+                    <th style={{ padding: '8px 8px', width: 120 }}>Cantidad Sugerida</th>
+                    <th style={{ padding: '8px 8px', width: 90 }}>U.M.</th>
+                    <th style={{ padding: '8px 8px', width: 110 }}>Obligatorio</th>
+                    <th style={{ padding: '8px 8px' }}>Observaciones</th>
+                    <th style={{ padding: '8px 8px', width: 60, textAlign: 'center' }}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {materiales.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} style={{ padding: '32px 16px' }}>
+                        <TableEmptyState
+                          message="No hay materiales asignados a esta plantilla"
+                          icon={<Box16Regular />}
+                        >
+                          <Button appearance="secondary" size="small" icon={<Add16Regular />} onClick={() => setDialogMaterialOpen(true)}>
+                            Agregar primer material
+                          </Button>
+                        </TableEmptyState>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {materiales.map((m, idx) => (
+                  ) : (
+                    materiales.map((m, idx) => (
                       <tr key={m.id} style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke3}` }}>
                         <td style={{ padding: '10px 8px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -857,7 +877,6 @@ export function PlantillaTrabajoFormPage() {
                           <Input
                             size="small"
                             value={m.observaciones}
-                            placeholder="Notas de instalación o especificación..."
                             onChange={(_, d) =>
                               setMateriales((prev) =>
                                 prev.map((item, i) => (i === idx ? { ...item, observaciones: d.value } : item))
@@ -876,11 +895,11 @@ export function PlantillaTrabajoFormPage() {
                           />
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -908,16 +927,15 @@ export function PlantillaTrabajoFormPage() {
         </DrawerHeader>
 
         <DrawerBody style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '20px' }}>
-          <D365FormField
-            label="Seleccionar del Catálogo de Tareas"
-            info="O ingrese una nueva tarea abajo si no existe en el catálogo."
-          >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <Text weight="semibold" size={200}>Tarea del Catálogo</Text>
             <Select
               value={nuevaTareaId}
               onChange={(e) => {
                 setNuevaTareaId(e.target.value);
                 if (e.target.value) setNuevaTareaNombre('');
               }}
+              style={{ width: '100%' }}
             >
               <option value="">-- Seleccionar tarea existente --</option>
               {catalogoTareas.map((t) => (
@@ -926,28 +944,27 @@ export function PlantillaTrabajoFormPage() {
                 </option>
               ))}
             </Select>
-          </D365FormField>
+          </div>
 
           {!nuevaTareaId && (
-            <D365FormField
-              label="O Crear Nueva Tarea Rápida"
-              info="Se registrará en el catálogo maestro automáticamente."
-            >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <Text weight="semibold" size={200}>O Crear Nueva Tarea Rápida</Text>
               <Input
                 value={nuevaTareaNombre}
                 onChange={(_, d) => setNuevaTareaNombre(d.value)}
-                placeholder="Ej: Fijación y apuntamiento de antena"
+                style={{ width: '100%' }}
               />
-            </D365FormField>
+            </div>
           )}
 
-          <D365FormField label="Instrucciones para el Operario">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <Text weight="semibold" size={200}>Instrucciones para el Operario</Text>
             <Input
               value={nuevaTareaInstrucciones}
               onChange={(_, d) => setNuevaTareaInstrucciones(d.value)}
-              placeholder="Ej: Medir nivel de señal con medidor de campo"
+              style={{ width: '100%' }}
             />
-          </D365FormField>
+          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}>
             <Checkbox
@@ -1001,14 +1018,12 @@ export function PlantillaTrabajoFormPage() {
         </DrawerHeader>
 
         <DrawerBody style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '20px' }}>
-          <D365FormField
-            label="Producto / Repuesto / Equipo"
-            required
-            info="Seleccione el material del inventario de la empresa."
-          >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <Text weight="semibold" size={200}>Producto / Repuesto / Equipo *</Text>
             <Select
               value={nuevoMaterialProductoId}
               onChange={(e) => setNuevoMaterialProductoId(e.target.value)}
+              style={{ width: '100%' }}
             >
               <option value="">-- Seleccionar producto/material --</option>
               {productosMateriales.map((p) => (
@@ -1017,25 +1032,28 @@ export function PlantillaTrabajoFormPage() {
                 </option>
               ))}
             </Select>
-          </D365FormField>
+          </div>
 
-          <D365FormField label="Cantidad Sugerida / Prevista" required>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <Text weight="semibold" size={200}>Cantidad Sugerida / Prevista *</Text>
             <Input
               type="number"
               min={0.01}
               step="any"
               value={nuevoMaterialCantidad.toString()}
               onChange={(_, d) => setNuevoMaterialCantidad(parseFloat(d.value) || 1)}
+              style={{ width: '100%' }}
             />
-          </D365FormField>
+          </div>
 
-          <D365FormField label="Observaciones / Aplicación">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <Text weight="semibold" size={200}>Observaciones / Aplicación</Text>
             <Input
               value={nuevoMaterialObservaciones}
               onChange={(_, d) => setNuevoMaterialObservaciones(d.value)}
-              placeholder="Ej: Utilizar únicamente grapas galvanizadas"
+              style={{ width: '100%' }}
             />
-          </D365FormField>
+          </div>
 
           <div style={{ marginTop: 4 }}>
             <Checkbox

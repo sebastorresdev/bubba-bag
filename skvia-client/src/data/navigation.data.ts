@@ -230,6 +230,13 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
                 iconName: 'DocumentBulletList',
                 description: 'Recetas técnicas: tareas requeridas, productos y servicios asociados.',
               },
+              {
+                id: 'tareas-catalogo',
+                title: 'Catálogo de Tareas',
+                path: '/servicio-campo/tareas',
+                iconName: 'ClipboardTask',
+                description: 'Tareas técnicas atómicas y checklist para el trabajo en campo.',
+              },
             ],
           },
         ],

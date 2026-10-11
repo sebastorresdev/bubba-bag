@@ -59,6 +59,7 @@ const TiposOrdenListPage = lazy(() => import('./features/servicio-campo/tipos-or
 const TipoOrdenFormPage = lazy(() => import('./features/servicio-campo/tipos-orden/pages/TipoOrdenFormPage').then((m) => ({ default: m.TipoOrdenFormPage })));
 const PlantillasTrabajoListPage = lazy(() => import('./features/servicio-campo/plantillas-trabajo/pages/PlantillasTrabajoListPage').then((m) => ({ default: m.PlantillasTrabajoListPage })));
 const PlantillaTrabajoFormPage = lazy(() => import('./features/servicio-campo/plantillas-trabajo/pages/PlantillaTrabajoFormPage').then((m) => ({ default: m.PlantillaTrabajoFormPage })));
+const TareasListPage = lazy(() => import('./features/servicio-campo/tareas/pages/TareasListPage').then((m) => ({ default: m.TareasListPage })));
 
 const PlaceholderPage = lazy(() => import('./components/common/PlaceholderPage').then((m) => ({ default: m.PlaceholderPage })));
 
@@ -178,6 +179,7 @@ export default function App() {
               <Route path="servicio-campo/plantillas-trabajo" element={<PlantillasTrabajoListPage />} />
               <Route path="servicio-campo/plantillas-trabajo/nuevo" element={<PlantillaTrabajoFormPage />} />
               <Route path="servicio-campo/plantillas-trabajo/:id" element={<PlantillaTrabajoFormPage />} />
+              <Route path="servicio-campo/tareas" element={<TareasListPage />} />
               <Route path="servicio-campo/motivos-incidencia" element={<Navigate to="/servicio-campo/plantillas-trabajo" replace />} />
 
               {/* Gestión global de datos e importaciones */}
