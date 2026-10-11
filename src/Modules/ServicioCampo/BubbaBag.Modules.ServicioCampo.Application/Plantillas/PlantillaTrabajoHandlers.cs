@@ -53,8 +53,14 @@ public class PlantillaTrabajoHandlers :
         if (string.IsNullOrWhiteSpace(req.Nombre))
             return Result<Guid>.Failure("El nombre de la plantilla es obligatorio.");
 
+        if (req.ProductoId == Guid.Empty && req.Servicios != null && req.Servicios.Count > 0)
+        {
+            var primerServicio = req.Servicios.FirstOrDefault(s => s.EsPredeterminada) ?? req.Servicios[0];
+            req = req with { ProductoId = primerServicio.ProductoId, EsPredeterminada = primerServicio.EsPredeterminada };
+        }
+
         if (req.ProductoId == Guid.Empty)
-            return Result<Guid>.Failure("Debe seleccionar un producto o servicio de catálogo.");
+            return Result<Guid>.Failure("Debe seleccionar al menos un producto o servicio de catálogo.");
 
         var productoExiste = await _context.Productos.AnyAsync(p => p.Id == req.ProductoId, ct);
         if (!productoExiste)
@@ -78,6 +84,21 @@ public class PlantillaTrabajoHandlers :
             req.DuracionEstimadaMinutos,
             req.Descripcion,
             req.EsPredeterminada);
+
+        if (req.Servicios != null && req.Servicios.Count > 0)
+        {
+            foreach (var s in req.Servicios)
+            {
+                if (s.ProductoId != Guid.Empty)
+                {
+                    plantilla.AgregarServicio(s.ProductoId, s.EsPredeterminada);
+                }
+            }
+        }
+        else
+        {
+            plantilla.AgregarServicio(req.ProductoId, req.EsPredeterminada);
+        }
 
         if (req.Tareas != null)
         {
@@ -116,6 +137,7 @@ public class PlantillaTrabajoHandlers :
             return Result.Failure("El nombre de la plantilla es obligatorio.");
 
         var plantilla = await _context.PlantillasTrabajo
+            .Include(p => p.Servicios)
             .Include(p => p.Tareas)
             .Include(p => p.Materiales)
             .FirstOrDefaultAsync(p => p.Id == command.Id, ct);
@@ -123,8 +145,18 @@ public class PlantillaTrabajoHandlers :
         if (plantilla == null)
             return Result.Failure("Plantilla de trabajo no encontrada.");
 
+        if (req.Servicios != null && req.Servicios.Count > 0)
+        {
+            var primerServicio = req.Servicios.FirstOrDefault(s => s.EsPredeterminada) ?? req.Servicios[0];
+            req = req with { ProductoId = primerServicio.ProductoId, EsPredeterminada = primerServicio.EsPredeterminada };
+        }
+
         plantilla.Actualizar(req.Nombre, req.DuracionEstimadaMinutos, req.Descripcion, req.EsPredeterminada, req.ProductoId);
 
+        if (plantilla.Servicios.Any())
+        {
+            _context.PlantillasServicios.RemoveRange(plantilla.Servicios);
+        }
         if (plantilla.Tareas.Any())
         {
             _context.PlantillasTareas.RemoveRange(plantilla.Tareas);
@@ -132,6 +164,26 @@ public class PlantillaTrabajoHandlers :
         if (plantilla.Materiales.Any())
         {
             _context.PlantillasMateriales.RemoveRange(plantilla.Materiales);
+        }
+
+        if (req.Servicios != null && req.Servicios.Count > 0)
+        {
+            foreach (var s in req.Servicios)
+            {
+                if (s.ProductoId != Guid.Empty)
+                {
+                    var nuevoServicio = PlantillaServicio.Crear(
+                        plantilla.Id,
+                        s.ProductoId,
+                        s.EsPredeterminada
+                    );
+                    _context.PlantillasServicios.Add(nuevoServicio);
+                }
+            }
+        }
+        else if (req.ProductoId != Guid.Empty)
+        {
+            _context.PlantillasServicios.Add(PlantillaServicio.Crear(plantilla.Id, req.ProductoId, req.EsPredeterminada));
         }
 
         if (req.Tareas != null)
@@ -313,6 +365,8 @@ public class PlantillaTrabajoHandlers :
         var p = await _context.PlantillasTrabajo
             .AsNoTracking()
             .Include(x => x.Producto)
+            .Include(x => x.Servicios)
+                .ThenInclude(s => s.Producto)
             .Include(x => x.Tareas)
                 .ThenInclude(t => t.Tarea)
             .Include(x => x.Materiales)
@@ -322,6 +376,25 @@ public class PlantillaTrabajoHandlers :
 
         if (p == null)
             return Result<PlantillaTrabajoDetalleDto>.Failure("Plantilla de trabajo no encontrada.");
+
+        var serviciosDto = p.Servicios.Select(s => new PlantillaServicioItemDto(
+            s.Id,
+            s.ProductoId,
+            s.Producto != null ? s.Producto.Codigo : string.Empty,
+            s.Producto != null ? s.Producto.Nombre : string.Empty,
+            s.EsPredeterminada
+        )).ToList();
+
+        if (serviciosDto.Count == 0 && p.Producto != null)
+        {
+            serviciosDto.Add(new PlantillaServicioItemDto(
+                Guid.Empty,
+                p.ProductoId,
+                p.Producto.Codigo,
+                p.Producto.Nombre,
+                p.EsPredeterminada
+            ));
+        }
 
         var tareasDto = p.Tareas
             .OrderBy(t => t.OrdenSecuencia)
@@ -361,6 +434,7 @@ public class PlantillaTrabajoHandlers :
             p.EsPredeterminada,
             p.Activo,
             p.CreatedAt,
+            serviciosDto,
             tareasDto,
             materialesDto
         );

@@ -40,7 +40,6 @@ import {
   DocumentBulletList20Regular,
   ArrowUp16Regular,
   ArrowDown16Regular,
-  Box16Regular,
   Checkmark16Regular,
   Dismiss24Regular,
   Search16Regular,
@@ -57,7 +56,6 @@ import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
-import { SelectorEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
 import { TableEmptyState } from '../../../../components/common/TableEmptyState';
 
 interface TareaLocalItem {
@@ -70,6 +68,14 @@ interface TareaLocalItem {
   requiereEvidencia: boolean;
   instrucciones: string;
   duracionEstimadaMinutos: number;
+}
+
+interface ServicioLocalItem {
+  id: string; // temp row id
+  productoId: string;
+  productoCodigo: string;
+  productoNombre: string;
+  esPredeterminada: boolean;
 }
 
 interface MaterialLocalItem {
@@ -106,22 +112,20 @@ export function PlantillaTrabajoFormPage() {
   // Estado del formulario principal
   const [codigo, setCodigo] = useState('');
   const [nombre, setNombre] = useState('');
-  const [productoId, setProductoId] = useState('');
-  const [busquedaServicio, setBusquedaServicio] = useState('');
   const [duracionEstimadaMinutos, setDuracionEstimadaMinutos] = useState<number>(60);
   const [descripcion, setDescripcion] = useState('');
-  const [esPredeterminada, setEsPredeterminada] = useState(false);
   const [activo, setActivo] = useState(true);
 
   // Títulos y tarjetas estáticas del encabezado (solo cambian al cargar o guardar)
   const [savedTitle, setSavedTitle] = useState(isEditMode ? '' : 'Nuevo');
   const [savedSubtitle, setSavedSubtitle] = useState('Receta Técnica • Ficha de plantilla de trabajo');
-  const [savedServicioNombre, setSavedServicioNombre] = useState('Sin servicio');
+  const [savedCantidadServicios, setSavedCantidadServicios] = useState(0);
   const [savedDuracionMinutos, setSavedDuracionMinutos] = useState(60);
   const [savedCantidadTareas, setSavedCantidadTareas] = useState(0);
   const [savedCantidadMateriales, setSavedCantidadMateriales] = useState(0);
 
   // Colecciones hijas
+  const [servicios, setServicios] = useState<ServicioLocalItem[]>([]);
   const [tareas, setTareas] = useState<TareaLocalItem[]>([]);
   const [materiales, setMateriales] = useState<MaterialLocalItem[]>([]);
 
@@ -130,11 +134,18 @@ export function PlantillaTrabajoFormPage() {
   const [catalogoTareas, setCatalogoTareas] = useState<TareaDto[]>([]);
 
   // UI state
-  const [selectedTab, setSelectedTab] = useState<'general' | 'tareas' | 'materiales'>('general');
+  const [selectedTab, setSelectedTab] = useState<'general' | 'servicios' | 'tareas' | 'materiales'>('general');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Diálogo para agregar servicios
+  const [dialogServicioOpen, setDialogServicioOpen] = useState(false);
+  const [serviciosSeleccionadosDrawer, setServiciosSeleccionadosDrawer] = useState<Set<string>>(new Set());
+  const [filtroBusquedaServicio, setFiltroBusquedaServicio] = useState('');
+  const [serviciosSeleccionadosTabla, setServiciosSeleccionadosTabla] = useState<Set<string>>(new Set());
+  const [filtroTablaServicios, setFiltroTablaServicios] = useState('');
 
   // Diálogo para agregar tarea
   const [dialogTareaOpen, setDialogTareaOpen] = useState(false);
@@ -170,16 +181,38 @@ export function PlantillaTrabajoFormPage() {
         setNombre(plantilla.nombre);
         setSavedTitle(plantilla.nombre);
         setSavedSubtitle(`Receta Técnica • ${plantilla.codigo || 'Código autogenerado'}`);
-        const prodMatch = prods.find((p) => p.id === plantilla.productoId);
-        setSavedServicioNombre(prodMatch?.nombre || plantilla.productoNombre || 'Sin servicio');
         setSavedDuracionMinutos(plantilla.duracionEstimadaMinutos);
         setSavedCantidadTareas(plantilla.tareas.length);
         setSavedCantidadMateriales(plantilla.materiales.length);
-        setProductoId(plantilla.productoId);
         setDuracionEstimadaMinutos(plantilla.duracionEstimadaMinutos);
         setDescripcion(plantilla.descripcion || '');
-        setEsPredeterminada(plantilla.esPredeterminada);
         setActivo(plantilla.activo);
+
+        if (plantilla.servicios && plantilla.servicios.length > 0) {
+          const srvItems: ServicioLocalItem[] = plantilla.servicios.map((s) => ({
+            id: s.id || `srv-${s.productoId}`,
+            productoId: s.productoId,
+            productoCodigo: s.productoCodigo || '',
+            productoNombre: s.productoNombre || '',
+            esPredeterminada: s.esPredeterminada,
+          }));
+          setServicios(srvItems);
+          setSavedCantidadServicios(srvItems.length);
+        } else if (plantilla.productoId) {
+          const prodMatch = prods.find((p) => p.id === plantilla.productoId);
+          const srvItems: ServicioLocalItem[] = [{
+            id: `srv-${plantilla.productoId}`,
+            productoId: plantilla.productoId,
+            productoCodigo: plantilla.productoCodigo || '',
+            productoNombre: prodMatch?.nombre || plantilla.productoNombre || '',
+            esPredeterminada: plantilla.esPredeterminada ?? false,
+          }];
+          setServicios(srvItems);
+          setSavedCantidadServicios(1);
+        } else {
+          setServicios([]);
+          setSavedCantidadServicios(0);
+        }
 
         setTareas(
           plantilla.tareas.map((t) => ({
@@ -225,8 +258,8 @@ export function PlantillaTrabajoFormPage() {
 
   // Lista de servicios de catálogo (tipo === 'Servicio' o todos)
   const productosServicio = useMemo(() => {
-    const servicios = catalogoProductos.filter((p) => p.tipo === 'Servicio' || p.tipo === 2);
-    return servicios.length > 0 ? servicios : catalogoProductos;
+    const srvs = catalogoProductos.filter((p) => p.tipo === 'Servicio' || p.tipo === 2);
+    return srvs.length > 0 ? srvs : catalogoProductos;
   }, [catalogoProductos]);
 
   // Lista de materiales inventariables
@@ -253,14 +286,10 @@ export function PlantillaTrabajoFormPage() {
     );
   }, [catalogoTareas, filtroBusquedaTarea]);
 
-  const productoSeleccionado = useMemo(() => {
-    return catalogoProductos.find((p) => p.id === productoId);
-  }, [catalogoProductos, productoId]);
-
   const validar = (): boolean => {
     const errs: Record<string, string> = {};
     if (!nombre.trim()) errs.nombre = 'El nombre de la plantilla es obligatorio.';
-    if (!productoId) errs.productoId = 'Debe seleccionar un producto o servicio de catálogo.';
+    if (servicios.length === 0) errs.servicios = 'Debe agregar al menos un servicio asociado a la plantilla.';
     if (duracionEstimadaMinutos < 1) errs.duracion = 'La duración estimada debe ser al menos 1 minuto.';
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -269,7 +298,8 @@ export function PlantillaTrabajoFormPage() {
   const guardar = async (cerrarAlFinal = false): Promise<string | null> => {
     if (!validar()) {
       setStatusMessage({ type: 'error', text: 'Complete los campos obligatorios del formulario.' });
-      setSelectedTab('general');
+      if (!nombre.trim()) setSelectedTab('general');
+      else if (servicios.length === 0) setSelectedTab('servicios');
       return null;
     }
 
@@ -277,13 +307,18 @@ export function PlantillaTrabajoFormPage() {
       setSaving(true);
       setStatusMessage(null);
 
+      const primerServicio = servicios.find((s) => s.esPredeterminada) || servicios[0];
       const dto: GuardarPlantillaTrabajoDto = {
         codigo: codigo.trim() || undefined,
         nombre: nombre.trim(),
-        productoId,
+        productoId: primerServicio?.productoId || '',
         duracionEstimadaMinutos,
         descripcion: descripcion.trim() || undefined,
-        esPredeterminada,
+        esPredeterminada: servicios.some((s) => s.esPredeterminada),
+        servicios: servicios.map((s) => ({
+          productoId: s.productoId,
+          esPredeterminada: s.esPredeterminada,
+        })),
         tareas: tareas.map((t, idx) => ({
           tareaId: t.tareaId,
           ordenSecuencia: idx + 1,
@@ -304,7 +339,7 @@ export function PlantillaTrabajoFormPage() {
         await PlantillaTrabajoService.actualizarPlantilla(id, dto);
         setSavedTitle(nombre.trim());
         setSavedSubtitle(`Receta Técnica • ${codigo.trim() || 'Código autogenerado'}`);
-        setSavedServicioNombre(productoSeleccionado?.nombre || 'Sin servicio');
+        setSavedCantidadServicios(servicios.length);
         setSavedDuracionMinutos(duracionEstimadaMinutos);
         setSavedCantidadTareas(tareas.length);
         setSavedCantidadMateriales(materiales.length);
@@ -314,7 +349,7 @@ export function PlantillaTrabajoFormPage() {
         savedId = res.id;
         setSavedTitle(nombre.trim());
         setSavedSubtitle(`Receta Técnica • ${codigo.trim() || 'Código autogenerado'}`);
-        setSavedServicioNombre(productoSeleccionado?.nombre || 'Sin servicio');
+        setSavedCantidadServicios(servicios.length);
         setSavedDuracionMinutos(duracionEstimadaMinutos);
         setSavedCantidadTareas(tareas.length);
         setSavedCantidadMateriales(materiales.length);
@@ -502,6 +537,164 @@ export function PlantillaTrabajoFormPage() {
   const eliminarMaterialFila = (index: number) => {
     setMateriales((prev) => prev.filter((_, i) => i !== index));
   };
+
+  // Manejo de Servicios
+  const serviciosFiltradosTabla = useMemo(() => {
+    const q = filtroTablaServicios.trim().toLowerCase();
+    if (!q) return servicios;
+    return servicios.filter(
+      (s) => s.productoCodigo.toLowerCase().includes(q) || s.productoNombre.toLowerCase().includes(q)
+    );
+  }, [servicios, filtroTablaServicios]);
+
+  const serviciosDisponiblesDrawer = useMemo(() => {
+    const q = filtroBusquedaServicio.trim().toLowerCase();
+    let list = productosServicio;
+    if (q) {
+      list = list.filter(
+        (p) => p.codigo.toLowerCase().includes(q) || p.nombre.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [productosServicio, filtroBusquedaServicio]);
+
+  const agregarServiciosFila = () => {
+    if (serviciosSeleccionadosDrawer.size === 0) return;
+
+    const nuevos: ServicioLocalItem[] = [];
+    for (const prodId of serviciosSeleccionadosDrawer) {
+      if (servicios.some((s) => s.productoId === prodId)) continue;
+      const prod = catalogoProductos.find((p) => p.id === prodId);
+      if (!prod) continue;
+
+      nuevos.push({
+        id: `srv-${prod.id}-${Date.now()}`,
+        productoId: prod.id,
+        productoCodigo: prod.codigo,
+        productoNombre: prod.nombre,
+        esPredeterminada: servicios.length === 0 && nuevos.length === 0,
+      });
+    }
+
+    if (nuevos.length > 0) {
+      setServicios((prev) => [...prev, ...nuevos]);
+      notifySuccess('Servicios agregados a la plantilla.');
+    }
+
+    setDialogServicioOpen(false);
+    setServiciosSeleccionadosDrawer(new Set());
+    setFiltroBusquedaServicio('');
+  };
+
+  const eliminarServicioFila = (index: number) => {
+    setServicios((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const eliminarServiciosSeleccionadosTabla = () => {
+    if (serviciosSeleccionadosTabla.size === 0) return;
+    setServicios((prev) => prev.filter((s) => !serviciosSeleccionadosTabla.has(s.id)));
+    setServiciosSeleccionadosTabla(new Set());
+  };
+
+  // Columnas DataGrid para Servicios Asociados
+  const columnasServicios: TableColumnDefinition<ServicioLocalItem>[] = useMemo(
+    () => [
+      createTableColumn<ServicioLocalItem>({
+        columnId: 'select',
+        renderHeaderCell: () => {
+          const todosSeleccionados =
+            serviciosFiltradosTabla.length > 0 &&
+            serviciosFiltradosTabla.every((s) => serviciosSeleccionadosTabla.has(s.id));
+          return (
+            <Checkbox
+              checked={todosSeleccionados}
+              onChange={(_, d) => {
+                if (d.checked) {
+                  setServiciosSeleccionadosTabla(new Set(serviciosFiltradosTabla.map((s) => s.id)));
+                } else {
+                  setServiciosSeleccionadosTabla(new Set());
+                }
+              }}
+            />
+          );
+        },
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Checkbox
+              checked={serviciosSeleccionadosTabla.has(item.id)}
+              onChange={(_, d) => {
+                setServiciosSeleccionadosTabla((prev) => {
+                  const next = new Set(prev);
+                  if (d.checked) next.add(item.id);
+                  else next.delete(item.id);
+                  return next;
+                });
+              }}
+            />
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ServicioLocalItem>({
+        columnId: 'codigo',
+        renderHeaderCell: () => 'Código',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Text weight="semibold">{item.productoCodigo || '—'}</Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ServicioLocalItem>({
+        columnId: 'nombre',
+        renderHeaderCell: () => 'Nombre del Servicio',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Text weight="semibold">{item.productoNombre}</Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ServicioLocalItem>({
+        columnId: 'predeterminada',
+        renderHeaderCell: () => 'Predeterminada',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Checkbox
+              checked={item.esPredeterminada}
+              onChange={(_, d) => {
+                const checked = Boolean(d.checked);
+                setServicios((prev) =>
+                  prev.map((s) =>
+                    s.id === item.id
+                      ? { ...s, esPredeterminada: checked }
+                      : s
+                  )
+                );
+              }}
+              label={item.esPredeterminada ? 'Sí' : 'No'}
+            />
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ServicioLocalItem>({
+        columnId: 'acciones',
+        renderHeaderCell: () => 'Acciones',
+        renderCell: (item) => {
+          const idx = servicios.findIndex((x) => x.id === item.id);
+          return (
+            <TableCellLayout>
+              <Button
+                size="small"
+                appearance="subtle"
+                icon={<Delete16Regular />}
+                onClick={() => eliminarServicioFila(idx)}
+                title="Eliminar"
+              />
+            </TableCellLayout>
+          );
+        },
+      }),
+    ],
+    [servicios, serviciosFiltradosTabla, serviciosSeleccionadosTabla]
+  );
 
   // Columnas DataGrid para Checklist de Tareas
   const columnasTareas: TableColumnDefinition<TareaLocalItem>[] = useMemo(
@@ -841,8 +1034,8 @@ export function PlantillaTrabajoFormPage() {
         avatarSize={48}
         metadata={[
           {
-            label: 'Servicio',
-            value: savedServicioNombre,
+            label: 'Servicios',
+            value: `${savedCantidadServicios} servicio${savedCantidadServicios === 1 ? '' : 's'}`,
           },
           {
             label: 'Duración Estimada',
@@ -860,9 +1053,10 @@ export function PlantillaTrabajoFormPage() {
         tabs={
           <TabList
             selectedValue={selectedTab}
-            onTabSelect={(_, d) => setSelectedTab(d.value as 'general' | 'tareas' | 'materiales')}
+            onTabSelect={(_, d) => setSelectedTab(d.value as 'general' | 'servicios' | 'tareas' | 'materiales')}
           >
             <Tab value="general">Información General</Tab>
+            <Tab value="servicios">Servicios</Tab>
             <Tab value="tareas">Tareas Previstas</Tab>
             <Tab value="materiales">Materiales y Equipos</Tab>
           </TabList>
@@ -875,7 +1069,7 @@ export function PlantillaTrabajoFormPage() {
           <div className={styles.halfCardWrapper}>
             <div className={styles.card}>
               <Text size={400} weight="semibold" style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, paddingBottom: 8, display: 'block' }}>
-                Identificación y Servicio Asociado
+                Identificación de la Plantilla
               </Text>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
@@ -898,36 +1092,6 @@ export function PlantillaTrabajoFormPage() {
                   <Input
                     value={nombre}
                     onChange={(_, d) => setNombre(d.value)}
-                  />
-                </D365FormField>
-
-                <D365FormField
-                  label="Servicio Asociado"
-                  required
-                  error={errors.productoId}
-                  info="Servicio de catálogo facturable al que aplica esta plantilla operativa."
-                >
-                  <SelectorEntidadRelacionada
-                    etiquetaGrupo="Servicios"
-                    icono={<Box16Regular />}
-                    opciones={productosServicio.map((p) => ({
-                      id: p.id,
-                      nombre: `[${p.codigo}] ${p.nombre}`,
-                      detalle: p.tipo === 'Servicio' ? 'Servicio facturable' : 'Inventario',
-                    }))}
-                    seleccionada={
-                      productoSeleccionado
-                        ? {
-                            id: productoSeleccionado.id,
-                            nombre: `[${productoSeleccionado.codigo}] ${productoSeleccionado.nombre}`,
-                            detalle: productoSeleccionado.tipo === 'Servicio' ? 'Servicio facturable' : undefined,
-                          }
-                        : null
-                    }
-                    textoBusqueda={busquedaServicio}
-                    alCambiarBusqueda={setBusquedaServicio}
-                    alSeleccionar={(id) => setProductoId(id || '')}
-                    textoVacio="No se encontraron servicios disponibles"
                   />
                 </D365FormField>
 
@@ -956,20 +1120,77 @@ export function PlantillaTrabajoFormPage() {
                   />
                 </D365FormField>
               </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
-              <Checkbox
-                checked={esPredeterminada}
-                onChange={(_, d) => setEsPredeterminada(Boolean(d.checked))}
-                label={
-                  <Text>
-                    <strong>Plantilla Predeterminada para este Servicio</strong> — Al agregar este servicio en una Orden de Trabajo, se precargarán automáticamente estas tareas y materiales.
-                  </Text>
-                }
-              />
             </div>
           </div>
-        </div>
+        )}
+
+        {selectedTab === 'servicios' && (
+          <div className={styles.card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div>
+                <Text size={400} weight="semibold">Servicios Asociados a la Plantilla</Text>
+                <br />
+                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                  Servicios de catálogo facturables a los que aplica esta plantilla operativa.
+                </Text>
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {serviciosSeleccionadosTabla.size > 0 && (
+                  <Button
+                    appearance="subtle"
+                    icon={<Delete16Regular />}
+                    onClick={eliminarServiciosSeleccionadosTabla}
+                  >
+                    Eliminar
+                  </Button>
+                )}
+                <Button
+                  appearance="primary"
+                  icon={<Add16Regular />}
+                  onClick={() => setDialogServicioOpen(true)}
+                >
+                  Agregar Servicio
+                </Button>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 12, maxWidth: 300 }}>
+              <Input
+                contentBefore={<Search16Regular />}
+                placeholder="Filtrar servicios..."
+                value={filtroTablaServicios}
+                onChange={(_, d) => setFiltroTablaServicios(d.value)}
+                style={{ width: '100%' }}
+                size="small"
+              />
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <DataGrid
+                items={serviciosFiltradosTabla}
+                columns={columnasServicios}
+                getRowId={(s) => s.id}
+                style={{ width: '100%', minWidth: 650 }}
+              >
+                <DataGridHeader>
+                  <DataGridRow>
+                    {({ renderHeaderCell }) => <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>}
+                  </DataGridRow>
+                </DataGridHeader>
+                {serviciosFiltradosTabla.length === 0 ? (
+                  <TableEmptyState />
+                ) : (
+                  <DataGridBody<ServicioLocalItem>>
+                    {({ item, rowId }) => (
+                      <DataGridRow<ServicioLocalItem> key={rowId}>
+                        {({ renderCell }) => <DataGridCell>{renderCell(item)}</DataGridCell>}
+                      </DataGridRow>
+                    )}
+                  </DataGridBody>
+                )}
+              </DataGrid>
+            </div>
+          </div>
         )}
 
         {selectedTab === 'tareas' && (
@@ -1066,6 +1287,155 @@ export function PlantillaTrabajoFormPage() {
           </div>
         )}
       </div>
+
+      {/* Panel Lateral (Drawer Derecho) para agregar servicios con Selección Múltiple */}
+      <OverlayDrawer
+        position="end"
+        open={dialogServicioOpen}
+        onOpenChange={(_, { open }) => setDialogServicioOpen(open)}
+        style={{ width: 480, maxWidth: '95vw' }}
+      >
+        <DrawerHeader style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}` }}>
+          <DrawerHeaderTitle
+            action={
+              <Button
+                appearance="subtle"
+                aria-label="Cerrar"
+                icon={<Dismiss24Regular />}
+                onClick={() => setDialogServicioOpen(false)}
+              />
+            }
+          >
+            Agregar Servicios a la Plantilla
+          </DrawerHeaderTitle>
+        </DrawerHeader>
+
+        <DrawerBody style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '20px' }}>
+          {/* Buscador de servicios */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <Text weight="semibold" size={200}>Buscar Servicio de Catálogo</Text>
+            <Input
+              contentBefore={<Search16Regular />}
+              placeholder="Filtrar por código o nombre..."
+              value={filtroBusquedaServicio}
+              onChange={(_, d) => setFiltroBusquedaServicio(d.value)}
+              style={{ width: '100%' }}
+            />
+          </div>
+
+          {/* Lista de servicios con Checkbox */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text weight="semibold" size={200}>
+                Servicios Disponibles ({serviciosDisponiblesDrawer.length})
+              </Text>
+              {serviciosDisponiblesDrawer.length > 0 && (
+                <Button
+                  appearance="subtle"
+                  size="small"
+                  onClick={() => {
+                    const todosSeleccionados = serviciosDisponiblesDrawer.every((s) => serviciosSeleccionadosDrawer.has(s.id));
+                    if (todosSeleccionados) {
+                      setServiciosSeleccionadosDrawer((prev) => {
+                        const copy = new Set(prev);
+                        serviciosDisponiblesDrawer.forEach((s) => copy.delete(s.id));
+                        return copy;
+                      });
+                    } else {
+                      setServiciosSeleccionadosDrawer((prev) => {
+                        const copy = new Set(prev);
+                        serviciosDisponiblesDrawer.forEach((s) => copy.add(s.id));
+                        return copy;
+                      });
+                    }
+                  }}
+                >
+                  {serviciosDisponiblesDrawer.every((s) => serviciosSeleccionadosDrawer.has(s.id))
+                    ? 'Deseleccionar todas'
+                    : 'Seleccionar todas'}
+                </Button>
+              )}
+            </div>
+
+            <div
+              style={{
+                maxHeight: 340,
+                overflowY: 'auto',
+                border: `1px solid ${tokens.colorNeutralStroke1}`,
+                borderRadius: tokens.borderRadiusMedium,
+                padding: '4px 8px',
+                backgroundColor: tokens.colorNeutralBackground1,
+              }}
+            >
+              {serviciosDisponiblesDrawer.length === 0 ? (
+                <div style={{ padding: '16px', textAlign: 'center', color: tokens.colorNeutralForeground4, fontSize: 13 }}>
+                  No se encontraron servicios en el catálogo.
+                </div>
+              ) : (
+                serviciosDisponiblesDrawer.map((p) => {
+                  const isChecked = serviciosSeleccionadosDrawer.has(p.id);
+                  const yaAgregado = servicios.some((item) => item.productoId === p.id);
+                  return (
+                    <div
+                      key={p.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 4px',
+                        borderBottom: `1px solid ${tokens.colorNeutralStroke3}`,
+                        opacity: yaAgregado ? 0.6 : 1,
+                      }}
+                    >
+                      <Checkbox
+                        checked={isChecked || yaAgregado}
+                        disabled={yaAgregado}
+                        onChange={(_, d) => {
+                          setServiciosSeleccionadosDrawer((prev) => {
+                            const next = new Set(prev);
+                            if (d.checked) {
+                              next.add(p.id);
+                            } else {
+                              next.delete(p.id);
+                            }
+                            return next;
+                          });
+                        }}
+                        label={
+                          <div>
+                            <Text size={200} weight={isChecked ? 'semibold' : 'regular'}>
+                              [{p.codigo}] {p.nombre}
+                            </Text>
+                            {yaAgregado && (
+                              <Text size={100} style={{ color: tokens.colorNeutralForeground4, display: 'block' }}>
+                                (Ya agregado en la plantilla)
+                              </Text>
+                            )}
+                          </div>
+                        }
+                      />
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </DrawerBody>
+
+        <DrawerFooter style={{ borderTop: `1px solid ${tokens.colorNeutralStroke2}`, padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <Button appearance="secondary" onClick={() => setDialogServicioOpen(false)}>
+            Cancelar
+          </Button>
+          <Button
+            appearance="primary"
+            icon={<Checkmark16Regular />}
+            disabled={serviciosSeleccionadosDrawer.size === 0}
+            onClick={agregarServiciosFila}
+          >
+            Agregar
+          </Button>
+        </DrawerFooter>
+      </OverlayDrawer>
 
       {/* Panel Lateral (Drawer Derecho) para agregar tareas con Selección Múltiple */}
       <OverlayDrawer

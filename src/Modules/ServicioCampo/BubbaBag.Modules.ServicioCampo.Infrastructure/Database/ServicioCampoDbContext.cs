@@ -60,6 +60,7 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     // Plantillas y Catálogos de Tareas
     public DbSet<Tarea> Tareas => Set<Tarea>();
     public DbSet<PlantillaTrabajo> PlantillasTrabajo => Set<PlantillaTrabajo>();
+    public DbSet<PlantillaServicio> PlantillasServicios => Set<PlantillaServicio>();
     public DbSet<PlantillaTarea> PlantillasTareas => Set<PlantillaTarea>();
     public DbSet<PlantillaMaterial> PlantillasMateriales => Set<PlantillaMaterial>();
 

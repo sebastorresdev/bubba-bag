@@ -56,6 +56,7 @@ public interface IServicioCampoDbContext
     // Plantillas y Catálogos de Tareas
     DbSet<Tarea> Tareas { get; }
     DbSet<PlantillaTrabajo> PlantillasTrabajo { get; }
+    DbSet<PlantillaServicio> PlantillasServicios { get; }
     DbSet<PlantillaTarea> PlantillasTareas { get; }
     DbSet<PlantillaMaterial> PlantillasMateriales { get; }
 

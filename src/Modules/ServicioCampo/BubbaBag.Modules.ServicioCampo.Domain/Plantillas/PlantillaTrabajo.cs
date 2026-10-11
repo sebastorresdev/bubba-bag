@@ -36,6 +36,10 @@ public class PlantillaTrabajo : Entity<Guid>
     public bool Activo { get; private set; } = true;
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
 
+    // Colección de servicios a los que aplica esta plantilla
+    private readonly List<PlantillaServicio> _servicios = new();
+    public IReadOnlyCollection<PlantillaServicio> Servicios => _servicios.AsReadOnly();
+
     // Colección de tareas previstas (checklist y pasos)
     private readonly List<PlantillaTarea> _tareas = new();
     public IReadOnlyCollection<PlantillaTarea> Tareas => _tareas.AsReadOnly();
@@ -92,6 +96,12 @@ public class PlantillaTrabajo : Entity<Guid>
             ProductoId = productoId.Value;
     }
 
+    public void AgregarServicio(Guid productoId, bool esPredeterminada = false)
+    {
+        var servicio = PlantillaServicio.Crear(Id, productoId, esPredeterminada);
+        _servicios.Add(servicio);
+    }
+
     public void AgregarTarea(Guid tareaId, int ordenSecuencia, bool esObligatoria = true, bool requiereEvidencia = false, string? instrucciones = null)
     {
         var tarea = PlantillaTarea.Crear(Id, tareaId, ordenSecuencia, esObligatoria, requiereEvidencia, instrucciones);
@@ -104,6 +114,7 @@ public class PlantillaTrabajo : Entity<Guid>
         _materiales.Add(material);
     }
 
+    public void LimpiarServicios() => _servicios.Clear();
     public void LimpiarTareas() => _tareas.Clear();
     public void LimpiarMateriales() => _materiales.Clear();
 

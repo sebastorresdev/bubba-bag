@@ -47,6 +47,11 @@ public class PlantillaTrabajoConfiguration : IEntityTypeConfiguration<PlantillaT
             .HasForeignKey(p => p.ProductoId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasMany(p => p.Servicios)
+            .WithOne(s => s.PlantillaTrabajo)
+            .HasForeignKey(s => s.PlantillaTrabajoId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.HasMany(p => p.Tareas)
             .WithOne(t => t.PlantillaTrabajo)
             .HasForeignKey(t => t.PlantillaTrabajoId)
@@ -57,7 +62,41 @@ public class PlantillaTrabajoConfiguration : IEntityTypeConfiguration<PlantillaT
             .HasForeignKey(m => m.PlantillaTrabajoId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.Navigation(p => p.Servicios).UsePropertyAccessMode(PropertyAccessMode.Field);
         builder.Navigation(p => p.Tareas).UsePropertyAccessMode(PropertyAccessMode.Field);
         builder.Navigation(p => p.Materiales).UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class PlantillaServicioConfiguration : IEntityTypeConfiguration<PlantillaServicio>
+{
+    public void Configure(EntityTypeBuilder<PlantillaServicio> builder)
+    {
+        builder.ToTable("PlantillasServicios", "serviciocampo");
+
+        builder.HasKey(s => s.Id);
+
+        builder.Property(s => s.PlantillaTrabajoId)
+            .IsRequired();
+
+        builder.Property(s => s.ProductoId)
+            .IsRequired();
+
+        builder.Property(s => s.EsPredeterminada)
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.HasOne(s => s.PlantillaTrabajo)
+            .WithMany(p => p.Servicios)
+            .HasForeignKey(s => s.PlantillaTrabajoId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(s => s.Producto)
+            .WithMany()
+            .HasForeignKey(s => s.ProductoId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(s => new { s.PlantillaTrabajoId, s.ProductoId })
+            .IsUnique();
     }
 }

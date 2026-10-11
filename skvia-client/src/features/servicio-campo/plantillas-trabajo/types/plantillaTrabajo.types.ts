@@ -26,8 +26,17 @@ export interface PlantillaTrabajoDetalleDto {
   esPredeterminada: boolean;
   activo: boolean;
   createdAt: string;
+  servicios?: PlantillaServicioItemDto[];
   tareas: PlantillaTareaItemDto[];
   materiales: PlantillaMaterialItemDto[];
+}
+
+export interface PlantillaServicioItemDto {
+  id?: string;
+  productoId: string;
+  productoCodigo?: string;
+  productoNombre?: string;
+  esPredeterminada: boolean;
 }
 
 export interface PlantillaTareaItemDto {
@@ -57,10 +66,14 @@ export interface PlantillaMaterialItemDto {
 export interface GuardarPlantillaTrabajoDto {
   codigo?: string;
   nombre: string;
-  productoId: string;
+  productoId?: string;
   duracionEstimadaMinutos: number;
   descripcion?: string;
   esPredeterminada: boolean;
+  servicios?: {
+    productoId: string;
+    esPredeterminada: boolean;
+  }[];
   tareas: {
     tareaId: string;
     ordenSecuencia: number;

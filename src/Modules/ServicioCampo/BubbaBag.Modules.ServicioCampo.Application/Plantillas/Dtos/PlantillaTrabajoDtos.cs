@@ -30,8 +30,16 @@ public record PlantillaTrabajoDetalleDto(
     bool EsPredeterminada,
     bool Activo,
     DateTime CreatedAt,
+    List<PlantillaServicioItemDto> Servicios,
     List<PlantillaTareaItemDto> Tareas,
     List<PlantillaMaterialItemDto> Materiales);
+
+public record PlantillaServicioItemDto(
+    Guid Id,
+    Guid ProductoId,
+    string ProductoCodigo,
+    string ProductoNombre,
+    bool EsPredeterminada);
 
 public record PlantillaTareaItemDto(
     Guid Id,
@@ -64,6 +72,10 @@ public record TareaDto(
     bool RequiereEvidenciaFotografica,
     bool Activo);
 
+public record GuardarPlantillaServicioDto(
+    Guid ProductoId,
+    bool EsPredeterminada);
+
 public record GuardarPlantillaTareaDto(
     Guid TareaId,
     int OrdenSecuencia,
@@ -84,6 +96,7 @@ public record CrearPlantillaTrabajoRequest(
     int DuracionEstimadaMinutos,
     string? Descripcion,
     bool EsPredeterminada,
+    List<GuardarPlantillaServicioDto>? Servicios,
     List<GuardarPlantillaTareaDto>? Tareas,
     List<GuardarPlantillaMaterialDto>? Materiales);
 
@@ -93,6 +106,7 @@ public record ActualizarPlantillaTrabajoRequest(
     int DuracionEstimadaMinutos,
     string? Descripcion,
     bool EsPredeterminada,
+    List<GuardarPlantillaServicioDto>? Servicios,
     List<GuardarPlantillaTareaDto>? Tareas,
     List<GuardarPlantillaMaterialDto>? Materiales);
 
