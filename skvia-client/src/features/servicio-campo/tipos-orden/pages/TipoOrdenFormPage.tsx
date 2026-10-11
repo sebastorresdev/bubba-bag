@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Input,
@@ -33,6 +33,7 @@ import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
 import { SelectorEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
+import { SeguridadService, type UsuarioDto } from '../../../seguridad';
 
 
 export function TipoOrdenFormPage() {
@@ -69,6 +70,11 @@ export function TipoOrdenFormPage() {
   const auth = useAuthSession();
   const creadorNombre = auth.usuario?.nombreCompleto || 'Usuario del Sistema';
 
+  const [usuarios, setUsuarios] = useState<UsuarioDto[]>([]);
+  const [propietarioId, setPropietarioId] = useState<string>(auth.usuario?.id || 'creador');
+  const [propietarioNombre, setPropietarioNombre] = useState<string>(creadorNombre);
+  const [busquedaPropietario, setBusquedaPropietario] = useState<string>('');
+
   const [listasPrecios, setListasPrecios] = useState<ListaPreciosDto[]>([]);
   const [listaPrecioId, setListaPrecioId] = useState<string>('');
   const [busquedaLista, setBusquedaLista] = useState<string>('');
@@ -83,7 +89,43 @@ export function TipoOrdenFormPage() {
     void ListaPreciosService.getListasPrecios(undefined, true)
       .then((res) => setListasPrecios(res))
       .catch(() => {});
+    void SeguridadService.usuarios()
+      .then((res) => setUsuarios(res))
+      .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (auth.usuario?.id && (!propietarioId || propietarioId === 'creador')) {
+      setPropietarioId(auth.usuario.id);
+      setPropietarioNombre(auth.usuario.nombreCompleto || 'Usuario del Sistema');
+    }
+  }, [auth.usuario, propietarioId]);
+
+  const opcionesUsuarios = useMemo(() => {
+    const list = usuarios.map((u) => ({
+      id: u.id,
+      nombre: u.nombreCompleto,
+      detalle: u.email,
+    }));
+    if (propietarioId && !list.some((u) => u.id === propietarioId)) {
+      list.unshift({
+        id: propietarioId,
+        nombre: propietarioNombre || creadorNombre,
+        detalle: undefined,
+      });
+    }
+    return list;
+  }, [usuarios, propietarioId, propietarioNombre, creadorNombre]);
+
+  const propietarioSeleccionado = useMemo(() => {
+    if (!propietarioId) return null;
+    return (
+      opcionesUsuarios.find((u) => u.id === propietarioId) || {
+        id: propietarioId,
+        nombre: propietarioNombre || creadorNombre,
+      }
+    );
+  }, [propietarioId, propietarioNombre, creadorNombre, opcionesUsuarios]);
 
   const cargarDatos = useCallback(async (tipoId: string) => {
     try {
@@ -281,7 +323,7 @@ export function TipoOrdenFormPage() {
         metadata={[
           {
             label: 'Propietario',
-            value: creadorNombre,
+            value: propietarioNombre || creadorNombre,
           },
           {
             label: 'Lista de Precios',
@@ -320,15 +362,25 @@ export function TipoOrdenFormPage() {
                 label="Propietario"
                 info="Usuario responsable de la creación o gestión de este registro."
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Person16Regular style={{ color: tokens.colorNeutralForeground3 }} />
-                  <Input
-                    value={creadorNombre}
-                    readOnly
-                    appearance="filled-darker"
-                    style={{ flex: 1 }}
-                  />
-                </div>
+                <SelectorEntidadRelacionada
+                  etiquetaGrupo="Usuarios"
+                  icono={<Person16Regular />}
+                  opciones={opcionesUsuarios}
+                  seleccionada={propietarioSeleccionado}
+                  textoBusqueda={busquedaPropietario}
+                  alCambiarBusqueda={setBusquedaPropietario}
+                  alSeleccionar={(newId) => {
+                    setPropietarioId(newId || '');
+                    const u = opcionesUsuarios.find((x) => x.id === newId);
+                    setPropietarioNombre(u ? u.nombre : '');
+                  }}
+                  alNavegar={(uId) => {
+                    if (uId && uId !== 'creador') {
+                      navigate(`/configuracion/usuarios/${uId}`);
+                    }
+                  }}
+                  textoVacio="No se encontraron usuarios"
+                />
               </D365FormField>
             </div>
           </div>
