@@ -43,7 +43,6 @@ import {
   Checkmark16Regular,
   Dismiss24Regular,
   Search16Regular,
-  MoreHorizontal16Regular,
 } from '@fluentui/react-icons';
 import { PlantillaTrabajoService } from '../services/plantillaTrabajo.service';
 import type {
@@ -1294,14 +1293,8 @@ export function PlantillaTrabajoFormPage() {
                 icon={<Add16Regular />}
                 onClick={() => setDialogServicioOpen(true)}
               >
-                + Nuevo Servicio de Plantilla...
+                Nuevo Servicio de Plantilla...
               </Button>
-              <Button
-                appearance="subtle"
-                size="small"
-                icon={<MoreHorizontal16Regular />}
-                aria-label="Más comandos"
-              />
             </div>
 
             {/* Subgrid Table */}
@@ -1395,14 +1388,8 @@ export function PlantillaTrabajoFormPage() {
                 icon={<Add16Regular />}
                 onClick={() => setDialogTareaOpen(true)}
               >
-                + Nueva Tarea de Servicio...
+                Nueva Tarea de Servicio...
               </Button>
-              <Button
-                appearance="subtle"
-                size="small"
-                icon={<MoreHorizontal16Regular />}
-                aria-label="Más comandos"
-              />
             </div>
 
             {/* Subgrid Table */}
@@ -1496,14 +1483,8 @@ export function PlantillaTrabajoFormPage() {
                 icon={<Add16Regular />}
                 onClick={() => setDialogMaterialOpen(true)}
               >
-                + Nuevo Producto de Plantilla...
+                Nuevo Producto de Plantilla...
               </Button>
-              <Button
-                appearance="subtle"
-                size="small"
-                icon={<MoreHorizontal16Regular />}
-                aria-label="Más comandos"
-              />
             </div>
 
             {/* Subgrid Table */}
