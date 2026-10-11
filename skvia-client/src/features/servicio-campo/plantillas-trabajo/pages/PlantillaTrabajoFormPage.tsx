@@ -684,14 +684,7 @@ export function PlantillaTrabajoFormPage() {
                   {tareas.length === 0 ? (
                     <tr>
                       <td colSpan={7} style={{ padding: '32px 16px' }}>
-                        <TableEmptyState
-                          message="No hay tareas agregadas en esta plantilla"
-                          icon={<DocumentBulletList20Regular />}
-                        >
-                          <Button appearance="secondary" size="small" icon={<Add16Regular />} onClick={() => setDialogTareaOpen(true)}>
-                            Agregar primera tarea
-                          </Button>
-                        </TableEmptyState>
+                        <TableEmptyState />
                       </td>
                     </tr>
                   ) : (
@@ -814,14 +807,7 @@ export function PlantillaTrabajoFormPage() {
                   {materiales.length === 0 ? (
                     <tr>
                       <td colSpan={6} style={{ padding: '32px 16px' }}>
-                        <TableEmptyState
-                          message="No hay materiales asignados a esta plantilla"
-                          icon={<Box16Regular />}
-                        >
-                          <Button appearance="secondary" size="small" icon={<Add16Regular />} onClick={() => setDialogMaterialOpen(true)}>
-                            Agregar primer material
-                          </Button>
-                        </TableEmptyState>
+                        <TableEmptyState />
                       </td>
                     </tr>
                   ) : (
