@@ -4,7 +4,6 @@ import {
   Input,
   Checkbox,
   Textarea,
-  Select,
   Tab,
   TabList,
   Spinner,
@@ -35,6 +34,7 @@ import {
   Box16Regular,
   Checkmark16Regular,
   Dismiss24Regular,
+  Search16Regular,
 } from '@fluentui/react-icons';
 import { PlantillaTrabajoService } from '../services/plantillaTrabajo.service';
 import type {
@@ -125,7 +125,8 @@ export function PlantillaTrabajoFormPage() {
 
   // Diálogo para agregar tarea
   const [dialogTareaOpen, setDialogTareaOpen] = useState(false);
-  const [nuevaTareaId, setNuevaTareaId] = useState('');
+  const [tareasSeleccionadas, setTareasSeleccionadas] = useState<Set<string>>(new Set());
+  const [filtroBusquedaTarea, setFiltroBusquedaTarea] = useState('');
   const [nuevaTareaNombre, setNuevaTareaNombre] = useState('');
   const [nuevaTareaObligatoria, setNuevaTareaObligatoria] = useState(true);
   const [nuevaTareaEvidencia, setNuevaTareaEvidencia] = useState(false);
@@ -133,7 +134,8 @@ export function PlantillaTrabajoFormPage() {
 
   // Diálogo para agregar material
   const [dialogMaterialOpen, setDialogMaterialOpen] = useState(false);
-  const [nuevoMaterialProductoId, setNuevoMaterialProductoId] = useState('');
+  const [materialesSeleccionados, setMaterialesSeleccionados] = useState<Set<string>>(new Set());
+  const [filtroBusquedaMaterial, setFiltroBusquedaMaterial] = useState('');
   const [nuevoMaterialCantidad, setNuevoMaterialCantidad] = useState<number>(1);
   const [nuevoMaterialObligatorio, setNuevoMaterialObligatorio] = useState(false);
   const [nuevoMaterialObservaciones, setNuevoMaterialObservaciones] = useState('');
@@ -214,6 +216,24 @@ export function PlantillaTrabajoFormPage() {
     const inventariables = catalogoProductos.filter((p) => p.tipo === 'Inventario' || p.tipo === 1);
     return inventariables.length > 0 ? inventariables : catalogoProductos;
   }, [catalogoProductos]);
+
+  // Materiales filtrados por la búsqueda en el Drawer
+  const materialesFiltrados = useMemo(() => {
+    const q = filtroBusquedaMaterial.trim().toLowerCase();
+    if (!q) return productosMateriales;
+    return productosMateriales.filter(
+      (p) => p.codigo.toLowerCase().includes(q) || p.nombre.toLowerCase().includes(q)
+    );
+  }, [productosMateriales, filtroBusquedaMaterial]);
+
+  // Tareas filtradas por la búsqueda en el Drawer
+  const tareasFiltradas = useMemo(() => {
+    const q = filtroBusquedaTarea.trim().toLowerCase();
+    if (!q) return catalogoTareas;
+    return catalogoTareas.filter(
+      (t) => t.codigo.toLowerCase().includes(q) || t.nombre.toLowerCase().includes(q)
+    );
+  }, [catalogoTareas, filtroBusquedaTarea]);
 
   const productoSeleccionado = useMemo(() => {
     return catalogoProductos.find((p) => p.id === productoId);
@@ -328,24 +348,50 @@ export function PlantillaTrabajoFormPage() {
 
   // Manejo de Tareas
   const agregarTareaFila = async () => {
-    let targetTareaId = nuevaTareaId;
-    let targetTareaCodigo = '';
-    let targetTareaNombre = '';
-    let targetDuracion = 15;
+    const nuevosItems: TareaLocalItem[] = [];
 
-    if (!targetTareaId) {
-      if (!nuevaTareaNombre.trim()) return;
+    // 1. Si hay tareas existentes seleccionadas por checkbox
+    for (const tarId of tareasSeleccionadas) {
+      if (tareas.some((t) => t.tareaId === tarId)) continue;
+      const encontrada = catalogoTareas.find((t) => t.id === tarId);
+      if (!encontrada) continue;
+
+      nuevosItems.push({
+        id: `tmp-${encontrada.id}-${Date.now()}`,
+        tareaId: encontrada.id,
+        tareaCodigo: encontrada.codigo,
+        tareaNombre: encontrada.nombre,
+        ordenSecuencia: tareas.length + nuevosItems.length + 1,
+        esObligatoria: nuevaTareaObligatoria,
+        requiereEvidencia: nuevaTareaEvidencia || encontrada.requiereEvidenciaFotografica,
+        instrucciones: nuevaTareaInstrucciones.trim(),
+        duracionEstimadaMinutos: encontrada.duracionEstimadaMinutos || 15,
+      });
+    }
+
+    // 2. Si se ingresó una nueva tarea rápida
+    if (nuevaTareaNombre.trim()) {
       try {
         const res = await PlantillaTrabajoService.crearTarea({
           nombre: nuevaTareaNombre.trim(),
           duracionEstimadaMinutos: 15,
           requiereEvidenciaFotografica: nuevaTareaEvidencia,
         });
-        targetTareaId = res.id;
-        targetTareaNombre = nuevaTareaNombre.trim();
-        targetTareaCodigo = 'TAR-NUEVA';
         const updatedTars = await PlantillaTrabajoService.getTareas({ soloActivas: true });
         setCatalogoTareas(updatedTars);
+        const creada = updatedTars.find((t) => t.id === res.id);
+
+        nuevosItems.push({
+          id: `tmp-${res.id}-${Date.now()}`,
+          tareaId: res.id,
+          tareaCodigo: creada?.codigo || 'TAR-NUEVA',
+          tareaNombre: nuevaTareaNombre.trim(),
+          ordenSecuencia: tareas.length + nuevosItems.length + 1,
+          esObligatoria: nuevaTareaObligatoria,
+          requiereEvidencia: nuevaTareaEvidencia,
+          instrucciones: nuevaTareaInstrucciones.trim(),
+          duracionEstimadaMinutos: 15,
+        });
       } catch (err) {
         setStatusMessage({
           type: 'error',
@@ -353,30 +399,16 @@ export function PlantillaTrabajoFormPage() {
         });
         return;
       }
-    } else {
-      const encontrada = catalogoTareas.find((t) => t.id === targetTareaId);
-      if (encontrada) {
-        targetTareaCodigo = encontrada.codigo;
-        targetTareaNombre = encontrada.nombre;
-        targetDuracion = encontrada.duracionEstimadaMinutos;
-      }
     }
 
-    const item: TareaLocalItem = {
-      id: `tmp-${Date.now()}`,
-      tareaId: targetTareaId,
-      tareaCodigo: targetTareaCodigo,
-      tareaNombre: targetTareaNombre,
-      ordenSecuencia: tareas.length + 1,
-      esObligatoria: nuevaTareaObligatoria,
-      requiereEvidencia: nuevaTareaEvidencia,
-      instrucciones: nuevaTareaInstrucciones.trim(),
-      duracionEstimadaMinutos: targetDuracion,
-    };
+    if (nuevosItems.length > 0) {
+      setTareas((prev) => [...prev, ...nuevosItems]);
+      notifySuccess(`${nuevosItems.length} tarea(s) agregada(s) a la plantilla.`);
+    }
 
-    setTareas((prev) => [...prev, item]);
     setDialogTareaOpen(false);
-    setNuevaTareaId('');
+    setTareasSeleccionadas(new Set());
+    setFiltroBusquedaTarea('');
     setNuevaTareaNombre('');
     setNuevaTareaObligatoria(true);
     setNuevaTareaEvidencia(false);
@@ -406,25 +438,36 @@ export function PlantillaTrabajoFormPage() {
 
   // Manejo de Materiales
   const agregarMaterialFila = () => {
-    if (!nuevoMaterialProductoId || nuevoMaterialCantidad <= 0) return;
-    const prod = catalogoProductos.find((p) => p.id === nuevoMaterialProductoId);
-    if (!prod) return;
+    if (materialesSeleccionados.size === 0 || nuevoMaterialCantidad <= 0) return;
 
-    const item: MaterialLocalItem = {
-      id: `tmp-mat-${Date.now()}`,
-      productoId: prod.id,
-      productoCodigo: prod.codigo,
-      productoNombre: prod.nombre,
-      cantidadPrevista: nuevoMaterialCantidad,
-      esObligatorio: nuevoMaterialObligatorio,
-      observaciones: nuevoMaterialObservaciones.trim(),
-      unidadMedida: prod.nombreUnidadMedidaDefecto || 'UND',
-      esSerializado: prod.esSerializado,
-    };
+    const nuevos: MaterialLocalItem[] = [];
+    for (const prodId of materialesSeleccionados) {
+      // Evitar agregar si ya existe en la lista de materiales
+      if (materiales.some((m) => m.productoId === prodId)) continue;
+      const prod = catalogoProductos.find((p) => p.id === prodId);
+      if (!prod) continue;
 
-    setMateriales((prev) => [...prev, item]);
+      nuevos.push({
+        id: `tmp-mat-${prod.id}-${Date.now()}`,
+        productoId: prod.id,
+        productoCodigo: prod.codigo,
+        productoNombre: prod.nombre,
+        cantidadPrevista: nuevoMaterialCantidad,
+        esObligatorio: nuevoMaterialObligatorio,
+        observaciones: nuevoMaterialObservaciones.trim(),
+        unidadMedida: prod.nombreUnidadMedidaDefecto || 'UND',
+        esSerializado: prod.esSerializado,
+      });
+    }
+
+    if (nuevos.length > 0) {
+      setMateriales((prev) => [...prev, ...nuevos]);
+      notifySuccess(`${nuevos.length} material(es) agregado(s) a la plantilla.`);
+    }
+
     setDialogMaterialOpen(false);
-    setNuevoMaterialProductoId('');
+    setMaterialesSeleccionados(new Set());
+    setFiltroBusquedaMaterial('');
     setNuevoMaterialCantidad(1);
     setNuevoMaterialObligatorio(false);
     setNuevoMaterialObservaciones('');
@@ -887,12 +930,12 @@ export function PlantillaTrabajoFormPage() {
         )}
       </div>
 
-      {/* Panel Lateral (Drawer Derecho) para agregar tarea */}
+      {/* Panel Lateral (Drawer Derecho) para agregar tareas con Selección Múltiple */}
       <OverlayDrawer
         position="end"
         open={dialogTareaOpen}
         onOpenChange={(_, { open }) => setDialogTareaOpen(open)}
-        style={{ width: 440, maxWidth: '95vw' }}
+        style={{ width: 480, maxWidth: '95vw' }}
       >
         <DrawerHeader style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}` }}>
           <DrawerHeaderTitle
@@ -905,44 +948,139 @@ export function PlantillaTrabajoFormPage() {
               />
             }
           >
-            Agregar Tarea a la Plantilla
+            Agregar Tareas a la Plantilla
           </DrawerHeaderTitle>
         </DrawerHeader>
 
         <DrawerBody style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '20px' }}>
+          {/* Buscador de tareas */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <Text weight="semibold" size={200}>Tarea del Catálogo</Text>
-            <Select
-              value={nuevaTareaId}
-              onChange={(e) => {
-                setNuevaTareaId(e.target.value);
-                if (e.target.value) setNuevaTareaNombre('');
-              }}
+            <Text weight="semibold" size={200}>Buscar Tarea del Catálogo</Text>
+            <Input
+              contentBefore={<Search16Regular />}
+              placeholder="Filtrar por código o nombre..."
+              value={filtroBusquedaTarea}
+              onChange={(_, d) => setFiltroBusquedaTarea(d.value)}
               style={{ width: '100%' }}
-            >
-              <option value="">-- Seleccionar tarea existente --</option>
-              {catalogoTareas.map((t) => (
-                <option key={t.id} value={t.id}>
-                  [{t.codigo}] {t.nombre} ({t.duracionEstimadaMinutos} min)
-                </option>
-              ))}
-            </Select>
+            />
           </div>
 
-          {!nuevaTareaId && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <Text weight="semibold" size={200}>O Crear Nueva Tarea Rápida</Text>
-              <Input
-                value={nuevaTareaNombre}
-                onChange={(_, d) => setNuevaTareaNombre(d.value)}
-                style={{ width: '100%' }}
-              />
+          {/* Lista de tareas con Checkbox */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text weight="semibold" size={200}>
+                Catálogo de Tareas ({tareasFiltradas.length})
+              </Text>
+              {tareasFiltradas.length > 0 && (
+                <Button
+                  appearance="subtle"
+                  size="small"
+                  onClick={() => {
+                    const todasSeleccionadas = tareasFiltradas.every((t) => tareasSeleccionadas.has(t.id));
+                    if (todasSeleccionadas) {
+                      setTareasSeleccionadas((prev) => {
+                        const copy = new Set(prev);
+                        tareasFiltradas.forEach((t) => copy.delete(t.id));
+                        return copy;
+                      });
+                    } else {
+                      setTareasSeleccionadas((prev) => {
+                        const copy = new Set(prev);
+                        tareasFiltradas.forEach((t) => copy.add(t.id));
+                        return copy;
+                      });
+                    }
+                  }}
+                >
+                  {tareasFiltradas.every((t) => tareasSeleccionadas.has(t.id))
+                    ? 'Deseleccionar todas'
+                    : 'Seleccionar todas'}
+                </Button>
+              )}
             </div>
-          )}
+
+            <div
+              style={{
+                maxHeight: 220,
+                overflowY: 'auto',
+                border: `1px solid ${tokens.colorNeutralStroke1}`,
+                borderRadius: tokens.borderRadiusMedium,
+                padding: '4px 8px',
+                backgroundColor: tokens.colorNeutralBackground1,
+              }}
+            >
+              {tareasFiltradas.length === 0 ? (
+                <div style={{ padding: '16px', textAlign: 'center', color: tokens.colorNeutralForeground4, fontSize: 13 }}>
+                  No se encontraron tareas en el catálogo.
+                </div>
+              ) : (
+                tareasFiltradas.map((t) => {
+                  const isChecked = tareasSeleccionadas.has(t.id);
+                  const yaAgregada = tareas.some((item) => item.tareaId === t.id);
+                  return (
+                    <div
+                      key={t.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 4px',
+                        borderBottom: `1px solid ${tokens.colorNeutralStroke3}`,
+                        opacity: yaAgregada ? 0.6 : 1,
+                      }}
+                    >
+                      <Checkbox
+                        checked={isChecked || yaAgregada}
+                        disabled={yaAgregada}
+                        onChange={(_, d) => {
+                          setTareasSeleccionadas((prev) => {
+                            const next = new Set(prev);
+                            if (d.checked) {
+                              next.add(t.id);
+                            } else {
+                              next.delete(t.id);
+                            }
+                            return next;
+                          });
+                        }}
+                        label={
+                          <div>
+                            <Text size={200} weight={isChecked ? 'semibold' : 'regular'}>
+                              [{t.codigo}] {t.nombre}
+                            </Text>
+                            {yaAgregada && (
+                              <Text size={100} style={{ color: tokens.colorNeutralForeground4, display: 'block' }}>
+                                (Ya agregada en la plantilla)
+                              </Text>
+                            )}
+                          </div>
+                        }
+                      />
+                      <Badge appearance="tint" color="informative" size="small">
+                        {t.duracionEstimadaMinutos} min
+                      </Badge>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* O Crear Tarea Rápida adicional */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <Text weight="semibold" size={200}>O Crear Nueva Tarea Rápida</Text>
+            <Input
+              placeholder="Nombre de la nueva tarea..."
+              value={nuevaTareaNombre}
+              onChange={(_, d) => setNuevaTareaNombre(d.value)}
+              style={{ width: '100%' }}
+            />
+          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <Text weight="semibold" size={200}>Instrucciones para el Operario</Text>
+            <Text weight="semibold" size={200}>Instrucciones Técnicas Predeterminadas</Text>
             <Input
+              placeholder="Instrucciones para el técnico..."
               value={nuevaTareaInstrucciones}
               onChange={(_, d) => setNuevaTareaInstrucciones(d.value)}
               style={{ width: '100%' }}
@@ -970,20 +1108,22 @@ export function PlantillaTrabajoFormPage() {
           <Button
             appearance="primary"
             icon={<Checkmark16Regular />}
-            disabled={!nuevaTareaId && !nuevaTareaNombre.trim()}
+            disabled={tareasSeleccionadas.size === 0 && !nuevaTareaNombre.trim()}
             onClick={() => void agregarTareaFila()}
           >
-            Agregar a Checklist
+            {tareasSeleccionadas.size > 0
+              ? `Agregar (${tareasSeleccionadas.size}) Tarea(s)`
+              : 'Agregar a Checklist'}
           </Button>
         </DrawerFooter>
       </OverlayDrawer>
 
-      {/* Panel Lateral (Drawer Derecho) para agregar material */}
+      {/* Panel Lateral (Drawer Derecho) para agregar materiales con Selección Múltiple */}
       <OverlayDrawer
         position="end"
         open={dialogMaterialOpen}
         onOpenChange={(_, { open }) => setDialogMaterialOpen(open)}
-        style={{ width: 440, maxWidth: '95vw' }}
+        style={{ width: 480, maxWidth: '95vw' }}
       >
         <DrawerHeader style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}` }}>
           <DrawerHeaderTitle
@@ -996,29 +1136,129 @@ export function PlantillaTrabajoFormPage() {
               />
             }
           >
-            Agregar Material / Equipo
+            Agregar Materiales / Equipos
           </DrawerHeaderTitle>
         </DrawerHeader>
 
         <DrawerBody style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '20px' }}>
+          {/* Buscador de materiales */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <Text weight="semibold" size={200}>Producto / Repuesto / Equipo *</Text>
-            <Select
-              value={nuevoMaterialProductoId}
-              onChange={(e) => setNuevoMaterialProductoId(e.target.value)}
+            <Text weight="semibold" size={200}>Buscar Producto / Repuesto / Equipo</Text>
+            <Input
+              contentBefore={<Search16Regular />}
+              placeholder="Filtrar por código o nombre..."
+              value={filtroBusquedaMaterial}
+              onChange={(_, d) => setFiltroBusquedaMaterial(d.value)}
               style={{ width: '100%' }}
-            >
-              <option value="">-- Seleccionar producto/material --</option>
-              {productosMateriales.map((p) => (
-                <option key={p.id} value={p.id}>
-                  [{p.codigo}] {p.nombre} {p.esSerializado ? '(Seriado)' : ''}
-                </option>
-              ))}
-            </Select>
+            />
           </div>
 
+          {/* Lista con checkboxes para seleccionar múltiples */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <Text weight="semibold" size={200}>Cantidad Sugerida / Prevista *</Text>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text weight="semibold" size={200}>
+                Catálogo de Materiales ({materialesFiltrados.length})
+              </Text>
+              {materialesFiltrados.length > 0 && (
+                <Button
+                  appearance="subtle"
+                  size="small"
+                  onClick={() => {
+                    const todosSeleccionados = materialesFiltrados.every((p) => materialesSeleccionados.has(p.id));
+                    if (todosSeleccionados) {
+                      setMaterialesSeleccionados((prev) => {
+                        const copy = new Set(prev);
+                        materialesFiltrados.forEach((p) => copy.delete(p.id));
+                        return copy;
+                      });
+                    } else {
+                      setMaterialesSeleccionados((prev) => {
+                        const copy = new Set(prev);
+                        materialesFiltrados.forEach((p) => copy.add(p.id));
+                        return copy;
+                      });
+                    }
+                  }}
+                >
+                  {materialesFiltrados.every((p) => materialesSeleccionados.has(p.id))
+                    ? 'Deseleccionar todos'
+                    : 'Seleccionar todos'}
+                </Button>
+              )}
+            </div>
+
+            <div
+              style={{
+                maxHeight: 240,
+                overflowY: 'auto',
+                border: `1px solid ${tokens.colorNeutralStroke1}`,
+                borderRadius: tokens.borderRadiusMedium,
+                padding: '4px 8px',
+                backgroundColor: tokens.colorNeutralBackground1,
+              }}
+            >
+              {materialesFiltrados.length === 0 ? (
+                <div style={{ padding: '16px', textAlign: 'center', color: tokens.colorNeutralForeground4, fontSize: 13 }}>
+                  No se encontraron materiales que coincidan con la búsqueda.
+                </div>
+              ) : (
+                materialesFiltrados.map((p) => {
+                  const isChecked = materialesSeleccionados.has(p.id);
+                  const yaAgregado = materiales.some((m) => m.productoId === p.id);
+                  return (
+                    <div
+                      key={p.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 4px',
+                        borderBottom: `1px solid ${tokens.colorNeutralStroke3}`,
+                        opacity: yaAgregado ? 0.6 : 1,
+                      }}
+                    >
+                      <Checkbox
+                        checked={isChecked || yaAgregado}
+                        disabled={yaAgregado}
+                        onChange={(_, d) => {
+                          setMaterialesSeleccionados((prev) => {
+                            const next = new Set(prev);
+                            if (d.checked) {
+                              next.add(p.id);
+                            } else {
+                              next.delete(p.id);
+                            }
+                            return next;
+                          });
+                        }}
+                        label={
+                          <div>
+                            <Text size={200} weight={isChecked ? 'semibold' : 'regular'}>
+                              [{p.codigo}] {p.nombre}
+                            </Text>
+                            {yaAgregado && (
+                              <Text size={100} style={{ color: tokens.colorNeutralForeground4, display: 'block' }}>
+                                (Ya agregado en la plantilla)
+                              </Text>
+                            )}
+                          </div>
+                        }
+                      />
+                      {p.esSerializado && (
+                        <Badge appearance="tint" shape="rounded" color="informative" size="small">
+                          Seriado
+                        </Badge>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Parámetros a aplicar al lote seleccionado */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <Text weight="semibold" size={200}>Cantidad Sugerida / Prevista (por ítem) *</Text>
             <Input
               type="number"
               min={0.01}
@@ -1054,10 +1294,12 @@ export function PlantillaTrabajoFormPage() {
           <Button
             appearance="primary"
             icon={<Checkmark16Regular />}
-            disabled={!nuevoMaterialProductoId || nuevoMaterialCantidad <= 0}
+            disabled={materialesSeleccionados.size === 0 || nuevoMaterialCantidad <= 0}
             onClick={agregarMaterialFila}
           >
-            Agregar Material
+            {materialesSeleccionados.size > 0
+              ? `Agregar (${materialesSeleccionados.size}) Material(es)`
+              : 'Agregar Materiales'}
           </Button>
         </DrawerFooter>
       </OverlayDrawer>
