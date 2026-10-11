@@ -360,7 +360,7 @@ export function TipoOrdenFormPage() {
 
               <D365FormField
                 label="Propietario"
-                info="Usuario responsable de la creación o gestión de este registro."
+                info="Usuario responsable de la creación o gestión de este registro (campo bloqueado por sistema)."
               >
                 <SelectorEntidadRelacionada
                   etiquetaGrupo="Usuarios"
@@ -379,6 +379,7 @@ export function TipoOrdenFormPage() {
                       navigate(`/configuracion/usuarios/${uId}`);
                     }
                   }}
+                  deshabilitado={true}
                   textoVacio="No se encontraron usuarios"
                 />
               </D365FormField>

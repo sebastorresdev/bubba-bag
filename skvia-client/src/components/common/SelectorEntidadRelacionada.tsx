@@ -14,7 +14,7 @@ import {
   tokens,
   type TagPickerProps,
 } from '@fluentui/react-components';
-import { Add16Regular, Person16Regular, Search16Regular } from '@fluentui/react-icons';
+import { Add16Regular, LockClosed16Regular, Person16Regular, Search16Regular } from '@fluentui/react-icons';
 import { EnlaceEntidad } from './EnlaceEntidad';
 
 const usarEstilos = makeStyles({
@@ -25,6 +25,10 @@ const usarEstilos = makeStyles({
     flexWrap: 'nowrap',
     overflow: 'hidden',
     boxSizing: 'border-box',
+  },
+  controlBloqueado: {
+    backgroundColor: tokens.colorNeutralBackgroundDisabled,
+    cursor: 'default',
   },
   grupo: {
     display: 'flex',
@@ -146,8 +150,12 @@ export const SelectorEntidadRelacionada: React.FC<SelectorEntidadRelacionadaProp
       }}
     >
       <TagPickerControl
-        className={estilos.control}
-        expandIcon={{ children: <Search16Regular style={{ color: tokens.colorNeutralForeground3 }} /> }}
+        className={deshabilitado ? `${estilos.control} ${estilos.controlBloqueado}` : estilos.control}
+        expandIcon={
+          deshabilitado
+            ? { children: <LockClosed16Regular style={{ color: tokens.colorNeutralForeground4 }} title="Campo bloqueado" /> }
+            : { children: <Search16Regular style={{ color: tokens.colorNeutralForeground3 }} /> }
+        }
       >
         {seleccionada && (
           <TagPickerGroup className={estilos.grupo} aria-label={`${etiquetaGrupo} seleccionada`}>
@@ -156,19 +164,21 @@ export const SelectorEntidadRelacionada: React.FC<SelectorEntidadRelacionadaProp
               nombre={seleccionada.nombre}
               icono={iconoFinal}
               alNavegar={alNavegar}
-              alEliminar={() => alSeleccionar(null)}
+              alEliminar={deshabilitado ? undefined : () => alSeleccionar(null)}
               titulo={tituloEnlace}
               esLink={true}
             />
           </TagPickerGroup>
         )}
-        <TagPickerInput
-          id={idEntrada}
-          className={estilos.entrada}
-          value={textoBusqueda}
-          clearable
-          onChange={(evento) => alCambiarBusqueda(evento.target.value)}
-        />
+        {!deshabilitado && (
+          <TagPickerInput
+            id={idEntrada}
+            className={estilos.entrada}
+            value={textoBusqueda}
+            clearable
+            onChange={(evento) => alCambiarBusqueda(evento.target.value)}
+          />
+        )}
       </TagPickerControl>
       <TagPickerList className={estilos.lista}>
         <TagPickerOptionGroup label={etiquetaGrupo}>
