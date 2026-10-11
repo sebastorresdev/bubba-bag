@@ -5,6 +5,11 @@ import {
   TableCellLayout,
   Text,
   Badge,
+  Toaster,
+  Toast,
+  ToastTitle,
+  useId,
+  useToastController,
   tokens,
   createTableColumn,
   Menu,
@@ -48,13 +53,24 @@ export function PlantillasTrabajoListPage() {
   const styles = useD365ListStyles();
   const navigate = useNavigate();
   const tableRef = useRef<D365EntityTableRef>(null);
+  const toasterId = useId('plantillas-trabajo-toaster');
+  const { dispatchToast } = useToastController(toasterId);
+
+  const notifySuccess = useCallback((msg: string) => {
+    dispatchToast(
+      <Toast>
+        <ToastTitle>{msg}</ToastTitle>
+      </Toast>,
+      { intent: 'success', position: 'top-end' }
+    );
+  }, [dispatchToast]);
+
   const [datos, setDatos] = useState<PlantillaTrabajoListadoDto[]>([]);
   const [buscar, setBuscar] = useState('');
   const [vista, setVista] = useState<VistaPlantillas>('activas');
   const [seleccionados, setSeleccionados] = useState<Set<SelectionItemId>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mensaje, setMensaje] = useState<string | null>(null);
 
   const cargar = useCallback(async () => {
     try {
@@ -98,7 +114,7 @@ export function PlantillasTrabajoListPage() {
     if (!itemSeleccionado) return;
     try {
       await PlantillaTrabajoService.cambiarEstado(itemSeleccionado.id, !itemSeleccionado.activo);
-      setMensaje(`Plantilla ${itemSeleccionado.activo ? 'desactivada' : 'activada'} correctamente.`);
+      notifySuccess(`Plantilla ${itemSeleccionado.activo ? 'desactivada' : 'activada'} correctamente.`);
       await cargar();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al cambiar estado.');
@@ -110,7 +126,7 @@ export function PlantillasTrabajoListPage() {
     if (!window.confirm(`¿Está seguro de eliminar la plantilla "${itemSeleccionado.nombre}"?`)) return;
     try {
       await PlantillaTrabajoService.eliminarPlantilla(itemSeleccionado.id);
-      setMensaje('Plantilla de trabajo eliminada correctamente.');
+      notifySuccess('Plantilla de trabajo eliminada correctamente.');
       setSeleccionados(new Set());
       await cargar();
     } catch (e) {
@@ -224,6 +240,7 @@ export function PlantillasTrabajoListPage() {
 
   return (
     <div className={styles.root}>
+      <Toaster toasterId={toasterId} />
       <D365CommandBar ariaLabel="Barra de comandos de plantillas de trabajo">
         <D365CommandButton
           icon={<Add16Regular />}
@@ -266,14 +283,6 @@ export function PlantillasTrabajoListPage() {
         <div style={{ padding: '8px 16px' }}>
           <D365MessageBar intent="error" onDismiss={() => setError(null)}>
             {error}
-          </D365MessageBar>
-        </div>
-      )}
-
-      {mensaje && (
-        <div style={{ padding: '8px 16px' }}>
-          <D365MessageBar intent="success" onDismiss={() => setMensaje(null)}>
-            {mensaje}
           </D365MessageBar>
         </div>
       )}

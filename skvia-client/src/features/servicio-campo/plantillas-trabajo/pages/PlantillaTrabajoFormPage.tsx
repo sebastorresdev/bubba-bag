@@ -299,10 +299,7 @@ export function PlantillaTrabajoFormPage() {
       setSaving(true);
       await PlantillaTrabajoService.cambiarEstado(id, !activo);
       setActivo(!activo);
-      setStatusMessage({
-        type: 'success',
-        text: `Plantilla ${!activo ? 'activada' : 'desactivada'} correctamente.`,
-      });
+      notifySuccess(`Plantilla ${!activo ? 'activada' : 'desactivada'} correctamente.`);
     } catch (e) {
       setStatusMessage({
         type: 'error',

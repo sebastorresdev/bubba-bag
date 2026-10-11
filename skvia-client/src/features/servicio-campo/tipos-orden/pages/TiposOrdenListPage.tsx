@@ -5,6 +5,11 @@ import {
   TableCellLayout,
   Text,
   Badge,
+  Toaster,
+  Toast,
+  ToastTitle,
+  useId,
+  useToastController,
   tokens,
   createTableColumn,
   Menu,
@@ -47,13 +52,24 @@ export function TiposOrdenListPage() {
   const styles = useD365ListStyles();
   const navigate = useNavigate();
   const tableRef = useRef<D365EntityTableRef>(null);
+  const toasterId = useId('tipos-orden-toaster');
+  const { dispatchToast } = useToastController(toasterId);
+
+  const notifySuccess = useCallback((msg: string) => {
+    dispatchToast(
+      <Toast>
+        <ToastTitle>{msg}</ToastTitle>
+      </Toast>,
+      { intent: 'success', position: 'top-end' }
+    );
+  }, [dispatchToast]);
+
   const [datos, setDatos] = useState<TipoOrdenTrabajoDto[]>([]);
   const [buscar, setBuscar] = useState('');
   const [vista, setVista] = useState<VistaTipos>('activos');
   const [seleccionados, setSeleccionados] = useState<Set<SelectionItemId>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mensaje, setMensaje] = useState<string | null>(null);
 
   const cargar = useCallback(async () => {
     try {
@@ -95,7 +111,7 @@ export function TiposOrdenListPage() {
     if (!itemSeleccionado) return;
     try {
       await TipoOrdenService.cambiarEstado(itemSeleccionado.id, !itemSeleccionado.activo);
-      setMensaje(`Tipo de orden ${itemSeleccionado.activo ? 'desactivado' : 'activado'} correctamente.`);
+      notifySuccess(`Tipo de orden ${itemSeleccionado.activo ? 'desactivado' : 'activado'} correctamente.`);
       await cargar();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al cambiar estado.');
@@ -107,7 +123,7 @@ export function TiposOrdenListPage() {
     if (!window.confirm(`¿Está seguro de eliminar el tipo de orden "${itemSeleccionado.nombre}"?`)) return;
     try {
       await TipoOrdenService.eliminarTipoOrden(itemSeleccionado.id);
-      setMensaje('Tipo de orden eliminado correctamente.');
+      notifySuccess('Tipo de orden eliminado correctamente.');
       setSeleccionados(new Set());
       await cargar();
     } catch (e) {
@@ -222,6 +238,7 @@ export function TiposOrdenListPage() {
 
   return (
     <div className={styles.root}>
+      <Toaster toasterId={toasterId} />
       <D365CommandBar ariaLabel="Barra de comandos de tipos de orden">
         <D365CommandButton
           icon={<Add16Regular />}
@@ -264,14 +281,6 @@ export function TiposOrdenListPage() {
         <div style={{ padding: '8px 16px' }}>
           <D365MessageBar intent="error" onDismiss={() => setError(null)}>
             {error}
-          </D365MessageBar>
-        </div>
-      )}
-
-      {mensaje && (
-        <div style={{ padding: '8px 16px' }}>
-          <D365MessageBar intent="success" onDismiss={() => setMensaje(null)}>
-            {mensaje}
           </D365MessageBar>
         </div>
       )}

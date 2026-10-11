@@ -18,9 +18,40 @@ import { Add16Regular, Person16Regular, Search16Regular } from '@fluentui/react-
 import { EnlaceEntidad } from './EnlaceEntidad';
 
 const usarEstilos = makeStyles({
-  control: { width: '100%', minHeight: '32px', flexWrap: 'nowrap' },
-  grupo: { display: 'flex', alignItems: 'center', flexShrink: 0 },
-  entrada: { minHeight: '28px' },
+  control: {
+    width: '100%',
+    maxWidth: '100%',
+    minHeight: '32px',
+    flexWrap: 'nowrap',
+    overflow: 'hidden',
+    boxSizing: 'border-box',
+  },
+  grupo: {
+    display: 'flex',
+    alignItems: 'center',
+    flexShrink: 1,
+    minWidth: 0,
+    maxWidth: 'calc(100% - 32px)',
+    overflow: 'hidden',
+  },
+  entrada: {
+    minHeight: '28px',
+    minWidth: '32px',
+    flexShrink: 1,
+    flexGrow: 1,
+  },
+  lista: {
+    maxWidth: 'min(460px, 92vw)',
+    boxSizing: 'border-box',
+    overflowX: 'hidden',
+  },
+  opcionTexto: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    maxWidth: '320px',
+    display: 'block',
+  },
   pie: {
     padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
   },
@@ -31,7 +62,13 @@ const usarEstilos = makeStyles({
     padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
     color: tokens.colorNeutralForeground3,
   },
-  detalle: { color: tokens.colorNeutralForeground3 },
+  detalle: {
+    color: tokens.colorNeutralForeground3,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    maxWidth: '140px',
+  },
 });
 
 export interface OpcionEntidadRelacionada {
@@ -125,7 +162,7 @@ export const SelectorEntidadRelacionada: React.FC<SelectorEntidadRelacionadaProp
           onChange={(evento) => alCambiarBusqueda(evento.target.value)}
         />
       </TagPickerControl>
-      <TagPickerList>
+      <TagPickerList className={estilos.lista}>
         <TagPickerOptionGroup label={etiquetaGrupo}>
           {cargando ? (
             <div className={estilos.estado}><Spinner size="tiny" /><Text>Cargando…</Text></div>
@@ -134,12 +171,15 @@ export const SelectorEntidadRelacionada: React.FC<SelectorEntidadRelacionadaProp
               <TagPickerOption
                 key={opcion.id}
                 value={opcion.id}
+                text={opcion.nombre}
                 media={iconoFinal}
                 secondaryContent={opcion.detalle ? (
                   <Text size={100} className={estilos.detalle}>{opcion.detalle}</Text>
                 ) : undefined}
               >
-                {opcion.nombre}
+                <span className={estilos.opcionTexto} title={opcion.nombre}>
+                  {opcion.nombre}
+                </span>
               </TagPickerOption>
             ))
           ) : (

@@ -7,6 +7,12 @@ import {
   Checkbox,
   Textarea,
   Button,
+  Link,
+  Toaster,
+  Toast,
+  ToastTitle,
+  useId,
+  useToastController,
   OverlayDrawer,
   DrawerHeader,
   DrawerHeaderTitle,
@@ -41,12 +47,23 @@ import type { TareaDto, GuardarTareaDto } from '../../plantillas-trabajo/types/p
 export function TareasListPage() {
   const styles = useD365ListStyles();
   const tableRef = useRef<D365EntityTableRef>(null);
+  const toasterId = useId('tareas-toaster');
+  const { dispatchToast } = useToastController(toasterId);
+
+  const notifySuccess = useCallback((msg: string) => {
+    dispatchToast(
+      <Toast>
+        <ToastTitle>{msg}</ToastTitle>
+      </Toast>,
+      { intent: 'success', position: 'top-end' }
+    );
+  }, [dispatchToast]);
+
   const [datos, setDatos] = useState<TareaDto[]>([]);
   const [buscar, setBuscar] = useState('');
   const [seleccionados, setSeleccionados] = useState<Set<SelectionItemId>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mensaje, setMensaje] = useState<string | null>(null);
 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -138,10 +155,10 @@ export function TareasListPage() {
 
       if (editingTarea) {
         await TareaService.actualizarTarea(editingTarea.id, payload);
-        setMensaje(`Tarea "${formNombre}" actualizada correctamente.`);
+        notifySuccess(`Tarea "${formNombre}" actualizada correctamente.`);
       } else {
         await TareaService.crearTarea(payload);
-        setMensaje(`Tarea "${formNombre}" registrada en el catálogo maestro.`);
+        notifySuccess(`Tarea "${formNombre}" registrada en el catálogo maestro.`);
       }
 
       setDrawerOpen(false);
@@ -160,7 +177,7 @@ export function TareasListPage() {
     try {
       setLoading(true);
       await TareaService.eliminarTarea(itemSeleccionado.id);
-      setMensaje('Tarea eliminada del catálogo.');
+      notifySuccess('Tarea eliminada del catálogo.');
       setSeleccionados(new Set());
       void cargar();
     } catch (e) {
@@ -177,18 +194,9 @@ export function TareasListPage() {
         renderHeaderCell: () => 'Código',
         renderCell: (item) => (
           <TableCellLayout>
-            <span
-              style={{
-                fontFamily: 'Consolas, monospace',
-                fontSize: 12,
-                fontWeight: 600,
-                color: tokens.colorBrandForeground1,
-                cursor: 'pointer',
-              }}
-              onClick={() => abrirEditar(item)}
-            >
+            <Link onClick={() => abrirEditar(item)}>
               {item.codigo}
-            </span>
+            </Link>
           </TableCellLayout>
         ),
       }),
@@ -253,6 +261,8 @@ export function TareasListPage() {
 
   return (
     <div className={styles.root}>
+      <Toaster toasterId={toasterId} />
+
       {/* 1. Barra de Comandos Superior */}
       <D365CommandBar ariaLabel="Barra de comandos de Catálogo de Tareas">
         <D365CommandButton icon={<Add16Regular />} tone="create" onClick={abrirNuevo}>
@@ -284,14 +294,7 @@ export function TareasListPage() {
         </D365CommandButton>
       </D365CommandBar>
 
-      {/* 2. Mensajes y Alertas */}
-      {mensaje && (
-        <div style={{ padding: '0 24px', marginTop: 12 }}>
-          <D365MessageBar intent="success" onDismiss={() => setMensaje(null)}>
-            {mensaje}
-          </D365MessageBar>
-        </div>
-      )}
+      {/* 2. Mensajes y Alertas de Error */}
       {error && (
         <div style={{ padding: '0 24px', marginTop: 12 }}>
           <D365MessageBar intent="error" onDismiss={() => setError(null)}>

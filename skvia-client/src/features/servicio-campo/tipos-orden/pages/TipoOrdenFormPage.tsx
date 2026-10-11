@@ -170,10 +170,7 @@ export function TipoOrdenFormPage() {
       setSaving(true);
       await TipoOrdenService.cambiarEstado(id, !activo);
       setActivo(!activo);
-      setStatusMessage({
-        type: 'success',
-        text: `Tipo de orden ${!activo ? 'activado' : 'desactivado'} correctamente.`,
-      });
+      notifySuccess(`Tipo de orden ${!activo ? 'activado' : 'desactivado'} correctamente.`);
     } catch (e) {
       setStatusMessage({
         type: 'error',
@@ -299,7 +296,8 @@ export function TipoOrdenFormPage() {
 
       {/* Formulario */}
       <div className={styles.contentBody}>
-        <div className={styles.halfCardWrapper}>
+        <div className={styles.halfCardWrapper} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Tarjeta 1: General */}
           <div className={styles.card}>
             <Text size={400} weight="semibold" style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, paddingBottom: 8, display: 'block' }}>
               General
@@ -333,8 +331,11 @@ export function TipoOrdenFormPage() {
                 </div>
               </D365FormField>
             </div>
+          </div>
 
-            <Text size={400} weight="semibold" style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, paddingBottom: 8, marginTop: 16, display: 'block' }}>
+          {/* Tarjeta 2: Detalles */}
+          <div className={styles.card}>
+            <Text size={400} weight="semibold" style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, paddingBottom: 8, display: 'block' }}>
               Detalles
             </Text>
 
