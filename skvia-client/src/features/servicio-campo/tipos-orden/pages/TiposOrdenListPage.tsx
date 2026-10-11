@@ -4,7 +4,6 @@ import {
   Link,
   TableCellLayout,
   Text,
-  Badge,
   Toaster,
   Toast,
   ToastTitle,
@@ -164,27 +163,14 @@ export function TiposOrdenListPage() {
         renderHeaderCell: () => 'Tipo de Orden',
         renderCell: (item) => (
           <TableCellLayout>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span
-                style={{
-                  display: 'inline-block',
-                  width: 12,
-                  height: 12,
-                  borderRadius: '50%',
-                  backgroundColor: item.colorHex || '#0f6cbd',
-                  flexShrink: 0,
-                  boxShadow: '0 0 0 1px rgba(0,0,0,0.1)',
-                }}
-              />
-              <Link
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/servicio-campo/tipos-orden/${item.id}`);
-                }}
-              >
-                {item.nombre}
-              </Link>
-            </div>
+            <Link
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/servicio-campo/tipos-orden/${item.id}`);
+              }}
+            >
+              {item.nombre}
+            </Link>
           </TableCellLayout>
         ),
       }),
@@ -193,13 +179,7 @@ export function TiposOrdenListPage() {
         renderHeaderCell: () => 'Visita en Campo',
         renderCell: (item) => (
           <TableCellLayout>
-            <Badge
-              appearance="tint"
-              shape="rounded"
-              color={item.requiereVisitaCampo ? 'brand' : 'subtle'}
-            >
-              {item.requiereVisitaCampo ? 'Sí, requiere' : 'Remoto / Virtual'}
-            </Badge>
+            <Text>{item.requiereVisitaCampo ? 'Sí' : 'No'}</Text>
           </TableCellLayout>
         ),
       }),
@@ -208,13 +188,7 @@ export function TiposOrdenListPage() {
         renderHeaderCell: () => 'Exige Firma',
         renderCell: (item) => (
           <TableCellLayout>
-            <Badge
-              appearance="tint"
-              shape="rounded"
-              color={item.exigeFirmaCliente ? 'informative' : 'subtle'}
-            >
-              {item.exigeFirmaCliente ? 'Firma requerida' : 'Opcional'}
-            </Badge>
+            <Text>{item.exigeFirmaCliente ? 'Sí' : 'No'}</Text>
           </TableCellLayout>
         ),
       }),
@@ -223,13 +197,7 @@ export function TiposOrdenListPage() {
         renderHeaderCell: () => 'Fotos / Evidencias',
         renderCell: (item) => (
           <TableCellLayout>
-            <Badge
-              appearance="tint"
-              shape="rounded"
-              color={item.exigeEvidenciasFotograficas ? 'warning' : 'subtle'}
-            >
-              {item.exigeEvidenciasFotograficas ? 'Evidencias exigidas' : 'Sin fotos'}
-            </Badge>
+            <Text>{item.exigeEvidenciasFotograficas ? 'Sí' : 'No'}</Text>
           </TableCellLayout>
         ),
       }),

@@ -4,13 +4,11 @@ import {
   Link,
   TableCellLayout,
   Text,
-  Badge,
   Toaster,
   Toast,
   ToastTitle,
   useId,
   useToastController,
-  tokens,
   createTableColumn,
   Menu,
   MenuTrigger,
@@ -27,7 +25,6 @@ import {
   DismissCircle16Regular,
   Edit16Regular,
   Delete16Regular,
-  Timer16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import {
@@ -194,9 +191,7 @@ export function PlantillasTrabajoListPage() {
         renderHeaderCell: () => 'Servicio / Producto',
         renderCell: (item) => (
           <TableCellLayout>
-            <Badge appearance="tint" shape="rounded" color="informative">
-              {item.productoNombre || 'Sin servicio'}
-            </Badge>
+            <Text>{item.productoNombre || '—'}</Text>
           </TableCellLayout>
         ),
       }),
@@ -206,10 +201,7 @@ export function PlantillasTrabajoListPage() {
         renderHeaderCell: () => 'Duración Est.',
         renderCell: (item) => (
           <TableCellLayout>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Timer16Regular style={{ color: tokens.colorNeutralForeground3 }} />
-              <Text size={200}>{item.duracionEstimadaMinutos} min</Text>
-            </div>
+            <Text>{item.duracionEstimadaMinutos} min</Text>
           </TableCellLayout>
         ),
       }),
@@ -218,14 +210,9 @@ export function PlantillasTrabajoListPage() {
         renderHeaderCell: () => 'Receta / Tareas',
         renderCell: (item) => (
           <TableCellLayout>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <Badge appearance="tint" shape="rounded" color="brand">
-                {item.cantidadTareas} tareas
-              </Badge>
-              <Badge appearance="tint" shape="rounded" color="subtle">
-                {item.cantidadMateriales} materiales
-              </Badge>
-            </div>
+            <Text>
+              {item.cantidadTareas} tareas / {item.cantidadMateriales} materiales
+            </Text>
           </TableCellLayout>
         ),
       }),
@@ -234,15 +221,7 @@ export function PlantillasTrabajoListPage() {
         renderHeaderCell: () => 'Predeterminada',
         renderCell: (item) => (
           <TableCellLayout>
-            {item.esPredeterminada ? (
-              <Badge appearance="tint" shape="rounded" color="success">
-                Predeterminada
-              </Badge>
-            ) : (
-              <Text size={200} style={{ color: tokens.colorNeutralForeground4 }}>
-                —
-              </Text>
-            )}
+            <Text>{item.esPredeterminada ? 'Sí' : 'No'}</Text>
           </TableCellLayout>
         ),
       }),

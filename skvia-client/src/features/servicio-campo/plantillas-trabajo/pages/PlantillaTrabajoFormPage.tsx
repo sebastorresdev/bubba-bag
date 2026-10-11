@@ -113,9 +113,13 @@ export function PlantillaTrabajoFormPage() {
   const [esPredeterminada, setEsPredeterminada] = useState(false);
   const [activo, setActivo] = useState(true);
 
-  // Títulos estáticos del encabezado (solo cambian al cargar o guardar)
+  // Títulos y tarjetas estáticas del encabezado (solo cambian al cargar o guardar)
   const [savedTitle, setSavedTitle] = useState(isEditMode ? '' : 'Nuevo');
   const [savedSubtitle, setSavedSubtitle] = useState('Receta Técnica • Ficha de plantilla de trabajo');
+  const [savedServicioNombre, setSavedServicioNombre] = useState('Sin servicio');
+  const [savedDuracionMinutos, setSavedDuracionMinutos] = useState(60);
+  const [savedCantidadTareas, setSavedCantidadTareas] = useState(0);
+  const [savedCantidadMateriales, setSavedCantidadMateriales] = useState(0);
 
   // Colecciones hijas
   const [tareas, setTareas] = useState<TareaLocalItem[]>([]);
@@ -166,6 +170,11 @@ export function PlantillaTrabajoFormPage() {
         setNombre(plantilla.nombre);
         setSavedTitle(plantilla.nombre);
         setSavedSubtitle(`Receta Técnica • ${plantilla.codigo || 'Código autogenerado'}`);
+        const prodMatch = prods.find((p) => p.id === plantilla.productoId);
+        setSavedServicioNombre(prodMatch?.nombre || plantilla.productoNombre || 'Sin servicio');
+        setSavedDuracionMinutos(plantilla.duracionEstimadaMinutos);
+        setSavedCantidadTareas(plantilla.tareas.length);
+        setSavedCantidadMateriales(plantilla.materiales.length);
         setProductoId(plantilla.productoId);
         setDuracionEstimadaMinutos(plantilla.duracionEstimadaMinutos);
         setDescripcion(plantilla.descripcion || '');
@@ -295,12 +304,20 @@ export function PlantillaTrabajoFormPage() {
         await PlantillaTrabajoService.actualizarPlantilla(id, dto);
         setSavedTitle(nombre.trim());
         setSavedSubtitle(`Receta Técnica • ${codigo.trim() || 'Código autogenerado'}`);
+        setSavedServicioNombre(productoSeleccionado?.nombre || 'Sin servicio');
+        setSavedDuracionMinutos(duracionEstimadaMinutos);
+        setSavedCantidadTareas(tareas.length);
+        setSavedCantidadMateriales(materiales.length);
         notifySuccess('Plantilla de trabajo actualizada con éxito.');
       } else {
         const res = await PlantillaTrabajoService.crearPlantilla(dto);
         savedId = res.id;
         setSavedTitle(nombre.trim());
         setSavedSubtitle(`Receta Técnica • ${codigo.trim() || 'Código autogenerado'}`);
+        setSavedServicioNombre(productoSeleccionado?.nombre || 'Sin servicio');
+        setSavedDuracionMinutos(duracionEstimadaMinutos);
+        setSavedCantidadTareas(tareas.length);
+        setSavedCantidadMateriales(materiales.length);
         notifySuccess('Plantilla de trabajo creada con éxito.');
       }
 
@@ -825,15 +842,15 @@ export function PlantillaTrabajoFormPage() {
         metadata={[
           {
             label: 'Servicio',
-            value: productoSeleccionado?.nombre || 'Sin servicio',
+            value: savedServicioNombre,
           },
           {
             label: 'Duración Estimada',
-            value: `${duracionEstimadaMinutos} min`,
+            value: `${savedDuracionMinutos} min`,
           },
           {
             label: 'Composición',
-            value: `${tareas.length} tareas / ${materiales.length} materiales`,
+            value: `${savedCantidadTareas} tareas / ${savedCantidadMateriales} materiales`,
           },
           {
             label: 'Estado',
@@ -1231,9 +1248,7 @@ export function PlantillaTrabajoFormPage() {
             disabled={tareasSeleccionadas.size === 0 && !nuevaTareaNombre.trim()}
             onClick={() => void agregarTareaFila()}
           >
-            {tareasSeleccionadas.size > 0
-              ? `Agregar (${tareasSeleccionadas.size}) Tarea(s)`
-              : 'Agregar a Checklist'}
+            Agregar
           </Button>
         </DrawerFooter>
       </OverlayDrawer>
@@ -1417,9 +1432,7 @@ export function PlantillaTrabajoFormPage() {
             disabled={materialesSeleccionados.size === 0 || nuevoMaterialCantidad <= 0}
             onClick={agregarMaterialFila}
           >
-            {materialesSeleccionados.size > 0
-              ? `Agregar (${materialesSeleccionados.size}) Material(es)`
-              : 'Agregar Materiales'}
+            Agregar
           </Button>
         </DrawerFooter>
       </OverlayDrawer>
