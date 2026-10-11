@@ -220,12 +220,7 @@ export function TareasListPage() {
         renderHeaderCell: () => 'Nombre de la Tarea',
         renderCell: (item) => (
           <TableCellLayout>
-            <Text weight="semibold">{item.nombre}</Text>
-            {item.descripcion && (
-              <Text size={200} style={{ color: tokens.colorNeutralForeground4, display: 'block' }}>
-                {item.descripcion}
-              </Text>
-            )}
+            <Text>{item.nombre}</Text>
           </TableCellLayout>
         ),
       }),
