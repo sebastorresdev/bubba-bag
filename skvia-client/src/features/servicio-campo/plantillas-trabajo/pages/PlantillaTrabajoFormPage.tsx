@@ -43,6 +43,7 @@ import {
   Checkmark16Regular,
   Dismiss24Regular,
   Search16Regular,
+  MoreHorizontal16Regular,
 } from '@fluentui/react-icons';
 import { PlantillaTrabajoService } from '../services/plantillaTrabajo.service';
 import type {
@@ -56,7 +57,6 @@ import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
-import { TableEmptyState } from '../../../../components/common/TableEmptyState';
 
 interface TareaLocalItem {
   id: string; // temp id
@@ -145,20 +145,21 @@ export function PlantillaTrabajoFormPage() {
   const [serviciosSeleccionadosDrawer, setServiciosSeleccionadosDrawer] = useState<Set<string>>(new Set());
   const [filtroBusquedaServicio, setFiltroBusquedaServicio] = useState('');
   const [serviciosSeleccionadosTabla, setServiciosSeleccionadosTabla] = useState<Set<string>>(new Set());
-  const [filtroTablaServicios, setFiltroTablaServicios] = useState('');
 
-  // Diálogo para agregar tarea
+  // Diálogo y selección para tareas
   const [dialogTareaOpen, setDialogTareaOpen] = useState(false);
   const [tareasSeleccionadas, setTareasSeleccionadas] = useState<Set<string>>(new Set());
+  const [tareasSeleccionadasTabla, setTareasSeleccionadasTabla] = useState<Set<string>>(new Set());
   const [filtroBusquedaTarea, setFiltroBusquedaTarea] = useState('');
   const [nuevaTareaNombre, setNuevaTareaNombre] = useState('');
   const [nuevaTareaObligatoria, setNuevaTareaObligatoria] = useState(true);
   const [nuevaTareaEvidencia, setNuevaTareaEvidencia] = useState(false);
   const [nuevaTareaInstrucciones, setNuevaTareaInstrucciones] = useState('');
 
-  // Diálogo para agregar material
+  // Diálogo y selección para materiales
   const [dialogMaterialOpen, setDialogMaterialOpen] = useState(false);
   const [materialesSeleccionados, setMaterialesSeleccionados] = useState<Set<string>>(new Set());
+  const [materialesSeleccionadosTabla, setMaterialesSeleccionadosTabla] = useState<Set<string>>(new Set());
   const [filtroBusquedaMaterial, setFiltroBusquedaMaterial] = useState('');
   const [nuevoMaterialCantidad, setNuevoMaterialCantidad] = useState<number>(1);
   const [nuevoMaterialObligatorio, setNuevoMaterialObligatorio] = useState(false);
@@ -476,13 +477,6 @@ export function PlantillaTrabajoFormPage() {
     setNuevaTareaInstrucciones('');
   };
 
-  const eliminarTareaFila = (index: number) => {
-    setTareas((prev) => {
-      const copy = prev.filter((_, i) => i !== index);
-      return copy.map((t, idx) => ({ ...t, ordenSecuencia: idx + 1 }));
-    });
-  };
-
   const moverTarea = (index: number, direccion: 'arriba' | 'abajo') => {
     if (direccion === 'arriba' && index === 0) return;
     if (direccion === 'abajo' && index === tareas.length - 1) return;
@@ -534,19 +528,7 @@ export function PlantillaTrabajoFormPage() {
     setNuevoMaterialObservaciones('');
   };
 
-  const eliminarMaterialFila = (index: number) => {
-    setMateriales((prev) => prev.filter((_, i) => i !== index));
-  };
-
   // Manejo de Servicios
-  const serviciosFiltradosTabla = useMemo(() => {
-    const q = filtroTablaServicios.trim().toLowerCase();
-    if (!q) return servicios;
-    return servicios.filter(
-      (s) => s.productoCodigo.toLowerCase().includes(q) || s.productoNombre.toLowerCase().includes(q)
-    );
-  }, [servicios, filtroTablaServicios]);
-
   const serviciosDisponiblesDrawer = useMemo(() => {
     const q = filtroBusquedaServicio.trim().toLowerCase();
     let list = productosServicio;
@@ -586,31 +568,43 @@ export function PlantillaTrabajoFormPage() {
     setFiltroBusquedaServicio('');
   };
 
-  const eliminarServicioFila = (index: number) => {
-    setServicios((prev) => prev.filter((_, i) => i !== index));
-  };
-
   const eliminarServiciosSeleccionadosTabla = () => {
     if (serviciosSeleccionadosTabla.size === 0) return;
     setServicios((prev) => prev.filter((s) => !serviciosSeleccionadosTabla.has(s.id)));
     setServiciosSeleccionadosTabla(new Set());
   };
 
-  // Columnas DataGrid para Servicios Asociados
+  const eliminarTareasSeleccionadasTabla = () => {
+    if (tareasSeleccionadasTabla.size === 0) return;
+    setTareas((prev) =>
+      prev
+        .filter((t) => !tareasSeleccionadasTabla.has(t.id))
+        .map((t, idx) => ({ ...t, ordenSecuencia: idx + 1 }))
+    );
+    setTareasSeleccionadasTabla(new Set());
+  };
+
+  const eliminarMaterialesSeleccionadosTabla = () => {
+    if (materialesSeleccionadosTabla.size === 0) return;
+    setMateriales((prev) => prev.filter((m) => !materialesSeleccionadosTabla.has(m.id)));
+    setMaterialesSeleccionadosTabla(new Set());
+  };
+
+  // Columnas DataGrid para Servicios Asociados (Estilo Dynamics 365)
   const columnasServicios: TableColumnDefinition<ServicioLocalItem>[] = useMemo(
     () => [
       createTableColumn<ServicioLocalItem>({
         columnId: 'select',
         renderHeaderCell: () => {
           const todosSeleccionados =
-            serviciosFiltradosTabla.length > 0 &&
-            serviciosFiltradosTabla.every((s) => serviciosSeleccionadosTabla.has(s.id));
+            servicios.length > 0 &&
+            servicios.every((s) => serviciosSeleccionadosTabla.has(s.id));
           return (
             <Checkbox
               checked={todosSeleccionados}
               onChange={(_, d) => {
                 if (d.checked) {
-                  setServiciosSeleccionadosTabla(new Set(serviciosFiltradosTabla.map((s) => s.id)));
+                  setServiciosSeleccionadosTabla(new Set(servicios.map((s) => s.id)));
                 } else {
                   setServiciosSeleccionadosTabla(new Set());
                 }
@@ -635,20 +629,60 @@ export function PlantillaTrabajoFormPage() {
         ),
       }),
       createTableColumn<ServicioLocalItem>({
-        columnId: 'codigo',
-        renderHeaderCell: () => 'Código',
+        columnId: 'nombre',
+        renderHeaderCell: () => 'Nombre',
         renderCell: (item) => (
           <TableCellLayout>
-            <Text weight="semibold">{item.productoCodigo || '—'}</Text>
+            <span
+              style={{
+                color: '#0f6cbd',
+                cursor: 'pointer',
+                fontSize: 13,
+                textDecoration: 'none',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+            >
+              {item.productoNombre}
+            </span>
           </TableCellLayout>
         ),
       }),
       createTableColumn<ServicioLocalItem>({
-        columnId: 'nombre',
-        renderHeaderCell: () => 'Nombre del Servicio',
+        columnId: 'servicio',
+        renderHeaderCell: () => 'Servicio',
         renderCell: (item) => (
           <TableCellLayout>
-            <Text weight="semibold">{item.productoNombre}</Text>
+            <span
+              style={{
+                color: '#0f6cbd',
+                cursor: 'pointer',
+                fontSize: 13,
+                textDecoration: 'none',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+            >
+              [{item.productoCodigo}] {item.productoNombre}
+            </span>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ServicioLocalItem>({
+        columnId: 'descripcion',
+        renderHeaderCell: () => 'Descripción',
+        renderCell: () => (
+          <TableCellLayout>
+            <span style={{ color: tokens.colorNeutralForeground4 }}>—</span>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ServicioLocalItem>({
+        columnId: 'duracion',
+        renderHeaderCell: () => 'Duración',
+        renderCell: () => (
+          <TableCellLayout>
+            <span>{duracionEstimadaMinutos} min</span>
           </TableCellLayout>
         ),
       }),
@@ -663,9 +697,7 @@ export function PlantillaTrabajoFormPage() {
                 const checked = Boolean(d.checked);
                 setServicios((prev) =>
                   prev.map((s) =>
-                    s.id === item.id
-                      ? { ...s, esPredeterminada: checked }
-                      : s
+                    s.id === item.id ? { ...s, esPredeterminada: checked } : s
                   )
                 );
               }}
@@ -675,105 +707,102 @@ export function PlantillaTrabajoFormPage() {
         ),
       }),
       createTableColumn<ServicioLocalItem>({
-        columnId: 'acciones',
-        renderHeaderCell: () => 'Acciones',
+        columnId: 'orden',
+        renderHeaderCell: () => 'Orden de Línea',
         renderCell: (item) => {
           const idx = servicios.findIndex((x) => x.id === item.id);
           return (
             <TableCellLayout>
-              <Button
-                size="small"
-                appearance="subtle"
-                icon={<Delete16Regular />}
-                onClick={() => eliminarServicioFila(idx)}
-                title="Eliminar"
-              />
+              <span>{idx + 1}</span>
             </TableCellLayout>
           );
         },
       }),
     ],
-    [servicios, serviciosFiltradosTabla, serviciosSeleccionadosTabla]
+    [servicios, serviciosSeleccionadosTabla, duracionEstimadaMinutos]
   );
 
-  // Columnas DataGrid para Checklist de Tareas
+  // Columnas DataGrid para Checklist de Tareas (Estilo Dynamics 365)
   const columnasTareas: TableColumnDefinition<TareaLocalItem>[] = useMemo(
     () => [
       createTableColumn<TareaLocalItem>({
-        columnId: 'orden',
-        renderHeaderCell: () => '#',
-        renderCell: (item) => (
-          <TableCellLayout>
-            <Text weight="semibold" style={{ color: tokens.colorBrandForeground1 }}>
-              {item.ordenSecuencia}
-            </Text>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<TareaLocalItem>({
-        columnId: 'tarea',
-        renderHeaderCell: () => 'Tarea',
-        renderCell: (item) => (
-          <TableCellLayout>
-            <Text weight="semibold">{item.tareaNombre}</Text>
-            {item.tareaCodigo && (
-              <span style={{ marginLeft: 6, fontSize: 11, color: tokens.colorNeutralForeground4 }}>
-                ({item.tareaCodigo})
-              </span>
-            )}
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<TareaLocalItem>({
-        columnId: 'duracion',
-        renderHeaderCell: () => 'Duración',
-        renderCell: (item) => (
-          <TableCellLayout>
-            {item.duracionEstimadaMinutos} min
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<TareaLocalItem>({
-        columnId: 'obligatoria',
-        renderHeaderCell: () => 'Obligatoria',
-        renderCell: (item) => {
-          const idx = tareas.findIndex((x) => x.id === item.id);
+        columnId: 'select',
+        renderHeaderCell: () => {
+          const todosSeleccionados =
+            tareas.length > 0 &&
+            tareas.every((t) => tareasSeleccionadasTabla.has(t.id));
           return (
-            <TableCellLayout>
-              <Checkbox
-                checked={item.esObligatoria}
-                onChange={(_, d) =>
-                  setTareas((prev) =>
-                    prev.map((t, i) => (i === idx ? { ...t, esObligatoria: Boolean(d.checked) } : t))
-                  )
+            <Checkbox
+              checked={todosSeleccionados}
+              onChange={(_, d) => {
+                if (d.checked) {
+                  setTareasSeleccionadasTabla(new Set(tareas.map((t) => t.id)));
+                } else {
+                  setTareasSeleccionadasTabla(new Set());
                 }
-              />
-            </TableCellLayout>
+              }}
+            />
           );
         },
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Checkbox
+              checked={tareasSeleccionadasTabla.has(item.id)}
+              onChange={(_, d) => {
+                setTareasSeleccionadasTabla((prev) => {
+                  const next = new Set(prev);
+                  if (d.checked) next.add(item.id);
+                  else next.delete(item.id);
+                  return next;
+                });
+              }}
+            />
+          </TableCellLayout>
+        ),
       }),
       createTableColumn<TareaLocalItem>({
-        columnId: 'evidencia',
-        renderHeaderCell: () => 'Foto Evidencia',
-        renderCell: (item) => {
-          const idx = tareas.findIndex((x) => x.id === item.id);
-          return (
-            <TableCellLayout>
-              <Checkbox
-                checked={item.requiereEvidencia}
-                onChange={(_, d) =>
-                  setTareas((prev) =>
-                    prev.map((t, i) => (i === idx ? { ...t, requiereEvidencia: Boolean(d.checked) } : t))
-                  )
-                }
-              />
-            </TableCellLayout>
-          );
-        },
+        columnId: 'nombre',
+        renderHeaderCell: () => 'Nombre',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <span
+              style={{
+                color: '#0f6cbd',
+                cursor: 'pointer',
+                fontSize: 13,
+                textDecoration: 'none',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+            >
+              {item.tareaNombre}
+            </span>
+          </TableCellLayout>
+        ),
       }),
       createTableColumn<TareaLocalItem>({
-        columnId: 'instrucciones',
-        renderHeaderCell: () => 'Instrucciones Técnicas',
+        columnId: 'tipoTarea',
+        renderHeaderCell: () => 'Tipo de Tarea',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <span
+              style={{
+                color: '#0f6cbd',
+                cursor: 'pointer',
+                fontSize: 13,
+                textDecoration: 'none',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+            >
+              {item.tareaCodigo ? `[${item.tareaCodigo}] ${item.tareaNombre}` : item.tareaNombre}
+            </span>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<TareaLocalItem>({
+        columnId: 'descripcion',
+        renderHeaderCell: () => 'Descripción',
         renderCell: (item) => {
           const idx = tareas.findIndex((x) => x.id === item.id);
           return (
@@ -793,13 +822,63 @@ export function PlantillaTrabajoFormPage() {
         },
       }),
       createTableColumn<TareaLocalItem>({
-        columnId: 'acciones',
-        renderHeaderCell: () => 'Acciones',
+        columnId: 'duracion',
+        renderHeaderCell: () => 'Duración Estimada',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <span>{item.duracionEstimadaMinutos} min</span>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<TareaLocalItem>({
+        columnId: 'obligatoria',
+        renderHeaderCell: () => 'Obligatoria',
         renderCell: (item) => {
           const idx = tareas.findIndex((x) => x.id === item.id);
           return (
             <TableCellLayout>
-              <div style={{ display: 'flex', gap: 2 }}>
+              <Checkbox
+                checked={item.esObligatoria}
+                onChange={(_, d) =>
+                  setTareas((prev) =>
+                    prev.map((t, i) => (i === idx ? { ...t, esObligatoria: Boolean(d.checked) } : t))
+                  )
+                }
+                label={item.esObligatoria ? 'Sí' : 'No'}
+              />
+            </TableCellLayout>
+          );
+        },
+      }),
+      createTableColumn<TareaLocalItem>({
+        columnId: 'evidencia',
+        renderHeaderCell: () => 'Foto Evidencia',
+        renderCell: (item) => {
+          const idx = tareas.findIndex((x) => x.id === item.id);
+          return (
+            <TableCellLayout>
+              <Checkbox
+                checked={item.requiereEvidencia}
+                onChange={(_, d) =>
+                  setTareas((prev) =>
+                    prev.map((t, i) => (i === idx ? { ...t, requiereEvidencia: Boolean(d.checked) } : t))
+                  )
+                }
+                label={item.requiereEvidencia ? 'Sí' : 'No'}
+              />
+            </TableCellLayout>
+          );
+        },
+      }),
+      createTableColumn<TareaLocalItem>({
+        columnId: 'orden',
+        renderHeaderCell: () => 'Orden de Línea',
+        renderCell: (item) => {
+          const idx = tareas.findIndex((x) => x.id === item.id);
+          return (
+            <TableCellLayout>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span>{item.ordenSecuencia}</span>
                 <Button
                   size="small"
                   appearance="subtle"
@@ -816,34 +895,90 @@ export function PlantillaTrabajoFormPage() {
                   onClick={() => moverTarea(idx, 'abajo')}
                   title="Bajar"
                 />
-                <Button
-                  size="small"
-                  appearance="subtle"
-                  icon={<Delete16Regular />}
-                  onClick={() => eliminarTareaFila(idx)}
-                  title="Eliminar"
-                />
               </div>
             </TableCellLayout>
           );
         },
       }),
     ],
-    [tareas]
+    [tareas, tareasSeleccionadasTabla]
   );
 
-  // Columnas DataGrid para Receta de Materiales
+  // Columnas DataGrid para Receta de Materiales (Estilo Dynamics 365)
   const columnasMateriales: TableColumnDefinition<MaterialLocalItem>[] = useMemo(
     () => [
       createTableColumn<MaterialLocalItem>({
+        columnId: 'select',
+        renderHeaderCell: () => {
+          const todosSeleccionados =
+            materiales.length > 0 &&
+            materiales.every((m) => materialesSeleccionadosTabla.has(m.id));
+          return (
+            <Checkbox
+              checked={todosSeleccionados}
+              onChange={(_, d) => {
+                if (d.checked) {
+                  setMaterialesSeleccionadosTabla(new Set(materiales.map((m) => m.id)));
+                } else {
+                  setMaterialesSeleccionadosTabla(new Set());
+                }
+              }}
+            />
+          );
+        },
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Checkbox
+              checked={materialesSeleccionadosTabla.has(item.id)}
+              onChange={(_, d) => {
+                setMaterialesSeleccionadosTabla((prev) => {
+                  const next = new Set(prev);
+                  if (d.checked) next.add(item.id);
+                  else next.delete(item.id);
+                  return next;
+                });
+              }}
+            />
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<MaterialLocalItem>({
+        columnId: 'nombre',
+        renderHeaderCell: () => 'Nombre',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <span
+              style={{
+                color: '#0f6cbd',
+                cursor: 'pointer',
+                fontSize: 13,
+                textDecoration: 'none',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+            >
+              {item.productoNombre}
+            </span>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<MaterialLocalItem>({
         columnId: 'producto',
-        renderHeaderCell: () => 'Producto / Material',
+        renderHeaderCell: () => 'Producto',
         renderCell: (item) => (
           <TableCellLayout>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Text weight="semibold">{item.productoNombre}</Text>
-              <span style={{ fontSize: 11, color: tokens.colorNeutralForeground4 }}>
-                [{item.productoCodigo}]
+              <span
+                style={{
+                  color: '#0f6cbd',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  textDecoration: 'none',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+                onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+              >
+                [{item.productoCodigo}] {item.productoNombre}
               </span>
               {item.esSerializado && (
                 <Badge appearance="tint" shape="rounded" color="informative" size="small">
@@ -855,8 +990,29 @@ export function PlantillaTrabajoFormPage() {
         ),
       }),
       createTableColumn<MaterialLocalItem>({
+        columnId: 'descripcion',
+        renderHeaderCell: () => 'Descripción',
+        renderCell: (item) => {
+          const idx = materiales.findIndex((x) => x.id === item.id);
+          return (
+            <TableCellLayout style={{ width: '100%' }}>
+              <Input
+                size="small"
+                value={item.observaciones}
+                onChange={(_, d) =>
+                  setMateriales((prev) =>
+                    prev.map((m, i) => (i === idx ? { ...m, observaciones: d.value } : m))
+                  )
+                }
+                style={{ width: '100%' }}
+              />
+            </TableCellLayout>
+          );
+        },
+      }),
+      createTableColumn<MaterialLocalItem>({
         columnId: 'cantidad',
-        renderHeaderCell: () => 'Cantidad Sugerida',
+        renderHeaderCell: () => 'Cantidad',
         renderCell: (item) => {
           const idx = materiales.findIndex((x) => x.id === item.id);
           return (
@@ -874,7 +1030,7 @@ export function PlantillaTrabajoFormPage() {
                     )
                   )
                 }
-                style={{ width: 90 }}
+                style={{ width: 80 }}
               />
             </TableCellLayout>
           );
@@ -903,52 +1059,26 @@ export function PlantillaTrabajoFormPage() {
                     prev.map((m, i) => (i === idx ? { ...m, esObligatorio: Boolean(d.checked) } : m))
                   )
                 }
+                label={item.esObligatorio ? 'Sí' : 'No'}
               />
             </TableCellLayout>
           );
         },
       }),
       createTableColumn<MaterialLocalItem>({
-        columnId: 'observaciones',
-        renderHeaderCell: () => 'Observaciones',
-        renderCell: (item) => {
-          const idx = materiales.findIndex((x) => x.id === item.id);
-          return (
-            <TableCellLayout style={{ width: '100%' }}>
-              <Input
-                size="small"
-                value={item.observaciones}
-                onChange={(_, d) =>
-                  setMateriales((prev) =>
-                    prev.map((m, i) => (i === idx ? { ...m, observaciones: d.value } : m))
-                  )
-                }
-                style={{ width: '100%' }}
-              />
-            </TableCellLayout>
-          );
-        },
-      }),
-      createTableColumn<MaterialLocalItem>({
-        columnId: 'acciones',
-        renderHeaderCell: () => 'Acciones',
+        columnId: 'orden',
+        renderHeaderCell: () => 'Orden de Línea',
         renderCell: (item) => {
           const idx = materiales.findIndex((x) => x.id === item.id);
           return (
             <TableCellLayout>
-              <Button
-                size="small"
-                appearance="subtle"
-                icon={<Delete16Regular />}
-                onClick={() => eliminarMaterialFila(idx)}
-                title="Eliminar"
-              />
+              <span>{idx + 1}</span>
             </TableCellLayout>
           );
         },
       }),
     ],
-    [materiales]
+    [materiales, materialesSeleccionadosTabla]
   );
 
   if (loading) {
@@ -1055,10 +1185,10 @@ export function PlantillaTrabajoFormPage() {
             selectedValue={selectedTab}
             onTabSelect={(_, d) => setSelectedTab(d.value as 'general' | 'servicios' | 'tareas' | 'materiales')}
           >
-            <Tab value="general">Información General</Tab>
+            <Tab value="general">General</Tab>
             <Tab value="servicios">Servicios</Tab>
-            <Tab value="tareas">Tareas Previstas</Tab>
-            <Tab value="materiales">Materiales y Equipos</Tab>
+            <Tab value="tareas">Tareas de Servicio</Tab>
+            <Tab value="materiales">Productos / Materiales</Tab>
           </TabList>
         }
       />
@@ -1125,49 +1255,59 @@ export function PlantillaTrabajoFormPage() {
         )}
 
         {selectedTab === 'servicios' && (
-          <div className={styles.card}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div>
-                <Text size={400} weight="semibold">Servicios Asociados a la Plantilla</Text>
-                <br />
-                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                  Servicios de catálogo facturables a los que aplica esta plantilla operativa.
-                </Text>
-              </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                {serviciosSeleccionadosTabla.size > 0 && (
-                  <Button
-                    appearance="subtle"
-                    icon={<Delete16Regular />}
-                    onClick={eliminarServiciosSeleccionadosTabla}
-                  >
-                    Eliminar
-                  </Button>
-                )}
+          <div
+            style={{
+              backgroundColor: tokens.colorNeutralBackground1,
+              border: `1px solid ${tokens.colorNeutralStroke2}`,
+              borderRadius: '2px',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            {/* Subgrid Command Bar */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                minHeight: '38px',
+                padding: '0 8px',
+                borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+                backgroundColor: tokens.colorNeutralBackground1,
+                gap: '4px',
+              }}
+            >
+              {serviciosSeleccionadosTabla.size > 0 && (
                 <Button
-                  appearance="primary"
-                  icon={<Add16Regular />}
-                  onClick={() => setDialogServicioOpen(true)}
+                  appearance="subtle"
+                  size="small"
+                  icon={<Delete16Regular />}
+                  onClick={eliminarServiciosSeleccionadosTabla}
                 >
-                  Agregar Servicio
+                  Eliminar
                 </Button>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 12, maxWidth: 300 }}>
-              <Input
-                contentBefore={<Search16Regular />}
-                placeholder="Filtrar servicios..."
-                value={filtroTablaServicios}
-                onChange={(_, d) => setFiltroTablaServicios(d.value)}
-                style={{ width: '100%' }}
+              )}
+              <Button
+                appearance="subtle"
                 size="small"
+                icon={<Add16Regular />}
+                onClick={() => setDialogServicioOpen(true)}
+              >
+                + Nuevo Servicio de Plantilla...
+              </Button>
+              <Button
+                appearance="subtle"
+                size="small"
+                icon={<MoreHorizontal16Regular />}
+                aria-label="Más comandos"
               />
             </div>
 
+            {/* Subgrid Table */}
             <div style={{ overflowX: 'auto' }}>
               <DataGrid
-                items={serviciosFiltradosTabla}
+                items={servicios}
                 columns={columnasServicios}
                 getRowId={(s) => s.id}
                 style={{ width: '100%', minWidth: 650 }}
@@ -1177,8 +1317,17 @@ export function PlantillaTrabajoFormPage() {
                     {({ renderHeaderCell }) => <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>}
                   </DataGridRow>
                 </DataGridHeader>
-                {serviciosFiltradosTabla.length === 0 ? (
-                  <TableEmptyState />
+                {servicios.length === 0 ? (
+                  <div
+                    style={{
+                      padding: '36px 16px',
+                      textAlign: 'center',
+                      color: tokens.colorNeutralForeground3,
+                      fontSize: '13px',
+                    }}
+                  >
+                    No hay datos disponibles
+                  </div>
                 ) : (
                   <DataGridBody<ServicioLocalItem>>
                     {({ item, rowId }) => (
@@ -1190,28 +1339,73 @@ export function PlantillaTrabajoFormPage() {
                 )}
               </DataGrid>
             </div>
+
+            {/* Subgrid Footer */}
+            <div
+              style={{
+                padding: '6px 12px',
+                fontSize: '12px',
+                color: tokens.colorNeutralForeground3,
+                borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+                backgroundColor: tokens.colorNeutralBackground1,
+              }}
+            >
+              Filas: {servicios.length}
+            </div>
           </div>
         )}
 
         {selectedTab === 'tareas' && (
-          <div className={styles.card}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div>
-                <Text size={400} weight="semibold">Checklist de Tareas Secuenciales</Text>
-                <br />
-                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                  Pasos técnicos que el técnico en campo deberá marcar como realizados en la orden.
-                </Text>
-              </div>
+          <div
+            style={{
+              backgroundColor: tokens.colorNeutralBackground1,
+              border: `1px solid ${tokens.colorNeutralStroke2}`,
+              borderRadius: '2px',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            {/* Subgrid Command Bar */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                minHeight: '38px',
+                padding: '0 8px',
+                borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+                backgroundColor: tokens.colorNeutralBackground1,
+                gap: '4px',
+              }}
+            >
+              {tareasSeleccionadasTabla.size > 0 && (
+                <Button
+                  appearance="subtle"
+                  size="small"
+                  icon={<Delete16Regular />}
+                  onClick={eliminarTareasSeleccionadasTabla}
+                >
+                  Eliminar
+                </Button>
+              )}
               <Button
-                appearance="primary"
+                appearance="subtle"
+                size="small"
                 icon={<Add16Regular />}
                 onClick={() => setDialogTareaOpen(true)}
               >
-                Agregar Tarea
+                + Nueva Tarea de Servicio...
               </Button>
+              <Button
+                appearance="subtle"
+                size="small"
+                icon={<MoreHorizontal16Regular />}
+                aria-label="Más comandos"
+              />
             </div>
 
+            {/* Subgrid Table */}
             <div style={{ overflowX: 'auto' }}>
               <DataGrid
                 items={tareas}
@@ -1225,7 +1419,16 @@ export function PlantillaTrabajoFormPage() {
                   </DataGridRow>
                 </DataGridHeader>
                 {tareas.length === 0 ? (
-                  <TableEmptyState />
+                  <div
+                    style={{
+                      padding: '36px 16px',
+                      textAlign: 'center',
+                      color: tokens.colorNeutralForeground3,
+                      fontSize: '13px',
+                    }}
+                  >
+                    No hay datos disponibles
+                  </div>
                 ) : (
                   <DataGridBody<TareaLocalItem>>
                     {({ item, rowId }) => (
@@ -1237,28 +1440,73 @@ export function PlantillaTrabajoFormPage() {
                 )}
               </DataGrid>
             </div>
+
+            {/* Subgrid Footer */}
+            <div
+              style={{
+                padding: '6px 12px',
+                fontSize: '12px',
+                color: tokens.colorNeutralForeground3,
+                borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+                backgroundColor: tokens.colorNeutralBackground1,
+              }}
+            >
+              Filas: {tareas.length}
+            </div>
           </div>
         )}
 
         {selectedTab === 'materiales' && (
-          <div className={styles.card}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div>
-                <Text size={400} weight="semibold">Receta de Materiales y Equipos Previstos</Text>
-                <br />
-                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                  Repuestos, cables y equipos sugeridos u obligatorios para la liquidación del trabajo.
-                </Text>
-              </div>
+          <div
+            style={{
+              backgroundColor: tokens.colorNeutralBackground1,
+              border: `1px solid ${tokens.colorNeutralStroke2}`,
+              borderRadius: '2px',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            {/* Subgrid Command Bar */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                minHeight: '38px',
+                padding: '0 8px',
+                borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+                backgroundColor: tokens.colorNeutralBackground1,
+                gap: '4px',
+              }}
+            >
+              {materialesSeleccionadosTabla.size > 0 && (
+                <Button
+                  appearance="subtle"
+                  size="small"
+                  icon={<Delete16Regular />}
+                  onClick={eliminarMaterialesSeleccionadosTabla}
+                >
+                  Eliminar
+                </Button>
+              )}
               <Button
-                appearance="primary"
+                appearance="subtle"
+                size="small"
                 icon={<Add16Regular />}
                 onClick={() => setDialogMaterialOpen(true)}
               >
-                Agregar Material
+                + Nuevo Producto de Plantilla...
               </Button>
+              <Button
+                appearance="subtle"
+                size="small"
+                icon={<MoreHorizontal16Regular />}
+                aria-label="Más comandos"
+              />
             </div>
 
+            {/* Subgrid Table */}
             <div style={{ overflowX: 'auto' }}>
               <DataGrid
                 items={materiales}
@@ -1272,7 +1520,16 @@ export function PlantillaTrabajoFormPage() {
                   </DataGridRow>
                 </DataGridHeader>
                 {materiales.length === 0 ? (
-                  <TableEmptyState />
+                  <div
+                    style={{
+                      padding: '36px 16px',
+                      textAlign: 'center',
+                      color: tokens.colorNeutralForeground3,
+                      fontSize: '13px',
+                    }}
+                  >
+                    No hay datos disponibles
+                  </div>
                 ) : (
                   <DataGridBody<MaterialLocalItem>>
                     {({ item, rowId }) => (
@@ -1283,6 +1540,19 @@ export function PlantillaTrabajoFormPage() {
                   </DataGridBody>
                 )}
               </DataGrid>
+            </div>
+
+            {/* Subgrid Footer */}
+            <div
+              style={{
+                padding: '6px 12px',
+                fontSize: '12px',
+                color: tokens.colorNeutralForeground3,
+                borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+                backgroundColor: tokens.colorNeutralBackground1,
+              }}
+            >
+              Filas: {materiales.length}
             </div>
           </div>
         )}
