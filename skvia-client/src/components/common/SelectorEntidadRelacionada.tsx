@@ -41,15 +41,16 @@ const usarEstilos = makeStyles({
     flexGrow: 1,
   },
   lista: {
-    maxWidth: 'min(460px, 92vw)',
     boxSizing: 'border-box',
+    maxHeight: '280px',
+    overflowY: 'auto',
     overflowX: 'hidden',
   },
   opcionTexto: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    maxWidth: '320px',
+    maxWidth: '100%',
     display: 'block',
   },
   pie: {
@@ -136,6 +137,13 @@ export const SelectorEntidadRelacionada: React.FC<SelectorEntidadRelacionadaProp
       selectedOptions={seleccionada ? [seleccionada.id] : []}
       onOptionSelect={alElegir}
       disabled={deshabilitado}
+      positioning={{
+        position: 'below',
+        align: 'start',
+        matchTargetSize: 'width',
+        fallbackPositions: ['above'],
+        autoSize: 'height',
+      }}
     >
       <TagPickerControl
         className={estilos.control}
