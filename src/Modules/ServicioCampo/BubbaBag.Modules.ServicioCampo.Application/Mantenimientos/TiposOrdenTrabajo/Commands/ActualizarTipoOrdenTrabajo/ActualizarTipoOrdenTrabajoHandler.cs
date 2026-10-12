@@ -33,7 +33,8 @@ public class ActualizarTipoOrdenTrabajoHandler : ICommandHandler<ActualizarTipoO
             request.ExigeFirmaCliente,
             request.ExigeEvidenciasFotograficas,
             request.Descripcion,
-            string.IsNullOrWhiteSpace(request.ColorHex) ? "#0f6cbd" : request.ColorHex.Trim());
+            string.IsNullOrWhiteSpace(request.ColorHex) ? "#0f6cbd" : request.ColorHex.Trim(),
+            request.ListaPreciosId);
 
         await _context.SaveChangesAsync(cancellationToken);
         return Result.Success();

@@ -10,4 +10,6 @@ public record TipoOrdenTrabajoDto(
     bool ExigeFirmaCliente,
     bool ExigeEvidenciasFotograficas,
     string ColorHex,
-    bool Activo);
+    bool Activo,
+    Guid? ListaPreciosId = null,
+    string? ListaPreciosNombre = null);

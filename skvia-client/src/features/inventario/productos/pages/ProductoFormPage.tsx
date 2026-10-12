@@ -112,6 +112,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
   // UI state
   const [loading, setLoading] = useState<boolean>(Boolean(effectiveId));
   const [saving, setSaving] = useState<boolean>(false);
+  const [tieneMovimientos, setTieneMovimientos] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -224,6 +225,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
             tipo: tipoNormalizado === 'NoInventario' ? 'No inventario' : tipoNormalizado,
             activo: p.activo,
           });
+          setTieneMovimientos(Boolean(p.tieneMovimientos));
         })
         .catch((err) => {
           setStatusMessage({
@@ -357,6 +359,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
       activo: true,
     });
     setErrors({});
+    setTieneMovimientos(false);
     setStatusMessage(null);
   };
 
@@ -618,6 +621,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                   <div className={styles.d365ControlCol}>
                     <div className={styles.fieldRowFlex}>
                       <Switch
+                        disabled={tieneMovimientos}
                         checked={formData.esSerializado || false}
                         onChange={(_, data) =>
                           setFormData({ ...formData, esSerializado: data.checked })
@@ -654,9 +658,11 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                   required={formData.tipo === 'Inventario' || formData.tipo === 1}
                   htmlFor="prod-unidad"
                   error={errors.unidadMedida}
+                  info={tieneMovimientos ? "Bloqueado por trazabilidad: el producto ya registra movimientos o stock en almacén." : undefined}
                 >
                   <LookupDropdownWithQuickCreate
                     idEntrada="prod-unidad"
+                    deshabilitado={tieneMovimientos}
                     etiquetaGrupo="Unidades"
                     opciones={unidadesList.map((unidad) => ({
                       id: unidad.id,
@@ -713,9 +719,11 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                   label="Decimales de cantidad"
                   htmlFor="prod-decimales-cantidad"
                   error={errors.decimalesCantidad}
+                  info={tieneMovimientos ? "Bloqueado por trazabilidad: el producto ya registra movimientos o stock en almacén." : undefined}
                 >
                     <Input
                       id="prod-decimales-cantidad"
+                      disabled={tieneMovimientos}
                       type="number"
                       min={0}
                       max={5}

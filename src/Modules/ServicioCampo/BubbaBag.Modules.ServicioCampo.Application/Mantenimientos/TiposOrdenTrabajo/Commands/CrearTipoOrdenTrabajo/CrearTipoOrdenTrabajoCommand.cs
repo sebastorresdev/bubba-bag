@@ -10,5 +10,6 @@ public record CrearTipoOrdenTrabajoCommand(
     bool ExigeFirmaCliente = true,
     bool ExigeEvidenciasFotograficas = true,
     string? Descripcion = null,
-    string ColorHex = "#0f6cbd"
+    string ColorHex = "#0f6cbd",
+    Guid? ListaPreciosId = null
 ) : ICommand<Result<Guid>>;

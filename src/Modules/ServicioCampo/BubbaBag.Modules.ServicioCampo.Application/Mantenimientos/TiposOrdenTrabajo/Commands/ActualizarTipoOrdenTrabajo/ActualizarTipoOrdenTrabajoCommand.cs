@@ -11,5 +11,6 @@ public record ActualizarTipoOrdenTrabajoCommand(
     bool ExigeFirmaCliente,
     bool ExigeEvidenciasFotograficas,
     string? Descripcion = null,
-    string ColorHex = "#0f6cbd"
+    string ColorHex = "#0f6cbd",
+    Guid? ListaPreciosId = null
 ) : ICommand<Result>;

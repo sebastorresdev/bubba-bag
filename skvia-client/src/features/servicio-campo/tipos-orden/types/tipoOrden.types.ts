@@ -7,6 +7,8 @@ export interface TipoOrdenTrabajoDto {
   exigeEvidenciasFotograficas: boolean;
   colorHex: string;
   activo: boolean;
+  listaPreciosId?: string | null;
+  listaPreciosNombre?: string | null;
 }
 
 export interface GuardarTipoOrdenTrabajoDto {
@@ -16,4 +18,5 @@ export interface GuardarTipoOrdenTrabajoDto {
   exigeEvidenciasFotograficas: boolean;
   descripcion?: string;
   colorHex: string;
+  listaPreciosId?: string | null;
 }

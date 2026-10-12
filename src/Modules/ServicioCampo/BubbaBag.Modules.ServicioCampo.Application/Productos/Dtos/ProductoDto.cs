@@ -26,5 +26,6 @@ public record ProductoDto(
     string? ProveedorDefecto = null,
     Guid? ListaPreciosPredeterminadaId = null,
     string? ListaPreciosPredeterminadaNombre = null,
-    int DecimalesCantidad = 0
+    int DecimalesCantidad = 0,
+    bool TieneMovimientos = false
 );

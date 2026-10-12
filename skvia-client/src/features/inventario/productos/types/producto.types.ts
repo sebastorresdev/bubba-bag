@@ -24,6 +24,7 @@ export interface ProductoDto {
   proveedorDefecto?: string;
   listaPreciosPredeterminadaId?: string | null;
   listaPreciosPredeterminadaNombre?: string | null;
+  tieneMovimientos?: boolean;
 }
 
 export interface CreateProductoDto {

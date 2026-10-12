@@ -32,6 +32,10 @@ public class ObtenerProductoPorIdHandler : IQueryHandler<ObtenerProductoPorIdQue
         if (p is null)
             return Result<ProductoDto>.Failure($"No se encontró el producto con ID '{query.Id}'.");
 
+        var tieneMovimientos = await _context.StocksAlmacen.AnyAsync(x => x.ProductoId == p.Id, cancellationToken)
+            || await _context.ItemsSeriados.AnyAsync(x => x.ProductoId == p.Id, cancellationToken)
+            || await _context.TransferenciaDetalles.AnyAsync(x => x.ProductoId == p.Id, cancellationToken);
+
         var dto = new ProductoDto(
             p.Id,
             p.Codigo,
@@ -55,7 +59,8 @@ public class ObtenerProductoPorIdHandler : IQueryHandler<ObtenerProductoPorIdQue
             p.ProveedorDefecto,
             p.ListaPreciosPredeterminadaId,
             p.ListaPreciosPredeterminada?.Nombre,
-            p.DecimalesCantidad
+            p.DecimalesCantidad,
+            tieneMovimientos
         );
 
         return Result<ProductoDto>.Success(dto);

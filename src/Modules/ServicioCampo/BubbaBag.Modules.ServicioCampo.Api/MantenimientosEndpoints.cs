@@ -192,7 +192,8 @@ public static class MantenimientosEndpoints
             request.ExigeFirmaCliente,
             request.ExigeEvidenciasFotograficas,
             request.Descripcion,
-            request.ColorHex);
+            request.ColorHex,
+            request.ListaPreciosId);
 
         var result = await dispatcher.SendAsync(command);
         return result.IsSuccess
@@ -283,7 +284,8 @@ public record ActualizarTipoOrdenTrabajoRequest(
     bool ExigeFirmaCliente,
     bool ExigeEvidenciasFotograficas,
     string? Descripcion = null,
-    string ColorHex = "#0f6cbd");
+    string ColorHex = "#0f6cbd",
+    Guid? ListaPreciosId = null);
 
 public record ActualizarTipoTareaServicioRequest(
     string Nombre,

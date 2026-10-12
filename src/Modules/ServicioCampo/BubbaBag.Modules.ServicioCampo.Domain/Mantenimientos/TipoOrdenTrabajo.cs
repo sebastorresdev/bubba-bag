@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using BubbaBag.SharedKernel;
+using BubbaBag.Modules.ServicioCampo.Domain.Productos;
 
 namespace BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 
@@ -16,6 +17,8 @@ public class TipoOrdenTrabajo : Entity<Guid>
     public bool ExigeFirmaCliente { get; private set; } = true;
     public bool ExigeEvidenciasFotograficas { get; private set; } = true;
     public string ColorHex { get; private set; } = "#0f6cbd";
+    public Guid? ListaPreciosId { get; private set; }
+    public virtual ListaPrecios? ListaPrecios { get; private set; }
     public bool Activo { get; private set; }
 
     private readonly List<CampoDefinicion> _camposDefinicion = new();
@@ -29,7 +32,8 @@ public class TipoOrdenTrabajo : Entity<Guid>
         bool exigeFirmaCliente = true,
         bool exigeEvidenciasFotograficas = true,
         string? descripcion = null,
-        string colorHex = "#0f6cbd")
+        string colorHex = "#0f6cbd",
+        Guid? listaPreciosId = null)
     {
         return new TipoOrdenTrabajo
         {
@@ -40,6 +44,7 @@ public class TipoOrdenTrabajo : Entity<Guid>
             ExigeEvidenciasFotograficas = exigeEvidenciasFotograficas,
             Descripcion = descripcion?.Trim(),
             ColorHex = colorHex,
+            ListaPreciosId = listaPreciosId,
             Activo = true
         };
     }
@@ -50,7 +55,8 @@ public class TipoOrdenTrabajo : Entity<Guid>
         bool exigeFirmaCliente,
         bool exigeEvidenciasFotograficas,
         string? descripcion,
-        string colorHex)
+        string colorHex,
+        Guid? listaPreciosId = null)
     {
         Nombre = nombre.Trim();
         RequiereVisitaCampo = requiereVisitaCampo;
@@ -58,6 +64,7 @@ public class TipoOrdenTrabajo : Entity<Guid>
         ExigeEvidenciasFotograficas = exigeEvidenciasFotograficas;
         Descripcion = descripcion?.Trim();
         ColorHex = colorHex;
+        ListaPreciosId = listaPreciosId;
     }
 
     public void Desactivar() => Activo = false;

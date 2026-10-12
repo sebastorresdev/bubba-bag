@@ -9,7 +9,7 @@ export function RequireSession() {
   const { usuario, cargando, permisos } = useAuthSession();
   const location = useLocation();
   useEffect(() => { void initializeSession(); }, []);
-  if (cargando) return <Spinner label="Verificando sesión..." />;
+  if (cargando && !usuario) return <Spinner label="Verificando sesión..." />;
   if (!usuario) return <Navigate replace to={`/login?continuar=${encodeURIComponent(location.pathname + location.search)}`} />;
   if (location.pathname === '/') return <Navigate replace to={homePath(permisos)} />;
   if (!canAccessPath(location.pathname, permisos)) return <div>

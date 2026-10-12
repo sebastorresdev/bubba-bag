@@ -30,7 +30,8 @@ public class CrearTipoOrdenTrabajoHandler : ICommandHandler<CrearTipoOrdenTrabaj
             request.ExigeFirmaCliente,
             request.ExigeEvidenciasFotograficas,
             request.Descripcion,
-            string.IsNullOrWhiteSpace(request.ColorHex) ? "#0f6cbd" : request.ColorHex.Trim());
+            string.IsNullOrWhiteSpace(request.ColorHex) ? "#0f6cbd" : request.ColorHex.Trim(),
+            request.ListaPreciosId);
 
         _context.TiposOrdenTrabajo.Add(tipo);
         await _context.SaveChangesAsync(cancellationToken);

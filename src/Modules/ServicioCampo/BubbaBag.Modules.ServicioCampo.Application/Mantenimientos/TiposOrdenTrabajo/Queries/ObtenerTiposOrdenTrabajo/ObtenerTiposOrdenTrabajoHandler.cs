@@ -41,7 +41,9 @@ public class ObtenerTiposOrdenTrabajoHandler : IQueryHandler<ObtenerTiposOrdenTr
                 t.ExigeFirmaCliente,
                 t.ExigeEvidenciasFotograficas,
                 t.ColorHex,
-                t.Activo))
+                t.Activo,
+                t.ListaPreciosId,
+                t.ListaPrecios != null ? t.ListaPrecios.Nombre : null))
             .ToListAsync(cancellationToken);
 
         return Result<List<TipoOrdenTrabajoDto>>.Success(lista);

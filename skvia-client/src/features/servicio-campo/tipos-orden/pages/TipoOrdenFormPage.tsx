@@ -62,6 +62,7 @@ export function TipoOrdenFormPage() {
     exigeEvidenciasFotograficas: true,
     descripcion: '',
     colorHex: '#0f6cbd',
+    listaPreciosId: null,
   });
 
   const [savedTitle, setSavedTitle] = useState(isEditMode ? '' : 'Nuevo');
@@ -138,7 +139,9 @@ export function TipoOrdenFormPage() {
         exigeEvidenciasFotograficas: data.exigeEvidenciasFotograficas,
         descripcion: data.descripcion || '',
         colorHex: data.colorHex || '#0f6cbd',
+        listaPreciosId: data.listaPreciosId || null,
       });
+      setListaPrecioId(data.listaPreciosId || '');
       setSavedTitle(data.nombre);
       setActivo(data.activo);
     } catch (e) {
@@ -176,13 +179,18 @@ export function TipoOrdenFormPage() {
       setSaving(true);
       setStatusMessage(null);
 
+      const payload: GuardarTipoOrdenTrabajoDto = {
+        ...formData,
+        listaPreciosId: listaPrecioId || null,
+      };
+
       let savedId = id;
       if (isEditMode && id) {
-        await TipoOrdenService.actualizarTipoOrden(id, formData);
+        await TipoOrdenService.actualizarTipoOrden(id, payload);
         setSavedTitle(formData.nombre.trim());
         notifySuccess('Tipo de orden actualizado correctamente.');
       } else {
-        const res = await TipoOrdenService.crearTipoOrden(formData);
+        const res = await TipoOrdenService.crearTipoOrden(payload);
         savedId = res.id;
         setSavedTitle(formData.nombre.trim());
         notifySuccess('Tipo de orden registrado exitosamente.');
@@ -416,7 +424,10 @@ export function TipoOrdenFormPage() {
                   }
                   textoBusqueda={busquedaLista}
                   alCambiarBusqueda={setBusquedaLista}
-                  alSeleccionar={(id) => setListaPrecioId(id || '')}
+                  alSeleccionar={(id) => {
+                    setListaPrecioId(id || '');
+                    setFormData((prev) => ({ ...prev, listaPreciosId: id || null }));
+                  }}
                   textoVacio="No se encontraron listas de precios"
                 />
               </D365FormField>

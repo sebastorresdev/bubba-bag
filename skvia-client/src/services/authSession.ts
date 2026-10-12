@@ -27,7 +27,7 @@ export async function loadSession(): Promise<void> {
   const token = readToken();
   if (!token) { clearSession(); return; }
   const current = generation;
-  publish({ ...session, cargando: true });
+  if (!session.usuario) publish({ ...session, cargando: true });
   try {
     const response = await fetch('/api/seguridad/sesion', { headers: { Authorization: `Bearer ${token}` } });
     if (!response.ok) throw new Error(response.status === 401 ? 'La sesión ha vencido.' : 'No se pudo verificar la sesión.');

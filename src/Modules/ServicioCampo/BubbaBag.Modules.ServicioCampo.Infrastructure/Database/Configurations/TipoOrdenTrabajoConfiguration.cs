@@ -39,6 +39,14 @@ public class TipoOrdenTrabajoConfiguration : IEntityTypeConfiguration<TipoOrdenT
         builder.Property(t => t.Activo)
             .IsRequired();
 
+        builder.Property(t => t.ListaPreciosId)
+            .IsRequired(false);
+
+        builder.HasOne(t => t.ListaPrecios)
+            .WithMany()
+            .HasForeignKey(t => t.ListaPreciosId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasMany(t => t.CamposDefinicion)
             .WithOne()
             .HasForeignKey(c => c.TipoOrdenTrabajoId)
