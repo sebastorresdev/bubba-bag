@@ -56,6 +56,7 @@ export const useD365FormStyles = makeStyles({
   // 3. Form Content Body
   contentBody: {
     flexGrow: 1,
+    minHeight: 0,
     overflowY: 'auto',
     overflowX: 'hidden',
     padding: '20px 24px 36px 24px',

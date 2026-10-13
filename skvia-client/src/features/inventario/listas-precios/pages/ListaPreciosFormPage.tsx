@@ -73,9 +73,32 @@ const useLocalStyles = makeStyles({
     paddingBottom: '12px',
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
   },
+  tableContainer: {
+    width: '100%',
+    maxHeight: 'calc(100vh - 330px)',
+    overflowY: 'auto',
+    overflowX: 'auto',
+    boxSizing: 'border-box',
+  },
+  stickyHeader: {
+    position: 'sticky',
+    top: 0,
+    zIndex: 2,
+    backgroundColor: tokens.colorNeutralBackground1,
+  },
   subgridTable: {
     width: '100%',
-    marginTop: '12px',
+    minWidth: '650px',
+  },
+  subgridFooter: {
+    padding: '8px 4px 0 4px',
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground3,
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+    marginTop: '8px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   subgridTools: {
     display: 'flex',
@@ -935,38 +958,49 @@ export const ListaPreciosFormPage: React.FC = () => {
                 </D365CommandButton>
               </D365CommandBar>
 
-              {/* Subgrid DataGrid con cabeceras siempre visibles y Empty State */}
-              <DataGrid
-                items={filteredElementos}
-                columns={elementoColumns}
-                getRowId={(item) => item.id}
-                className={localStyles.subgridTable}
-              >
-                <DataGridHeader>
-                  <DataGridRow>
-                    {({ renderHeaderCell }) => (
-                      <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
-                    )}
-                  </DataGridRow>
-                </DataGridHeader>
-                {filteredElementos.length === 0 ? (
-                  <TableEmptyState />
-                ) : (
-                  <DataGridBody<ElementoListaPreciosDto>>
-                    {({ item, rowId }) => (
-                      <DataGridRow<ElementoListaPreciosDto>
-                        key={rowId}
-                        className={styles.dataRow}
-                        onDoubleClick={() => handleEditarElemento(item)}
-                      >
-                        {({ renderCell }) => (
-                          <DataGridCell className={styles.dataCell}>{renderCell(item)}</DataGridCell>
-                        )}
-                      </DataGridRow>
-                    )}
-                  </DataGridBody>
-                )}
-              </DataGrid>
+              {/* Subgrid DataGrid con cabeceras fijas y scroll propio */}
+              <div className={localStyles.tableContainer}>
+                <DataGrid
+                  items={filteredElementos}
+                  columns={elementoColumns}
+                  getRowId={(item) => item.id}
+                  className={localStyles.subgridTable}
+                >
+                  <DataGridHeader className={localStyles.stickyHeader}>
+                    <DataGridRow>
+                      {({ renderHeaderCell }) => (
+                        <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
+                      )}
+                    </DataGridRow>
+                  </DataGridHeader>
+                  {filteredElementos.length === 0 ? (
+                    <TableEmptyState />
+                  ) : (
+                    <DataGridBody<ElementoListaPreciosDto>>
+                      {({ item, rowId }) => (
+                        <DataGridRow<ElementoListaPreciosDto>
+                          key={rowId}
+                          className={styles.dataRow}
+                          onDoubleClick={() => handleEditarElemento(item)}
+                        >
+                          {({ renderCell }) => (
+                            <DataGridCell className={styles.dataCell}>{renderCell(item)}</DataGridCell>
+                          )}
+                        </DataGridRow>
+                      )}
+                    </DataGridBody>
+                  )}
+                </DataGrid>
+              </div>
+
+              {/* Subgrid Footer */}
+              <div className={localStyles.subgridFooter}>
+                <span>
+                  {filteredElementos.length === elementos.length
+                    ? `${elementos.length} elementos`
+                    : `Mostrando ${filteredElementos.length} de ${elementos.length} elementos`}
+                </span>
+              </div>
             </div>
           </Card>
         )}
