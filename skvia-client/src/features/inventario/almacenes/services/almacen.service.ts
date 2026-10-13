@@ -81,6 +81,13 @@ export const AlmacenService = {
     });
   },
 
+  // 5.1 Eliminar almacén
+  async eliminarAlmacen(id: string): Promise<void> {
+    return apiClient<void>(`/api/inventario/almacenes/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   // 6. Resumen de stock
   async getResumenStockAlmacenes(soloActivos?: boolean): Promise<ResumenStockAlmacenDto[]> {
     const qs = soloActivos === undefined ? '' : `?soloActivos=${soloActivos}`;

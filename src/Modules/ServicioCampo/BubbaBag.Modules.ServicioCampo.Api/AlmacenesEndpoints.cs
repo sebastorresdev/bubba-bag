@@ -7,6 +7,7 @@ using BubbaBag.Modules.ServicioCampo.Application;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Commands.ActualizarAlmacen;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Commands.CambiarEstadoAlmacen;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Commands.CrearAlmacen;
+using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Commands.EliminarAlmacen;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Commands.CrearTransferenciaInventario;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Commands.RecepcionarTransferencia;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Compras;
@@ -42,6 +43,7 @@ public static class AlmacenesEndpoints
         group.MapGet("/{id:guid}", ObtenerAlmacenPorId);
         group.MapPost("/", CrearAlmacen).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
         group.MapPut("/{id:guid}", ActualizarAlmacen).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
+        group.MapDelete("/{id:guid}", EliminarAlmacen).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
         group.MapPatch("/{id:guid}/estado", CambiarEstadoAlmacen).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
         group.MapGet("/unidades-organizativas", ObtenerUnidadesOrganizativas);
         group.MapGet("/recursos-tecnicos", ObtenerRecursosTecnicos);
@@ -531,6 +533,15 @@ public static class AlmacenesEndpoints
         var command = new CambiarEstadoAlmacenCommand(id, request.Activo);
         var result = await dispatcher.SendAsync(command);
         return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
+    }
+
+    private static async Task<IResult> EliminarAlmacen(
+        Guid id,
+        IDispatcher dispatcher)
+    {
+        var command = new EliminarAlmacenCommand(id);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess ? Results.NoContent() : Results.BadRequest(result.Error);
     }
 }
 

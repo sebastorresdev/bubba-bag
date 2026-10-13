@@ -23,6 +23,7 @@ import {
   Checkmark16Regular,
   ChevronDown16Regular,
   TableEdit16Regular,
+  Delete16Regular,
 } from '@fluentui/react-icons';
 import { AlmacenService } from '../services/almacen.service';
 import type { AlmacenDto } from '../types/almacen.types';
@@ -30,6 +31,7 @@ import { D365EntityTable, D365TableToolbarTools, type D365EntityTableRef, type D
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
+import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 
 const filterFields: D365FilterField[] = [
   { id: 'nombre', label: 'Nombre', type: 'string' },
@@ -271,6 +273,37 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
     }
   };
 
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    const count = selectedIds.size;
+    const confirmMsg =
+      count === 1
+        ? '¿Está seguro de eliminar el almacén seleccionado?'
+        : `¿Está seguro de eliminar los ${count} almacenes seleccionados?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      for (const id of selectedIds) {
+        await AlmacenService.eliminarAlmacen(String(id));
+      }
+      notifySuccess(
+        count === 1
+          ? 'Almacén eliminado correctamente.'
+          : `${count} almacenes eliminados correctamente.`
+      );
+      setSelectedIds(new Set());
+      await loadData();
+    } catch (err: any) {
+      console.error('Error al eliminar almacén:', err);
+      setError(err?.message || 'Error al eliminar el almacén.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className={styles.root}>
       <Toaster toasterId={toasterId} position="top-end" />
@@ -301,6 +334,16 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
               </D365CommandButton>
             )}
 
+            {selectedIds.size > 0 && (
+              <D365CommandButton
+                icon={<Delete16Regular />}
+                tone="danger"
+                onClick={handleDeleteSelected}
+              >
+                Eliminar
+              </D365CommandButton>
+            )}
+
             <D365CommandDivider />
 
             <D365CommandButton
@@ -312,6 +355,14 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
             </D365CommandButton>
         </div>
       </D365CommandBar>
+
+      {error && (
+        <div style={{ padding: '8px 16px' }}>
+          <D365MessageBar intent="error" onDismiss={() => setError(null)}>
+            {error}
+          </D365MessageBar>
+        </div>
+      )}
 
       {/* 2. VIEW HEADER ROW (Selector de Vista + Filtros + Búsqueda) */}
       <div className={styles.viewHeader}>

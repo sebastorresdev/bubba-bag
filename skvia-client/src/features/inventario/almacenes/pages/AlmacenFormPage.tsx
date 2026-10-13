@@ -35,6 +35,7 @@ import {
   Building16Regular,
   Checkmark16Regular,
   DismissCircle16Regular,
+  Delete16Regular,
   LockClosed16Regular,
   Box16Regular,
   Person16Regular,
@@ -399,6 +400,32 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
     }
   };
 
+  const handleDelete = async () => {
+    if (!currentId) return;
+    const nombreAlm = savedHeader.nombre || formData.nombre || 'este almacén';
+    if (!window.confirm(`¿Está seguro de eliminar el almacén "${nombreAlm}"?`)) return;
+
+    try {
+      setSaving(true);
+      setStatusMessage(null);
+      await AlmacenService.eliminarAlmacen(currentId);
+      if (propOnBack) {
+        propOnBack();
+      } else {
+        navigate('/servicio-campo/almacenes', {
+          state: { successMessage: `Almacén "${nombreAlm}" eliminado correctamente.` },
+        });
+      }
+    } catch (err: any) {
+      console.error('Error al eliminar almacén:', err);
+      setStatusMessage({
+        type: 'error',
+        text: err?.message || 'Error al eliminar el almacén.',
+      });
+      setSaving(false);
+    }
+  };
+
   const handleBack = () => {
     if (propOnBack) {
       propOnBack();
@@ -527,6 +554,18 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
               disabled={saving || loading}
             >
               {savedHeader.activo ? 'Desactivar' : 'Activar'}
+            </D365CommandButton>
+          )}
+
+          {isEditMode && (
+            <D365CommandButton
+              tone="danger"
+              icon={<Delete16Regular />}
+              appearance="subtle"
+              onClick={handleDelete}
+              disabled={saving || loading}
+            >
+              Eliminar
             </D365CommandButton>
           )}
 
