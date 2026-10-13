@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
 using BubbaBag.SharedKernel;
 using BubbaBag.SharedKernel.Authorization;
 using BubbaBag.SharedKernel.CQRS;
@@ -34,16 +35,22 @@ public class EliminarAlmacenHandler : ICommandHandler<EliminarAlmacenCommand, Re
         if (almacen is null)
             return Result.Failure($"No se encontró el almacén con ID '{command.Id}'.");
 
+        // Obtener IDs de ubicaciones del almacén para comprobaciones precisas en SQL
+        var ubicacionIds = await _context.UbicacionesInventario
+            .Where(u => u.AlmacenId == command.Id)
+            .Select(u => u.Id)
+            .ToListAsync(cancellationToken);
+
         // 1. Validar existencias / stock positivo
-        var tieneStock = await _context.StocksAlmacen.AnyAsync(
-            s => s.Ubicacion.AlmacenId == command.Id && (s.CantidadDisponible > 0 || s.CantidadReservada > 0),
+        var tieneStock = ubicacionIds.Count > 0 && await _context.StocksAlmacen.AnyAsync(
+            s => ubicacionIds.Contains(s.UbicacionId) && (s.CantidadDisponible > 0 || s.CantidadReservada > 0),
             cancellationToken);
         if (tieneStock)
             return Result.Failure("No se puede eliminar el almacén porque contiene existencias de productos. Primero debe transferir o retirar el stock. En su lugar, puede desactivarlo.");
 
         // 2. Validar ítems seriados
-        var tieneSeries = await _context.ItemsSeriados.AnyAsync(
-            x => x.UbicacionActual != null && x.UbicacionActual.AlmacenId == command.Id,
+        var tieneSeries = ubicacionIds.Count > 0 && await _context.ItemsSeriados.AnyAsync(
+            x => x.UbicacionActualId.HasValue && ubicacionIds.Contains(x.UbicacionActualId.Value),
             cancellationToken);
         if (tieneSeries)
             return Result.Failure("No se puede eliminar el almacén porque tiene ítems seriados asociados.");
@@ -76,14 +83,20 @@ public class EliminarAlmacenHandler : ICommandHandler<EliminarAlmacenCommand, Re
         if (tieneMovimientos)
             return Result.Failure("No se puede eliminar el almacén porque registra movimientos de inventario históricos. Le sugerimos desactivarlo.");
 
-        // 7. Validar asignación a recursos técnicos
-        var tieneRecursos = await _context.Recursos.AnyAsync(
-            r => r.AlmacenMovilId == command.Id || r.AlmacenBaseId == command.Id,
-            cancellationToken);
-        if (tieneRecursos)
-            return Result.Failure("No se puede eliminar el almacén porque está asignado a un recurso técnico como almacén base o de custodia.");
+        // 7. Validar si es custodia personal de un técnico
+        if (almacen.Tipo == TipoAlmacen.CustodiaPersonal && almacen.RecursoId.HasValue)
+        {
+            return Result.Failure("No se puede eliminar un almacén de custodia personal de un técnico. En su lugar, puede desactivarlo.");
+        }
 
-        // 8. Validar asignación a zonas operativas
+        // 8. Validar si está asignado como almacén base a recursos técnicos
+        var tieneRecursoBase = await _context.Recursos.AnyAsync(
+            r => r.AlmacenBaseId == command.Id,
+            cancellationToken);
+        if (tieneRecursoBase)
+            return Result.Failure("No se puede eliminar el almacén porque está asignado como almacén base de uno o más recursos técnicos.");
+
+        // 9. Validar asignación a zonas operativas
         var tieneZonas = await _context.ZonasOperativas.AnyAsync(
             z => z.AlmacenPredeterminadoId == command.Id,
             cancellationToken);
@@ -91,17 +104,20 @@ public class EliminarAlmacenHandler : ICommandHandler<EliminarAlmacenCommand, Re
             return Result.Failure("No se puede eliminar el almacén porque está configurado como predeterminado en una zona operativa.");
 
         // Limpiar registros hijos directos
-        var stocksCero = await _context.StocksAlmacen
-            .Where(s => s.Ubicacion.AlmacenId == command.Id)
-            .ToListAsync(cancellationToken);
-        if (stocksCero.Count > 0)
-            _context.StocksAlmacen.RemoveRange(stocksCero);
+        if (ubicacionIds.Count > 0)
+        {
+            var stocksCero = await _context.StocksAlmacen
+                .Where(s => ubicacionIds.Contains(s.UbicacionId))
+                .ToListAsync(cancellationToken);
+            if (stocksCero.Count > 0)
+                _context.StocksAlmacen.RemoveRange(stocksCero);
 
-        var ubicaciones = await _context.UbicacionesInventario
-            .Where(u => u.AlmacenId == command.Id)
-            .ToListAsync(cancellationToken);
-        if (ubicaciones.Count > 0)
-            _context.UbicacionesInventario.RemoveRange(ubicaciones);
+            var ubicaciones = await _context.UbicacionesInventario
+                .Where(u => u.AlmacenId == command.Id)
+                .ToListAsync(cancellationToken);
+            if (ubicaciones.Count > 0)
+                _context.UbicacionesInventario.RemoveRange(ubicaciones);
+        }
 
         var autorizaciones = await _context.UsuarioAlmacenAutorizaciones
             .Where(a => a.AlmacenId == command.Id)
