@@ -217,15 +217,6 @@ export function PlantillasTrabajoListPage() {
         ),
       }),
       createTableColumn<PlantillaTrabajoListadoDto>({
-        columnId: 'predeterminada',
-        renderHeaderCell: () => 'Predeterminada',
-        renderCell: (item) => (
-          <TableCellLayout>
-            <Text>{item.esPredeterminada ? 'Sí' : 'No'}</Text>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<PlantillaTrabajoListadoDto>({
         columnId: 'estado',
         renderHeaderCell: () => 'Estado',
         renderCell: (item) => (

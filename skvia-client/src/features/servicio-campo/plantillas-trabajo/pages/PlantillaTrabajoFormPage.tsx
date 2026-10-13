@@ -77,7 +77,6 @@ interface ServicioLocalItem {
   productoId: string;
   productoCodigo: string;
   productoNombre: string;
-  esPredeterminada: boolean;
 }
 
 interface MaterialLocalItem {
@@ -202,7 +201,6 @@ export function PlantillaTrabajoFormPage() {
             productoId: s.productoId,
             productoCodigo: s.productoCodigo || '',
             productoNombre: s.productoNombre || '',
-            esPredeterminada: s.esPredeterminada,
           }));
           setServicios(srvItems);
           setSavedCantidadServicios(srvItems.length);
@@ -213,7 +211,6 @@ export function PlantillaTrabajoFormPage() {
             productoId: plantilla.productoId,
             productoCodigo: plantilla.productoCodigo || '',
             productoNombre: prodMatch?.nombre || plantilla.productoNombre || '',
-            esPredeterminada: plantilla.esPredeterminada ?? false,
           }];
           setServicios(srvItems);
           setSavedCantidadServicios(1);
@@ -316,17 +313,17 @@ export function PlantillaTrabajoFormPage() {
       setSaving(true);
       setStatusMessage(null);
 
-      const primerServicio = servicios.find((s) => s.esPredeterminada) || servicios[0];
+      const primerServicio = servicios[0];
       const dto: GuardarPlantillaTrabajoDto = {
         codigo: codigo.trim() || undefined,
         nombre: nombre.trim(),
         productoId: primerServicio?.productoId || '',
         duracionEstimadaMinutos,
         descripcion: descripcion.trim() || undefined,
-        esPredeterminada: servicios.some((s) => s.esPredeterminada),
+        esPredeterminada: false,
         servicios: servicios.map((s) => ({
           productoId: s.productoId,
-          esPredeterminada: s.esPredeterminada,
+          esPredeterminada: false,
         })),
         tareas: tareas.map((t, idx) => ({
           tareaId: t.tareaId,
@@ -597,7 +594,6 @@ export function PlantillaTrabajoFormPage() {
         productoId: prod.id,
         productoCodigo: prod.codigo,
         productoNombre: prod.nombre,
-        esPredeterminada: servicios.length === 0 && nuevos.length === 0,
       });
     }
 
@@ -726,26 +722,6 @@ export function PlantillaTrabajoFormPage() {
         renderCell: () => (
           <TableCellLayout>
             <span>{duracionEstimadaMinutos} min</span>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<ServicioLocalItem>({
-        columnId: 'predeterminada',
-        renderHeaderCell: () => 'Predeterminada',
-        renderCell: (item) => (
-          <TableCellLayout>
-            <Checkbox
-              checked={item.esPredeterminada}
-              onChange={(_, d) => {
-                const checked = Boolean(d.checked);
-                setServicios((prev) =>
-                  prev.map((s) =>
-                    s.id === item.id ? { ...s, esPredeterminada: checked } : s
-                  )
-                );
-              }}
-              label={item.esPredeterminada ? 'Sí' : 'No'}
-            />
           </TableCellLayout>
         ),
       }),
