@@ -363,7 +363,7 @@ export function UnidadOrganizativaFormPage() {
                           <td style={{ padding: '8px' }}>{t.nombre}</td>
                           <td style={{ padding: '8px' }}>{t.almacenPredeterminadoNombre || '—'}</td>
                           <td style={{ padding: '8px' }}>
-                            <Badge appearance="tint" shape="rounded" color={t.activo ? 'success' : 'danger'}>
+                            <Badge appearance="ghost" shape="rounded" color={t.activo ? 'success' : 'danger'}>
                               {t.activo ? 'Activo' : 'Inactivo'}
                             </Badge>
                           </td>

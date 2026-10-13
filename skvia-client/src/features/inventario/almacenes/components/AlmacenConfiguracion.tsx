@@ -686,7 +686,7 @@ export function AlmacenConfiguracion({
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge appearance="tint" shape="rounded" color={p.activo ? 'success' : 'danger'}>
+                        <Badge appearance="ghost" shape="rounded" color={p.activo ? 'success' : 'danger'}>
                           {p.activo ? 'Activo' : 'Inactivo'}
                         </Badge>
                       </TableCell>

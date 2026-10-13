@@ -428,7 +428,7 @@ export function TerritorioFormPage() {
                           </td>
                           <td style={{ padding: '8px' }}>{r.telefono || '—'}</td>
                           <td style={{ padding: '8px' }}>
-                            <Badge appearance="tint" shape="rounded" color={r.activo ? 'success' : 'danger'}>
+                            <Badge appearance="ghost" shape="rounded" color={r.activo ? 'success' : 'danger'}>
                               {r.activo ? 'Activo' : 'Inactivo'}
                             </Badge>
                           </td>
