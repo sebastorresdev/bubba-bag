@@ -20,6 +20,11 @@ import {
   Skeleton,
   SkeletonItem,
   makeStyles,
+  Toast,
+  Toaster,
+  ToastTitle,
+  useToastController,
+  useId,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -86,6 +91,22 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   const pageStyles = useAlmacenPageStyles();
   const { id: routeId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+
+  const toasterId = useId('almacen-toaster');
+  const { dispatchToast } = useToastController(toasterId);
+
+  const notifySuccess = useCallback(
+    (title: string) => {
+      dispatchToast(
+        <Toast>
+          <ToastTitle>{title}</ToastTitle>
+        </Toast>,
+        { intent: 'success', position: 'top-end' }
+      );
+    },
+    [dispatchToast]
+  );
+
   const currentUser = useMemo(() => getCurrentUserSession(), []);
   const user = useCurrentUser();
   const esAdminAlmacenes =
@@ -307,10 +328,8 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
         }));
 
         const successMessage = `Almacén "${formData.nombre.trim()}" actualizado correctamente.`;
-        setStatusMessage({
-          type: 'success',
-          text: successMessage,
-        });
+        notifySuccess(successMessage);
+        setStatusMessage(null);
 
         if (propOnSaved) propOnSaved(currentId);
 
@@ -334,10 +353,8 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
         });
 
         const successMessage = `Almacén "${formData.nombre.trim()}" creado exitosamente.`;
-        setStatusMessage({
-          type: 'success',
-          text: successMessage,
-        });
+        notifySuccess(successMessage);
+        setStatusMessage(null);
 
         if (propOnCreated) propOnCreated(res.id);
         if (propAlmacenId !== undefined && propOnCreated) return res.id;
@@ -370,10 +387,8 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
       const nuevoEstado = !savedHeader.activo;
       await AlmacenService.cambiarEstado(currentId, nuevoEstado);
       setSavedHeader((prev) => ({ ...prev, activo: nuevoEstado }));
-      setStatusMessage({
-        type: 'success',
-        text: `Almacén ${nuevoEstado ? 'activado' : 'desactivado'} con éxito.`,
-      });
+      notifySuccess(`Almacén ${nuevoEstado ? 'activado' : 'desactivado'} con éxito.`);
+      setStatusMessage(null);
     } catch (err: any) {
       setStatusMessage({
         type: 'error',
@@ -444,6 +459,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
 
   return (
     <div className={styles.root}>
+      <Toaster toasterId={toasterId} position="top-end" />
       {statusMessage && (
         <D365MessageBar
           intent={statusMessage.type}
@@ -720,10 +736,8 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
                               if (errors.unidadOrganizativaId) {
                                 setErrors((prev) => ({ ...prev, unidadOrganizativaId: '' }));
                               }
-                              setStatusMessage({
-                                type: 'success',
-                                text: `Sede "${nueva.nombre}" creada y seleccionada exitosamente.`,
-                              });
+                              notifySuccess(`Sede "${nueva.nombre}" creada y seleccionada exitosamente.`);
+                              setStatusMessage(null);
                               cerrar();
                             }}
                           />

@@ -8,6 +8,11 @@ import {
   Text,
   Badge,
   tokens,
+  Toast,
+  Toaster,
+  ToastTitle,
+  useToastController,
+  useId,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -39,6 +44,21 @@ export function TerritorioFormPage() {
   const styles = useD365FormStyles();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+
+  const toasterId = useId('territorio-toaster');
+  const { dispatchToast } = useToastController(toasterId);
+
+  const notifySuccess = useCallback(
+    (title: string) => {
+      dispatchToast(
+        <Toast>
+          <ToastTitle>{title}</ToastTitle>
+        </Toast>,
+        { intent: 'success', position: 'top-end' }
+      );
+    },
+    [dispatchToast]
+  );
 
   const isEditMode = Boolean(id && id !== 'nuevo');
 
@@ -171,7 +191,8 @@ export function TerritorioFormPage() {
           unidadOrganizativaNombre: sede?.nombre || p.unidadOrganizativaNombre,
         }));
 
-        setStatusMessage({ type: 'success', text: `Territorio "${formData.nombre.trim()}" actualizado correctamente.` });
+        setStatusMessage(null);
+        notifySuccess(`Territorio "${formData.nombre.trim()}" actualizado correctamente.`);
         if (closeAfterSave) navigate('/servicio-campo/territorios');
       } else {
         const res = await OrganizacionService.createTerritorio({
@@ -181,6 +202,9 @@ export function TerritorioFormPage() {
           almacenPredeterminadoId: formData.almacenPredeterminadoId || null,
           descripcionProveedor: formData.descripcionProveedor?.trim() || null,
         });
+
+        setStatusMessage(null);
+        notifySuccess(`Territorio "${formData.nombre.trim()}" creado exitosamente.`);
 
         if (closeAfterSave) {
           navigate('/servicio-campo/territorios');
@@ -197,6 +221,7 @@ export function TerritorioFormPage() {
 
   return (
     <div className={styles.root}>
+      <Toaster toasterId={toasterId} position="top-end" />
       {statusMessage && (
         <D365MessageBar intent={statusMessage.type} onDismiss={() => setStatusMessage(null)}>
           {statusMessage.text}

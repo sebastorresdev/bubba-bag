@@ -12,6 +12,11 @@ import {
   Label,
   Skeleton,
   SkeletonItem,
+  Toast,
+  Toaster,
+  ToastTitle,
+  useToastController,
+  useId,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -58,6 +63,21 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
   const styles = useD365FormStyles();
   const { id: routeId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+
+  const toasterId = useId('producto-toaster');
+  const { dispatchToast } = useToastController(toasterId);
+
+  const notifySuccess = useCallback(
+    (title: string) => {
+      dispatchToast(
+        <Toast>
+          <ToastTitle>{title}</ToastTitle>
+        </Toast>,
+        { intent: 'success', position: 'top-end' }
+      );
+    },
+    [dispatchToast]
+  );
 
   // Effective product ID (either from prop or route, unless it's 'nuevo')
   const effectiveId = propProductoId !== undefined
@@ -292,12 +312,14 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
           proveedorDefecto: formData.proveedorDefecto,
           listaPreciosPredeterminadaId: formData.listaPreciosPredeterminadaId,
         });
-        setStatusMessage({ type: 'success', text: `Producto "${formData.nombre}" actualizado exitosamente.` });
+        notifySuccess(`Producto "${formData.nombre}" actualizado exitosamente.`);
+        setStatusMessage(null);
       } else {
         const res = await ProductoService.createProducto(formData);
         savedId = res.id;
         setCurrentId(res.id);
-        setStatusMessage({ type: 'success', text: `Producto "${formData.nombre}" creado exitosamente.` });
+        notifySuccess(`Producto "${formData.nombre}" creado exitosamente.`);
+        setStatusMessage(null);
         if (!closeAfter) {
           navigate(`/servicio-campo/productos/${res.id}`, { replace: true });
         }
@@ -400,6 +422,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
 
   return (
     <div className={styles.root}>
+      <Toaster toasterId={toasterId} position="top-end" />
       {/* 0. FULL WIDTH TOP NOTIFICATION MESSAGEBAR (ABOVE COMMAND BAR CON BOTÓN X) */}
       {statusMessage && (
         <D365MessageBar

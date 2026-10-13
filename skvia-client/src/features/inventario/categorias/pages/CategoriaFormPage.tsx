@@ -9,6 +9,11 @@ import {
   Text,
   Skeleton,
   SkeletonItem,
+  Toast,
+  Toaster,
+  ToastTitle,
+  useToastController,
+  useId,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -44,6 +49,21 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
   const styles = useD365FormStyles();
   const { id: routeId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+
+  const toasterId = useId('categoria-toaster');
+  const { dispatchToast } = useToastController(toasterId);
+
+  const notifySuccess = useCallback(
+    (title: string) => {
+      dispatchToast(
+        <Toast>
+          <ToastTitle>{title}</ToastTitle>
+        </Toast>,
+        { intent: 'success', position: 'top-end' }
+      );
+    },
+    [dispatchToast]
+  );
 
   const effectiveId = propId !== undefined
     ? propId
@@ -174,19 +194,15 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
           categoriaPadreId: formData.categoriaPadreId,
           descripcion: formData.descripcion,
         });
-        setStatusMessage({
-          type: 'success',
-          text: `Categoría "${formData.nombre}" actualizada con éxito.`,
-        });
+        notifySuccess(`Categoría "${formData.nombre}" actualizada con éxito.`);
+        setStatusMessage(null);
         await cargarCategoriasDisponibles();
       } else {
         const res = await CategoriaService.createCategoria(formData);
         savedId = res.id;
         setCurrentId(res.id);
-        setStatusMessage({
-          type: 'success',
-          text: `Categoría "${formData.nombre}" creada con éxito.`,
-        });
+        notifySuccess(`Categoría "${formData.nombre}" creada con éxito.`);
+        setStatusMessage(null);
         await cargarCategoriasDisponibles();
         if (!closeAfter) {
           navigate(`/servicio-campo/categorias-producto/${res.id}`, { replace: true });
@@ -233,6 +249,7 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
 
   return (
     <div className={styles.root}>
+      <Toaster toasterId={toasterId} position="top-end" />
       {/* 0. Notification Bar */}
       {statusMessage && (
         <D365MessageBar

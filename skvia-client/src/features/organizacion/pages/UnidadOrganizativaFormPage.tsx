@@ -9,6 +9,11 @@ import {
   Text,
   Badge,
   tokens,
+  Toast,
+  Toaster,
+  ToastTitle,
+  useToastController,
+  useId,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -36,6 +41,21 @@ export function UnidadOrganizativaFormPage() {
   const styles = useD365FormStyles();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+
+  const toasterId = useId('unidad-toaster');
+  const { dispatchToast } = useToastController(toasterId);
+
+  const notifySuccess = useCallback(
+    (title: string) => {
+      dispatchToast(
+        <Toast>
+          <ToastTitle>{title}</ToastTitle>
+        </Toast>,
+        { intent: 'success', position: 'top-end' }
+      );
+    },
+    [dispatchToast]
+  );
 
   const isEditMode = Boolean(id && id !== 'nuevo');
 
@@ -152,7 +172,8 @@ export function UnidadOrganizativaFormPage() {
         }));
 
         const successMsg = `Sede "${formData.nombre.trim()}" actualizada exitosamente.`;
-        setStatusMessage({ type: 'success', text: successMsg });
+        setStatusMessage(null);
+        notifySuccess(successMsg);
 
         if (closeAfterSave) {
           navigate('/servicio-campo/unidades-organizativas');
@@ -166,6 +187,9 @@ export function UnidadOrganizativaFormPage() {
           telefono: formData.telefono?.trim() || null,
           esSedePrincipal: formData.esSedePrincipal,
         });
+
+        setStatusMessage(null);
+        notifySuccess(`Sede "${formData.nombre.trim()}" creada exitosamente.`);
 
         if (closeAfterSave) {
           navigate('/servicio-campo/unidades-organizativas');
@@ -182,6 +206,7 @@ export function UnidadOrganizativaFormPage() {
 
   return (
     <div className={styles.root}>
+      <Toaster toasterId={toasterId} position="top-end" />
       {statusMessage && (
         <D365MessageBar intent={statusMessage.type} onDismiss={() => setStatusMessage(null)}>
           {statusMessage.text}

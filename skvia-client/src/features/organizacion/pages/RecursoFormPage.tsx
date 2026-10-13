@@ -6,6 +6,11 @@ import {
   Tab,
   TabList,
   Spinner,
+  Toast,
+  Toaster,
+  ToastTitle,
+  useToastController,
+  useId,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -37,6 +42,21 @@ export function RecursoFormPage() {
   const styles = useD365FormStyles();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+
+  const toasterId = useId('recurso-toaster');
+  const { dispatchToast } = useToastController(toasterId);
+
+  const notifySuccess = useCallback(
+    (title: string) => {
+      dispatchToast(
+        <Toast>
+          <ToastTitle>{title}</ToastTitle>
+        </Toast>,
+        { intent: 'success', position: 'top-end' }
+      );
+    },
+    [dispatchToast]
+  );
 
   const isEditMode = Boolean(id && id !== 'nuevo');
 
@@ -207,13 +227,17 @@ export function RecursoFormPage() {
           nombre: formData.nombreCompleto.trim(),
           tipoNombre: formData.tipo === 1 ? 'Técnico de Campo' : formData.tipo === 4 ? 'Despachador' : 'Recurso',
         }));
-        setStatusMessage({ type: 'success', text: `Recurso "${formData.nombreCompleto.trim()}" actualizado correctamente.` });
+        notifySuccess(`Recurso "${formData.nombreCompleto.trim()}" actualizado correctamente.`);
+        setStatusMessage(null);
         if (closeAfterSave) navigate('/servicio-campo/recursos');
       } else {
         const res = await OrganizacionService.createRecurso({
           ...payload,
           codigo: formData.codigo?.trim() ? formData.codigo.trim().toUpperCase() : undefined,
         });
+
+        notifySuccess(`Recurso "${formData.nombreCompleto.trim()}" creado exitosamente.`);
+        setStatusMessage(null);
 
         if (closeAfterSave) {
           navigate('/servicio-campo/recursos');
@@ -230,6 +254,7 @@ export function RecursoFormPage() {
 
   return (
     <div className={styles.root}>
+      <Toaster toasterId={toasterId} position="top-end" />
       {statusMessage && (
         <D365MessageBar intent={statusMessage.type} onDismiss={() => setStatusMessage(null)}>
           {statusMessage.text}
