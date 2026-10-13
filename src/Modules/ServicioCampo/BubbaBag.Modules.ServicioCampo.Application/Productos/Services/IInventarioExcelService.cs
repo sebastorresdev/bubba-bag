@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,4 +16,7 @@ public interface IInventarioExcelService
 
     Task<byte[]> GenerarPlantillaUnidadesMedidaAsync(CancellationToken cancellationToken = default);
     Task<ImportarExcelResultadoDto> ImportarUnidadesMedidaAsync(Stream stream, CancellationToken cancellationToken = default);
+
+    Task<byte[]> GenerarPlantillaListaPreciosAsync(CancellationToken cancellationToken = default);
+    Task<ImportarExcelResultadoDto> ImportarElementosListaPreciosAsync(Guid listaPreciosId, Stream stream, CancellationToken cancellationToken = default);
 }

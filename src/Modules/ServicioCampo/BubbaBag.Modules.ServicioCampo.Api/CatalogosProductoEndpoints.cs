@@ -91,6 +91,10 @@ public static class CatalogosProductoEndpoints
         lpGroup.MapPatch("/{id:guid}/estado", CambiarEstadoListaPrecios).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
         lpGroup.MapPost("/{id:guid}/elementos", GuardarElementoListaPrecios).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
         lpGroup.MapDelete("/elementos/{elementoId:guid}", EliminarElementoListaPrecios).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
+        lpGroup.MapGet("/plantilla-excel", DescargarPlantillaListaPrecios);
+        lpGroup.MapPost("/{id:guid}/importar-excel", ImportarElementosListaPreciosExcel)
+            .RequireAuthorization(Permissions.Inventario.CatalogosGestionar)
+            .DisableAntiforgery();
     }
 
     private static async Task<IResult> DescargarPlantillaUnidadesMedida(
@@ -432,6 +436,33 @@ public static class CatalogosProductoEndpoints
         var command = new EliminarElementoListaPreciosCommand(elementoId);
         var result = await dispatcher.SendAsync(command);
         return result.IsSuccess ? Results.NoContent() : Results.BadRequest(result.Error);
+    }
+
+    private static async Task<IResult> DescargarPlantillaListaPrecios(
+        BubbaBag.Modules.ServicioCampo.Application.Productos.Services.IInventarioExcelService excelService,
+        System.Threading.CancellationToken cancellationToken)
+    {
+        var bytes = await excelService.GenerarPlantillaListaPreciosAsync(cancellationToken);
+        return Results.File(
+            bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "Plantilla_Lista_Precios.xlsx");
+    }
+
+    private static async Task<IResult> ImportarElementosListaPreciosExcel(
+        Guid id,
+        IFormFile file,
+        BubbaBag.Modules.ServicioCampo.Application.Productos.Services.IInventarioExcelService excelService,
+        System.Threading.CancellationToken cancellationToken)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return Results.BadRequest(new { mensaje = "Debe proporcionar un archivo de Excel válido (.xlsx)." });
+        }
+
+        using var stream = file.OpenReadStream();
+        var resultado = await excelService.ImportarElementosListaPreciosAsync(id, stream, cancellationToken);
+        return Results.Ok(resultado);
     }
 }
 

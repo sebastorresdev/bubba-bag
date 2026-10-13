@@ -44,6 +44,7 @@ import {
   Delete16Regular,
   Edit16Regular,
   Search16Regular,
+  ArrowUpload24Regular,
 } from '@fluentui/react-icons';
 import { ListaPreciosService } from '../services/listaPrecios.service';
 import type {
@@ -62,6 +63,7 @@ import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
 import { D365FormField } from '../../../../components/common/D365FormField';
+import { ImportarExcelDialog } from '../../../../components/common/ImportarExcelDialog';
 
 const useLocalStyles = makeStyles({
   subgridHeader: {
@@ -177,26 +179,26 @@ export const ListaPreciosFormPage: React.FC = () => {
   const [availableUnidades, setAvailableUnidades] = useState<UnidadMedidaDto[]>([]);
 
   // Dialog Form State
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [newProductoId, setNewProductoId] = useState<string>('');
   const [busquedaProducto, setBusquedaProducto] = useState<string>('');
   const [newUnidadMedidaId, setNewUnidadMedidaId] = useState<string>('');
   const [newMonto, setNewMonto] = useState<string>('');
   const [newMetodoFijacion, setNewMetodoFijacion] = useState<number>(1);
 
-  const productoSeleccionado = useMemo(
-    () => availableProducts.find((p) => p.id === newProductoId),
-    [availableProducts, newProductoId]
-  );
+  // Import Excel Dialog State
+  const [importExcelOpen, setImportExcelOpen] = useState<boolean>(false);
 
   const filteredProducts = useMemo(() => {
     if (!busquedaProducto.trim()) return availableProducts;
     const q = busquedaProducto.toLowerCase();
     return availableProducts.filter(
       (p) =>
+        selectedProductIds.includes(p.id) ||
         p.nombre.toLowerCase().includes(q) ||
         (p.codigo && p.codigo.toLowerCase().includes(q))
     );
-  }, [availableProducts, busquedaProducto]);
+  }, [availableProducts, busquedaProducto, selectedProductIds]);
 
   const resetForm = useCallback(() => {
     setFormData({
@@ -272,6 +274,7 @@ export const ListaPreciosFormPage: React.FC = () => {
 
   const handleOpenItemDrawer = () => {
     setEditingElemento(null);
+    setSelectedProductIds([]);
     setNewProductoId('');
     setBusquedaProducto('');
     setNewUnidadMedidaId('');
@@ -283,6 +286,7 @@ export const ListaPreciosFormPage: React.FC = () => {
 
   const handleEditarElemento = (item: ElementoListaPreciosDto) => {
     setEditingElemento(item);
+    setSelectedProductIds([item.productoId]);
     setNewProductoId(item.productoId);
     setBusquedaProducto(`[${item.productoCodigo}] ${item.productoNombre}`);
     setNewUnidadMedidaId(item.unidadMedidaId || '');
@@ -391,23 +395,27 @@ export const ListaPreciosFormPage: React.FC = () => {
     }
   };
 
-  // Add or Update Item in Price List
+  // Add or Update Item(s) in Price List
   const handleGuardarElemento = async () => {
-    if (!newProductoId) {
-      setBanner({ text: 'Debe seleccionar un producto.', intent: 'warning' });
+    const targetProductIds = editingElemento
+      ? (newProductoId ? [newProductoId] : [])
+      : selectedProductIds;
+
+    if (targetProductIds.length === 0) {
+      setBanner({ text: 'Debe seleccionar al menos un producto.', intent: 'warning' });
       return;
     }
+
     const montoNum = parseFloat(newMonto);
     if (isNaN(montoNum) || montoNum < 0) {
       setBanner({ text: 'Debe ingresar un monto o porcentaje numérico válido mayor o igual a 0.', intent: 'warning' });
       return;
     }
 
-    const prod = availableProducts.find((p) => p.id === newProductoId);
-    const um = availableUnidades.find((u) => u.id === newUnidadMedidaId);
-
     if (isNew) {
       if (editingElemento) {
+        const prod = availableProducts.find((p) => p.id === newProductoId);
+        const um = availableUnidades.find((u) => u.id === newUnidadMedidaId);
         setElementos((prev) =>
           prev.map((e) =>
             e.id === editingElemento.id
@@ -425,59 +433,85 @@ export const ListaPreciosFormPage: React.FC = () => {
           )
         );
       } else {
-        const tempItem: ElementoListaPreciosDto = {
-          id: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-          listaPreciosId: '',
-          productoId: newProductoId,
-          productoCodigo: prod?.codigo || 'PROD',
-          productoNombre: prod?.nombre || 'Producto',
-          unidadMedidaId: newUnidadMedidaId || null,
-          unidadMedidaNombre: um?.nombre || null,
-          monto: montoNum,
-          metodoFijacion: newMetodoFijacion,
-        };
-
         setElementos((prev) => {
-          const existingIdx = prev.findIndex(
-            (e) => e.productoId === newProductoId && (e.unidadMedidaId || null) === (newUnidadMedidaId || null)
-          );
-          if (existingIdx >= 0) {
-            const updated = [...prev];
-            updated[existingIdx] = { ...updated[existingIdx], monto: montoNum, metodoFijacion: newMetodoFijacion };
-            return updated;
+          let updated = [...prev];
+          for (const prodId of targetProductIds) {
+            const prod = availableProducts.find((p) => p.id === prodId);
+            const effectiveUnitId = newUnidadMedidaId || prod?.unidadMedidaDefectoId || null;
+            const um = availableUnidades.find((u) => u.id === effectiveUnitId);
+
+            const existingIdx = updated.findIndex(
+              (e) => e.productoId === prodId && (e.unidadMedidaId || null) === (effectiveUnitId || null)
+            );
+
+            if (existingIdx >= 0) {
+              updated[existingIdx] = {
+                ...updated[existingIdx],
+                monto: montoNum,
+                metodoFijacion: newMetodoFijacion,
+              };
+            } else {
+              const tempItem: ElementoListaPreciosDto = {
+                id: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+                listaPreciosId: '',
+                productoId: prodId,
+                productoCodigo: prod?.codigo || 'PROD',
+                productoNombre: prod?.nombre || 'Producto',
+                unidadMedidaId: effectiveUnitId,
+                unidadMedidaNombre: um?.nombre || null,
+                monto: montoNum,
+                metodoFijacion: newMetodoFijacion,
+              };
+              updated.push(tempItem);
+            }
           }
-          return [...prev, tempItem];
+          return updated;
         });
       }
 
       setItemDrawerOpen(false);
       setEditingElemento(null);
+      setSelectedProductIds([]);
       setBanner({
         text: editingElemento
           ? 'Precio del producto actualizado. Se guardará al pulsar Guardar.'
-          : 'Precio del producto asignado. Se guardará al pulsar Guardar.',
+          : `${targetProductIds.length} producto(s) asignado(s). Se guardarán al pulsar Guardar.`,
         intent: 'success',
       });
-      setTimeout(() => setBanner(null), 3000);
+      setTimeout(() => setBanner(null), 3500);
       return;
     }
 
     try {
       setItemSubmitting(true);
-      await ListaPreciosService.guardarElemento(id!, {
-        elementoId: editingElemento?.id,
-        productoId: newProductoId,
-        monto: montoNum,
-        unidadMedidaId: newUnidadMedidaId || null,
-        metodoFijacion: newMetodoFijacion,
-      });
+      if (editingElemento) {
+        await ListaPreciosService.guardarElemento(id!, {
+          elementoId: editingElemento.id,
+          productoId: newProductoId,
+          monto: montoNum,
+          unidadMedidaId: newUnidadMedidaId || null,
+          metodoFijacion: newMetodoFijacion,
+        });
+      } else {
+        for (const prodId of targetProductIds) {
+          const prod = availableProducts.find((p) => p.id === prodId);
+          const effectiveUnitId = newUnidadMedidaId || prod?.unidadMedidaDefectoId || null;
+          await ListaPreciosService.guardarElemento(id!, {
+            productoId: prodId,
+            monto: montoNum,
+            unidadMedidaId: effectiveUnitId,
+            metodoFijacion: newMetodoFijacion,
+          });
+        }
+      }
 
       setItemDrawerOpen(false);
       setEditingElemento(null);
+      setSelectedProductIds([]);
       setBanner({
         text: editingElemento
           ? 'Precio del producto actualizado exitosamente.'
-          : 'Producto asignado a la lista de precios exitosamente.',
+          : `${targetProductIds.length} producto(s) asignado(s) a la lista de precios exitosamente.`,
         intent: 'success',
       });
       setTimeout(() => setBanner(null), 4000);
@@ -485,7 +519,7 @@ export const ListaPreciosFormPage: React.FC = () => {
     } catch (err: any) {
       console.error('Error saving item:', err);
       setBanner({
-        text: err?.message || 'Error al guardar el elemento en la lista de precios.',
+        text: err?.message || 'Error al guardar elemento(s) en la lista de precios.',
         intent: 'error',
       });
     } finally {
@@ -885,6 +919,15 @@ export const ListaPreciosFormPage: React.FC = () => {
                 </D365CommandButton>
                 <D365CommandButton
                   size="medium"
+                  icon={<ArrowUpload24Regular />}
+                  disabled={isNew}
+                  title={isNew ? 'Guarde primero la lista de precios para importar desde Excel' : 'Importar precios masivamente desde Excel'}
+                  onClick={() => setImportExcelOpen(true)}
+                >
+                  Importar Excel
+                </D365CommandButton>
+                <D365CommandButton
+                  size="medium"
                   icon={<ArrowClockwise16Regular />}
                   onClick={isNew ? undefined : loadData}
                 >
@@ -960,39 +1003,41 @@ export const ListaPreciosFormPage: React.FC = () => {
             </Label>
             <Combobox
               id="dialog-producto"
+              multiselect={!editingElemento}
               disabled={!!editingElemento}
               className={localStyles.dialogControl}
-              placeholder="Escriba el código o nombre para buscar..."
+              placeholder={
+                selectedProductIds.length > 0
+                  ? `${selectedProductIds.length} producto(s) seleccionado(s)`
+                  : 'Escriba o marque los productos...'
+              }
               value={
                 editingElemento
                   ? `[${editingElemento.productoCodigo}] ${editingElemento.productoNombre}`
-                  : productoSeleccionado
-                  ? `[${productoSeleccionado.codigo}] ${productoSeleccionado.nombre}`
                   : busquedaProducto
+                  ? busquedaProducto
+                  : selectedProductIds.length === 1
+                  ? (() => {
+                      const sp = availableProducts.find((p) => p.id === selectedProductIds[0]);
+                      return sp ? `[${sp.codigo}] ${sp.nombre}` : '';
+                    })()
+                  : selectedProductIds.length > 1
+                  ? `${selectedProductIds.length} productos seleccionados`
+                  : ''
               }
-              selectedOptions={newProductoId ? [newProductoId] : []}
+              selectedOptions={editingElemento ? (newProductoId ? [newProductoId] : []) : selectedProductIds}
               onChange={(e) => {
                 if (editingElemento) return;
-                const val = e.target.value;
-                setBusquedaProducto(val);
-                if (!val.trim()) {
-                  setNewProductoId('');
-                }
+                setBusquedaProducto(e.target.value);
               }}
               onOptionSelect={(_, d) => {
                 if (editingElemento) return;
-                const selId = d.optionValue;
-                if (!selId) {
-                  setNewProductoId('');
-                  setBusquedaProducto('');
-                  return;
-                }
-                const prod = availableProducts.find((p) => p.id === selId);
-                if (prod) {
-                  setNewProductoId(prod.id);
-                  setBusquedaProducto(`[${prod.codigo}] ${prod.nombre}`);
-                  if (prod.unidadMedidaDefectoId) {
-                    setNewUnidadMedidaId(prod.unidadMedidaDefectoId);
+                const nextSelected = d.selectedOptions;
+                setSelectedProductIds(nextSelected);
+                if (nextSelected.length === 1 && !newUnidadMedidaId) {
+                  const sp = availableProducts.find((p) => p.id === nextSelected[0]);
+                  if (sp?.unidadMedidaDefectoId) {
+                    setNewUnidadMedidaId(sp.unidadMedidaDefectoId);
                   }
                 }
               }}
@@ -1008,6 +1053,40 @@ export const ListaPreciosFormPage: React.FC = () => {
                 </Option>
               )}
             </Combobox>
+            {!editingElemento && selectedProductIds.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                {selectedProductIds.map((pid) => {
+                  const p = availableProducts.find((x) => x.id === pid);
+                  return (
+                    <span
+                      key={pid}
+                      style={{
+                        fontSize: '12px',
+                        padding: '2px 8px',
+                        backgroundColor: tokens.colorNeutralBackground3,
+                        borderRadius: tokens.borderRadiusMedium,
+                        border: `1px solid ${tokens.colorNeutralStroke2}`,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      {p ? `[${p.codigo}] ${p.nombre}` : pid}
+                      <span
+                        style={{ cursor: 'pointer', fontWeight: 'bold', color: tokens.colorNeutralForeground3 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedProductIds((prev) => prev.filter((id) => id !== pid));
+                        }}
+                        title="Quitar"
+                      >
+                        ✕
+                      </span>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className={localStyles.dialogRow}>
@@ -1020,7 +1099,7 @@ export const ListaPreciosFormPage: React.FC = () => {
               value={newUnidadMedidaId}
               onChange={(_, d) => setNewUnidadMedidaId(d.value)}
             >
-              <option value="">---</option>
+              <option value="">{selectedProductIds.length > 1 ? 'Unidad predeterminada de cada producto' : '---'}</option>
               {availableUnidades.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.nombre}
@@ -1074,13 +1153,42 @@ export const ListaPreciosFormPage: React.FC = () => {
           </Button>
           <Button
             appearance="primary"
-            disabled={itemSubmitting || !newProductoId || newMonto.trim() === ''}
+            disabled={
+              itemSubmitting ||
+              (editingElemento ? !newProductoId : selectedProductIds.length === 0) ||
+              newMonto.trim() === ''
+            }
             onClick={handleGuardarElemento}
           >
-            {itemSubmitting ? 'Guardando…' : editingElemento ? 'Actualizar precio' : 'Guardar y cerrar'}
+            {itemSubmitting
+              ? 'Guardando…'
+              : editingElemento
+              ? 'Actualizar precio'
+              : selectedProductIds.length > 1
+              ? `Guardar ${selectedProductIds.length} precios`
+              : 'Guardar y cerrar'}
           </Button>
         </DrawerFooter>
       </OverlayDrawer>
+
+      {/* Dialog para Carga Masiva desde Excel */}
+      <ImportarExcelDialog
+        open={importExcelOpen}
+        onOpenChange={setImportExcelOpen}
+        title={`Importar Precios - ${savedHeader.nombre || 'Lista de Precios'}`}
+        entityName="Precios de Productos"
+        onDownloadTemplate={() => ListaPreciosService.descargarPlantillaExcel()}
+        onUploadFile={(file) => ListaPreciosService.importarExcel(id!, file)}
+        onSuccess={() => {
+          loadData();
+          setBanner({
+            text: 'Precios importados y actualizados exitosamente desde Excel.',
+            intent: 'success',
+          });
+          setTimeout(() => setBanner(null), 4000);
+        }}
+        allowUpsert={true}
+      />
     </div>
   );
 };

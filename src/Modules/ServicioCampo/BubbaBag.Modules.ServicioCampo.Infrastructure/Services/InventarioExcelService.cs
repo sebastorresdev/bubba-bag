@@ -641,6 +641,223 @@ public class InventarioExcelService : IInventarioExcelService
 
     #endregion
 
+    #region 4. LISTAS DE PRECIOS
+
+    public async Task<byte[]> GenerarPlantillaListaPreciosAsync(CancellationToken cancellationToken = default)
+    {
+        using var workbook = new XLWorkbook();
+
+        // 1. Obtener productos y unidades activos para poblar catálogo y ejemplos
+        var productos = await _context.Productos
+            .Where(p => p.Activo)
+            .OrderBy(p => p.Codigo)
+            .Select(p => new { p.Codigo, p.Nombre, Unidad = p.UnidadMedidaDefecto != null ? p.UnidadMedidaDefecto.Nombre : "" })
+            .Take(100)
+            .ToListAsync(cancellationToken);
+
+        var unidades = await _context.UnidadesMedida
+            .Where(u => u.EstaActivo)
+            .OrderBy(u => u.Nombre)
+            .Select(u => u.Nombre)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var metodos = new List<string> { "Importe en divisa fija", "% sobre el costo", "% de margen comercial" };
+
+        // 2. Hoja Oculta de Catálogos
+        var wsCatalogos = workbook.Worksheets.Add("_Catalogos");
+        wsCatalogos.Cell(1, 1).Value = "Metodos";
+        wsCatalogos.Cell(1, 2).Value = "Unidades";
+        for (int i = 0; i < metodos.Count; i++) wsCatalogos.Cell(i + 2, 1).Value = metodos[i];
+        for (int i = 0; i < unidades.Count; i++) wsCatalogos.Cell(i + 2, 2).Value = unidades[i];
+        wsCatalogos.Visibility = XLWorksheetVisibility.Hidden;
+
+        // 3. Hoja Principal de Lista de Precios
+        var ws = workbook.Worksheets.Add("ListaPrecios");
+
+        string[] headers =
+        {
+            "Código de Producto*",
+            "Nombre del Producto (Informativo)",
+            "Unidad de Medida",
+            "Método de Fijación",
+            "Precio o Tarifa*"
+        };
+
+        for (int col = 0; col < headers.Length; col++)
+        {
+            var cell = ws.Cell(1, col + 1);
+            cell.Value = headers[col];
+            cell.Style.Font.Bold = true;
+            cell.Style.Fill.BackgroundColor = XLColor.FromArgb(0x00, 0x78, 0xD4);
+            cell.Style.Font.FontColor = XLColor.White;
+            cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        }
+
+        // Agregar filas de ejemplo
+        if (productos.Count > 0)
+        {
+            var p1 = productos[0];
+            ws.Cell(2, 1).Value = p1.Codigo;
+            ws.Cell(2, 2).Value = p1.Nombre;
+            ws.Cell(2, 3).Value = p1.Unidad;
+            ws.Cell(2, 4).Value = "Importe en divisa fija";
+            ws.Cell(2, 5).Value = 25.00;
+
+            if (productos.Count > 1)
+            {
+                var p2 = productos[1];
+                ws.Cell(3, 1).Value = p2.Codigo;
+                ws.Cell(3, 2).Value = p2.Nombre;
+                ws.Cell(3, 3).Value = p2.Unidad;
+                ws.Cell(3, 4).Value = "Importe en divisa fija";
+                ws.Cell(3, 5).Value = 30.00;
+            }
+        }
+        else
+        {
+            ws.Cell(2, 1).Value = "NX01";
+            ws.Cell(2, 2).Value = "Migracion Nexus HD DVR";
+            ws.Cell(2, 3).Value = "Unidad";
+            ws.Cell(2, 4).Value = "Importe en divisa fija";
+            ws.Cell(2, 5).Value = 25.00;
+        }
+
+        // Validación de lista desplegable para Método de Fijación (filas 2 a 1000)
+        ws.Range("D2:D1000").CreateDataValidation().List(wsCatalogos.Range($"A2:A{metodos.Count + 1}"), true);
+
+        // Formato numérico para la columna Precio
+        ws.Range("E2:E1000").Style.NumberFormat.Format = "#,##0.00";
+
+        ws.SheetView.FreezeRows(1);
+        ws.Columns().AdjustToContents(15, 45);
+
+        using var memoryStream = new MemoryStream();
+        workbook.SaveAs(memoryStream);
+        return memoryStream.ToArray();
+    }
+
+    public async Task<ImportarExcelResultadoDto> ImportarElementosListaPreciosAsync(
+        Guid listaPreciosId,
+        Stream stream,
+        CancellationToken cancellationToken = default)
+    {
+        var resultado = new ImportarExcelResultadoDto();
+        using var workbook = new XLWorkbook(stream);
+        var ws = workbook.Worksheet("ListaPrecios") ?? workbook.Worksheets.FirstOrDefault();
+
+        if (ws == null)
+        {
+            resultado.Errores.Add(new ImportarErrorDto { Fila = 0, Mensaje = "El archivo no contiene ninguna hoja válida de Lista de Precios." });
+            return resultado;
+        }
+
+        var listaPrecios = await _context.ListasPrecios
+            .FirstOrDefaultAsync(l => l.Id == listaPreciosId, cancellationToken);
+
+        if (listaPrecios == null)
+        {
+            resultado.Errores.Add(new ImportarErrorDto { Fila = 0, Mensaje = $"La lista de precios con ID '{listaPreciosId}' no existe." });
+            return resultado;
+        }
+
+        var productosDb = await _context.Productos
+            .Include(p => p.UnidadMedidaDefecto)
+            .ToListAsync(cancellationToken);
+
+        var unidadesDb = await _context.UnidadesMedida.ToListAsync(cancellationToken);
+
+        var elementosDb = await _context.ElementosListaPrecios
+            .Where(e => e.ListaPreciosId == listaPreciosId)
+            .ToListAsync(cancellationToken);
+
+        var lastRow = ws.LastRowUsed()?.RowNumber() ?? 1;
+        resultado.TotalFilas = Math.Max(0, lastRow - 1);
+
+        for (int rowNum = 2; rowNum <= lastRow; rowNum++)
+        {
+            var row = ws.Row(rowNum);
+            var codigoProd = row.Cell(1).GetString()?.Trim();
+            var unidadStr = row.Cell(3).GetString()?.Trim();
+            var metodoStr = row.Cell(4).GetString()?.Trim();
+            var montoCell = row.Cell(5);
+
+            if (string.IsNullOrWhiteSpace(codigoProd) && montoCell.IsEmpty())
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(codigoProd))
+            {
+                resultado.Errores.Add(new ImportarErrorDto { Fila = rowNum, Mensaje = "El Código de Producto es obligatorio." });
+                continue;
+            }
+
+            var producto = productosDb.FirstOrDefault(p => p.Codigo.Equals(codigoProd, StringComparison.OrdinalIgnoreCase));
+            if (producto == null)
+            {
+                resultado.Errores.Add(new ImportarErrorDto { Fila = rowNum, Codigo = codigoProd, Mensaje = $"El producto con código '{codigoProd}' no existe en el catálogo." });
+                continue;
+            }
+
+            Guid? unidadMedidaId = null;
+            if (!string.IsNullOrWhiteSpace(unidadStr))
+            {
+                var um = unidadesDb.FirstOrDefault(u => u.Nombre.Equals(unidadStr, StringComparison.OrdinalIgnoreCase));
+                if (um != null)
+                {
+                    unidadMedidaId = um.Id;
+                }
+                else
+                {
+                    resultado.Errores.Add(new ImportarErrorDto { Fila = rowNum, Codigo = codigoProd, Mensaje = $"La unidad de medida '{unidadStr}' no existe en el sistema." });
+                    continue;
+                }
+            }
+            else
+            {
+                unidadMedidaId = producto.UnidadMedidaDefectoId;
+            }
+
+            var metodoFijacion = MetodoFijacionPrecio.ImporteDivisa;
+            if (!string.IsNullOrWhiteSpace(metodoStr))
+            {
+                if (metodoStr.Contains("costo", StringComparison.OrdinalIgnoreCase))
+                    metodoFijacion = MetodoFijacionPrecio.PorcentajeSobreCosto;
+                else if (metodoStr.Contains("margen", StringComparison.OrdinalIgnoreCase))
+                    metodoFijacion = MetodoFijacionPrecio.PorcentajeMargen;
+                else
+                    metodoFijacion = MetodoFijacionPrecio.ImporteDivisa;
+            }
+
+            decimal monto = ParseDecimal(montoCell);
+            if (monto < 0)
+            {
+                resultado.Errores.Add(new ImportarErrorDto { Fila = rowNum, Codigo = codigoProd, Mensaje = "El precio o tarifa debe ser un número mayor o igual a 0." });
+                continue;
+            }
+
+            var existente = elementosDb.FirstOrDefault(e => e.ProductoId == producto.Id && e.UnidadMedidaId == unidadMedidaId);
+            if (existente != null)
+            {
+                existente.Actualizar(monto, unidadMedidaId, metodoFijacion);
+                resultado.Actualizados++;
+            }
+            else
+            {
+                var nuevo = ElementoListaPrecios.Crear(listaPreciosId, producto.Id, monto, unidadMedidaId, metodoFijacion);
+                _context.ElementosListaPrecios.Add(nuevo);
+                elementosDb.Add(nuevo);
+                resultado.Creados++;
+            }
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return resultado;
+    }
+
+    #endregion
+
     #region Helpers
 
     private static decimal ParseDecimal(IXLCell cell)

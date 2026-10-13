@@ -1,4 +1,5 @@
-import { apiClient } from '../../../../services/apiClient';
+import { apiClient, apiClientDownload, apiClientUpload } from '../../../../services/apiClient';
+import type { ImportarExcelResultadoDto } from '../../../../types/excelImport.types';
 import type {
   ListaPreciosDto,
   DetalleListaPreciosDto,
@@ -55,5 +56,15 @@ export const ListaPreciosService = {
     return apiClient<void>(`/api/inventario/listas-precios/elementos/${elementoId}`, {
       method: 'DELETE',
     });
+  },
+
+  async descargarPlantillaExcel(): Promise<void> {
+    return apiClientDownload('/api/inventario/listas-precios/plantilla-excel', 'Plantilla_Lista_Precios.xlsx');
+  },
+
+  async importarExcel(listaPreciosId: string, file: File): Promise<ImportarExcelResultadoDto> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClientUpload<ImportarExcelResultadoDto>(`/api/inventario/listas-precios/${listaPreciosId}/importar-excel`, formData);
   },
 };
