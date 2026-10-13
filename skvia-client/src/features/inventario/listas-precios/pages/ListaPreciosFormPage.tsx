@@ -80,13 +80,16 @@ const useLocalStyles = makeStyles({
   dialogForm: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '16px',
-    padding: '12px 0',
+    gap: '20px',
+    padding: `${tokens.spacingVerticalXL} ${tokens.spacingHorizontalXXL}`,
   },
   dialogRow: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '4px',
+    gap: '6px',
+  },
+  dialogControl: {
+    width: '100%',
   },
   drawer: {
     width: '460px',
@@ -94,12 +97,14 @@ const useLocalStyles = makeStyles({
   },
   drawerHeader: {
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    padding: `${tokens.spacingVerticalL} ${tokens.spacingHorizontalXXL}`,
   },
   drawerFooter: {
     borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
     display: 'flex',
     justifyContent: 'flex-end',
     gap: tokens.spacingHorizontalS,
+    padding: `${tokens.spacingVerticalL} ${tokens.spacingHorizontalXXL}`,
   },
 });
 
@@ -845,71 +850,75 @@ export const ListaPreciosFormPage: React.FC = () => {
           </DrawerHeaderTitle>
         </DrawerHeader>
         <DrawerBody className={localStyles.dialogForm}>
-              <div className={localStyles.dialogRow}>
-                <Label required size="medium" htmlFor="dialog-producto">
-                  Producto
-                </Label>
-                <Select
-                  id="dialog-producto"
-                  value={newProductoId}
-                  onChange={(_, d) => setNewProductoId(d.value)}
-                >
-                  <option value="">---</option>
-                  {availableProducts.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      [{p.codigo}] {p.nombre}
-                    </option>
-                  ))}
-                </Select>
-              </div>
+          <div className={localStyles.dialogRow}>
+            <Label required size="medium" htmlFor="dialog-producto">
+              Producto
+            </Label>
+            <Select
+              id="dialog-producto"
+              className={localStyles.dialogControl}
+              value={newProductoId}
+              onChange={(_, d) => setNewProductoId(d.value)}
+            >
+              <option value="">---</option>
+              {availableProducts.map((p) => (
+                <option key={p.id} value={p.id}>
+                  [{p.codigo}] {p.nombre}
+                </option>
+              ))}
+            </Select>
+          </div>
 
-              <div className={localStyles.dialogRow}>
-                <Label size="medium" htmlFor="dialog-unidad">
-                  Unidad
-                </Label>
-                <Select
-                  id="dialog-unidad"
-                  value={newUnidadMedidaId}
-                  onChange={(_, d) => setNewUnidadMedidaId(d.value)}
-                >
-                  <option value="">---</option>
-                  {availableUnidades.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.nombre}
-                    </option>
-                  ))}
-                </Select>
-              </div>
+          <div className={localStyles.dialogRow}>
+            <Label size="medium" htmlFor="dialog-unidad">
+              Unidad
+            </Label>
+            <Select
+              id="dialog-unidad"
+              className={localStyles.dialogControl}
+              value={newUnidadMedidaId}
+              onChange={(_, d) => setNewUnidadMedidaId(d.value)}
+            >
+              <option value="">---</option>
+              {availableUnidades.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.nombre}
+                </option>
+              ))}
+            </Select>
+          </div>
 
-              <div className={localStyles.dialogRow}>
-                <Label required size="medium" htmlFor="dialog-metodo">
-                  Método
-                </Label>
-                <Select
-                  id="dialog-metodo"
-                  value={newMetodoFijacion.toString()}
-                  onChange={(_, d) => setNewMetodoFijacion(parseInt(d.value, 10))}
-                >
-                  <option value="1">Importe</option>
-                  <option value="2">Costo</option>
-                  <option value="3">Margen</option>
-                </Select>
-              </div>
+          <div className={localStyles.dialogRow}>
+            <Label required size="medium" htmlFor="dialog-metodo">
+              Método
+            </Label>
+            <Select
+              id="dialog-metodo"
+              className={localStyles.dialogControl}
+              value={newMetodoFijacion.toString()}
+              onChange={(_, d) => setNewMetodoFijacion(parseInt(d.value, 10))}
+            >
+              <option value="1">Importe</option>
+              <option value="2">Costo</option>
+              <option value="3">Margen</option>
+            </Select>
+          </div>
 
-              <div className={localStyles.dialogRow}>
-                <Label required size="medium" htmlFor="dialog-monto">
-                  {newMetodoFijacion === 1 ? 'Importe' : 'Porcentaje'}
-                </Label>
-                <Input
-                  id="dialog-monto"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  contentBefore={newMetodoFijacion === 1 ? currencySymbol : '%'}
-                  value={newMonto}
-                  onChange={(_, d) => setNewMonto(d.value)}
-                />
-              </div>
+          <div className={localStyles.dialogRow}>
+            <Label required size="medium" htmlFor="dialog-monto">
+              {newMetodoFijacion === 1 ? 'Importe' : 'Porcentaje'}
+            </Label>
+            <Input
+              id="dialog-monto"
+              className={localStyles.dialogControl}
+              type="number"
+              step="0.01"
+              min="0"
+              contentBefore={newMetodoFijacion === 1 ? currencySymbol : '%'}
+              value={newMonto}
+              onChange={(_, d) => setNewMonto(d.value)}
+            />
+          </div>
         </DrawerBody>
         <DrawerFooter className={localStyles.drawerFooter}>
           <Button appearance="secondary" disabled={itemSubmitting} onClick={() => setItemDrawerOpen(false)}>
