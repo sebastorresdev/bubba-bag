@@ -119,9 +119,38 @@ export const ClienteFormPage: React.FC = () => {
     };
   }, [busquedaUbigeo]);
 
+  const resetForm = useCallback(() => {
+    setCodigoCliente('');
+    setTipoPersona('NATURAL');
+    setTipoDocumento('DNI');
+    setDocumentoIdentidad('');
+    setNombres('');
+    setApellidos('');
+    setRazonSocial('');
+    setNombreComercial('');
+    setTelefonoPrincipal('');
+    setTelefonoSecundario('');
+    setEmail('');
+    setDireccion('');
+    setReferenciaUbicacion('');
+    setUbigeoCodigo('');
+    setCoordenadaLat('');
+    setCoordenadaLng('');
+    setEsClienteFacturacion(false);
+    setEsClienteServicio(true);
+    setActivo(true);
+    setSavedTitle('Nuevo');
+    setSavedSubtitle('Ficha de cuenta / cliente');
+    setMensaje(null);
+    setLoading(false);
+  }, []);
+
   // Cargar Cliente existente
   useEffect(() => {
-    if (esNuevo) return;
+    if (esNuevo) {
+      resetForm();
+      return;
+    }
     const cargarDetalle = async () => {
       try {
         setLoading(true);
@@ -322,7 +351,10 @@ export const ClienteFormPage: React.FC = () => {
               <D365CommandButton
                 icon={<Add16Regular />}
                 tone="create"
-                onClick={() => navigate('/servicio-campo/clientes/nuevo')}
+                onClick={() => {
+                  resetForm();
+                  navigate('/servicio-campo/clientes/nuevo');
+                }}
               >
                 Nuevo
               </D365CommandButton>

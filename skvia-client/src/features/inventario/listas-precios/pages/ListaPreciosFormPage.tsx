@@ -178,9 +178,32 @@ export const ListaPreciosFormPage: React.FC = () => {
   const [newMonto, setNewMonto] = useState<string>('');
   const [newMetodoFijacion, setNewMetodoFijacion] = useState<number>(1);
 
+  const resetForm = useCallback(() => {
+    setFormData({
+      nombre: '',
+      moneda: 'PEN',
+      descripcion: '',
+      fechaInicio: '',
+      fechaFin: '',
+      activo: true,
+    });
+    setSavedHeader({
+      nombre: '',
+      moneda: 'PEN',
+      activo: true,
+    });
+    setElementos([]);
+    setBanner(null);
+    setSelectedTab('general');
+    setLoading(false);
+  }, []);
+
   // Load Price List
   const loadData = useCallback(async () => {
-    if (isNew) return;
+    if (isNew) {
+      resetForm();
+      return;
+    }
     try {
       setLoading(true);
       const data = await ListaPreciosService.getListaPreciosById(id!);
@@ -207,7 +230,7 @@ export const ListaPreciosFormPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, isNew]);
+  }, [id, isNew, resetForm]);
 
   useEffect(() => {
     loadData();
@@ -588,7 +611,10 @@ export const ListaPreciosFormPage: React.FC = () => {
           <D365CommandButton
             icon={<Add16Regular />}
             tone="create"
-            onClick={() => navigate('/servicio-campo/listas-precios/nuevo')}
+            onClick={() => {
+              resetForm();
+              navigate('/servicio-campo/listas-precios/nuevo');
+            }}
             disabled={saving || loading}
             appearance="subtle"
           >

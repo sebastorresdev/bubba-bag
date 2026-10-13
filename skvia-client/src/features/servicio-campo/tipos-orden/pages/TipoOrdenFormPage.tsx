@@ -154,11 +154,36 @@ export function TipoOrdenFormPage() {
     }
   }, []);
 
+  const resetForm = useCallback(() => {
+    setFormData({
+      nombre: '',
+      requiereVisitaCampo: true,
+      exigeFirmaCliente: true,
+      exigeEvidenciasFotograficas: true,
+      descripcion: '',
+      colorHex: '#0f6cbd',
+      listaPreciosId: null,
+    });
+    setListaPrecioId('');
+    setBusquedaLista('');
+    setSavedTitle('Nuevo');
+    setActivo(true);
+    setErrors({});
+    setStatusMessage(null);
+    setLoading(false);
+    if (auth.usuario?.id) {
+      setPropietarioId(auth.usuario.id);
+      setPropietarioNombre(auth.usuario.nombreCompleto || 'Usuario del Sistema');
+    }
+  }, [auth.usuario]);
+
   useEffect(() => {
     if (isEditMode && id) {
       void cargarDatos(id);
+    } else {
+      resetForm();
     }
-  }, [isEditMode, id, cargarDatos]);
+  }, [isEditMode, id, cargarDatos, resetForm]);
 
   const validar = (): boolean => {
     const errs: Record<string, string> = {};
@@ -289,7 +314,10 @@ export function TipoOrdenFormPage() {
         <D365CommandButton
           icon={<Add16Regular />}
           tone="create"
-          onClick={() => navigate('/servicio-campo/tipos-orden/nuevo')}
+          onClick={() => {
+            resetForm();
+            navigate('/servicio-campo/tipos-orden/nuevo');
+          }}
         >
           Nuevo
         </D365CommandButton>
