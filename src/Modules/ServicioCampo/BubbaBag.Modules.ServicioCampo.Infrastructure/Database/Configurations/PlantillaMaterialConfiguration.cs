@@ -32,5 +32,14 @@ public class PlantillaMaterialConfiguration : IEntityTypeConfiguration<Plantilla
             .WithMany()
             .HasForeignKey(m => m.ProductoId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Property(m => m.UnidadMedidaId)
+            .IsRequired(false);
+
+        builder.HasOne(m => m.UnidadMedida)
+            .WithMany()
+            .HasForeignKey(m => m.UnidadMedidaId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
     }
 }

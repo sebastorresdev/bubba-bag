@@ -28,6 +28,9 @@ public class PlantillaMaterial : Entity<Guid>
 
     public string? Observaciones { get; private set; }
 
+    public Guid? UnidadMedidaId { get; private set; }
+    public UnidadMedida? UnidadMedida { get; private set; }
+
     private PlantillaMaterial() { }
 
     public static PlantillaMaterial Crear(
@@ -35,7 +38,8 @@ public class PlantillaMaterial : Entity<Guid>
         Guid productoId,
         decimal cantidadPrevista,
         bool esObligatorio = false,
-        string? observaciones = null)
+        string? observaciones = null,
+        Guid? unidadMedidaId = null)
     {
         if (cantidadPrevista <= 0)
             throw new ArgumentException("La cantidad prevista debe ser mayor a 0.", nameof(cantidadPrevista));
@@ -47,11 +51,12 @@ public class PlantillaMaterial : Entity<Guid>
             ProductoId = productoId,
             CantidadPrevista = cantidadPrevista,
             EsObligatorio = esObligatorio,
-            Observaciones = observaciones?.Trim()
+            Observaciones = observaciones?.Trim(),
+            UnidadMedidaId = unidadMedidaId
         };
     }
 
-    public void Modificar(decimal cantidadPrevista, bool esObligatorio, string? observaciones)
+    public void Modificar(decimal cantidadPrevista, bool esObligatorio, string? observaciones, Guid? unidadMedidaId = null)
     {
         if (cantidadPrevista <= 0)
             throw new ArgumentException("La cantidad prevista debe ser mayor a 0.", nameof(cantidadPrevista));
@@ -59,5 +64,6 @@ public class PlantillaMaterial : Entity<Guid>
         CantidadPrevista = cantidadPrevista;
         EsObligatorio = esObligatorio;
         Observaciones = observaciones?.Trim();
+        UnidadMedidaId = unidadMedidaId;
     }
 }

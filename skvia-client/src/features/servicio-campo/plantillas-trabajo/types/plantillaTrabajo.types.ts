@@ -61,6 +61,7 @@ export interface PlantillaMaterialItemDto {
   observaciones?: string;
   esSerializado: boolean;
   unidadMedida: string;
+  unidadMedidaId?: string | null;
 }
 
 export interface GuardarPlantillaTrabajoDto {
@@ -86,6 +87,7 @@ export interface GuardarPlantillaTrabajoDto {
     cantidadPrevista: number;
     esObligatorio: boolean;
     observaciones?: string;
+    unidadMedidaId?: string | null;
   }[];
 }
 

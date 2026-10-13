@@ -119,7 +119,7 @@ public class PlantillaTrabajoHandlers :
             {
                 if (m.ProductoId != Guid.Empty && m.CantidadPrevista > 0)
                 {
-                    plantilla.AgregarMaterial(m.ProductoId, m.CantidadPrevista, m.EsObligatorio, m.Observaciones);
+                    plantilla.AgregarMaterial(m.ProductoId, m.CantidadPrevista, m.EsObligatorio, m.Observaciones, m.UnidadMedidaId);
                 }
             }
         }
@@ -218,7 +218,8 @@ public class PlantillaTrabajoHandlers :
                         m.ProductoId,
                         m.CantidadPrevista,
                         m.EsObligatorio,
-                        m.Observaciones
+                        m.Observaciones,
+                        m.UnidadMedidaId
                     );
                     _context.PlantillasMateriales.Add(nuevoMaterial);
                 }
@@ -372,6 +373,8 @@ public class PlantillaTrabajoHandlers :
             .Include(x => x.Materiales)
                 .ThenInclude(m => m.Producto)
                     .ThenInclude(prod => prod.UnidadMedidaDefecto)
+            .Include(x => x.Materiales)
+                .ThenInclude(m => m.UnidadMedida)
             .FirstOrDefaultAsync(x => x.Id == query.Id, ct);
 
         if (p == null)
@@ -419,7 +422,8 @@ public class PlantillaTrabajoHandlers :
             m.EsObligatorio,
             m.Observaciones,
             m.Producto != null && m.Producto.EsSerializado,
-            m.Producto?.UnidadMedidaDefecto?.Nombre ?? "UND"
+            m.UnidadMedida?.Nombre ?? m.Producto?.UnidadMedidaDefecto?.Nombre ?? "UND",
+            m.UnidadMedidaId ?? m.Producto?.UnidadMedidaDefectoId
         )).ToList();
 
         var dto = new PlantillaTrabajoDetalleDto(

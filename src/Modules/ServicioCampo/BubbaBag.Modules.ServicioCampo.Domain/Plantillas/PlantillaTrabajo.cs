@@ -108,9 +108,9 @@ public class PlantillaTrabajo : Entity<Guid>
         _tareas.Add(tarea);
     }
 
-    public void AgregarMaterial(Guid productoId, decimal cantidadPrevista, bool esObligatorio = false, string? observaciones = null)
+    public void AgregarMaterial(Guid productoId, decimal cantidadPrevista, bool esObligatorio = false, string? observaciones = null, Guid? unidadMedidaId = null)
     {
-        var material = PlantillaMaterial.Crear(Id, productoId, cantidadPrevista, esObligatorio, observaciones);
+        var material = PlantillaMaterial.Crear(Id, productoId, cantidadPrevista, esObligatorio, observaciones, unidadMedidaId);
         _materiales.Add(material);
     }
 

@@ -18,6 +18,7 @@ import {
   DataGridCell,
   TableCellLayout,
   createTableColumn,
+  Select,
   OverlayDrawer,
   DrawerHeader,
   DrawerHeaderTitle,
@@ -51,6 +52,8 @@ import type {
 } from '../types/plantillaTrabajo.types';
 import { ProductoService } from '../../../inventario/productos/services/producto.service';
 import type { ProductoDto } from '../../../inventario/productos/types/producto.types';
+import { UnidadMedidaService } from '../../../inventario/unidades-medida/services/unidadMedida.service';
+import type { UnidadMedidaDto } from '../../../inventario/unidades-medida/types/unidadMedida.types';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
@@ -85,6 +88,7 @@ interface MaterialLocalItem {
   cantidadPrevista: number;
   esObligatorio: boolean;
   observaciones: string;
+  unidadMedidaId?: string | null;
   unidadMedida: string;
   esSerializado: boolean;
 }
@@ -157,10 +161,12 @@ export function PlantillaTrabajoFormPage() {
 
   // Diálogo y selección para materiales
   const [dialogMaterialOpen, setDialogMaterialOpen] = useState(false);
+  const [catalogoUnidades, setCatalogoUnidades] = useState<UnidadMedidaDto[]>([]);
   const [materialesSeleccionados, setMaterialesSeleccionados] = useState<Set<string>>(new Set());
   const [materialesSeleccionadosTabla, setMaterialesSeleccionadosTabla] = useState<Set<string>>(new Set());
   const [filtroBusquedaMaterial, setFiltroBusquedaMaterial] = useState('');
   const [nuevoMaterialCantidad, setNuevoMaterialCantidad] = useState<number>(1);
+  const [nuevoMaterialUnidadId, setNuevoMaterialUnidadId] = useState<string>('');
   const [nuevoMaterialObligatorio, setNuevoMaterialObligatorio] = useState(false);
   const [nuevoMaterialObservaciones, setNuevoMaterialObservaciones] = useState('');
 
@@ -168,12 +174,14 @@ export function PlantillaTrabajoFormPage() {
   const cargarCatalogosYDatos = useCallback(async () => {
     try {
       setLoading(true);
-      const [prods, tars] = await Promise.all([
+      const [prods, tars, ums] = await Promise.all([
         ProductoService.getProductos(undefined, undefined, true),
         PlantillaTrabajoService.getTareas({ soloActivas: true }),
+        UnidadMedidaService.getUnidadesMedida(undefined, true),
       ]);
       setCatalogoProductos(prods);
       setCatalogoTareas(tars);
+      setCatalogoUnidades(ums);
 
       if (isEditMode && id) {
         const plantilla = await PlantillaTrabajoService.getPlantillaById(id);
@@ -237,7 +245,8 @@ export function PlantillaTrabajoFormPage() {
             cantidadPrevista: m.cantidadPrevista,
             esObligatorio: m.esObligatorio,
             observaciones: m.observaciones || '',
-            unidadMedida: m.unidadMedida,
+            unidadMedidaId: m.unidadMedidaId || null,
+            unidadMedida: m.unidadMedida || 'UND',
             esSerializado: m.esSerializado,
           }))
         );
@@ -331,6 +340,7 @@ export function PlantillaTrabajoFormPage() {
           cantidadPrevista: m.cantidadPrevista,
           esObligatorio: m.esObligatorio,
           observaciones: m.observaciones.trim() || undefined,
+          unidadMedidaId: m.unidadMedidaId || undefined,
         })),
       };
 
@@ -491,15 +501,47 @@ export function PlantillaTrabajoFormPage() {
   };
 
   // Manejo de Materiales
+  const primerProductoSeleccionado = useMemo(() => {
+    if (materialesSeleccionados.size === 0) return null;
+    const firstId = Array.from(materialesSeleccionados)[0];
+    return catalogoProductos.find((p) => p.id === firstId) || null;
+  }, [materialesSeleccionados, catalogoProductos]);
+
+  const unidadesDisponiblesDrawer = useMemo(() => {
+    if (!primerProductoSeleccionado || !primerProductoSeleccionado.grupoUnidadMedidaId) {
+      return { unidadesGrupo: [], otrasUnidades: catalogoUnidades };
+    }
+    const grupoId = primerProductoSeleccionado.grupoUnidadMedidaId;
+    const unidadesGrupo = catalogoUnidades.filter((u) => u.grupoUnidadMedidaId === grupoId);
+    const otrasUnidades = catalogoUnidades.filter((u) => u.grupoUnidadMedidaId !== grupoId);
+    return { unidadesGrupo, otrasUnidades };
+  }, [primerProductoSeleccionado, catalogoUnidades]);
+
+  useEffect(() => {
+    if (primerProductoSeleccionado) {
+      if (primerProductoSeleccionado.unidadMedidaDefectoId) {
+        setNuevoMaterialUnidadId(primerProductoSeleccionado.unidadMedidaDefectoId);
+      } else if (unidadesDisponiblesDrawer.unidadesGrupo.length > 0) {
+        setNuevoMaterialUnidadId(unidadesDisponiblesDrawer.unidadesGrupo[0].id);
+      } else if (catalogoUnidades.length > 0 && !nuevoMaterialUnidadId) {
+        setNuevoMaterialUnidadId(catalogoUnidades[0].id);
+      }
+    }
+  }, [primerProductoSeleccionado, unidadesDisponiblesDrawer, catalogoUnidades]);
+
   const agregarMaterialFila = () => {
     if (materialesSeleccionados.size === 0 || nuevoMaterialCantidad <= 0) return;
 
+    const unidadSeleccionada = catalogoUnidades.find((u) => u.id === nuevoMaterialUnidadId);
     const nuevos: MaterialLocalItem[] = [];
     for (const prodId of materialesSeleccionados) {
       // Evitar agregar si ya existe en la lista de materiales
       if (materiales.some((m) => m.productoId === prodId)) continue;
       const prod = catalogoProductos.find((p) => p.id === prodId);
       if (!prod) continue;
+
+      const uId = unidadSeleccionada?.id || prod.unidadMedidaDefectoId || null;
+      const uNombre = unidadSeleccionada?.nombre || prod.nombreUnidadMedidaDefecto || 'UND';
 
       nuevos.push({
         id: `tmp-mat-${prod.id}-${Date.now()}`,
@@ -509,7 +551,8 @@ export function PlantillaTrabajoFormPage() {
         cantidadPrevista: nuevoMaterialCantidad,
         esObligatorio: nuevoMaterialObligatorio,
         observaciones: nuevoMaterialObservaciones.trim(),
-        unidadMedida: prod.nombreUnidadMedidaDefecto || 'UND',
+        unidadMedidaId: uId,
+        unidadMedida: uNombre,
         esSerializado: prod.esSerializado,
       });
     }
@@ -523,6 +566,7 @@ export function PlantillaTrabajoFormPage() {
     setMaterialesSeleccionados(new Set());
     setFiltroBusquedaMaterial('');
     setNuevoMaterialCantidad(1);
+    setNuevoMaterialUnidadId('');
     setNuevoMaterialObligatorio(false);
     setNuevoMaterialObservaciones('');
   };
@@ -1038,11 +1082,71 @@ export function PlantillaTrabajoFormPage() {
       createTableColumn<MaterialLocalItem>({
         columnId: 'um',
         renderHeaderCell: () => 'U.M.',
-        renderCell: (item) => (
-          <TableCellLayout>
-            <Text size={200}>{item.unidadMedida}</Text>
-          </TableCellLayout>
-        ),
+        renderCell: (item) => {
+          const idx = materiales.findIndex((x) => x.id === item.id);
+          const prod = catalogoProductos.find((p) => p.id === item.productoId);
+          const unidadesGrupo = prod?.grupoUnidadMedidaId
+            ? catalogoUnidades.filter((u) => u.grupoUnidadMedidaId === prod.grupoUnidadMedidaId)
+            : [];
+          const currentUnitId =
+            item.unidadMedidaId ||
+            catalogoUnidades.find((u) => u.nombre.toLowerCase() === item.unidadMedida.toLowerCase())?.id ||
+            '';
+
+          return (
+            <TableCellLayout>
+              <Select
+                size="small"
+                value={currentUnitId}
+                onChange={(_, d) => {
+                  const u = catalogoUnidades.find((x) => x.id === d.value);
+                  setMateriales((prev) =>
+                    prev.map((m, i) =>
+                      i === idx
+                        ? {
+                            ...m,
+                            unidadMedidaId: d.value || null,
+                            unidadMedida: u?.nombre || m.unidadMedida,
+                          }
+                        : m
+                    )
+                  );
+                }}
+                style={{ minWidth: 105 }}
+              >
+                {!currentUnitId && (
+                  <option value="">{item.unidadMedida || 'Seleccionar...'}</option>
+                )}
+                {unidadesGrupo.length > 0 ? (
+                  <>
+                    <optgroup label="Unidades de la familia">
+                      {unidadesGrupo.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.nombre}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Otras unidades">
+                      {catalogoUnidades
+                        .filter((u) => u.grupoUnidadMedidaId !== prod?.grupoUnidadMedidaId)
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.nombre}
+                          </option>
+                        ))}
+                    </optgroup>
+                  </>
+                ) : (
+                  catalogoUnidades.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.nombre}
+                    </option>
+                  ))
+                )}
+              </Select>
+            </TableCellLayout>
+          );
+        },
       }),
       createTableColumn<MaterialLocalItem>({
         columnId: 'obligatorio',
@@ -1077,7 +1181,7 @@ export function PlantillaTrabajoFormPage() {
         },
       }),
     ],
-    [materiales, materialesSeleccionadosTabla]
+    [materiales, materialesSeleccionadosTabla, catalogoUnidades, catalogoProductos]
   );
 
   if (loading) {
@@ -2013,16 +2117,54 @@ export function PlantillaTrabajoFormPage() {
           </div>
 
           {/* Parámetros a aplicar al lote seleccionado */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <Text weight="semibold" size={200}>Cantidad Sugerida / Prevista (por ítem) *</Text>
-            <Input
-              type="number"
-              min={0.01}
-              step="any"
-              value={nuevoMaterialCantidad.toString()}
-              onChange={(_, d) => setNuevoMaterialCantidad(parseFloat(d.value) || 1)}
-              style={{ width: '100%' }}
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <Text weight="semibold" size={200}>Cantidad Sugerida *</Text>
+              <Input
+                type="number"
+                min={0.01}
+                step="any"
+                value={nuevoMaterialCantidad.toString()}
+                onChange={(_, d) => setNuevoMaterialCantidad(parseFloat(d.value) || 1)}
+                style={{ width: '100%' }}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <Text weight="semibold" size={200}>Unidad de Medida</Text>
+              <Select
+                value={nuevoMaterialUnidadId}
+                onChange={(_, d) => setNuevoMaterialUnidadId(d.value)}
+                style={{ width: '100%' }}
+              >
+                {!nuevoMaterialUnidadId && (
+                  <option value="">Seleccionar U.M...</option>
+                )}
+                {unidadesDisponiblesDrawer.unidadesGrupo.length > 0 ? (
+                  <>
+                    <optgroup label="Unidades de la familia">
+                      {unidadesDisponiblesDrawer.unidadesGrupo.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.nombre}
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Otras unidades">
+                      {unidadesDisponiblesDrawer.otrasUnidades.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.nombre}
+                        </option>
+                      ))}
+                    </optgroup>
+                  </>
+                ) : (
+                  catalogoUnidades.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.nombre}
+                    </option>
+                  ))
+                )}
+              </Select>
+            </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

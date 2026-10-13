@@ -61,7 +61,8 @@ public record PlantillaMaterialItemDto(
     bool EsObligatorio,
     string? Observaciones,
     bool EsSerializado,
-    string UnidadMedida);
+    string UnidadMedida,
+    Guid? UnidadMedidaId = null);
 
 public record TareaDto(
     Guid Id,
@@ -87,7 +88,8 @@ public record GuardarPlantillaMaterialDto(
     Guid ProductoId,
     decimal CantidadPrevista,
     bool EsObligatorio,
-    string? Observaciones);
+    string? Observaciones,
+    Guid? UnidadMedidaId = null);
 
 public record CrearPlantillaTrabajoRequest(
     string Codigo,
