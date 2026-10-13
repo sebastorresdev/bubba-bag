@@ -49,6 +49,7 @@ export interface UpdateListaPreciosDto {
 }
 
 export interface GuardarElementoListaPreciosDto {
+  elementoId?: string | null;
   productoId: string;
   monto: number;
   unidadMedidaId?: string | null;

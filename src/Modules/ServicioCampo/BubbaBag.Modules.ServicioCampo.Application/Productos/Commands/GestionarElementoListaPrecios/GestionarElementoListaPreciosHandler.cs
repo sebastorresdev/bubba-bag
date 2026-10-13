@@ -13,7 +13,8 @@ public record GuardarElementoListaPreciosCommand(
     Guid ProductoId,
     decimal Monto,
     Guid? UnidadMedidaId = null,
-    MetodoFijacionPrecio MetodoFijacion = MetodoFijacionPrecio.ImporteDivisa
+    MetodoFijacionPrecio MetodoFijacion = MetodoFijacionPrecio.ImporteDivisa,
+    Guid? ElementoId = null
 ) : ICommand<Result<Guid>>;
 
 public record EliminarElementoListaPreciosCommand(Guid ElementoId) : ICommand<Result>;
@@ -29,13 +30,35 @@ public class GuardarElementoListaPreciosHandler : ICommandHandler<GuardarElement
 
     public async Task<Result<Guid>> HandleAsync(GuardarElementoListaPreciosCommand command, CancellationToken cancellationToken = default)
     {
-        var elemento = await _context.ElementosListaPrecios
-            .FirstOrDefaultAsync(e => e.ListaPreciosId == command.ListaPreciosId 
-                                   && e.ProductoId == command.ProductoId 
-                                   && e.UnidadMedidaId == command.UnidadMedidaId, cancellationToken);
+        ElementoListaPrecios? elemento = null;
+
+        if (command.ElementoId.HasValue && command.ElementoId.Value != Guid.Empty)
+        {
+            elemento = await _context.ElementosListaPrecios
+                .FirstOrDefaultAsync(e => e.Id == command.ElementoId.Value, cancellationToken);
+        }
+
+        if (elemento == null)
+        {
+            elemento = await _context.ElementosListaPrecios
+                .FirstOrDefaultAsync(e => e.ListaPreciosId == command.ListaPreciosId 
+                                       && e.ProductoId == command.ProductoId 
+                                       && e.UnidadMedidaId == command.UnidadMedidaId, cancellationToken);
+        }
 
         if (elemento != null)
         {
+            var yaExisteOtro = await _context.ElementosListaPrecios
+                .AnyAsync(e => e.ListaPreciosId == command.ListaPreciosId
+                            && e.ProductoId == command.ProductoId
+                            && e.UnidadMedidaId == command.UnidadMedidaId
+                            && e.Id != elemento.Id, cancellationToken);
+
+            if (yaExisteOtro)
+            {
+                return Result<Guid>.Failure("Ya existe un precio para este producto con la misma unidad de medida.");
+            }
+
             elemento.Actualizar(command.Monto, command.UnidadMedidaId, command.MetodoFijacion);
         }
         else

@@ -42,6 +42,7 @@ import {
   Money24Regular,
   Checkmark16Regular,
   Delete16Regular,
+  Edit16Regular,
   Search16Regular,
 } from '@fluentui/react-icons';
 import { ListaPreciosService } from '../services/listaPrecios.service';
@@ -168,9 +169,10 @@ export const ListaPreciosFormPage: React.FC = () => {
   const [elementos, setElementos] = useState<ElementoListaPreciosDto[]>([]);
   const [elementosSearch, setElementosSearch] = useState<string>('');
 
-  // Add Item Dialog State
+  // Add / Edit Item Dialog State
   const [itemDrawerOpen, setItemDrawerOpen] = useState<boolean>(false);
   const [itemSubmitting, setItemSubmitting] = useState<boolean>(false);
+  const [editingElemento, setEditingElemento] = useState<ElementoListaPreciosDto | null>(null);
   const [availableProducts, setAvailableProducts] = useState<ProductoDto[]>([]);
   const [availableUnidades, setAvailableUnidades] = useState<UnidadMedidaDto[]>([]);
 
@@ -269,11 +271,23 @@ export const ListaPreciosFormPage: React.FC = () => {
   };
 
   const handleOpenItemDrawer = () => {
+    setEditingElemento(null);
     setNewProductoId('');
     setBusquedaProducto('');
     setNewUnidadMedidaId('');
     setNewMonto('0');
     setNewMetodoFijacion(1);
+    setItemDrawerOpen(true);
+    loadCatalogsForDrawer();
+  };
+
+  const handleEditarElemento = (item: ElementoListaPreciosDto) => {
+    setEditingElemento(item);
+    setNewProductoId(item.productoId);
+    setBusquedaProducto(`[${item.productoCodigo}] ${item.productoNombre}`);
+    setNewUnidadMedidaId(item.unidadMedidaId || '');
+    setNewMonto(item.monto.toString());
+    setNewMetodoFijacion(item.metodoFijacion);
     setItemDrawerOpen(true);
     loadCatalogsForDrawer();
   };
@@ -377,7 +391,7 @@ export const ListaPreciosFormPage: React.FC = () => {
     }
   };
 
-  // Add Item to Price List
+  // Add or Update Item in Price List
   const handleGuardarElemento = async () => {
     if (!newProductoId) {
       setBanner({ text: 'Debe seleccionar un producto.', intent: 'warning' });
@@ -393,32 +407,57 @@ export const ListaPreciosFormPage: React.FC = () => {
     const um = availableUnidades.find((u) => u.id === newUnidadMedidaId);
 
     if (isNew) {
-      const tempItem: ElementoListaPreciosDto = {
-        id: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-        listaPreciosId: '',
-        productoId: newProductoId,
-        productoCodigo: prod?.codigo || 'PROD',
-        productoNombre: prod?.nombre || 'Producto',
-        unidadMedidaId: newUnidadMedidaId || null,
-        unidadMedidaNombre: um?.nombre || null,
-        monto: montoNum,
-        metodoFijacion: newMetodoFijacion,
-      };
-
-      setElementos((prev) => {
-        const existingIdx = prev.findIndex(
-          (e) => e.productoId === newProductoId && (e.unidadMedidaId || null) === (newUnidadMedidaId || null)
+      if (editingElemento) {
+        setElementos((prev) =>
+          prev.map((e) =>
+            e.id === editingElemento.id
+              ? {
+                  ...e,
+                  productoId: newProductoId,
+                  productoCodigo: prod?.codigo || e.productoCodigo,
+                  productoNombre: prod?.nombre || e.productoNombre,
+                  unidadMedidaId: newUnidadMedidaId || null,
+                  unidadMedidaNombre: um?.nombre || null,
+                  monto: montoNum,
+                  metodoFijacion: newMetodoFijacion,
+                }
+              : e
+          )
         );
-        if (existingIdx >= 0) {
-          const updated = [...prev];
-          updated[existingIdx] = { ...updated[existingIdx], monto: montoNum, metodoFijacion: newMetodoFijacion };
-          return updated;
-        }
-        return [...prev, tempItem];
-      });
+      } else {
+        const tempItem: ElementoListaPreciosDto = {
+          id: `temp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          listaPreciosId: '',
+          productoId: newProductoId,
+          productoCodigo: prod?.codigo || 'PROD',
+          productoNombre: prod?.nombre || 'Producto',
+          unidadMedidaId: newUnidadMedidaId || null,
+          unidadMedidaNombre: um?.nombre || null,
+          monto: montoNum,
+          metodoFijacion: newMetodoFijacion,
+        };
+
+        setElementos((prev) => {
+          const existingIdx = prev.findIndex(
+            (e) => e.productoId === newProductoId && (e.unidadMedidaId || null) === (newUnidadMedidaId || null)
+          );
+          if (existingIdx >= 0) {
+            const updated = [...prev];
+            updated[existingIdx] = { ...updated[existingIdx], monto: montoNum, metodoFijacion: newMetodoFijacion };
+            return updated;
+          }
+          return [...prev, tempItem];
+        });
+      }
 
       setItemDrawerOpen(false);
-      setBanner({ text: 'Precio del producto asignado. Se guardará al pulsar Guardar.', intent: 'success' });
+      setEditingElemento(null);
+      setBanner({
+        text: editingElemento
+          ? 'Precio del producto actualizado. Se guardará al pulsar Guardar.'
+          : 'Precio del producto asignado. Se guardará al pulsar Guardar.',
+        intent: 'success',
+      });
       setTimeout(() => setBanner(null), 3000);
       return;
     }
@@ -426,6 +465,7 @@ export const ListaPreciosFormPage: React.FC = () => {
     try {
       setItemSubmitting(true);
       await ListaPreciosService.guardarElemento(id!, {
+        elementoId: editingElemento?.id,
         productoId: newProductoId,
         monto: montoNum,
         unidadMedidaId: newUnidadMedidaId || null,
@@ -433,7 +473,13 @@ export const ListaPreciosFormPage: React.FC = () => {
       });
 
       setItemDrawerOpen(false);
-      setBanner({ text: 'Producto asignado a la lista de precios exitosamente.', intent: 'success' });
+      setEditingElemento(null);
+      setBanner({
+        text: editingElemento
+          ? 'Precio del producto actualizado exitosamente.'
+          : 'Producto asignado a la lista de precios exitosamente.',
+        intent: 'success',
+      });
       setTimeout(() => setBanner(null), 4000);
       loadData();
     } catch (err: any) {
@@ -512,8 +558,8 @@ export const ListaPreciosFormPage: React.FC = () => {
             <div className={styles.dialogRow}>
               <Link
                 as="button"
-                onClick={() => navigate(`/servicio-campo/productos/${item.productoId}`)}
-                title="Ver ficha de producto"
+                onClick={() => handleEditarElemento(item)}
+                title="Editar precio del producto"
               >
                 {item.productoNombre}
               </Link>
@@ -561,19 +607,29 @@ export const ListaPreciosFormPage: React.FC = () => {
         renderHeaderCell: () => 'Acciones',
         renderCell: (item) => (
           <TableCellLayout>
-            <Tooltip content="Remover de esta lista" relationship="label">
-              <Button
-                size="medium"
-                appearance="subtle"
-                icon={<Delete16Regular className={styles.iconDanger} />}
-                onClick={() => handleEliminarElemento(item.id, item.productoNombre)}
-              />
-            </Tooltip>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <Tooltip content="Editar precio" relationship="label">
+                <Button
+                  size="medium"
+                  appearance="subtle"
+                  icon={<Edit16Regular />}
+                  onClick={() => handleEditarElemento(item)}
+                />
+              </Tooltip>
+              <Tooltip content="Remover de esta lista" relationship="label">
+                <Button
+                  size="medium"
+                  appearance="subtle"
+                  icon={<Delete16Regular className={styles.iconDanger} />}
+                  onClick={() => handleEliminarElemento(item.id, item.productoNombre)}
+                />
+              </Tooltip>
+            </div>
           </TableCellLayout>
         ),
       }),
     ],
-    [navigate, currencySymbol, styles]
+    [currencySymbol, styles, handleEditarElemento, handleEliminarElemento]
   );
 
   return (
@@ -858,7 +914,7 @@ export const ListaPreciosFormPage: React.FC = () => {
                       <DataGridRow<ElementoListaPreciosDto>
                         key={rowId}
                         className={styles.dataRow}
-                        onDoubleClick={() => navigate(`/servicio-campo/productos/${item.productoId}`)}
+                        onDoubleClick={() => handleEditarElemento(item)}
                       >
                         {({ renderCell }) => (
                           <DataGridCell className={styles.dataCell}>{renderCell(item)}</DataGridCell>
@@ -877,7 +933,7 @@ export const ListaPreciosFormPage: React.FC = () => {
         open={itemDrawerOpen}
         position="end"
         className={localStyles.drawer}
-        onOpenChange={(_, data) => !data.open && !itemSubmitting && setItemDrawerOpen(false)}
+        onOpenChange={(_, data) => !data.open && !itemSubmitting && (setItemDrawerOpen(false), setEditingElemento(null))}
       >
         <DrawerHeader className={localStyles.drawerHeader}>
           <DrawerHeaderTitle
@@ -887,11 +943,14 @@ export const ListaPreciosFormPage: React.FC = () => {
                 icon={<DismissRegular />}
                 aria-label="Cerrar"
                 disabled={itemSubmitting}
-                onClick={() => setItemDrawerOpen(false)}
+                onClick={() => {
+                  setItemDrawerOpen(false);
+                  setEditingElemento(null);
+                }}
               />
             )}
           >
-            Creación rápida: Precio
+            {editingElemento ? 'Editar precio' : 'Creación rápida: Precio'}
           </DrawerHeaderTitle>
         </DrawerHeader>
         <DrawerBody className={localStyles.dialogForm}>
@@ -901,15 +960,19 @@ export const ListaPreciosFormPage: React.FC = () => {
             </Label>
             <Combobox
               id="dialog-producto"
+              disabled={!!editingElemento}
               className={localStyles.dialogControl}
               placeholder="Escriba el código o nombre para buscar..."
               value={
-                productoSeleccionado
+                editingElemento
+                  ? `[${editingElemento.productoCodigo}] ${editingElemento.productoNombre}`
+                  : productoSeleccionado
                   ? `[${productoSeleccionado.codigo}] ${productoSeleccionado.nombre}`
                   : busquedaProducto
               }
               selectedOptions={newProductoId ? [newProductoId] : []}
               onChange={(e) => {
+                if (editingElemento) return;
                 const val = e.target.value;
                 setBusquedaProducto(val);
                 if (!val.trim()) {
@@ -917,6 +980,7 @@ export const ListaPreciosFormPage: React.FC = () => {
                 }
               }}
               onOptionSelect={(_, d) => {
+                if (editingElemento) return;
                 const selId = d.optionValue;
                 if (!selId) {
                   setNewProductoId('');
@@ -998,7 +1062,14 @@ export const ListaPreciosFormPage: React.FC = () => {
           </div>
         </DrawerBody>
         <DrawerFooter className={localStyles.drawerFooter}>
-          <Button appearance="secondary" disabled={itemSubmitting} onClick={() => setItemDrawerOpen(false)}>
+          <Button
+            appearance="secondary"
+            disabled={itemSubmitting}
+            onClick={() => {
+              setItemDrawerOpen(false);
+              setEditingElemento(null);
+            }}
+          >
             Cancelar
           </Button>
           <Button
@@ -1006,7 +1077,7 @@ export const ListaPreciosFormPage: React.FC = () => {
             disabled={itemSubmitting || !newProductoId || newMonto.trim() === ''}
             onClick={handleGuardarElemento}
           >
-            {itemSubmitting ? 'Guardando…' : 'Guardar y cerrar'}
+            {itemSubmitting ? 'Guardando…' : editingElemento ? 'Actualizar precio' : 'Guardar y cerrar'}
           </Button>
         </DrawerFooter>
       </OverlayDrawer>

@@ -417,7 +417,8 @@ public static class CatalogosProductoEndpoints
             request.ProductoId,
             request.Monto,
             request.UnidadMedidaId,
-            request.MetodoFijacion ?? MetodoFijacionPrecio.ImporteDivisa
+            request.MetodoFijacion ?? MetodoFijacionPrecio.ImporteDivisa,
+            request.ElementoId
         );
 
         var result = await dispatcher.SendAsync(command);
@@ -490,5 +491,6 @@ public record GuardarElementoListaPreciosRequest(
     Guid ProductoId,
     decimal Monto,
     Guid? UnidadMedidaId = null,
-    MetodoFijacionPrecio? MetodoFijacion = null
+    MetodoFijacionPrecio? MetodoFijacion = null,
+    Guid? ElementoId = null
 );
