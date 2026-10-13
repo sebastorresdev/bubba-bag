@@ -230,7 +230,7 @@ export function TareasListPage() {
         renderHeaderCell: () => 'Duración Est.',
         renderCell: (item) => (
           <TableCellLayout>
-            <Badge appearance="tint" color="informative" icon={<Timer16Regular />}>
+            <Badge appearance="ghost" color="informative" icon={<Timer16Regular />}>
               {item.duracionEstimadaMinutos} min
             </Badge>
           </TableCellLayout>

@@ -30,18 +30,4 @@ input::-ms-clear {
   display: none !important;
 }
 
-/* Dynamics 365: Badges y Tags limpios sin borde/outline perimetral en listas y componentes */
-.fui-Badge::after {
-  display: none !important;
-}
-
-.fui-Badge {
-  border: none !important;
-  border-style: none !important;
-}
-
-.fui-Tag {
-  border: none !important;
-  border-style: none !important;
-}
 
