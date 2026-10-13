@@ -29,6 +29,8 @@ import {
   Skeleton,
   SkeletonItem,
   Link,
+  Combobox,
+  Option,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -174,9 +176,25 @@ export const ListaPreciosFormPage: React.FC = () => {
 
   // Dialog Form State
   const [newProductoId, setNewProductoId] = useState<string>('');
+  const [busquedaProducto, setBusquedaProducto] = useState<string>('');
   const [newUnidadMedidaId, setNewUnidadMedidaId] = useState<string>('');
   const [newMonto, setNewMonto] = useState<string>('');
   const [newMetodoFijacion, setNewMetodoFijacion] = useState<number>(1);
+
+  const productoSeleccionado = useMemo(
+    () => availableProducts.find((p) => p.id === newProductoId),
+    [availableProducts, newProductoId]
+  );
+
+  const filteredProducts = useMemo(() => {
+    if (!busquedaProducto.trim()) return availableProducts;
+    const q = busquedaProducto.toLowerCase();
+    return availableProducts.filter(
+      (p) =>
+        p.nombre.toLowerCase().includes(q) ||
+        (p.codigo && p.codigo.toLowerCase().includes(q))
+    );
+  }, [availableProducts, busquedaProducto]);
 
   const resetForm = useCallback(() => {
     setFormData({
@@ -252,6 +270,7 @@ export const ListaPreciosFormPage: React.FC = () => {
 
   const handleOpenItemDrawer = () => {
     setNewProductoId('');
+    setBusquedaProducto('');
     setNewUnidadMedidaId('');
     setNewMonto('0');
     setNewMetodoFijacion(1);
@@ -880,19 +899,51 @@ export const ListaPreciosFormPage: React.FC = () => {
             <Label required size="medium" htmlFor="dialog-producto">
               Producto
             </Label>
-            <Select
+            <Combobox
               id="dialog-producto"
               className={localStyles.dialogControl}
-              value={newProductoId}
-              onChange={(_, d) => setNewProductoId(d.value)}
+              placeholder="Escriba el código o nombre para buscar..."
+              value={
+                productoSeleccionado
+                  ? `[${productoSeleccionado.codigo}] ${productoSeleccionado.nombre}`
+                  : busquedaProducto
+              }
+              selectedOptions={newProductoId ? [newProductoId] : []}
+              onChange={(e) => {
+                const val = e.target.value;
+                setBusquedaProducto(val);
+                if (!val.trim()) {
+                  setNewProductoId('');
+                }
+              }}
+              onOptionSelect={(_, d) => {
+                const selId = d.optionValue;
+                if (!selId) {
+                  setNewProductoId('');
+                  setBusquedaProducto('');
+                  return;
+                }
+                const prod = availableProducts.find((p) => p.id === selId);
+                if (prod) {
+                  setNewProductoId(prod.id);
+                  setBusquedaProducto(`[${prod.codigo}] ${prod.nombre}`);
+                  if (prod.unidadMedidaDefectoId) {
+                    setNewUnidadMedidaId(prod.unidadMedidaDefectoId);
+                  }
+                }
+              }}
             >
-              <option value="">---</option>
-              {availableProducts.map((p) => (
-                <option key={p.id} value={p.id}>
+              {filteredProducts.map((p) => (
+                <Option key={p.id} value={p.id} text={`[${p.codigo}] ${p.nombre}`}>
                   [{p.codigo}] {p.nombre}
-                </option>
+                </Option>
               ))}
-            </Select>
+              {filteredProducts.length === 0 && (
+                <Option disabled value="">
+                  No se encontraron productos coincidentes
+                </Option>
+              )}
+            </Combobox>
           </div>
 
           <div className={localStyles.dialogRow}>
