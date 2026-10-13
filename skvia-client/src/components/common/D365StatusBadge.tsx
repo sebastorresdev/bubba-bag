@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge, type BadgeProps } from '@fluentui/react-components';
+import { Badge, type BadgeProps, makeStyles, mergeClasses } from '@fluentui/react-components';
 
 export type D365StatusColor =
   | 'brand'
@@ -155,8 +155,25 @@ export function resolveStatusColor(status?: string | boolean | number | null): {
   return { color: 'subtle', label: str };
 }
 
+const useStyles = makeStyles({
+  badge: {
+    borderTopStyle: 'none',
+    borderRightStyle: 'none',
+    borderBottomStyle: 'none',
+    borderLeftStyle: 'none',
+    borderTopWidth: 0,
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
+    borderLeftWidth: 0,
+    // Eliminar el pseudo-elemento ::after que Fluent UI v9 usa para pintar el borde del Badge
+    '&::after': {
+      display: 'none',
+    },
+  },
+});
+
 /**
- * Dynamics 365 / Fluent UI status badge with tint appearance and rounded shape.
+ * Dynamics 365 / Fluent UI status badge with tint appearance and rounded shape (borderless).
  */
 export const D365StatusBadge: React.FC<D365StatusBadgeProps> = ({
   status,
@@ -168,6 +185,7 @@ export const D365StatusBadge: React.FC<D365StatusBadgeProps> = ({
   className,
   style,
 }) => {
+  const styles = useStyles();
   const resolved = resolveStatusColor(status);
   const badgeColor = color ?? resolved.color;
   const badgeLabel = text ?? resolved.label;
@@ -178,10 +196,11 @@ export const D365StatusBadge: React.FC<D365StatusBadgeProps> = ({
       shape={shape}
       color={badgeColor}
       size={size}
-      className={className}
+      className={mergeClasses(styles.badge, className)}
       style={{
         fontWeight: 500,
         textTransform: 'none',
+        border: 'none',
         ...style,
       }}
     >

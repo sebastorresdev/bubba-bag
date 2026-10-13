@@ -27,6 +27,7 @@ import { D365EntityTable, D365TableToolbarTools, type D365EntityTableRef } from 
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
+import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
 
 const useLocalStyles = makeStyles({
   emptyIcon: {
@@ -224,7 +225,7 @@ export const ListasPreciosListPage: React.FC<ListasPreciosListPageProps> = ({
         renderHeaderCell: () => 'Estado',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text>{item.activo ? 'Activo' : 'Inactivo'}</Text>
+            <D365StatusBadge status={item.activo} />
           </TableCellLayout>
         ),
       }),

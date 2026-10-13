@@ -27,6 +27,7 @@ import {
 } from '../../../components/common/D365EntityTable';
 import { ImportacionDrawer } from '../../../components/common/ImportacionDrawer';
 import { D365CommandBar, D365CommandButton } from '../../../components/common/D365CommandBar';
+import { D365StatusBadge } from '../../../components/common/D365StatusBadge';
 import {
   ImportacionService,
   type TrabajoImportacionDto,
@@ -176,7 +177,9 @@ export const ImportacionesListPage: React.FC = () => {
         columnId: 'estado',
         renderHeaderCell: () => 'Estado',
         renderCell: (item) => (
-          <TableCellLayout truncate><Text>{getStatusText(item.estado)}</Text></TableCellLayout>
+          <TableCellLayout truncate>
+            <D365StatusBadge status={item.estado} text={getStatusText(item.estado)} />
+          </TableCellLayout>
         ),
       }),
       createTableColumn<TrabajoImportacionDto>({
