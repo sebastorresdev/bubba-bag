@@ -293,7 +293,6 @@ export function LoginPage() {
                   required
                   maxLength={150}
                   autoComplete="name"
-                  placeholder="Ej. Juan Pérez"
                   contentBefore={<Person16Regular className={styles.inputIcon} />}
                   value={nombre}
                   onChange={(_, d) => setNombre(d.value)}
@@ -314,7 +313,6 @@ export function LoginPage() {
                 required
                 maxLength={256}
                 autoComplete="username"
-                placeholder="usuario@empresa.com"
                 contentBefore={<Mail16Regular className={styles.inputIcon} />}
                 value={email}
                 onChange={(_, d) => setEmail(d.value)}
@@ -334,7 +332,6 @@ export function LoginPage() {
                 required
                 minLength={setup ? 8 : undefined}
                 autoComplete={setup ? 'new-password' : 'current-password'}
-                placeholder="••••••••••••"
                 contentBefore={<LockClosed16Regular className={styles.inputIcon} />}
                 contentAfter={
                   <Button
@@ -368,7 +365,6 @@ export function LoginPage() {
                     size="large"
                     required
                     autoComplete="new-password"
-                    placeholder="••••••••••••"
                     contentBefore={<LockClosed16Regular className={styles.inputIcon} />}
                     contentAfter={
                       <Button
