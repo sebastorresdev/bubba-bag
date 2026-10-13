@@ -1,68 +1,5 @@
 import React from 'react';
-import { Link, Tag, makeStyles, tokens } from '@fluentui/react-components';
-
-const usarEstilos = makeStyles({
-  tagBrand: {
-    backgroundColor: tokens.colorBrandBackground2,
-    borderTopStyle: 'none',
-    borderRightStyle: 'none',
-    borderBottomStyle: 'none',
-    borderLeftStyle: 'none',
-    borderRadius: tokens.borderRadiusMedium,
-    color: tokens.colorBrandForeground1,
-    cursor: 'pointer',
-    maxWidth: '100%',
-    minWidth: 0,
-    boxSizing: 'border-box',
-    overflow: 'hidden',
-    transitionProperty: 'background-color, color',
-    transitionDuration: tokens.durationFaster,
-    ':hover': {
-      backgroundColor: tokens.colorBrandBackground2Hover,
-    },
-    // Media / Icono de entidad con tono de marca
-    '& .fui-Tag__media': {
-      color: tokens.colorBrandForeground1,
-      display: 'inline-flex',
-      alignItems: 'center',
-      flexShrink: 0,
-    },
-    // Texto primario con truncamiento para no desbordar el contenedor
-    '& .fui-Tag__primaryText': {
-      color: tokens.colorBrandForeground1,
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap',
-      minWidth: 0,
-      maxWidth: '100%',
-      display: 'block',
-    },
-    // Icono de eliminación (✕) estilizado con tono de marca
-    '& .fui-Tag__dismissIcon': {
-      color: tokens.colorBrandForeground1,
-      flexShrink: 0,
-      ':hover': {
-        color: tokens.colorBrandForeground1,
-        backgroundColor: tokens.colorBrandBackground2Pressed,
-      },
-    },
-  },
-  enlace: {
-    color: tokens.colorBrandForeground1,
-    fontWeight: tokens.fontWeightRegular,
-    textDecorationLine: 'none',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    display: 'block',
-    minWidth: 0,
-    maxWidth: '100%',
-    ':hover': {
-      color: tokens.colorBrandForegroundLinkHover,
-      textDecorationLine: 'underline',
-    },
-  },
-});
+import { Link, Tag } from '@fluentui/react-components';
 
 export interface EnlaceEntidadProps {
   id: string;
@@ -74,7 +11,10 @@ export interface EnlaceEntidadProps {
   esLink?: boolean;
 }
 
-/** Etiqueta reutilizable con diseño Dynamics 365 que identifica una entidad relacionada con tono primario. */
+/**
+ * Componente que combina el Tag nativo de Fluent UI con funcionalidad de enlace (Link)
+ * para entidades relacionadas en selectores y formularios.
+ */
 export const EnlaceEntidad: React.FC<EnlaceEntidadProps> = ({
   id,
   nombre,
@@ -84,8 +24,6 @@ export const EnlaceEntidad: React.FC<EnlaceEntidadProps> = ({
   titulo,
   esLink = true,
 }) => {
-  const estilos = usarEstilos();
-
   const handleTagClick = (evento: React.MouseEvent) => {
     if ((evento.target as HTMLElement).closest('.fui-Tag__dismissIcon')) {
       return;
@@ -104,12 +42,12 @@ export const EnlaceEntidad: React.FC<EnlaceEntidadProps> = ({
       size="small"
       media={icono}
       value={id}
-      className={esLink ? estilos.tagBrand : undefined}
-      onClick={handleTagClick}
+      onClick={alNavegar ? handleTagClick : undefined}
       dismissible={Boolean(alEliminar)}
       dismissIcon={
         alEliminar
           ? {
+              'aria-label': `Eliminar ${nombre}`,
               onClick: (evento: React.MouseEvent) => {
                 evento.stopPropagation();
                 alEliminar(id);
@@ -118,11 +56,17 @@ export const EnlaceEntidad: React.FC<EnlaceEntidadProps> = ({
           : undefined
       }
     >
-      {alNavegar ? (
+      {alNavegar && esLink ? (
         <Link
           as="span"
-          className={estilos.enlace}
           title={titulo || `Abrir ${nombre}`}
+          style={{
+            color: 'inherit',
+            cursor: 'pointer',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
           onClick={(evento) => {
             evento.stopPropagation();
             alNavegar(id);
@@ -130,10 +74,6 @@ export const EnlaceEntidad: React.FC<EnlaceEntidadProps> = ({
         >
           {nombre}
         </Link>
-      ) : esLink ? (
-        <span className={estilos.enlace} title={titulo || nombre}>
-          {nombre}
-        </span>
       ) : (
         nombre
       )}
@@ -142,3 +82,4 @@ export const EnlaceEntidad: React.FC<EnlaceEntidadProps> = ({
 };
 
 export default EnlaceEntidad;
+
