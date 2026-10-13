@@ -52,6 +52,7 @@ export interface OrdenTrabajoMaterialDto {
   tipoAccion: string;
   numeroSerie?: string | null;
   observaciones?: string | null;
+  trabajoCodigo?: string | null;
 }
 
 export interface OrdenTrabajoTareaDto {
@@ -60,6 +61,7 @@ export interface OrdenTrabajoTareaDto {
   estadoTarea: string;
   esObligatoria: boolean;
   observaciones?: string | null;
+  trabajoCodigo?: string | null;
 }
 
 export interface OrdenTrabajoVisitaDto {
@@ -71,6 +73,35 @@ export interface OrdenTrabajoVisitaDto {
   fechaProgramada: string;
   bloqueHorario?: string | null;
   estado: string;
+}
+
+export interface OrdenTrabajoItemDto {
+  id: string;
+  codigoTrabajo: string;
+  codigoExterno?: string | null;
+  productoId: string;
+  productoNombre: string;
+  productoCodigo?: string | null;
+  plantillaTrabajoId?: string | null;
+  plantillaTrabajoNombre?: string | null;
+  itemNumero: number;
+  estado: string;
+  tarifaBaseCongelada: number;
+  tarifaBase?: number;
+  observaciones?: string | null;
+  totalTareas: number;
+  totalMateriales: number;
+  tareas?: OrdenTrabajoTareaDto[];
+  materiales?: OrdenTrabajoMaterialDto[];
+}
+
+export interface CrearOrdenTrabajoItemDto {
+  codigoTrabajo?: string;
+  codigoExterno?: string;
+  productoId: string;
+  plantillaTrabajoId?: string;
+  tarifaBase?: number;
+  observaciones?: string;
 }
 
 export interface OrdenTrabajoDetalleDto {
@@ -105,6 +136,7 @@ export interface OrdenTrabajoDetalleDto {
   referenciaUbicacion?: string | null;
   ubigeoTexto?: string | null;
   fechaCreacion: string;
+  trabajos?: OrdenTrabajoItemDto[];
   materiales: OrdenTrabajoMaterialDto[];
   tareas: OrdenTrabajoTareaDto[];
   visitas: OrdenTrabajoVisitaDto[];
@@ -125,6 +157,7 @@ export interface CrearOrdenTrabajoDto {
   fechaProgramada?: string;
   bloqueHorario?: string;
   observaciones?: string;
+  trabajos?: CrearOrdenTrabajoItemDto[];
 }
 
 export interface ActualizarOrdenTrabajoDto {
@@ -147,4 +180,6 @@ export interface TipoOrdenTrabajoOpcion {
   nombre: string;
   colorHex?: string;
   requiereVisitaCampo?: boolean;
+  listaPreciosId?: string | null;
+  listaPreciosNombre?: string | null;
 }

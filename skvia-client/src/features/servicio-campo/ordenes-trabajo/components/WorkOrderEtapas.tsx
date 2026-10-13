@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, makeStyles, tokens, Tooltip } from '@fluentui/react-components';
+import { Text, makeStyles, tokens, Tooltip, mergeClasses } from '@fluentui/react-components';
 import {
   CheckmarkCircle16Filled,
   DismissCircle16Filled,
@@ -220,7 +220,7 @@ export const WorkOrderEtapas: React.FC<WorkOrderEtapasProps> = ({
             return (
               <li
                 key={etapa.id}
-                className={`${styles.step} ${index === 0 ? styles.stepFirst : ''}`}
+                className={mergeClasses(styles.step, index === 0 && styles.stepFirst)}
                 style={{ backgroundColor: bg }}
               >
                 <div className={styles.iconWrapper}>
@@ -241,9 +241,7 @@ export const WorkOrderEtapas: React.FC<WorkOrderEtapasProps> = ({
                   <div className={styles.content}>
                     <div className={styles.titleRow}>
                       <Text
-                        className={`${styles.title} ${
-                          esActiva ? styles.titleActive : ''
-                        }`}
+                        className={mergeClasses(styles.title, esActiva && styles.titleActive)}
                         style={{
                           color: esActiva
                             ? tokens.colorBrandForeground1

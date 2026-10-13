@@ -244,21 +244,34 @@ export const OrdenTrabajoService = {
   async obtenerTiposOrden(): Promise<TipoOrdenTrabajoOpcion[]> {
     try {
       const data = await apiClient<TipoOrdenTrabajoOpcion[]>(
-        '/api/serviciocampo/mantenimientos/tipos-orden-trabajo'
+        '/api/serviciocampo/mantenimientos/tipos-orden'
       );
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         return data;
       }
-    } catch {
-      // Fallback
+    } catch (err) {
+      console.warn('Error al obtener tipos de orden desde el backend:', err);
     }
 
-    return [
-      { id: 'tipo-instalacion-uuid', nombre: 'Instalación Residencial (DTH)', colorHex: '#0f6cbd', requiereVisitaCampo: true },
-      { id: 'tipo-mantenimiento-uuid', nombre: 'Mantenimiento Correctivo / Avería', colorHex: '#d83b01', requiereVisitaCampo: true },
-      { id: 'tipo-fibra-uuid', nombre: 'Instalación Fibra Óptica (FTTH)', colorHex: '#107c41', requiereVisitaCampo: true },
-      { id: 'tipo-retiro-uuid', nombre: 'Recolección / Retiro de Equipos', colorHex: '#5c2d91', requiereVisitaCampo: true },
-      { id: 'tipo-remoto-uuid', nombre: 'Soporte Técnico Remoto', colorHex: '#0078d4', requiereVisitaCampo: false },
-    ];
+    return [];
+  },
+
+  async agregarTrabajo(
+    ordenId: string,
+    item: import('../types/ordenTrabajo.types').CrearOrdenTrabajoItemDto
+  ): Promise<{ id: string; codigoTrabajo: string }> {
+    return apiClient<{ id: string; codigoTrabajo: string }>(
+      `/api/serviciocampo/ordenes/${ordenId}/trabajos`,
+      {
+        method: 'POST',
+        body: JSON.stringify(item),
+      }
+    );
+  },
+
+  async eliminarTrabajo(ordenId: string, trabajoId: string): Promise<void> {
+    await apiClient(`/api/serviciocampo/ordenes/${ordenId}/trabajos/${trabajoId}`, {
+      method: 'DELETE',
+    });
   },
 };

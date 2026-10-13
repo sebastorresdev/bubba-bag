@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using BubbaBag.Modules.ServicioCampo.Application;
 using BubbaBag.Modules.ServicioCampo.Domain.Enums;
 using BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
+using BubbaBag.Modules.ServicioCampo.Domain.Plantillas;
 using BubbaBag.SharedKernel.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -30,6 +31,8 @@ public static class OrdenesTrabajoEndpoints
         group.MapPatch("/{id:guid}/estado-sistema", CambiarEstadoSistema).RequireAuthorization(Permissions.ServicioCampo.OrdenesAsignar);
         group.MapPost("/{id:guid}/programar", ProgramarOrdenTrabajo).RequireAuthorization(Permissions.ServicioCampo.OrdenesAsignar);
         group.MapDelete("/{id:guid}", EliminarOrdenTrabajo).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear);
+        group.MapPost("/{id:guid}/trabajos", AgregarTrabajoAOrden).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear);
+        group.MapDelete("/{id:guid}/trabajos/{trabajoId:guid}", EliminarTrabajoDeOrden).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear);
     }
 
     private static async Task<IResult> ObtenerOrdenesTrabajo(
@@ -138,6 +141,10 @@ public static class OrdenesTrabajoEndpoints
             .Include(o => o.Visitas).ThenInclude(v => v.Recurso)
             .Include(o => o.Materiales)
             .Include(o => o.Tareas).ThenInclude(t => t.TipoTarea)
+            .Include(o => o.Trabajos).ThenInclude(t => t.Producto)
+            .Include(o => o.Trabajos).ThenInclude(t => t.PlantillaTrabajo)
+            .Include(o => o.Trabajos).ThenInclude(t => t.Tareas)
+            .Include(o => o.Trabajos).ThenInclude(t => t.Materiales).ThenInclude(m => m.Producto)
             .FirstOrDefaultAsync(o => o.Id == id, ct);
 
         if (orden == null)
@@ -147,10 +154,78 @@ public static class OrdenesTrabajoEndpoints
         var cliFactNombre = orden.ClienteFacturacion?.RazonSocial ?? $"{orden.ClienteFacturacion?.Nombres} {orden.ClienteFacturacion?.Apellidos}".Trim();
         var cliServNombre = orden.ClienteServicio?.RazonSocial ?? $"{orden.ClienteServicio?.Nombres} {orden.ClienteServicio?.Apellidos}".Trim();
 
-        var matProdIds = orden.Materiales.Select(m => m.ProductoId).Distinct().ToList();
+        var matProdIds = orden.Materiales.Select(m => m.ProductoId)
+            .Concat(orden.Trabajos.SelectMany(t => t.Materiales).Select(m => m.ProductoId))
+            .Distinct().ToList();
         var productosDict = await db.Productos.AsNoTracking()
             .Where(p => matProdIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, p => p, ct);
+
+        var materialesList = new List<OrdenTrabajoMaterialDto>();
+        // Materiales directos de la orden
+        foreach (var m in orden.Materiales)
+        {
+            productosDict.TryGetValue(m.ProductoId, out var prod);
+            materialesList.Add(new OrdenTrabajoMaterialDto(
+                Id: m.Id,
+                ProductoId: m.ProductoId,
+                CodigoProducto: prod?.Codigo ?? "N/A",
+                NombreProducto: prod?.Nombre ?? "Artículo",
+                Cantidad: m.Cantidad,
+                TipoAccion: m.EsRetiro ? "Retiro" : "Instalacion",
+                NumeroSerie: m.NumeroSerie,
+                Observaciones: m.Observaciones,
+                TrabajoCodigo: null
+            ));
+        }
+        // Materiales de cada incidente o trabajo solicitado
+        foreach (var trab in orden.Trabajos.OrderBy(t => t.ItemNumero))
+        {
+            foreach (var mt in trab.Materiales)
+            {
+                productosDict.TryGetValue(mt.ProductoId, out var prod);
+                materialesList.Add(new OrdenTrabajoMaterialDto(
+                    Id: mt.Id,
+                    ProductoId: mt.ProductoId,
+                    CodigoProducto: mt.Producto?.Codigo ?? prod?.Codigo ?? "N/A",
+                    NombreProducto: mt.Producto?.Nombre ?? prod?.Nombre ?? "Artículo",
+                    Cantidad: mt.CantidadUtilizada > 0 ? mt.CantidadUtilizada : mt.CantidadPrevista,
+                    TipoAccion: mt.EsRetiro ? "Retiro" : "Instalacion",
+                    NumeroSerie: mt.NumeroSerie,
+                    Observaciones: mt.Observaciones ?? $"Trabajo: {trab.CodigoTrabajo}",
+                    TrabajoCodigo: trab.CodigoTrabajo
+                ));
+            }
+        }
+
+        var tareasList = new List<OrdenTrabajoTareaDto>();
+        // Tareas directas de la orden
+        foreach (var t in orden.Tareas)
+        {
+            tareasList.Add(new OrdenTrabajoTareaDto(
+                Id: t.Id,
+                NombreTarea: t.TipoTarea?.Nombre ?? t.CodigoTarea,
+                EstadoTarea: t.EstadoTarea.ToString(),
+                EsObligatoria: true,
+                Observaciones: t.Descripcion ?? t.ObservacionesCierre,
+                TrabajoCodigo: null
+            ));
+        }
+        // Tareas de cada incidente o trabajo solicitado
+        foreach (var trab in orden.Trabajos.OrderBy(t => t.ItemNumero))
+        {
+            foreach (var tt in trab.Tareas.OrderBy(t => t.OrdenSecuencia))
+            {
+                tareasList.Add(new OrdenTrabajoTareaDto(
+                    Id: tt.Id,
+                    NombreTarea: tt.NombreTarea,
+                    EstadoTarea: tt.Estado.ToString(),
+                    EsObligatoria: tt.EsObligatoria,
+                    Observaciones: tt.ObservacionesTecnico ?? $"Trabajo: {trab.CodigoTrabajo}",
+                    TrabajoCodigo: trab.CodigoTrabajo
+                ));
+            }
+        }
 
         var detalle = new OrdenTrabajoDetalleDto(
             Id: orden.Id,
@@ -184,26 +259,46 @@ public static class OrdenesTrabajoEndpoints
             ReferenciaUbicacion: orden.ClienteServicio?.ReferenciaUbicacion,
             UbigeoTexto: orden.ClienteServicio?.UbigeoCodigo,
             FechaCreacion: orden.CreatedAt,
-            Materiales: orden.Materiales.Select(m => {
-                productosDict.TryGetValue(m.ProductoId, out var prod);
-                return new OrdenTrabajoMaterialDto(
-                    Id: m.Id,
-                    ProductoId: m.ProductoId,
-                    CodigoProducto: prod?.Codigo ?? "N/A",
-                    NombreProducto: prod?.Nombre ?? "Artículo",
-                    Cantidad: m.Cantidad,
-                    TipoAccion: m.EsRetiro ? "Retiro" : "Instalacion",
-                    NumeroSerie: m.NumeroSerie,
-                    Observaciones: m.Observaciones
-                );
-            }).ToList(),
-            Tareas: orden.Tareas.Select(t => new OrdenTrabajoTareaDto(
+            Trabajos: orden.Trabajos.OrderBy(t => t.ItemNumero).Select(t => new OrdenTrabajoItemDto(
                 Id: t.Id,
-                NombreTarea: t.TipoTarea?.Nombre ?? t.CodigoTarea,
-                EstadoTarea: t.EstadoTarea.ToString(),
-                EsObligatoria: true,
-                Observaciones: t.Descripcion ?? t.ObservacionesCierre
+                CodigoTrabajo: t.CodigoTrabajo,
+                CodigoExterno: t.CodigoExterno,
+                ProductoId: t.ProductoId,
+                ProductoNombre: t.Producto?.Nombre ?? "Servicio",
+                ProductoCodigo: t.Producto?.Codigo,
+                PlantillaTrabajoId: t.PlantillaTrabajoId,
+                PlantillaTrabajoNombre: t.PlantillaTrabajo?.Nombre,
+                ItemNumero: t.ItemNumero,
+                Estado: t.Estado.ToString(),
+                TarifaBaseCongelada: t.TarifaBaseCongelada,
+                Observaciones: t.Observaciones,
+                TotalTareas: t.Tareas.Count,
+                TotalMateriales: t.Materiales.Count,
+                Tareas: t.Tareas.OrderBy(tt => tt.OrdenSecuencia).Select(tt => new OrdenTrabajoTareaDto(
+                    Id: tt.Id,
+                    NombreTarea: tt.NombreTarea,
+                    EstadoTarea: tt.Estado.ToString(),
+                    EsObligatoria: tt.EsObligatoria,
+                    Observaciones: tt.ObservacionesTecnico,
+                    TrabajoCodigo: t.CodigoTrabajo
+                )).ToList(),
+                Materiales: t.Materiales.Select(mt => {
+                    productosDict.TryGetValue(mt.ProductoId, out var p);
+                    return new OrdenTrabajoMaterialDto(
+                        Id: mt.Id,
+                        ProductoId: mt.ProductoId,
+                        CodigoProducto: mt.Producto?.Codigo ?? p?.Codigo ?? "N/A",
+                        NombreProducto: mt.Producto?.Nombre ?? p?.Nombre ?? "Artículo",
+                        Cantidad: mt.CantidadUtilizada > 0 ? mt.CantidadUtilizada : mt.CantidadPrevista,
+                        TipoAccion: mt.EsRetiro ? "Retiro" : "Instalacion",
+                        NumeroSerie: mt.NumeroSerie,
+                        Observaciones: mt.Observaciones,
+                        TrabajoCodigo: t.CodigoTrabajo
+                    );
+                }).ToList()
             )).ToList(),
+            Materiales: materialesList,
+            Tareas: tareasList,
             Visitas: orden.Visitas.OrderBy(v => v.NumeroVisita).Select(v => new OrdenTrabajoVisitaDto(
                 Id: v.Id,
                 CodigoVisita: v.CodigoVisita,
@@ -250,6 +345,74 @@ public static class OrdenesTrabajoEndpoints
             estadoOrigen: request.EstadoOrigen,
             referenciaExterna: request.ReferenciaExterna
         );
+
+        // Procesar Trabajos iniciales (Incidentes)
+        if (request.Trabajos != null && request.Trabajos.Count > 0)
+        {
+            var tipoOrden = await db.TiposOrdenTrabajo.AsNoTracking().FirstOrDefaultAsync(t => t.Id == request.TipoOrdenId, ct);
+            var listaPreciosId = tipoOrden?.ListaPreciosId;
+
+            var prodIds = request.Trabajos.Select(t => t.ProductoId).Distinct().ToList();
+            var prodsDict = await db.Productos.AsNoTracking()
+                .Where(p => prodIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, ct);
+
+            var tarifasDict = new Dictionary<Guid, decimal>();
+            if (listaPreciosId.HasValue)
+            {
+                tarifasDict = await db.ElementosListaPrecios.AsNoTracking()
+                    .Where(e => e.ListaPreciosId == listaPreciosId.Value && prodIds.Contains(e.ProductoId))
+                    .ToDictionaryAsync(e => e.ProductoId, e => e.Monto, ct);
+            }
+
+            var plantillaIds = request.Trabajos
+                .Where(t => t.PlantillaTrabajoId.HasValue && t.PlantillaTrabajoId.Value != Guid.Empty)
+                .Select(t => t.PlantillaTrabajoId!.Value)
+                .Distinct()
+                .ToList();
+
+            var plantillasDict = plantillaIds.Any()
+                ? await db.PlantillasTrabajo
+                    .Include(p => p.Tareas).ThenInclude(t => t.Tarea)
+                    .Include(p => p.Materiales).ThenInclude(m => m.Producto)
+                    .Where(p => plantillaIds.Contains(p.Id))
+                    .ToDictionaryAsync(p => p.Id, ct)
+                : new Dictionary<Guid, PlantillaTrabajo>();
+
+            int itemNum = 1;
+            foreach (var item in request.Trabajos)
+            {
+                var codTrabajo = !string.IsNullOrWhiteSpace(item.CodigoTrabajo)
+                    ? item.CodigoTrabajo.Trim().ToUpperInvariant()
+                    : $"{orden.CodigoWo}-{itemNum:D2}";
+
+                decimal tarifa = item.TarifaBase ?? 0m;
+                if (tarifa == 0m)
+                {
+                    if (tarifasDict.TryGetValue(item.ProductoId, out var montoLista))
+                        tarifa = montoLista;
+                    else if (prodsDict.TryGetValue(item.ProductoId, out var prod))
+                        tarifa = prod.PrecioBase;
+                }
+
+                var trabajo = orden.AgregarTrabajo(
+                    codigoTrabajo: codTrabajo,
+                    servicioId: item.ProductoId,
+                    itemNumero: itemNum,
+                    plantillaTrabajoId: item.PlantillaTrabajoId,
+                    tarifaBase: tarifa,
+                    observaciones: item.Observaciones,
+                    codigoExterno: item.CodigoExterno
+                );
+
+                if (item.PlantillaTrabajoId.HasValue && plantillasDict.TryGetValue(item.PlantillaTrabajoId.Value, out var plantilla))
+                {
+                    trabajo.AplicarPlantilla(plantilla);
+                }
+
+                itemNum++;
+            }
+        }
 
         // Si se especificó recurso y fecha, programar visita inicial
         if (request.RecursoTecnicoId.HasValue && !string.IsNullOrWhiteSpace(request.FechaProgramada) &&
@@ -401,6 +564,100 @@ public static class OrdenesTrabajoEndpoints
 
         return Results.Ok(new { message = "Orden de trabajo eliminada correctamente." });
     }
+
+    private static async Task<IResult> AgregarTrabajoAOrden(
+        Guid id,
+        CrearOrdenTrabajoItemRequest request,
+        IServicioCampoDbContext db,
+        CancellationToken ct)
+    {
+        var orden = await db.OrdenesTrabajo
+            .Include(o => o.Trabajos)
+            .Include(o => o.TipoOrden)
+            .FirstOrDefaultAsync(o => o.Id == id, ct);
+
+        if (orden == null)
+            return Results.NotFound(new { message = $"No se encontró la orden de trabajo con ID {id}." });
+
+        var tipoOrden = orden.TipoOrden ?? await db.TiposOrdenTrabajo.AsNoTracking().FirstOrDefaultAsync(t => t.Id == orden.TipoOrdenId, ct);
+        var listaPreciosId = tipoOrden?.ListaPreciosId;
+
+        var prod = await db.Productos.AsNoTracking().FirstOrDefaultAsync(p => p.Id == request.ProductoId, ct);
+        if (prod == null)
+            return Results.BadRequest(new { message = "El producto o servicio especificado no existe." });
+
+        decimal tarifa = request.TarifaBase ?? 0m;
+        if (tarifa == 0m)
+        {
+            if (listaPreciosId.HasValue)
+            {
+                var el = await db.ElementosListaPrecios.AsNoTracking()
+                    .FirstOrDefaultAsync(e => e.ListaPreciosId == listaPreciosId.Value && e.ProductoId == request.ProductoId, ct);
+                if (el != null) tarifa = el.Monto;
+                else tarifa = prod.PrecioBase;
+            }
+            else
+            {
+                tarifa = prod.PrecioBase;
+            }
+        }
+
+        PlantillaTrabajo? plantilla = null;
+        if (request.PlantillaTrabajoId.HasValue && request.PlantillaTrabajoId.Value != Guid.Empty)
+        {
+            plantilla = await db.PlantillasTrabajo
+                .AsNoTracking()
+                .Include(p => p.Tareas).ThenInclude(t => t.Tarea)
+                .Include(p => p.Materiales).ThenInclude(m => m.Producto)
+                .FirstOrDefaultAsync(p => p.Id == request.PlantillaTrabajoId.Value, ct);
+        }
+
+        var itemNum = orden.Trabajos.Count + 1;
+        var codTrabajo = !string.IsNullOrWhiteSpace(request.CodigoTrabajo)
+            ? request.CodigoTrabajo.Trim().ToUpperInvariant()
+            : $"{orden.CodigoWo}-{itemNum:D2}";
+
+        var trabajo = orden.AgregarTrabajo(
+            codigoTrabajo: codTrabajo,
+            servicioId: request.ProductoId,
+            itemNumero: itemNum,
+            plantillaTrabajoId: request.PlantillaTrabajoId,
+            tarifaBase: tarifa,
+            observaciones: request.Observaciones,
+            codigoExterno: request.CodigoExterno
+        );
+
+        if (plantilla != null)
+        {
+            trabajo.AplicarPlantilla(plantilla);
+        }
+
+        db.Trabajos.Add(trabajo);
+        await ((DbContext)db).SaveChangesAsync(ct);
+        return Results.Created($"/api/serviciocampo/ordenes/{orden.Id}/trabajos/{trabajo.Id}", new { id = trabajo.Id, codigoTrabajo = trabajo.CodigoTrabajo });
+    }
+
+    private static async Task<IResult> EliminarTrabajoDeOrden(
+        Guid id,
+        Guid trabajoId,
+        IServicioCampoDbContext db,
+        CancellationToken ct)
+    {
+        var trabajo = await db.Trabajos
+            .Include(t => t.Tareas)
+            .Include(t => t.Materiales)
+            .FirstOrDefaultAsync(t => t.Id == trabajoId && t.OrdenTrabajoId == id, ct);
+
+        if (trabajo == null)
+            return Results.NotFound(new { message = $"No se encontró el trabajo con ID {trabajoId} en la orden {id}." });
+
+        if (trabajo.Estado != EstadoTrabajo.Pendiente)
+            return Results.BadRequest(new { message = "Solo se pueden eliminar líneas de trabajo en estado Pendiente." });
+
+        db.Trabajos.Remove(trabajo);
+        await ((DbContext)db).SaveChangesAsync(ct);
+        return Results.Ok(new { message = "Trabajo eliminado exitosamente de la orden." });
+    }
 }
 
 // =============================================================================
@@ -432,6 +689,25 @@ public record OrdenTrabajoListadoItemDto(
     string? DireccionServicio,
     string? UbigeoTexto,
     DateTime FechaCreacion
+);
+
+public record OrdenTrabajoItemDto(
+    Guid Id,
+    string CodigoTrabajo,
+    string? CodigoExterno,
+    Guid ProductoId,
+    string ProductoNombre,
+    string? ProductoCodigo,
+    Guid? PlantillaTrabajoId,
+    string? PlantillaTrabajoNombre,
+    int ItemNumero,
+    string Estado,
+    decimal TarifaBaseCongelada,
+    string? Observaciones,
+    int TotalTareas,
+    int TotalMateriales,
+    List<OrdenTrabajoTareaDto>? Tareas = null,
+    List<OrdenTrabajoMaterialDto>? Materiales = null
 );
 
 public record OrdenTrabajoDetalleDto(
@@ -466,6 +742,7 @@ public record OrdenTrabajoDetalleDto(
     string? ReferenciaUbicacion,
     string? UbigeoTexto,
     DateTime FechaCreacion,
+    List<OrdenTrabajoItemDto> Trabajos,
     List<OrdenTrabajoMaterialDto> Materiales,
     List<OrdenTrabajoTareaDto> Tareas,
     List<OrdenTrabajoVisitaDto> Visitas
@@ -479,7 +756,8 @@ public record OrdenTrabajoMaterialDto(
     decimal Cantidad,
     string TipoAccion,
     string? NumeroSerie,
-    string? Observaciones
+    string? Observaciones,
+    string? TrabajoCodigo = null
 );
 
 public record OrdenTrabajoTareaDto(
@@ -487,7 +765,8 @@ public record OrdenTrabajoTareaDto(
     string NombreTarea,
     string EstadoTarea,
     bool EsObligatoria,
-    string? Observaciones
+    string? Observaciones,
+    string? TrabajoCodigo = null
 );
 
 public record OrdenTrabajoVisitaDto(
@@ -499,6 +778,15 @@ public record OrdenTrabajoVisitaDto(
     string FechaProgramada,
     string? BloqueHorario,
     string Estado
+);
+
+public record CrearOrdenTrabajoItemRequest(
+    string? CodigoTrabajo,
+    string? CodigoExterno,
+    Guid ProductoId,
+    Guid? PlantillaTrabajoId,
+    decimal? TarifaBase,
+    string? Observaciones
 );
 
 public record CrearOrdenTrabajoRequest(
@@ -515,7 +803,8 @@ public record CrearOrdenTrabajoRequest(
     Guid? RecursoTecnicoId,
     string? FechaProgramada,
     string? BloqueHorario,
-    string? Observaciones
+    string? Observaciones,
+    List<CrearOrdenTrabajoItemRequest>? Trabajos
 );
 
 public record ActualizarOrdenTrabajoRequest(

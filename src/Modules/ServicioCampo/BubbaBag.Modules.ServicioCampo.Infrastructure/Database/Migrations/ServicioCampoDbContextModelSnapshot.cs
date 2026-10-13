@@ -1801,6 +1801,10 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CodigoExterno")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("CodigoTrabajo")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1936,11 +1940,16 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.Property<Guid>("ProductoId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("UnidadMedidaId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PlantillaTrabajoId");
 
                     b.HasIndex("ProductoId");
+
+                    b.HasIndex("UnidadMedidaId");
 
                     b.ToTable("PlantillasMateriales", "serviciocampo");
                 });
@@ -3107,9 +3116,16 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Productos.UnidadMedida", "UnidadMedida")
+                        .WithMany()
+                        .HasForeignKey("UnidadMedidaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("PlantillaTrabajo");
 
                     b.Navigation("Producto");
+
+                    b.Navigation("UnidadMedida");
                 });
 
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Plantillas.PlantillaServicio", b =>

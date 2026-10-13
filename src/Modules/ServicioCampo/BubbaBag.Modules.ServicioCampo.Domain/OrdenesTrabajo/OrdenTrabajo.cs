@@ -149,10 +149,11 @@ public class OrdenTrabajo : Entity<Guid>
         int? itemNumero = null,
         Guid? plantillaTrabajoId = null,
         decimal tarifaBase = 0m,
-        string? observaciones = null)
+        string? observaciones = null,
+        string? codigoExterno = null)
     {
         var numero = itemNumero ?? (_trabajos.Count + 1);
-        var trabajo = Trabajo.Crear(Id, codigoTrabajo, servicioId, numero, plantillaTrabajoId, tarifaBase, observaciones);
+        var trabajo = Trabajo.Crear(Id, codigoTrabajo, servicioId, numero, plantillaTrabajoId, tarifaBase, observaciones, codigoExterno);
         _trabajos.Add(trabajo);
         UpdatedAt = DateTime.UtcNow;
         return trabajo;

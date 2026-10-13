@@ -16,6 +16,9 @@ public class TrabajoConfiguration : IEntityTypeConfiguration<Trabajo>
             .IsRequired()
             .HasMaxLength(50);
 
+        builder.Property(t => t.CodigoExterno)
+            .HasMaxLength(50);
+
         builder.HasIndex(t => new { t.OrdenTrabajoId, t.CodigoTrabajo })
             .IsUnique();
 

@@ -668,26 +668,6 @@ export function PlantillaTrabajoFormPage() {
         ),
       }),
       createTableColumn<ServicioLocalItem>({
-        columnId: 'nombre',
-        renderHeaderCell: () => 'Nombre',
-        renderCell: (item) => (
-          <TableCellLayout>
-            <span
-              style={{
-                color: '#0f6cbd',
-                cursor: 'pointer',
-                fontSize: 13,
-                textDecoration: 'none',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
-              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
-            >
-              {item.productoNombre}
-            </span>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<ServicioLocalItem>({
         columnId: 'servicio',
         renderHeaderCell: () => 'Servicio',
         renderCell: (item) => (
@@ -704,15 +684,6 @@ export function PlantillaTrabajoFormPage() {
             >
               [{item.productoCodigo}] {item.productoNombre}
             </span>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<ServicioLocalItem>({
-        columnId: 'descripcion',
-        renderHeaderCell: () => 'Descripción',
-        renderCell: () => (
-          <TableCellLayout>
-            <span style={{ color: tokens.colorNeutralForeground4 }}>—</span>
           </TableCellLayout>
         ),
       }),
@@ -962,26 +933,6 @@ export function PlantillaTrabajoFormPage() {
         ),
       }),
       createTableColumn<MaterialLocalItem>({
-        columnId: 'nombre',
-        renderHeaderCell: () => 'Nombre',
-        renderCell: (item) => (
-          <TableCellLayout>
-            <span
-              style={{
-                color: '#0f6cbd',
-                cursor: 'pointer',
-                fontSize: 13,
-                textDecoration: 'none',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
-              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
-            >
-              {item.productoNombre}
-            </span>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<MaterialLocalItem>({
         columnId: 'producto',
         renderHeaderCell: () => 'Producto',
         renderCell: (item) => (
@@ -1007,27 +958,6 @@ export function PlantillaTrabajoFormPage() {
             </div>
           </TableCellLayout>
         ),
-      }),
-      createTableColumn<MaterialLocalItem>({
-        columnId: 'descripcion',
-        renderHeaderCell: () => 'Descripción',
-        renderCell: (item) => {
-          const idx = materiales.findIndex((x) => x.id === item.id);
-          return (
-            <TableCellLayout style={{ width: '100%' }}>
-              <Input
-                size="small"
-                value={item.observaciones}
-                onChange={(_, d) =>
-                  setMateriales((prev) =>
-                    prev.map((m, i) => (i === idx ? { ...m, observaciones: d.value } : m))
-                  )
-                }
-                style={{ width: '100%' }}
-              />
-            </TableCellLayout>
-          );
-        },
       }),
       createTableColumn<MaterialLocalItem>({
         columnId: 'cantidad',
@@ -1267,7 +1197,7 @@ export function PlantillaTrabajoFormPage() {
             <Tab value="general">General</Tab>
             <Tab value="servicios">Servicios</Tab>
             <Tab value="tareas">Tareas de Servicio</Tab>
-            <Tab value="materiales">Productos / Materiales</Tab>
+            <Tab value="materiales">Productos</Tab>
           </TabList>
         }
       />

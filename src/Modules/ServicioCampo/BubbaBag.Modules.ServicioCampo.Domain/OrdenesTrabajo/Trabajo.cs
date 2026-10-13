@@ -20,6 +20,11 @@ public class Trabajo : Entity<Guid>
     public string CodigoTrabajo { get; private set; } = default!;
 
     /// <summary>
+    /// Código externo o número de incidente del cliente (ej. DIRECTV / Siebel).
+    /// </summary>
+    public string? CodigoExterno { get; private set; }
+
+    /// <summary>
     /// Producto/Servicio de catálogo contratado o solicitado en esta línea de trabajo.
     /// </summary>
     public Guid ProductoId { get; private set; }
@@ -62,7 +67,8 @@ public class Trabajo : Entity<Guid>
         int itemNumero = 1,
         Guid? plantillaTrabajoId = null,
         decimal tarifaBaseCongelada = 0m,
-        string? observaciones = null)
+        string? observaciones = null,
+        string? codigoExterno = null)
     {
         if (string.IsNullOrWhiteSpace(codigoTrabajo))
             throw new ArgumentException("El código de trabajo es obligatorio.", nameof(codigoTrabajo));
@@ -72,6 +78,7 @@ public class Trabajo : Entity<Guid>
             Id = Guid.NewGuid(),
             OrdenTrabajoId = ordenTrabajoId,
             CodigoTrabajo = codigoTrabajo.Trim().ToUpperInvariant(),
+            CodigoExterno = codigoExterno?.Trim(),
             ProductoId = productoId,
             ItemNumero = Math.Max(1, itemNumero),
             PlantillaTrabajoId = plantillaTrabajoId,

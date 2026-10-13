@@ -117,7 +117,7 @@ export function UnidadesOrganizativasListPage() {
         compare: (a, b) => a.codigo.localeCompare(b.codigo),
         renderHeaderCell: () => 'Código',
         renderCell: (x) => (
-          <TableCellLayout>
+          <TableCellLayout truncate title={x.codigo}>
             <Link
               as="button"
               onClick={(e) => {
@@ -135,25 +135,25 @@ export function UnidadesOrganizativasListPage() {
         compare: (a, b) => a.nombre.localeCompare(b.nombre),
         renderHeaderCell: () => 'Nombre / Sede',
         renderCell: (x) => (
-          <TableCellLayout>
-            <Text>{x.nombre}</Text>
+          <TableCellLayout truncate title={x.nombre}>
+            <Text truncate>{x.nombre}</Text>
           </TableCellLayout>
         ),
       }),
       createTableColumn({
         columnId: 'ciudad',
         renderHeaderCell: () => 'Ciudad',
-        renderCell: (x) => <TableCellLayout>{x.ciudad || '—'}</TableCellLayout>,
+        renderCell: (x) => <TableCellLayout truncate title={x.ciudad || undefined}>{x.ciudad || '—'}</TableCellLayout>,
       }),
       createTableColumn({
         columnId: 'direccion',
         renderHeaderCell: () => 'Dirección',
-        renderCell: (x) => <TableCellLayout truncate>{x.direccion || '—'}</TableCellLayout>,
+        renderCell: (x) => <TableCellLayout truncate title={x.direccion || undefined}>{x.direccion || '—'}</TableCellLayout>,
       }),
       createTableColumn({
         columnId: 'telefono',
         renderHeaderCell: () => 'Teléfono',
-        renderCell: (x) => <TableCellLayout>{x.telefono || '—'}</TableCellLayout>,
+        renderCell: (x) => <TableCellLayout truncate title={x.telefono || undefined}>{x.telefono || '—'}</TableCellLayout>,
       }),
       createTableColumn({
         columnId: 'tipo',

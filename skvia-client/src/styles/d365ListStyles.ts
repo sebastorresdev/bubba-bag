@@ -101,6 +101,9 @@ export const useD365ListStyles = makeStyles({
     fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightRegular,
     lineHeight: tokens.lineHeightBase300,
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+    textOverflow: 'ellipsis',
     '& *': {
       fontSize: tokens.fontSizeBase300,
       fontWeight: tokens.fontWeightRegular,
