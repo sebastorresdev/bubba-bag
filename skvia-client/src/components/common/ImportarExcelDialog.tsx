@@ -1,11 +1,10 @@
 import React, { useState, useRef } from 'react';
 import {
-  Dialog,
-  DialogSurface,
-  DialogTitle,
-  DialogBody,
-  DialogContent,
-  DialogActions,
+  OverlayDrawer,
+  DrawerHeader,
+  DrawerHeaderTitle,
+  DrawerBody,
+  DrawerFooter,
   Button,
   Spinner,
   Text,
@@ -31,9 +30,28 @@ import {
 import type { ImportarExcelResultadoDto } from '../../types/excelImport.types';
 
 const useStyles = makeStyles({
-  dialogSurface: {
-    maxWidth: '620px',
-    width: '100%',
+  drawer: {
+    width: '560px',
+    maxWidth: '95vw',
+  },
+  drawerHeader: {
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    paddingBottom: '12px',
+  },
+  drawerBody: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+    padding: '16px 20px',
+  },
+  drawerFooter: {
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+    padding: '12px 20px',
+    display: 'flex',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: '12px',
+    backgroundColor: tokens.colorNeutralBackground2,
   },
   messageBarSpacing: { marginBottom: tokens.spacingVerticalM },
   stepContainer: {
@@ -220,9 +238,14 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(_, data) => onOpenChange(data.open)}>
-      <DialogSurface className={styles.dialogSurface}>
-        <DialogTitle
+    <OverlayDrawer
+      open={open}
+      position="end"
+      className={styles.drawer}
+      onOpenChange={(_, data) => onOpenChange(data.open)}
+    >
+      <DrawerHeader className={styles.drawerHeader}>
+        <DrawerHeaderTitle
           action={
             <Button
               appearance="subtle"
@@ -233,10 +256,10 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
           }
         >
           {title}
-        </DialogTitle>
+        </DrawerHeaderTitle>
+      </DrawerHeader>
 
-        <DialogBody>
-          <DialogContent>
+      <DrawerBody className={styles.drawerBody}>
             {errorMessage && (
               <D365MessageBar intent="error" title="Error" className={styles.messageBarSpacing}>
                 {errorMessage}
@@ -419,30 +442,30 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
                 </div>
               </div>
             )}
-          </DialogContent>
+      </DrawerBody>
 
-          <DialogActions className={styles.dialogActions}>
-            <Button appearance="secondary" onClick={handleClose} className={styles.actionButton}>
-              {result ? 'Cerrar' : 'Cancelar'}
-            </Button>
-            {!result ? (
-              <Button
-                appearance="primary"
-                onClick={handleImport}
-                disabled={!selectedFile || uploading}
-                icon={uploading ? <Spinner size="tiny" /> : undefined}
-                className={styles.actionButton}
-              >
-                {uploading ? 'Importando registros...' : 'Iniciar Importación'}
-              </Button>
-            ) : (
-              <Button appearance="primary" onClick={handleReset} className={styles.actionButton}>
-                Importar otro archivo
-              </Button>
-            )}
-          </DialogActions>
-        </DialogBody>
-      </DialogSurface>
-    </Dialog>
+      <DrawerFooter className={styles.drawerFooter}>
+        <Button appearance="secondary" onClick={handleClose} className={styles.actionButton}>
+          {result ? 'Cerrar' : 'Cancelar'}
+        </Button>
+        {!result ? (
+          <Button
+            appearance="primary"
+            onClick={handleImport}
+            disabled={!selectedFile || uploading}
+            icon={uploading ? <Spinner size="tiny" /> : undefined}
+            className={styles.actionButton}
+          >
+            {uploading ? 'Importando registros...' : 'Iniciar Importación'}
+          </Button>
+        ) : (
+          <Button appearance="primary" onClick={handleReset} className={styles.actionButton}>
+            Importar otro archivo
+          </Button>
+        )}
+      </DrawerFooter>
+    </OverlayDrawer>
   );
 };
+
+export const ImportarExcelDrawer = ImportarExcelDialog;
