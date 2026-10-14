@@ -44,6 +44,9 @@ export interface OrdenTrabajoListadoItemDto {
 }
 
 export interface OrdenTrabajoMaterialDto {
+  cantidadPrevista?: number;
+  cantidadUtilizada?: number;
+  unidadMedida?: string | null;
   id: string;
   productoId: string;
   codigoProducto: string;
@@ -56,6 +59,9 @@ export interface OrdenTrabajoMaterialDto {
 }
 
 export interface OrdenTrabajoTareaDto {
+  instrucciones?: string | null;
+  requiereEvidencia?: boolean;
+  evidenciaUrl?: string | null;
   id: string;
   nombreTarea: string;
   estadoTarea: string;
@@ -76,14 +82,16 @@ export interface OrdenTrabajoVisitaDto {
 }
 
 export interface OrdenTrabajoItemDto {
+  referenciaEquipo?: string | null;
+  origenPrecio?: string | null;
   id: string;
   codigoTrabajo: string;
   codigoExterno?: string | null;
   productoId: string;
   productoNombre: string;
   productoCodigo?: string | null;
-  plantillaTrabajoId?: string | null;
-  plantillaTrabajoNombre?: string | null;
+  configuracionServicioId?: string | null;
+  configuracionServicioNombre?: string | null;
   itemNumero: number;
   estado: string;
   tarifaBaseCongelada: number;
@@ -96,15 +104,18 @@ export interface OrdenTrabajoItemDto {
 }
 
 export interface CrearOrdenTrabajoItemDto {
+  referenciaEquipo?: string;
   codigoTrabajo?: string;
   codigoExterno?: string;
   productoId: string;
-  plantillaTrabajoId?: string;
+  configuracionServicioId?: string;
   tarifaBase?: number;
   observaciones?: string;
 }
 
 export interface OrdenTrabajoDetalleDto {
+  listaPreciosId?: string | null;
+  moneda: string;
   id: string;
   codigoWo: string;
   tipoOrdenId: string;
@@ -143,6 +154,7 @@ export interface OrdenTrabajoDetalleDto {
 }
 
 export interface CrearOrdenTrabajoDto {
+  listaPreciosId?: string;
   codigoWo?: string;
   tipoOrdenId: string;
   clienteFacturacionId: string;

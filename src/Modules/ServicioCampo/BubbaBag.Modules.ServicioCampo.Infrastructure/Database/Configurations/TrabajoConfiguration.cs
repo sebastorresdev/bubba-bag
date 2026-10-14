@@ -10,6 +10,8 @@ public class TrabajoConfiguration : IEntityTypeConfiguration<Trabajo>
     {
         builder.ToTable("Trabajos", "serviciocampo");
 
+        builder.Property(x => x.ConfiguracionServicioId).HasColumnName("PlantillaTrabajoId");
+
         builder.HasKey(t => t.Id);
 
         builder.Property(t => t.CodigoTrabajo)
@@ -52,9 +54,9 @@ public class TrabajoConfiguration : IEntityTypeConfiguration<Trabajo>
             .HasForeignKey(t => t.ProductoId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(t => t.PlantillaTrabajo)
+        builder.HasOne(t => t.ConfiguracionServicio)
             .WithMany()
-            .HasForeignKey(t => t.PlantillaTrabajoId)
+            .HasForeignKey(t => t.ConfiguracionServicioId)
             .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasMany(t => t.Tareas)

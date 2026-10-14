@@ -42,7 +42,7 @@ import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 import { TareaService } from '../services/tarea.service';
-import type { TareaDto, GuardarTareaDto } from '../../plantillas-trabajo/types/plantillaTrabajo.types';
+import type { TareaDto, GuardarTareaDto } from '../../configuraciones-servicio/types/configuracionServicio.types';
 
 export function TareasListPage() {
   const styles = useD365ListStyles();
@@ -203,24 +203,24 @@ export function TareasListPage() {
   const columnas: TableColumnDefinition<TareaDto>[] = useMemo(
     () => [
       createTableColumn<TareaDto>({
-        columnId: 'codigo',
-        compare: (a, b) => a.codigo.localeCompare(b.codigo),
-        renderHeaderCell: () => 'Código',
-        renderCell: (item) => (
-          <TableCellLayout>
-            <Link onClick={() => abrirEditar(item)}>
-              {item.codigo}
-            </Link>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<TareaDto>({
         columnId: 'nombre',
         compare: (a, b) => a.nombre.localeCompare(b.nombre),
         renderHeaderCell: () => 'Nombre de la Tarea',
         renderCell: (item) => (
           <TableCellLayout>
-            <Text>{item.nombre}</Text>
+            <Link onClick={() => abrirEditar(item)}>
+              {item.nombre}
+            </Link>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<TareaDto>({
+        columnId: 'descripcion',
+        compare: (a, b) => (a.descripcion || '').localeCompare(b.descripcion || ''),
+        renderHeaderCell: () => 'Descripción / Alcance',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Text>{item.descripcion || '—'}</Text>
           </TableCellLayout>
         ),
       }),
@@ -378,15 +378,6 @@ export function TareasListPage() {
         </DrawerHeader>
 
         <DrawerBody style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '20px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <Text weight="semibold" size={200}>Código de Tarea</Text>
-            <Input
-              value={formCodigo}
-              onChange={(_, d) => setFormCodigo(d.value)}
-              style={{ width: '100%' }}
-            />
-          </div>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <Text weight="semibold" size={200}>Nombre de la Tarea *</Text>
             <Input

@@ -7,7 +7,7 @@ namespace BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
 
 /// <summary>
 /// Representa la ejecución real y concreta de una tarea técnica dentro de un Trabajo.
-/// Puede originarse a partir de una PlantillaTarea o ser agregada dinámicamente en campo.
+/// Puede originarse a partir de una ConfiguracionTarea o ser agregada dinámicamente en campo.
 /// </summary>
 public class TareaTrabajo : Entity<Guid>
 {
@@ -21,9 +21,11 @@ public class TareaTrabajo : Entity<Guid>
     public Tarea? Tarea { get; private set; }
 
     /// <summary>
-    /// Vínculo a la plantilla de origen si fue precargada desde una PlantillaTrabajo.
+    /// Vínculo a la plantilla de origen si fue precargada desde una ConfiguracionServicio.
     /// </summary>
-    public Guid? PlantillaTareaId { get; private set; }
+    public Guid? ConfiguracionTareaId { get; private set; }
+
+    public string? Instrucciones { get; private set; }
 
     public string NombreTarea { get; private set; } = default!;
     public int OrdenSecuencia { get; private set; } = 1;
@@ -50,9 +52,9 @@ public class TareaTrabajo : Entity<Guid>
         string nombreTarea,
         int ordenSecuencia = 1,
         Guid? tareaId = null,
-        Guid? plantillaTareaId = null,
+        Guid? configuracionTareaId = null,
         bool esObligatoria = true,
-        bool requiereEvidencia = false)
+        bool requiereEvidencia = false, string? instrucciones = null)
     {
         if (string.IsNullOrWhiteSpace(nombreTarea))
             throw new ArgumentException("El nombre de la tarea es obligatorio.", nameof(nombreTarea));
@@ -62,9 +64,10 @@ public class TareaTrabajo : Entity<Guid>
             Id = Guid.NewGuid(),
             TrabajoId = trabajoId,
             NombreTarea = nombreTarea.Trim(),
+            Instrucciones = instrucciones,
             OrdenSecuencia = Math.Max(1, ordenSecuencia),
             TareaId = tareaId,
-            PlantillaTareaId = plantillaTareaId,
+            ConfiguracionTareaId = configuracionTareaId,
             EsObligatoria = esObligatoria,
             RequiereEvidencia = requiereEvidencia,
             Estado = EstadoTarea.Abierta,

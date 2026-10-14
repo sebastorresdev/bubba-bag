@@ -12,13 +12,6 @@ public class TareaConfiguration : IEntityTypeConfiguration<Tarea>
 
         builder.HasKey(t => t.Id);
 
-        builder.Property(t => t.Codigo)
-            .IsRequired()
-            .HasMaxLength(50);
-
-        builder.HasIndex(t => t.Codigo)
-            .IsUnique();
-
         builder.Property(t => t.Nombre)
             .IsRequired()
             .HasMaxLength(150);

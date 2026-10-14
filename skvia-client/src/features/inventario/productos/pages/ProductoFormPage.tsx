@@ -637,25 +637,21 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                 </D365FormField>
 
                 {/* Control Serializado */}
-                <div className={styles.d365FieldRow}>
-                  <div className={styles.d365LabelCol}>
-                    <Label size="medium">Es Serializado</Label>
+                <D365FormField label="Es Serializado" htmlFor="prod-serializado">
+                  <div className={styles.fieldRowFlex}>
+                    <Switch
+                      id="prod-serializado"
+                      disabled={tieneMovimientos}
+                      checked={formData.esSerializado || false}
+                      onChange={(_, data) =>
+                        setFormData({ ...formData, esSerializado: data.checked })
+                      }
+                    />
+                    <Text size={200} className={styles.fieldHint}>
+                      {formData.esSerializado ? 'Sí' : 'No'}
+                    </Text>
                   </div>
-                  <div className={styles.d365ControlCol}>
-                    <div className={styles.fieldRowFlex}>
-                      <Switch
-                        disabled={tieneMovimientos}
-                        checked={formData.esSerializado || false}
-                        onChange={(_, data) =>
-                          setFormData({ ...formData, esSerializado: data.checked })
-                        }
-                      />
-                      <Text size={200} className={styles.fieldHint}>
-                        {formData.esSerializado ? 'Sí' : 'No'}
-                      </Text>
-                    </div>
-                  </div>
-                </div>
+                </D365FormField>
 
                 {/* Descripción */}
                 <D365FormField label="Descripción" htmlFor="prod-descripcion" align="top">
@@ -807,24 +803,20 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
                 </D365FormField>
 
                 {/* Afecto a Impuestos */}
-                <div className={styles.d365FieldRow}>
-                  <div className={styles.d365LabelCol}>
-                    <Label size="medium">Afecto a Impuestos (IGV)</Label>
+                <D365FormField label="Afecto a Impuestos (IGV)" htmlFor="prod-afecto-impuesto">
+                  <div className={styles.fieldRowFlex}>
+                    <Switch
+                      id="prod-afecto-impuesto"
+                      checked={formData.afectoImpuesto !== false}
+                      onChange={(_, data) =>
+                        setFormData({ ...formData, afectoImpuesto: data.checked })
+                      }
+                    />
+                    <Text size={200} className={styles.fieldHint}>
+                      {formData.afectoImpuesto !== false ? 'Sí' : 'No'}
+                    </Text>
                   </div>
-                  <div className={styles.d365ControlCol}>
-                    <div className={styles.fieldRowFlex}>
-                      <Switch
-                        checked={formData.afectoImpuesto !== false}
-                        onChange={(_, data) =>
-                          setFormData({ ...formData, afectoImpuesto: data.checked })
-                        }
-                      />
-                      <Text size={200} className={styles.fieldHint}>
-                        {formData.afectoImpuesto !== false ? 'Sí' : 'No'}
-                      </Text>
-                    </div>
-                  </div>
-                </div>
+                </D365FormField>
               </Card>
             </div>
           )}

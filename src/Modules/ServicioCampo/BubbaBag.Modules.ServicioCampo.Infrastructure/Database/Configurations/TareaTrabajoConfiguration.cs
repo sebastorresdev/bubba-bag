@@ -10,6 +10,8 @@ public class TareaTrabajoConfiguration : IEntityTypeConfiguration<TareaTrabajo>
     {
         builder.ToTable("TareasTrabajo", "serviciocampo");
 
+        builder.Property(x => x.ConfiguracionTareaId).HasColumnName("PlantillaTareaId");
+
         builder.HasKey(t => t.Id);
 
         builder.Property(t => t.NombreTarea)

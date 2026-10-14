@@ -27,6 +27,11 @@ import {
   DrawerHeaderTitle,
   DrawerBody,
   DrawerFooter,
+  createTableColumn,
+  type TableColumnDefinition,
+  Card,
+  Skeleton,
+  SkeletonItem,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -39,10 +44,8 @@ import {
   CalendarClock16Regular,
   Delete16Regular,
   Play16Regular,
-  Wrench16Regular,
   Person16Regular,
   Edit16Regular,
-  Eye16Regular,
   Dismiss24Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
@@ -50,19 +53,20 @@ import { D365EntityHeader } from '../../../../components/common/D365EntityHeader
 import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { SelectorEntidadRelacionada, type OpcionEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
+import { D365SubGrid } from '../../../../components/common/D365SubGrid';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { WorkOrderEtapas } from '../components/WorkOrderEtapas';
 import { OrdenTrabajoService } from '../services/ordenTrabajo.service';
 import { ClienteService } from '../../../crm/clientes/services/cliente.service';
 import { ProductoService } from '../../../inventario/productos/services/producto.service';
 import type { ProductoDto } from '../../../inventario/productos/types/producto.types';
-import { PlantillaTrabajoService } from '../../plantillas-trabajo/services/plantillaTrabajo.service';
+import { ConfiguracionServicioService } from '../../configuraciones-servicio/services/configuracionServicio.service';
 import type {
-  PlantillaTrabajoListadoDto,
-  PlantillaTrabajoDetalleDto,
-  PlantillaTareaItemDto,
-  PlantillaMaterialItemDto,
-} from '../../plantillas-trabajo/types/plantillaTrabajo.types';
+  ConfiguracionServicioListadoDto,
+  ConfiguracionServicioDetalleDto,
+  ConfiguracionTareaItemDto,
+  ConfiguracionMaterialItemDto,
+} from '../../configuraciones-servicio/types/configuracionServicio.types';
 import type { ClienteListadoItemDto } from '../../../crm/clientes/types/cliente.types';
 import { ListaPreciosService } from '../../../inventario/listas-precios/services/listaPrecios.service';
 import type { DetalleListaPreciosDto } from '../../../inventario/listas-precios/types/listaPrecios.types';
@@ -74,6 +78,7 @@ import type {
   TipoOrdenTrabajoOpcion,
   OrdenTrabajoTareaDto,
   OrdenTrabajoMaterialDto,
+  OrdenTrabajoVisitaDto,
 } from '../types/ordenTrabajo.types';
 
 export interface DrawerServicioItem {
@@ -86,22 +91,24 @@ export interface DrawerServicioItem {
 }
 
 export interface TrabajoFormItem {
+  referenciaEquipo?: string;
+  productoNombre?: string;
   idTemp: string;
   id?: string;
   codigoTrabajo?: string;
   codigoExterno: string;
   productoId: string;
-  plantillaTrabajoId?: string;
-  plantillaTrabajoCodigo?: string;
-  plantillaTrabajoNombre?: string;
+  configuracionServicioId?: string;
+  configuracionServicioCodigo?: string;
+  configuracionServicioNombre?: string;
   tarifaBase: number;
   observaciones: string;
   totalTareas?: number;
   totalMateriales?: number;
   estado?: string;
   servicios?: DrawerServicioItem[];
-  tareas?: (OrdenTrabajoTareaDto | PlantillaTareaItemDto)[];
-  materiales?: (OrdenTrabajoMaterialDto | PlantillaMaterialItemDto)[];
+  tareas?: (OrdenTrabajoTareaDto | ConfiguracionTareaItemDto)[];
+  materiales?: (OrdenTrabajoMaterialDto | ConfiguracionMaterialItemDto)[];
 }
 
 export const OrdenTrabajoFormPage: React.FC = () => {
@@ -123,36 +130,35 @@ export const OrdenTrabajoFormPage: React.FC = () => {
   const [clientesFacturacion, setClientesFacturacion] = useState<ClienteListadoItemDto[]>([]);
   const [clientesServicio, setClientesServicio] = useState<ClienteListadoItemDto[]>([]);
   const [productosServicios, setProductosServicios] = useState<ProductoDto[]>([]);
-  const [plantillasTrabajo, setPlantillasTrabajo] = useState<PlantillaTrabajoListadoDto[]>([]);
+  const [configuracionesServicio, setConfiguracionesServicio] = useState<ConfiguracionServicioListadoDto[]>([]);
 
   // Búsquedas para SelectorEntidadRelacionada (TagPicker)
   const [busquedaTipoOrden, setBusquedaTipoOrden] = useState('');
   const [busquedaClienteFact, setBusquedaClienteFact] = useState('');
   const [busquedaClienteServ, setBusquedaClienteServ] = useState('');
 
-  // Trabajos / Incidentes de la orden
+  // Trabajos / Trabajos de la orden
   const [trabajos, setTrabajos] = useState<TrabajoFormItem[]>([]);
 
   // Drawer lateral para ver / editar / crear trabajo técnico (Opción 1)
   const [drawerTrabajoOpen, setDrawerTrabajoOpen] = useState(false);
   const [trabajoEnEdicionIndex, setTrabajoEnEdicionIndex] = useState<number | null>(null);
   const [drawerServicios, setDrawerServicios] = useState<DrawerServicioItem[]>([]);
-  const [drawerBusquedaPlantilla, setDrawerBusquedaPlantilla] = useState('');
   const [drawerCodigoExterno, setDrawerCodigoExterno] = useState('');
   const [drawerProductoId, setDrawerProductoId] = useState('');
     const [drawerPlantillaId, setDrawerPlantillaId] = useState('');
-  const [drawerPlantillaDetalle, setDrawerPlantillaDetalle] = useState<PlantillaTrabajoDetalleDto | null>(null);
+  const [drawerPlantillaDetalle, setDrawerPlantillaDetalle] = useState<ConfiguracionServicioDetalleDto | null>(null);
     const [drawerTarifaBase, setDrawerTarifaBase] = useState(0);
   const [drawerObservaciones, setDrawerObservaciones] = useState('');
+  const [drawerReferenciaEquipo, setDrawerReferenciaEquipo] = useState('');
   const [drawerError, setDrawerError] = useState<string | null>(null);
 
-  // Drawer lateral de consulta/detalle técnico del incidente (Servicios, Tareas, Materiales)
-  const [drawerDetalleIncidenteOpen, setDrawerDetalleIncidenteOpen] = useState(false);
-  const [incidenteSeleccionadoParaDetalle, setIncidenteSeleccionadoParaDetalle] = useState<TrabajoFormItem | null>(null);
-  const [tabDetalleIncidente, setTabDetalleIncidente] = useState<'servicios' | 'tareas' | 'materiales'>('servicios');
-  const [cargandoDetalleIncidente, setCargandoDetalleIncidente] = useState(false);
-  const [detalleIncidenteData, setDetalleIncidenteData] = useState<{
-    servicios: any[];
+  // Drawer lateral de consulta/detalle técnico del trabajo (Servicios, Tareas, Materiales)
+  const [drawerDetalleTrabajoOpen, setDrawerDetalleTrabajoOpen] = useState(false);
+  const [trabajoSeleccionadoParaDetalle, setTrabajoSeleccionadoParaDetalle] = useState<TrabajoFormItem | null>(null);
+  const [tabDetalleTrabajo, setTabDetalleTrabajo] = useState<'tareas' | 'materiales'>('tareas');
+  const cargandoDetalleTrabajo = false;
+  const [detalleTrabajoData, setDetalleTrabajoData] = useState<{
     tareas: any[];
     materiales: any[];
   } | null>(null);
@@ -164,6 +170,9 @@ export const OrdenTrabajoFormPage: React.FC = () => {
   const [orden, setOrden] = useState<OrdenTrabajoDetalleDto | null>(null);
   const [codigoWo, setCodigoWo] = useState('');
   const [tipoOrdenId, setTipoOrdenId] = useState('');
+  const [listaPreciosId, setListaPreciosId] = useState('');
+  const [listasPrecios, setListasPrecios] = useState<{id: string; nombre: string}[]>([]);
+  useEffect(() => { ListaPreciosService.getListasPrecios(undefined, true).then(setListasPrecios).catch(e => setMensaje({tipo: 'error', texto: e.message})); }, []);
   const [clienteFacturacionId, setClienteFacturacionId] = useState('');
   const [clienteServicioId, setClienteServicioId] = useState('');
   const [zonaOperativaNombre, setZonaOperativaNombre] = useState('');
@@ -204,7 +213,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
           ClienteService.obtenerClientes({ soloServicio: true }),
           ClienteService.obtenerClientes({ soloActivos: true }),
           ProductoService.getProductos(undefined, undefined, true),
-          PlantillaTrabajoService.getPlantillas({ soloActivos: true }),
+          ConfiguracionServicioService.getPlantillas({ soloActivos: true }),
         ]);
 
         setTiposOrden(tipos);
@@ -212,7 +221,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
         setClientesFacturacion(clientesFact.length > 0 ? clientesFact : todosClientes);
         setClientesServicio(clientesServ.length > 0 ? clientesServ : todosClientes);
         setProductosServicios(prods);
-        setPlantillasTrabajo(plants);
+        setConfiguracionesServicio(plants);
       } catch (err) {
         console.error('Error cargando catálogos:', err);
       }
@@ -234,6 +243,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
         setSavedSubtitle(`${data.tipoOrdenNombre || 'Servicio'} — ${data.clienteServicioNombre || ''}`);
         setCodigoWo(data.codigoWo);
         setTipoOrdenId(data.tipoOrdenId);
+        setListaPreciosId(data.listaPreciosId || '');
         setClienteFacturacionId(data.clienteFacturacionId);
         setClienteServicioId(data.clienteServicioId);
         setZonaOperativaNombre(data.zonaOperativaNombre || 'Lima Metropolitana');
@@ -255,9 +265,10 @@ export const OrdenTrabajoFormPage: React.FC = () => {
               idTemp: t.id,
               id: t.id,
               codigoTrabajo: t.codigoTrabajo,
+                productoNombre: t.productoNombre, referenciaEquipo: t.referenciaEquipo || '',
               codigoExterno: t.codigoExterno || '',
               productoId: t.productoId,
-              plantillaTrabajoId: t.plantillaTrabajoId || '',
+              configuracionServicioId: t.configuracionServicioId || '',
               tarifaBase: t.tarifaBaseCongelada ?? 0,
               observaciones: t.observaciones || '',
               totalTareas: t.totalTareas,
@@ -283,29 +294,16 @@ export const OrdenTrabajoFormPage: React.FC = () => {
 
   // Cargar Lista de Precios asociada al Tipo de Orden seleccionado
   useEffect(() => {
-    if (!tipoOrdenId || tiposOrden.length === 0) {
-      setListaPreciosActiva(null);
-      return;
-    }
-
-    const tipoSel = tiposOrden.find((t) => t.id === tipoOrdenId);
-    if (!tipoSel?.listaPreciosId) {
-      setListaPreciosActiva(null);
-      return;
-    }
-
-    const cargarListaPrecios = async () => {
-      try {
-        const lp = await ListaPreciosService.getListaPreciosById(tipoSel.listaPreciosId!);
-        setListaPreciosActiva(lp);
-      } catch (err) {
-        console.warn('No se pudo cargar la lista de precios asignada al tipo de orden:', err);
-        setListaPreciosActiva(null);
-      }
-    };
-
-    void cargarListaPrecios();
-  }, [tipoOrdenId, tiposOrden]);
+    if (esNuevo) setListaPreciosId(tiposOrden.find(t => t.id === tipoOrdenId)?.listaPreciosId || '');
+  }, [tipoOrdenId, tiposOrden, esNuevo]);
+  useEffect(() => {
+    let vigente = true;
+    setListaPreciosActiva(null);
+    if (listaPreciosId) ListaPreciosService.getListaPreciosById(listaPreciosId).then(lista => {
+      if (vigente) setListaPreciosActiva(lista);
+    }).catch(e => { if (vigente) setMensaje({tipo: 'error', texto: e.message}); });
+    return () => { vigente = false; };
+  }, [listaPreciosId]);
 
   // Cliente de servicio seleccionado (para datos de dirección)
   const clienteServicioSeleccionado = useMemo(() => {
@@ -359,64 +357,22 @@ export const OrdenTrabajoFormPage: React.FC = () => {
     [opcionesClientesServicio, clienteServicioId]
   );
 
-  const opcionesPlantillasTrabajo: OpcionEntidadRelacionada[] = useMemo(
-    () =>
-      plantillasTrabajo.map((pl) => ({
-        id: pl.id,
-        nombre: `[${pl.codigo}] ${pl.nombre}`,
-        detalle: `${pl.cantidadTareas} tareas · ${pl.cantidadMateriales} materiales`,
-      })),
-    [plantillasTrabajo]
-  );
-  const plantillaSeleccionadaDrawerObj = useMemo(
-    () => opcionesPlantillasTrabajo.find((pl) => pl.id === drawerPlantillaId) || null,
-    [opcionesPlantillasTrabajo, drawerPlantillaId]
-  );
-
     
-  // Función para resolver tarifa automática según lista de precios o catálogo
-  const resolverTarifa = useCallback(
-    (prodId: string): { tarifa: number; origen: string } => {
-      if (!prodId) return { tarifa: 0, origen: '' };
-
-      // 1. Prioridad: Lista de precios asignada al Tipo de Orden
-      if (listaPreciosActiva?.elementos && listaPreciosActiva.elementos.length > 0) {
-        const elem = listaPreciosActiva.elementos.find((e) => e.productoId === prodId);
-        if (elem && elem.monto > 0) {
-          return {
-            tarifa: elem.monto,
-            origen: `Tarifa de lista: ${listaPreciosActiva.nombre} (S/ ${elem.monto.toFixed(2)})`,
-          };
-        }
-      }
-
-      // 2. Respaldo: Precio base de catálogo del producto
-      const prod = productosServicios.find((p) => p.id === prodId);
-      if (prod && (prod.precioBase || 0) > 0) {
-        return {
-          tarifa: prod.precioBase,
-          origen: `Precio base de catálogo (S/ ${prod.precioBase.toFixed(2)})`,
-        };
-      }
-
-      return {
-        tarifa: 0,
-        origen: 'Sin tarifa',
-      };
-    },
-    [tipoOrdenId, listaPreciosActiva, productosServicios]
-  );
+  const resolverTarifa = useCallback((prodId: string): {tarifa: number; origen: string} => {
+    const elemento = listaPreciosActiva?.elementos.find(e => e.productoId === prodId);
+    return elemento ? {tarifa: elemento.monto, origen: `Lista: ${listaPreciosActiva!.nombre}`} : {tarifa: 0, origen: 'Sin precio configurado'};
+  }, [listaPreciosActiva]);
 
   // Manejadores del Drawer de Trabajos
   
   // Cargar detalle completo de plantilla (para visualizar tareas y materiales en el Drawer)
-  const cargarDetallePlantilla = useCallback(async (plantillaId: string): Promise<PlantillaTrabajoDetalleDto | null> => {
+  const cargarDetallePlantilla = useCallback(async (plantillaId: string): Promise<ConfiguracionServicioDetalleDto | null> => {
     if (!plantillaId) {
       setDrawerPlantillaDetalle(null);
       return null;
     }
     try {
-      const det = await PlantillaTrabajoService.getPlantillaById(plantillaId);
+      const det = await ConfiguracionServicioService.getPlantillaById(plantillaId);
       setDrawerPlantillaDetalle(det);
       return det;
     } catch (err) {
@@ -428,102 +384,25 @@ export const OrdenTrabajoFormPage: React.FC = () => {
     }
   }, []);
 
-  const handleDrawerSeleccionarPlantilla = async (plantillaId: string) => {
-    setDrawerPlantillaId(plantillaId);
-    if (!plantillaId) {
-      setDrawerPlantillaDetalle(null);
-      setDrawerServicios([]);
-      return;
-    }
-
-    const det = await cargarDetallePlantilla(plantillaId);
-    const plantilla = plantillasTrabajo.find((pl) => pl.id === plantillaId);
-
-    if (det?.servicios && det.servicios.length > 0) {
-      const servs: DrawerServicioItem[] = det.servicios.map((s, idx) => {
-        const prod = productosServicios.find((p) => p.id === s.productoId);
-        const { tarifa } = resolverTarifa(s.productoId);
-        return {
-          id: s.id || `serv-${idx}`,
-          productoId: s.productoId,
-          productoCodigo: s.productoCodigo || prod?.codigo || '-',
-          productoNombre: s.productoNombre || prod?.nombre || 'Servicio',
-          tarifa,
-          esPredeterminada: s.esPredeterminada,
-        };
-      });
-      setDrawerServicios(servs);
-      const primary = servs.find((s) => s.esPredeterminada) || servs[0];
-      setDrawerProductoId(primary.productoId);
-      const totalTarifa = servs.reduce((acc, curr) => acc + (curr.tarifa || 0), 0);
-      setDrawerTarifaBase(totalTarifa);
-    } else if (plantilla && plantilla.productoId) {
-      const prod = productosServicios.find((p) => p.id === plantilla.productoId);
-      setDrawerProductoId(plantilla.productoId);
-      const { tarifa } = resolverTarifa(plantilla.productoId);
-      setDrawerServicios([
-        {
-          id: 'serv-base',
-          productoId: plantilla.productoId,
-          productoCodigo: plantilla.productoCodigo || prod?.codigo || '-',
-          productoNombre: plantilla.productoNombre || prod?.nombre || 'Servicio',
-          tarifa,
-          esPredeterminada: true,
-        },
-      ]);
-      setDrawerTarifaBase(tarifa);
-    } else {
-      setDrawerServicios([]);
-    }
+  const handleSeleccionarServicio = async (productoId: string) => {
+    setDrawerProductoId(productoId); setDrawerPlantillaDetalle(null); setDrawerServicios([]);
+    const producto = productosServicios.find(p => p.id === productoId);
+    const configuracion = configuracionesServicio.find(p => p.productoId === productoId && p.activo);
+    setDrawerPlantillaId(configuracion?.id || '');
+    const {tarifa} = resolverTarifa(productoId); setDrawerTarifaBase(tarifa);
+    if (producto) setDrawerServicios([{id: producto.id, productoId, productoNombre: producto.nombre, productoCodigo: producto.codigo, tarifa, esPredeterminada: true}]);
+    if (configuracion) await cargarDetallePlantilla(configuracion.id);
   };
 
-  const handleAbrirDetalleIncidente = async (
+  const handleAbrirDetalleTrabajo = async (
     item: TrabajoFormItem,
-    tabInicial: 'servicios' | 'tareas' | 'materiales' = 'servicios'
+    tabInicial: 'tareas' | 'materiales' = 'tareas'
   ) => {
-    setIncidenteSeleccionadoParaDetalle(item);
-    setTabDetalleIncidente(tabInicial);
-    setDrawerDetalleIncidenteOpen(true);
+    setTrabajoSeleccionadoParaDetalle(item);
+    setTabDetalleTrabajo(tabInicial);
+    setDrawerDetalleTrabajoOpen(true);
 
-    if (
-      item.servicios && item.servicios.length > 0 &&
-      item.tareas && item.tareas.length > 0 &&
-      item.materiales && item.materiales.length > 0
-    ) {
-      setDetalleIncidenteData({
-        servicios: item.servicios,
-        tareas: item.tareas,
-        materiales: item.materiales,
-      });
-      return;
-    }
-
-    if (item.plantillaTrabajoId) {
-      try {
-        setCargandoDetalleIncidente(true);
-        const det = await PlantillaTrabajoService.getPlantillaById(item.plantillaTrabajoId);
-        setDetalleIncidenteData({
-          servicios: (det.servicios && det.servicios.length > 0) ? det.servicios : (item.servicios || []),
-          tareas: (det.tareas && det.tareas.length > 0) ? det.tareas : (item.tareas || []),
-          materiales: (det.materiales && det.materiales.length > 0) ? det.materiales : (item.materiales || []),
-        });
-      } catch (e) {
-        console.warn('Error al cargar detalle del incidente:', e);
-        setDetalleIncidenteData({
-          servicios: item.servicios || [],
-          tareas: item.tareas || [],
-          materiales: item.materiales || [],
-        });
-      } finally {
-        setCargandoDetalleIncidente(false);
-      }
-    } else {
-      setDetalleIncidenteData({
-        servicios: item.servicios || [],
-        tareas: item.tareas || [],
-        materiales: item.materiales || [],
-      });
-    }
+    setDetalleTrabajoData({ tareas: item.tareas || [], materiales: item.materiales || [] });
   };
 
   const handleAbrirDrawerNuevoTrabajo = () => {
@@ -535,6 +414,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
     setDrawerServicios([]);
     setDrawerTarifaBase(0);
     setDrawerObservaciones('');
+    setDrawerReferenciaEquipo('');
     setDrawerError(null);
     setDrawerTrabajoOpen(true);
   };
@@ -544,9 +424,10 @@ export const OrdenTrabajoFormPage: React.FC = () => {
     setTrabajoEnEdicionIndex(idx);
         setDrawerCodigoExterno(item.codigoExterno || '');
     setDrawerProductoId(item.productoId || '');
-        setDrawerPlantillaId(item.plantillaTrabajoId || '');
+        setDrawerPlantillaId(item.configuracionServicioId || '');
     setDrawerTarifaBase(item.tarifaBase || 0);
     setDrawerObservaciones(item.observaciones || '');
+    setDrawerReferenciaEquipo(item.referenciaEquipo || '');
     setDrawerError(null);
 
     if (item.servicios && item.servicios.length > 0) {
@@ -571,8 +452,8 @@ export const OrdenTrabajoFormPage: React.FC = () => {
 
     setDrawerTrabajoOpen(true);
 
-    if (item.plantillaTrabajoId) {
-      await cargarDetallePlantilla(item.plantillaTrabajoId);
+    if (!item.id && item.configuracionServicioId) {
+      await cargarDetallePlantilla(item.configuracionServicioId);
     } else {
       setDrawerPlantillaDetalle(null);
     }
@@ -587,7 +468,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
     }
 
     if (!prodId && drawerPlantillaId) {
-      const pl = plantillasTrabajo.find((p) => p.id === drawerPlantillaId);
+      const pl = configuracionesServicio.find((p) => p.id === drawerPlantillaId);
       if (pl?.productoId) {
         prodId = pl.productoId;
       }
@@ -598,13 +479,16 @@ export const OrdenTrabajoFormPage: React.FC = () => {
       return;
     }
 
-    const pl = drawerPlantillaId ? plantillasTrabajo.find((p) => p.id === drawerPlantillaId) : undefined;
+    if (!trabajos[trabajoEnEdicionIndex ?? -1]?.id && !listaPreciosActiva?.elementos.some(e => e.productoId === prodId)) {
+      setDrawerError('Configure el precio del servicio en la lista seleccionada antes de agregar el trabajo.'); return;
+    }
+    const pl = drawerPlantillaId ? configuracionesServicio.find((p) => p.id === drawerPlantillaId) : undefined;
     const tareasEstimadas = drawerPlantillaDetalle?.tareas.length ?? pl?.cantidadTareas ?? 0;
     const materialesEstimados = drawerPlantillaDetalle?.materiales.length ?? pl?.cantidadMateriales ?? 0;
 
     const trabajoExistente = trabajoEnEdicionIndex !== null ? trabajos[trabajoEnEdicionIndex] : null;
 
-    // Sincronizar subtareas y materiales previstos
+    // Sincronizar tareas y materiales previstos
     const tareasActualizadas = drawerPlantillaDetalle?.tareas
       ? drawerPlantillaDetalle.tareas.map((t) => ({
           id: t.id,
@@ -637,11 +521,13 @@ export const OrdenTrabajoFormPage: React.FC = () => {
           ...copia[trabajoEnEdicionIndex],
           codigoExterno: drawerCodigoExterno.trim(),
           productoId: prodId,
-          plantillaTrabajoId: drawerPlantillaId || undefined,
-          plantillaTrabajoCodigo: pl?.codigo || copia[trabajoEnEdicionIndex].plantillaTrabajoCodigo,
-          plantillaTrabajoNombre: pl?.nombre || copia[trabajoEnEdicionIndex].plantillaTrabajoNombre,
+          configuracionServicioId: drawerPlantillaId || undefined,
+          configuracionServicioCodigo: pl?.codigo || copia[trabajoEnEdicionIndex].configuracionServicioCodigo,
+          configuracionServicioNombre: pl?.nombre || copia[trabajoEnEdicionIndex].configuracionServicioNombre,
           tarifaBase: drawerTarifaBase,
           observaciones: drawerObservaciones.trim(),
+          referenciaEquipo: drawerReferenciaEquipo.trim(),
+          productoNombre: productosServicios.find(p => p.id === prodId)?.nombre,
           totalTareas: tareasEstimadas > 0 ? tareasEstimadas : copia[trabajoEnEdicionIndex].totalTareas,
           totalMateriales: materialesEstimados > 0 ? materialesEstimados : copia[trabajoEnEdicionIndex].totalMateriales,
           servicios: drawerServicios,
@@ -656,11 +542,13 @@ export const OrdenTrabajoFormPage: React.FC = () => {
         idTemp: `temp-${Date.now()}-${Math.random()}`,
         codigoExterno: drawerCodigoExterno.trim(),
         productoId: prodId,
-        plantillaTrabajoId: drawerPlantillaId || undefined,
-        plantillaTrabajoCodigo: pl?.codigo,
-        plantillaTrabajoNombre: pl?.nombre,
+        configuracionServicioId: drawerPlantillaId || undefined,
+        configuracionServicioCodigo: pl?.codigo,
+        configuracionServicioNombre: pl?.nombre,
         tarifaBase: drawerTarifaBase,
         observaciones: drawerObservaciones.trim(),
+          referenciaEquipo: drawerReferenciaEquipo.trim(),
+          productoNombre: productosServicios.find(p => p.id === prodId)?.nombre,
         totalTareas: tareasEstimadas,
         totalMateriales: materialesEstimados,
         estado: 'Pendiente',
@@ -696,7 +584,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
   const handleEliminarFilaTrabajo = async (idx: number) => {
     const item = trabajos[idx];
     if (item.id && id && !esNuevo) {
-      if (!window.confirm('¿Está seguro de eliminar este incidente/trabajo de la orden?')) return;
+      if (!window.confirm('¿Está seguro de eliminar este trabajo/trabajo de la orden?')) return;
       try {
         await OrdenTrabajoService.eliminarTrabajo(id, item.id);
         notifySuccess('Trabajo eliminado de la orden.');
@@ -709,7 +597,187 @@ export const OrdenTrabajoFormPage: React.FC = () => {
     setTrabajos((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  const columnasTrabajos: TableColumnDefinition<TrabajoFormItem>[] = useMemo(
+    () => [
+      createTableColumn<TrabajoFormItem>({
+        columnId: 'index',
+        renderHeaderCell: () => '#',
+        renderCell: (item) => {
+          const idx = trabajos.indexOf(item);
+          return <span style={{ color: tokens.colorNeutralForeground4, fontWeight: 600 }}>{idx + 1}</span>;
+        },
+      }),
+      createTableColumn<TrabajoFormItem>({
+        columnId: 'tipoTrabajo',
+        renderHeaderCell: () => 'Servicio',
+        renderCell: (item) => {
+          const producto = productosServicios.find(p => p.id === item.productoId);
+          return <div><Text weight="medium">{item.productoNombre || producto?.nombre || 'Servicio'}</Text><Text block size={200}>{item.codigoTrabajo || 'Código al guardar'}{item.referenciaEquipo ? ` · ${item.referenciaEquipo}` : ''}</Text></div>;
+        },
+      }),
+      createTableColumn<TrabajoFormItem>({
+        columnId: 'descripcion',
+        renderHeaderCell: () => 'Descripción Breve',
+        renderCell: (item) => (
+          <Text style={{ color: item.observaciones ? tokens.colorNeutralForeground1 : tokens.colorNeutralForeground4, fontSize: '13px' }}>
+            {item.observaciones || '(Sin descripción)'}
+          </Text>
+        ),
+      }),
+      createTableColumn<TrabajoFormItem>({
+        columnId: 'tareas',
+        renderHeaderCell: () => 'Tareas',
+        renderCell: (item) => {
+          const plantilla = configuracionesServicio.find((pl) => pl.id === item.configuracionServicioId);
+          const cantTareas = item.totalTareas ?? (item.tareas?.length ?? plantilla?.cantidadTareas ?? 0);
+          return (
+            <div style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+              <Button
+                appearance="subtle"
+                size="small"
+                onClick={() => handleAbrirDetalleTrabajo(item, 'tareas')}
+              >
+                <Badge appearance="tint" color="informative">{cantTareas}</Badge>
+              </Button>
+            </div>
+          );
+        },
+      }),
+      createTableColumn<TrabajoFormItem>({
+        columnId: 'materiales',
+        renderHeaderCell: () => 'Materiales',
+        renderCell: (item) => {
+          const plantilla = configuracionesServicio.find((pl) => pl.id === item.configuracionServicioId);
+          const cantMat = item.totalMateriales ?? (item.materiales?.length ?? plantilla?.cantidadMateriales ?? 0);
+          return (
+            <div style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+              <Button
+                appearance="subtle"
+                size="small"
+                onClick={() => handleAbrirDetalleTrabajo(item, 'materiales')}
+              >
+                <Badge appearance="tint" color="warning">{cantMat}</Badge>
+              </Button>
+            </div>
+          );
+        },
+      }),
+      createTableColumn<TrabajoFormItem>({
+        columnId: 'acciones',
+        renderHeaderCell: () => 'Acciones',
+        renderCell: (item) => {
+          const idx = trabajos.indexOf(item);
+          return (
+            <div style={{ display: 'inline-flex', gap: '4px' }} onClick={(e) => e.stopPropagation()}>
+              <Button
+                icon={<Edit16Regular />}
+                size="small"
+                appearance="subtle"
+                title="Editar descripción o plantilla"
+                aria-label="Editar descripción o plantilla"
+                onClick={() => handleAbrirDrawerEditarTrabajo(idx)}
+              />
+              <Button
+                icon={<Delete16Regular />}
+                size="small"
+                appearance="subtle"
+                style={{ color: tokens.colorStatusDangerForeground1 }}
+                title="Eliminar trabajo"
+                onClick={() => void handleEliminarFilaTrabajo(idx)}
+              />
+            </div>
+          );
+        },
+      }),
+    ],
+    [trabajos, configuracionesServicio, handleAbrirDrawerEditarTrabajo, handleEliminarFilaTrabajo]
+  );
+
+  const columnasVisitas: TableColumnDefinition<OrdenTrabajoVisitaDto>[] = useMemo(
+    () => [
+      createTableColumn<OrdenTrabajoVisitaDto>({
+        columnId: 'codigoVisita',
+        renderHeaderCell: () => 'Cita',
+        renderCell: (v) => <Text weight="semibold">{v.codigoVisita}</Text>,
+      }),
+      createTableColumn<OrdenTrabajoVisitaDto>({
+        columnId: 'recurso',
+        renderHeaderCell: () => 'Técnico',
+        renderCell: (v) => v.recursoNombre,
+      }),
+      createTableColumn<OrdenTrabajoVisitaDto>({
+        columnId: 'fecha',
+        renderHeaderCell: () => 'Fecha',
+        renderCell: (v) => v.fechaProgramada,
+      }),
+      createTableColumn<OrdenTrabajoVisitaDto>({
+        columnId: 'estado',
+        renderHeaderCell: () => 'Estado',
+        renderCell: (v) => (
+          <Badge appearance="tint" shape="rounded" color="brand">
+            {v.estado}
+          </Badge>
+        ),
+      }),
+    ],
+    []
+  );
+
+  const columnasMaterialesConsolidados: TableColumnDefinition<any>[] = useMemo(
+    () => [
+      createTableColumn<any>({
+        columnId: 'index',
+        renderHeaderCell: () => '#',
+        renderCell: (item) => {
+          const idx = materialesConsolidados.indexOf(item);
+          return <span style={{ color: tokens.colorNeutralForeground4, fontWeight: 600 }}>{idx + 1}</span>;
+        },
+      }),
+      createTableColumn<any>({
+        columnId: 'codigo',
+        renderHeaderCell: () => 'Cód. Material',
+        renderCell: (m) => <span style={{ fontFamily: 'monospace' }}>{m.productoCodigo || '—'}</span>,
+      }),
+      createTableColumn<any>({
+        columnId: 'producto',
+        renderHeaderCell: () => 'Producto / Insumo',
+        renderCell: (m) => <Text weight="semibold">{m.productoNombre}</Text>,
+      }),
+      createTableColumn<any>({
+        columnId: 'trabajo',
+        renderHeaderCell: () => 'Trabajo Origen',
+        renderCell: (m) => m.trabajoOrigen || 'Orden principal',
+      }),
+      createTableColumn<any>({
+        columnId: 'cantidad',
+        renderHeaderCell: () => 'Cant. Prevista',
+        renderCell: (m) => <span style={{ fontWeight: 600 }}>{m.cantidad}</span>,
+      }),
+      createTableColumn<any>({
+        columnId: 'serie',
+        renderHeaderCell: () => 'N° Serie',
+        renderCell: (m) => m.numeroSerie || '—',
+      }),
+      createTableColumn<any>({
+        columnId: 'accion',
+        renderHeaderCell: () => 'Acción Logística',
+        renderCell: (m) => (
+          <Badge appearance="tint" shape="rounded" color={m.tipoAccion === 'Retiro' ? 'danger' : 'informative'}>
+            {m.tipoAccion || 'Instalación'}
+          </Badge>
+        ),
+      }),
+      createTableColumn<any>({
+        columnId: 'observaciones',
+        renderHeaderCell: () => 'Observaciones',
+        renderCell: (m) => m.observaciones || '—',
+      }),
+    ],
+    [materialesConsolidados]
+  );
+
   const handleGuardar = async (cerrar = false) => {
+    if (!listaPreciosId) { setMensaje({tipo: 'error', texto: 'Seleccione una lista de precios.'}); return; }
     if (!tipoOrdenId) {
       setMensaje({ tipo: 'error', texto: 'Seleccione un tipo de orden de trabajo.' });
       return;
@@ -733,13 +801,13 @@ export const OrdenTrabajoFormPage: React.FC = () => {
           .map((t) => ({
             codigoExterno: t.codigoExterno?.trim() || undefined,
             productoId: t.productoId,
-            plantillaTrabajoId: t.plantillaTrabajoId || undefined,
-            tarifaBase: t.tarifaBase > 0 ? t.tarifaBase : undefined,
+            configuracionServicioId: t.configuracionServicioId || undefined,
+            referenciaEquipo: t.referenciaEquipo,
             observaciones: t.observaciones?.trim() || undefined,
           }));
 
         const dto: CrearOrdenTrabajoDto = {
-          tipoOrdenId,
+          tipoOrdenId, listaPreciosId,
           clienteFacturacionId,
           clienteServicioId,
           numeroOrden: numeroOrden.trim() || undefined,
@@ -774,16 +842,22 @@ export const OrdenTrabajoFormPage: React.FC = () => {
 
         await OrdenTrabajoService.actualizarOrden(id, dto);
 
+        for (const t of trabajos.filter(t => t.id)) {
+          const original = orden?.trabajos?.find(x => x.id === t.id);
+          if (original && ((original.referenciaEquipo || '') !== (t.referenciaEquipo || '') || (original.observaciones || '') !== t.observaciones || (original.codigoExterno || '') !== (t.codigoExterno || '')))
+            await OrdenTrabajoService.actualizarTrabajo(id, t.id!, {referenciaEquipo: t.referenciaEquipo, observaciones: t.observaciones, codigoExterno: t.codigoExterno});
+        }
         // Guardar trabajos pendientes por agregar
         const trabajosNuevos = trabajos.filter((t) => !t.id && Boolean(t.productoId));
         for (const t of trabajosNuevos) {
-          await OrdenTrabajoService.agregarTrabajo(id, {
+          const creado = await OrdenTrabajoService.agregarTrabajo(id, {
             codigoExterno: t.codigoExterno?.trim() || undefined,
             productoId: t.productoId,
-            plantillaTrabajoId: t.plantillaTrabajoId || undefined,
-            tarifaBase: t.tarifaBase > 0 ? t.tarifaBase : undefined,
+            configuracionServicioId: t.configuracionServicioId || undefined,
+            referenciaEquipo: t.referenciaEquipo,
             observaciones: t.observaciones?.trim() || undefined,
           });
+          setTrabajos(prev => prev.map(x => x.idTemp === t.idTemp ? {...x, id: creado.id, codigoTrabajo: creado.codigoTrabajo} : x));
         }
 
         const tipoNombre = tiposOrden.find((t) => t.id === tipoOrdenId)?.nombre || 'Servicio';
@@ -802,9 +876,10 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                 idTemp: t.id,
                 id: t.id,
                 codigoTrabajo: t.codigoTrabajo,
+                productoNombre: t.productoNombre, referenciaEquipo: t.referenciaEquipo || '',
                 codigoExterno: t.codigoExterno || '',
                 productoId: t.productoId,
-                plantillaTrabajoId: t.plantillaTrabajoId || '',
+                configuracionServicioId: t.configuracionServicioId || '',
                 tarifaBase: t.tarifaBaseCongelada ?? 0,
                 observaciones: t.observaciones || '',
                 totalTareas: t.totalTareas,
@@ -1001,7 +1076,8 @@ export const OrdenTrabajoFormPage: React.FC = () => {
           />
         }
         tabs={
-          <TabList
+
+      <TabList
             selectedValue={selectedTab}
             onTabSelect={(_, data) =>
               setSelectedTab(
@@ -1010,7 +1086,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             }
           >
             <Tab value="resumen">Resumen y Cliente</Tab>
-            <Tab value="trabajos">Incidentes</Tab>
+            <Tab value="trabajos">Trabajos</Tab>
             <Tab value="direcciones">Direcciones</Tab>
             <Tab value="programacion">Programación y Despacho</Tab>
             <Tab value="materiales">Materiales Descargados</Tab>
@@ -1030,8 +1106,29 @@ export const OrdenTrabajoFormPage: React.FC = () => {
       {/* 4. CONTENIDO DE PESTAÑAS */}
       <div className={formStyles.contentBody}>
         {loading ? (
-          <div style={{ padding: '48px', display: 'flex', justifyContent: 'center' }}>
-            <Spinner label="Cargando orden de trabajo..." />
+          <div className={formStyles.grid2Cols}>
+            <Card className={formStyles.card}>
+              <Skeleton animation="pulse">
+                <SkeletonItem size={16} className={formStyles.skeletonHeader} />
+                <div className={formStyles.fieldColumnFlex}>
+                  <SkeletonItem size={32} className={formStyles.skeletonFull} />
+                  <SkeletonItem size={32} className={formStyles.skeletonFull} />
+                  <SkeletonItem size={32} className={formStyles.skeletonFull} />
+                  <SkeletonItem size={72} className={formStyles.skeletonTextarea72} />
+                </div>
+              </Skeleton>
+            </Card>
+            <Card className={formStyles.card}>
+              <Skeleton animation="pulse">
+                <SkeletonItem size={16} className={formStyles.skeletonSub140} />
+                <div className={formStyles.fieldColumnFlex}>
+                  <SkeletonItem size={32} className={formStyles.skeletonFull} />
+                  <SkeletonItem size={32} className={formStyles.skeletonFull} />
+                  <SkeletonItem size={32} className={formStyles.skeletonFull} />
+                  <SkeletonItem size={32} className={formStyles.skeletonFull} />
+                </div>
+              </Skeleton>
+            </Card>
           </div>
         ) : (
           <>
@@ -1043,6 +1140,27 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                 {/* TARJETA 1 (IZQUIERDA): GENERAL - IDENTIFICACIÓN Y CUENTAS (EXACTO A DYNAMICS 365) */}
                 <div className={formStyles.card}>
                   <div className={formStyles.cardSectionTitle}>General</div>
+                  <D365FormField label="Lista de precios de la orden" required>
+                    <Select
+                      aria-label="Lista de precios de la orden"
+                      className={formStyles.d365ControlFull}
+                      value={listaPreciosId}
+                      disabled={!esNuevo}
+                      onChange={(_, data) => setListaPreciosId(data.value)}
+                    >
+                      <option value="">Seleccione una lista de precios</option>
+                      {listasPrecios.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.nombre}
+                        </option>
+                      ))}
+                      {listaPreciosId && !listasPrecios.some((l) => l.id === listaPreciosId) && (
+                        <option value={listaPreciosId}>
+                          {listaPreciosActiva?.nombre || 'Lista guardada en la orden'}
+                        </option>
+                      )}
+                    </Select>
+                  </D365FormField>
 
                   <D365FormField label="Código WO" htmlFor="wo-codigo">
                     <Input
@@ -1325,159 +1443,15 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             )}
             {/* ============================================================= */}
             {selectedTab === 'trabajos' && (
-              <div className={formStyles.card}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <div>
-                    <div className={formStyles.cardSectionTitle} style={{ marginBottom: '4px' }}>
-                      Incidentes de la Orden de Trabajo
-                    </div>
-                    <Text style={{ color: tokens.colorNeutralForeground3, fontSize: '12px' }}>
-                      Cada incidente define el tipo de trabajo a realizar. Los servicios técnicos, subtareas de verificación y materiales previstos se derivan automáticamente de la plantilla vinculada.
-                    </Text>
-                  </div>
-                  <Button
-                    icon={<Add16Regular />}
-                    appearance="primary"
-                    size="small"
-                    onClick={handleAbrirDrawerNuevoTrabajo}
-                  >
-                    Agregar Incidente
-                  </Button>
-                </div>
-
-                {trabajos.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '36px 16px', background: tokens.colorNeutralBackground2, borderRadius: '4px' }}>
-                    <Wrench16Regular style={{ fontSize: '28px', color: tokens.colorNeutralForeground4, marginBottom: '8px' }} />
-                    <Text block style={{ color: tokens.colorNeutralForeground3, marginBottom: '12px', fontSize: '13px' }}>
-                      No hay incidentes configurados para esta orden. Toda orden debe contener al menos un incidente de trabajo.
-                    </Text>
-                    <Button icon={<Add16Regular />} size="small" appearance="outline" onClick={handleAbrirDrawerNuevoTrabajo}>
-                      Agregar el primer incidente
-                    </Button>
-                  </div>
-                ) : (
-                  <Table size="small">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHeaderCell style={{ width: '40px' }}>#</TableHeaderCell>
-                        <TableHeaderCell style={{ minWidth: '220px' }}>Tipo de Incidente</TableHeaderCell>
-                        <TableHeaderCell style={{ minWidth: '240px' }}>Descripción Breve</TableHeaderCell>
-                        <TableHeaderCell style={{ width: '120px', textAlign: 'center' }}>Servicios</TableHeaderCell>
-                        <TableHeaderCell style={{ width: '120px', textAlign: 'center' }}>Subtareas</TableHeaderCell>
-                        <TableHeaderCell style={{ width: '120px', textAlign: 'center' }}>Materiales</TableHeaderCell>
-                        <TableHeaderCell style={{ width: '100px', textAlign: 'center' }}>Acciones</TableHeaderCell>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {trabajos.map((item, index) => {
-                        const plantilla = plantillasTrabajo.find((pl) => pl.id === item.plantillaTrabajoId);
-                        const cantServicios = item.servicios?.length ?? (plantilla?.productoId ? 1 : 0);
-                        const cantTareas = item.totalTareas ?? (item.tareas?.length ?? plantilla?.cantidadTareas ?? 0);
-                        const cantMat = item.totalMateriales ?? (item.materiales?.length ?? plantilla?.cantidadMateriales ?? 0);
-                        const codPl = plantilla?.codigo || item.plantillaTrabajoCodigo;
-                        const nomPl = plantilla?.nombre || item.plantillaTrabajoNombre;
-
-                        return (
-                          <TableRow
-                            key={item.idTemp || index}
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => handleAbrirDetalleIncidente(item, 'servicios')}
-                          >
-                            <TableCell style={{ color: tokens.colorNeutralForeground4, fontWeight: 600 }}>
-                              {index + 1}
-                            </TableCell>
-                            <TableCell>
-                              {codPl || nomPl ? (
-                                <Text weight="medium">
-                                  {codPl && (
-                                    <span style={{ fontFamily: 'monospace', fontWeight: 600, color: tokens.colorBrandForeground1, marginRight: 6 }}>
-                                      [{codPl}]
-                                    </span>
-                                  )}
-                                  {nomPl || 'Incidente de Trabajo'}
-                                </Text>
-                              ) : (
-                                <Text style={{ color: tokens.colorNeutralForeground4 }}>
-                                  (Sin plantilla asociada)
-                                </Text>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Text style={{ color: item.observaciones ? tokens.colorNeutralForeground1 : tokens.colorNeutralForeground4, fontSize: '13px' }}>
-                                {item.observaciones || '(Sin descripción)'}
-                              </Text>
-                            </TableCell>
-                            <TableCell style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-                              <Button
-                                size="small"
-                                appearance="subtle"
-                                onClick={() => handleAbrirDetalleIncidente(item, 'servicios')}
-                                title="Ver servicios en panel lateral"
-                              >
-                                <Badge appearance="tint" shape="rounded" color="brand">
-                                  {cantServicios} serv.
-                                </Badge>
-                              </Button>
-                            </TableCell>
-                            <TableCell style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-                              <Button
-                                size="small"
-                                appearance="subtle"
-                                onClick={() => handleAbrirDetalleIncidente(item, 'tareas')}
-                                title="Ver subtareas en panel lateral"
-                              >
-                                <Badge appearance="tint" shape="rounded" color="subtle">
-                                  {cantTareas} tareas
-                                </Badge>
-                              </Button>
-                            </TableCell>
-                            <TableCell style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-                              <Button
-                                size="small"
-                                appearance="subtle"
-                                onClick={() => handleAbrirDetalleIncidente(item, 'materiales')}
-                                title="Ver materiales previstos en panel lateral"
-                              >
-                                <Badge appearance="tint" shape="rounded" color="informative">
-                                  {cantMat} mat.
-                                </Badge>
-                              </Button>
-                            </TableCell>
-                            <TableCell style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-                              <div style={{ display: 'inline-flex', gap: '4px' }}>
-                                <Button
-                                  icon={<Eye16Regular />}
-                                  size="small"
-                                  appearance="subtle"
-                                  title="Ver desglose del incidente"
-                                  aria-label="Ver desglose del incidente"
-                                  onClick={() => handleAbrirDetalleIncidente(item, 'servicios')}
-                                />
-                                <Button
-                                  icon={<Edit16Regular />}
-                                  size="small"
-                                  appearance="subtle"
-                                  title="Editar descripción o plantilla"
-                                  aria-label="Editar descripción o plantilla"
-                                  onClick={() => handleAbrirDrawerEditarTrabajo(index)}
-                                />
-                                <Button
-                                  icon={<Delete16Regular />}
-                                  size="small"
-                                  appearance="subtle"
-                                  title="Eliminar incidente de la orden"
-                                  aria-label="Eliminar incidente de la orden"
-                                  onClick={() => void handleEliminarFilaTrabajo(index)}
-                                />
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                )}
-              </div>
+              <D365SubGrid
+                title="Trabajos de la Orden de Trabajo"
+                items={trabajos}
+                columns={columnasTrabajos}
+                onAdd={handleAbrirDrawerNuevoTrabajo}
+                addLabel="Agregar Trabajo"
+                onRowClick={(item) => handleAbrirDetalleTrabajo(item, 'tareas')}
+                emptyMessage="No hay trabajos configurados para esta orden. Toda orden debe contener al menos un trabajo de trabajo."
+              />
             )}
 
             {/* ============================================================= */}
@@ -1521,39 +1495,12 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                   </D365FormField>
                 </div>
 
-                <div className={formStyles.card}>
-                  <div className={formStyles.cardSectionTitle}>Historial de Visitas en Campo</div>
-                  {orden?.visitas && orden.visitas.length > 0 ? (
-                    <Table size="small">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHeaderCell>Cita</TableHeaderCell>
-                          <TableHeaderCell>Técnico</TableHeaderCell>
-                          <TableHeaderCell>Fecha</TableHeaderCell>
-                          <TableHeaderCell>Estado</TableHeaderCell>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {orden.visitas.map((v) => (
-                          <TableRow key={v.id}>
-                            <TableCell>{v.codigoVisita}</TableCell>
-                            <TableCell>{v.recursoNombre}</TableCell>
-                            <TableCell>{v.fechaProgramada}</TableCell>
-                            <TableCell>
-                              <Badge appearance="tint" shape="rounded" color="brand">
-                                {v.estado}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <Text style={{ color: tokens.colorNeutralForeground4, fontSize: '13px' }}>
-                      No se han agendado visitas técnicas aún para esta orden.
-                    </Text>
-                  )}
-                </div>
+                <D365SubGrid
+                  title="Historial de Visitas en Campo"
+                  items={orden?.visitas || []}
+                  columns={columnasVisitas}
+                  emptyMessage="No se han agendado visitas técnicas aún para esta orden."
+                />
               </div>
             )}
 
@@ -1561,88 +1508,18 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             {/* TAB 4: MATERIALES CONSOLIDADOS                                 */}
             {/* ============================================================= */}
             {selectedTab === 'materiales' && (
-              <div className={formStyles.card}>
-                <div style={{ marginBottom: '16px' }}>
-                  <div className={formStyles.cardSectionTitle} style={{ marginBottom: '4px' }}>
-                    Materiales y Equipos Consolidados de la Orden
-                  </div>
-                  <Text style={{ color: tokens.colorNeutralForeground3, fontSize: '12px' }}>
-                    Resumen logístico de todos los materiales e insumos previstos y descargados en campo a través de los trabajos de esta orden de trabajo.
-                  </Text>
-                </div>
-
-                {trabajos.some((t) => !t.id && t.plantillaTrabajoId) && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <D365MessageBar intent="info">
-                      Existen líneas de trabajo nuevas pendientes por guardar. Al pulsar "Guardar" en la barra de comandos se registrarán y confirmarán formalmente en el sistema.
-                    </D365MessageBar>
-                  </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {trabajos.some((t) => !t.id && t.configuracionServicioId) && (
+                  <D365MessageBar intent="info">
+                    Existen líneas de trabajo nuevas pendientes por guardar. Al pulsar "Guardar" en la barra de comandos se registrarán y confirmarán formalmente en el sistema.
+                  </D365MessageBar>
                 )}
-
-                {materialesConsolidados.length > 0 ? (
-                  <Table size="small">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHeaderCell style={{ width: '40px' }}>#</TableHeaderCell>
-                        <TableHeaderCell style={{ width: '140px' }}>Cód. Material</TableHeaderCell>
-                        <TableHeaderCell>Producto / Insumo</TableHeaderCell>
-                        <TableHeaderCell style={{ width: '180px' }}>Incidente / Trabajo Origen</TableHeaderCell>
-                        <TableHeaderCell style={{ width: '100px', textAlign: 'center' }}>Cant. Prevista</TableHeaderCell>
-                        <TableHeaderCell style={{ width: '140px' }}>N° Serie</TableHeaderCell>
-                        <TableHeaderCell style={{ width: '150px' }}>Acción Logística</TableHeaderCell>
-                        <TableHeaderCell>Observaciones</TableHeaderCell>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {materialesConsolidados.map((m, idx) => (
-                        <TableRow key={m.id || idx}>
-                          <TableCell style={{ color: tokens.colorNeutralForeground4, fontWeight: 600 }}>
-                            {idx + 1}
-                          </TableCell>
-                          <TableCell>
-                            <Text style={{ fontFamily: 'monospace', fontSize: '12px' }}>{m.productoCodigo}</Text>
-                          </TableCell>
-                          <TableCell>
-                            <Text weight="medium">{m.productoNombre}</Text>
-                          </TableCell>
-                          <TableCell>
-                            <Text style={{ fontFamily: 'monospace', fontSize: '12px', color: tokens.colorBrandForeground1 }}>
-                              {m.trabajoOrigen}
-                            </Text>
-                          </TableCell>
-                          <TableCell style={{ textAlign: 'center', fontWeight: 600 }}>{m.cantidad}</TableCell>
-                          <TableCell>{m.numeroSerie || '-'}</TableCell>
-                          <TableCell>
-                            <Badge
-                              appearance="tint"
-                              shape="rounded"
-                              color={m.tipoAccion.includes('Retiro') ? 'danger' : 'informative'}
-                            >
-                              {m.tipoAccion}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Text style={{ fontSize: '12px', color: tokens.colorNeutralForeground3 }}>
-                              {m.observaciones || '-'}
-                            </Text>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '40px 20px', background: tokens.colorNeutralBackground2, borderRadius: '4px' }}>
-                    <Text block weight="semibold" style={{ color: tokens.colorNeutralForeground1, fontSize: '14px', marginBottom: '6px' }}>
-                      No hay materiales descargados todavía
-                    </Text>
-                    <Text block style={{ color: tokens.colorNeutralForeground3, fontSize: '13px', maxWidth: '640px', margin: '0 auto' }}>
-                      Los materiales e insumos se registrarán y mostrarán en esta pestaña una vez que la orden haya sido atendida y liquidada en campo, reflejando el material descargado del inventario real.
-                    </Text>
-                    <Text block style={{ color: tokens.colorNeutralForeground4, fontSize: '12px', marginTop: '12px' }}>
-                      ℹ Para consultar los materiales previstos según la plantilla técnica de cada trabajo, revise la pestaña <strong>"Trabajos a Realizar"</strong>.
-                    </Text>
-                  </div>
-                )}
+                <D365SubGrid
+                  title="Materiales y Equipos Consolidados de la Orden"
+                  items={materialesConsolidados}
+                  columns={columnasMaterialesConsolidados}
+                  emptyMessage="No hay materiales descargados registrados en esta orden."
+                />
               </div>
             )}
           </>
@@ -1669,10 +1546,10 @@ export const OrdenTrabajoFormPage: React.FC = () => {
           >
             <div>
               <Text weight="semibold" style={{ fontSize: '16px' }}>
-                {trabajoEnEdicionIndex !== null ? 'Editar Incidente' : 'Agregar Incidente'}
+                {trabajoEnEdicionIndex !== null ? 'Editar Trabajo' : 'Agregar Trabajo'}
               </Text>
               <Text block style={{ fontSize: '12px', color: tokens.colorNeutralForeground3, fontWeight: 400, marginTop: '2px' }}>
-                Seleccione el tipo de incidente y detalle la descripción breve
+                Seleccione el servicio e identifique el equipo o lugar atendido
               </Text>
             </div>
           </DrawerHeaderTitle>
@@ -1685,26 +1562,26 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             </D365MessageBar>
           )}
 
-          {/* Campo 1: Tipo de Incidente */}
-          <D365FormField
-            label="Tipo de Incidente"
-            required
-            info="Seleccione el tipo de incidente / plantilla técnica. Los servicios, tareas y materiales requeridos se cargarán automáticamente desde la plantilla."
-          >
-            <SelectorEntidadRelacionada
-              etiquetaGrupo="Tipos de Incidente Disponibles"
-              opciones={opcionesPlantillasTrabajo}
-              seleccionada={plantillaSeleccionadaDrawerObj}
-              textoBusqueda={drawerBusquedaPlantilla}
-              alCambiarBusqueda={setDrawerBusquedaPlantilla}
-              alSeleccionar={(nuevoId) => void handleDrawerSeleccionarPlantilla(nuevoId || '')}
-              alCrearNuevo={() => navigate('/servicio-campo/plantillas-trabajo/nuevo')}
-              alNavegar={(idPl) => navigate(`/servicio-campo/plantillas-trabajo/${idPl}`)}
-              icono={<ClipboardTask24Regular />}
-              tituloEnlace="Ver ficha de plantilla"
-              textoVacio="No se encontraron tipos de incidente con ese nombre"
-            />
+          {/* Campo 1: Servicio */}
+          <D365FormField label="Servicio" required>
+            <Select
+              aria-label="Servicio del trabajo"
+              className={formStyles.d365ControlFull}
+              value={drawerProductoId}
+              disabled={!!trabajos[trabajoEnEdicionIndex ?? -1]?.id}
+              onChange={(_, data) => void handleSeleccionarServicio(data.value)}
+            >
+              <option value="">Seleccione un servicio</option>
+              {productosServicios.filter((p) => p.tipo === 'Servicio' || p.tipo === 3).map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.codigo} — {p.nombre}
+                </option>
+              ))}
+            </Select>
           </D365FormField>
+          <Text size={200}>{drawerPlantillaId ? 'Pasos y materiales según la configuración del servicio aplicada.' : 'Sin configuración activa: este trabajo se creará sin pasos ni materiales previstos.'}</Text>
+          <D365FormField label="Equipo o ubicación"><Input value={drawerReferenciaEquipo} placeholder="Ej.: aire acondicionado de la sala" onChange={(_, d) => setDrawerReferenciaEquipo(d.value)} /></D365FormField>
+          <D365FormField label="Precio del servicio"><Text>{listaPreciosActiva?.moneda || orden?.moneda || ''} {drawerTarifaBase.toFixed(2)} · {resolverTarifa(drawerProductoId).origen}</Text></D365FormField>
 
           {/* Campo 2: Descripción Breve */}
           <D365FormField label="Descripción Breve" htmlFor="drawer-obs" align="top">
@@ -1731,17 +1608,17 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             Cancelar
           </Button>
           <Button appearance="primary" onClick={handleGuardarDrawerTrabajo}>
-            {trabajoEnEdicionIndex !== null ? 'Guardar Cambios' : 'Agregar Incidente'}
+            {trabajoEnEdicionIndex !== null ? 'Guardar Cambios' : 'Agregar Trabajo'}
           </Button>
         </DrawerFooter>
       </OverlayDrawer>
 
       {/* 6. DRAWER LATERAL DE DETALLE TÉCNICO DEL INCIDENTE (SERVICIOS, TAREAS, MATERIALES) */}
       <OverlayDrawer
-        open={drawerDetalleIncidenteOpen}
+        open={drawerDetalleTrabajoOpen}
         position="end"
         size="medium"
-        onOpenChange={(_, { open }) => setDrawerDetalleIncidenteOpen(open)}
+        onOpenChange={(_, { open }) => setDrawerDetalleTrabajoOpen(open)}
       >
         <DrawerHeader style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}` }}>
           <DrawerHeaderTitle
@@ -1750,88 +1627,45 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                 appearance="subtle"
                 aria-label="Cerrar"
                 icon={<Dismiss24Regular />}
-                onClick={() => setDrawerDetalleIncidenteOpen(false)}
+                onClick={() => setDrawerDetalleTrabajoOpen(false)}
               />
             }
           >
             <div>
               <Text weight="semibold" style={{ fontSize: '16px' }}>
-                {incidenteSeleccionadoParaDetalle?.plantillaTrabajoCodigo
-                  ? `[${incidenteSeleccionadoParaDetalle.plantillaTrabajoCodigo}] `
-                  : ''}
-                {incidenteSeleccionadoParaDetalle?.plantillaTrabajoNombre || 'Detalle del Incidente'}
+                {trabajoSeleccionadoParaDetalle?.codigoTrabajo ? `${trabajoSeleccionadoParaDetalle.codigoTrabajo} · ` : ''}
+                {trabajoSeleccionadoParaDetalle?.productoNombre || 'Servicio Técnico'}
               </Text>
               <Text block style={{ fontSize: '12px', color: tokens.colorNeutralForeground3, fontWeight: 400, marginTop: '2px' }}>
-                {incidenteSeleccionadoParaDetalle?.observaciones || 'Configuración técnica vinculada a la plantilla'}
+                {trabajoSeleccionadoParaDetalle?.referenciaEquipo ? `Equipo/Ubicación: ${trabajoSeleccionadoParaDetalle.referenciaEquipo} · ` : ''}
+                {trabajoSeleccionadoParaDetalle?.configuracionServicioNombre ? `Configuración: ${trabajoSeleccionadoParaDetalle.configuracionServicioNombre}` : 'Sin configuración activa'}
               </Text>
             </div>
           </DrawerHeaderTitle>
         </DrawerHeader>
 
         <DrawerBody style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '20px' }}>
-          {cargandoDetalleIncidente ? (
+          {cargandoDetalleTrabajo ? (
             <div style={{ padding: '36px', textAlign: 'center' }}>
               <Spinner label="Cargando configuración de la plantilla..." />
             </div>
           ) : (
             <>
               <TabList
-                selectedValue={tabDetalleIncidente}
-                onTabSelect={(_, data) => setTabDetalleIncidente(data.value as 'servicios' | 'tareas' | 'materiales')}
+                selectedValue={tabDetalleTrabajo}
+                onTabSelect={(_, data) => setTabDetalleTrabajo(data.value as 'tareas' | 'materiales')}
               >
-                <Tab value="servicios">
-                  Servicios ({detalleIncidenteData?.servicios?.length ?? 0})
-                </Tab>
                 <Tab value="tareas">
-                  Subtareas Técnicas ({detalleIncidenteData?.tareas?.length ?? 0})
+                  Tareas Técnicas ({detalleTrabajoData?.tareas?.length ?? 0})
                 </Tab>
                 <Tab value="materiales">
-                  Materiales Previstos ({detalleIncidenteData?.materiales?.length ?? 0})
+                  Materiales Previstos ({detalleTrabajoData?.materiales?.length ?? 0})
                 </Tab>
               </TabList>
 
-              {tabDetalleIncidente === 'servicios' && (
+              {tabDetalleTrabajo === 'tareas' && (
                 <div>
-                  {(!detalleIncidenteData?.servicios || detalleIncidenteData.servicios.length === 0) ? (
-                    <Text style={{ color: tokens.colorNeutralForeground4, fontSize: '13px' }}>
-                      No hay servicios específicos asociados a esta plantilla.
-                    </Text>
-                  ) : (
-                    <Table size="small">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHeaderCell style={{ width: '40px' }}>#</TableHeaderCell>
-                          <TableHeaderCell style={{ width: '130px' }}>Código</TableHeaderCell>
-                          <TableHeaderCell>Servicio Técnico</TableHeaderCell>
-                          <TableHeaderCell style={{ width: '100px', textAlign: 'center' }}>Tipo</TableHeaderCell>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {detalleIncidenteData.servicios.map((s, idx) => (
-                          <TableRow key={s.id || idx}>
-                            <TableCell style={{ color: tokens.colorNeutralForeground4, fontWeight: 600 }}>{idx + 1}</TableCell>
-                            <TableCell>
-                              <Text style={{ fontFamily: 'monospace', fontSize: '12px' }}>{s.productoCodigo || '-'}</Text>
-                            </TableCell>
-                            <TableCell>
-                              <Text weight="medium">{s.productoNombre}</Text>
-                            </TableCell>
-                            <TableCell style={{ textAlign: 'center' }}>
-                              <Badge appearance="tint" color="brand">
-                                {s.esPredeterminada ? 'Principal' : 'Adicional'}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </div>
-              )}
-
-              {tabDetalleIncidente === 'tareas' && (
-                <div>
-                  {(!detalleIncidenteData?.tareas || detalleIncidenteData.tareas.length === 0) ? (
+                  {(!detalleTrabajoData?.tareas || detalleTrabajoData.tareas.length === 0) ? (
                     <Text style={{ color: tokens.colorNeutralForeground4, fontSize: '13px' }}>
                       No hay tareas técnicas configuradas en esta plantilla.
                     </Text>
@@ -1846,7 +1680,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {detalleIncidenteData.tareas.map((t, idx) => (
+                        {detalleTrabajoData.tareas.map((t, idx) => (
                           <TableRow key={t.id || idx}>
                             <TableCell style={{ color: tokens.colorNeutralForeground4, fontWeight: 600 }}>{idx + 1}</TableCell>
                             <TableCell>
@@ -1870,9 +1704,9 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                 </div>
               )}
 
-              {tabDetalleIncidente === 'materiales' && (
+              {tabDetalleTrabajo === 'materiales' && (
                 <div>
-                  {(!detalleIncidenteData?.materiales || detalleIncidenteData.materiales.length === 0) ? (
+                  {(!detalleTrabajoData?.materiales || detalleTrabajoData.materiales.length === 0) ? (
                     <Text style={{ color: tokens.colorNeutralForeground4, fontSize: '13px' }}>
                       No hay materiales previstos configurados en esta plantilla.
                     </Text>
@@ -1887,7 +1721,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {detalleIncidenteData.materiales.map((m, idx) => (
+                        {detalleTrabajoData.materiales.map((m, idx) => (
                           <TableRow key={m.id || idx}>
                             <TableCell style={{ color: tokens.colorNeutralForeground4, fontWeight: 600 }}>{idx + 1}</TableCell>
                             <TableCell>
@@ -1918,7 +1752,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             justifyContent: 'flex-end',
           }}
         >
-          <Button appearance="secondary" onClick={() => setDrawerDetalleIncidenteOpen(false)}>
+          <Button appearance="secondary" onClick={() => setDrawerDetalleTrabajoOpen(false)}>
             Cerrar
           </Button>
         </DrawerFooter>

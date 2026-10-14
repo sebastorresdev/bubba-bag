@@ -1,19 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
+  Card,
   Input,
   Checkbox,
   Tab,
   TabList,
-  Spinner,
   Text,
   Badge,
-  tokens,
   Toast,
   Toaster,
   ToastTitle,
   useToastController,
   useId,
+  createTableColumn,
+  type TableColumnDefinition,
+  Skeleton,
+  SkeletonItem,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -36,6 +39,7 @@ import { D365FormField } from '../../../components/common/D365FormField';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../components/common/D365CommandBar';
 import { D365MessageBar } from '../../../components/common/D365MessageBar';
 import { D365EntityHeader } from '../../../components/common/D365EntityHeader';
+import { D365SubGrid } from '../../../components/common/D365SubGrid';
 
 export function UnidadOrganizativaFormPage() {
   const styles = useD365FormStyles();
@@ -204,6 +208,69 @@ export function UnidadOrganizativaFormPage() {
     }
   };
 
+  const columnasTerritorios: TableColumnDefinition<TerritorioDto>[] = useMemo(
+    () => [
+      createTableColumn<TerritorioDto>({
+        columnId: 'codigo',
+        compare: (a, b) => a.codigo.localeCompare(b.codigo),
+        renderHeaderCell: () => 'Código',
+        renderCell: (item) => <Text weight="semibold">{item.codigo}</Text>,
+      }),
+      createTableColumn<TerritorioDto>({
+        columnId: 'nombre',
+        compare: (a, b) => a.nombre.localeCompare(b.nombre),
+        renderHeaderCell: () => 'Territorio',
+        renderCell: (item) => item.nombre,
+      }),
+      createTableColumn<TerritorioDto>({
+        columnId: 'almacen',
+        renderHeaderCell: () => 'Almacén Predeterminado',
+        renderCell: (item) => item.almacenPredeterminadoNombre || '—',
+      }),
+      createTableColumn<TerritorioDto>({
+        columnId: 'activo',
+        renderHeaderCell: () => 'Estado',
+        renderCell: (item) => (
+          <Badge appearance="ghost" shape="rounded" color={item.activo ? 'success' : 'danger'}>
+            {item.activo ? 'Activo' : 'Inactivo'}
+          </Badge>
+        ),
+      }),
+    ],
+    []
+  );
+
+  const columnasAlmacenes: TableColumnDefinition<AlmacenDto>[] = useMemo(
+    () => [
+      createTableColumn<AlmacenDto>({
+        columnId: 'nombre',
+        compare: (a, b) => a.nombre.localeCompare(b.nombre),
+        renderHeaderCell: () => 'Nombre',
+        renderCell: (item) => <Text weight="semibold">{item.nombre}</Text>,
+      }),
+      createTableColumn<AlmacenDto>({
+        columnId: 'codigo',
+        renderHeaderCell: () => 'Código',
+        renderCell: (item) => item.codigo || '—',
+      }),
+      createTableColumn<AlmacenDto>({
+        columnId: 'tipo',
+        renderHeaderCell: () => 'Tipo',
+        renderCell: (item) => (
+          <Badge appearance="tint" shape="rounded" color={item.tipo === 2 ? 'warning' : 'informative'}>
+            {item.tipo === 2 ? 'Móvil / Campo' : 'Bodega Base'}
+          </Badge>
+        ),
+      }),
+      createTableColumn<AlmacenDto>({
+        columnId: 'recurso',
+        renderHeaderCell: () => 'Responsable / Custodio',
+        renderCell: (item) => item.recursoNombre || '—',
+      }),
+    ],
+    []
+  );
+
   return (
     <div className={styles.root}>
       <Toaster toasterId={toasterId} position="top-end" />
@@ -265,41 +332,72 @@ export function UnidadOrganizativaFormPage() {
         </div>
       </D365CommandBar>
 
-      {loading ? (
-        <div className={styles.loadingContainer}>
-          <Spinner label="Cargando unidad organizativa..." size="large" />
-        </div>
-      ) : (
-        <>
-          <D365EntityHeader
-            title={isEditMode ? headerInfo.nombre || 'Sede / Base' : 'Nueva Unidad Organizativa'}
-            subtitle={headerInfo.esSedePrincipal ? 'Sede Principal de Operaciones' : 'Base Zonal'}
-            avatarName={isEditMode ? headerInfo.nombre : 'Sede'}
-            avatarIcon={<BuildingBank20Regular />}
-            avatarSize={48}
-            metadata={[
-              { label: 'Jerarquía', value: formData.esSedePrincipal ? 'Sede Principal' : 'Base Zonal' },
-              { label: 'Estado', value: headerInfo.activo ? 'Activo' : 'Inactivo' },
-            ]}
-            tabs={
-              <TabList
-                selectedValue={selectedTab}
-                onTabSelect={(_, d) =>
-                  setSelectedTab(d.value as 'general' | 'territorios' | 'almacenes' | 'detalle')
-                }
-              >
-                <Tab value="general">General</Tab>
-                <Tab value="territorios" disabled={!isEditMode}>Territorios</Tab>
-                <Tab value="almacenes" disabled={!isEditMode}>Almacenes</Tab>
-                <Tab value="detalle" disabled={!isEditMode}>Detalle / Auditoría</Tab>
-              </TabList>
+      <D365EntityHeader
+        title={loading ? 'Cargando...' : isEditMode ? headerInfo.nombre || 'Sede / Base' : 'Nueva Unidad Organizativa'}
+        subtitle={loading ? 'Cargando...' : headerInfo.esSedePrincipal ? 'Sede Principal de Operaciones' : 'Base Zonal'}
+        avatarName={isEditMode ? headerInfo.nombre : 'Sede'}
+        avatarIcon={<BuildingBank20Regular />}
+        avatarSize={48}
+        metadata={
+          loading
+            ? [
+                { label: 'Jerarquía', value: 'Cargando...' },
+                { label: 'Estado', value: '—' },
+              ]
+            : [
+                { label: 'Jerarquía', value: formData.esSedePrincipal ? 'Sede Principal' : 'Base Zonal' },
+                { label: 'Estado', value: headerInfo.activo ? 'Activo' : 'Inactivo' },
+              ]
+        }
+        tabs={
+          <TabList
+            selectedValue={selectedTab}
+            onTabSelect={(_, d) =>
+              setSelectedTab(d.value as 'general' | 'territorios' | 'almacenes' | 'detalle')
             }
-          />
+          >
+            <Tab value="general">General</Tab>
+            <Tab value="territorios" disabled={!isEditMode || loading}>Territorios</Tab>
+            <Tab value="almacenes" disabled={!isEditMode || loading}>Almacenes</Tab>
+            <Tab value="detalle" disabled={!isEditMode || loading}>Detalle / Auditoría</Tab>
+          </TabList>
+        }
+      />
 
-          <div className={styles.contentBody}>
+      <div className={styles.contentBody}>
+        {loading ? (
+          <div className={styles.grid2Cols}>
+            <Card className={styles.card}>
+              <Skeleton animation="pulse">
+                <SkeletonItem size={16} className={styles.skeletonHeader} />
+                <div className={styles.fieldColumnFlex}>
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={72} className={styles.skeletonTextarea72} />
+                </div>
+              </Skeleton>
+            </Card>
+            <Card className={styles.card}>
+              <Skeleton animation="pulse">
+                <SkeletonItem size={16} className={styles.skeletonSub140} />
+                <div className={styles.fieldColumnFlex}>
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                </div>
+              </Skeleton>
+            </Card>
+          </div>
+        ) : (
+          <>
             {selectedTab === 'general' ? (
-              <div className={styles.card}>
-                <div className={styles.grid2Cols}>
+              <div className={styles.grid2Cols}>
+                {/* Tarjeta 1: Información de la Sede */}
+                <Card className={styles.card}>
+                  <Text className={styles.cardSectionTitle}>Información de la Sede</Text>
+
                   <D365FormField label="Código de Sede" required error={errors.codigo}>
                     <Input
                       className={styles.d365ControlFull}
@@ -319,21 +417,25 @@ export function UnidadOrganizativaFormPage() {
                     />
                   </D365FormField>
 
+                  <D365FormField label="Configuración de Sede">
+                    <Checkbox
+                      label="Declarar como Sede Principal de la empresa"
+                      checked={formData.esSedePrincipal}
+                      onChange={(_, d) => setFormData((p) => ({ ...p, esSedePrincipal: Boolean(d.checked) }))}
+                    />
+                  </D365FormField>
+                </Card>
+
+                {/* Tarjeta 2: Ubicación y Contacto */}
+                <Card className={styles.card}>
+                  <Text className={styles.cardSectionTitle}>Ubicación y Contacto</Text>
+
                   <D365FormField label="Ciudad">
                     <Input
                       className={styles.d365ControlFull}
                       value={formData.ciudad || ''}
                       maxLength={100}
                       onChange={(_, d) => setFormData((p) => ({ ...p, ciudad: d.value }))}
-                    />
-                  </D365FormField>
-
-                  <D365FormField label="Teléfono / Central">
-                    <Input
-                      className={styles.d365ControlFull}
-                      value={formData.telefono || ''}
-                      maxLength={30}
-                      onChange={(_, d) => setFormData((p) => ({ ...p, telefono: d.value }))}
                     />
                   </D365FormField>
 
@@ -346,104 +448,40 @@ export function UnidadOrganizativaFormPage() {
                     />
                   </D365FormField>
 
-                  <D365FormField label="Configuración de Sede">
-                    <Checkbox
-                      label="Declarar como Sede Principal de la empresa"
-                      checked={formData.esSedePrincipal}
-                      onChange={(_, d) => setFormData((p) => ({ ...p, esSedePrincipal: Boolean(d.checked) }))}
+                  <D365FormField label="Teléfono / Central">
+                    <Input
+                      className={styles.d365ControlFull}
+                      value={formData.telefono || ''}
+                      maxLength={30}
+                      onChange={(_, d) => setFormData((p) => ({ ...p, telefono: d.value }))}
                     />
                   </D365FormField>
-                </div>
+                </Card>
               </div>
             ) : selectedTab === 'territorios' ? (
-              <div className={styles.card}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <Text weight="semibold">Territorios asignados a esta Sede</Text>
-                  <D365CommandButton
-                    icon={<Add16Regular />}
-                    tone="create"
-                    onClick={() => navigate('/servicio-campo/territorios/nuevo')}
-                  >
-                    Nuevo Territorio
-                  </D365CommandButton>
-                </div>
-                {territorios.length === 0 ? (
-                  <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                    No hay territorios asignados.
-                  </Text>
-                ) : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, textAlign: 'left' }}>
-                        <th style={{ padding: '8px' }}>Código</th>
-                        <th style={{ padding: '8px' }}>Territorio</th>
-                        <th style={{ padding: '8px' }}>Almacén Predeterminado</th>
-                        <th style={{ padding: '8px' }}>Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {territorios.map((t) => (
-                        <tr key={t.id} style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke3}` }}>
-                          <td style={{ padding: '8px', fontWeight: 600 }}>{t.codigo}</td>
-                          <td style={{ padding: '8px' }}>{t.nombre}</td>
-                          <td style={{ padding: '8px' }}>{t.almacenPredeterminadoNombre || '—'}</td>
-                          <td style={{ padding: '8px' }}>
-                            <Badge appearance="ghost" shape="rounded" color={t.activo ? 'success' : 'danger'}>
-                              {t.activo ? 'Activo' : 'Inactivo'}
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
+              <D365SubGrid
+                title="Territorios asignados a esta Sede"
+                items={territorios}
+                columns={columnasTerritorios}
+                onAdd={() => navigate('/servicio-campo/territorios/nuevo')}
+                addLabel="Nuevo Territorio"
+                onRowClick={(t) => navigate(`/servicio-campo/territorios/${t.id}`)}
+                emptyMessage="No hay territorios asignados a esta sede."
+              />
             ) : selectedTab === 'almacenes' ? (
-              <div className={styles.card}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <Text weight="semibold">Almacenes y bodegas de esta Sede</Text>
-                  <D365CommandButton
-                    icon={<Add16Regular />}
-                    tone="create"
-                    onClick={() => navigate('/servicio-campo/almacenes/nuevo')}
-                  >
-                    Nuevo Almacén
-                  </D365CommandButton>
-                </div>
-                {almacenes.length === 0 ? (
-                  <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                    No hay almacenes asociados.
-                  </Text>
-                ) : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, textAlign: 'left' }}>
-                        <th style={{ padding: '8px' }}>Nombre</th>
-                        <th style={{ padding: '8px' }}>Código</th>
-                        <th style={{ padding: '8px' }}>Tipo</th>
-                        <th style={{ padding: '8px' }}>Responsable / Custodio</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {almacenes.map((a) => (
-                        <tr key={a.id} style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke3}` }}>
-                          <td style={{ padding: '8px', fontWeight: 600 }}>{a.nombre}</td>
-                          <td style={{ padding: '8px' }}>{a.codigo || '—'}</td>
-                          <td style={{ padding: '8px' }}>
-                            <Badge appearance="tint" shape="rounded" color={a.tipo === 2 ? 'warning' : 'informative'}>
-                              {a.tipo === 2 ? 'Móvil / Campo' : 'Bodega Base'}
-                            </Badge>
-                          </td>
-                          <td style={{ padding: '8px' }}>{a.recursoNombre || '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
+              <D365SubGrid
+                title="Almacenes y bodegas de esta Sede"
+                items={almacenes}
+                columns={columnasAlmacenes}
+                onAdd={() => navigate('/servicio-campo/almacenes/nuevo')}
+                addLabel="Nuevo Almacén"
+                onRowClick={(a) => navigate(`/servicio-campo/almacenes/${a.id}`)}
+                emptyMessage="No hay almacenes asociados a esta sede."
+              />
             ) : (
-              <div className={styles.card}>
-                <div className={styles.grid2Cols}>
+              <div className={styles.halfCardWrapper}>
+                <Card className={styles.card}>
+                  <Text className={styles.cardSectionTitle}>Información de Auditoría</Text>
                   <D365FormField label="Fecha de Registro">
                     <Input
                       className={styles.d365ControlFull}
@@ -462,12 +500,12 @@ export function UnidadOrganizativaFormPage() {
                       contentAfter={<LockClosed16Regular />}
                     />
                   </D365FormField>
-                </div>
+                </Card>
               </div>
             )}
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

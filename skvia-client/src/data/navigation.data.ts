@@ -224,9 +224,9 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
                 description: 'Modalidades de atención: preventiva, correctiva, instalación, etc.',
               },
               {
-                id: 'plantillas-trabajo',
-                title: 'Plantillas de Trabajo',
-                path: '/servicio-campo/plantillas-trabajo',
+                id: 'configuraciones-servicio',
+                title: 'Configuraciones de servicio',
+                path: '/servicio-campo/configuraciones-servicio',
                 iconName: 'DocumentBulletList',
                 description: 'Recetas técnicas: tareas requeridas, productos y servicios asociados.',
               },

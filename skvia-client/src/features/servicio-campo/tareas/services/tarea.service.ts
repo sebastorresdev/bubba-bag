@@ -1,5 +1,5 @@
 import { apiClient } from '../../../../services/apiClient';
-import type { TareaDto, GuardarTareaDto } from '../../plantillas-trabajo/types/plantillaTrabajo.types';
+import type { TareaDto, GuardarTareaDto } from '../../configuraciones-servicio/types/configuracionServicio.types';
 
 export const TareaService = {
   async getTareas(params?: { soloActivas?: boolean; search?: string }): Promise<TareaDto[]> {

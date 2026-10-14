@@ -9,7 +9,6 @@ namespace BubbaBag.Modules.ServicioCampo.Domain.Plantillas;
 /// </summary>
 public class Tarea : Entity<Guid>
 {
-    public string Codigo { get; private set; } = default!;
     public string Nombre { get; private set; } = default!;
     public string? Descripcion { get; private set; }
 
@@ -29,22 +28,17 @@ public class Tarea : Entity<Guid>
     private Tarea() { }
 
     public static Tarea Crear(
-        string codigo,
         string nombre,
         string? descripcion = null,
         int duracionEstimadaMinutos = 15,
         bool requiereEvidenciaFotografica = false)
     {
-        if (string.IsNullOrWhiteSpace(codigo))
-            throw new ArgumentException("El código de la tarea es obligatorio.", nameof(codigo));
-
         if (string.IsNullOrWhiteSpace(nombre))
             throw new ArgumentException("El nombre de la tarea es obligatorio.", nameof(nombre));
 
         return new Tarea
         {
             Id = Guid.NewGuid(),
-            Codigo = codigo.Trim().ToUpperInvariant(),
             Nombre = nombre.Trim(),
             Descripcion = descripcion?.Trim(),
             DuracionEstimadaMinutos = Math.Max(1, duracionEstimadaMinutos),

@@ -15,6 +15,9 @@ public class OrdenTrabajo : Entity<Guid>
     public string CodigoWo { get; private set; } = default!; // 'WO-2026-000001'
     
     // Tipo de Orden (Modalidad Operativa: CAMPO, ENCOMIENDA, REMOTO)
+    public Guid? ListaPreciosId { get; private set; }
+    public string Moneda { get; private set; } = "PEN";
+
     public Guid TipoOrdenId { get; private set; }
     public TipoOrdenTrabajo TipoOrden { get; private set; } = default!;
 
@@ -117,14 +120,14 @@ public class OrdenTrabajo : Entity<Guid>
         string? numeroPedido = null,
         string? estadoOrigen = null,
         bool descargaMaterialesObligatoria = true,
-        string? referenciaExterna = null)
+        string? referenciaExterna = null, Guid? listaPreciosId = null, string moneda = "PEN")
     {
         var refExt = referenciaExterna?.Trim() ?? numeroOrden?.Trim();
         var orden = new OrdenTrabajo
         {
             Id = Guid.NewGuid(),
             CodigoWo = codigoWo.Trim().ToUpperInvariant(),
-            TipoOrdenId = tipoOrdenId,
+            TipoOrdenId = tipoOrdenId, ListaPreciosId = listaPreciosId, Moneda = moneda,
             CreadoPorId = creadoPorId,
             ClienteFacturacionId = clienteFacturacionId,
             ClienteServicioId = clienteServicioId,
@@ -147,16 +150,32 @@ public class OrdenTrabajo : Entity<Guid>
         string codigoTrabajo,
         Guid servicioId,
         int? itemNumero = null,
-        Guid? plantillaTrabajoId = null,
+        Guid? configuracionServicioId = null,
         decimal tarifaBase = 0m,
         string? observaciones = null,
-        string? codigoExterno = null)
+        string? codigoExterno = null, string? referenciaEquipo = null, string? origenPrecio = null)
     {
-        var numero = itemNumero ?? (_trabajos.Count + 1);
-        var trabajo = Trabajo.Crear(Id, codigoTrabajo, servicioId, numero, plantillaTrabajoId, tarifaBase, observaciones, codigoExterno);
+        ValidarEditable();
+        if (_trabajos.Any(t => t.CodigoTrabajo == codigoTrabajo)) throw new InvalidOperationException("El código del trabajo ya existe.");
+        var numero = itemNumero ?? (_trabajos.Select(t => t.ItemNumero).DefaultIfEmpty(0).Max() + 1);
+        var trabajo = Trabajo.Crear(Id, codigoTrabajo, servicioId, numero, configuracionServicioId, tarifaBase, observaciones, codigoExterno, referenciaEquipo, origenPrecio);
         _trabajos.Add(trabajo);
         UpdatedAt = DateTime.UtcNow;
         return trabajo;
+    }
+
+    public void ValidarEditable()
+    {
+        if (Estado is EstadoOrdenTrabajo.Finalizada or EstadoOrdenTrabajo.Cancelada or EstadoOrdenTrabajo.Rechazada)
+            throw new InvalidOperationException("La orden está cerrada y no admite cambios.");
+    }
+
+    public void ValidarCierreTrabajos()
+    {
+        if (_trabajos.Count == 0 || _trabajos.Any(t => t.Estado is EstadoTrabajo.Pendiente or EstadoTrabajo.EnProgreso))
+            throw new InvalidOperationException("Complete, cancele o rechace cada trabajo antes de cerrar la orden.");
+        if (!_trabajos.Any(t => t.Estado == EstadoTrabajo.Completado))
+            throw new InvalidOperationException("La orden no tiene trabajos completados. Revise su cancelación o rechazo.");
     }
 
     public LiquidacionMaterial GenerarLiquidacionMaterial(
@@ -340,9 +359,12 @@ public class OrdenTrabajo : Entity<Guid>
             sincronizadoInmediato);
 
         // Evaluar resultado de las subtareas
-        bool hayTareasCompletas = _tareas.Any(t => t.EstadoTarea == EstadoTarea.Completa);
-        bool todasTareasRechazadasOCanceladas = _tareas.Count > 0 &&
-            _tareas.All(t => t.EstadoTarea == EstadoTarea.Cancelada || t.EstadoTarea == EstadoTarea.Rechazada);
+        bool hayTareasCompletas = _trabajos.Count > 0
+            ? _trabajos.Any(t => t.Estado == EstadoTrabajo.Completado) && _trabajos.All(t => t.Estado is EstadoTrabajo.Completado or EstadoTrabajo.Cancelado or EstadoTrabajo.Rechazado)
+            : _tareas.Count > 0 && _tareas.All(t => t.EstadoTarea is EstadoTarea.Completa or EstadoTarea.Cancelada or EstadoTarea.Rechazada);
+        bool todasTareasRechazadasOCanceladas = _trabajos.Count > 0
+            ? _trabajos.All(t => t.Estado is EstadoTrabajo.Cancelado or EstadoTrabajo.Rechazado)
+            : _tareas.Count > 0 && _tareas.All(t => t.EstadoTarea is EstadoTarea.Cancelada or EstadoTarea.Rechazada);
 
         if (todasTareasRechazadasOCanceladas)
         {
@@ -439,6 +461,12 @@ public class OrdenTrabajo : Entity<Guid>
         if (VisitaActual != null && VisitaActual.Estado != EstadoVisita.Completada && VisitaActual.Estado != EstadoVisita.Cancelada)
         {
             VisitaActual.CancelarVisita(motivoId, observaciones);
+        }
+
+        // Cancelar trabajos pendientes o en progreso
+        foreach (var trabajo in _trabajos.Where(t => t.Estado is EstadoTrabajo.Pendiente or EstadoTrabajo.EnProgreso))
+        {
+            trabajo.Cancelar(observaciones);
         }
 
         // Cancelar subtareas pendientes

@@ -25,8 +25,7 @@ public class RecursoConfiguration : IEntityTypeConfiguration<Recurso>
 
         builder.Property(r => r.Tipo)
             .IsRequired()
-            .HasConversion<int>()
-            .HasDefaultValue(TipoRecurso.Tecnico);
+            .HasConversion<int>();
 
         builder.Property(r => r.DocumentoIdentidad)
             .HasMaxLength(30);

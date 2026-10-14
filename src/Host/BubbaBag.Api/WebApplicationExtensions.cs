@@ -28,12 +28,11 @@ public static class WebApplicationExtensions
         var gestionDatosDbContext = scope.ServiceProvider.GetRequiredService<GestionDatosDbContext>();
         await gestionDatosDbContext.Database.MigrateAsync();
 
-        // Marcar jobs de importación inconclusos como fallidos tras reinicio
-        await gestionDatosDbContext.Database.ExecuteSqlRawAsync("""
-            UPDATE gestiondatos."DataImportJobs"
-            SET "Estado" = 'Fallido'
-            WHERE "Estado" = 'Procesando';
-        """);
+        // Marcar jobs de importación inconclusos como fallidos tras reinicio (solo jobs zombis con más de 2h)
+        var limiteZombi = DateTime.UtcNow.AddHours(-2);
+        await gestionDatosDbContext.DataImportJobs
+            .Where(j => j.Estado == "Procesando" && j.FechaCreacion < limiteZombi)
+            .ExecuteUpdateAsync(s => s.SetProperty(j => j.Estado, "Fallido"));
 
         var servicioCampoDbContext = scope.ServiceProvider.GetService<ServicioCampoDbContext>();
         if (servicioCampoDbContext != null)
@@ -52,25 +51,13 @@ public static class WebApplicationExtensions
             var logger = scope.ServiceProvider.GetRequiredService<ILogger<WebApplication>>();
             await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.UbigeoSeeder.SeedAsync(servicioCampoDbContext, logger);
 
-            // Asegurar tabla pública de configuración de empresa si no existe
-            await servicioCampoDbContext.Database.ExecuteSqlRawAsync("""
-                CREATE TABLE IF NOT EXISTS public."ConfiguracionEmpresa" (
-                    "Id" uuid NOT NULL PRIMARY KEY,
-                    "RazonSocial" character varying(250) NOT NULL,
-                    "NombreComercial" character varying(250),
-                    "Ruc" character varying(50),
-                    "DireccionFiscal" character varying(300),
-                    "Telefono" character varying(50),
-                    "Email" character varying(150),
-                    "LogoBase64" text,
-                    "PiePaginaDocumentos" character varying(500),
-                    "FechaActualizacion" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
-                );
-
-                INSERT INTO public."ConfiguracionEmpresa" ("Id", "RazonSocial", "NombreComercial", "Ruc", "DireccionFiscal", "Telefono", "Email", "PiePaginaDocumentos", "FechaActualizacion")
-                VALUES ('11111111-1111-1111-1111-111111111111', 'BUBBA BAG LOGISTICS', 'BubbaBag', '20601234567', 'Av. Principal 123, Lima, Perú', '(01) 555-1234', 'contacto@bubbabag.com', 'Documento oficial de control y custodia de existencias.', NOW())
-                ON CONFLICT ("Id") DO NOTHING;
-            """);
+            // Asegurar registro inicial de configuración de empresa mediante EF Core
+            if (!await servicioCampoDbContext.ConfiguracionEmpresas.AnyAsync())
+            {
+                var empresaDefault = BubbaBag.Modules.ServicioCampo.Domain.Configuracion.ConfiguracionEmpresa.CrearDefault();
+                await servicioCampoDbContext.ConfiguracionEmpresas.AddAsync(empresaDefault);
+                await servicioCampoDbContext.SaveChangesAsync();
+            }
         }
     }
 }

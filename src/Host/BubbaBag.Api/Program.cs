@@ -52,10 +52,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.AddNpgsqlDbContext<BubbaBag.Modules.Seguridad.Infrastructure.Persistence.SeguridadDbContext>("sqldb");
 builder.AddNpgsqlDbContext<BubbaBag.Modules.RecursosHumanos.Infrastructure.Database.RecursosHumanosDbContext>("sqldb");
-builder.AddNpgsqlDbContext<BubbaBag.Modules.ServicioCampo.Infrastructure.Database.ServicioCampoDbContext>("sqldb", configureDbContextOptions: options =>
-{
-    options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
-});
+builder.AddNpgsqlDbContext<BubbaBag.Modules.ServicioCampo.Infrastructure.Database.ServicioCampoDbContext>("sqldb");
 builder.AddNpgsqlDbContext<BubbaBag.Modules.GestionDatos.Infrastructure.Database.GestionDatosDbContext>("sqldb");
 builder.Services.AddBubbaBagServices(builder.Configuration);
 

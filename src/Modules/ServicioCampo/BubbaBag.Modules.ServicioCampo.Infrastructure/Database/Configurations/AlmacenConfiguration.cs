@@ -25,8 +25,7 @@ public class AlmacenConfiguration : IEntityTypeConfiguration<Almacen>
 
         builder.Property(a => a.Tipo)
             .IsRequired()
-            .HasConversion<int>()
-            .HasDefaultValue(TipoAlmacen.Bodega);
+            .HasConversion<int>();
 
         builder.Property(a => a.UnidadOrganizativaId)
             .IsRequired(false);

@@ -28,8 +28,7 @@ public class ElementoListaPreciosConfiguration : IEntityTypeConfiguration<Elemen
 
         builder.Property(e => e.MetodoFijacion)
             .IsRequired()
-            .HasConversion<int>()
-            .HasDefaultValue(MetodoFijacionPrecio.ImporteDivisa);
+            .HasConversion<int>();
 
         builder.HasOne(e => e.ListaPrecios)
             .WithMany(l => l.Elementos)

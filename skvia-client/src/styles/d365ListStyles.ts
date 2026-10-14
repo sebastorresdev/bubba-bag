@@ -87,8 +87,6 @@ export const useD365ListStyles = makeStyles({
   dataRow: {
     userSelect: 'text',
     cursor: 'pointer',
-    height: '38px',
-    minHeight: '38px',
     fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightRegular,
     ':hover': {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Dialog, DialogSurface, DialogTitle, DialogBody, DialogContent, DialogActions, Input, Select, Skeleton, SkeletonItem, Tab, TabList, Textarea, tokens } from '@fluentui/react-components';
+import { Button, Card, Dialog, DialogSurface, DialogTitle, DialogBody, DialogContent, DialogActions, Input, Select, Skeleton, SkeletonItem, Tab, TabList, Text, Textarea, tokens } from '@fluentui/react-components';
 import { DatePicker } from '@fluentui/react-datepicker-compat';
 import { Add16Regular, ArrowLeft16Regular, Box16Regular, Checkmark16Regular, Delete16Regular, LockClosed16Regular, Save16Regular, SaveMultiple16Regular } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../components/common/D365CommandBar';
@@ -176,71 +176,179 @@ export function CompraFormPage() {
         </div>
         <SkeletonItem size={72} className={form.skeletonTextarea72} />
       </Skeleton>
-    </div> : id && compra?.id !== id ? null : tab === 'general' ? <div className={form.card}>
+    </div> : id && compra?.id !== id ? null : tab === 'general' ? (
       <div className={form.grid2Cols}>
-        <D365FormField label="Código de compra" htmlFor="compra-codigo"><Input id="compra-codigo" className={form.d365ControlFull} value={compra?.numero ?? ''} appearance="filled-darker" readOnly contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />} /></D365FormField>
-        <D365FormField label="Estado" htmlFor="compra-estado"><Input id="compra-estado" className={form.d365ControlFull} value={estado} appearance="filled-darker" readOnly contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />} /></D365FormField>
-        {estado.startsWith('Recibida') && (
-          <>
-            <D365FormField label="Recibido por" htmlFor="compra-recibido-por">
-              <Input
-                id="compra-recibido-por"
-                className={form.d365ControlFull}
-                value={compra?.recibidoPor || 'Confirmada'}
-                appearance="filled-darker"
-                readOnly
-                contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />}
-              />
-            </D365FormField>
-            <D365FormField label="Fecha de recepción" htmlFor="compra-fecha-recepcion">
-              <Input
-                id="compra-fecha-recepcion"
-                className={form.d365ControlFull}
-                value={compra?.fechaRecepcion ? new Date(compra.fechaRecepcion).toLocaleString('es-PE') : '—'}
-                appearance="filled-darker"
-                readOnly
-                contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />}
-              />
-            </D365FormField>
-          </>
-        )}
-        <D365FormField label="Proveedor"><Input aria-label="Proveedor" className={form.d365ControlFull} value={proveedor} maxLength={150} disabled={bloqueadoPedido} onChange={(_, d) => setProveedor(d.value)} /></D365FormField>
-        <D365FormField label="Almacén de recepción" htmlFor="compra-almacen">
-          <LookupDropdownWithQuickCreate
-            idEntrada="compra-almacen"
-            etiquetaGrupo="Almacenes"
-            icono={<Box16Regular className={form.categoryIcon} />}
-            alNavegar={id => window.open(`/servicio-campo/almacenes/${id}`, '_blank')}
-            tituloEnlace="Ver detalles del almacén"
-            opciones={almacenes
-              .filter(x => (x.activo || x.id === almacenId) && (x.tipo === 1 || (!x.tipo && !x.recursoId)))
-              .map(x => ({ id: x.id, nombre: x.nombre }))}
-            seleccionada={almacen ? { id: almacen.id, nombre: almacen.nombre } : null}
-            textoBusqueda={busquedaAlmacen}
-            alCambiarBusqueda={setBusquedaAlmacen}
-            alSeleccionar={id => setAlmacenId(id ?? '')}
-            deshabilitado={bloqueadoPedido}
-            renderizarCreacionRapida={({ abierto, nombreInicial, cerrar }) => <CreacionRapidaEntidadDrawer
-              entidad={abierto ? 'almacen' : null}
-              nombreInicial={nombreInicial}
-              alCerrar={cerrar}
-              alGuardar={id => {
-                void AlmacenService.getAlmacenById(id).then(a => {
-                  setAlmacenes(xs => [...xs.filter(x => x.id !== a.id), a]);
-                  setAlmacenId(a.id);
-                  cerrar();
-                }).catch(e => setError(e instanceof Error ? e.message : 'No se pudo cargar el almacén.'));
-              }}
-            />}
-          />
-        </D365FormField>
-        <D365FormField label="Tipo de comprobante"><Select aria-label="Tipo de comprobante" className={form.d365ControlFull} value={tipo} disabled={bloqueado} onChange={(_, d) => setTipo(d.value)}>{['Factura', 'Boleta', 'Guía de remisión'].map(x => <option key={x}>{x}</option>)}</Select></D365FormField>
-        <D365FormField label="Número de comprobante"><Input aria-label="Número de comprobante" className={form.d365ControlFull} value={documento} maxLength={100} disabled={bloqueado} onChange={(_, d) => setDocumento(d.value)} /></D365FormField>
-        <D365FormField label="Fecha del comprobante" htmlFor="compra-fecha"><DatePicker id="compra-fecha" className={form.d365ControlFull} value={fecha ? new Date(fecha + 'T00:00:00') : undefined} disabled={bloqueado} formatDate={d => d?.toLocaleDateString('es-PE') ?? ''} onSelectDate={d => setFecha(d ? fechaISO(d) : '')} /></D365FormField>
-        <D365FormField label="Moneda"><Select aria-label="Moneda" className={form.d365ControlFull} value={moneda} disabled={bloqueadoPedido} onChange={(_, d) => setMoneda(d.value)}><option value="PEN">Soles (PEN)</option><option value="USD">Dólares (USD)</option></Select></D365FormField>
+        {/* Tarjeta 1: Información de la Compra */}
+        <Card className={form.card}>
+          <Text className={form.cardSectionTitle}>Información de la Compra</Text>
+
+          <D365FormField label="Código de compra" htmlFor="compra-codigo">
+            <Input
+              id="compra-codigo"
+              className={form.d365ControlFull}
+              value={compra?.numero ?? ''}
+              appearance="filled-darker"
+              readOnly
+              contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />}
+            />
+          </D365FormField>
+
+          <D365FormField label="Estado" htmlFor="compra-estado">
+            <Input
+              id="compra-estado"
+              className={form.d365ControlFull}
+              value={estado}
+              appearance="filled-darker"
+              readOnly
+              contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />}
+            />
+          </D365FormField>
+
+          {estado.startsWith('Recibida') && (
+            <>
+              <D365FormField label="Recibido por" htmlFor="compra-recibido-por">
+                <Input
+                  id="compra-recibido-por"
+                  className={form.d365ControlFull}
+                  value={compra?.recibidoPor || 'Confirmada'}
+                  appearance="filled-darker"
+                  readOnly
+                  contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />}
+                />
+              </D365FormField>
+              <D365FormField label="Fecha de recepción" htmlFor="compra-fecha-recepcion">
+                <Input
+                  id="compra-fecha-recepcion"
+                  className={form.d365ControlFull}
+                  value={compra?.fechaRecepcion ? new Date(compra.fechaRecepcion).toLocaleString('es-PE') : '—'}
+                  appearance="filled-darker"
+                  readOnly
+                  contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />}
+                />
+              </D365FormField>
+            </>
+          )}
+
+          <D365FormField label="Proveedor">
+            <Input
+              aria-label="Proveedor"
+              className={form.d365ControlFull}
+              value={proveedor}
+              maxLength={150}
+              disabled={bloqueadoPedido}
+              onChange={(_, d) => setProveedor(d.value)}
+            />
+          </D365FormField>
+
+          <D365FormField label="Almacén de recepción" htmlFor="compra-almacen">
+            <LookupDropdownWithQuickCreate
+              idEntrada="compra-almacen"
+              etiquetaGrupo="Almacenes"
+              icono={<Box16Regular className={form.categoryIcon} />}
+              alNavegar={id => window.open(`/servicio-campo/almacenes/${id}`, '_blank')}
+              tituloEnlace="Ver detalles del almacén"
+              opciones={almacenes
+                .filter(x => (x.activo || x.id === almacenId) && (x.tipo === 1 || (!x.tipo && !x.recursoId)))
+                .map(x => ({ id: x.id, nombre: x.nombre }))}
+              seleccionada={almacen ? { id: almacen.id, nombre: almacen.nombre } : null}
+              textoBusqueda={busquedaAlmacen}
+              alCambiarBusqueda={setBusquedaAlmacen}
+              alSeleccionar={id => setAlmacenId(id ?? '')}
+              deshabilitado={bloqueadoPedido}
+              renderizarCreacionRapida={({ abierto, nombreInicial, cerrar }) => <CreacionRapidaEntidadDrawer
+                entidad={abierto ? 'almacen' : null}
+                nombreInicial={nombreInicial}
+                alCerrar={cerrar}
+                alGuardar={id => {
+                  void AlmacenService.getAlmacenById(id).then(a => {
+                    setAlmacenes(xs => [...xs.filter(x => x.id !== a.id), a]);
+                    setAlmacenId(a.id);
+                    cerrar();
+                  }).catch(e => setError(e instanceof Error ? e.message : 'No se pudo cargar el almacén.'));
+                }}
+              />}
+            />
+          </D365FormField>
+        </Card>
+
+        {/* Tarjeta 2: Comprobante y Condiciones */}
+        <Card className={form.card}>
+          <Text className={form.cardSectionTitle}>Comprobante y Condiciones</Text>
+
+          <D365FormField label="Tipo de comprobante">
+            <Select
+              aria-label="Tipo de comprobante"
+              className={form.d365ControlFull}
+              value={tipo}
+              disabled={bloqueado}
+              onChange={(_, d) => setTipo(d.value)}
+            >
+              {['Factura', 'Boleta', 'Guía de remisión'].map(x => <option key={x}>{x}</option>)}
+            </Select>
+          </D365FormField>
+
+          <D365FormField label="Número de comprobante">
+            <Input
+              aria-label="Número de comprobante"
+              className={form.d365ControlFull}
+              value={documento}
+              maxLength={100}
+              disabled={bloqueado}
+              onChange={(_, d) => setDocumento(d.value)}
+            />
+          </D365FormField>
+
+          <D365FormField label="Fecha del comprobante" htmlFor="compra-fecha">
+            <DatePicker
+              id="compra-fecha"
+              className={form.d365ControlFull}
+              value={fecha ? new Date(fecha + 'T00:00:00') : undefined}
+              disabled={bloqueado}
+              formatDate={d => d?.toLocaleDateString('es-PE') ?? ''}
+              onSelectDate={d => setFecha(d ? fechaISO(d) : '')}
+            />
+          </D365FormField>
+
+          <D365FormField label="Moneda">
+            <Select
+              aria-label="Moneda"
+              className={form.d365ControlFull}
+              value={moneda}
+              disabled={bloqueadoPedido}
+              onChange={(_, d) => setMoneda(d.value)}
+            >
+              <option value="PEN">Soles (PEN)</option>
+              <option value="USD">Dólares (USD)</option>
+            </Select>
+          </D365FormField>
+
+          <D365FormField label="Observación" align="top">
+            <Textarea
+              aria-label="Observación"
+              className={form.d365ControlFull}
+              value={observacion}
+              maxLength={500}
+              rows={3}
+              disabled={bloqueado}
+              onChange={(_, d) => setObservacion(d.value)}
+            />
+          </D365FormField>
+        </Card>
       </div>
-      <D365FormField label="Observación" align="top"><Textarea aria-label="Observación" className={form.d365ControlFull} value={observacion} maxLength={500} disabled={bloqueado} onChange={(_, d) => setObservacion(d.value)} /></D365FormField>
-    </div> : <div className={form.card}><ProductosCompraGrid lineas={lineas} productos={productos} moneda={moneda} bloqueado={bloqueado} soloLectura={estado === 'Recibida' || estado === 'Enviada'} soloSeries={estado === 'Solicitada'} alCambiar={setLineas} alCargarProducto={p => setProductos(ps => [...ps.filter(x => x.id !== p.id), p])} /></div>}</div>
+    ) : (
+      <Card className={form.card}>
+        <ProductosCompraGrid
+          lineas={lineas}
+          productos={productos}
+          moneda={moneda}
+          bloqueado={bloqueado}
+          soloLectura={estado === 'Recibida' || estado === 'Enviada'}
+          soloSeries={estado === 'Solicitada'}
+          alCambiar={setLineas}
+          alCargarProducto={p => setProductos(ps => [...ps.filter(x => x.id !== p.id), p])}
+        />
+      </Card>
+    )}</div>
 
     <Dialog
       open={dialogEliminarBorrador}

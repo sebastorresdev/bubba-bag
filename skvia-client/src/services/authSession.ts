@@ -30,10 +30,23 @@ export async function loadSession(): Promise<void> {
   if (!session.usuario) publish({ ...session, cargando: true });
   try {
     const response = await fetch('/api/seguridad/sesion', { headers: { Authorization: `Bearer ${token}` } });
-    if (!response.ok) throw new Error(response.status === 401 ? 'La sesión ha vencido.' : 'No se pudo verificar la sesión.');
+    if (response.status === 401 || response.status === 403) {
+      if (current === generation) clearSession();
+      throw new Error('La sesión ha vencido o no cuenta con autorización.');
+    }
+    if (!response.ok) {
+      // Fallo temporal del servidor (5xx) - no expulsar al usuario
+      if (current === generation) publish({ ...session, cargando: false });
+      throw new Error(`Error en el servidor al verificar sesión (${response.status}).`);
+    }
     const data: { usuario: SessionUser; permisos: string[] } = await response.json();
     if (current === generation) publish({ usuario: data.usuario, permisos: data.permisos, cargando: false });
-  } catch (error) { if (current === generation) clearSession(); throw error; }
+  } catch (error) {
+    if (current === generation) {
+      publish({ ...session, cargando: false });
+    }
+    throw error;
+  }
 }
 export async function startSession(token: string) {
   generation++; localStorage.setItem(TOKEN_KEY, token); await loadSession();

@@ -9,7 +9,7 @@ namespace BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
 
 /// <summary>
 /// Representa una línea de trabajo específica dentro de una Orden de Trabajo.
-/// Cada Trabajo referencia un Servicio de catálogo, opcionalmente una PlantillaTrabajo que define
+/// Cada Trabajo referencia un Servicio de catálogo, opcionalmente una ConfiguracionServicio que define
 /// tareas y materiales previstos, y registra la ejecución real (TareaTrabajo) y los materiales (MaterialTrabajo).
 /// </summary>
 public class Trabajo : Entity<Guid>
@@ -31,10 +31,10 @@ public class Trabajo : Entity<Guid>
     public Producto Producto { get; private set; } = default!;
 
     /// <summary>
-    /// Plantilla de trabajo utilizada como modelo para precargar tareas y materiales teóricos.
+    /// Configuración del servicio utilizada como modelo para precargar tareas y materiales teóricos.
     /// </summary>
-    public Guid? PlantillaTrabajoId { get; private set; }
-    public PlantillaTrabajo? PlantillaTrabajo { get; private set; }
+    public Guid? ConfiguracionServicioId { get; private set; }
+    public ConfiguracionServicio? ConfiguracionServicio { get; private set; }
 
     public int ItemNumero { get; private set; } = 1;
     public EstadoTrabajo Estado { get; private set; } = EstadoTrabajo.Pendiente;
@@ -46,6 +46,9 @@ public class Trabajo : Entity<Guid>
 
     public DateTime? FechaInicio { get; private set; }
     public DateTime? FechaFin { get; private set; }
+
+    public string? ReferenciaEquipo { get; private set; }
+    public string? OrigenPrecio { get; private set; }
 
     public string? Observaciones { get; private set; }
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
@@ -65,10 +68,10 @@ public class Trabajo : Entity<Guid>
         string codigoTrabajo,
         Guid productoId,
         int itemNumero = 1,
-        Guid? plantillaTrabajoId = null,
+        Guid? configuracionServicioId = null,
         decimal tarifaBaseCongelada = 0m,
         string? observaciones = null,
-        string? codigoExterno = null)
+        string? codigoExterno = null, string? referenciaEquipo = null, string? origenPrecio = null)
     {
         if (string.IsNullOrWhiteSpace(codigoTrabajo))
             throw new ArgumentException("El código de trabajo es obligatorio.", nameof(codigoTrabajo));
@@ -79,9 +82,10 @@ public class Trabajo : Entity<Guid>
             OrdenTrabajoId = ordenTrabajoId,
             CodigoTrabajo = codigoTrabajo.Trim().ToUpperInvariant(),
             CodigoExterno = codigoExterno?.Trim(),
+            ReferenciaEquipo = referenciaEquipo?.Trim(), OrigenPrecio = origenPrecio,
             ProductoId = productoId,
             ItemNumero = Math.Max(1, itemNumero),
-            PlantillaTrabajoId = plantillaTrabajoId,
+            ConfiguracionServicioId = configuracionServicioId,
             TarifaBaseCongelada = Math.Max(0, tarifaBaseCongelada),
             Estado = EstadoTrabajo.Pendiente,
             Observaciones = observaciones?.Trim(),
@@ -90,13 +94,17 @@ public class Trabajo : Entity<Guid>
     }
 
     /// <summary>
-    /// Aplica una PlantillaTrabajo al trabajo, precargando automáticamente las tareas y los materiales teóricos previstos.
+    /// Aplica una ConfiguracionServicio al trabajo, precargando automáticamente las tareas y los materiales teóricos previstos.
     /// </summary>
-    public void AplicarPlantilla(PlantillaTrabajo plantilla)
+    public void AplicarPlantilla(ConfiguracionServicio plantilla)
     {
         ArgumentNullException.ThrowIfNull(plantilla);
 
-        PlantillaTrabajoId = plantilla.Id;
+        if (plantilla.ProductoId != ProductoId || !plantilla.Activo)
+            throw new InvalidOperationException("La configuración debe estar activa y pertenecer al servicio del trabajo.");
+        if (_tareas.Count > 0 || _materiales.Count > 0 || Estado != EstadoTrabajo.Pendiente)
+            throw new InvalidOperationException("El trabajo ya tiene una configuración o ejecución; sus datos no pueden reemplazarse.");
+        ConfiguracionServicioId = plantilla.Id;
 
         // Precargar tareas previstas
         foreach (var pt in plantilla.Tareas)
@@ -106,9 +114,9 @@ public class Trabajo : Entity<Guid>
                 nombreTarea: pt.Tarea?.Nombre ?? $"Paso {pt.OrdenSecuencia}",
                 ordenSecuencia: pt.OrdenSecuencia,
                 tareaId: pt.TareaId,
-                plantillaTareaId: pt.Id,
+                configuracionTareaId: pt.Id,
                 esObligatoria: pt.EsObligatoria,
-                requiereEvidencia: pt.RequiereEvidencia
+                requiereEvidencia: pt.RequiereEvidencia, instrucciones: pt.Instrucciones
             );
             _tareas.Add(tareaTrabajo);
         }
@@ -121,7 +129,8 @@ public class Trabajo : Entity<Guid>
                 productoId: pm.ProductoId,
                 cantidadPrevista: pm.CantidadPrevista,
                 esSeriado: pm.Producto?.EsSerializado ?? false,
-                observaciones: pm.Observaciones
+                observaciones: pm.Observaciones, unidadMedidaId: pm.UnidadMedidaId ?? pm.Producto?.UnidadMedidaDefectoId,
+                unidadMedidaNombre: pm.UnidadMedida?.Nombre ?? pm.Producto?.UnidadMedidaDefecto?.Nombre, esObligatorio: pm.EsObligatorio
             );
             _materiales.Add(materialTrabajo);
         }
@@ -160,6 +169,12 @@ public class Trabajo : Entity<Guid>
         }
     }
 
+    public void ActualizarDatos(string? referenciaEquipo, string? observaciones, string? codigoExterno)
+    {
+        if (Estado != EstadoTrabajo.Pendiente) throw new InvalidOperationException("Solo se pueden editar trabajos pendientes.");
+        ReferenciaEquipo = referenciaEquipo?.Trim(); Observaciones = observaciones?.Trim(); CodigoExterno = codigoExterno?.Trim();
+    }
+
     public void Iniciar()
     {
         Estado = EstadoTrabajo.EnProgreso;
@@ -168,6 +183,8 @@ public class Trabajo : Entity<Guid>
 
     public void Completar(string? observaciones = null)
     {
+        if (Estado is EstadoTrabajo.Cancelado or EstadoTrabajo.Rechazado)
+            throw new InvalidOperationException("El trabajo está cancelado o rechazado.");
         // Validar tareas obligatorias
         var tareasObligatoriasPendientes = _tareas.Where(t => t.EsObligatoria && t.Estado != Enums.EstadoTarea.Completa).ToList();
         if (tareasObligatoriasPendientes.Any())

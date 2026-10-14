@@ -17,9 +17,14 @@ public class AuthService(UserManager<Usuario> usuarios, RoleManager<Rol> roles, 
 
     // Bloqueo compartido entre instancias: configuración inicial y último administrador.
     // Los datos y roles de una edición se confirman o revierten juntos.
-    private async Task<Result<T>> EscribirAsync<T>(Func<Task<Result<T>>> accion)
+    private async Task<Result<T>> EscribirAsync<T>(Func<Task<Result<T>>> accion, Action? postCommit = null)
     {
-        if (!db.Database.IsRelational() || db.Database.CurrentTransaction != null) return await accion();
+        if (!db.Database.IsRelational() || db.Database.CurrentTransaction != null)
+        {
+            var res = await accion();
+            if (res.IsSuccess) postCommit?.Invoke();
+            return res;
+        }
         var estrategia = db.Database.CreateExecutionStrategy();
         return await estrategia.ExecuteAsync(async () =>
         {
@@ -31,8 +36,16 @@ public class AuthService(UserManager<Usuario> usuarios, RoleManager<Rol> roles, 
             {
                 if (db.Database.IsNpgsql()) await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(761004301)");
                 var resultado = await accion();
-                if (resultado.IsSuccess) await transaccion.CommitAsync();
-                else { await transaccion.RollbackAsync(); db.ChangeTracker.Clear(); }
+                if (resultado.IsSuccess)
+                {
+                    await transaccion.CommitAsync();
+                    postCommit?.Invoke();
+                }
+                else
+                {
+                    await transaccion.RollbackAsync();
+                    db.ChangeTracker.Clear();
+                }
                 return resultado;
             }
             catch
@@ -41,6 +54,15 @@ public class AuthService(UserManager<Usuario> usuarios, RoleManager<Rol> roles, 
                 throw;
             }
         });
+    }
+
+    private Task<Result<T>> EscribirConPostCommitAsync<T>(Func<Action<Action>, Task<Result<T>>> accion)
+    {
+        var postCommitActions = new List<Action>();
+        return EscribirAsync(
+            () => accion(postCommitActions.Add),
+            () => { foreach (var act in postCommitActions) act(); }
+        );
     }
     public async Task<bool> RequiereConfiguracionAsync() => !await db.Users.AnyAsync();
     public Task<Result<Guid>> ConfigurarAdministradorAsync(string email, string password, string nombreCompleto) => EscribirAsync(async () =>
@@ -114,8 +136,32 @@ public class AuthService(UserManager<Usuario> usuarios, RoleManager<Rol> roles, 
             var termino = busqueda.Trim().ToLower();
             consulta = consulta.Where(x => x.NombreCompleto.ToLower().Contains(termino) || (x.Email != null && x.Email.ToLower().Contains(termino)));
         }
-        var lista = new List<UsuarioDto>();
-        foreach (var usuario in await consulta.OrderBy(x => x.NombreCompleto).ToListAsync()) lista.Add(await DtoAsync(usuario));
+
+        var listaUsuarios = await consulta.OrderBy(x => x.NombreCompleto).ToListAsync();
+        if (listaUsuarios.Count == 0) return Result<List<UsuarioDto>>.Success([]);
+
+        var userIds = listaUsuarios.Select(u => u.Id).ToList();
+
+        // Consulta por lotes única para evitar N+1
+        var rolesPorUsuario = await (
+            from ur in db.UserRoles.AsNoTracking()
+            join r in db.Roles.AsNoTracking() on ur.RoleId equals r.Id
+            where userIds.Contains(ur.UserId)
+            select new { ur.UserId, RoleName = r.Name }
+        ).ToListAsync();
+
+        var lookupRoles = rolesPorUsuario
+            .Where(x => !string.IsNullOrEmpty(x.RoleName))
+            .ToLookup(x => x.UserId, x => x.RoleName!);
+
+        var lista = listaUsuarios.Select(u => new UsuarioDto(
+            u.Id,
+            u.Email ?? "",
+            u.NombreCompleto,
+            u.EsActivo,
+            lookupRoles[u.Id].ToList()
+        )).ToList();
+
         return Result<List<UsuarioDto>>.Success(lista);
     }
     public async Task<Result<UsuarioDto>> ObtenerUsuarioPorIdAsync(Guid usuarioId)
@@ -227,7 +273,7 @@ public class AuthService(UserManager<Usuario> usuarios, RoleManager<Rol> roles, 
 
         return Result<RolDto>.Success(new RolDto(x.Id, x.Name!, x.Modulo, x.NombreVisible, x.Descripcion, perms, esSistema, usersCount));
     }
-    public Task<Result<Guid>> CrearRolAsync(string nombreVisible, string? codigo, string modulo, string descripcion, IEnumerable<string> permisos) => EscribirAsync(async () =>
+    public Task<Result<Guid>> CrearRolAsync(string nombreVisible, string? codigo, string modulo, string descripcion, IEnumerable<string> permisos) => EscribirConPostCommitAsync(async onCommit =>
     {
         if (string.IsNullOrWhiteSpace(nombreVisible) || nombreVisible.Trim().Length > 150)
             return Result<Guid>.Failure("El nombre del rol es requerido y debe tener hasta 150 caracteres.");
@@ -261,13 +307,14 @@ public class AuthService(UserManager<Usuario> usuarios, RoleManager<Rol> roles, 
 
         foreach (var p in listaPermisos)
         {
-            await roles.AddClaimAsync(nuevoRol, new System.Security.Claims.Claim("permission", p));
+            var resClaim = await roles.AddClaimAsync(nuevoRol, new System.Security.Claims.Claim("permission", p));
+            if (!resClaim.Succeeded) return Result<Guid>.Failure(Errores(resClaim));
         }
 
-        RolePermissions.SetRolePermissions(cod, listaPermisos);
+        onCommit(() => RolePermissions.SetRolePermissions(cod, listaPermisos));
         return Result<Guid>.Success(nuevoRol.Id);
     });
-    public Task<Result<bool>> ActualizarRolAsync(Guid rolId, string nombreVisible, string modulo, string descripcion, IEnumerable<string> permisos) => EscribirAsync(async () =>
+    public Task<Result<bool>> ActualizarRolAsync(Guid rolId, string nombreVisible, string modulo, string descripcion, IEnumerable<string> permisos) => EscribirConPostCommitAsync(async onCommit =>
     {
         var rol = await roles.FindByIdAsync(rolId.ToString());
         if (rol == null) return Result<bool>.Failure("Rol no encontrado.");
@@ -295,26 +342,29 @@ public class AuthService(UserManager<Usuario> usuarios, RoleManager<Rol> roles, 
 
             foreach (var c in permClaims.Where(c => !listaPermisos.Contains(c.Value)))
             {
-                await roles.RemoveClaimAsync(rol, c);
+                var resRemove = await roles.RemoveClaimAsync(rol, c);
+                if (!resRemove.Succeeded) return Result<bool>.Failure(Errores(resRemove));
             }
 
             foreach (var p in listaPermisos.Where(p => !permClaims.Any(c => c.Value == p)))
             {
-                await roles.AddClaimAsync(rol, new System.Security.Claims.Claim("permission", p));
+                var resAdd = await roles.AddClaimAsync(rol, new System.Security.Claims.Claim("permission", p));
+                if (!resAdd.Succeeded) return Result<bool>.Failure(Errores(resAdd));
             }
-
-            RolePermissions.SetRolePermissions(rol.Name!, listaPermisos);
 
             var usuariosEnRol = await usuarios.GetUsersInRoleAsync(rol.Name!);
             foreach (var u in usuariosEnRol)
             {
-                await usuarios.UpdateSecurityStampAsync(u);
+                var resStamp = await usuarios.UpdateSecurityStampAsync(u);
+                if (!resStamp.Succeeded) return Result<bool>.Failure(Errores(resStamp));
             }
+
+            onCommit(() => RolePermissions.SetRolePermissions(rol.Name!, listaPermisos));
         }
 
         return Result<bool>.Success(true);
     });
-    public Task<Result<bool>> EliminarRolAsync(Guid rolId) => EscribirAsync(async () =>
+    public Task<Result<bool>> EliminarRolAsync(Guid rolId) => EscribirConPostCommitAsync(async onCommit =>
     {
         var rol = await roles.FindByIdAsync(rolId.ToString());
         if (rol == null) return Result<bool>.Failure("Rol no encontrado.");
@@ -332,13 +382,15 @@ public class AuthService(UserManager<Usuario> usuarios, RoleManager<Rol> roles, 
         var claims = await roles.GetClaimsAsync(rol);
         foreach (var c in claims)
         {
-            await roles.RemoveClaimAsync(rol, c);
+            var resRemove = await roles.RemoveClaimAsync(rol, c);
+            if (!resRemove.Succeeded) return Result<bool>.Failure(Errores(resRemove));
         }
 
+        var nombreRol = rol.Name!;
         var resultado = await roles.DeleteAsync(rol);
         if (!resultado.Succeeded) return Result<bool>.Failure(Errores(resultado));
 
-        RolePermissions.RemoveRole(rol.Name!);
+        onCommit(() => RolePermissions.RemoveRole(nombreRol));
         return Result<bool>.Success(true);
     });
     public Task<Result<List<PermisoDefinicionDto>>> ObtenerCatalogoPermisosAsync()

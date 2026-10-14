@@ -1,18 +1,21 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
+  Card,
   Input,
   Tab,
   TabList,
-  Spinner,
   Text,
   Badge,
-  tokens,
   Toast,
   Toaster,
   ToastTitle,
   useToastController,
   useId,
+  createTableColumn,
+  type TableColumnDefinition,
+  Skeleton,
+  SkeletonItem,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -39,6 +42,7 @@ import { SelectorEntidadRelacionada } from '../../../components/common/SelectorE
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../components/common/D365CommandBar';
 import { D365MessageBar } from '../../../components/common/D365MessageBar';
 import { D365EntityHeader } from '../../../components/common/D365EntityHeader';
+import { D365SubGrid } from '../../../components/common/D365SubGrid';
 
 export function TerritorioFormPage() {
   const styles = useD365FormStyles();
@@ -219,6 +223,47 @@ export function TerritorioFormPage() {
     }
   };
 
+  const columnasRecursos: TableColumnDefinition<RecursoDto>[] = useMemo(
+    () => [
+      createTableColumn<RecursoDto>({
+        columnId: 'codigo',
+        compare: (a, b) => a.codigo.localeCompare(b.codigo),
+        renderHeaderCell: () => 'Código',
+        renderCell: (item) => <Text weight="semibold">{item.codigo}</Text>,
+      }),
+      createTableColumn<RecursoDto>({
+        columnId: 'nombreCompleto',
+        compare: (a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto),
+        renderHeaderCell: () => 'Nombre Completo',
+        renderCell: (item) => item.nombreCompleto,
+      }),
+      createTableColumn<RecursoDto>({
+        columnId: 'tipo',
+        renderHeaderCell: () => 'Tipo',
+        renderCell: (item) => (
+          <Badge appearance="tint" shape="rounded" color="informative">
+            {item.tipoNombre}
+          </Badge>
+        ),
+      }),
+      createTableColumn<RecursoDto>({
+        columnId: 'telefono',
+        renderHeaderCell: () => 'Teléfono',
+        renderCell: (item) => item.telefono || '—',
+      }),
+      createTableColumn<RecursoDto>({
+        columnId: 'activo',
+        renderHeaderCell: () => 'Estado',
+        renderCell: (item) => (
+          <Badge appearance="ghost" shape="rounded" color={item.activo ? 'success' : 'danger'}>
+            {item.activo ? 'Activo' : 'Inactivo'}
+          </Badge>
+        ),
+      }),
+    ],
+    []
+  );
+
   return (
     <div className={styles.root}>
       <Toaster toasterId={toasterId} position="top-end" />
@@ -280,189 +325,175 @@ export function TerritorioFormPage() {
         </div>
       </D365CommandBar>
 
-      {loading ? (
-        <div className={styles.loadingContainer}>
-          <Spinner label="Cargando territorio..." size="large" />
-        </div>
-      ) : (
-        <>
-          <D365EntityHeader
-            title={isEditMode ? headerInfo.nombre || 'Territorio' : 'Nuevo Territorio'}
-            subtitle={headerInfo.unidadOrganizativaNombre ? `Sede: ${headerInfo.unidadOrganizativaNombre}` : 'Zona Operativa'}
-            avatarName={isEditMode ? headerInfo.nombre : 'Territorio'}
-            avatarIcon={<Shield20Regular />}
-            avatarSize={48}
-            metadata={[
-              { label: 'Sede', value: headerInfo.unidadOrganizativaNombre || 'Sin asignar' },
-              { label: 'Estado', value: headerInfo.activo ? 'Activo' : 'Inactivo' },
-            ]}
-            tabs={
-              <TabList
-                selectedValue={selectedTab}
-                onTabSelect={(_, d) => setSelectedTab(d.value as 'general' | 'recursos' | 'detalle')}
-              >
-                <Tab value="general">General</Tab>
-                <Tab value="recursos" disabled={!isEditMode}>Técnicos Asignados</Tab>
-                <Tab value="detalle" disabled={!isEditMode}>Detalle / Auditoría</Tab>
-              </TabList>
-            }
-          />
+      <D365EntityHeader
+        title={loading ? 'Cargando...' : isEditMode ? headerInfo.nombre || 'Territorio' : 'Nuevo Territorio'}
+        subtitle={loading ? 'Cargando...' : headerInfo.unidadOrganizativaNombre ? `Sede: ${headerInfo.unidadOrganizativaNombre}` : 'Zona Operativa'}
+        avatarName={isEditMode ? headerInfo.nombre : 'Territorio'}
+        avatarIcon={<Shield20Regular />}
+        avatarSize={48}
+        metadata={
+          loading
+            ? [
+                { label: 'Sede', value: 'Cargando...' },
+                { label: 'Estado', value: '—' },
+              ]
+            : [
+                { label: 'Sede', value: headerInfo.unidadOrganizativaNombre || 'Sin asignar' },
+                { label: 'Estado', value: headerInfo.activo ? 'Activo' : 'Inactivo' },
+              ]
+        }
+        tabs={
+          <TabList
+            selectedValue={selectedTab}
+            onTabSelect={(_, d) => setSelectedTab(d.value as 'general' | 'recursos' | 'detalle')}
+          >
+            <Tab value="general">General</Tab>
+            <Tab value="recursos" disabled={!isEditMode || loading}>Técnicos Asignados</Tab>
+            <Tab value="detalle" disabled={!isEditMode || loading}>Detalle / Auditoría</Tab>
+          </TabList>
+        }
+      />
 
-          <div className={styles.contentBody}>
+      <div className={styles.contentBody}>
+        {loading ? (
+          <div className={styles.grid2Cols}>
+            <Card className={styles.card}>
+              <Skeleton animation="pulse">
+                <SkeletonItem size={16} className={styles.skeletonHeader} />
+                <div className={styles.fieldColumnFlex}>
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={72} className={styles.skeletonTextarea72} />
+                </div>
+              </Skeleton>
+            </Card>
+            <Card className={styles.card}>
+              <Skeleton animation="pulse">
+                <SkeletonItem size={16} className={styles.skeletonSub140} />
+                <div className={styles.fieldColumnFlex}>
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                  <SkeletonItem size={32} className={styles.skeletonFull} />
+                </div>
+              </Skeleton>
+            </Card>
+          </div>
+        ) : (
+          <>
             {selectedTab === 'general' ? (
               <div style={{ maxWidth: '680px', width: '100%' }}>
-                <div className={styles.card}>
-                  <div className={styles.cardSectionTitle}>Información del Territorio y Zona</div>
+                <Card className={styles.card}>
+                  <Text className={styles.cardSectionTitle}>Información del Territorio y Zona</Text>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {isEditMode && formData.codigo && (
-                      <D365FormField label="Código de Territorio">
-                        <Input
-                          className={styles.d365ControlFull}
-                          value={formData.codigo}
-                          readOnly
-                          appearance="filled-darker"
-                        />
-                      </D365FormField>
-                    )}
-
-                    <D365FormField label="Nombre del Territorio / Zona" required error={errors.nombre}>
+                  {isEditMode && formData.codigo && (
+                    <D365FormField label="Código de Territorio">
                       <Input
                         className={styles.d365ControlFull}
-                        value={formData.nombre}
-                        maxLength={150}
-                        onChange={(_, d) => setFormData((p) => ({ ...p, nombre: d.value }))}
+                        value={formData.codigo}
+                        readOnly
+                        appearance="filled-darker"
                       />
                     </D365FormField>
+                  )}
 
-                    <D365FormField label="Unidad Organizativa (Sede)" required error={errors.unidadOrganizativaId}>
-                      <SelectorEntidadRelacionada
-                        etiquetaGrupo="Sedes"
-                        icono={<Building16Regular />}
-                        opciones={sedes.map((s) => ({
-                          id: s.id,
-                          nombre: `${s.nombre} (${s.codigo})`,
+                  <D365FormField label="Nombre del Territorio / Zona" required error={errors.nombre}>
+                    <Input
+                      className={styles.d365ControlFull}
+                      value={formData.nombre}
+                      maxLength={150}
+                      onChange={(_, d) => setFormData((p) => ({ ...p, nombre: d.value }))}
+                    />
+                  </D365FormField>
+
+                  <D365FormField label="Unidad Organizativa (Sede)" required error={errors.unidadOrganizativaId}>
+                    <SelectorEntidadRelacionada
+                      etiquetaGrupo="Sedes"
+                      icono={<Building16Regular />}
+                      opciones={sedes.map((s) => ({
+                        id: s.id,
+                        nombre: `${s.nombre} (${s.codigo})`,
+                      }))}
+                      seleccionada={
+                        formData.unidadOrganizativaId
+                          ? (() => {
+                              const s = sedes.find((item) => item.id === formData.unidadOrganizativaId);
+                              return s ? { id: s.id, nombre: `${s.nombre} (${s.codigo})` } : null;
+                            })()
+                          : null
+                      }
+                      textoBusqueda={busquedaSede}
+                      alCambiarBusqueda={setBusquedaSede}
+                      alSeleccionar={(sedeId) => {
+                        setFormData((p) => ({
+                          ...p,
+                          unidadOrganizativaId: sedeId || '',
+                          almacenPredeterminadoId: '',
+                        }));
+                        if (errors.unidadOrganizativaId && sedeId) {
+                          setErrors((e) => ({ ...e, unidadOrganizativaId: '' }));
+                        }
+                      }}
+                      alNavegar={(sedeId) => navigate(`/administracion/unidades-organizativas/${sedeId}`)}
+                      deshabilitado={saving}
+                    />
+                  </D365FormField>
+
+                  <D365FormField label="Almacén Base de Abastecimiento">
+                    <SelectorEntidadRelacionada
+                      etiquetaGrupo="Almacenes"
+                      icono={<Box16Regular />}
+                      opciones={almacenes
+                        .filter(
+                          (a) =>
+                            !formData.unidadOrganizativaId ||
+                            !a.unidadOrganizativaId ||
+                            a.unidadOrganizativaId === formData.unidadOrganizativaId ||
+                            a.id === formData.almacenPredeterminadoId
+                        )
+                        .map((a) => ({
+                          id: a.id,
+                          nombre: a.nombre,
                         }))}
-                        seleccionada={
-                          formData.unidadOrganizativaId
-                            ? (() => {
-                                const s = sedes.find((item) => item.id === formData.unidadOrganizativaId);
-                                return s ? { id: s.id, nombre: `${s.nombre} (${s.codigo})` } : null;
-                              })()
-                            : null
-                        }
-                        textoBusqueda={busquedaSede}
-                        alCambiarBusqueda={setBusquedaSede}
-                        alSeleccionar={(sedeId) => {
-                          setFormData((p) => ({
-                            ...p,
-                            unidadOrganizativaId: sedeId || '',
-                            almacenPredeterminadoId: '',
-                          }));
-                          if (errors.unidadOrganizativaId && sedeId) {
-                            setErrors((e) => ({ ...e, unidadOrganizativaId: '' }));
-                          }
-                        }}
-                        alNavegar={(sedeId) => navigate(`/administracion/unidades-organizativas/${sedeId}`)}
-                        deshabilitado={saving}
-                      />
-                    </D365FormField>
+                      seleccionada={
+                        formData.almacenPredeterminadoId
+                          ? (() => {
+                              const a = almacenes.find((item) => item.id === formData.almacenPredeterminadoId);
+                              return a ? { id: a.id, nombre: a.nombre } : null;
+                            })()
+                          : null
+                      }
+                      textoBusqueda={busquedaAlmacen}
+                      alCambiarBusqueda={setBusquedaAlmacen}
+                      alSeleccionar={(almId) =>
+                        setFormData((p) => ({ ...p, almacenPredeterminadoId: almId || '' }))
+                      }
+                      alNavegar={(almId) => navigate(`/almacenes/${almId}`)}
+                      deshabilitado={saving}
+                    />
+                  </D365FormField>
 
-                    <D365FormField label="Almacén Base de Abastecimiento">
-                      <SelectorEntidadRelacionada
-                        etiquetaGrupo="Almacenes"
-                        icono={<Box16Regular />}
-                        opciones={almacenes
-                          .filter(
-                            (a) =>
-                              !formData.unidadOrganizativaId ||
-                              !a.unidadOrganizativaId ||
-                              a.unidadOrganizativaId === formData.unidadOrganizativaId ||
-                              a.id === formData.almacenPredeterminadoId
-                          )
-                          .map((a) => ({
-                            id: a.id,
-                            nombre: a.nombre,
-                          }))}
-                        seleccionada={
-                          formData.almacenPredeterminadoId
-                            ? (() => {
-                                const a = almacenes.find((item) => item.id === formData.almacenPredeterminadoId);
-                                return a ? { id: a.id, nombre: a.nombre } : null;
-                              })()
-                            : null
-                        }
-                        textoBusqueda={busquedaAlmacen}
-                        alCambiarBusqueda={setBusquedaAlmacen}
-                        alSeleccionar={(almId) =>
-                          setFormData((p) => ({ ...p, almacenPredeterminadoId: almId || '' }))
-                        }
-                        alNavegar={(almId) => navigate(`/almacenes/${almId}`)}
-                        deshabilitado={saving}
-                      />
-                    </D365FormField>
-
-                    <D365FormField label="Código de Operación Proveedor">
-                      <Input
-                        className={styles.d365ControlFull}
-                        value={formData.descripcionProveedor || ''}
-                        maxLength={150}
-                        onChange={(_, d) => setFormData((p) => ({ ...p, descripcionProveedor: d.value }))}
-                      />
-                    </D365FormField>
-                  </div>
-                </div>
+                  <D365FormField label="Código de Operación Proveedor">
+                    <Input
+                      className={styles.d365ControlFull}
+                      value={formData.descripcionProveedor || ''}
+                      maxLength={150}
+                      onChange={(_, d) => setFormData((p) => ({ ...p, descripcionProveedor: d.value }))}
+                    />
+                  </D365FormField>
+                </Card>
               </div>
             ) : selectedTab === 'recursos' ? (
-              <div className={styles.card}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <Text weight="semibold">Técnicos asignados a este Territorio</Text>
-                  <D365CommandButton
-                    icon={<Add16Regular />}
-                    tone="create"
-                    onClick={() => navigate('/servicio-campo/recursos/nuevo')}
-                  >
-                    Nuevo Técnico
-                  </D365CommandButton>
-                </div>
-
-                {recursosAsignados.length === 0 ? (
-                  <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                    No hay técnicos asignados.
-                  </Text>
-                ) : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, textAlign: 'left' }}>
-                        <th style={{ padding: '8px' }}>Código</th>
-                        <th style={{ padding: '8px' }}>Nombre Completo</th>
-                        <th style={{ padding: '8px' }}>Tipo</th>
-                        <th style={{ padding: '8px' }}>Teléfono</th>
-                        <th style={{ padding: '8px' }}>Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {recursosAsignados.map((r) => (
-                        <tr key={r.id} style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke3}` }}>
-                          <td style={{ padding: '8px', fontWeight: 600 }}>{r.codigo}</td>
-                          <td style={{ padding: '8px' }}>{r.nombreCompleto}</td>
-                          <td style={{ padding: '8px' }}>
-                            <Badge appearance="tint" shape="rounded" color="informative">
-                              {r.tipoNombre}
-                            </Badge>
-                          </td>
-                          <td style={{ padding: '8px' }}>{r.telefono || '—'}</td>
-                          <td style={{ padding: '8px' }}>
-                            <Badge appearance="ghost" shape="rounded" color={r.activo ? 'success' : 'danger'}>
-                              {r.activo ? 'Activo' : 'Inactivo'}
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
+              <D365SubGrid
+                title="Técnicos asignados a este Territorio"
+                items={recursosAsignados}
+                columns={columnasRecursos}
+                onAdd={() => navigate('/servicio-campo/recursos/nuevo')}
+                addLabel="Nuevo Técnico"
+                onRowClick={(r) => navigate(`/servicio-campo/recursos/${r.id}`)}
+                emptyMessage="No hay técnicos asignados a este territorio."
+              />
             ) : (
               <div className={styles.card}>
                 <div className={styles.grid2Cols}>
@@ -478,9 +509,9 @@ export function TerritorioFormPage() {
                 </div>
               </div>
             )}
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -20,6 +20,10 @@ public class MaterialTrabajo : Entity<Guid>
     /// <summary>
     /// Cantidad prevista teóricamente por la plantilla o presupuestada al agendar.
     /// </summary>
+    public Guid? UnidadMedidaId { get; private set; }
+    public string? UnidadMedidaNombre { get; private set; }
+    public bool EsObligatorio { get; private set; }
+
     public decimal CantidadPrevista { get; private set; }
 
     /// <summary>
@@ -60,7 +64,7 @@ public class MaterialTrabajo : Entity<Guid>
         Guid productoId,
         decimal cantidadPrevista,
         bool esSeriado = false,
-        string? observaciones = null)
+        string? observaciones = null, Guid? unidadMedidaId = null, string? unidadMedidaNombre = null, bool esObligatorio = false)
     {
         return new MaterialTrabajo
         {
@@ -68,6 +72,7 @@ public class MaterialTrabajo : Entity<Guid>
             TrabajoId = trabajoId,
             ProductoId = productoId,
             CantidadPrevista = Math.Max(0, cantidadPrevista),
+            UnidadMedidaId = unidadMedidaId, UnidadMedidaNombre = unidadMedidaNombre, EsObligatorio = esObligatorio,
             CantidadUtilizada = 0m,
             EsSeriado = esSeriado,
             EsRetiro = false,
