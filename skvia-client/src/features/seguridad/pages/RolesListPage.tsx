@@ -360,6 +360,7 @@ export function RolesListPage() {
             : 'Permisos'
         }
         permisos={selectedDrawer?.permisos ?? []}
+        catalogoPermisos={catalogoPermisos}
       />
 
       {/* Diálogo modal para administrar permisos directamente desde la lista */}

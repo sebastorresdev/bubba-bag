@@ -1,3 +1,6 @@
+import { D365FormContent } from '../../../../components/common/D365FormContent';
+import { useValidationFocus } from '../../../../hooks/useValidationFocus';
+import { useUnsavedChanges } from '../../../../hooks/useUnsavedChanges';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -211,6 +214,9 @@ export const DespachoTecnicoPage: React.FC = () => {
     totalItems?: number;
     totalLineas?: number;
   } | null>(null);
+  const focusValidation = useValidationFocus();
+  const draft = useUnsavedChanges({ almacenOrigenId,ubicacionOrigenId,almacenDestinoId,tecnicoId,numeroGuiaRemision,observaciones,lineas }, !loading);
+
 
   useEffect(() => {
     const init = async () => {
@@ -541,12 +547,15 @@ export const DespachoTecnicoPage: React.FC = () => {
   };
 
   const handleGuardar = async (cerrar: boolean) => {
+    const savedDraft = draft.capture();
     if (!almacenOrigenId) {
+      setSelectedTab('general'); focusValidation();
       setMensaje({ tipo: 'error', texto: 'Seleccione la bodega de origen.' });
       return;
     }
     const idDestino = almacenDestinoId || custodiaTecnico?.id;
     if (!idDestino) {
+      setSelectedTab('general'); focusValidation();
       setMensaje({ tipo: 'error', texto: 'Seleccione el almacén que recepciona.' });
       return;
     }
@@ -598,11 +607,13 @@ export const DespachoTecnicoPage: React.FC = () => {
       if (res.estado) setEstado(res.estado);
 
       if (cerrar) {
+        draft.markSaved(savedDraft);
         navigate('/servicio-campo/despacho-tecnicos', {
           state: { successMessage: `Borrador guardado exitosamente (N° ${res.numero}${res.numeroGuiaRemision ? ` · Guía ${res.numeroGuiaRemision}` : ''}).` }
         });
       } else {
         setSelectedTab('productos');
+        draft.markSaved(savedDraft);
         notifySuccess(`Borrador guardado exitosamente (N° ${res.numero}${res.numeroGuiaRemision ? ` · Guía ${res.numeroGuiaRemision}` : ''}). Ya puede agregar los productos a despachar.`);
       }
     } catch (err: any) {
@@ -957,7 +968,7 @@ export const DespachoTecnicoPage: React.FC = () => {
         }
       />
 
-      <div className={formStyles.contentBody}>
+      <D365FormContent busy={submitting} className={formStyles.contentBody}>
         {selectedTab === 'general' && (
           <div style={{ maxWidth: '620px', width: '100%' }}>
             <div className={formStyles.card}>
@@ -1060,7 +1071,7 @@ export const DespachoTecnicoPage: React.FC = () => {
                       id="symbar-despacho-sku-serie"
                       ref={scannerInputRef}
                       contentBefore={<Search16Regular />}
-                      placeholder="Escanee o escriba SKU / Serie..."
+                      placeholder=""
                       value={scannerQuery}
                       onChange={(_, d) => {
                         setScannerQuery(d.value);
@@ -1162,14 +1173,14 @@ export const DespachoTecnicoPage: React.FC = () => {
                         {productosStock.map((p) => (
                           <option key={p.productoId} value={p.productoId}>
                             {p.codigoProducto ? `${p.codigoProducto} — ` : ''}
-                            {p.nombreProducto} (Disp: {p.cantidadDisponible} {p.nombreUnidadMedida || 'UND'}{p.esSerializado ? ' · 🏷️ Serializado' : ''})
+                            {p.nombreProducto} (Disp: {p.cantidadDisponible} {p.nombreUnidadMedida || 'UND'}{p.esSerializado ? ' · Serializado' : ''})
                           </option>
                         ))}
                         {seriesLibresAlmacen.length > 0 && (
                           <optgroup label="Series individuales disponibles">
                             {seriesLibresAlmacen.slice(0, 50).map((s) => (
                               <option key={s.numeroSerie} value={`serie:${s.numeroSerie}`}>
-                                🏷️ {s.numeroSerie} ({s.codigoProducto} - {s.nombreProducto})
+                                {s.numeroSerie} ({s.codigoProducto} - {s.nombreProducto})
                               </option>
                             ))}
                           </optgroup>
@@ -1282,7 +1293,7 @@ export const DespachoTecnicoPage: React.FC = () => {
             )}
           </div>
         )}
-      </div>
+      </D365FormContent>
 
       {/* Modal de éxito y descarga de cargo estandarizado con Fluent UI */}
       <D365OperacionExitosaDialog
@@ -1331,7 +1342,7 @@ export const DespachoTecnicoPage: React.FC = () => {
               </Button>
               <Button
                 appearance="primary"
-                style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: '#fff' }}
+                style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: tokens.colorNeutralForegroundOnBrand }}
                 disabled={eliminandoBorrador}
                 onClick={async () => {
                   if (!transferenciaId) return;

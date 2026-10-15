@@ -55,6 +55,13 @@ internal static class InventarioWorkflow
         Check((await despacho.HandleAsync(abastecer)).IsSuccess,"Abastecimiento local por almacenero autorizado");
         Check((await db.StocksAlmacen.SingleAsync(x=>x.UbicacionId==up.Id && x.ProductoId==p.Id)).CantidadDisponible==10,"Stock en custodia personal");
         Check((await despacho.HandleAsync(abastecer)).IsSuccess && await db.Transferencias.CountAsync()==1,"Reintento no duplica despacho");
+        Check((await db.StocksAlmacen.SingleAsync(x=>x.UbicacionId==ua.Id && x.ProductoId==p.Id)).CantidadDisponible==90
+            && (await db.StocksAlmacen.SingleAsync(x=>x.UbicacionId==up.Id && x.ProductoId==p.Id)).CantidadDisponible==10
+            && await db.MovimientosInventario.CountAsync()==1,"El reintento conserva saldos y Kardex");
+        Check((await despacho.HandleAsync(abastecer with {GuiaRemision="  "})).IsSuccess,"Guía vacía conserva la generada al reintentar");
+        Check((await despacho.HandleAsync(abastecer with {GuiaRemision="OTRA-GUIA"})).IsFailure,"Cambiar guía explícita no reutiliza el envío");
+        var primerEnvio = await db.Transferencias.SingleAsync();
+        Check((await despacho.HandleAsync(abastecer with {TransferenciaId=primerEnvio.Id,OperacionId=Guid.NewGuid()})).IsFailure,"El documento no permite sustituir el identificador de operación");
         Check((await despacho.HandleAsync(abastecer with{Lineas=[new(p.Id,11)]})).IsFailure,"No reutilizar operación para otro envío");
         Check((await new CrearTransferenciaInventarioHandler(context,tecnicoUser).HandleAsync(Envio(personal,a,up,ua,1))).IsFailure,"Técnico sin autorización no realiza devolución");
         Check((await despacho.HandleAsync(Envio(personal,a,up,ua,2))).IsSuccess,"Almacenero realiza devolución a bodega de su unidad");
@@ -102,6 +109,8 @@ internal static class InventarioWorkflow
         var consulta = await new ObtenerInventarioProductosHandler(context,tecnicoUser).HandleAsync(new ObtenerInventarioProductosQuery());
         Check(consulta.IsSuccess && consulta.Value.Count==0,"Consulta sin permiso no filtra existencias de otras sedes");
         Check(await InventarioAcceso.PuedeAsync(context,origenUser,personal.Id,"despachar",default) && !await InventarioAcceso.PuedeAsync(context,tecnicoUser,personal.Id,"despachar",default),"Responsabilidad y autorización son independientes");
+        var conGuia = Envio(a,personal,ua,up,1) with {GuiaRemision=" gr-manual-01 "};
+        Check((await despacho.HandleAsync(conGuia)).IsSuccess && (await despacho.HandleAsync(conGuia)).IsSuccess,"Guía explícita admite espacios y minúsculas en el reintento");
         // On PostgreSQL verify transaction rollback, unique indexes and optimistic concurrency.
         if(conexion!=null)
         {

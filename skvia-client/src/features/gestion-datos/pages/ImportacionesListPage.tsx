@@ -1,4 +1,6 @@
+import { confirmAction, showError } from '../../../services/uiFeedback';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useAuthSession } from '../../../services/authSession';
 import { useNavigate } from 'react-router-dom';
 import {
   Text,
@@ -40,6 +42,10 @@ export const ImportacionesListPage: React.FC = () => {
   const navigate = useNavigate();
   const tableRef = useRef<D365EntityTableRef>(null);
 
+  const { permisos } = useAuthSession();
+  const puedeImportar = permisos.includes('gestiondatos.importar');
+  const puedeVerHistorial = permisos.includes('gestiondatos.historial.ver');
+  const puedeEliminar = permisos.includes('gestiondatos.historial.eliminar');
   const [jobs, setJobs] = useState<TrabajoImportacionDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +59,7 @@ export const ImportacionesListPage: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<Set<SelectionItemId>>(new Set());
 
   const fetchJobs = async () => {
+    if (!puedeVerHistorial) { setJobs([]); setLoading(false); return; }
     try {
       setLoading(true);
       setError(null);
@@ -71,9 +78,10 @@ export const ImportacionesListPage: React.FC = () => {
   }, []);
 
   const handleDeleteSelected = async () => {
+    if (!puedeEliminar) return;
     if (selectedIds.size === 0) return;
     if (
-      !window.confirm(
+      !await confirmAction(
         `¿Está seguro de eliminar los ${selectedIds.size} registros de importación seleccionados?`
       )
     ) {
@@ -88,7 +96,7 @@ export const ImportacionesListPage: React.FC = () => {
       await fetchJobs();
     } catch (err: any) {
       console.error('Error deleting import jobs:', err);
-      alert(err?.message || 'Error al eliminar las importaciones seleccionadas.');
+      showError(err?.message || 'Error al eliminar las importaciones seleccionadas.');
     }
   };
 
@@ -292,6 +300,7 @@ export const ImportacionesListPage: React.FC = () => {
               icon={<ArrowUpload16Regular />}
               tone="create"
               onClick={() => setDrawerOpen(true)}
+              disabled={!puedeImportar}
             >
               Nueva importación
             </D365CommandButton>
@@ -303,7 +312,7 @@ export const ImportacionesListPage: React.FC = () => {
               Actualizar
             </D365CommandButton>
 
-            {selectedIds.size > 0 && (
+            {puedeEliminar && selectedIds.size > 0 && (
               <D365CommandButton
                 icon={<Delete16Regular />}
                 tone="danger"

@@ -72,10 +72,10 @@ public record GuardarAjusteInput(
 public record AjusteIdentificadorDto(Guid Id, string Numero);
 public record AprobacionAjusteDto(string NumeroAprobacion);
 
-public record CrearAjusteCommand(GuardarAjusteInput Datos) : ICommand<Result<AjusteIdentificadorDto>>;
+public record CrearAjusteCommand(GuardarAjusteInput Datos, Guid? RecuperacionId = null) : ICommand<Result<AjusteIdentificadorDto>>;
 public record ActualizarAjusteCommand(Guid Id, GuardarAjusteInput Datos) : ICommand<Result<AjusteIdentificadorDto>>;
 public record SolicitarAprobacionAjusteCommand(Guid Id) : ICommand<Result<AprobacionAjusteDto>>;
-public record AplicarAjusteCommand(Guid Id, string? UsuarioAprobador) : ICommand<Result>;
+public record AplicarAjusteCommand(Guid Id) : ICommand<Result>;
 public record RechazarAjusteCommand(Guid Id, string? Motivo) : ICommand<Result>;
 public record AnularAjusteCommand(Guid Id) : ICommand<Result>;
 public record EliminarAjusteCommand(Guid Id) : ICommand<Result>;

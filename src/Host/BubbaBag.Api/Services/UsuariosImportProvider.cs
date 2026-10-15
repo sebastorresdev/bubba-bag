@@ -11,7 +11,7 @@ public class UsuariosImportProvider(IAuthService usuarios, ICurrentUser actual) 
     public bool Supports(string entidad) => entidad.Equals("Usuario", StringComparison.OrdinalIgnoreCase);
     public IEnumerable<EntityImportDescriptorDto> GetDescriptors()
     {
-        if (!actual.IsAuthenticated || !actual.HasPermission(Permissions.Seguridad.UsuariosGestionar)) return [];
+        if (!actual.IsAuthenticated || actual.Id == Guid.Empty || !actual.HasPermission(Permissions.GestionDatos.Importar) || !actual.HasPermission(Permissions.Seguridad.UsuariosGestionar)) return [];
         return [new EntityImportDescriptorDto
         {
             EntityName = "Usuario", DisplayName = "Usuarios de acceso", IconName = "People", PrimaryKeyField = "Email",
@@ -23,7 +23,7 @@ public class UsuariosImportProvider(IAuthService usuarios, ICurrentUser actual) 
     }
     public async Task<EntityImportExecutionResult> ImportAsync(string entityName, IReadOnlyList<Dictionary<string, string>> filas, string duplicateMode, CancellationToken cancellationToken = default)
     {
-        if (!actual.IsAuthenticated || !actual.HasPermission(Permissions.Seguridad.UsuariosGestionar)) throw new UnauthorizedAccessException("No tiene permiso para importar usuarios.");
+        if (!actual.IsAuthenticated || actual.Id == Guid.Empty || !actual.HasPermission(Permissions.GestionDatos.Importar) || !actual.HasPermission(Permissions.Seguridad.UsuariosGestionar)) throw new UnauthorizedAccessException("No tiene permiso para importar usuarios.");
         if (!Supports(entityName)) throw new NotSupportedException("Entidad no soportada.");
         var errores = new List<EntityImportRowError>();
         var exitosos = 0;

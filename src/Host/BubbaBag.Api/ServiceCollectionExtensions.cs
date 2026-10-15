@@ -37,6 +37,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IJwtProvider, JwtProvider>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<BubbaBag.Modules.GestionDatos.Application.Services.IEntityImportProvider, UsuariosImportProvider>();
+        services.AddScoped<BubbaBag.Modules.GestionDatos.Application.Services.IImportacionInventarioTransaccion, ImportacionInventarioTransaccion>();
         services.AddScoped<BubbaBag.Modules.Seguridad.Application.Vistas.IVistasService, BubbaBag.Modules.Seguridad.Infrastructure.Vistas.VistasService>();
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
 

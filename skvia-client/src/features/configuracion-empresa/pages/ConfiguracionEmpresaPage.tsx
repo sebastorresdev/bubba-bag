@@ -1,3 +1,5 @@
+import { D365FormContent } from '../../../components/common/D365FormContent';
+import { useUnsavedChanges } from '../../../hooks/useUnsavedChanges';
 import React, { useEffect, useState, useRef } from 'react';
 import {
   Button,
@@ -22,6 +24,7 @@ import { D365FormField } from '../../../components/common/D365FormField';
 import { D365MessageBar } from '../../../components/common/D365MessageBar';
 import { useD365FormStyles } from '../../../styles/d365FormStyles';
 import { EmpresaService, type ActualizarEmpresaDto } from '../services/empresa.service';
+import { useAuthSession } from '../../../services/authSession';
 
 const useStyles = makeStyles({
   logoSection: {
@@ -77,6 +80,10 @@ export const ConfiguracionEmpresaPage: React.FC = () => {
   const formStyles = useD365FormStyles();
   const classes = useStyles();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { permisos } = useAuthSession();
+  const puedeEditarFiscal = permisos.includes('configuracion.empresa.datos_fiscales.gestionar');
+  const puedeEditarPresentacion = permisos.includes('configuracion.empresa.presentacion.gestionar');
+  const puedeGuardar = puedeEditarFiscal || puedeEditarPresentacion;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -92,6 +99,8 @@ export const ConfiguracionEmpresaPage: React.FC = () => {
     logoBase64: null,
     piePaginaDocumentos: '',
   });
+  const draft = useUnsavedChanges({ formData }, !loading);
+
 
   const cargarDatos = async () => {
     try {
@@ -119,7 +128,9 @@ export const ConfiguracionEmpresaPage: React.FC = () => {
   }, []);
 
   const handleGuardar = async () => {
-    if (!formData.razonSocial.trim()) {
+    const savedDraft = draft.capture();
+    if (!puedeGuardar || saving) return;
+    if (puedeEditarFiscal && !formData.razonSocial.trim()) {
       setMensaje({ tipo: 'error', texto: 'La Razón Social es un campo requerido.' });
       return;
     }
@@ -127,8 +138,13 @@ export const ConfiguracionEmpresaPage: React.FC = () => {
     try {
       setSaving(true);
       setMensaje(null);
-      await EmpresaService.guardarDatos(formData);
-      setMensaje({ tipo: 'success', texto: 'Datos de la empresa y logo guardados correctamente.' });
+      const guardados = puedeEditarFiscal && puedeEditarPresentacion
+        ? await EmpresaService.guardarDatos(formData)
+        : puedeEditarFiscal ? await EmpresaService.guardarDatosFiscales(formData)
+        : await EmpresaService.guardarPresentacion(formData);
+      setFormData(guardados);
+      draft.markSaved(savedDraft);
+      setMensaje({ tipo: 'success', texto: 'Los datos autorizados de la empresa se guardaron correctamente.' });
     } catch (err: any) {
       setMensaje({ tipo: 'error', texto: err.message || 'Error al guardar configuración.' });
     } finally {
@@ -137,6 +153,7 @@ export const ConfiguracionEmpresaPage: React.FC = () => {
   };
 
   const handleSeleccionarLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!puedeEditarPresentacion || saving) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -159,6 +176,7 @@ export const ConfiguracionEmpresaPage: React.FC = () => {
   };
 
   const handleEliminarLogo = () => {
+    if (!puedeEditarPresentacion || saving) return;
     setFormData(prev => ({ ...prev, logoBase64: null }));
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -181,7 +199,7 @@ export const ConfiguracionEmpresaPage: React.FC = () => {
             icon={<Save16Regular />}
             tone="save"
             onClick={() => void handleGuardar()}
-            disabled={saving}
+            disabled={saving || !puedeGuardar}
           >
             {saving ? 'Guardando...' : 'Guardar'}
           </D365CommandButton>
@@ -201,7 +219,13 @@ export const ConfiguracionEmpresaPage: React.FC = () => {
         avatarIcon={<Building16Regular />}
       />
 
-      <div className={formStyles.contentBody}>
+      <D365FormContent busy={saving} className={formStyles.contentBody}>
+        {(!puedeEditarFiscal || !puedeEditarPresentacion) && (
+          <D365MessageBar intent="info">
+            Puede consultar la información de la empresa para sus documentos.
+            Los campos sin autorización de edición se muestran como sólo lectura.
+          </D365MessageBar>
+        )}
         {mensaje && (
           <div style={{ marginBottom: '16px' }}>
             <D365MessageBar intent={mensaje.tipo}>
@@ -216,24 +240,27 @@ export const ConfiguracionEmpresaPage: React.FC = () => {
           <D365FormField label="Razón Social" required info="Nombre legal registrado de la empresa">
             <Input
               value={formData.razonSocial}
+              disabled={!puedeEditarFiscal || saving}
               onChange={(_, d) => setFormData(p => ({ ...p, razonSocial: d.value }))}
-              placeholder="Ej. Bubba Bag Logistics S.A.C."
+              placeholder=""
             />
           </D365FormField>
 
           <D365FormField label="Nombre Comercial" info="Marca o nombre visible">
             <Input
               value={formData.nombreComercial || ''}
+              disabled={!puedeEditarFiscal || saving}
               onChange={(_, d) => setFormData(p => ({ ...p, nombreComercial: d.value }))}
-              placeholder="Ej. BubbaBag"
+              placeholder=""
             />
           </D365FormField>
 
           <D365FormField label="R.U.C. / Identificación Fiscal" info="Número de registro tributario">
             <Input
               value={formData.ruc || ''}
+              disabled={!puedeEditarFiscal || saving}
               onChange={(_, d) => setFormData(p => ({ ...p, ruc: d.value }))}
-              placeholder="Ej. 20601234567"
+              placeholder=""
             />
           </D365FormField>
         </div>
@@ -244,24 +271,27 @@ export const ConfiguracionEmpresaPage: React.FC = () => {
           <D365FormField label="Dirección Fiscal" info="Dirección oficial de la sede principal">
             <Input
               value={formData.direccionFiscal || ''}
+              disabled={!puedeEditarFiscal || saving}
               onChange={(_, d) => setFormData(p => ({ ...p, direccionFiscal: d.value }))}
-              placeholder="Av. Principal 123, Oficina 401"
+              placeholder=""
             />
           </D365FormField>
 
           <D365FormField label="Teléfono de Contacto">
             <Input
               value={formData.telefono || ''}
+              disabled={!puedeEditarPresentacion || saving}
               onChange={(_, d) => setFormData(p => ({ ...p, telefono: d.value }))}
-              placeholder="(01) 555-1234 / 987654321"
+              placeholder=""
             />
           </D365FormField>
 
           <D365FormField label="Correo Electrónico Oficial">
             <Input
               value={formData.email || ''}
+              disabled={!puedeEditarPresentacion || saving}
               onChange={(_, d) => setFormData(p => ({ ...p, email: d.value }))}
-              placeholder="contacto@empresa.com"
+              placeholder=""
             />
           </D365FormField>
         </div>
@@ -292,6 +322,7 @@ export const ConfiguracionEmpresaPage: React.FC = () => {
               <input
                 ref={fileInputRef}
                 type="file"
+                disabled={!puedeEditarPresentacion || saving}
                 accept="image/*"
                 style={{ display: 'none' }}
                 onChange={handleSeleccionarLogo}
@@ -299,6 +330,7 @@ export const ConfiguracionEmpresaPage: React.FC = () => {
               <div style={{ display: 'flex', gap: '8px' }}>
                 <Button
                   icon={<Image16Regular />}
+                  disabled={!puedeEditarPresentacion || saving}
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {formData.logoBase64 ? 'Cambiar Logo' : 'Subir Logotipo'}
@@ -306,6 +338,7 @@ export const ConfiguracionEmpresaPage: React.FC = () => {
                 {formData.logoBase64 && (
                   <Button
                     icon={<Delete16Regular />}
+                    disabled={!puedeEditarPresentacion || saving}
                     appearance="subtle"
                     onClick={handleEliminarLogo}
                   >
@@ -327,13 +360,14 @@ export const ConfiguracionEmpresaPage: React.FC = () => {
           <D365FormField label="Pie de Página en Cargos / Actas" info="Texto legal o informativo al pie de cada página del PDF">
             <Textarea
               value={formData.piePaginaDocumentos || ''}
+              disabled={!puedeEditarPresentacion || saving}
               onChange={(_, d) => setFormData(p => ({ ...p, piePaginaDocumentos: d.value }))}
-              placeholder="Documento oficial de control y custodia de existencias emitido por el sistema."
+              placeholder=""
               rows={2}
             />
           </D365FormField>
         </div>
-      </div>
+      </D365FormContent>
     </div>
   );
 };

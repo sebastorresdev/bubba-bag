@@ -8,10 +8,12 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground1,
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
     padding: '12px 24px 0',
+    '@media (max-width: 767px)': { padding: '12px 16px 0' },
     flexShrink: 0,
   },
   topRow: {
     minHeight: '56px',
+    flexWrap: 'wrap',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -21,6 +23,8 @@ const useStyles = makeStyles({
   identity: { display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalL, minWidth: 0 },
   titleGroup: { display: 'flex', flexDirection: 'column', minWidth: 0 },
   title: {
+    overflowWrap: 'anywhere',
+    '@media (max-width: 767px)': { fontSize: tokens.fontSizeBase500, lineHeight: tokens.lineHeightBase500 },
     fontSize: tokens.fontSizeHero700,
     fontWeight: tokens.fontWeightBold,
     color: tokens.colorNeutralForeground1,
@@ -38,11 +42,11 @@ const useStyles = makeStyles({
     fontWeight: tokens.fontWeightBold,
     flexShrink: 0,
   },
-  metadata: { display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalL, flexShrink: 0 },
+  metadata: { flexWrap: 'wrap', display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalL, flexShrink: 0 },
   metadataItem: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXXS },
   metadataLabel: {
-    fontSize: tokens.fontSizeBase100,
-    color: tokens.colorNeutralForeground4,
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground3,
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
     fontWeight: tokens.fontWeightSemibold,
@@ -51,13 +55,15 @@ const useStyles = makeStyles({
   metadataDivider: { height: '28px' },
   processFlow: {
     margin: '0 -24px',
+    overflowX: 'auto',
+    '@media (max-width: 767px)': { margin: '0 -16px' },
     padding: '0',
     borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
     backgroundColor: tokens.colorNeutralBackground1,
   },
   tabs: { marginTop: tokens.spacingVerticalXS },
-  titleSkeleton: { width: '280px', marginBottom: tokens.spacingVerticalXS },
+  titleSkeleton: { width: '280px', maxWidth: '100%', marginBottom: tokens.spacingVerticalXS },
   subtitleSkeleton: { width: '180px' },
   metadataSkeleton: { width: '80px' },
 });
@@ -123,7 +129,7 @@ export const D365EntityHeader: React.FC<D365EntityHeaderProps> = ({
               </Skeleton>
             ) : (
               <>
-                <Text className={styles.title}>{title}</Text>
+                <Text as="h1" style={{ margin: 0 }} className={styles.title}>{title}</Text>
                 {subtitle != null && <Text className={styles.subtitle}>{subtitle}</Text>}
               </>
             )}
@@ -139,7 +145,7 @@ export const D365EntityHeader: React.FC<D365EntityHeaderProps> = ({
                   <Text className={styles.metadataLabel}>{item.label}</Text>
                   {loading ? (
                     <Skeleton animation="pulse"><SkeletonItem size={16} className={styles.metadataSkeleton} /></Skeleton>
-                  ) : typeof item.label === 'string' && (item.label.toLowerCase() === 'estado' || item.label.toLowerCase() === 'status') ? (
+                  ) : typeof item.label === 'string' && (item.label.toLowerCase() === 'estado' || item.label.toLowerCase() === 'status') && (typeof item.value === 'string' || typeof item.value === 'number' || typeof item.value === 'boolean') ? (
                     <D365StatusBadge status={item.value as string} size="small" />
                   ) : (
                     <Text className={styles.metadataValue}>{item.value}</Text>

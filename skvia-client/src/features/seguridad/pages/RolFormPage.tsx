@@ -1,3 +1,6 @@
+import { D365FormContent } from '../../../components/common/D365FormContent';
+import { useValidationFocus } from '../../../hooks/useValidationFocus';
+import { useUnsavedChanges } from '../../../hooks/useUnsavedChanges';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -64,6 +67,9 @@ export function RolFormPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [deleteDialog, setDeleteDialog] = useState(false);
+  const focusValidation = useValidationFocus();
+  const draft = useUnsavedChanges({ nombreVisible,codigo,modulo,descripcion,permisosSeleccionados }, !loading);
+
 
   const esSuperAdmin = rolGuardado?.codigo.toLowerCase() === 'superadmin' || codigo.toLowerCase() === 'superadmin';
   const esSistema = !!rolGuardado?.esSistema;
@@ -126,7 +132,9 @@ export function RolFormPage() {
   };
 
   const save = async (close: boolean) => {
+    const savedDraft = draft.capture();
     setError('');
+    draft.markSaved(savedDraft);
     setSuccess('');
 
     if (!isEditable) {
@@ -135,6 +143,7 @@ export function RolFormPage() {
     }
 
     if (!nombreVisible.trim()) {
+      setTab('general'); focusValidation("rol-nombre");
       setError('Ingrese un nombre para el rol.');
       return;
     }
@@ -156,9 +165,11 @@ export function RolFormPage() {
         setModulo(guardado.modulo);
         setDescripcion(guardado.descripcion);
         setPermisosSeleccionados(guardado.permisos ?? []);
+        draft.markSaved(savedDraft);
         setSuccess('Rol y permisos actualizados correctamente.');
 
-        if (close) navigate('/configuracion/roles');
+        if (close) { draft.markSaved(savedDraft);
+navigate('/configuracion/roles'); }
       } else {
         const resultado = await SeguridadService.crearRol({
           nombreVisible: nombreVisible.trim(),
@@ -168,7 +179,10 @@ export function RolFormPage() {
           permisos: permisosSeleccionados,
         });
 
+        draft.markSaved(savedDraft);
+
         setSuccess('Rol creado con éxito.');
+        draft.markSaved(savedDraft);
         navigate(close ? '/configuracion/roles' : `/configuracion/roles/${resultado.rolId}`, {
           replace: true,
         });
@@ -187,7 +201,7 @@ export function RolFormPage() {
     try {
       await SeguridadService.eliminarRol(id);
       setDeleteDialog(false);
-      navigate('/configuracion/roles');
+      (draft.markSaved(), navigate('/configuracion/roles'));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo eliminar el rol.');
       setDeleteDialog(false);
@@ -260,6 +274,13 @@ export function RolFormPage() {
         </D365MessageBar>
       )}
 
+      {isNew && (
+        <D365MessageBar intent="info">
+          Los roles predefinidos ya están configurados y se pueden asignar directamente a los usuarios.
+          Cree un rol personalizado sólo si necesita una combinación diferente de permisos.
+        </D365MessageBar>
+      )}
+
       {error && <D365MessageBar intent="error">{error}</D365MessageBar>}
       {success && (
         <D365MessageBar intent="success" onDismiss={() => setSuccess('')}>
@@ -294,7 +315,7 @@ export function RolFormPage() {
                 value: (
                   <Badge appearance="tint" shape="rounded" color={esSuperAdmin ? 'warning' : 'brand'}>
                     {esSuperAdmin
-                      ? 'Bypass Total (Todos)'
+                      ? 'Todos los permisos'
                       : `${permisosSeleccionados.length} de ${catalogoPermisos.length}`}
                   </Badge>
                 ),
@@ -316,7 +337,7 @@ export function RolFormPage() {
             }
           />
 
-          <div className={styles.contentBody}>
+          <D365FormContent busy={busy} className={styles.contentBody}>
             {tab === 'general' ? (
               <div style={{ maxWidth: '680px', width: '100%' }}>
                 <div className={styles.card}>
@@ -379,8 +400,8 @@ export function RolFormPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {esSuperAdmin && (
                   <D365MessageBar intent="info">
-                    <strong>Super Administrador:</strong> Este rol cuenta con bypass absoluto de seguridad
-                    y posee todos los permisos del sistema de forma automática e inmutable.
+                    <strong>Super Administrador:</strong> Tiene todos los permisos del sistema.
+                    Su acceso está protegido y no se puede reducir desde esta pantalla.
                   </D365MessageBar>
                 )}
 
@@ -404,7 +425,7 @@ export function RolFormPage() {
                           }}
                         >
                           {esSuperAdmin
-                            ? 'Acceso total y bypass a todas las capacidades del sistema'
+                            ? 'Acceso completo a todas las funciones del sistema'
                             : permisosSeleccionados.length === 0
                             ? 'Sin capacidades ni permisos asignados'
                             : `${permisosSeleccionados.length} de ${catalogoPermisos.length} capacidad(es) asignada(s)`}
@@ -430,9 +451,9 @@ export function RolFormPage() {
                       }}
                     >
                       <div
-                        style={{
+                        className="d365-detail-grid d365-detail-grid-header" style={{
                           display: 'grid',
-                          gridTemplateColumns: '2fr 1.2fr 1.8fr 40px',
+                          gridTemplateColumns: 'minmax(0, 1fr) 160px 40px',
                           padding: '10px 16px',
                           backgroundColor: 'var(--colorNeutralBackground3)',
                           fontWeight: 600,
@@ -441,9 +462,8 @@ export function RolFormPage() {
                           borderBottom: '1px solid var(--colorNeutralStroke2)',
                         }}
                       >
-                        <span>Capacidad / Permiso</span>
+                        <span>Acción y alcance del permiso</span>
                         <span>Módulo</span>
-                        <span>Código técnico</span>
                         <span />
                       </div>
 
@@ -461,10 +481,10 @@ export function RolFormPage() {
                       ) : (
                         permisosAsignadosCompletos.map((p) => (
                           <div
-                            key={p.codigo}
+                            className="d365-detail-grid" key={p.codigo}
                             style={{
                               display: 'grid',
-                              gridTemplateColumns: '2fr 1.2fr 1.8fr 40px',
+                              gridTemplateColumns: 'minmax(0, 1fr) 160px 40px',
                               alignItems: 'center',
                               padding: '10px 16px',
                               borderBottom: '1px solid var(--colorNeutralStroke3)',
@@ -476,8 +496,9 @@ export function RolFormPage() {
                               {p.descripcion && (
                                 <div
                                   style={{
-                                    fontSize: '11px',
-                                    color: 'var(--colorNeutralForeground3)',
+                                    fontSize: '13px',
+                                    lineHeight: '1.5',
+                                    color: 'var(--colorNeutralForeground2)',
                                   }}
                                 >
                                   {p.descripcion}
@@ -488,15 +509,6 @@ export function RolFormPage() {
                               <Badge appearance="tint" shape="rounded" color="subtle">
                                 {p.modulo}
                               </Badge>
-                            </div>
-                            <div
-                              style={{
-                                fontFamily: 'monospace',
-                                fontSize: '12px',
-                                color: 'var(--colorNeutralForeground3)',
-                              }}
-                            >
-                              {p.codigo}
                             </div>
                             <div style={{ textAlign: 'right' }}>
                               {isEditable && !esSuperAdmin && (
@@ -518,7 +530,7 @@ export function RolFormPage() {
                 </div>
               </div>
             )}
-          </div>
+          </D365FormContent>
         </>
       )}
 

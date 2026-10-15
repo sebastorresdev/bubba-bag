@@ -11,6 +11,8 @@ public class OrdenTrabajoConfiguration : IEntityTypeConfiguration<OrdenTrabajo>
         builder.ToTable("OrdenesTrabajo", "serviciocampo");
 
         builder.HasKey(w => w.Id);
+        builder.Property(w => w.Version).IsRowVersion();
+        builder.Property(w => w.ObservacionesGenerales).HasMaxLength(2000);
 
         builder.Property(w => w.CodigoWo)
             .IsRequired()
@@ -88,7 +90,6 @@ public class OrdenTrabajoConfiguration : IEntityTypeConfiguration<OrdenTrabajo>
         builder.Ignore(w => w.FechaCierreReal);
         builder.Ignore(w => w.FirmaClienteUrl);
         builder.Ignore(w => w.EvidenciasConfirmadas);
-        builder.Ignore(w => w.ObservacionesGenerales);
 
         // Relaciones maestras
         builder.HasOne(w => w.ZonaOperativa)

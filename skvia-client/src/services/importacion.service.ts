@@ -1,4 +1,5 @@
-import { clearSession } from './authSession';
+import { clearSession, getAuthSession } from './authSession';
+import { obtenerIntentoInventario, cerrarIntentoInventario } from './importacionIntento';
 import { apiClient, getValidAuthToken } from './apiClient';
 
 export interface CampoImportacionDto {
@@ -50,6 +51,7 @@ export interface TrabajoImportacionDto {
   modoDuplicados: string; // "Upsert", "Skip", "Error"
   permitirDuplicados: boolean;
   creadoPor: string;
+  creadoPorId: string | null;
   fechaCreacion: string;
   fechaFinalizacion?: string;
   totalProcesados: number;
@@ -110,7 +112,11 @@ export const ImportacionService = {
     }
   ): Promise<TrabajoImportacionDto> {
     const token = await getValidAuthToken();
+    const operacionId = params.entityName.toLowerCase() === 'inventarioinicial'
+      ? await obtenerIntentoInventario(getAuthSession().usuario?.id ?? '', file, { ...params, columnMapping: Object.fromEntries(Object.entries(params.columnMapping).sort(([a], [b]) => a.localeCompare(b))) })
+      : undefined;
     const formData = new FormData();
+    if (operacionId) formData.append('operacionId', operacionId);
     formData.append('file', file);
     formData.append('entityName', params.entityName);
     formData.append('duplicateMode', params.duplicateMode);
@@ -139,6 +145,7 @@ export const ImportacionService = {
   },
 
   // 4. Historial de importaciones
+  cerrarIntentoInventario,
   async getImportJobs(limit: number = 50): Promise<TrabajoImportacionDto[]> {
     return apiClient<TrabajoImportacionDto[]>(`/api/data-management/imports?limit=${limit}`, { method: 'GET' });
   },

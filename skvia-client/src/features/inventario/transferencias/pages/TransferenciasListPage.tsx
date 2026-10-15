@@ -581,7 +581,7 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
                   </div>
                   {itemsSeleccionados.length > (transferenciasAEliminar?.length ?? 0) && (
                     <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                      ℹ️ Nota: {itemsSeleccionados.length - (transferenciasAEliminar?.length ?? 0)} registro(s) seleccionados
+                      {itemsSeleccionados.length - (transferenciasAEliminar?.length ?? 0)} registro(s) seleccionados
                       no se encuentran en estado Borrador y se mantendrán intactos.
                     </Text>
                   )}
@@ -598,7 +598,7 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
               </Button>
               <Button
                 appearance="primary"
-                style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: '#fff' }}
+                style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: tokens.colorNeutralForegroundOnBrand }}
                 disabled={eliminando}
                 onClick={async () => {
                   if (!transferenciasAEliminar || transferenciasAEliminar.length === 0) return;

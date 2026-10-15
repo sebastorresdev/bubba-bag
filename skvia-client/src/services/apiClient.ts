@@ -37,7 +37,8 @@ function extractApiErrorMessage(errorData: any, fallbackText: string, _status?: 
 
 export async function apiClient<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  onResponse?: (response: Response) => void
 ): Promise<T> {
   const token = await getValidAuthToken();
 
@@ -65,7 +66,9 @@ export async function apiClient<T>(
     throw new Error(extractApiErrorMessage(errData, `API Error ${response.status}: ${response.statusText}`, response.status));
   }
 
-  return parseResponseBody<T>(response);
+  const result = await parseResponseBody<T>(response);
+  onResponse?.(response);
+  return result;
 }
 
 export async function apiClientDownload(endpoint: string, defaultFilename: string): Promise<void> {

@@ -1,3 +1,4 @@
+import { confirmAction } from '../../../../services/uiFeedback';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -135,7 +136,7 @@ export function ConfiguracionesServicioListPage() {
         ? `¿Está seguro de eliminar la plantilla "${itemsAEliminar[0].nombre}"?`
         : `¿Está seguro de eliminar las ${itemsAEliminar.length} plantillas seleccionadas?`;
 
-    if (!window.confirm(confirmMsg)) return;
+    if (!await confirmAction(confirmMsg)) return;
 
     try {
       setLoading(true);
@@ -192,6 +193,16 @@ export function ConfiguracionesServicioListPage() {
         renderCell: (item) => (
           <TableCellLayout>
             <Text>{item.duracionEstimadaMinutos} min</Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ConfiguracionServicioListadoDto>({
+        columnId: 'sla',
+        compare: (a, b) => (a.slaHorasResolucion || 0) - (b.slaHorasResolucion || 0),
+        renderHeaderCell: () => 'SLA',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Text>{item.slaHorasResolucion ? `${item.slaHorasResolucion} h` : '—'}</Text>
           </TableCellLayout>
         ),
       }),

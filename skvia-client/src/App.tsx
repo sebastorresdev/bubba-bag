@@ -1,6 +1,8 @@
 import React, { lazy, Suspense, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { createBrowserRouter, createRoutesFromElements, RouterProvider, Route, Navigate } from 'react-router-dom';
 import { Spinner, tokens } from '@fluentui/react-components';
+import { D365FeedbackHost } from './components/common/D365FeedbackHost';
+import { D365RouteError } from './components/common/D365RouteError';
 import { ThemeProvider } from './context/ThemeContext';
 import { MainLayout } from './components/layout/MainLayout';
 
@@ -81,15 +83,10 @@ const RouteLoadingFallback: React.FC = () => (
   </div>
 );
 
-export default function App() {
-  useEffect(() => { void initializeSession(); }, []);
-  return (
-    <ThemeProvider>
-      <BrowserRouter>
-        <Suspense fallback={<RouteLoadingFallback />}>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route element={<RequireSession />}>
+const router = createBrowserRouter(createRoutesFromElements(
+          <>
+            <Route path="/login" element={<LoginPage />} errorElement={<D365RouteError />} />
+            <Route element={<RequireSession />} errorElement={<D365RouteError />}>
             <Route path="/" element={<MainLayout />}>
               <Route path="configuracion/usuarios" element={<UsuariosListPage />} />
               <Route path="configuracion/usuarios/nuevo" element={<UsuarioFormPage />} />
@@ -194,9 +191,17 @@ export default function App() {
               <Route path="*" element={<PlaceholderPage />} />
             </Route>
             </Route>
-          </Routes>
+          </>
+));
+
+export default function App() {
+  useEffect(() => { void initializeSession(); }, []);
+  return (
+    <ThemeProvider>
+      <D365FeedbackHost />
+        <Suspense fallback={<RouteLoadingFallback />}>
+          <RouterProvider router={router} />
         </Suspense>
-      </BrowserRouter>
     </ThemeProvider>
   );
 }

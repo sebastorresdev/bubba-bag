@@ -78,8 +78,8 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         .HasColumnType("character varying(20)");
 
                     b.Property<decimal>("TotalCantidad")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("numeric(18,4)");
+                        .HasPrecision(19, 5)
+                        .HasColumnType("numeric(19,5)");
 
                     b.Property<int>("TotalItems")
                         .HasColumnType("integer");
@@ -1405,6 +1405,10 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("ObservacionesGenerales")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<string>("ReferenciaExterna")
                         .HasColumnType("text");
 
@@ -1413,6 +1417,12 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.Property<Guid?>("ZonaOperativaId")
                         .HasColumnType("uuid");
@@ -2016,6 +2026,9 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.Property<Guid>("ProductoId")
                         .HasColumnType("uuid")
                         .HasColumnName("ServicioId");
+
+                    b.Property<int?>("SlaHorasResolucion")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 

@@ -28,10 +28,23 @@ public class GlobalExceptionHandler : IExceptionHandler
         Exception exception,
         CancellationToken cancellationToken)
     {
-        _logger.LogError(exception, "Excepción capturada por GlobalExceptionHandler: {Message}", exception.Message);
+        if (exception is UnauthorizedAccessException)
+            _logger.LogWarning("Acceso denegado en {Path}", httpContext.Request.Path);
+        else
+            _logger.LogError(exception, "Excepción capturada por GlobalExceptionHandler: {Message}", exception.Message);
 
         var (statusCode, title, detail, errors) = exception switch
         {
+            DbUpdateConcurrencyException => (
+                StatusCodes.Status409Conflict, "El registro cambió",
+                "Otra operación modificó estos datos. Recargue y revise antes de reintentar.", null
+            ),
+            UnauthorizedAccessException => (
+                StatusCodes.Status403Forbidden,
+                "Acceso no autorizado",
+                "No tiene autorización para realizar esta operación sobre el registro solicitado.",
+                null
+            ),
             ValidationException valEx => (
                 StatusCodes.Status400BadRequest,
                 "Error de validación",

@@ -10,14 +10,19 @@ export function canAccessPath(path: string, permisos: readonly string[]): boolea
     return has('seguridad.acceso') && (!path.includes('/nuevo') || has('seguridad.roles.gestionar'));
   }
   if (path.startsWith('/configuracion/empresa')) {
-    return has('seguridad.acceso');
+    return true; // RequireSession verifica la sesión; la edición usa permisos específicos.
   }
+  if (path.startsWith('/servicio-campo/unidades-organizativas'))
+    return !path.endsWith('/nuevo') || has('configuracion.sucursales.gestionar');
   if (path.startsWith('/gestion-datos/') || path.includes('/gestion-datos/') || path.includes('/data-management/'))
-    return has('inventario.catalogos.gestionar') || has('crm.clientes.eliminar');
+    return has('gestiondatos.historial.ver') || has('gestiondatos.importar');
+  if (path.startsWith('/servicio-campo/ajustes-inventario'))
+    return has('inventario.acceso') && (!path.endsWith('/nuevo') || has('inventario.operar'));
   if (path.startsWith('/recursos-humanos') || path.startsWith('/rrhh')) return has('rrhh.acceso');
   if (path.startsWith('/crm')) return has('crm.acceso');
   if (path.startsWith('/servicio-campo/clientes')) return has('crm.acceso');
-  if (path.startsWith('/servicio-campo/ordenes') || path === '/dashboard') return has('serviciocampo.acceso');
+  if (path.startsWith('/servicio-campo/ordenes') || path === '/dashboard') return has('serviciocampo.acceso')
+    && (!path.endsWith('/nuevo') || has('serviciocampo.ordenes.crear'));
   if (path.startsWith('/servicio-campo/') || path.startsWith('/grupos-unidades')) {
     if (!has('inventario.acceso')) return false;
     if (path.endsWith('/nuevo') && !/transferencias|recepciones-compra/.test(path)) return has('inventario.catalogos.gestionar');

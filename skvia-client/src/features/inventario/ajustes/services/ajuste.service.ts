@@ -2,315 +2,141 @@ import { apiClient } from '../../../../services/apiClient';
 import type { AjusteInventarioDto, GuardarAjusteInput } from '../types/ajuste.types';
 
 const STORAGE_KEY = 'skvia_ajustes_inventario_v1';
+type AjusteLocal = AjusteInventarioDto & { recuperacionId?: string };
+export interface RecuperacionAjustesResultado { recuperados: number; pendientes: number; errores: string[] }
 
-function isGuid(val: string | null | undefined): boolean {
-  return Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
+function isGuid(value: string | null | undefined): boolean {
+  return Boolean(value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value));
 }
 
-function getStoredAjustes(): AjusteInventarioDto[] {
+function requireServerId(id: string): void {
+  if (!isGuid(id)) throw new Error('El ajuste es local. Recupérelo como borrador desde el listado antes de continuar.');
+}
+
+function readLocal(): AjusteLocal[] {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        const limpios = parsed.filter(a => !a.id?.startsWith('ajuste-seed-'));
-        if (limpios.length !== parsed.length) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(limpios));
-        }
-        return limpios;
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.some(item => !item || typeof item.id !== 'string')) throw new Error();
+    return parsed;
+  } catch {
+    throw new Error('No se pudieron leer los ajustes locales. Se conserva el respaldo del navegador.');
+  }
+}
+
+function writeLocal(items: AjusteLocal[]): void {
+  // No continuar si el identificador de recuperación no pudo guardarse antes del envío.
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
+
+function pendingLocal(): AjusteLocal[] {
+  return readLocal().filter(item => !item.id.startsWith('ajuste-seed-'));
+}
+
+async function recoverLocal(): Promise<RecuperacionAjustesResultado> {
+  const result: RecuperacionAjustesResultado = { recuperados: 0, pendientes: 0, errores: [] };
+  for (const original of pendingLocal()) {
+    try {
+      const items = readLocal();
+      const local = items.find(item => item.id === original.id);
+      if (!local) continue;
+      if (!isGuid(local.almacenId) || !Array.isArray(local.lineas) || !local.lineas.length) {
+        throw new Error('Revise el almacén y los productos del registro local.');
       }
+      local.recuperacionId ??= crypto.randomUUID();
+      writeLocal(items);
+
+      const datos: GuardarAjusteInput = {
+        tipo: local.tipo,
+        almacenId: local.almacenId,
+        ubicacionId: isGuid(local.ubicacionId) ? local.ubicacionId : null,
+        fecha: local.fecha,
+        motivo: local.motivo,
+        documentoReferencia: local.documentoReferencia || null,
+        observaciones: [local.observaciones, `Recuperado del registro local ${local.numero}. Estado local anterior: ${local.estado}. Requiere revisión; no confirma aplicación al inventario.`].filter(Boolean).join('\n'),
+        lineas: local.lineas.map(linea => ({
+          productoId: linea.productoId,
+          codigoProducto: linea.codigoProducto,
+          nombreProducto: linea.nombreProducto,
+          unidad: linea.unidad,
+          esSerializado: linea.esSerializado,
+          tipo: linea.tipo,
+          cantidad: Number(linea.cantidad),
+          costoUnitario: Number(linea.costoUnitario),
+          series: linea.series || [],
+          motivoLinea: linea.motivoLinea,
+        })),
+      };
+
+      const created = await apiClient<{ id: string; numero: string }>('/api/inventario/ajustes/recuperar-local', {
+        method: 'POST', body: JSON.stringify({ recuperacionId: local.recuperacionId, datos }),
+      });
+      if (created.id !== local.recuperacionId || !created.numero) throw new Error('El servidor no confirmó la recuperación.');
+      // Releer evita eliminar otros registros agregados mientras se esperaba la respuesta.
+      writeLocal(readLocal().filter(item => item.id !== local.id));
+      result.recuperados++;
+    } catch (error) {
+      result.errores.push(`${original.numero || original.id}: ${error instanceof Error ? error.message : 'No se pudo recuperar el ajuste.'}`);
     }
-  } catch {
-    // ignorar
   }
-  return [];
+  result.pendientes = pendingLocal().length;
+  return result;
 }
 
-function saveStoredAjustes(items: AjusteInventarioDto[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  } catch {
-    // ignorar
-  }
-}
+let recoveryPending: Promise<RecuperacionAjustesResultado> | null = null;
 
 export const AjusteService = {
-  async obtenerAjustes(): Promise<AjusteInventarioDto[]> {
-    try {
-      const serverItems = await apiClient<AjusteInventarioDto[]>('/api/inventario/ajustes');
-      const localItems = getStoredAjustes();
-
-      // Si existían ajustes locales previos (creados en localStorage antes de conectar el backend)
-      // migrarlos automáticamente al servidor para que impacten en la base de datos y Kardex
-      if (localItems.length > 0) {
-        for (const local of localItems) {
-          const yaEnServer = serverItems.some(s => s.numero === local.numero || s.id === local.id);
-          if (!yaEnServer && local.lineas && local.lineas.length > 0 && isGuid(local.almacenId)) {
-            try {
-              const payload: GuardarAjusteInput = {
-                tipo: local.tipo,
-                almacenId: local.almacenId,
-                ubicacionId: isGuid(local.ubicacionId) ? local.ubicacionId : null,
-                fecha: local.fecha,
-                motivo: local.motivo,
-                documentoReferencia: local.documentoReferencia || null,
-                observaciones: local.observaciones || null,
-                lineas: local.lineas.map(l => ({
-                  productoId: l.productoId,
-                  codigoProducto: l.codigoProducto,
-                  nombreProducto: l.nombreProducto,
-                  unidad: l.unidad,
-                  esSerializado: l.esSerializado,
-                  tipo: l.tipo,
-                  cantidad: Number(l.cantidad) || 0,
-                  costoUnitario: Number(l.costoUnitario) || 0,
-                  series: l.series || [],
-                  motivoLinea: l.motivoLinea,
-                })),
-              };
-
-              const nuevo = await apiClient<{ id: string; numero: string }>('/api/inventario/ajustes', {
-                method: 'POST',
-                body: JSON.stringify(payload),
-              });
-
-              if (local.estado === 'EnRevision' || local.estado === 'Aplicado') {
-                await apiClient(`/api/inventario/ajustes/${nuevo.id}/solicitar-aprobacion`, { method: 'POST' });
-              }
-              if (local.estado === 'Aplicado') {
-                await apiClient(`/api/inventario/ajustes/${nuevo.id}/aplicar`, {
-                  method: 'POST',
-                  body: JSON.stringify({ usuarioAprobador: local.usuarioAprobacion || 'SuperAdmin' }),
-                });
-              }
-            } catch {
-              // si falla la sincronización individual, continuar
-            }
-          }
-        }
-        localStorage.removeItem(STORAGE_KEY);
-        return await apiClient<AjusteInventarioDto[]>('/api/inventario/ajustes');
-      }
-
-      return serverItems;
-    } catch {
-      return getStoredAjustes();
-    }
+  obtenerAjustes(): Promise<AjusteInventarioDto[]> {
+    // Consultar nunca crea, aprueba ni aplica ajustes antiguos.
+    return apiClient<AjusteInventarioDto[]>('/api/inventario/ajustes');
   },
 
-  async obtenerAjustePorId(id: string): Promise<AjusteInventarioDto | null> {
-    try {
-      if (isGuid(id)) {
-        return await apiClient<AjusteInventarioDto>(`/api/inventario/ajustes/${id}`);
-      }
-      const items = getStoredAjustes();
-      return items.find(a => a.id === id) || null;
-    } catch {
-      const items = getStoredAjustes();
-      return items.find(a => a.id === id) || null;
-    }
+  obtenerPendientesLocales(): number { return pendingLocal().length; },
+
+  recuperarAjustesLocales(): Promise<RecuperacionAjustesResultado> {
+    // Serializar también entre pestañas para conservar un único identificador por registro.
+    recoveryPending ??= (navigator.locks
+      ? navigator.locks.request('skvia-recuperar-ajustes', recoverLocal)
+      : Promise.reject(new Error('Este navegador no permite recuperar los ajustes con seguridad. Use un navegador actualizado.'))
+    ).finally(() => { recoveryPending = null; });
+    return recoveryPending;
   },
 
-  async guardarAjuste(
-    id: string | null,
-    datos: GuardarAjusteInput,
-    nombreAlmacen: string,
-    productosRef: Array<{ id: string; codigo: string; nombre: string; unidad?: string; esSerializado: boolean }>
-  ): Promise<{ id: string; numero: string }> {
-    try {
-      if (id && isGuid(id)) {
-        return await apiClient<{ id: string; numero: string }>(`/api/inventario/ajustes/${id}`, {
-          method: 'PUT',
-          body: JSON.stringify(datos),
-        });
-      }
-      return await apiClient<{ id: string; numero: string }>('/api/inventario/ajustes', {
-        method: 'POST',
-        body: JSON.stringify(datos),
-      });
-    } catch {
-      const items = getStoredAjustes();
-      const nextNum = `AJU-${String(items.length + 1).padStart(6, '0')}`;
-      const lineasDto = datos.lineas.map((l, idx) => {
-        const prod = productosRef.find(p => p.id === l.productoId);
-        const subtotal = l.cantidad * l.costoUnitario;
-        return {
-          id: `lin-${Date.now()}-${idx}`,
-          productoId: l.productoId,
-          codigoProducto: prod?.codigo || l.codigoProducto || '---',
-          nombreProducto: prod?.nombre || l.nombreProducto || 'Producto',
-          unidad: prod?.unidad || l.unidad || 'UND',
-          stockActual: 0,
-          tipo: l.tipo,
-          cantidad: l.cantidad,
-          costoUnitario: l.costoUnitario,
-          total: subtotal,
-          esSerializado: Boolean(prod?.esSerializado ?? l.esSerializado),
-          series: l.series || [],
-          motivoLinea: l.motivoLinea,
-        };
-      });
-
-      const totalItems = lineasDto.length;
-      const totalCantidad = lineasDto.reduce((s, x) => s + x.cantidad, 0);
-      const valorTotal = lineasDto.reduce((s, x) => s + x.total, 0);
-
-      if (id) {
-        const index = items.findIndex(a => a.id === id);
-        if (index >= 0) {
-          const actual = items[index];
-          items[index] = {
-            ...actual,
-            tipo: datos.tipo,
-            almacenId: datos.almacenId,
-            nombreAlmacen,
-            ubicacionId: datos.ubicacionId,
-            fecha: datos.fecha,
-            motivo: datos.motivo,
-            documentoReferencia: datos.documentoReferencia,
-            observaciones: datos.observaciones,
-            lineas: lineasDto,
-            totalItems,
-            totalCantidad,
-            valorTotal,
-          };
-          saveStoredAjustes(items);
-          return { id, numero: actual.numero };
-        }
-      }
-
-      const nuevoId = `ajuste-${Date.now()}`;
-      const nuevo: AjusteInventarioDto = {
-        id: nuevoId,
-        numero: nextNum,
-        tipo: datos.tipo,
-        almacenId: datos.almacenId,
-        nombreAlmacen,
-        ubicacionId: datos.ubicacionId,
-        fecha: datos.fecha,
-        motivo: datos.motivo,
-        documentoReferencia: datos.documentoReferencia,
-        observaciones: datos.observaciones,
-        estado: 'Borrador',
-        totalItems,
-        totalCantidad,
-        valorTotal,
-        usuarioRegistro: 'SuperAdmin',
-        fechaRegistro: new Date().toISOString(),
-        lineas: lineasDto,
-      };
-      items.unshift(nuevo);
-      saveStoredAjustes(items);
-      return { id: nuevoId, numero: nextNum };
-    }
+  obtenerAjustePorId(id: string): Promise<AjusteInventarioDto> {
+    requireServerId(id);
+    return apiClient<AjusteInventarioDto>(`/api/inventario/ajustes/${id}`);
   },
 
-  async solicitarAprobacion(id: string): Promise<{ numeroAprobacion: string }> {
-    try {
-      if (isGuid(id)) {
-        return await apiClient<{ numeroAprobacion: string }>(`/api/inventario/ajustes/${id}/solicitar-aprobacion`, { method: 'POST' });
-      }
-      throw new Error('ID no es válido en el servidor');
-    } catch {
-      const items = getStoredAjustes();
-      const index = items.findIndex(a => a.id === id);
-      if (index >= 0) {
-        const numAprob = items[index].numeroAprobacion || `APR-${String(index + 1).padStart(6, '0')}`;
-        items[index] = {
-          ...items[index],
-          estado: 'EnRevision',
-          numeroAprobacion: numAprob,
-        };
-        saveStoredAjustes(items);
-        return { numeroAprobacion: numAprob };
-      }
-      return { numeroAprobacion: 'APR-000001' };
-    }
+  guardarAjuste(id: string | null, datos: GuardarAjusteInput): Promise<{ id: string; numero: string }> {
+    if (id) requireServerId(id);
+    return apiClient<{ id: string; numero: string }>(id ? `/api/inventario/ajustes/${id}` : '/api/inventario/ajustes', {
+      method: id ? 'PUT' : 'POST', body: JSON.stringify(datos),
+    });
   },
 
-  async aplicarAjuste(id: string, usuarioAprobador?: string): Promise<void> {
-    try {
-      if (isGuid(id)) {
-        await apiClient(`/api/inventario/ajustes/${id}/aplicar`, {
-          method: 'POST',
-          body: JSON.stringify({ usuarioAprobador }),
-        });
-        return;
-      }
-      throw new Error('ID no es válido en el servidor');
-    } catch {
-      const items = getStoredAjustes();
-      const index = items.findIndex(a => a.id === id);
-      if (index >= 0) {
-        const numAprob = items[index].numeroAprobacion || `APR-${String(index + 1).padStart(6, '0')}`;
-        items[index] = {
-          ...items[index],
-          estado: 'Aplicado',
-          numeroAprobacion: numAprob,
-          usuarioAprobacion: usuarioAprobador || 'SuperAdmin',
-          fechaAprobacion: new Date().toISOString(),
-        };
-        saveStoredAjustes(items);
-      }
-    }
+  solicitarAprobacion(id: string): Promise<{ numeroAprobacion: string }> {
+    requireServerId(id);
+    return apiClient(`/api/inventario/ajustes/${id}/solicitar-aprobacion`, { method: 'POST' });
   },
 
-  async rechazarAjuste(id: string, motivoObservacion?: string): Promise<void> {
-    try {
-      if (isGuid(id)) {
-        await apiClient(`/api/inventario/ajustes/${id}/rechazar`, {
-          method: 'POST',
-          body: JSON.stringify({ motivo: motivoObservacion }),
-        });
-        return;
-      }
-      throw new Error('ID no es válido en el servidor');
-    } catch {
-      const items = getStoredAjustes();
-      const index = items.findIndex(a => a.id === id);
-      if (index >= 0) {
-        items[index] = {
-          ...items[index],
-          estado: 'Borrador',
-          observaciones: motivoObservacion
-            ? `${items[index].observaciones || ''}\n[Observación de Supervisor]: ${motivoObservacion}`.trim()
-            : items[index].observaciones,
-        };
-        saveStoredAjustes(items);
-      }
-    }
+  aplicarAjuste(id: string): Promise<void> {
+    requireServerId(id);
+    return apiClient(`/api/inventario/ajustes/${id}/aplicar`, { method: 'POST' });
   },
 
-  async anularAjuste(id: string): Promise<void> {
-    try {
-      if (isGuid(id)) {
-        await apiClient(`/api/inventario/ajustes/${id}/anular`, { method: 'POST' });
-        return;
-      }
-      throw new Error('ID no es válido en el servidor');
-    } catch {
-      const items = getStoredAjustes();
-      const index = items.findIndex(a => a.id === id);
-      if (index >= 0) {
-        items[index] = {
-          ...items[index],
-          estado: 'Anulado',
-        };
-        saveStoredAjustes(items);
-      }
-    }
+  rechazarAjuste(id: string, motivo?: string): Promise<void> {
+    requireServerId(id);
+    return apiClient(`/api/inventario/ajustes/${id}/rechazar`, { method: 'POST', body: JSON.stringify({ motivo }) });
   },
 
-  async eliminarAjuste(id: string): Promise<void> {
-    try {
-      if (isGuid(id)) {
-        await apiClient(`/api/inventario/ajustes/${id}`, { method: 'DELETE' });
-      }
-    } catch {
-      // fallback local si no hay backend activo
-    }
-    const items = getStoredAjustes();
-    const filtrados = items.filter(a => a.id !== id);
-    saveStoredAjustes(filtrados);
+  anularAjuste(id: string): Promise<void> {
+    requireServerId(id);
+    return apiClient(`/api/inventario/ajustes/${id}/anular`, { method: 'POST' });
+  },
+
+  eliminarAjuste(id: string): Promise<void> {
+    requireServerId(id);
+    return apiClient(`/api/inventario/ajustes/${id}`, { method: 'DELETE' });
   },
 };

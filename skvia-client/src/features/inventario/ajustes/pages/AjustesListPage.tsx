@@ -1,3 +1,4 @@
+import { useAuthSession } from '../../../../services/authSession';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -97,6 +98,8 @@ const columnasExportacion: ExportColumn<AjusteInventarioDto>[] = [
 ];
 
 export function AjustesListPage() {
+  const { permisos } = useAuthSession();
+  const puedeOperar = permisos.includes('inventario.operar');
   const listStyles = useD365ListStyles();
   const navigate = useNavigate();
   const tableRef = useRef<D365EntityTableRef>(null);
@@ -110,6 +113,9 @@ export function AjustesListPage() {
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [ajustesAEliminar, setAjustesAEliminar] = useState<AjusteInventarioDto[] | null>(null);
   const [eliminando, setEliminando] = useState(false);
+  const [pendientesLocales, setPendientesLocales] = useState(0);
+  const [confirmarRecuperacion, setConfirmarRecuperacion] = useState(false);
+  const [recuperando, setRecuperando] = useState(false);
 
   const itemsSeleccionados = useMemo(() => {
     return ajustes.filter(a => selectedIds.has(a.id));
@@ -131,6 +137,7 @@ export function AjustesListPage() {
     try {
       setCargando(true);
       setError(null);
+      setPendientesLocales(AjusteService.obtenerPendientesLocales());
       const data = await AjusteService.obtenerAjustes();
       setAjustes(data);
     } catch (e) {
@@ -139,6 +146,26 @@ export function AjustesListPage() {
       setCargando(false);
     }
   }, []);
+
+  const recuperarLocales = async () => {
+    setConfirmarRecuperacion(false);
+    setRecuperando(true);
+    setError(null);
+    try {
+      const resultado = await AjusteService.recuperarAjustesLocales();
+      await cargar();
+      if (resultado.recuperados > 0) {
+        setMensaje(`${resultado.recuperados} ajuste(s) recuperado(s) como borradores. Revise cada uno antes de aplicarlo al inventario.`);
+      }
+      if (resultado.errores.length > 0) {
+        setError(`Quedan ${resultado.pendientes} ajuste(s) local(es) pendientes. ${resultado.errores.join(' ')}`);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudieron recuperar los ajustes locales.');
+    } finally {
+      setRecuperando(false);
+    }
+  };
 
   useEffect(() => {
     void cargar();
@@ -282,6 +309,30 @@ export function AjustesListPage() {
 
   return (
     <div className={listStyles.root}>
+      {pendientesLocales > 0 && (
+        <D365MessageBar intent="warning" title="Ajustes locales pendientes">
+          Hay {pendientesLocales} ajuste(s) antiguo(s) guardado(s) en este navegador. Sus estados locales no confirman movimientos de inventario.
+          <Button appearance="transparent" disabled={recuperando || cargando || !puedeOperar} onClick={() => setConfirmarRecuperacion(true)}>
+            {recuperando ? 'Recuperando...' : 'Recuperar como borradores'}
+          </Button>
+        </D365MessageBar>
+      )}
+      <Dialog open={confirmarRecuperacion} onOpenChange={(_, data) => setConfirmarRecuperacion(data.open)}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Recuperar ajustes locales</DialogTitle>
+            <DialogContent>
+              Se crearán borradores para revisar los {pendientesLocales} ajuste(s) de este navegador con su usuario actual.
+              Compruebe que le corresponden. No se aprobarán ni modificarán existencias automáticamente.
+              Los registros que fallen se conservarán para reintentar.
+            </DialogContent>
+            <DialogActions>
+              <Button appearance="secondary" onClick={() => setConfirmarRecuperacion(false)}>Cancelar</Button>
+              <Button appearance="primary" onClick={() => void recuperarLocales()}>Recuperar borradores</Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
       {mensaje && (
         <D365MessageBar intent="success" onDismiss={() => setMensaje(null)}>
           {mensaje}
@@ -299,6 +350,7 @@ export function AjustesListPage() {
           <D365CommandButton
             icon={<Add16Regular />}
             tone="create"
+            disabled={!puedeOperar}
             onClick={() => navigate('/servicio-campo/ajustes-inventario/nuevo')}
           >
             Nuevo
@@ -317,7 +369,7 @@ export function AjustesListPage() {
                 >
                   Ver detalle
                 </D365CommandButton>
-                {esBorrador && (
+                {esBorrador && puedeOperar && (
                   <D365CommandButton
                     icon={<Delete16Regular />}
                     tone="danger"
@@ -333,7 +385,7 @@ export function AjustesListPage() {
 
           {selectedIds.size > 1 && (
             <>
-              {borradoresSeleccionados.length > 0 && (
+              {puedeOperar && borradoresSeleccionados.length > 0 && (
                 <D365CommandButton
                   icon={<Delete16Regular />}
                   tone="danger"
@@ -413,7 +465,7 @@ export function AjustesListPage() {
             className={listStyles.searchBox}
             size="medium"
             contentBefore={<Search16Regular />}
-            placeholder="Buscar por código, almacén, motivo..."
+            placeholder="Buscar"
             aria-label="Buscar en esta vista"
             value={buscar}
             onChange={(_, d) => setBuscar(d.value)}
@@ -478,7 +530,7 @@ export function AjustesListPage() {
                   </div>
                   {itemsSeleccionados.length > (ajustesAEliminar?.length ?? 0) && (
                     <div style={{ marginTop: '8px', color: tokens.colorPaletteGoldForeground2, fontSize: '12px' }}>
-                      ℹ️ Nota: {itemsSeleccionados.length - (ajustesAEliminar?.length ?? 0)} registro(s) seleccionados no están en estado Borrador y no serán eliminados.
+                      {itemsSeleccionados.length - (ajustesAEliminar?.length ?? 0)} registro(s) seleccionados no están en estado Borrador y no serán eliminados.
                     </div>
                   )}
                 </>
@@ -494,7 +546,7 @@ export function AjustesListPage() {
               </Button>
               <Button
                 appearance="primary"
-                style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: '#fff' }}
+                style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: tokens.colorNeutralForegroundOnBrand }}
                 disabled={eliminando}
                 onClick={async () => {
                   if (!ajustesAEliminar || ajustesAEliminar.length === 0) return;

@@ -8,6 +8,7 @@ using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
 using BubbaBag.Modules.ServicioCampo.Domain.Productos;
 using BubbaBag.SharedKernel;
 using BubbaBag.SharedKernel.CQRS;
+using BubbaBag.SharedKernel.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace BubbaBag.Modules.ServicioCampo.Application.Almacenes.Ajustes;
@@ -37,18 +38,40 @@ public class AjustesHandlers :
         _seqService = seqService;
     }
 
-    public async Task<Result<AjusteIdentificadorDto>> HandleAsync(CrearAjusteCommand command, CancellationToken ct = default)
+    public Task<Result<AjusteIdentificadorDto>> HandleAsync(CrearAjusteCommand command, CancellationToken ct = default) =>
+        ModificarAsync(command.RecuperacionId ?? Guid.NewGuid(), () => CrearAsync(command, ct), ct);
+
+    private async Task<Result<AjusteIdentificadorDto>> CrearAsync(CrearAjusteCommand command, CancellationToken ct)
     {
-        return await GuardarAsync(null, command.Datos, ct);
+        if (!_user.IsAuthenticated || _user.Id == Guid.Empty)
+            return Result<AjusteIdentificadorDto>.Failure("Inicie sesión para registrar el ajuste.");
+        if (command.RecuperacionId.HasValue)
+        {
+            if (command.RecuperacionId == Guid.Empty)
+                return Result<AjusteIdentificadorDto>.Failure("Falta el identificador de recuperación.");
+
+            // La misma recuperación devuelve el documento ya creado, incluso si se perdió la respuesta.
+            var recuperado = await _context.AjustesInventario.AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == command.RecuperacionId.Value, ct);
+            if (recuperado != null)
+            {
+                await AsegurarAccesoAsync(recuperado.AlmacenId, "consultar", ct);
+                return recuperado.UsuarioId == _user.Id
+                    ? Result<AjusteIdentificadorDto>.Success(new(recuperado.Id, recuperado.Numero))
+                    : Result<AjusteIdentificadorDto>.Failure("No puede recuperar una operación de otro usuario.");
+            }
+        }
+        return await GuardarAsync(null, command.Datos, ct, command.RecuperacionId);
     }
 
     public async Task<Result<AjusteIdentificadorDto>> HandleAsync(ActualizarAjusteCommand command, CancellationToken ct = default)
     {
-        return await GuardarAsync(command.Id, command.Datos, ct);
+        return await ModificarAsync(command.Id, () => GuardarAsync(command.Id, command.Datos, ct), ct);
     }
 
-    private async Task<Result<AjusteIdentificadorDto>> GuardarAsync(Guid? id, GuardarAjusteInput datos, CancellationToken ct)
+    private async Task<Result<AjusteIdentificadorDto>> GuardarAsync(Guid? id, GuardarAjusteInput datos, CancellationToken ct, Guid? recuperacionId = null)
     {
+        if (!_user.HasPermission(Permissions.Inventario.Operar)) throw new UnauthorizedAccessException();
         if (datos.AlmacenId == Guid.Empty)
             return Result<AjusteIdentificadorDto>.Failure("Seleccione un almacén válido.");
 
@@ -56,16 +79,31 @@ public class AjustesHandlers :
         if (almacen == null)
             return Result<AjusteIdentificadorDto>.Failure("El almacén seleccionado no existe o está inactivo.");
 
+        await AsegurarAccesoAsync(datos.AlmacenId, "consultar", ct);
+        var ubicacion = await InventarioAcceso.UbicacionAsync(_context, datos.AlmacenId, datos.UbicacionId, ct);
+        if (ubicacion == null)
+            return Result<AjusteIdentificadorDto>.Failure("Seleccione una ubicación activa perteneciente al almacén del ajuste.");
+
+        if (datos.Tipo is not ("Entrada" or "Salida") || string.IsNullOrWhiteSpace(datos.Motivo)
+            || datos.Motivo.Length > 250 || datos.Observaciones?.Length > 1000 || datos.DocumentoReferencia?.Length > 100)
+            return Result<AjusteIdentificadorDto>.Failure("Revise el tipo, motivo y longitud de los datos del ajuste.");
+
         if (datos.Lineas == null || datos.Lineas.Count == 0)
             return Result<AjusteIdentificadorDto>.Failure("El ajuste debe contener al menos un producto.");
 
-        if (datos.Lineas.Any(l => l.Cantidad <= 0))
+        if (datos.Lineas.Count > 500 || datos.Lineas.Any(l => l.Cantidad <= 0 || l.Cantidad > 999999999.99999m || l.CostoUnitario < 0
+            || l.Tipo is not ("Entrada" or "Salida")))
             return Result<AjusteIdentificadorDto>.Failure("Todas las cantidades deben ser mayores a 0.");
+
+        if (datos.Lineas.Select(l => l.ProductoId).Distinct().Count() != datos.Lineas.Count)
+            return Result<AjusteIdentificadorDto>.Failure("Cada producto debe aparecer una sola vez en el ajuste.");
+        foreach (var tipo in datos.Lineas.Select(l => l.Tipo).Distinct())
+            await AsegurarAccesoAsync(datos.AlmacenId, tipo == "Entrada" ? "recibir" : "despachar", ct);
 
         var idsProductos = datos.Lineas.Select(l => l.ProductoId).Distinct().ToList();
         var productosDb = await _context.Productos
             .Include(p => p.UnidadMedidaDefecto)
-            .Where(p => idsProductos.Contains(p.Id))
+            .Where(p => idsProductos.Contains(p.Id) && p.Activo && p.Tipo == TipoProducto.Inventario)
             .ToDictionaryAsync(p => p.Id, ct);
 
         if (productosDb.Count != idsProductos.Count)
@@ -74,14 +112,23 @@ public class AjustesHandlers :
         // Construir líneas completas
         var lineasDto = new List<LineaAjusteItemDto>();
         int idx = 0;
+        var todasLasSeries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var l in datos.Lineas)
         {
             var p = productosDb[l.ProductoId];
             var seriesNormalizadas = (l.Series ?? new List<string>())
-                .Where(s => !string.IsNullOrWhiteSpace(s))
-                .Select(s => s.Trim().ToUpperInvariant())
-                .Distinct()
+                .Select(s => s?.Trim().ToUpperInvariant() ?? "")
                 .ToList();
+
+            if ((l.Series ?? []).Any(s => string.IsNullOrWhiteSpace(s) || s.Trim().Length > 100)
+                || seriesNormalizadas.Any(s => !todasLasSeries.Add(s)))
+                return Result<AjusteIdentificadorDto>.Failure("Hay series vacías, repetidas o demasiado largas.");
+
+            if (decimal.Round(l.Cantidad, Math.Clamp(p.DecimalesCantidad, 0, 5)) != l.Cantidad
+                || p.EsSerializado && decimal.Truncate(l.Cantidad) != l.Cantidad)
+                return Result<AjusteIdentificadorDto>.Failure("La cantidad no respeta los decimales del producto; los productos serializados requieren unidades enteras.");
+            if (!p.EsSerializado && seriesNormalizadas.Count > 0)
+                return Result<AjusteIdentificadorDto>.Failure("Un producto no serializado no admite series.");
 
             if (p.EsSerializado && seriesNormalizadas.Count != (int)l.Cantidad)
             {
@@ -113,20 +160,21 @@ public class AjustesHandlers :
         var lineasJson = JsonSerializer.Serialize(lineasDto);
 
         if (!DateOnly.TryParse(datos.Fecha, out var fechaDate))
-        {
-            fechaDate = DateOnly.FromDateTime(DateTime.UtcNow);
-        }
+            return Result<AjusteIdentificadorDto>.Failure("Ingrese una fecha válida para el ajuste.");
 
         if (id.HasValue && id.Value != Guid.Empty)
         {
             var existente = await _context.AjustesInventario.FirstOrDefaultAsync(a => a.Id == id.Value, ct);
             if (existente == null)
                 return Result<AjusteIdentificadorDto>.Failure("El ajuste no existe.");
+            await AsegurarOperacionAsync(existente, false, ct);
+            if (existente.Estado != "Borrador")
+                return Result<AjusteIdentificadorDto>.Failure("Sólo se pueden editar ajustes en borrador.");
 
             existente.Actualizar(
                 tipo: datos.Tipo ?? "Entrada",
                 almacenId: datos.AlmacenId,
-                ubicacionId: datos.UbicacionId,
+                ubicacionId: ubicacion.Id,
                 fecha: fechaDate,
                 motivo: datos.Motivo,
                 documentoReferencia: datos.DocumentoReferencia,
@@ -166,15 +214,15 @@ public class AjustesHandlers :
             numeroAjuste = $"AJU-{(count + 1):D6}";
         }
 
-        var nuevoId = Guid.NewGuid();
-        var nombreUsuario = _user.Email ?? "SuperAdmin";
+        var nuevoId = recuperacionId ?? Guid.NewGuid();
+        var nombreUsuario = string.IsNullOrWhiteSpace(_user.Email) ? _user.Id.ToString() : _user.Email;
 
         var nuevo = AjusteInventario.Registrar(
             id: nuevoId,
             numero: numeroAjuste,
             tipo: datos.Tipo ?? "Entrada",
             almacenId: datos.AlmacenId,
-            ubicacionId: datos.UbicacionId,
+            ubicacionId: ubicacion.Id,
             fecha: fechaDate,
             motivo: datos.Motivo,
             documentoReferencia: datos.DocumentoReferencia,
@@ -183,7 +231,7 @@ public class AjustesHandlers :
             totalCantidad: totalCantidad,
             valorTotal: valorTotal,
             lineasJson: lineasJson,
-            usuarioId: _user.Id != Guid.Empty ? _user.Id : Guid.NewGuid(),
+            usuarioId: _user.Id,
             usuarioRegistro: nombreUsuario
         );
 
@@ -193,11 +241,16 @@ public class AjustesHandlers :
         return Result<AjusteIdentificadorDto>.Success(new AjusteIdentificadorDto(nuevo.Id, nuevo.Numero));
     }
 
-    public async Task<Result<AprobacionAjusteDto>> HandleAsync(SolicitarAprobacionAjusteCommand command, CancellationToken ct = default)
+    public Task<Result<AprobacionAjusteDto>> HandleAsync(SolicitarAprobacionAjusteCommand command, CancellationToken ct = default) =>
+        ModificarAsync(command.Id, () => SolicitarAsync(command, ct), ct);
+
+    private async Task<Result<AprobacionAjusteDto>> SolicitarAsync(SolicitarAprobacionAjusteCommand command, CancellationToken ct)
     {
         var ajuste = await _context.AjustesInventario.FirstOrDefaultAsync(a => a.Id == command.Id, ct);
         if (ajuste == null)
             return Result<AprobacionAjusteDto>.Failure("El ajuste no existe.");
+        await AsegurarOperacionAsync(ajuste, false, ct);
+        if (ajuste.Estado != "Borrador") return Result<AprobacionAjusteDto>.Failure("Sólo se puede enviar a revisión un borrador.");
 
         string numeroApr = "";
         if (_seqService != null)
@@ -229,29 +282,42 @@ public class AjustesHandlers :
         return Result<AprobacionAjusteDto>.Success(new AprobacionAjusteDto(ajuste.NumeroAprobacion!));
     }
 
-    public async Task<Result> HandleAsync(RechazarAjusteCommand command, CancellationToken ct = default)
+    public Task<Result> HandleAsync(RechazarAjusteCommand command, CancellationToken ct = default) =>
+        ModificarAsync(command.Id, () => RechazarAsync(command, ct), ct);
+
+    private async Task<Result> RechazarAsync(RechazarAjusteCommand command, CancellationToken ct)
     {
         var ajuste = await _context.AjustesInventario.FirstOrDefaultAsync(a => a.Id == command.Id, ct);
         if (ajuste == null)
             return Result.Failure("El ajuste no existe.");
 
+        await AsegurarOperacionAsync(ajuste, true, ct);
+        if (ajuste.Estado != "EnRevision") return Result.Failure("Sólo se puede observar un ajuste en revisión.");
         ajuste.Observar(command.Motivo);
         await _context.SaveChangesAsync(ct);
         return Result.Success();
     }
 
-    public async Task<Result> HandleAsync(AnularAjusteCommand command, CancellationToken ct = default)
+    public Task<Result> HandleAsync(AnularAjusteCommand command, CancellationToken ct = default) =>
+        ModificarAsync(command.Id, () => AnularAsync(command, ct), ct);
+
+    private async Task<Result> AnularAsync(AnularAjusteCommand command, CancellationToken ct)
     {
         var ajuste = await _context.AjustesInventario.FirstOrDefaultAsync(a => a.Id == command.Id, ct);
         if (ajuste == null)
             return Result.Failure("El ajuste no existe.");
 
+        await AsegurarOperacionAsync(ajuste, false, ct);
+        if (ajuste.Estado == "Aplicado") return Result.Failure("Un ajuste aplicado no puede anularse.");
         ajuste.Anular();
         await _context.SaveChangesAsync(ct);
         return Result.Success();
     }
 
-    public async Task<Result> HandleAsync(EliminarAjusteCommand command, CancellationToken ct = default)
+    public Task<Result> HandleAsync(EliminarAjusteCommand command, CancellationToken ct = default) =>
+        ModificarAsync(command.Id, () => EliminarAsync(command, ct), ct);
+
+    private async Task<Result> EliminarAsync(EliminarAjusteCommand command, CancellationToken ct)
     {
         var ajuste = await _context.AjustesInventario.FirstOrDefaultAsync(a => a.Id == command.Id, ct);
         if (ajuste == null)
@@ -259,6 +325,7 @@ public class AjustesHandlers :
 
         if (ajuste.Estado != "Borrador")
             return Result.Failure("Solo se pueden eliminar ajustes en estado Borrador.");
+        await AsegurarOperacionAsync(ajuste, false, ct);
 
         _context.AjustesInventario.Remove(ajuste);
         await _context.SaveChangesAsync(ct);
@@ -267,192 +334,151 @@ public class AjustesHandlers :
 
     public async Task<Result> HandleAsync(AplicarAjusteCommand command, CancellationToken ct = default)
     {
-        var ajuste = await _context.AjustesInventario
-            .Include(a => a.Almacen)
-            .FirstOrDefaultAsync(a => a.Id == command.Id, ct);
-
-        if (ajuste == null)
-            return Result.Failure("El ajuste no existe.");
-
-        if (ajuste.Estado == "Aplicado")
-            return Result.Failure("El ajuste ya fue aplicado previamente.");
-
-        if (ajuste.Estado == "Anulado")
-            return Result.Failure("No se puede aplicar un ajuste anulado.");
-
-        // Determinar ubicación final del almacén
-        Guid ubicacionId = Guid.Empty;
-        if (ajuste.UbicacionId.HasValue && ajuste.UbicacionId.Value != Guid.Empty)
-        {
-            ubicacionId = ajuste.UbicacionId.Value;
-        }
-        else
-        {
-            var ubPred = await _context.UbicacionesInventario
-                .FirstOrDefaultAsync(u => u.AlmacenId == ajuste.AlmacenId && u.EsPrincipal && u.Activa, ct)
-                ?? await _context.UbicacionesInventario
-                .FirstOrDefaultAsync(u => u.AlmacenId == ajuste.AlmacenId && u.Activa, ct);
-
-            if (ubPred != null)
-            {
-                ubicacionId = ubPred.Id;
-            }
-            else
-            {
-                // Crear ubicación Principal automáticamente
-                var nuevaUb = UbicacionInventario.Crear(
-                    ajuste.AlmacenId,
-                    "PRINCIPAL",
-                    "Principal",
-                    principal: true
-                );
-                await _context.UbicacionesInventario.AddAsync(nuevaUb, ct);
-                await _context.SaveChangesAsync(ct);
-                ubicacionId = nuevaUb.Id;
-            }
-        }
-
-        var lineas = JsonSerializer.Deserialize<List<LineaAjusteItemDto>>(ajuste.LineasJson) ?? new List<LineaAjusteItemDto>();
-        if (lineas.Count == 0)
-            return Result.Failure("El ajuste no contiene líneas de productos.");
-
+        if (!_user.IsAuthenticated || _user.Id == Guid.Empty)
+            return Result.Failure("Inicie sesión para aplicar el ajuste.");
         try
         {
-            await _context.EjecutarEnTransaccionAsync(async token =>
+            return await ModificarAsync(command.Id, () => AplicarAsync(command.Id, ct), ct);
+        }
+        catch (UnauthorizedAccessException) { throw; }
+        catch (InvalidOperationException ex) { return Result.Failure(ex.Message); }
+        catch (DbUpdateException) { return Result.Failure("El inventario cambió o una serie ya fue registrada. Actualice y vuelva a revisar el ajuste."); }
+    }
+
+    private async Task<Result> AplicarAsync(Guid id, CancellationToken ct)
+    {
+        var ajuste = await _context.AjustesInventario.FirstOrDefaultAsync(a => a.Id == id, ct);
+        if (ajuste == null) return Result.Failure("El ajuste no existe.");
+        await AsegurarOperacionAsync(ajuste, true, ct);
+        if (ajuste.Estado is not ("Borrador" or "EnRevision"))
+            return Result.Failure("El ajuste no está en un estado válido para aplicarse.");
+
+        var ubicacion = await InventarioAcceso.UbicacionAsync(_context, ajuste.AlmacenId, ajuste.UbicacionId, ct);
+        if (ubicacion == null) return Result.Failure("La ubicación está inactiva o no pertenece al almacén del ajuste.");
+        var lineas = JsonSerializer.Deserialize<List<LineaAjusteItemDto>>(ajuste.LineasJson) ?? [];
+        if (lineas.Count == 0 || lineas.Select(l => l.ProductoId).Distinct().Count() != lineas.Count)
+            return Result.Failure("Revise las líneas del ajuste: se necesita un registro por producto.");
+
+        var ids = lineas.Select(l => l.ProductoId).ToList();
+        var productos = await _context.Productos.Where(p => ids.Contains(p.Id) && p.Activo && p.Tipo == TipoProducto.Inventario).ToDictionaryAsync(p => p.Id, ct);
+        if (productos.Count != ids.Count) return Result.Failure("Hay productos inexistentes, inactivos o que no corresponden a inventario.");
+        var numeros = lineas.SelectMany(l => l.Series ?? []).Select(s => s?.Trim().ToUpperInvariant() ?? "").ToList();
+        if (numeros.Any(s => string.IsNullOrWhiteSpace(s) || s.Length > 100) || numeros.Distinct(StringComparer.OrdinalIgnoreCase).Count() != numeros.Count)
+            return Result.Failure("Las series deben ser válidas y únicas en todo el ajuste.");
+        var items = await _context.ItemsSeriados.Where(i => numeros.Contains(i.NumeroSerie)).ToDictionaryAsync(i => i.NumeroSerie, ct);
+        var stocks = await _context.StocksAlmacen.Where(s => s.UbicacionId == ubicacion.Id && ids.Contains(s.ProductoId) && s.Condicion == CondicionInventario.Utilizable).ToDictionaryAsync(s => s.ProductoId, ct);
+
+        // Validar todas las líneas antes de tocar saldos, series o el estado del documento.
+        foreach (var linea in lineas)
+        {
+            var producto = productos[linea.ProductoId];
+            if (linea.Tipo is not ("Entrada" or "Salida") || linea.Cantidad <= 0 || linea.Cantidad > 999999999.99999m || linea.CostoUnitario < 0
+                || !ReglasCantidadInventario.EsValida(producto, linea.Cantidad))
+                return Result.Failure("Revise el tipo, costo, cantidad y decimales de las líneas.");
+            var series = linea.Series ?? [];
+            if (producto.EsSerializado && (decimal.Truncate(linea.Cantidad) != linea.Cantidad || series.Count != linea.Cantidad)
+                || !producto.EsSerializado && series.Count > 0)
+                return Result.Failure("Los productos serializados requieren una serie por unidad entera; los demás no admiten series.");
+            if (linea.Tipo == "Salida" && (!stocks.TryGetValue(linea.ProductoId, out var saldo) || saldo.CantidadDisponible < linea.Cantidad))
+                return Result.Failure("El stock de la ubicación no alcanza para la salida solicitada.");
+            foreach (var numero in series.Select(s => s.Trim().ToUpperInvariant()))
             {
-                foreach (var linea in lineas)
+                if (linea.Tipo == "Entrada" && items.ContainsKey(numero))
+                    return Result.Failure("Una serie de entrada ya existe. Use la devolución o restitución correspondiente; el ajuste no puede duplicarla ni reubicarla.");
+                if (linea.Tipo == "Salida" && (!items.TryGetValue(numero, out var item) || item.ProductoId != linea.ProductoId
+                    || item.UbicacionActualId != ubicacion.Id || item.TransferenciaEnTransitoId.HasValue
+                    || item.Condicion != CondicionInventario.Utilizable || item.Estado is not (EstadoItemSeriado.EnAlmacen or EstadoItemSeriado.EnCustodiaTecnico)))
+                    return Result.Failure("Una serie de salida no está disponible para ese producto en la ubicación del ajuste.");
+            }
+        }
+
+        foreach (var linea in lineas)
+        {
+            var entrada = linea.Tipo == "Entrada";
+            if (!stocks.TryGetValue(linea.ProductoId, out var stock))
+            {
+                stock = StockAlmacen.Crear(ubicacion.Id, linea.ProductoId, condicion: CondicionInventario.Utilizable);
+                _context.StocksAlmacen.Add(stock);
+                stocks.Add(linea.ProductoId, stock);
+            }
+            if (entrada) stock.AumentarStock(linea.Cantidad); else stock.DisminuirStock(linea.Cantidad);
+            var producto = productos[linea.ProductoId];
+            if (producto.EsSerializado)
+            {
+                foreach (var numero in linea.Series.Select(s => s.Trim().ToUpperInvariant()))
                 {
-                    bool esEntrada = string.Equals(linea.Tipo, "Entrada", StringComparison.OrdinalIgnoreCase);
-
-                    var stock = await _context.StocksAlmacen.FirstOrDefaultAsync(
-                        s => s.UbicacionId == ubicacionId && s.ProductoId == linea.ProductoId && s.Condicion == CondicionInventario.Utilizable,
-                        token);
-
-                    if (esEntrada)
+                    ItemSeriado item;
+                    if (entrada)
                     {
-                        if (stock == null)
-                        {
-                            stock = StockAlmacen.Crear(ubicacionId, linea.ProductoId, condicion: CondicionInventario.Utilizable);
-                            await _context.StocksAlmacen.AddAsync(stock, token);
-                        }
-                        stock.AumentarStock(linea.Cantidad);
-
-                        if (linea.EsSerializado && linea.Series != null && linea.Series.Count > 0)
-                        {
-                            foreach (var s in linea.Series)
-                            {
-                                var sUpper = s.Trim().ToUpperInvariant();
-                                var item = await _context.ItemsSeriados.FirstOrDefaultAsync(
-                                    i => i.NumeroSerie == sUpper && i.ProductoId == linea.ProductoId, token);
-
-                                if (item == null)
-                                {
-                                    item = ItemSeriado.Crear(linea.ProductoId, sUpper, ubicacionId);
-                                    await _context.ItemsSeriados.AddAsync(item, token);
-                                }
-                                else
-                                {
-                                    item.Ubicar(ubicacionId, TipoAlmacen.Bodega, CondicionInventario.Utilizable);
-                                }
-
-                                await _context.MovimientosInventario.AddAsync(MovimientoInventario.Registrar(
-                                    TipoMovimientoInventario.AjusteInventario,
-                                    linea.ProductoId,
-                                    1,
-                                    almacenDestinoId: ajuste.AlmacenId,
-                                    itemSeriadoId: item.Id,
-                                    numeroDocumento: ajuste.Numero,
-                                    usuarioResponsableId: _user.Id != Guid.Empty ? _user.Id : null,
-                                    observaciones: $"Ajuste de ingreso (+): {ajuste.Motivo}",
-                                    ubicacionDestinoId: ubicacionId,
-                                    eventoId: ajuste.Id), token);
-                            }
-                        }
-                        else
-                        {
-                            await _context.MovimientosInventario.AddAsync(MovimientoInventario.Registrar(
-                                TipoMovimientoInventario.AjusteInventario,
-                                linea.ProductoId,
-                                linea.Cantidad,
-                                almacenDestinoId: ajuste.AlmacenId,
-                                numeroDocumento: ajuste.Numero,
-                                usuarioResponsableId: _user.Id != Guid.Empty ? _user.Id : null,
-                                observaciones: $"Ajuste de ingreso (+): {ajuste.Motivo}",
-                                ubicacionDestinoId: ubicacionId,
-                                eventoId: ajuste.Id), token);
-                        }
+                        item = ItemSeriado.Crear(linea.ProductoId, numero, ubicacion.Id);
+                        item.Ubicar(ubicacion.Id, ubicacion.Almacen.Tipo, CondicionInventario.Utilizable);
+                        _context.ItemsSeriados.Add(item);
                     }
                     else
                     {
-                        // Salida
-                        if (stock == null || stock.CantidadDisponible < linea.Cantidad)
-                        {
-                            throw new InvalidOperationException(
-                                $"Stock insuficiente para '{linea.NombreProducto}'. Disponible: {stock?.CantidadDisponible ?? 0}, a retirar: {linea.Cantidad}.");
-                        }
-                        stock.DisminuirStock(linea.Cantidad);
-
-                        if (linea.EsSerializado && linea.Series != null && linea.Series.Count > 0)
-                        {
-                            foreach (var s in linea.Series)
-                            {
-                                var sUpper = s.Trim().ToUpperInvariant();
-                                var item = await _context.ItemsSeriados.FirstOrDefaultAsync(
-                                    i => i.NumeroSerie == sUpper && i.ProductoId == linea.ProductoId, token);
-
-                                if (item != null)
-                                {
-                                    item.DarDeBaja($"Ajuste de salida (-): {ajuste.Motivo}");
-                                }
-
-                                await _context.MovimientosInventario.AddAsync(MovimientoInventario.Registrar(
-                                    TipoMovimientoInventario.AjusteInventario,
-                                    linea.ProductoId,
-                                    1,
-                                    almacenOrigenId: ajuste.AlmacenId,
-                                    itemSeriadoId: item?.Id,
-                                    numeroDocumento: ajuste.Numero,
-                                    usuarioResponsableId: _user.Id != Guid.Empty ? _user.Id : null,
-                                    observaciones: $"Ajuste de salida (-): {ajuste.Motivo}",
-                                    ubicacionOrigenId: ubicacionId,
-                                    eventoId: ajuste.Id), token);
-                            }
-                        }
-                        else
-                        {
-                            await _context.MovimientosInventario.AddAsync(MovimientoInventario.Registrar(
-                                TipoMovimientoInventario.AjusteInventario,
-                                linea.ProductoId,
-                                linea.Cantidad,
-                                almacenOrigenId: ajuste.AlmacenId,
-                                numeroDocumento: ajuste.Numero,
-                                usuarioResponsableId: _user.Id != Guid.Empty ? _user.Id : null,
-                                observaciones: $"Ajuste de salida (-): {ajuste.Motivo}",
-                                ubicacionOrigenId: ubicacionId,
-                                eventoId: ajuste.Id), token);
-                        }
+                        item = items[numero];
+                        item.DarDeBaja($"Ajuste de salida: {ajuste.Motivo}");
                     }
+                    RegistrarMovimiento(ajuste, linea, ubicacion.Id, entrada, 1, item.Id);
                 }
-
-                ajuste.Aplicar(command.UsuarioAprobador ?? _user.Email ?? "Supervisor");
-                await _context.SaveChangesAsync(token);
-            }, ct);
+            }
+            else RegistrarMovimiento(ajuste, linea, ubicacion.Id, entrada, linea.Cantidad, null);
         }
-        catch (Exception ex)
-        {
-            return Result.Failure($"Error al aplicar el ajuste: {ex.Message}");
-        }
-
+        ajuste.Aplicar(string.IsNullOrWhiteSpace(_user.Email) ? _user.Id.ToString() : _user.Email);
+        await _context.SaveChangesAsync(ct);
         return Result.Success();
     }
 
+    private void RegistrarMovimiento(AjusteInventario ajuste, LineaAjusteItemDto linea, Guid ubicacionId, bool entrada, decimal cantidad, Guid? serieId) =>
+        _context.MovimientosInventario.Add(MovimientoInventario.Registrar(
+            TipoMovimientoInventario.AjusteInventario, linea.ProductoId, cantidad,
+            almacenOrigenId: entrada ? null : ajuste.AlmacenId,
+            almacenDestinoId: entrada ? ajuste.AlmacenId : null,
+            itemSeriadoId: serieId, numeroDocumento: ajuste.Numero, usuarioResponsableId: _user.Id,
+            observaciones: $"Ajuste de {(entrada ? "ingreso" : "salida")}: {ajuste.Motivo}",
+            ubicacionOrigenId: entrada ? null : ubicacionId,
+            ubicacionDestinoId: entrada ? ubicacionId : null, eventoId: ajuste.Id));
+
+    private async Task AsegurarAccesoAsync(Guid almacenId, string accion, CancellationToken ct)
+    {
+        if (!_user.IsAuthenticated || _user.Id == Guid.Empty || !_user.HasPermission(Permissions.Inventario.Acceso)
+            || !await InventarioAcceso.PuedeAsync(_context, _user, almacenId, "consultar", ct)
+            || accion != "consultar" && !await InventarioAcceso.PuedeAsync(_context, _user, almacenId, accion, ct))
+            throw new UnauthorizedAccessException();
+    }
+
+    private async Task AsegurarOperacionAsync(AjusteInventario ajuste, bool aprobar, CancellationToken ct)
+    {
+        if (!_user.HasPermission(aprobar ? Permissions.Inventario.AjustesAprobar : Permissions.Inventario.Operar))
+            throw new UnauthorizedAccessException();
+        await AsegurarAccesoAsync(ajuste.AlmacenId, aprobar ? "supervisar" : "consultar", ct);
+        if (!await _context.Almacenes.AnyAsync(a => a.Id == ajuste.AlmacenId && a.Activo, ct))
+            throw new InvalidOperationException("El almacén está inactivo.");
+        if (!aprobar)
+            foreach (var tipo in (JsonSerializer.Deserialize<List<LineaAjusteItemDto>>(ajuste.LineasJson) ?? []).Select(l => l.Tipo).Distinct())
+                await AsegurarAccesoAsync(ajuste.AlmacenId, tipo == "Entrada" ? "recibir" : "despachar", ct);
+    }
+
+    private async Task<T> ModificarAsync<T>(Guid id, Func<Task<T>> accion, CancellationToken ct)
+    {
+        T resultado = default!;
+        await _context.EjecutarConBloqueoAjusteAsync(id, async token =>
+        {
+            resultado = await accion();
+        }, ct);
+        return resultado;
+    }
+
+
     public async Task<Result<List<AjusteInventarioDto>>> HandleAsync(ObtenerAjustesQuery query, CancellationToken ct = default)
     {
+        if (!_user.IsAuthenticated || !_user.HasPermission(Permissions.Inventario.Acceso)) throw new UnauthorizedAccessException();
+        var almacenes = InventarioAcceso.AlmacenesConsultables(_context, _user);
         var q = _context.AjustesInventario
             .AsNoTracking()
             .Include(a => a.Almacen)
             .Include(a => a.Ubicacion)
-            .AsQueryable();
+            .Where(a => almacenes.Contains(a.AlmacenId));
 
         if (query.AlmacenId.HasValue && query.AlmacenId.Value != Guid.Empty)
         {
@@ -475,6 +501,7 @@ public class AjustesHandlers :
 
         if (ajuste == null)
             return Result<AjusteInventarioDto>.Failure("Ajuste no encontrado.");
+        await AsegurarAccesoAsync(ajuste.AlmacenId, "consultar", ct);
 
         return Result<AjusteInventarioDto>.Success(MapearADto(ajuste));
     }

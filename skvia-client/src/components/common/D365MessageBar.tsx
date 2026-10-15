@@ -18,8 +18,8 @@ export interface D365MessageBarProps {
 }
 
 const defaultTitles: Record<NonNullable<MessageBarProps['intent']>, string> = {
-  success: 'Éxito',
-  error: 'Atención',
+  success: 'Operación completada',
+  error: 'No se pudo completar la operación',
   warning: 'Aviso',
   info: 'Información',
 };
@@ -31,7 +31,7 @@ export const D365MessageBar: React.FC<D365MessageBarProps> = ({
   onDismiss,
   className,
 }) => (
-  <MessageBar intent={intent} shape="square" className={className}>
+  <MessageBar role={intent === 'error' ? 'alert' : 'status'} intent={intent} shape="square" className={className}>
     <MessageBarBody>
       <MessageBarTitle>{title ?? defaultTitles[intent]}</MessageBarTitle>
       {children}

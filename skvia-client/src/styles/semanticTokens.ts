@@ -16,7 +16,7 @@ export const semanticTokens = {
   text: {
     primary: tokens.colorNeutralForeground1,
     secondary: tokens.colorNeutralForeground3,
-    muted: tokens.colorNeutralForeground4,
+    muted: tokens.colorNeutralForeground3,
     onBrand: tokens.colorNeutralForegroundOnBrand,
     danger: tokens.colorStatusDangerForeground1,
   },
@@ -30,12 +30,18 @@ export const semanticTokens = {
     info: tokens.colorBrandForeground1,
   },
   typography: {
-    caption: tokens.fontSizeBase100,
+    caption: tokens.fontSizeBase200,
     bodySmall: tokens.fontSizeBase200,
     body: tokens.fontSizeBase300,
     title: tokens.fontSizeHero700,
     regular: tokens.fontWeightRegular,
     semibold: tokens.fontWeightSemibold,
     bold: tokens.fontWeightBold,
+  },
+  layout: {
+    cardPadding: '20px 24px',
+    mobilePadding: '16px',
+    sectionGap: '20px',
+    fieldGap: '12px',
   },
 } as const;

@@ -1,3 +1,6 @@
+import { D365FormContent } from '../../../../components/common/D365FormContent';
+import { useValidationFocus } from '../../../../hooks/useValidationFocus';
+import { useUnsavedChanges } from '../../../../hooks/useUnsavedChanges';
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -254,6 +257,9 @@ export function TransferenciaFormPage() {
   // Estado para eliminar borrador
   const [dialogEliminarBorrador, setDialogEliminarBorrador] = useState(false);
   const [eliminandoBorrador, setEliminandoBorrador] = useState(false);
+  const focusValidation = useValidationFocus();
+  const draft = useUnsavedChanges({ origenId,destinoId,ubicacionOrigenId,ubicacionDestinoId,modalidad,condicion,observacion,fechaReal,lineas }, !loading);
+
 
   const isBorrador = !detalle || detalle.estado === 'Borrador';
   const esSoloLectura = Boolean(id && id !== 'nuevo' && !isBorrador);
@@ -745,21 +751,26 @@ export function TransferenciaFormPage() {
   };
 
   const handleGuardar = async (cerrar: boolean) => {
+    const savedDraft = draft.capture();
     if (bloqueado) {
-      if (cerrar) navigate('/servicio-campo/transferencias');
+      if (cerrar) { draft.markSaved(savedDraft);
+navigate('/servicio-campo/transferencias'); }
       return;
     }
     if (!origenId) {
+      setSelectedTab('general'); focusValidation();
       setError('Seleccione el almacén de origen en General.');
       setSelectedTab('general');
       return;
     }
     if (!destinoId) {
+      setSelectedTab('general'); focusValidation();
       setError('Seleccione el almacén de destino en General.');
       setSelectedTab('general');
       return;
     }
     if (origenId === destinoId) {
+      setSelectedTab('general'); focusValidation();
       setError('El almacén de origen y destino deben ser diferentes.');
       setSelectedTab('general');
       return;
@@ -767,6 +778,7 @@ export function TransferenciaFormPage() {
 
     const ubics = resolverUbicaciones();
     if (!ubics) {
+      setSelectedTab('general'); focusValidation();
       setError('Cargando ubicaciones de los almacenes seleccionados. Reintente en un instante.');
       return;
     }
@@ -817,15 +829,18 @@ export function TransferenciaFormPage() {
       if (res.numeroGuiaRemision) setNumeroGuiaGuardado(res.numeroGuiaRemision);
 
       if (res.id && (!id || id === 'nuevo')) {
+        draft.markSaved(savedDraft);
         navigate(`/servicio-campo/transferencias/${res.id}`, { replace: true });
       }
 
       if (cerrar) {
+        draft.markSaved(savedDraft);
         navigate('/servicio-campo/transferencias', {
           state: { successMessage: `Borrador guardado exitosamente (N° ${res.numero}${res.numeroGuiaRemision ? ` · Guía ${res.numeroGuiaRemision}` : ''}).` },
         });
       } else {
         setSelectedTab('productos');
+        draft.markSaved(savedDraft);
         notifySuccess(`Borrador guardado exitosamente (N° ${res.numero}${res.numeroGuiaRemision ? ` · Guía ${res.numeroGuiaRemision}` : ''}). Ya puede agregar los productos a trasladar.`);
       }
     } catch (e) {
@@ -1315,7 +1330,7 @@ export function TransferenciaFormPage() {
           {isViewMode && (
             <D365CommandButton
               icon={<ArrowSync16Regular />}
-              onClick={() => void cargarDetalleTransferencia(detalle!.id)}
+              onClick={() => void draft.discardAndRun(() => { void (() => void cargarDetalleTransferencia(detalle!.id))(); })}
             >
               Actualizar
             </D365CommandButton>
@@ -1368,7 +1383,7 @@ export function TransferenciaFormPage() {
         }
       />
 
-      <div className={formStyles.contentBody}>
+      <D365FormContent busy={saving} className={formStyles.contentBody}>
         {selectedTab === 'general' ? (
           <div style={{ maxWidth: '620px', width: '100%' }}>
             <div className={formStyles.card}>
@@ -1522,7 +1537,7 @@ export function TransferenciaFormPage() {
                     <DatePicker
                       className={formStyles.d365ControlFull}
                       disabled={bloqueado}
-                      placeholder="Seleccionar fecha..."
+                      placeholder=""
                       value={fechaReal ? new Date(fechaReal) : undefined}
                       formatDate={(d) => (d ? d.toLocaleDateString('es-PE') : '')}
                       onSelectDate={(d) => setFechaReal(d ? d.toISOString() : '')}
@@ -1827,7 +1842,7 @@ export function TransferenciaFormPage() {
             )}
           </div>
         )}
-      </div>
+      </D365FormContent>
 
       {/* Diálogo de confirmación de recepción física en destino */}
       <Dialog
@@ -1842,7 +1857,7 @@ export function TransferenciaFormPage() {
                 <D365FormField label="Fecha real de recepción (opcional)">
                   <DatePicker
                     className={formStyles.d365ControlFull}
-                    placeholder="Seleccionar fecha de recepción..."
+                    placeholder=""
                     value={fechaRecepcionReal ? new Date(fechaRecepcionReal) : undefined}
                     formatDate={(d) => (d ? d.toLocaleDateString('es-PE') : '')}
                     onSelectDate={(d) => setFechaRecepcionReal(d ? d.toISOString() : '')}
@@ -1957,7 +1972,7 @@ export function TransferenciaFormPage() {
               </Button>
               <Button
                 appearance="primary"
-                style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: '#fff' }}
+                style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: tokens.colorNeutralForegroundOnBrand }}
                 disabled={eliminandoBorrador}
                 onClick={async () => {
                   const targetId = detalle?.id || (id && id !== 'nuevo' ? id : null);

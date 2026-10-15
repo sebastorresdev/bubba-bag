@@ -173,7 +173,7 @@ public class OrdenTrabajoVisita : Entity<Guid>
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void CancelarVisita(Guid motivoId, string? observaciones = null)
+    public void CancelarVisita(Guid? motivoId, string? observaciones = null)
     {
         if (Estado == EstadoVisita.Completada)
             throw new InvalidOperationException("No se puede cancelar una visita que ya ha sido completada.");

@@ -20,7 +20,7 @@ public class EliminarEmpleadoHandler : ICommandHandler<EliminarEmpleadoCommand, 
 
     public async Task<Result<bool>> HandleAsync(EliminarEmpleadoCommand request, CancellationToken cancellationToken)
     {
-        if (!_currentUser.HasAnyRole(BubbaBag.SharedKernel.Authorization.Roles.AccesoRrhhConfidencial))
+        if (!_currentUser.IsAuthenticated || !_currentUser.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.ColaboradoresGestionar) || !_currentUser.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.SalariosConfidencial))
         {
             return Result<bool>.Failure("No tiene permisos para dar de baja o eliminar colaboradores.");
         }

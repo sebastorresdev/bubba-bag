@@ -83,7 +83,56 @@ public class OrdenTrabajo : Entity<Guid>
     public DateTime? FechaCierreReal => VisitaActual?.FechaFinReal;
     public string? FirmaClienteUrl => VisitaActual?.FirmaClienteUrl;
     public bool EvidenciasConfirmadas => VisitaActual?.EvidenciasConfirmadas ?? false;
-    public string? ObservacionesGenerales => VisitaActual?.ObservacionesTecnico;
+    public string? ObservacionesGenerales { get; private set; }
+    public uint Version { get; private set; }
+    public void RegistrarModificacion() => UpdatedAt = DateTime.UtcNow;
+
+    public void ActualizarObservaciones(string? observaciones)
+    {
+        ValidarEditable();
+        if (observaciones?.Length > 2000) throw new InvalidOperationException("Las observaciones no pueden superar 2000 caracteres.");
+        ObservacionesGenerales = observaciones?.Trim();
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void CambiarEstadoSistema(EstadoSistema nuevo, Guid? motivoId = null, string? observaciones = null)
+    {
+        ValidarEditable();
+        if (nuevo == EstadoSistema) return;
+        if (nuevo == EstadoSistema.Cancelado)
+        {
+            CancelarOrden(motivoId, observaciones);
+            return;
+        }
+        if (nuevo == EstadoSistema.PendienteProgramar && EstadoSistema == EstadoSistema.Borrador)
+        {
+            EstadoSistema = nuevo; Estado = EstadoOrdenTrabajo.Pendiente;
+        }
+        else if (nuevo == EstadoSistema.Programado && EstadoSistema == EstadoSistema.PendienteProgramar)
+        {
+            if (VisitaActual == null || VisitaActual.Estado != EstadoVisita.Programada)
+                throw new InvalidOperationException("Programe una visita con técnico y fecha antes de confirmar la programación.");
+            EstadoSistema = nuevo; Estado = EstadoOrdenTrabajo.Programada;
+        }
+        else if (nuevo == EstadoSistema.EnProgreso && EstadoSistema == EstadoSistema.Programado)
+        {
+            if (VisitaActual == null) throw new InvalidOperationException("La orden no tiene visita programada.");
+            VisitaActual.IniciarAtencion();
+            EstadoSistema = nuevo; Estado = EstadoOrdenTrabajo.EnProgreso;
+        }
+        else if (nuevo == EstadoSistema.Completado && EstadoSistema == EstadoSistema.EnProgreso)
+        {
+            ValidarCierreTrabajos();
+            if (TipoOrden.ExigeEvidenciasFotograficas && !EvidenciasConfirmadas
+                || TipoOrden.ExigeFirmaCliente && string.IsNullOrWhiteSpace(FirmaClienteUrl))
+                throw new InvalidOperationException("Faltan evidencias o firma del cliente para completar la orden.");
+            if (DescargaMaterialesObligatoria && !DescargaMaterialesConfirmada)
+                throw new InvalidOperationException("Confirme la liquidación de materiales antes de completar la orden.");
+            EstadoSistema = nuevo; Estado = EstadoOrdenTrabajo.Finalizada;
+        }
+        else throw new InvalidOperationException("La transición de estado solicitada no está permitida.");
+        UpdatedAt = DateTime.UtcNow;
+    }
 
     // =========================================================================
     // SUBTAREAS
@@ -166,7 +215,7 @@ public class OrdenTrabajo : Entity<Guid>
 
     public void ValidarEditable()
     {
-        if (Estado is EstadoOrdenTrabajo.Finalizada or EstadoOrdenTrabajo.Cancelada or EstadoOrdenTrabajo.Rechazada)
+        if (Estado is EstadoOrdenTrabajo.Finalizada or EstadoOrdenTrabajo.Cancelada or EstadoOrdenTrabajo.Rechazada or EstadoOrdenTrabajo.Liquidada)
             throw new InvalidOperationException("La orden está cerrada y no admite cambios.");
     }
 
@@ -199,6 +248,7 @@ public class OrdenTrabajo : Entity<Guid>
         liq.Confirmar(observaciones);
         DescargaMaterialesConfirmada = true;
         FechaDescargaMateriales = DateTime.UtcNow;
+        VerificarPromocionAFinalizada();
         UpdatedAt = DateTime.UtcNow;
     }
 
@@ -450,8 +500,9 @@ public class OrdenTrabajo : Entity<Guid>
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void CancelarOrden(Guid motivoId, string? observaciones = null)
+    public void CancelarOrden(Guid? motivoId, string? observaciones = null)
     {
+        ValidarEditable();
         Estado = EstadoOrdenTrabajo.Cancelada;
         EstadoSistema = EstadoSistema.Cancelado;
         MotivoCierreId = motivoId;
@@ -470,7 +521,7 @@ public class OrdenTrabajo : Entity<Guid>
         }
 
         // Cancelar subtareas pendientes
-        foreach (var tarea in _tareas.Where(t => t.EstadoTarea == EstadoTarea.Abierta))
+        foreach (var tarea in _tareas.Where(t => t.EstadoTarea is EstadoTarea.Abierta or EstadoTarea.EnProgreso))
         {
             tarea.Cancelar(motivoId, observaciones);
         }
@@ -508,7 +559,7 @@ public class OrdenTrabajo : Entity<Guid>
         return tarea;
     }
 
-    private void VerificarPromocionAFinalizada()
+    public void VerificarPromocionAFinalizada()
     {
         if (Estado == EstadoOrdenTrabajo.Completa && EvidenciasConfirmadas && DescargaMaterialesConfirmada)
         {

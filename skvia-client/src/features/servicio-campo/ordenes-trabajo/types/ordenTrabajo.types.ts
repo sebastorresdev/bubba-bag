@@ -114,6 +114,7 @@ export interface CrearOrdenTrabajoItemDto {
 }
 
 export interface OrdenTrabajoDetalleDto {
+  version: number;
   listaPreciosId?: string | null;
   moneda: string;
   id: string;
@@ -147,6 +148,8 @@ export interface OrdenTrabajoDetalleDto {
   referenciaUbicacion?: string | null;
   ubigeoTexto?: string | null;
   fechaCreacion: string;
+  descargaMaterialesConfirmada?: boolean;
+  almacenTecnicoNombre?: string | null;
   trabajos?: OrdenTrabajoItemDto[];
   materiales: OrdenTrabajoMaterialDto[];
   tareas: OrdenTrabajoTareaDto[];
@@ -194,4 +197,38 @@ export interface TipoOrdenTrabajoOpcion {
   requiereVisitaCampo?: boolean;
   listaPreciosId?: string | null;
   listaPreciosNombre?: string | null;
+}
+
+export interface LiquidacionConsumoItemDto {
+  productoId: string;
+  cantidad: number;
+  numeroSerie?: string | null;
+  itemSeriadoId?: string | null;
+  observaciones?: string | null;
+}
+
+export interface LiquidacionRetiroItemDto {
+  productoId: string;
+  numeroSerie: string;
+  motivo?: string | null;
+}
+
+export interface LiquidarOrdenTrabajoDto {
+  almacenId?: string | null;
+  observaciones?: string | null;
+  consumos?: LiquidacionConsumoItemDto[];
+  retiros?: LiquidacionRetiroItemDto[];
+}
+
+export interface ReprogramarVisitaDto {
+  fechaProgramada: string;
+  bloqueHorario?: string | null;
+  recursoTecnicoId?: string | null;
+  motivoId?: string | null;
+  observaciones?: string | null;
+}
+
+export interface CancelarVisitaDto {
+  motivoId: string;
+  observaciones?: string | null;
 }

@@ -35,31 +35,38 @@ public record ActualizarEmpresaDto(
     string? PiePaginaDocumentos
 );
 
+public record ActualizarEmpresaDatosFiscalesDto(string RazonSocial, string? NombreComercial, string? Ruc, string? DireccionFiscal);
+public record ActualizarEmpresaPresentacionDto(string? Telefono, string? Email, string? LogoBase64, string? PiePaginaDocumentos);
+
 public static class EmpresaEndpoints
 {
     public static void MapEmpresaEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/configuracion/empresa")
-            .WithTags("Configuración - Empresa");
+            .WithTags("Configuración - Empresa")
+            .RequireAuthorization();
 
         // Lectura permitida a usuarios autenticados para emisión de documentos
         group.MapGet("/", ObtenerEmpresa).RequireAuthorization();
 
-        // Modificación reservada a usuarios con acceso a seguridad / administración
-        group.MapPut("/", ActualizarEmpresa).RequireAuthorization(Permissions.Seguridad.Acceso);
+        // Una actualización completa exige ambos permisos; las parciales no tocan el otro grupo.
+        group.MapPut("/", ActualizarEmpresa)
+            .RequireAuthorization(Permissions.Configuracion.EmpresaDatosFiscalesGestionar, Permissions.Configuracion.EmpresaPresentacionGestionar);
+        group.MapPatch("/datos-fiscales", ActualizarDatosFiscales)
+            .RequireAuthorization(Permissions.Configuracion.EmpresaDatosFiscalesGestionar);
+        group.MapPatch("/presentacion", ActualizarPresentacion)
+            .RequireAuthorization(Permissions.Configuracion.EmpresaPresentacionGestionar);
     }
 
     private static async Task<IResult> ObtenerEmpresa(IServicioCampoDbContext db, CancellationToken ct)
     {
-        var empresa = await db.ConfiguracionEmpresas.FirstOrDefaultAsync(ct);
-        if (empresa == null)
-        {
-            empresa = ConfiguracionEmpresa.CrearDefault();
-            db.ConfiguracionEmpresas.Add(empresa);
-            await db.SaveChangesAsync(ct);
-        }
+        var empresa = await db.ConfiguracionEmpresas.AsNoTracking().FirstOrDefaultAsync(ct)
+            ?? ConfiguracionEmpresa.CrearDefault();
 
-        return Results.Ok(new ConfiguracionEmpresaDto(
+        return Results.Ok(Mapear(empresa));
+    }
+
+    private static ConfiguracionEmpresaDto Mapear(ConfiguracionEmpresa empresa) => new(
             empresa.Id,
             empresa.RazonSocial,
             empresa.NombreComercial,
@@ -70,7 +77,35 @@ public static class EmpresaEndpoints
             empresa.LogoBase64,
             empresa.PiePaginaDocumentos,
             empresa.FechaActualizacion
-        ));
+        );
+
+    private static async Task<ConfiguracionEmpresa> ObtenerParaEditar(IServicioCampoDbContext db, CancellationToken ct)
+    {
+        var empresa = await db.ConfiguracionEmpresas.FirstOrDefaultAsync(ct);
+        if (empresa != null) return empresa;
+        empresa = ConfiguracionEmpresa.CrearDefault();
+        db.ConfiguracionEmpresas.Add(empresa);
+        return empresa;
+    }
+
+    private static async Task<IResult> ActualizarDatosFiscales(ActualizarEmpresaDatosFiscalesDto dto, IServicioCampoDbContext db, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(dto.RazonSocial))
+            return Results.BadRequest(new { error = "La razón social es obligatoria." });
+        var empresa = await ObtenerParaEditar(db, ct);
+        empresa.Actualizar(dto.RazonSocial, dto.NombreComercial, dto.Ruc, dto.DireccionFiscal,
+            empresa.Telefono, empresa.Email, empresa.LogoBase64, empresa.PiePaginaDocumentos);
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(Mapear(empresa));
+    }
+
+    private static async Task<IResult> ActualizarPresentacion(ActualizarEmpresaPresentacionDto dto, IServicioCampoDbContext db, CancellationToken ct)
+    {
+        var empresa = await ObtenerParaEditar(db, ct);
+        empresa.Actualizar(empresa.RazonSocial, empresa.NombreComercial, empresa.Ruc, empresa.DireccionFiscal,
+            dto.Telefono, dto.Email, dto.LogoBase64, dto.PiePaginaDocumentos);
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(Mapear(empresa));
     }
 
     private static async Task<IResult> ActualizarEmpresa(
@@ -83,12 +118,7 @@ public static class EmpresaEndpoints
             return Results.BadRequest(new { error = "La razón social es obligatoria." });
         }
 
-        var empresa = await db.ConfiguracionEmpresas.FirstOrDefaultAsync(ct);
-        if (empresa == null)
-        {
-            empresa = ConfiguracionEmpresa.CrearDefault();
-            db.ConfiguracionEmpresas.Add(empresa);
-        }
+        var empresa = await ObtenerParaEditar(db, ct);
 
         empresa.Actualizar(
             dto.RazonSocial,
@@ -103,17 +133,6 @@ public static class EmpresaEndpoints
 
         await db.SaveChangesAsync(ct);
 
-        return Results.Ok(new ConfiguracionEmpresaDto(
-            empresa.Id,
-            empresa.RazonSocial,
-            empresa.NombreComercial,
-            empresa.Ruc,
-            empresa.DireccionFiscal,
-            empresa.Telefono,
-            empresa.Email,
-            empresa.LogoBase64,
-            empresa.PiePaginaDocumentos,
-            empresa.FechaActualizacion
-        ));
+        return Results.Ok(Mapear(empresa));
     }
 }

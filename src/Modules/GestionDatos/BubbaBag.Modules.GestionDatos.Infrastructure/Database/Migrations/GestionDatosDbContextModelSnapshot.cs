@@ -32,6 +32,12 @@ namespace BubbaBag.Modules.GestionDatos.Infrastructure.Database.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<Guid?>("CreadoPorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("EliminadoHistorial")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Estado")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -42,6 +48,10 @@ namespace BubbaBag.Modules.GestionDatos.Infrastructure.Database.Migrations
 
                     b.Property<DateTime?>("FechaFinalizacion")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("HuellaSolicitud")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<string>("MapeoCamposJson")
                         .HasColumnType("text");
@@ -83,6 +93,8 @@ namespace BubbaBag.Modules.GestionDatos.Infrastructure.Database.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CreadoPorId", "TipoRegistro");
 
                     b.ToTable("DataImportJobs", "gestiondatos");
                 });

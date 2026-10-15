@@ -28,6 +28,11 @@ public class ConfiguracionServicio : Entity<Guid>
     public int DuracionEstimadaMinutos { get; private set; } = 60;
 
     /// <summary>
+    /// Tiempo máximo comprometido de SLA (en horas) para la resolución o atención de este servicio.
+    /// </summary>
+    public int? SlaHorasResolucion { get; private set; }
+
+    /// <summary>
     /// Indica si esta plantilla es la predeterminada para el servicio asociado.
     /// </summary>
     public bool EsPredeterminada { get; private set; }
@@ -50,7 +55,8 @@ public class ConfiguracionServicio : Entity<Guid>
         Guid productoId,
         int duracionEstimadaMinutos = 60,
         string? descripcion = null,
-        bool esPredeterminada = false)
+        bool esPredeterminada = false,
+        int? slaHorasResolucion = null)
     {
         if (string.IsNullOrWhiteSpace(nombre))
             throw new ArgumentException("El nombre de la plantilla es obligatorio.", nameof(nombre));
@@ -61,6 +67,7 @@ public class ConfiguracionServicio : Entity<Guid>
             Nombre = nombre.Trim(),
             ProductoId = productoId,
             DuracionEstimadaMinutos = Math.Max(1, duracionEstimadaMinutos),
+            SlaHorasResolucion = slaHorasResolucion is > 0 ? slaHorasResolucion.Value : null,
             Descripcion = descripcion?.Trim(),
             EsPredeterminada = esPredeterminada,
             Activo = true,
@@ -73,13 +80,15 @@ public class ConfiguracionServicio : Entity<Guid>
         int duracionEstimadaMinutos,
         string? descripcion,
         bool esPredeterminada,
-        Guid? productoId = null)
+        Guid? productoId = null,
+        int? slaHorasResolucion = null)
     {
         if (string.IsNullOrWhiteSpace(nombre))
             throw new ArgumentException("El nombre de la plantilla es obligatorio.", nameof(nombre));
 
         Nombre = nombre.Trim();
         DuracionEstimadaMinutos = Math.Max(1, duracionEstimadaMinutos);
+        SlaHorasResolucion = slaHorasResolucion is > 0 ? slaHorasResolucion.Value : null;
         Descripcion = descripcion?.Trim();
         EsPredeterminada = esPredeterminada;
         if (productoId.HasValue && productoId.Value != Guid.Empty)

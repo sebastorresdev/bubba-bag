@@ -20,10 +20,11 @@ public static class AjustesEndpoints
         group.MapGet("/", ObtenerAjustes);
         group.MapGet("/{id:guid}", ObtenerAjustePorId);
         group.MapPost("/", CrearAjuste).RequireAuthorization(Permissions.Inventario.Operar);
+        group.MapPost("/recuperar-local", RecuperarAjusteLocal).RequireAuthorization(Permissions.Inventario.Operar);
         group.MapPut("/{id:guid}", ActualizarAjuste).RequireAuthorization(Permissions.Inventario.Operar);
         group.MapPost("/{id:guid}/solicitar-aprobacion", SolicitarAprobacion).RequireAuthorization(Permissions.Inventario.Operar);
-        group.MapPost("/{id:guid}/aplicar", AplicarAjuste).RequireAuthorization(Permissions.Inventario.Operar);
-        group.MapPost("/{id:guid}/rechazar", RechazarAjuste).RequireAuthorization(Permissions.Inventario.Operar);
+        group.MapPost("/{id:guid}/aplicar", AplicarAjuste).RequireAuthorization(Permissions.Inventario.AjustesAprobar);
+        group.MapPost("/{id:guid}/rechazar", RechazarAjuste).RequireAuthorization(Permissions.Inventario.AjustesAprobar);
         group.MapPost("/{id:guid}/anular", AnularAjuste).RequireAuthorization(Permissions.Inventario.Operar);
         group.MapDelete("/{id:guid}", EliminarAjuste).RequireAuthorization(Permissions.Inventario.Operar);
     }
@@ -64,9 +65,15 @@ public static class AjustesEndpoints
             : Results.BadRequest(result.Error);
     }
 
-    private static async Task<IResult> AplicarAjuste(Guid id, AplicarAjusteRequest? request, IDispatcher dispatcher)
+    private static async Task<IResult> RecuperarAjusteLocal(RecuperarAjusteLocalRequest request, IDispatcher dispatcher)
     {
-        var result = await dispatcher.SendAsync(new AplicarAjusteCommand(id, request?.UsuarioAprobador));
+        var result = await dispatcher.SendAsync(new CrearAjusteCommand(request.Datos, request.RecuperacionId));
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
+    }
+
+    private static async Task<IResult> AplicarAjuste(Guid id, IDispatcher dispatcher)
+    {
+        var result = await dispatcher.SendAsync(new AplicarAjusteCommand(id));
         return result.IsSuccess ? Results.Ok() : Results.BadRequest(result.Error);
     }
 
@@ -89,5 +96,5 @@ public static class AjustesEndpoints
     }
 }
 
-public record AplicarAjusteRequest(string? UsuarioAprobador = null);
+public record RecuperarAjusteLocalRequest(Guid RecuperacionId, GuardarAjusteInput Datos);
 public record RechazarAjusteRequest(string? Motivo = null);

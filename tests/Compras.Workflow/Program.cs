@@ -69,6 +69,7 @@ Check(original!.Estado == "Enviada" && original.NumeroDocumento == "F001-2" && a
 Check((await handler.ProcesarAsync(segunda.Value, true, default, recepcion: new("Factura", "F001-2", datos.FechaDocumento))).IsSuccess, "La recepción conserva el comprobante original");
 Console.WriteLine("38 comprobaciones de compras y búsqueda correctas.");
 await InventarioWorkflow.RunAsync();
+await AjustesWorkflow.RunAsync();
 var conexionInventario = Environment.GetEnvironmentVariable("INVENTARIO_TEST_CONNECTION");
 if (!string.IsNullOrWhiteSpace(conexionInventario)) await InventarioWorkflow.RunAsync(conexionInventario);
 

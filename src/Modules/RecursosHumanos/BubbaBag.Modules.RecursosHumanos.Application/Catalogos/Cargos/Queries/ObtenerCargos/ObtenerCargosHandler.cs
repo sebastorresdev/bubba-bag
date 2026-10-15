@@ -13,10 +13,12 @@ namespace BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Cargos.Queries.
 public class ObtenerCargosHandler : IQueryHandler<ObtenerCargosQuery, Result<List<CargoDetalleDto>>>
 {
     private readonly IRecursosHumanosDbContext _context;
+    private readonly ICurrentUser _currentUser;
 
-    public ObtenerCargosHandler(IRecursosHumanosDbContext context)
+    public ObtenerCargosHandler(IRecursosHumanosDbContext context, ICurrentUser currentUser)
     {
         _context = context;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<List<CargoDetalleDto>>> HandleAsync(ObtenerCargosQuery query, CancellationToken cancellationToken = default)
@@ -50,7 +52,7 @@ public class ObtenerCargosHandler : IQueryHandler<ObtenerCargosQuery, Result<Lis
                 c.Nombre,
                 c.DepartamentoId,
                 c.Departamento.Nombre,
-                c.SalarioReferencial,
+                _currentUser.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.SalariosConfidencial) ? c.SalarioReferencial : null,
                 c.Activo,
                 _context.Empleados.Count(e => e.CargoId == c.Id)
             ))

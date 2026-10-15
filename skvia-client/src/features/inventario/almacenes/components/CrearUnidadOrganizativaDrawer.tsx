@@ -17,6 +17,7 @@ import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { OrganizacionService } from '../../../organizacion/services/organizacion.service';
 import type { UnidadOrganizativaDto } from '../types/almacen.types';
+import { useAuthSession } from '../../../../services/authSession';
 
 const useStyles = makeStyles({
   drawer: {
@@ -61,6 +62,9 @@ export function CrearUnidadOrganizativaDrawer({
   alGuardar,
 }: CrearUnidadOrganizativaDrawerProps) {
   const styles = useStyles();
+  const { permisos } = useAuthSession();
+  const puedeCrear = permisos.includes('configuracion.sucursales.gestionar');
+  const puedeCambiarPrincipal = permisos.includes('configuracion.sucursales.sede_principal.gestionar');
   const [codigo, setCodigo] = useState('');
   const [nombre, setNombre] = useState('');
   const [ciudad, setCiudad] = useState('');
@@ -83,6 +87,7 @@ export function CrearUnidadOrganizativaDrawer({
   }, [abierto]);
 
   const handleGuardar = async () => {
+    if (!puedeCrear || guardando) return;
     const nombreLimpio = nombre.trim();
     const codigoLimpio = codigo.trim().toUpperCase();
 
@@ -104,7 +109,7 @@ export function CrearUnidadOrganizativaDrawer({
         ciudad: ciudad.trim() || null,
         direccion: direccion.trim() || null,
         telefono: telefono.trim() || null,
-        esSedePrincipal: esPrincipal,
+        esSedePrincipal: puedeCambiarPrincipal && esPrincipal,
       });
 
       alGuardar({
@@ -163,7 +168,7 @@ export function CrearUnidadOrganizativaDrawer({
           <Input
             value={codigo}
             maxLength={30}
-            placeholder="Ej. SEDE-CENTRAL, LIMA-01"
+            placeholder=""
             onChange={(_, d) => setCodigo(d.value)}
           />
         </D365FormField>
@@ -172,7 +177,7 @@ export function CrearUnidadOrganizativaDrawer({
           <Input
             value={nombre}
             maxLength={150}
-            placeholder="Ej. Sede Central Principal, Base Arequipa"
+            placeholder=""
             onChange={(_, d) => setNombre(d.value)}
           />
         </D365FormField>
@@ -181,7 +186,7 @@ export function CrearUnidadOrganizativaDrawer({
           <Input
             value={ciudad}
             maxLength={100}
-            placeholder="Ej. Lima, Trujillo, Arequipa"
+            placeholder=""
             onChange={(_, d) => setCiudad(d.value)}
           />
         </D365FormField>
@@ -190,7 +195,7 @@ export function CrearUnidadOrganizativaDrawer({
           <Input
             value={direccion}
             maxLength={250}
-            placeholder="Ej. Av. Los Laureles 123, Parque Industrial"
+            placeholder=""
             onChange={(_, d) => setDireccion(d.value)}
           />
         </D365FormField>
@@ -199,7 +204,7 @@ export function CrearUnidadOrganizativaDrawer({
           <Input
             value={telefono}
             maxLength={50}
-            placeholder="Ej. (01) 555-1234"
+            placeholder=""
             onChange={(_, d) => setTelefono(d.value)}
           />
         </D365FormField>
@@ -207,6 +212,7 @@ export function CrearUnidadOrganizativaDrawer({
         <Checkbox
           label="Establecer como Sede Principal de la empresa"
           checked={esPrincipal}
+          disabled={!puedeCambiarPrincipal || guardando}
           onChange={(_, d) => setEsPrincipal(Boolean(d.checked))}
         />
       </DrawerBody>
@@ -218,7 +224,7 @@ export function CrearUnidadOrganizativaDrawer({
         <Button
           appearance="primary"
           icon={<Save16Regular />}
-          disabled={guardando}
+          disabled={guardando || !puedeCrear}
           onClick={() => void handleGuardar()}
         >
           {guardando ? 'Guardando...' : 'Crear Sede'}

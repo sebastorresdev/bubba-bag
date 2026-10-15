@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Security.Claims;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,6 +13,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using BubbaBag.SharedKernel.Authorization;
 
 namespace BubbaBag.Modules.GestionDatos.Api;
 
@@ -42,14 +42,14 @@ public static class GestionDatosModule
     {
         var group = app.MapGroup(prefix)
             .WithTags("Gestión de Datos - Importaciones Masivas")
-            .RequireAuthorization(p => p.RequireRole(BubbaBag.SharedKernel.Authorization.Roles.SuperAdmin, BubbaBag.SharedKernel.Authorization.Roles.InventarioAdmin, BubbaBag.SharedKernel.Authorization.Roles.ServicioCampoAdmin, BubbaBag.SharedKernel.Authorization.Roles.CrmAdmin));
+            .RequireAuthorization();
 
         // 1. Obtener catálogo de entidades importables
         group.MapGet("/entities", (IEntityImportMetadataService metadataService) =>
         {
             var entities = metadataService.GetAvailableEntities();
             return Results.Ok(entities);
-        });
+        }).RequireAuthorization(Permissions.GestionDatos.Importar);
 
         // 2. Previsualizar archivo
         group.MapPost("/preview", async (
@@ -76,12 +76,11 @@ public static class GestionDatosModule
 
             var preview = await engineService.PreviewFileAsync(memoryStream, file.FileName, request, ct);
             return Results.Ok(preview);
-        }).DisableAntiforgery();
+        }).DisableAntiforgery().RequireAuthorization(Permissions.GestionDatos.Importar);
 
         // 3. Ejecutar importación con mapeo dinámico
         group.MapPost("/execute", async (
             HttpRequest httpRequest,
-            HttpContext httpContext,
             IDataImportEngineService engineService,
             CancellationToken ct) =>
         {
@@ -124,30 +123,22 @@ public static class GestionDatosModule
             var request = new ExecuteImportRequestDto
             {
                 EntityName = entityName,
+                OperacionId = Guid.TryParse(form["operacionId"], out var operacionId) ? operacionId : null,
                 DuplicateMode = string.IsNullOrWhiteSpace(duplicateMode) ? "Upsert" : duplicateMode,
                 Delimiter = delimiter,
                 QuoteChar = quoteChar,
                 ColumnMapping = mapping
             };
 
-            string currentUser = httpContext.User.FindFirst("nombre_completo")?.Value 
-                ?? httpContext.User.FindFirst(ClaimTypes.Name)?.Value 
-                ?? httpContext.User.FindFirst("name")?.Value 
-                ?? httpContext.User.FindFirst(ClaimTypes.Email)?.Value
-                ?? form["creadoPor"].ToString();
-
-            if (string.IsNullOrWhiteSpace(currentUser) || currentUser.Equals("Usuario del Sistema", StringComparison.OrdinalIgnoreCase))
-            {
-                currentUser = "Sebastián Torres";
-            }
-
             using var memoryStream = new MemoryStream();
             await file.CopyToAsync(memoryStream, ct);
             memoryStream.Position = 0;
 
-            var job = await engineService.ExecuteImportAsync(memoryStream, file.FileName, request, currentUser, ct);
+            DataImportJobDto job;
+            try { job = await engineService.ExecuteImportAsync(memoryStream, file.FileName, request, ct); }
+            catch (InvalidOperationException ex) { return Results.Conflict(new { Mensaje = ex.Message }); }
             return Results.Ok(job);
-        }).DisableAntiforgery();
+        }).DisableAntiforgery().RequireAuthorization(Permissions.GestionDatos.Importar);
 
         // 4. Historial de importaciones
         group.MapGet("/imports", async (
@@ -157,7 +148,7 @@ public static class GestionDatosModule
         {
             var jobs = await engineService.GetRecentJobsAsync(limit ?? 50, ct);
             return Results.Ok(jobs);
-        });
+        }).RequireAuthorization(Permissions.GestionDatos.HistorialVer);
 
         // 5. Detalle de una importación
         group.MapGet("/imports/{id:guid}", async (
@@ -168,7 +159,7 @@ public static class GestionDatosModule
             var job = await engineService.GetJobByIdAsync(id, ct);
             if (job == null) return Results.NotFound(new { Mensaje = "Registro de importación no encontrado." });
             return Results.Ok(job);
-        });
+        }).RequireAuthorization(Permissions.GestionDatos.HistorialVer);
 
         // 6. Eliminar registro de importación
         group.MapDelete("/imports/{id:guid}", async (
@@ -176,9 +167,11 @@ public static class GestionDatosModule
             IDataImportEngineService engineService,
             CancellationToken ct) =>
         {
-            var deleted = await engineService.DeleteJobAsync(id, ct);
+            bool deleted;
+            try { deleted = await engineService.DeleteJobAsync(id, ct); }
+            catch (InvalidOperationException ex) { return Results.Conflict(new { Mensaje = ex.Message }); }
             if (!deleted) return Results.NotFound();
             return Results.NoContent();
-        });
+        }).RequireAuthorization(Permissions.GestionDatos.HistorialEliminar);
     }
 }

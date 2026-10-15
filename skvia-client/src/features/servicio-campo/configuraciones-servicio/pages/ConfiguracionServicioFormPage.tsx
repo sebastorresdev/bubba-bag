@@ -1,3 +1,7 @@
+import { D365FormContent } from '../../../../components/common/D365FormContent';
+import { useValidationFocus } from '../../../../hooks/useValidationFocus';
+import { useUnsavedChanges } from '../../../../hooks/useUnsavedChanges';
+import { confirmAction } from '../../../../services/uiFeedback';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -105,6 +109,7 @@ export function ConfiguracionServicioFormPage() {
   const [nombre, setNombre] = useState('');
   const [productoId, setProductoId] = useState('');
   const [duracionEstimadaMinutos, setDuracionEstimadaMinutos] = useState<number>(60);
+  const [slaHorasResolucion, setSlaHorasResolucion] = useState<number | null>(null);
   const [descripcion, setDescripcion] = useState('');
   const [activo, setActivo] = useState(true);
 
@@ -147,10 +152,13 @@ export function ConfiguracionServicioFormPage() {
   const [materialesSeleccionados, setMaterialesSeleccionados] = useState<Set<string>>(new Set());
   const [materialesSeleccionadosTabla, setMaterialesSeleccionadosTabla] = useState<Set<string>>(new Set());
   const [filtroBusquedaMaterial, setFiltroBusquedaMaterial] = useState('');
-  const [nuevoMaterialCantidad, setNuevoMaterialCantidad] = useState<number>(1);
+  const [nuevoMaterialCantidad, setNuevoMaterialCantidad] = useState<string>('');
   const [nuevoMaterialUnidadId, setNuevoMaterialUnidadId] = useState<string>('');
   const [nuevoMaterialObligatorio, setNuevoMaterialObligatorio] = useState(false);
   const [nuevoMaterialObservaciones, setNuevoMaterialObservaciones] = useState('');
+  const focusValidation = useValidationFocus();
+  const draft = useUnsavedChanges({ nombre,productoId,duracionEstimadaMinutos,slaHorasResolucion,descripcion,tareas,materiales }, !loading);
+
 
   // Carga inicial
   const cargarCatalogosYDatos = useCallback(async () => {
@@ -174,6 +182,7 @@ export function ConfiguracionServicioFormPage() {
         setSavedCantidadTareas(plantilla.tareas.length);
         setSavedCantidadMateriales(plantilla.materiales.length);
         setDuracionEstimadaMinutos(plantilla.duracionEstimadaMinutos);
+        setSlaHorasResolucion(plantilla.slaHorasResolucion ?? null);
         setDescripcion(plantilla.descripcion || '');
         setActivo(plantilla.activo);
 
@@ -264,7 +273,9 @@ export function ConfiguracionServicioFormPage() {
   };
 
   const guardar = async (cerrarAlFinal = false): Promise<string | null> => {
+    const savedDraft = draft.capture();
     if (!validar()) {
+      setSelectedTab('general'); focusValidation();
       setStatusMessage({ type: 'error', text: 'Complete los campos obligatorios del formulario.' });
       setSelectedTab('general');
       return null;
@@ -278,6 +289,7 @@ export function ConfiguracionServicioFormPage() {
         nombre: nombre.trim(),
         productoId,
         duracionEstimadaMinutos,
+        slaHorasResolucion: slaHorasResolucion ? Number(slaHorasResolucion) : null,
         descripcion: descripcion.trim() || undefined,
         esPredeterminada: false,
         tareas: tareas.map((t, idx) => ({
@@ -308,6 +320,7 @@ export function ConfiguracionServicioFormPage() {
         setSavedDuracionMinutos(duracionEstimadaMinutos);
         setSavedCantidadTareas(tareas.length);
         setSavedCantidadMateriales(materiales.length);
+        draft.markSaved(savedDraft);
         notifySuccess('Configuración del servicio actualizada con éxito.');
       } else {
         const res = await ConfiguracionServicioService.crearPlantilla(dto);
@@ -318,12 +331,15 @@ export function ConfiguracionServicioFormPage() {
         setSavedDuracionMinutos(duracionEstimadaMinutos);
         setSavedCantidadTareas(tareas.length);
         setSavedCantidadMateriales(materiales.length);
+        draft.markSaved(savedDraft);
         notifySuccess('Configuración del servicio creada con éxito.');
       }
 
       if (cerrarAlFinal) {
+        draft.markSaved(savedDraft);
         navigate('/servicio-campo/configuraciones-servicio');
       } else if (!isEditMode && savedId) {
+        draft.markSaved(savedDraft);
         navigate(`/servicio-campo/configuraciones-servicio/${savedId}`, { replace: true });
       }
 
@@ -358,11 +374,11 @@ export function ConfiguracionServicioFormPage() {
 
   const eliminar = async () => {
     if (!id || !isEditMode) return;
-    if (!window.confirm('¿Está seguro de eliminar esta configuración del servicio?')) return;
+    if (!await confirmAction('¿Está seguro de eliminar esta configuración del servicio?')) return;
     try {
       setSaving(true);
       await ConfiguracionServicioService.eliminarPlantilla(id);
-      navigate('/servicio-campo/configuraciones-servicio');
+      (draft.markSaved(), navigate('/servicio-campo/configuraciones-servicio'));
     } catch (e) {
       setStatusMessage({
         type: 'error',
@@ -485,7 +501,8 @@ export function ConfiguracionServicioFormPage() {
   }, [primerProductoSeleccionado, unidadesDisponiblesDrawer, catalogoUnidades, nuevoMaterialUnidadId]);
 
   const agregarMaterialFila = () => {
-    if (materialesSeleccionados.size === 0 || nuevoMaterialCantidad <= 0) return;
+    const cantidadNum = parseFloat(nuevoMaterialCantidad);
+    if (materialesSeleccionados.size === 0 || !nuevoMaterialCantidad.trim() || isNaN(cantidadNum) || cantidadNum <= 0) return;
 
     const unidadSeleccionada = catalogoUnidades.find((u) => u.id === nuevoMaterialUnidadId);
     const nuevos: MaterialLocalItem[] = [];
@@ -503,7 +520,7 @@ export function ConfiguracionServicioFormPage() {
         productoId: prod.id,
         productoCodigo: prod.codigo,
         productoNombre: prod.nombre,
-        cantidadPrevista: nuevoMaterialCantidad,
+        cantidadPrevista: cantidadNum,
         esObligatorio: nuevoMaterialObligatorio,
         observaciones: nuevoMaterialObservaciones.trim(),
         unidadMedidaId: uId,
@@ -520,7 +537,7 @@ export function ConfiguracionServicioFormPage() {
     setDialogMaterialOpen(false);
     setMaterialesSeleccionados(new Set());
     setFiltroBusquedaMaterial('');
-    setNuevoMaterialCantidad(1);
+    setNuevoMaterialCantidad('');
     setNuevoMaterialUnidadId('');
     setNuevoMaterialObligatorio(false);
     setNuevoMaterialObservaciones('');
@@ -824,7 +841,7 @@ export function ConfiguracionServicioFormPage() {
       />
 
       {/* Contenido de Pestañas */}
-      <div className={styles.contentBody}>
+      <D365FormContent busy={saving} className={styles.contentBody}>
         {loading ? (
           <div className={styles.grid2Cols}>
             <Card className={styles.card}>
@@ -913,6 +930,19 @@ export function ConfiguracionServicioFormPage() {
                 </D365FormField>
 
                 <D365FormField
+                  label="SLA de Resolución (horas)"
+                  info="Tiempo máximo comprometido para la atención o resolución del servicio (ej. 24, 48 o 72 horas). Dejar vacío si no aplica."
+                >
+                  <Input
+                    type="number"
+                    min={1}
+                    placeholder="Ej. 24, 48..."
+                    value={slaHorasResolucion !== null && slaHorasResolucion !== undefined ? slaHorasResolucion.toString() : ''}
+                    onChange={(_, d) => setSlaHorasResolucion(d.value ? Math.max(1, parseInt(d.value) || 0) : null)}
+                  />
+                </D365FormField>
+
+                <D365FormField
                   label="Descripción"
                   info="Resumen de los lineamientos técnicos u objetivos de esta configuración."
                 >
@@ -965,7 +995,15 @@ export function ConfiguracionServicioFormPage() {
             selectionMode="multiselect"
             selectedItems={Array.from(materialesSeleccionadosTabla)}
             onSelectionChange={(selected) => setMaterialesSeleccionadosTabla(new Set(selected.map(String)))}
-            onAdd={() => setDialogMaterialOpen(true)}
+            onAdd={() => {
+              setMaterialesSeleccionados(new Set());
+              setNuevoMaterialCantidad('');
+              setNuevoMaterialUnidadId('');
+              setNuevoMaterialObligatorio(false);
+              setNuevoMaterialObservaciones('');
+              setFiltroBusquedaMaterial('');
+              setDialogMaterialOpen(true);
+            }}
             addLabel="Nuevo Producto de Plantilla..."
             actions={
               materialesSeleccionadosTabla.size > 0 ? (
@@ -984,7 +1022,7 @@ export function ConfiguracionServicioFormPage() {
         )}
           </>
         )}
-      </div>
+      </D365FormContent>
 
 
 
@@ -1016,7 +1054,7 @@ export function ConfiguracionServicioFormPage() {
             <Text weight="semibold" size={200}>Buscar Tarea del Catálogo</Text>
             <Input
               contentBefore={<Search16Regular />}
-              placeholder="Filtrar por código o nombre..."
+              placeholder=""
               value={filtroBusquedaTarea}
               onChange={(_, d) => setFiltroBusquedaTarea(d.value)}
               style={{ width: '100%' }}
@@ -1128,7 +1166,7 @@ export function ConfiguracionServicioFormPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <Text weight="semibold" size={200}>O Crear Nueva Tarea Rápida</Text>
             <Input
-              placeholder="Nombre de la nueva tarea..."
+              placeholder=""
               value={nuevaTareaNombre}
               onChange={(_, d) => setNuevaTareaNombre(d.value)}
               style={{ width: '100%' }}
@@ -1138,7 +1176,7 @@ export function ConfiguracionServicioFormPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <Text weight="semibold" size={200}>Instrucciones Técnicas Predeterminadas</Text>
             <Input
-              placeholder="Instrucciones para el técnico..."
+              placeholder=""
               value={nuevaTareaInstrucciones}
               onChange={(_, d) => setNuevaTareaInstrucciones(d.value)}
               style={{ width: '100%' }}
@@ -1202,7 +1240,7 @@ export function ConfiguracionServicioFormPage() {
             <Text weight="semibold" size={200}>Buscar Producto / Repuesto / Equipo</Text>
             <Input
               contentBefore={<Search16Regular />}
-              placeholder="Filtrar por código o nombre..."
+              placeholder=""
               value={filtroBusquedaMaterial}
               onChange={(_, d) => setFiltroBusquedaMaterial(d.value)}
               style={{ width: '100%' }}
@@ -1313,15 +1351,16 @@ export function ConfiguracionServicioFormPage() {
           </div>
 
           {/* Parámetros a aplicar al lote seleccionado */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 12 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <Text weight="semibold" size={200}>Cantidad Sugerida *</Text>
               <Input
                 type="number"
                 min={0.01}
                 step="any"
-                value={nuevoMaterialCantidad.toString()}
-                onChange={(_, d) => setNuevoMaterialCantidad(parseFloat(d.value) || 1)}
+                placeholder="Ej. 1"
+                value={nuevoMaterialCantidad}
+                onChange={(_, d) => setNuevoMaterialCantidad(d.value)}
                 style={{ width: '100%' }}
               />
             </div>
@@ -1388,7 +1427,12 @@ export function ConfiguracionServicioFormPage() {
           <Button
             appearance="primary"
             icon={<Checkmark16Regular />}
-            disabled={materialesSeleccionados.size === 0 || nuevoMaterialCantidad <= 0}
+            disabled={
+              materialesSeleccionados.size === 0 ||
+              !nuevoMaterialCantidad.trim() ||
+              isNaN(parseFloat(nuevoMaterialCantidad)) ||
+              parseFloat(nuevoMaterialCantidad) <= 0
+            }
             onClick={agregarMaterialFila}
           >
             Agregar

@@ -55,7 +55,7 @@ public class ObtenerEmpleadosHandler : IQueryHandler<ObtenerEmpleadosQuery, Resu
             query = query.Where(e => e.CargoId == request.CargoId.Value);
         }
 
-        var tieneAccesoConfidencial = _currentUser.HasAnyRole(BubbaBag.SharedKernel.Authorization.Roles.AccesoRrhhConfidencial);
+        var tieneAccesoConfidencial = _currentUser.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.SalariosConfidencial);
 
         var empleados = await query
             .OrderBy(e => e.Apellidos)

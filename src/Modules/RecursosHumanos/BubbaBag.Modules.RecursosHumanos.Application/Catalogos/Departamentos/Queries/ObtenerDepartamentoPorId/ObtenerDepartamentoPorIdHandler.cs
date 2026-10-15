@@ -13,10 +13,12 @@ namespace BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Departamentos.Q
 public class ObtenerDepartamentoPorIdHandler : IQueryHandler<ObtenerDepartamentoPorIdQuery, Result<DepartamentoDetalleDto>>
 {
     private readonly IRecursosHumanosDbContext _context;
+    private readonly ICurrentUser _currentUser;
 
-    public ObtenerDepartamentoPorIdHandler(IRecursosHumanosDbContext context)
+    public ObtenerDepartamentoPorIdHandler(IRecursosHumanosDbContext context, ICurrentUser currentUser)
     {
         _context = context;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<DepartamentoDetalleDto>> HandleAsync(ObtenerDepartamentoPorIdQuery query, CancellationToken cancellationToken = default)
@@ -42,7 +44,7 @@ public class ObtenerDepartamentoPorIdHandler : IQueryHandler<ObtenerDepartamento
             totalEmpleados,
             departamento.Cargos
                 .OrderBy(c => c.Nombre)
-                .Select(c => new CargoCatalogoDto(c.Id, c.Nombre, c.SalarioReferencial))
+                .Select(c => new CargoCatalogoDto(c.Id, c.Nombre, _currentUser.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.SalariosConfidencial) ? c.SalarioReferencial : null))
                 .ToList()
         );
 

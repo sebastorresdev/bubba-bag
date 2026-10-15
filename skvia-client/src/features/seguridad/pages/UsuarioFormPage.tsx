@@ -1,3 +1,6 @@
+import { D365FormContent } from '../../../components/common/D365FormContent';
+import { useValidationFocus } from '../../../hooks/useValidationFocus';
+import { useUnsavedChanges } from '../../../hooks/useUnsavedChanges';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -43,6 +46,7 @@ import {
   SeguridadService,
   type RolDto,
   type UsuarioDto,
+  type PermisoDefinicionDto,
 } from '../services/seguridad.service';
 import { PermisosDrawer } from '../components/PermisosDrawer';
 import { ManageUserRolesDialog } from '../components/ManageUserRolesDialog';
@@ -84,6 +88,7 @@ export function UsuarioFormPage() {
   const [email, setEmail] = useState('');
   const [roles, setRoles] = useState<string[]>([]);
   const [catalogo, setCatalogo] = useState<RolDto[]>([]);
+  const [catalogoPermisos, setCatalogoPermisos] = useState<PermisoDefinicionDto[]>([]);
   const [activo, setActivo] = useState(true);
 
   // Configuración de contraseña en línea (Paso inicial estilo Microsoft 365 / Dynamics)
@@ -109,6 +114,9 @@ export function UsuarioFormPage() {
   const [resetConfirmar, setResetConfirmar] = useState('');
   const [resetError, setResetError] = useState('');
   const [resetCopiado, setResetCopiado] = useState(false);
+  const focusValidation = useValidationFocus();
+  const draft = useUnsavedChanges({ nombre,email,roles,password: isNew ? (passwordModo === "manual" ? passwordManual : passwordAuto) : undefined }, !loading);
+
 
   useEffect(() => {
     let current = true;
@@ -121,10 +129,12 @@ export function UsuarioFormPage() {
     void Promise.all([
       SeguridadService.roles(),
       id ? SeguridadService.usuario(id) : Promise.resolve(null),
+      SeguridadService.permisos(),
     ])
-      .then(([c, u]) => {
+      .then(([c, u, permisos]) => {
         if (!current) return;
         setCatalogo(c);
+        setCatalogoPermisos(permisos);
         setUsuarioGuardado(u);
         setNombre(u?.nombreCompleto ?? '');
         setEmail(u?.email ?? '');
@@ -208,19 +218,24 @@ export function UsuarioFormPage() {
   };
 
   async function save(close: boolean) {
+    const savedDraft = draft.capture();
     setError('');
+    draft.markSaved(savedDraft);
     setSuccess('');
     if (!nombre.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setTab('general'); focusValidation(!nombre.trim() ? 'usuario-nombre' : 'usuario-email');
       setError('Ingrese un nombre completo y un correo electrónico válidos.');
       return;
     }
 
     let passwordFinal = '';
     if (isNew) {
+      setTab('general'); focusValidation();
       if (passwordModo === 'automatica') {
         passwordFinal = passwordAuto;
       } else {
         if (passwordManual.length < 8) {
+      setTab('general'); focusValidation("usuario-password-manual");
           setError('La contraseña debe tener al menos 8 caracteres.');
           return;
         }
@@ -236,6 +251,7 @@ export function UsuarioFormPage() {
           email: email.trim(),
           roles,
         });
+        draft.markSaved(savedDraft);
       } else {
         const result = await SeguridadService.crear({
           nombreCompleto: nombre.trim(),
@@ -243,6 +259,7 @@ export function UsuarioFormPage() {
           password: passwordFinal,
           roles,
         });
+        draft.markSaved(savedDraft);
         navigate(
           close
             ? '/configuracion/usuarios'
@@ -266,8 +283,10 @@ export function UsuarioFormPage() {
       setEmail(guardado.email);
       setRoles(guardado.roles);
       setActivo(guardado.esActivo);
+      draft.markSaved(savedDraft);
       setSuccess('Usuario guardado exitosamente.');
-      if (close) navigate('/configuracion/usuarios');
+      if (close) { draft.markSaved(savedDraft);
+navigate('/configuracion/usuarios'); }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar el usuario.');
     } finally {
@@ -395,7 +414,7 @@ export function UsuarioFormPage() {
             }
           />
 
-          <div className={styles.contentBody}>
+          <D365FormContent busy={busy} className={styles.contentBody}>
             {tab === 'general' ? (
               /* Tarjeta limpia con ancho controlado a la mitad de la pantalla */
               <div style={{ maxWidth: '640px', width: '100%' }}>
@@ -573,7 +592,7 @@ export function UsuarioFormPage() {
                     }}
                   >
                     <div
-                      style={{
+                      className="d365-detail-grid d365-detail-grid-header" style={{
                         display: 'grid',
                         gridTemplateColumns: '2fr 1.5fr 1fr 1fr',
                         padding: '10px 16px',
@@ -606,7 +625,7 @@ export function UsuarioFormPage() {
                         .filter((r) => roles.includes(r.codigo))
                         .map((rol) => (
                           <div
-                            key={rol.codigo}
+                            className="d365-detail-grid" key={rol.codigo}
                             style={{
                               display: 'grid',
                               gridTemplateColumns: '2fr 1.5fr 1fr 1fr',
@@ -646,7 +665,7 @@ export function UsuarioFormPage() {
                 </div>
               </div>
             )}
-          </div>
+          </D365FormContent>
         </>
       )}
 
@@ -656,6 +675,7 @@ export function UsuarioFormPage() {
         onClose={() => setDrawer(false)}
         title="Permisos resultantes"
         permisos={effective}
+        catalogoPermisos={catalogoPermisos}
       />
 
       {/* Diálogo Administrar Roles */}

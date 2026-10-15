@@ -13,6 +13,7 @@ public class DataImportJobDto
     public string ModoDuplicados { get; set; } = "Upsert";
     public bool PermitirDuplicados { get; set; }
     public string CreadoPor { get; set; } = string.Empty;
+    public Guid? CreadoPorId { get; set; }
     public DateTime FechaCreacion { get; set; }
     public DateTime? FechaFinalizacion { get; set; }
     public int TotalProcesados { get; set; }
@@ -35,6 +36,7 @@ public class DataImportJobErrorDto
 
 public class ExecuteImportRequestDto
 {
+    public Guid? OperacionId { get; set; }
     public string EntityName { get; set; } = "Producto";
     public string DuplicateMode { get; set; } = "Upsert"; // "Upsert", "Skip", "Error"
     public string? Delimiter { get; set; }

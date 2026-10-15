@@ -6,7 +6,7 @@ export const useD365ImportStyles = makeStyles({
   column: { display: 'flex', flexDirection: 'column' },
   resultColumn: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM, marginBottom: tokens.spacingVerticalL },
   muted: { color: tokens.colorNeutralForeground3 },
-  mutedSubtle: { color: tokens.colorNeutralForeground4 },
+  mutedSubtle: { color: tokens.colorNeutralForeground3 },
   neutral: { color: tokens.colorNeutralForeground2 },
   success: { color: semanticTokens.status.success },
   danger: { color: semanticTokens.status.dangerSubtle },
@@ -18,6 +18,7 @@ export const useD365ImportStyles = makeStyles({
   stepArrow: { color: tokens.colorNeutralForeground4 },
   analysisRow: { display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalM, padding: tokens.spacingVerticalM },
   mappingHeader: {
+    '@media (max-width: 767px)': { display: 'none' },
     display: 'grid',
     gridTemplateColumns: '1fr 28px 1.4fr',
     padding: '4px 10px',
@@ -30,7 +31,7 @@ export const useD365ImportStyles = makeStyles({
   centered: { display: 'flex', justifyContent: 'center' },
   summarySection: { marginTop: tokens.spacingVerticalL, borderTop: `1px solid ${tokens.colorNeutralStroke2}`, paddingTop: tokens.spacingVerticalM },
   summaryList: { margin: 0, paddingLeft: '20px', fontSize: tokens.fontSizeBase200 },
-  resultMetricsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: tokens.spacingHorizontalM, textAlign: 'center' },
+  resultMetricsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 100px), 1fr))', gap: tokens.spacingHorizontalM, textAlign: 'center' },
   metricCard: { backgroundColor: tokens.colorNeutralBackground2, padding: tokens.spacingVerticalM, borderRadius: tokens.borderRadiusMedium },
   metricsGrid: {
     display: 'grid',

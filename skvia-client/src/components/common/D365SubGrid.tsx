@@ -1,3 +1,5 @@
+import { useIsMobile } from '../../hooks/useMediaQuery';
+import { D365MobileRecords } from './D365MobileRecords';
 import React from 'react';
 import {
   DataGrid,
@@ -21,6 +23,7 @@ import { TableEmptyState } from './TableEmptyState';
 
 const useStyles = makeStyles({
   container: {
+    flexShrink: 0,
     display: 'flex',
     flexDirection: 'column',
     width: '100%',
@@ -30,6 +33,7 @@ const useStyles = makeStyles({
     overflow: 'hidden',
   },
   containerSubtle: {
+    flexShrink: 0,
     border: 'none',
     borderRadius: 0,
     backgroundColor: 'transparent',
@@ -41,7 +45,7 @@ const useStyles = makeStyles({
     padding: '8px 16px',
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
     backgroundColor: tokens.colorNeutralBackground2,
-    minHeight: '40px',
+    minHeight: '40px', flexWrap: 'wrap', gap: '8px',
   },
   toolbarLeft: {
     display: 'flex',
@@ -156,6 +160,7 @@ export function D365SubGrid<T>({
   size = 'small',
   className,
 }: D365SubGridProps<T>) {
+  const isMobile = useIsMobile(768);
   const styles = useStyles();
   const effectiveCount = count !== undefined ? count : items.length;
 
@@ -223,7 +228,7 @@ export function D365SubGrid<T>({
         </TableEmptyState>
       ) : (
         <div className={styles.gridWrapper}>
-          <DataGrid
+          {isMobile ? <D365MobileRecords items={items} columns={columns} getRowId={defaultGetRowId} selectionMode={selectionMode} selectedItems={selectedItems ? new Set(selectedItems) : undefined} onSelectionChange={handleSelectionChange} onOpen={onRowClick} /> : <DataGrid
             items={items}
             columns={columns}
             getRowId={(item) => defaultGetRowId(item)}
@@ -234,7 +239,7 @@ export function D365SubGrid<T>({
             className={styles.table}
           >
             <DataGridHeader className={styles.headerRow}>
-              <DataGridRow>
+              <DataGridRow selectionCell={selectionMode ? {} : undefined}>
                 {({ renderHeaderCell }) => (
                   <DataGridHeaderCell className={styles.headerCell}>
                     {renderHeaderCell() as React.ReactElement}
@@ -246,8 +251,10 @@ export function D365SubGrid<T>({
               {({ item, rowId }) => (
                 <DataGridRow<T>
                   key={rowId}
+                  selectionCell={selectionMode ? {} : undefined}
                   className={onRowClick ? styles.row : styles.rowNonClickable}
-                  onClick={() => onRowClick && onRowClick(item)}
+                  onClick={event => { if (!(event.target as HTMLElement).closest('button, input, a, [role="checkbox"], [role="radio"]')) onRowClick?.(item); }}
+                  onKeyDown={event => { if (event.key === 'Enter' && !(event.target as HTMLElement).closest('button, input, a')) { event.preventDefault(); onRowClick?.(item); } }}
                 >
                   {({ renderCell }) => (
                     <DataGridCell className={styles.cell}>
@@ -257,7 +264,7 @@ export function D365SubGrid<T>({
                 </DataGridRow>
               )}
             </DataGridBody>
-          </DataGrid>
+          </DataGrid>}
         </div>
       )}
     </div>

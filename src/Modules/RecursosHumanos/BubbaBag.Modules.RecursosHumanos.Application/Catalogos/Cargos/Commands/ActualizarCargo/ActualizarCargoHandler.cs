@@ -10,14 +10,17 @@ namespace BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Cargos.Commands
 public class ActualizarCargoHandler : ICommandHandler<ActualizarCargoCommand, Result<Guid>>
 {
     private readonly IRecursosHumanosDbContext _context;
+    private readonly ICurrentUser _currentUser;
 
-    public ActualizarCargoHandler(IRecursosHumanosDbContext context)
+    public ActualizarCargoHandler(IRecursosHumanosDbContext context, ICurrentUser currentUser)
     {
         _context = context;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<Guid>> HandleAsync(ActualizarCargoCommand request, CancellationToken cancellationToken = default)
     {
+        if (request.SalarioReferencial.HasValue && !_currentUser.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.SalariosConfidencial)) throw new UnauthorizedAccessException();
         var cargo = await _context.Cargos
             .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
 
@@ -44,7 +47,7 @@ public class ActualizarCargoHandler : ICommandHandler<ActualizarCargoCommand, Re
             return Result<Guid>.Failure($"Ya existe otro cargo con el nombre '{nombreNormalizado}' en el departamento seleccionado.");
         }
 
-        cargo.Actualizar(nombreNormalizado, request.DepartamentoId, request.SalarioReferencial);
+        cargo.Actualizar(nombreNormalizado, request.DepartamentoId, _currentUser.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.SalariosConfidencial) ? request.SalarioReferencial : cargo.SalarioReferencial);
 
         if (request.Activo)
         {

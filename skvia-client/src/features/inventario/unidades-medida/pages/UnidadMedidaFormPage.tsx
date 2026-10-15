@@ -1,3 +1,6 @@
+import { D365FormContent } from '../../../../components/common/D365FormContent';
+import { useValidationFocus } from '../../../../hooks/useValidationFocus';
+import { useUnsavedChanges } from '../../../../hooks/useUnsavedChanges';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -74,6 +77,9 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
   const [saving, setSaving] = useState(false);
   const [saveAttempted, setSaveAttempted] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const focusValidation = useValidationFocus();
+  const draft = useUnsavedChanges({ group }, !loading);
+
 
   const load = async (id: string) => {
     try {
@@ -112,8 +118,10 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
   const baseUnit = detail?.unidades.find((unit) => unit.esUnidadBase);
 
   const save = async (close = false) => {
+    const savedDraft = draft.capture();
     setSaveAttempted(true);
     if (invalid) {
+      setSelectedTab('general'); focusValidation();
       setMessage({ type: 'error', text: 'Complete los datos obligatorios del grupo y su unidad base.' });
       return;
     }
@@ -128,13 +136,16 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
         id = result.id;
         setCurrentId(id);
         onCreated?.(id);
+        draft.markSaved(savedDraft);
         navigate(`/grupos-unidades/${id}`, { replace: true });
       }
       onSaved?.(id);
       setSaveAttempted(false);
+      draft.markSaved(savedDraft);
       setMessage({ type: 'success', text: 'Grupo de unidades guardado correctamente.' });
       await load(id);
-      if (close) navigate('/servicio-campo/unidades-medida');
+      if (close) { draft.markSaved(savedDraft);
+navigate('/servicio-campo/unidades-medida'); }
     } catch (e: any) {
       setMessage({ type: 'error', text: e?.message || 'No se pudo guardar.' });
     } finally {
@@ -268,7 +279,7 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
       />
 
       {loading ? (
-        <div className={styles.contentBody}>
+        <D365FormContent busy={saving} className={styles.contentBody}>
           <Card className={styles.card}>
             <Skeleton animation="pulse">
               <SkeletonItem size={16} className={styles.skeletonHeader} />
@@ -278,9 +289,9 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
               </div>
             </Skeleton>
           </Card>
-        </div>
+        </D365FormContent>
       ) : selectedTab === 'general' ? (
-        <div className={styles.contentBody}>
+        <D365FormContent busy={saving} className={styles.contentBody}>
           <Card className={styles.card}>
               <Text className={styles.cardSectionTitle}>Información general</Text>
               <D365FormField label="Nombre del grupo" required htmlFor="grupo-nombre" error={errors.nombre}>
@@ -322,9 +333,9 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
                 />
               </D365FormField>
           </Card>
-        </div>
+        </D365FormContent>
       ) : (
-        <div className={styles.contentBody}>
+        <D365FormContent busy={saving} className={styles.contentBody}>
           {!currentId ? (
             <Card className={styles.card}>
               <div className={pageStyles.emptyUnits}>
@@ -393,7 +404,7 @@ export const UnidadMedidaFormPage: React.FC<UnidadMedidaFormPageProps> = ({
                 </div>
               </Card>
           )}
-        </div>
+        </D365FormContent>
       )}
 
       {currentId && baseUnit && (

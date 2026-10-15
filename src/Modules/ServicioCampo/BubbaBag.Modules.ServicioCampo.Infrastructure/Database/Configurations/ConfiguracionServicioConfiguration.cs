@@ -25,6 +25,9 @@ public class ConfiguracionServicioConfiguration : IEntityTypeConfiguration<Confi
             .IsRequired()
             .HasDefaultValue(60);
 
+        builder.Property(p => p.SlaHorasResolucion)
+            .IsRequired(false);
+
         builder.Property(p => p.EsPredeterminada)
             .IsRequired()
             .HasDefaultValue(false);

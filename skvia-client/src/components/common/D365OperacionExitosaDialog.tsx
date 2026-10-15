@@ -6,6 +6,7 @@ import {
   DialogBody,
   DialogContent,
   DialogActions,
+  DialogTitle,
   Text,
   Badge,
   tokens,
@@ -21,6 +22,7 @@ import {
   Add16Regular,
   ArrowRight16Regular,
 } from '@fluentui/react-icons';
+import { showError } from '../../services/uiFeedback';
 import { WhatsAppIcon } from './WhatsAppIcon';
 
 export interface OperacionExitosaDatos {
@@ -57,14 +59,15 @@ export const D365OperacionExitosaDialog: React.FC<D365OperacionExitosaDialogProp
   onNuevaOperacion,
   onIrHistorial,
 }) => {
-  const [copiado, setCopiado] = useState(false);
+  const [numeroCopiado, setNumeroCopiado] = useState<string | null>(null);
+  const copiado = numeroCopiado === datos?.numero;
 
   if (!datos) return null;
 
   const esDevolucion = datos.tipoOperacion === 'Devolucion';
-  const titulo = esDevolucion ? '¡Devolución Procesada con Éxito!' : '¡Despacho Registrado con Éxito!';
+  const titulo = esDevolucion ? 'Devolución registrada' : datos.tipoOperacion === 'Transferencia' ? 'Transferencia registrada' : 'Despacho registrado';
   const subtitulo = esDevolucion
-    ? 'Las existencias y números de serie han reingresado oficialmente al stock de la bodega.'
+    ? 'El material y las series reingresaron a la bodega.'
     : 'El material y los números de serie ahora se encuentran bajo custodia del técnico.';
 
   const docTitulo = esDevolucion ? 'Acta N°' : 'Operación N°';
@@ -75,18 +78,18 @@ export const D365OperacionExitosaDialog: React.FC<D365OperacionExitosaDialogProp
     : 'Cargo Oficial de Custodia (Para firma y constancia)';
   const botonNuevoTexto = esDevolucion ? 'Nueva devolución' : 'Nuevo despacho';
 
-  const handleCopiar = () => {
+  const handleCopiar = async () => {
     if (datos.numero) {
-      void navigator.clipboard.writeText(datos.numero);
-      setCopiado(true);
-      setTimeout(() => setCopiado(false), 2000);
+      try { await navigator.clipboard.writeText(datos.numero); } catch { showError('No se pudo copiar el número. Puede seleccionarlo y copiarlo manualmente.'); return; }
+      setNumeroCopiado(datos.numero);
+      setTimeout(() => setNumeroCopiado(null), 2000);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={(_, d) => !d.open && onClose()}>
-      <DialogSurface style={{ maxWidth: '520px', width: '100%', padding: '0', borderRadius: tokens.borderRadiusXLarge, overflow: 'hidden' }}>
-        <DialogBody style={{ padding: '0', margin: '0' }}>
+      <DialogSurface style={{ maxWidth: '520px', width: 'calc(100vw - 32px)', minWidth: 0, maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto', padding: '0', borderRadius: tokens.borderRadiusMedium }}>
+        <DialogBody style={{ padding: '0', margin: '0', display: 'block' }}>
           {/* Header con acento verde de éxito usando 100% tokens oficiales de Fluent UI */}
           <div
             style={{
@@ -117,9 +120,9 @@ export const D365OperacionExitosaDialog: React.FC<D365OperacionExitosaDialogProp
               <CheckmarkCircle24Filled style={{ fontSize: '26px' }} />
             </div>
             <div style={{ flex: 1 }}>
-              <Text weight="bold" size={500} style={{ color: tokens.colorPaletteGreenForeground1, display: 'block', lineHeight: 1.25 }}>
+              <DialogTitle style={{ color: tokens.colorPaletteGreenForeground1, display: 'block', lineHeight: 1.25 }}>
                 {titulo}
-              </Text>
+              </DialogTitle>
               <Text size={200} style={{ color: tokens.colorPaletteGreenForeground2, marginTop: '2px', display: 'block' }}>
                 {subtitulo}
               </Text>
@@ -142,7 +145,7 @@ export const D365OperacionExitosaDialog: React.FC<D365OperacionExitosaDialogProp
               {/* Cabecera del Comprobante */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Text size={100} weight="semibold" style={{ textTransform: 'uppercase', color: tokens.colorNeutralForeground3, letterSpacing: '0.5px' }}>
+                  <Text size={200} weight="semibold" style={{ textTransform: 'uppercase', color: tokens.colorNeutralForeground3, letterSpacing: '0.5px' }}>
                     {docTitulo}
                   </Text>
                   <Text weight="bold" size={400} style={{ fontFamily: 'monospace', color: tokens.colorBrandForeground1 }}>
@@ -162,14 +165,14 @@ export const D365OperacionExitosaDialog: React.FC<D365OperacionExitosaDialogProp
               <div style={{ height: '1px', backgroundColor: tokens.colorNeutralStroke3 }} />
 
               {/* Grilla de metadatos */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 170px), 1fr))', gap: '10px 16px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <Text size={100} style={{ color: tokens.colorNeutralForeground4, textTransform: 'uppercase' }}>
+                  <Text size={100} style={{ color: tokens.colorNeutralForeground3, textTransform: 'uppercase' }}>
                     {personaEtiqueta}
                   </Text>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Person16Regular style={{ color: tokens.colorNeutralForeground3 }} />
-                    <Text size={200} weight="semibold" truncate>
+                    <Text size={200} weight="semibold">
                       {datos.personaNombre || 'Técnico'}
                     </Text>
                   </div>
@@ -182,7 +185,7 @@ export const D365OperacionExitosaDialog: React.FC<D365OperacionExitosaDialogProp
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Building16Regular style={{ color: tokens.colorNeutralForeground3 }} />
                     <Text size={200} weight="semibold" truncate>
-                      {datos.almacenNombre || 'Bodega Central'}
+                      {datos.almacenNombre || 'Sin almacén indicado'}
                     </Text>
                   </div>
                 </div>
@@ -226,7 +229,7 @@ export const D365OperacionExitosaDialog: React.FC<D365OperacionExitosaDialogProp
               <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground2 }}>
                 {accionDocTitulo}
               </Text>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 130px), 1fr))', gap: '8px' }}>
                 <Button
                   appearance="primary"
                   size="medium"
@@ -265,7 +268,7 @@ export const D365OperacionExitosaDialog: React.FC<D365OperacionExitosaDialogProp
               borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
               backgroundColor: tokens.colorNeutralBackground1,
               display: 'flex',
-              justifyContent: 'flex-end',
+              justifyContent: 'flex-end', flexWrap: 'wrap',
               alignItems: 'center',
               gap: '12px',
               margin: 0,

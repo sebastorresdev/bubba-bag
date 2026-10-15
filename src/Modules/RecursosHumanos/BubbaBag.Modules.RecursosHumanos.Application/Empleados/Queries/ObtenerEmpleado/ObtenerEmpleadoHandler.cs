@@ -32,7 +32,7 @@ public class ObtenerEmpleadoHandler : IQueryHandler<ObtenerEmpleadoQuery, Result
             return Result<EmpleadoDto>.Failure("El colaborador no existe.");
         }
 
-        var tieneAccesoConfidencial = _currentUser.HasAnyRole(BubbaBag.SharedKernel.Authorization.Roles.AccesoRrhhConfidencial);
+        var tieneAccesoConfidencial = _currentUser.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.SalariosConfidencial);
 
         return Result<EmpleadoDto>.Success(new EmpleadoDto(
             empleado.Id,

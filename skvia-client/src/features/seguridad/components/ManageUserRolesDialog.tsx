@@ -42,6 +42,7 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground1,
   },
   tableHeader: {
+    '@media (max-width: 767px)': { display: 'none' },
     display: 'grid',
     gridTemplateColumns: '40px 1.5fr 1fr',
     padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
@@ -52,6 +53,7 @@ const useStyles = makeStyles({
     color: tokens.colorNeutralForeground2,
   },
   tableRow: {
+    '@media (max-width: 767px)': { gridTemplateColumns: '40px minmax(0, 1fr)', rowGap: '8px', '& > :nth-child(3)': { gridColumn: '2' } },
     display: 'grid',
     gridTemplateColumns: '40px 1.5fr 1fr',
     alignItems: 'center',
@@ -203,6 +205,7 @@ export function ManageUserRolesDialog({
                         onClick={() => toggleRole(rol.codigo)}
                       >
                         <Checkbox
+                          aria-label={rol.nombreVisible}
                           checked={isChecked}
                           onChange={() => toggleRole(rol.codigo)}
                           onClick={(e) => e.stopPropagation()}

@@ -7,6 +7,7 @@ export interface ConfiguracionServicioListadoDto {
   productoCodigo: string;
   productoNombre: string;
   duracionEstimadaMinutos: number;
+  slaHorasResolucion?: number | null;
   esPredeterminada: boolean;
   activo: boolean;
   cantidadTareas: number;
@@ -23,6 +24,7 @@ export interface ConfiguracionServicioDetalleDto {
   productoCodigo: string;
   productoNombre: string;
   duracionEstimadaMinutos: number;
+  slaHorasResolucion?: number | null;
   esPredeterminada: boolean;
   activo: boolean;
   createdAt: string;
@@ -60,6 +62,7 @@ export interface GuardarConfiguracionServicioDto {
   nombre: string;
   productoId: string;
   duracionEstimadaMinutos: number;
+  slaHorasResolucion?: number | null;
   descripcion?: string;
   esPredeterminada: boolean;
   tareas: {

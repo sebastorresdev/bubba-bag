@@ -1,4 +1,5 @@
 using BubbaBag.SharedKernel.Authorization;
+using BubbaBag.SharedKernel;
 using System;
 using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
 using System.Collections.Generic;
@@ -24,14 +25,14 @@ public static class OrganizacionEndpoints
         // =========================================================================
         var sedesGroup = app.MapGroup("/api/serviciocampo/unidades-organizativas")
             .WithTags("Servicio de Campo - Unidades Organizativas (Sedes)")
-            .RequireAuthorization(Permissions.Inventario.Acceso);
+            .RequireAuthorization();
 
         sedesGroup.MapGet("/", ObtenerUnidadesOrganizativas);
         sedesGroup.MapGet("/plantilla-excel", DescargarPlantillaUnidadesOrganizativas);
         sedesGroup.MapGet("/{id:guid}", ObtenerUnidadOrganizativaPorId);
-        sedesGroup.MapPost("/", CrearUnidadOrganizativa).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
-        sedesGroup.MapPut("/{id:guid}", ActualizarUnidadOrganizativa).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
-        sedesGroup.MapPatch("/{id:guid}/estado", CambiarEstadoUnidadOrganizativa).RequireAuthorization(Permissions.Inventario.CatalogosGestionar);
+        sedesGroup.MapPost("/", CrearUnidadOrganizativa).RequireAuthorization(Permissions.Configuracion.SucursalesGestionar);
+        sedesGroup.MapPut("/{id:guid}", ActualizarUnidadOrganizativa).RequireAuthorization(Permissions.Configuracion.SucursalesGestionar);
+        sedesGroup.MapPatch("/{id:guid}/estado", CambiarEstadoUnidadOrganizativa).RequireAuthorization(Permissions.Configuracion.SucursalesEstadoGestionar);
 
         // =========================================================================
         // TERRITORIOS (Zonas Operativas de Servicio)
@@ -121,8 +122,11 @@ public static class OrganizacionEndpoints
     private static async Task<IResult> CrearUnidadOrganizativa(
         CrearUnidadOrganizativaRequest request,
         IServicioCampoDbContext context,
+        ICurrentUser user,
         CancellationToken ct)
     {
+        if (request.EsSedePrincipal && !user.HasPermission(Permissions.Configuracion.SucursalesSedePrincipalGestionar))
+            return Results.Forbid();
         if (string.IsNullOrWhiteSpace(request.Codigo) || string.IsNullOrWhiteSpace(request.Nombre))
             return Results.BadRequest("El código y nombre de la unidad organizativa son obligatorios.");
 
@@ -150,8 +154,11 @@ public static class OrganizacionEndpoints
         Guid id,
         ActualizarUnidadOrganizativaRequest request,
         IServicioCampoDbContext context,
+        ICurrentUser user,
         CancellationToken ct)
     {
+        if (request.EsSedePrincipal.HasValue && !user.HasPermission(Permissions.Configuracion.SucursalesSedePrincipalGestionar))
+            return Results.Forbid();
         var unidad = await context.UnidadesOrganizativas.FirstOrDefaultAsync(u => u.Id == id, ct);
         if (unidad is null) return Results.NotFound("Unidad organizativa no encontrada.");
 
@@ -160,7 +167,7 @@ public static class OrganizacionEndpoints
             request.Ciudad,
             request.Direccion,
             request.Telefono,
-            request.EsSedePrincipal
+            request.EsSedePrincipal ?? unidad.EsSedePrincipal
         );
 
         await context.SaveChangesAsync(ct);
@@ -769,7 +776,7 @@ public record ActualizarUnidadOrganizativaRequest(
     string? Ciudad = null,
     string? Direccion = null,
     string? Telefono = null,
-    bool EsSedePrincipal = false
+    bool? EsSedePrincipal = null
 );
 
 public record TerritorioItemDto(

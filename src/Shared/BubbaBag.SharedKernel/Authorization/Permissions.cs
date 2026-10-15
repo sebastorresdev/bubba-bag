@@ -5,12 +5,22 @@ namespace BubbaBag.SharedKernel.Authorization;
 
 public static class Permissions
 {
+    public static class Configuracion
+    {
+        public const string EmpresaDatosFiscalesGestionar = "configuracion.empresa.datos_fiscales.gestionar";
+        public const string EmpresaPresentacionGestionar = "configuracion.empresa.presentacion.gestionar";
+        public const string SucursalesGestionar = "configuracion.sucursales.gestionar";
+        public const string SucursalesSedePrincipalGestionar = "configuracion.sucursales.sede_principal.gestionar";
+        public const string SucursalesEstadoGestionar = "configuracion.sucursales.estado.gestionar";
+    }
+
     public static class Inventario
     {
         public const string Acceso = "inventario.acceso";
         public const string CatalogosGestionar = "inventario.catalogos.gestionar";
         public const string Operar = "inventario.operar";
         public const string AccesosGestionar = "inventario.accesos.gestionar";
+        public const string AjustesAprobar = "inventario.ajustes.aprobar";
     }
     // =========================================================================
     // SERVICIO DE CAMPO
@@ -60,6 +70,14 @@ public static class Permissions
         public const string Acceso = "seguridad.acceso";
         public const string UsuariosGestionar = "seguridad.usuarios.gestionar";
         public const string RolesGestionar = "seguridad.roles.gestionar";
+    }
+
+    public static class GestionDatos
+    {
+        public const string Importar = "gestiondatos.importar";
+        public const string HistorialVer = "gestiondatos.historial.ver";
+        public const string HistorialVerTodas = "gestiondatos.historial.ver_otras_personas";
+        public const string HistorialEliminar = "gestiondatos.historial.eliminar";
     }
 
     /// <summary>

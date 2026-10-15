@@ -1,3 +1,4 @@
+import { UnsavedChangesGuard } from '../common/UnsavedChangesGuard';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { makeStyles, tokens } from '@fluentui/react-components';
@@ -6,13 +7,14 @@ import { SideNav } from './SideNav';
 import { availableApps } from '../../features/seguridad/services/securityAccess';
 import { useAuthSession } from '../../services/authSession';
 import { useIsMobile } from '../../hooks/useMediaQuery';
+import { dismissError, resolveConfirmation } from '../../services/uiFeedback';
 import type { NavArea, NavItem, EnterpriseApp } from '../../types/navigation.types';
 
 const useStyles = makeStyles({
   root: {
     display: 'flex',
     flexDirection: 'column',
-    height: '100vh',
+    height: '100dvh',
     width: '100vw',
     overflow: 'hidden',
     backgroundColor: tokens.colorNeutralBackground1,
@@ -38,6 +40,10 @@ export const MainLayout: React.FC = () => {
   const { permisos } = useAuthSession();
   const apps = useMemo(() => availableApps(permisos), [permisos]);
   const location = useLocation();
+  useEffect(() => {
+    resolveConfirmation(false);
+    dismissError();
+  }, [location.key]);
   const navigate = useNavigate();
   const isMobile = useIsMobile(1024);
   const [navOpen, setNavOpen] = useState<boolean>(() => !isMobile);
@@ -109,6 +115,7 @@ export const MainLayout: React.FC = () => {
 
   const handleSelectItem = (item: NavItem) => {
     navigate(item.path);
+    if (isMobile) setNavOpen(false);
   };
 
   const handleToggleNav = () => {
@@ -117,6 +124,7 @@ export const MainLayout: React.FC = () => {
 
   return (
     <div className={styles.root}>
+      <UnsavedChangesGuard />
       {/* Top SuiteBar: App Launcher (Waffle) + Hamburger Toggle + Enterprise apps */}
       <SuiteBar
         apps={apps}

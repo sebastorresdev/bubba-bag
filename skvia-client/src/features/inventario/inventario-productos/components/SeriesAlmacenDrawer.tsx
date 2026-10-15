@@ -53,6 +53,7 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground1,
   },
   tableHeader: {
+    '@media (max-width: 767px)': { display: 'none' },
     display: 'grid',
     gridTemplateColumns: '1fr 140px 100px',
     padding: '10px 14px',
@@ -64,6 +65,7 @@ const useStyles = makeStyles({
     letterSpacing: '0.4px',
   },
   tableRow: {
+    '@media (max-width: 767px)': { gridTemplateColumns: 'minmax(0, 1fr)', gap: '8px', overflowWrap: 'anywhere' },
     display: 'grid',
     gridTemplateColumns: '1fr 140px 100px',
     padding: '12px 14px',

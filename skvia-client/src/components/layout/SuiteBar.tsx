@@ -410,7 +410,7 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
         <div className={styles.centerSection}>
           <Input
             className={styles.searchInput}
-            placeholder={`Buscar en ${activeApp.name}`}
+            placeholder="Buscar"
             contentBefore={<Search16Regular />}
             appearance="outline"
             size="medium"
@@ -470,7 +470,7 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
                 <MenuItem disabled>🟢 Servidor API: Operativo y en línea</MenuItem>
                 <MenuItem disabled>🟢 PostgreSQL: Base de datos sincronizada</MenuItem>
                 <MenuItem disabled>🟢 Telemetría Aspire: Activa</MenuItem>
-                <MenuItem disabled>ℹ️ No hay alertas críticas pendientes</MenuItem>
+                <MenuItem disabled>No hay alertas críticas pendientes</MenuItem>
               </MenuList>
             </MenuPopover>
           </Menu>
@@ -499,13 +499,10 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
                 </div>
                 <Divider style={{ margin: '6px 0' }} />
                 <MenuItem onClick={() => navigate('/gestion-datos/importaciones')}>
-                  📂 Guía de Importación Masiva Excel
+                  Importaciones
                 </MenuItem>
                 <MenuItem onClick={() => navigate('/servicio-campo/productos')}>
-                  📦 Catálogo de Productos y Precios
-                </MenuItem>
-                <MenuItem disabled>
-                  ⌨️ Tip: Busca productos o almacenes desde la barra superior
+                  Catálogo de Productos y Precios
                 </MenuItem>
               </MenuList>
             </MenuPopover>
@@ -532,7 +529,7 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
                 </div>
                 <Divider style={{ margin: '6px 0' }} />
                 <MenuItem onClick={toggleDarkMode}>
-                  {isDarkMode ? '☀️ Cambiar a tema Claro' : '🌙 Cambiar a tema Oscuro'}
+                  {isDarkMode ? 'Cambiar a tema Claro' : 'Cambiar a tema Oscuro'}
                 </MenuItem>
                 <MenuItem disabled>📐 Densidad: Estándar (D365)</MenuItem>
                 <MenuItem disabled>🇵🇪 Moneda: Soles (PEN - S/.)</MenuItem>

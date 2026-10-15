@@ -1,3 +1,6 @@
+import { D365FormContent } from '../../../../components/common/D365FormContent';
+import { useValidationFocus } from '../../../../hooks/useValidationFocus';
+import { useUnsavedChanges } from '../../../../hooks/useUnsavedChanges';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -38,6 +41,7 @@ import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { SelectorEntidadRelacionada, type OpcionEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
 import { useCurrentUser } from '../../../../hooks/useCurrentUser';
+import { useAuthSession } from '../../../../services/authSession';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { AlmacenService } from '../../almacenes/services/almacen.service';
 import type { AlmacenDto } from '../../almacenes/types/almacen.types';
@@ -61,6 +65,7 @@ export function AjusteFormPage() {
   const navigate = useNavigate();
   const formStyles = useD365FormStyles();
   const currentUser = useCurrentUser();
+  const { permisos } = useAuthSession();
 
   const [ajuste, setAjuste] = useState<AjusteInventarioDto | null>(null);
   const [cargando, setCargando] = useState(Boolean(id));
@@ -108,22 +113,20 @@ export function AjusteFormPage() {
   const [eliminando, setEliminando] = useState(false);
   const [dialogExitoOpen, setDialogExitoOpen] = useState(false);
   const [mensajeExito, setMensajeExito] = useState('');
+  const focusValidation = useValidationFocus();
+  const draft = useUnsavedChanges({ tipo,almacenId,fecha,motivo,documentoReferencia,observaciones,lineas }, !cargando);
+
 
   // Roles y permisos
-  const esSuperAdmin =
-    currentUser.roles.some(r => ['SuperAdmin', 'ServicioCampoAdmin', 'InventarioAdmin'].includes(r)) ||
-    currentUser.rol === 'SuperAdmin';
-  const esSupervisorAlmacen =
-    esSuperAdmin ||
-    currentUser.roles.some(r => ['Supervisor', 'SupervisorAlmacen'].includes(r)) ||
-    currentUser.rol === 'Supervisor' ||
-    Boolean(almacenes.find(a => a.id === almacenId)?.esSupervisor);
+  const puedeOperar = permisos.includes('inventario.operar');
+  const esSupervisorAlmacen = permisos.includes('inventario.ajustes.aprobar') &&
+    (currentUser.roles.includes('SuperAdmin') || Boolean(almacenes.find(a => a.id === almacenId)?.esSupervisor));
 
   const estado: EstadoAjuste = ajuste?.estado || 'Borrador';
   const esSoloLectura =
-    estado === 'Aplicado' ||
+    !permisos.includes('inventario.operar') || estado === 'Aplicado' ||
     estado === 'Anulado' ||
-    (estado === 'EnRevision' && !esSupervisorAlmacen);
+    estado === 'EnRevision';
 
   // Carga de catálogos y datos existentes
   useEffect(() => {
@@ -207,15 +210,16 @@ export function AjusteFormPage() {
   };
 
   const guardar = async (cerrarDespues = false) => {
+    const savedDraft = draft.capture();
     const errorVal = validar();
     if (errorVal) {
+      setTab('general'); focusValidation(!almacenId ? 'Almacén de ajuste' : !fecha ? 'ajuste-fecha' : 'ajuste-motivo');
       setError(errorVal);
       return;
     }
     try {
       setGuardando(true);
       setError(null);
-      const almNombre = almacenes.find(a => a.id === almacenId)?.nombre || 'Almacén';
 
       const payload: GuardarAjusteInput = {
         tipo,
@@ -237,12 +241,14 @@ export function AjusteFormPage() {
         })),
       };
 
-      const res = await AjusteService.guardarAjuste(id || null, payload, almNombre, productosCache);
+      const res = await AjusteService.guardarAjuste(id || null, payload);
       setMensaje('Ajuste de inventario guardado correctamente.');
 
       if (cerrarDespues) {
+        draft.markSaved(savedDraft);
         navigate('/servicio-campo/ajustes-inventario');
       } else if (!id) {
+        draft.markSaved(savedDraft);
         navigate(`/servicio-campo/ajustes-inventario/${res.id}`, { replace: true });
       } else {
         await cargarAjuste();
@@ -255,19 +261,21 @@ export function AjusteFormPage() {
   };
 
   const handleSolicitarAprobacion = async () => {
+    const savedDraft = draft.capture();
     if (lineas.length === 0) {
+      focusValidation();
       setError('Debe ingresar al menos una línea de producto antes de solicitar aprobación.');
       return;
     }
     const errorVal = validar();
     if (errorVal) {
+      setTab('general'); focusValidation(!almacenId ? 'Almacén de ajuste' : !fecha ? 'ajuste-fecha' : 'ajuste-motivo');
       setError(errorVal);
       return;
     }
     try {
       setGuardando(true);
       setError(null);
-      const almNombre = almacenes.find(a => a.id === almacenId)?.nombre || 'Almacén';
 
       const payload: GuardarAjusteInput = {
         tipo,
@@ -289,7 +297,8 @@ export function AjusteFormPage() {
         })),
       };
 
-      const resGuardado = await AjusteService.guardarAjuste(id || null, payload, almNombre, productosCache);
+      const resGuardado = await AjusteService.guardarAjuste(id || null, payload);
+      draft.markSaved(savedDraft);
       const targetId = id || resGuardado.id;
 
       const res = await AjusteService.solicitarAprobacion(targetId);
@@ -317,7 +326,7 @@ export function AjusteFormPage() {
     try {
       setGuardando(true);
       setError(null);
-      await AjusteService.aplicarAjuste(id, currentUser.nombre || 'Supervisor');
+      await AjusteService.aplicarAjuste(id);
       setDialogAplicarOpen(false);
       setMensajeExito(
         `El ajuste ${ajuste.numero} fue aprobado y aplicado con éxito. N° de Aprobación: ${
@@ -372,7 +381,7 @@ export function AjusteFormPage() {
       setEliminando(true);
       setError(null);
       await AjusteService.eliminarAjuste(id);
-      navigate('/servicio-campo/ajustes-inventario');
+      (draft.markSaved(), navigate('/servicio-campo/ajustes-inventario'));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo eliminar el ajuste.');
       setEliminando(false);
@@ -402,7 +411,7 @@ export function AjusteFormPage() {
           />
 
           {/* Botones de guardado para creación o edición en Borrador */}
-          {estado === 'Borrador' && (
+          {estado === 'Borrador' && puedeOperar && (
             <>
               <D365CommandDivider />
               <D365CommandButton
@@ -430,7 +439,7 @@ export function AjusteFormPage() {
               <D365CommandButton
                 icon={<Send16Regular />}
                 tone="brand"
-                disabled={guardando || cargando || lineas.length === 0}
+                disabled={guardando || cargando || lineas.length === 0 || !puedeOperar}
                 onClick={() => void handleSolicitarAprobacion()}
               >
                 Confirmar y solicitar aprobación
@@ -448,15 +457,16 @@ export function AjusteFormPage() {
               <D365CommandButton
                 icon={<Delete16Regular />}
                 tone="danger"
-                disabled={guardando || cargando}
+                disabled={guardando || cargando || !puedeOperar}
                 onClick={() => setDialogEliminarOpen(true)}
+                aria-disabled={!puedeOperar}
               >
                 Eliminar borrador
               </D365CommandButton>
               <D365CommandButton
                 icon={<Dismiss16Regular />}
                 tone="danger"
-                disabled={guardando || cargando}
+                disabled={guardando || cargando || !puedeOperar}
                 onClick={() => setDialogAnularOpen(true)}
               >
                 Anular
@@ -489,7 +499,7 @@ export function AjusteFormPage() {
                   <D365CommandButton
                     icon={<Dismiss16Regular />}
                     tone="danger"
-                    disabled={guardando || cargando}
+                    disabled={guardando || cargando || !puedeOperar}
                     onClick={() => setDialogAnularOpen(true)}
                   >
                     Anular
@@ -547,7 +557,7 @@ export function AjusteFormPage() {
       />
 
       {/* 3. Contenedor del Cuerpo */}
-      <div className={formStyles.contentBody}>
+      <D365FormContent busy={guardando} className={formStyles.contentBody}>
         {cargando ? (
           <div style={{ maxWidth: '620px', width: '100%' }}>
             <div className={formStyles.card}>
@@ -798,7 +808,7 @@ export function AjusteFormPage() {
             )}
           </>
         )}
-      </div>
+      </D365FormContent>
 
       {/* Diálogo Confirmar Aplicar/Aprobar Ajuste */}
       <Dialog open={dialogAplicarOpen} onOpenChange={(_, d) => setDialogAplicarOpen(d.open)}>
@@ -884,7 +894,7 @@ export function AjusteFormPage() {
               </Button>
               <Button
                 appearance="primary"
-                style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: '#fff' }}
+                style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: tokens.colorNeutralForegroundOnBrand }}
                 disabled={eliminando}
                 onClick={() => void handleEliminar()}
               >
@@ -921,7 +931,7 @@ export function AjusteFormPage() {
           <DialogBody>
             <DialogTitle>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <CheckmarkCircle24Filled style={{ color: 'var(--colorPaletteGreenForeground1, #107c41)' }} />
+                <CheckmarkCircle24Filled style={{ color: tokens.colorPaletteGreenForeground1 }} />
                 <span>Ajuste Procesado con Éxito</span>
               </div>
             </DialogTitle>

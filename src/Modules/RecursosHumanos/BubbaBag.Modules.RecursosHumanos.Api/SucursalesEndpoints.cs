@@ -4,6 +4,8 @@ using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Sucursales.Commands
 using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Sucursales.Dtos;
 using BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Sucursales.Queries;
 using BubbaBag.SharedKernel.CQRS;
+using BubbaBag.SharedKernel;
+using BubbaBag.SharedKernel.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -20,9 +22,9 @@ public static class SucursalesEndpoints
 
         group.MapGet("/", ObtenerSucursales);
         group.MapGet("/{id:guid}", ObtenerSucursalPorId);
-        group.MapPost("/", CrearSucursal);
-        group.MapPut("/{id:guid}", ActualizarSucursal);
-        group.MapPatch("/{id:guid}/estado", CambiarEstadoSucursal);
+        group.MapPost("/", CrearSucursal).RequireAuthorization(Permissions.Configuracion.SucursalesGestionar);
+        group.MapPut("/{id:guid}", ActualizarSucursal).RequireAuthorization(Permissions.Configuracion.SucursalesGestionar);
+        group.MapPatch("/{id:guid}/estado", CambiarEstadoSucursal).RequireAuthorization(Permissions.Configuracion.SucursalesEstadoGestionar);
     }
 
     private static async Task<IResult> ObtenerSucursales(
@@ -44,8 +46,11 @@ public static class SucursalesEndpoints
 
     private static async Task<IResult> CrearSucursal(
         CrearSucursalRequest request,
-        IDispatcher dispatcher)
+        IDispatcher dispatcher,
+        ICurrentUser user)
     {
+        if (request.EsSedePrincipal && !user.HasPermission(Permissions.Configuracion.SucursalesSedePrincipalGestionar))
+            return Results.Forbid();
         var command = new CrearSucursalCommand(
             request.Codigo,
             request.Nombre,
@@ -64,8 +69,11 @@ public static class SucursalesEndpoints
     private static async Task<IResult> ActualizarSucursal(
         Guid id,
         ActualizarSucursalRequest request,
-        IDispatcher dispatcher)
+        IDispatcher dispatcher,
+        ICurrentUser user)
     {
+        if (request.EsSedePrincipal.HasValue && !user.HasPermission(Permissions.Configuracion.SucursalesSedePrincipalGestionar))
+            return Results.Forbid();
         var command = new ActualizarSucursalCommand(
             id,
             request.Nombre,
@@ -104,7 +112,7 @@ public record ActualizarSucursalRequest(
     string? Ciudad = null,
     string? Direccion = null,
     string? Telefono = null,
-    bool EsSedePrincipal = false
+    bool? EsSedePrincipal = null
 );
 
 public record CambiarEstadoSucursalRequest(bool Activo);

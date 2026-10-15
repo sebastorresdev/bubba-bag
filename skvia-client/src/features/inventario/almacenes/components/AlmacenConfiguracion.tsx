@@ -511,7 +511,7 @@ export function AlmacenConfiguracion({
             </Label>
             <Input
               id="drawer-ubicacion-codigo"
-              placeholder="Ej. ESTANTE-A1"
+              placeholder=""
               value={codigo}
               maxLength={50}
               disabled={ocupado}
@@ -525,7 +525,7 @@ export function AlmacenConfiguracion({
             </Label>
             <Input
               id="drawer-ubicacion-nombre"
-              placeholder="Ej. Pasillo Central 01"
+              placeholder=""
               value={nombre}
               maxLength={150}
               disabled={ocupado}

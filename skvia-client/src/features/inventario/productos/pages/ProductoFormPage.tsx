@@ -1,3 +1,6 @@
+import { D365FormContent } from '../../../../components/common/D365FormContent';
+import { useValidationFocus } from '../../../../hooks/useValidationFocus';
+import { useUnsavedChanges } from '../../../../hooks/useUnsavedChanges';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -199,6 +202,9 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
 
   // Estado y lógica para TagPicker de Lista de Precios Predeterminada (Estilo Dynamics 365)
   const [listaPreciosQuery, setListaPreciosQuery] = useState('');
+  const focusValidation = useValidationFocus();
+  const draft = useUnsavedChanges({ formData,precioBaseStr,costoActualStr,costoEstandarStr }, !loading);
+
 
   const listaPreciosSeleccionadaObj = useMemo(
     () => listasPreciosList.find((lp) => lp.id === formData.listaPreciosPredeterminadaId),
@@ -282,7 +288,9 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
   };
 
   const handleSave = async (closeAfter: boolean) => {
+    const savedDraft = draft.capture();
     if (!validate()) {
+      setSelectedTab('general'); focusValidation();
       setStatusMessage({ type: 'error', text: 'Por favor completa los campos obligatorios marcados con *' });
       return;
     }
@@ -312,15 +320,18 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
           proveedorDefecto: formData.proveedorDefecto,
           listaPreciosPredeterminadaId: formData.listaPreciosPredeterminadaId,
         });
+        draft.markSaved(savedDraft);
         notifySuccess(`Producto "${formData.nombre}" actualizado exitosamente.`);
         setStatusMessage(null);
       } else {
         const res = await ProductoService.createProducto(formData);
         savedId = res.id;
         setCurrentId(res.id);
+        draft.markSaved(savedDraft);
         notifySuccess(`Producto "${formData.nombre}" creado exitosamente.`);
         setStatusMessage(null);
         if (!closeAfter) {
+          draft.markSaved(savedDraft);
           navigate(`/servicio-campo/productos/${res.id}`, { replace: true });
         }
       }
@@ -336,6 +347,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
         setTimeout(() => {
           if (propOnSaved) propOnSaved(savedId || '');
           if (propOnCreated) propOnCreated(savedId || '');
+          draft.markSaved(savedDraft);
           navigate('/servicio-campo/productos');
         }, 800);
       }
@@ -519,7 +531,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
 
       {/* 3. D365 FORM SECTIONS (Ocupando de izquierda a derecha sin centrado) */}
       {loading ? (
-        <div className={styles.contentBody}>
+        <D365FormContent busy={saving} className={styles.contentBody}>
           <div className={styles.grid2Cols}>
             <Card className={styles.card}>
               <Skeleton animation="pulse">
@@ -544,9 +556,9 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
               </Skeleton>
             </Card>
           </div>
-        </div>
+        </D365FormContent>
       ) : (
-        <div className={styles.contentBody}>
+        <D365FormContent busy={saving} className={styles.contentBody}>
           {/* TAB 1: DETALLES DEL PRODUCTO (GENERAL) */}
           {selectedTab === 'detalles' && (
             <div className={styles.grid2Cols}>
@@ -1004,7 +1016,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
               </div>
             </Card>
           )}
-        </div>
+        </D365FormContent>
       )}
 
     </div>

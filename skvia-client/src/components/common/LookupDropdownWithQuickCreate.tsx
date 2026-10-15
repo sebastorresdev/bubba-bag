@@ -13,11 +13,13 @@ export interface ContextoCreacionRapida {
 export interface LookupDropdownWithQuickCreateProps
   extends Omit<SelectorEntidadRelacionadaProps, 'alCrearNuevo'> {
   renderizarCreacionRapida: (contexto: ContextoCreacionRapida) => React.ReactNode;
+  puedeCrear?: boolean;
 }
 
 /** Lookup empresarial con una única acción Nuevo que abre creación rápida lateral. */
 export const LookupDropdownWithQuickCreate: React.FC<LookupDropdownWithQuickCreateProps> = ({
   renderizarCreacionRapida,
+  puedeCrear = true,
   ...propiedadesSelector
 }) => {
   const [abierto, setAbierto] = useState(false);
@@ -27,10 +29,10 @@ export const LookupDropdownWithQuickCreate: React.FC<LookupDropdownWithQuickCrea
     <>
       <SelectorEntidadRelacionada
         {...propiedadesSelector}
-        alCrearNuevo={(nombre) => {
+        alCrearNuevo={puedeCrear ? (nombre) => {
           setNombreInicial(nombre);
           setAbierto(true);
-        }}
+        } : undefined}
       />
       {renderizarCreacionRapida({
         abierto,

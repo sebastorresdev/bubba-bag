@@ -221,7 +221,7 @@ export function ComprasListPage() {
                 </div>
                 {itemsSeleccionados.length > (comprasAEliminar?.length ?? 0) && (
                   <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                    ℹ️ Nota: {itemsSeleccionados.length - (comprasAEliminar?.length ?? 0)} registro(s) seleccionados no se encuentran en estado Borrador y se mantendrán intactos.
+                    {itemsSeleccionados.length - (comprasAEliminar?.length ?? 0)} registro(s) seleccionados no se encuentran en estado Borrador y se mantendrán intactos.
                   </Text>
                 )}
               </div>
@@ -237,7 +237,7 @@ export function ComprasListPage() {
             </Button>
             <Button
               appearance="primary"
-              style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: '#fff' }}
+              style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: tokens.colorNeutralForegroundOnBrand }}
               disabled={eliminando}
               onClick={async () => {
                 if (!comprasAEliminar || comprasAEliminar.length === 0) return;

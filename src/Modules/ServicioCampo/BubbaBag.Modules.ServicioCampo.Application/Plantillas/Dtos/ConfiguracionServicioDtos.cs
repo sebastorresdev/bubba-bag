@@ -11,6 +11,7 @@ public record ConfiguracionServicioListadoDto(
     string ProductoCodigo,
     string ProductoNombre,
     int DuracionEstimadaMinutos,
+    int? SlaHorasResolucion,
     bool EsPredeterminada,
     bool Activo,
     int CantidadTareas,
@@ -25,6 +26,7 @@ public record ConfiguracionServicioDetalleDto(
     string ProductoCodigo,
     string ProductoNombre,
     int DuracionEstimadaMinutos,
+    int? SlaHorasResolucion,
     bool EsPredeterminada,
     bool Activo,
     DateTime CreatedAt,
@@ -82,7 +84,8 @@ public record CrearConfiguracionServicioRequest(
     string? Descripcion,
     bool EsPredeterminada,
     List<GuardarConfiguracionTareaDto>? Tareas,
-    List<GuardarConfiguracionMaterialDto>? Materiales);
+    List<GuardarConfiguracionMaterialDto>? Materiales,
+    int? SlaHorasResolucion = null);
 
 public record ActualizarConfiguracionServicioRequest(
     string Nombre,
@@ -91,7 +94,8 @@ public record ActualizarConfiguracionServicioRequest(
     string? Descripcion,
     bool EsPredeterminada,
     List<GuardarConfiguracionTareaDto>? Tareas,
-    List<GuardarConfiguracionMaterialDto>? Materiales);
+    List<GuardarConfiguracionMaterialDto>? Materiales,
+    int? SlaHorasResolucion = null);
 
 public record CrearTareaRequest(
     string Nombre,

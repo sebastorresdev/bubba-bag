@@ -44,7 +44,17 @@ public class CrearTransferenciaInventarioHandler(IServicioCampoDbContext db, ICu
         {
             if (anterior.Estado != EstadoTransferencia.Borrador)
             {
-                var coincide = anterior.UbicacionOrigenId == origen.Id && anterior.UbicacionDestinoId == destino.Id && anterior.Modalidad == modalidad && anterior.Observaciones == c.Observacion?.Trim() && anterior.NumeroGuiaRemision == c.GuiaRemision?.Trim() && (!c.FechaReal.HasValue || anterior.FechaReal == c.FechaReal.Value) && anterior.Lineas.Count == agrupadas.Count && agrupadas.All(l => anterior.Lineas.Any(x => x.ProductoId == l.ProductoId && x.Condicion == l.Condicion && x.CantidadEnviada == l.Cantidad && x.Series.Select(s => s.NumeroSerie).Order().SequenceEqual((l.Series ?? []).Order())));
+                // La guía omitida se genera en el primer envío; el reintento conserva esa guía.
+                var guiaCoincide = string.IsNullOrWhiteSpace(c.GuiaRemision)
+                    || anterior.NumeroGuiaRemision == c.GuiaRemision.Trim().ToUpperInvariant();
+                var coincide = !c.EsBorrador && anterior.OperacionId == c.OperacionId
+                    && anterior.UbicacionOrigenId == origen.Id && anterior.UbicacionDestinoId == destino.Id
+                    && anterior.Modalidad == modalidad && anterior.Observaciones == c.Observacion?.Trim()
+                    && guiaCoincide && (!c.FechaReal.HasValue || anterior.FechaReal == c.FechaReal.Value)
+                    && anterior.Lineas.Count == agrupadas.Count
+                    && agrupadas.All(l => anterior.Lineas.Any(x => x.ProductoId == l.ProductoId
+                        && x.Condicion == l.Condicion && x.CantidadEnviada == l.Cantidad
+                        && x.Series.Select(s => s.NumeroSerie).Order().SequenceEqual((l.Series ?? []).Order())));
                 return coincide ? Result<string>.Success(anterior.Numero) : Result<string>.Failure("El identificador de operación ya pertenece a otro envío.");
             }
         }

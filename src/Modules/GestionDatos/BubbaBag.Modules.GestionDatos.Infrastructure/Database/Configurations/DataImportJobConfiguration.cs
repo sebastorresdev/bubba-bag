@@ -11,6 +11,8 @@ public class DataImportJobConfiguration : IEntityTypeConfiguration<DataImportJob
         builder.ToTable("DataImportJobs", "gestiondatos");
 
         builder.HasKey(j => j.Id);
+        builder.Property(j => j.HuellaSolicitud).HasMaxLength(64);
+        builder.HasIndex(j => new { j.CreadoPorId, j.TipoRegistro });
         builder.Property(j => j.Id)
             .ValueGeneratedNever();
 

@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -13,6 +14,8 @@ using BubbaBag.Modules.GestionDatos.Application.Services;
 using BubbaBag.Modules.GestionDatos.Domain;
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
+using BubbaBag.SharedKernel;
+using BubbaBag.SharedKernel.Authorization;
 
 namespace BubbaBag.Modules.GestionDatos.Infrastructure.Services;
 
@@ -21,15 +24,19 @@ public class DataImportEngineService : IDataImportEngineService
     private readonly IGestionDatosDbContext _context;
     private readonly IEnumerable<IEntityImportProvider> _providers;
     private readonly IEntityImportMetadataService _metadataService;
+    private readonly ICurrentUser _user;
+    private readonly IImportacionInventarioTransaccion _transaccion;
 
     public DataImportEngineService(
         IGestionDatosDbContext context,
         IEnumerable<IEntityImportProvider> providers,
-        IEntityImportMetadataService metadataService)
+        IEntityImportMetadataService metadataService, ICurrentUser user, IImportacionInventarioTransaccion transaccion)
     {
         _context = context;
         _providers = providers;
         _metadataService = metadataService;
+        _user = user;
+        _transaccion = transaccion;
     }
 
     #region PREVIEW
@@ -40,6 +47,7 @@ public class DataImportEngineService : IDataImportEngineService
         PreviewFileRequest request,
         CancellationToken cancellationToken = default)
     {
+        Exigir(Permissions.GestionDatos.Importar);
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
         var result = new FilePreviewResultDto
         {
@@ -153,28 +161,59 @@ public class DataImportEngineService : IDataImportEngineService
 
     #region EXECUTE
 
-    public async Task<DataImportJobDto> ExecuteImportAsync(
+    public async Task<DataImportJobDto> ExecuteImportAsync(Stream stream, string fileName, ExecuteImportRequestDto request, CancellationToken cancellationToken = default)
+    {
+        Exigir(Permissions.GestionDatos.Importar);
+        if (!ImportacionAcceso.PuedeGestionarEntidad(_user, request.EntityName)) throw new UnauthorizedAccessException();
+        if (!request.EntityName.Equals("InventarioInicial", StringComparison.OrdinalIgnoreCase))
+            return await ExecuteCoreAsync(stream, fileName, request, cancellationToken);
+        if (request.OperacionId == null || request.OperacionId == Guid.Empty)
+            throw new InvalidOperationException("El inventario inicial requiere un identificador de operación para evitar duplicados.");
+        using var buffer = new MemoryStream(); await stream.CopyToAsync(buffer, cancellationToken);
+        return await _transaccion.EjecutarAsync(ct => ExecuteCoreAsync(buffer, fileName, request, ct), cancellationToken);
+    }
+    private async Task<DataImportJobDto> ExecuteCoreAsync(
         Stream stream,
         string fileName,
         ExecuteImportRequestDto request,
-        string currentUser,
         CancellationToken cancellationToken = default)
     {
+        Exigir(Permissions.GestionDatos.Importar);
+        if (!ImportacionAcceso.PuedeGestionarEntidad(_user, request.EntityName)) throw new UnauthorizedAccessException();
         var provider = _providers.FirstOrDefault(p => p.Supports(request.EntityName));
         if (provider == null)
         {
             throw new InvalidOperationException($"No se encontró un proveedor de importación registrado para la entidad '{request.EntityName}'.");
         }
 
+        string? huella = null;
+        bool inventarioInicial = request.EntityName.Equals("InventarioInicial", StringComparison.OrdinalIgnoreCase);
+        if (inventarioInicial)
+        {
+            stream.Position = 0;
+            using var bytes = new MemoryStream(); await stream.CopyToAsync(bytes, cancellationToken); stream.Position = 0;
+            var parametros = JsonSerializer.Serialize(new { Entidad = request.EntityName.ToUpperInvariant(), request.DuplicateMode, request.Delimiter, request.QuoteChar,
+                Mapping = request.ColumnMapping.OrderBy(x => x.Key, StringComparer.Ordinal).ToArray() });
+            huella = Convert.ToHexString(SHA256.HashData(bytes.ToArray().Concat(Encoding.UTF8.GetBytes(parametros)).ToArray()));
+            var anterior = await _context.DataImportJobs.AsNoTracking().Include(j => j.Errores).FirstOrDefaultAsync(j => j.Id == request.OperacionId, cancellationToken);
+            if (anterior != null)
+            {
+                if (anterior.CreadoPorId != _user.Id) throw new UnauthorizedAccessException();
+                if (anterior.HuellaSolicitud != huella) throw new InvalidOperationException("Este identificador ya corresponde a otro archivo o configuración. Inicie una nueva importación.");
+                if (anterior.Estado == "Procesando") throw new InvalidOperationException("La importación aún está en proceso.");
+                return MapToDto(anterior);
+            }
+        }
         var job = DataImportJob.Iniciar(
             nombreArchivo: fileName,
             tipoRegistro: request.EntityName,
             tamanoBytes: stream.CanSeek ? stream.Length : 0,
             modoDuplicados: request.DuplicateMode,
             permitirDuplicados: request.DuplicateMode.Equals("Permitir", StringComparison.OrdinalIgnoreCase) || request.DuplicateMode.Equals("Upsert", StringComparison.OrdinalIgnoreCase),
-            creadoPor: currentUser,
+            creadoPor: string.IsNullOrWhiteSpace(_user.Email) ? _user.Id.ToString() : _user.Email,
+            creadoPorId: _user.Id,
             mapeoCamposJson: JsonSerializer.Serialize(request.ColumnMapping),
-            parametrosDelimitadorJson: JsonSerializer.Serialize(new { request.Delimiter, request.QuoteChar }));
+            parametrosDelimitadorJson: JsonSerializer.Serialize(new { request.Delimiter, request.QuoteChar }), operacionId: inventarioInicial ? request.OperacionId : null, huellaSolicitud: huella);
 
         await _context.DataImportJobs.AddAsync(job, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
@@ -227,6 +266,9 @@ public class DataImportEngineService : IDataImportEngineService
 
             return MapToDto(job);
         }
+        catch (UnauthorizedAccessException) { throw; }
+        catch (OperationCanceledException) { throw; }
+        catch (DbUpdateException) when (inventarioInicial) { throw; }
         catch (Exception ex)
         {
             job.AgregarError(0, $"Error crítico general al procesar la importación: {ex.Message}");
@@ -242,11 +284,12 @@ public class DataImportEngineService : IDataImportEngineService
 
     public async Task<List<DataImportJobDto>> GetRecentJobsAsync(int limit = 50, CancellationToken cancellationToken = default)
     {
-        var jobs = await _context.DataImportJobs
+        Exigir(Permissions.GestionDatos.HistorialVer);
+        var jobs = await Consultables()
             .AsNoTracking()
             .Include(j => j.Errores)
             .OrderByDescending(j => j.FechaCreacion)
-            .Take(limit)
+            .Take(Math.Clamp(limit, 1, 200))
             .ToListAsync(cancellationToken);
 
         return jobs.Select(MapToDto).ToList();
@@ -254,7 +297,8 @@ public class DataImportEngineService : IDataImportEngineService
 
     public async Task<DataImportJobDto?> GetJobByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var job = await _context.DataImportJobs
+        Exigir(Permissions.GestionDatos.HistorialVer);
+        var job = await Consultables()
             .AsNoTracking()
             .Include(j => j.Errores)
             .FirstOrDefaultAsync(j => j.Id == id, cancellationToken);
@@ -264,12 +308,28 @@ public class DataImportEngineService : IDataImportEngineService
 
     public async Task<bool> DeleteJobAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var job = await _context.DataImportJobs.FirstOrDefaultAsync(j => j.Id == id, cancellationToken);
+        Exigir(Permissions.GestionDatos.HistorialEliminar);
+        var job = await Consultables().FirstOrDefaultAsync(j => j.Id == id, cancellationToken);
         if (job == null) return false;
+        if (job.Estado == "Procesando") throw new InvalidOperationException("No se puede eliminar una importación en proceso.");
 
-        _context.DataImportJobs.Remove(job);
+        job.OcultarDelHistorial();
         await _context.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    private void Exigir(string permiso)
+    {
+        if (!_user.IsAuthenticated || _user.Id == Guid.Empty || !_user.HasPermission(permiso)) throw new UnauthorizedAccessException();
+    }
+
+    private IQueryable<DataImportJob> Consultables()
+    {
+        var query = _context.DataImportJobs.Where(j => !j.EliminadoHistorial);
+        if (_user.IsInRole(Roles.SuperAdmin)) return query;
+        var entidades = ImportacionAcceso.Entidades.Where(e => ImportacionAcceso.PuedeConsultarEntidad(_user, e)).Select(e => e.ToLowerInvariant()).ToArray();
+        var equipo = _user.HasPermission(Permissions.GestionDatos.HistorialVerTodas);
+        return query.Where(j => entidades.Contains(j.TipoRegistro.ToLower()) && (equipo || j.CreadoPorId == _user.Id));
     }
 
     #endregion
@@ -416,6 +476,7 @@ public class DataImportEngineService : IDataImportEngineService
             ModoDuplicados = job.ModoDuplicados,
             PermitirDuplicados = job.PermitirDuplicados,
             CreadoPor = job.CreadoPor,
+            CreadoPorId = job.CreadoPorId,
             FechaCreacion = job.FechaCreacion,
             FechaFinalizacion = job.FechaFinalizacion,
             TotalProcesados = job.TotalProcesados,

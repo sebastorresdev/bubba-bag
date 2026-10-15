@@ -228,10 +228,8 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                 }
             }
         };
-        return descriptores.Where(x =>
-            x.EntityName == "Cliente" ? _usuario.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Crm.ClientesCrear) :
-            x.EntityName == "InventarioInicial" ? (_usuario.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Inventario.Operar) || _usuario.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Inventario.CatalogosGestionar)) :
-            _usuario.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Inventario.CatalogosGestionar));
+        return descriptores.Where(x => _usuario.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.GestionDatos.Importar)
+            && ImportacionAcceso.PuedeGestionarEntidad(_usuario, x.EntityName));
     }
 
     public bool Supports(string entityName)
@@ -251,12 +249,8 @@ public class ServicioCampoImportProvider : IEntityImportProvider
         string duplicateMode,
         CancellationToken cancellationToken = default)
     {
-        var permiso = entityName.Equals("Cliente", StringComparison.OrdinalIgnoreCase)
-            ? BubbaBag.SharedKernel.Authorization.Permissions.Crm.ClientesCrear
-            : entityName.Equals("InventarioInicial", StringComparison.OrdinalIgnoreCase)
-                ? BubbaBag.SharedKernel.Authorization.Permissions.Inventario.Operar
-                : BubbaBag.SharedKernel.Authorization.Permissions.Inventario.CatalogosGestionar;
-        if (!_usuario.IsAuthenticated || (!_usuario.HasPermission(permiso) && !_usuario.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Inventario.CatalogosGestionar)))
+        if (!_usuario.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.GestionDatos.Importar)
+            || !ImportacionAcceso.PuedeGestionarEntidad(_usuario, entityName))
             throw new UnauthorizedAccessException("No tiene permiso para importar esta entidad.");
         if (entityName.Equals("Producto", StringComparison.OrdinalIgnoreCase))
         {
@@ -636,6 +630,12 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                 }
                 else
                 {
+                    if (!_usuario.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Crm.ClientesEditar))
+                    {
+                        errores.Add(new EntityImportRowError(rowNumber, "No tiene permiso para editar clientes existentes.", doc));
+                        fallidos++;
+                        continue;
+                    }
                     cliExistente.Actualizar(
                         nombres: nombres,
                         apellidos: apellidos,
@@ -718,6 +718,18 @@ public class ServicioCampoImportProvider : IEntityImportProvider
             }
 
             var sedeExistente = sedesDb.FirstOrDefault(s => s.Codigo.Equals(codigo, StringComparison.OrdinalIgnoreCase));
+            // Una columna omitida preserva la jerarquía; importar no elude el permiso de sede principal.
+            var sedePrincipalIndicada = !string.IsNullOrWhiteSpace(GetVal(row, "EsSedePrincipal"));
+            var sedePrincipalFinal = sedePrincipalIndicada ? esSedePrincipal : sedeExistente?.EsSedePrincipal ?? false;
+            var modificaraRegistro = sedeExistente == null
+                || (!duplicateMode.Equals("Skip", StringComparison.OrdinalIgnoreCase) && !duplicateMode.Equals("Error", StringComparison.OrdinalIgnoreCase));
+            if (modificaraRegistro && sedePrincipalFinal != (sedeExistente?.EsSedePrincipal ?? false)
+                && !_usuario.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Configuracion.SucursalesSedePrincipalGestionar))
+            {
+                errores.Add(new EntityImportRowError(rowNumber, "No tiene permiso para cambiar la sede principal.", codigo, "EsSedePrincipal"));
+                fallidos++;
+                continue;
+            }
             if (sedeExistente != null)
             {
                 if (duplicateMode.Equals("Error", StringComparison.OrdinalIgnoreCase))
@@ -733,13 +745,13 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                 }
                 else
                 {
-                    sedeExistente.Actualizar(nombre, ciudad, direccion, telefono, esSedePrincipal);
+                    sedeExistente.Actualizar(nombre, ciudad, direccion, telefono, sedePrincipalFinal);
                     exitosos++;
                 }
             }
             else
             {
-                var nueva = UnidadOrganizativa.Crear(codigo, nombre, ciudad, direccion, telefono, esSedePrincipal);
+                var nueva = UnidadOrganizativa.Crear(codigo, nombre, ciudad, direccion, telefono, sedePrincipalFinal);
                 _context.UnidadesOrganizativas.Add(nueva);
                 sedesDb.Add(nueva);
                 exitosos++;
@@ -924,6 +936,14 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                 continue;
             }
 
+            if (!await BubbaBag.Modules.ServicioCampo.Application.Almacenes.InventarioAcceso.PuedeAsync(_context, _usuario, almacen.Id, "consultar", ct)
+                || !await BubbaBag.Modules.ServicioCampo.Application.Almacenes.InventarioAcceso.PuedeAsync(_context, _usuario, almacen.Id, "recibir", ct))
+            {
+                errores.Add(new EntityImportRowError(rowNumber, "No tiene autorización de recepción en este almacén.", productoStr, "Almacen"));
+                fallidos++;
+                continue;
+            }
+
             var producto = productosDb.FirstOrDefault(p =>
                 p.Codigo.Equals(productoStr, StringComparison.OrdinalIgnoreCase));
 
@@ -934,29 +954,10 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                 continue;
             }
 
-            // Ubicación dentro del almacén
-            string? ubicacionStr = GetVal(row, "Ubicacion")?.Trim();
-            UbicacionInventario? ubicacion = null;
-            if (!string.IsNullOrWhiteSpace(ubicacionStr))
+            if (!ReglasCantidadInventario.EsValida(producto, cantidad))
             {
-                ubicacion = ubicacionesDb.FirstOrDefault(u => u.AlmacenId == almacen.Id &&
-                    (u.Codigo.Equals(ubicacionStr, StringComparison.OrdinalIgnoreCase) || u.Nombre.Equals(ubicacionStr, StringComparison.OrdinalIgnoreCase)));
-                if (ubicacion == null)
-                {
-                    ubicacion = UbicacionInventario.Crear(almacen.Id, ubicacionStr.ToUpperInvariant(), ubicacionStr);
-                    _context.UbicacionesInventario.Add(ubicacion);
-                    ubicacionesDb.Add(ubicacion);
-                }
-            }
-            else
-            {
-                ubicacion = ubicacionesDb.FirstOrDefault(u => u.AlmacenId == almacen.Id && u.EsPrincipal);
-                if (ubicacion == null)
-                {
-                    ubicacion = UbicacionInventario.Crear(almacen.Id, "PRINCIPAL", "Principal", true);
-                    _context.UbicacionesInventario.Add(ubicacion);
-                    ubicacionesDb.Add(ubicacion);
-                }
+                errores.Add(new EntityImportRowError(rowNumber, "Revise la cantidad y sus decimales. Los productos serializados requieren unidades enteras.", productoStr, "Cantidad", cantidadStr));
+                fallidos++; continue;
             }
 
             // Condición física
@@ -978,11 +979,10 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                         .Split(new[] { ',', ';', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
                         .Select(s => s.Trim().ToUpperInvariant())
                         .Where(s => !string.IsNullOrEmpty(s))
-                        .Distinct()
                         .ToList();
                 }
 
-                if (seriesList.Count != (int)cantidad)
+                if (seriesList.Count != cantidad || seriesList.Distinct().Count() != seriesList.Count || seriesList.Any(s => s.Length > 100))
                 {
                     errores.Add(new EntityImportRowError(rowNumber, $"El producto '{producto.Nombre}' es serializado. Debe ingresar exactamente {cantidad} números de serie (se encontraron {seriesList.Count}).", productoStr, "Series"));
                     fallidos++;
@@ -1001,8 +1001,41 @@ public class ServicioCampoImportProvider : IEntityImportProvider
             decimal costoUnitario = ParseDecimal(GetVal(row, "CostoUnitario"), producto.CostoActual > 0 ? producto.CostoActual : producto.CostoEstandar);
             string observacion = GetVal(row, "Observacion")?.Trim() ?? "Carga de inventario inicial (Apertura)";
 
+            // Ubicación dentro del almacén
+            string? ubicacionStr = GetVal(row, "Ubicacion")?.Trim();
+            UbicacionInventario? ubicacion = null;
+            bool nuevaUbicacion = false;
+            if (!string.IsNullOrWhiteSpace(ubicacionStr))
+            {
+                ubicacion = ubicacionesDb.FirstOrDefault(u => u.AlmacenId == almacen.Id &&
+                    (u.Codigo.Equals(ubicacionStr, StringComparison.OrdinalIgnoreCase) || u.Nombre.Equals(ubicacionStr, StringComparison.OrdinalIgnoreCase)));
+                if (ubicacion == null)
+                {
+                    ubicacion = UbicacionInventario.Crear(almacen.Id, ubicacionStr.ToUpperInvariant(), ubicacionStr);
+                    nuevaUbicacion = true;
+                }
+            }
+            else
+            {
+                ubicacion = ubicacionesDb.FirstOrDefault(u => u.AlmacenId == almacen.Id && u.EsPrincipal);
+                if (ubicacion == null)
+                {
+                    ubicacion = UbicacionInventario.Crear(almacen.Id, "PRINCIPAL", "Principal", true);
+                    nuevaUbicacion = true;
+                }
+            }
+
             // Aplicar alta de existencias
             var stock = stocksDb.FirstOrDefault(s => s.UbicacionId == ubicacion.Id && s.ProductoId == producto.Id && s.Condicion == condicion);
+            if (stock != null && stock.CantidadDisponible + cantidad > 999999999.99999m)
+            {
+                errores.Add(new EntityImportRowError(rowNumber, "La cantidad acumulada supera el máximo admitido.", productoStr));
+                fallidos++; continue;
+            }
+            if (nuevaUbicacion)
+            {
+                _context.UbicacionesInventario.Add(ubicacion); ubicacionesDb.Add(ubicacion);
+            }
             if (stock == null)
             {
                 stock = StockAlmacen.Crear(ubicacion.Id, producto.Id, cantidad, condicion);
@@ -1018,6 +1051,7 @@ public class ServicioCampoImportProvider : IEntityImportProvider
             foreach (var numSerie in seriesList)
             {
                 var itemSeriado = ItemSeriado.Crear(producto.Id, numSerie, ubicacion.Id, null, null, observacion);
+                itemSeriado.Ubicar(ubicacion.Id, almacen.Tipo, condicion);
                 _context.ItemsSeriados.Add(itemSeriado);
                 seriesExistentesSet.Add(numSerie);
 

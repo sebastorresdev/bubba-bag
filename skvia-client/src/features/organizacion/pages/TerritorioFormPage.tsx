@@ -1,3 +1,6 @@
+import { D365FormContent } from '../../../components/common/D365FormContent';
+import { useValidationFocus } from '../../../hooks/useValidationFocus';
+import { useUnsavedChanges } from '../../../hooks/useUnsavedChanges';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -98,6 +101,9 @@ export function TerritorioFormPage() {
   const [saving, setSaving] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const focusValidation = useValidationFocus();
+  const draft = useUnsavedChanges({ formData }, !loading);
+
 
   useEffect(() => {
     let activo = true;
@@ -171,7 +177,9 @@ export function TerritorioFormPage() {
   };
 
   const handleSave = async (closeAfterSave = false): Promise<void> => {
+    const savedDraft = draft.capture();
     if (!validate()) {
+      setSelectedTab('general'); focusValidation();
       setStatusMessage({ type: 'error', text: 'Por favor complete todos los campos obligatorios.' });
       return;
     }
@@ -196,8 +204,10 @@ export function TerritorioFormPage() {
         }));
 
         setStatusMessage(null);
+        draft.markSaved(savedDraft);
         notifySuccess(`Territorio "${formData.nombre.trim()}" actualizado correctamente.`);
-        if (closeAfterSave) navigate('/servicio-campo/territorios');
+        if (closeAfterSave) { draft.markSaved(savedDraft);
+navigate('/servicio-campo/territorios'); }
       } else {
         const res = await OrganizacionService.createTerritorio({
           codigo: formData.codigo?.trim() ? formData.codigo.trim().toUpperCase() : undefined,
@@ -208,11 +218,14 @@ export function TerritorioFormPage() {
         });
 
         setStatusMessage(null);
+        draft.markSaved(savedDraft);
         notifySuccess(`Territorio "${formData.nombre.trim()}" creado exitosamente.`);
 
         if (closeAfterSave) {
+          draft.markSaved(savedDraft);
           navigate('/servicio-campo/territorios');
         } else {
+          draft.markSaved(savedDraft);
           navigate(`/servicio-campo/territorios/${res.id}`, { replace: true });
         }
       }
@@ -354,7 +367,7 @@ export function TerritorioFormPage() {
         }
       />
 
-      <div className={styles.contentBody}>
+      <D365FormContent busy={saving} className={styles.contentBody}>
         {loading ? (
           <div className={styles.grid2Cols}>
             <Card className={styles.card}>
@@ -511,7 +524,7 @@ export function TerritorioFormPage() {
             )}
           </>
         )}
-      </div>
+      </D365FormContent>
     </div>
   );
 }

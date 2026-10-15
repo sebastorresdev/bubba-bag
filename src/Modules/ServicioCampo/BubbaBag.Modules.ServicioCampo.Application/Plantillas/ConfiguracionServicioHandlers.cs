@@ -82,7 +82,8 @@ public class ConfiguracionServicioHandlers :
             req.ProductoId,
             req.DuracionEstimadaMinutos,
             req.Descripcion,
-            req.EsPredeterminada);
+            req.EsPredeterminada,
+            req.SlaHorasResolucion);
 
         if (req.Tareas != null)
         {
@@ -133,7 +134,7 @@ public class ConfiguracionServicioHandlers :
         var error = await ValidarConfiguracion(req.ProductoId, req.Tareas, req.Materiales, command.Id, plantilla.Activo, ct);
         if (error != null) return Result.Failure(error);
 
-        plantilla.Actualizar(req.Nombre, req.DuracionEstimadaMinutos, req.Descripcion, req.EsPredeterminada, req.ProductoId);
+        plantilla.Actualizar(req.Nombre, req.DuracionEstimadaMinutos, req.Descripcion, req.EsPredeterminada, req.ProductoId, req.SlaHorasResolucion);
 
         if (plantilla.Tareas.Any())
         {
@@ -299,6 +300,7 @@ public class ConfiguracionServicioHandlers :
             p.Producto != null ? p.Producto.Codigo : string.Empty,
             p.Producto != null ? p.Producto.Nombre : string.Empty,
             p.DuracionEstimadaMinutos,
+            p.SlaHorasResolucion,
             p.EsPredeterminada,
             p.Activo,
             p.Tareas.Count,
@@ -360,6 +362,7 @@ public class ConfiguracionServicioHandlers :
             p.Producto != null ? p.Producto.Codigo : string.Empty,
             p.Producto != null ? p.Producto.Nombre : string.Empty,
             p.DuracionEstimadaMinutos,
+            p.SlaHorasResolucion,
             p.EsPredeterminada,
             p.Activo,
             p.CreatedAt,

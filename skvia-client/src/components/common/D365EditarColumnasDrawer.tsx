@@ -260,7 +260,7 @@ export function D365EditarColumnasDrawer({
           className={styles.searchBox}
           size="medium"
           contentBefore={<Search16Regular />}
-          placeholder="Buscar columna..."
+          placeholder="Buscar"
           value={search}
           onChange={(_, d) => setSearch(d.value)}
         />

@@ -1,370 +1,68 @@
-# Estándar Institucional de Tablas y Listados: `app-entity-table`
+# Estándar de tablas, fichas y mensajes del cliente React
 
-> **Regla de Arquitectura Obligatoria**: Toda nueva pantalla o vista de listado/catálogo de entidades en el sistema `bubbabag-client` DEBE implementar el componente institucional `<app-entity-table>`. Queda estrictamente prohibido crear tablas manuales (`<nz-table>`) o selectores de vista individuales para entidades principales.
+Actualizado: 14 de octubre de 2026. Cliente: skvia-client, React y Fluent UI v9.
 
----
+## Componentes comunes
 
-## 1. Justificación y Objetivos de Diseño
+| Necesidad | Componente | Comportamiento |
+|---|---|---|
+| Listado principal | D365EntityTable | Tabla en escritorio; tarjetas bajo 768 px. Conserva columnas visibles, filtros, orden y selección. |
+| Lista dentro de una ficha | D365SubGrid | Tabla en escritorio y tarjetas móviles; abrir y agregar conservan sus permisos. |
+| Tabla propia con celdas editables | D365ResponsiveDataGrid | Conserva la cuadrícula y sus celdas en escritorio, reutilizando las columnas en tarjetas móviles. |
+| Acciones de página | D365CommandBar y D365CommandButton | Flecha de regreso y acción principal visibles. Acciones secundarias en Más en celular. busy deshabilita los comandos compartidos. |
+| Identidad del registro | D365EntityHeader | Título del registro guardado, metadatos y estado; cabecera adaptable. |
+| Campo | D365FormField | Etiqueta horizontal de 180 px en escritorio y superior en celular; error junto al control. |
+| Sección | D365Card o useD365FormStyles.card | Mismos colores, separación y relleno; el contenido crece sin comprimir campos. |
+| Estado | D365StatusBadge | Color semántico y texto legible en español. No traducir ni alterar los valores enviados al servidor. |
+| Error, aviso o resultado | D365MessageBar | Error anunciado como alerta; resultados y avisos como estado. Puede cerrarse sin perder el formulario. |
+| Confirmación | confirmAction y D365FeedbackHost | Promesa booleana; título, consecuencia y verbo concreto. Volver y Escape cancelan; foco inicial seguro. |
+| Comprobante de movimiento | D365OperacionExitosaDialog | Resultado registrado y acciones de documento. Se reserva para movimientos con comprobante. |
 
-El componente `<app-entity-table>` replica con fidelidad del 100% la experiencia de cuadrícula empresarial de **Microsoft Dynamics 365 / Power Apps**, ofreciendo de forma automática y unificada:
+Ubicación de componentes: skvia-client/src/components/common. Estilos: skvia-client/src/styles. Confirmaciones: skvia-client/src/services/uiFeedback.ts. El anfitrión se monta una sola vez en App dentro de ThemeProvider.
 
-1. **Selector de Vistas de Sistema y Personalizadas (`app-view-selector`)**: Vistas predeterminadas por entidad (Activos, Inactivos, Todos, especializadas) con persistencia en `localStorage`.
-2. **Filtros Avanzados tipo Query Builder (`app-advanced-filter-drawer`)**:
-   - Selector lógico raíz con `[ Y ⌵ ]` y `[ O ⌵ ]`.
-   - Evaluación client-side inmediata (0ms de latencia) mediante `advanced-filter-evaluator.ts`.
-   - Operadores fuertemente tipados según el tipo de dato (`text`, `number`, `currency`, `date`, `boolean`, `select`).
-   - Guardado automático del árbol de filtros por vista activa.
-3. **Editor y Reordenamiento de Columnas (Drag & Drop)**:
-   - Panel lateral oficial para activar/desactivar columnas y reordenarlas dinámicamente mediante `@angular/cdk/drag-drop`.
-4. **Buscador Rápido Integrado**: Filtro multi-campo con botón de borrado rápido.
-5. **Paginación y Selección Estilo Fluent UI**: Checkbox maestro con estado indeterminado, conteo de filas en el footer (`1 - 15 de 45`).
-6. **Cumplimiento Nativo de Temas Claro y Oscuro**: 100% compatible con NG-ZORRO y las variables CSS de Dynamics 365 sin desajustes de color ni fuentes invisibles.
-7. **Espaciado Nativo de Botones Ant Design**: Sin sobreescrituras arbitrarias de `gap` o `display` en `.ant-btn`.
+## Listados
 
----
+- Usar D365EntityTable para entidades principales y una identificación tableId estable por listado.
+- Definir columnas con createTableColumn. La tarjeta reutiliza renderHeaderCell y renderCell; no crear otro conjunto de datos para celular.
+- La búsqueda de texto y las vistas de negocio siguen a cargo de la página. D365TableToolbarTools abre filtros, columnas y buscador con nombre accesible.
+- Mantener selectedItems y onSelectionChange controlados cuando las acciones dependen de la selección. Los permisos siguen a cargo de la página y del servidor.
+- Las tarjetas muestran las columnas configuradas, selección y Abrir registro cuando existe onRowDoubleClick. El orden puede cambiarse en celular. Las filas de escritorio también se pueden abrir con Enter.
+- La selección de todos en móvil se limita a los registros filtrados. Cambiar de presentación no altera la selección controlada.
+- Para columnas extensas o tablas de detalle que aún usan Table directamente, conservar desplazamiento horizontal dentro de su contenedor; nunca desbordar la página ni recortar acciones.
+- No atribuir paginación al componente: actualmente procesa los items entregados por la página.
 
-## 2. Ubicación de Archivos del Componente
+## Fichas y tamaños
 
-| Módulo / Archivo | Ruta | Propósito |
-| :--- | :--- | :--- |
-| **Componente Principal** | `src/app/shared/components/entity-table/entity-table.component.ts` | Cuadrícula completa, barra de herramientas y gestión de estado |
-| **Plantilla HTML** | `src/app/shared/components/entity-table/entity-table.component.html` | Layout Dynamics 365, slots de plantilla `cellDef` |
-| **Estilos CSS** | `src/app/shared/components/entity-table/entity-table.component.css` | Variables de tema `--d365-*`, adaptabilidad Dark/Light |
-| **Modelos de Tabla** | `src/app/shared/components/entity-table/entity-table.models.ts` | Interfaz `ColumnDef<T>`, `TableSortState`, `TableStateSnapshot` |
-| **Directiva de Celdas** | `src/app/shared/components/entity-table/cell-def.directive.ts` | Directiva estructural `*cellDef="key"` para renderizado personalizado |
-| **Filtros Avanzados** | `src/app/shared/components/advanced-filter/` | Árbol de condiciones, evaluador puro y drawer modal Dynamics 365 |
-| **Barrel Export** | `src/app/shared/components/entity-table/index.ts` | Exportación única de todos los símbolos públicos |
+- Conservar las convenciones de docs/convenciones-interfaz.md: la cabecera refleja datos persistidos, no cambios sin guardar.
+- Botón de regreso con flecha, title y aria-label, sin etiqueta visible.
+- Escritorio: relleno de tarjeta 20 px por 24 px y separación de secciones 20 px. Celular: relleno 16 px y campos en una columna.
+- Los controles táctiles de botones y entrada tienen mínimo 44 px en celular. No quitar el foco visible del navegador o de Fluent UI.
+- Diálogos y paneles caben en el ancho disponible y permiten desplazamiento vertical. Las pestañas pueden desplazarse horizontalmente.
+- Evitar minWidth fijos en superficies de diálogo y flexShrink en tarjetas que compriman campos.
+- Usar tokens de Fluent UI y semanticTokens para colores y jerarquía. Los colores configurables de tipos de orden, recursos y marcas son datos y se conservan.
+- Las fichas registran sólo sus datos editables con useUnsavedChanges. Capturar el borrador antes del envío y marcarlo guardado únicamente después de confirmación del servidor. No desactivar la protección cuando falle una operación.
+- Nuevo, Deshacer o Actualizar que reinicien datos deben utilizar discardAndRun antes de modificar el formulario. D365FormContent deshabilita los controles durante el guardado, conservando los estilos de contenido.
+- Las validaciones de guardado utilizan useValidationFocus después de mostrar el error y activar su pestaña, pasando un identificador o etiqueta cuando no haya error asociado al campo.
 
----
+## Mensajes y operaciones
 
-## 3. Guía Rápida de Implementación (Paso a Paso)
+- Campo incorrecto: error concreto junto al control y asociación accesible con Field.
+- Error de operación: mensaje visible sin borrar los datos introducidos; showError sólo cuando no hay un mensaje local apropiado.
+- Guardado común: aviso breve o toast Fluent UI, sin obligar a cerrar un modal.
+- Eliminar, anular o cancelar: confirmación antes de enviar al servidor. Pasar opciones title, action y danger cuando el texto no permite deducir la acción correctamente.
+- Recepción parcial: explicar cantidades recibidas y pendientes; no usar el color de eliminación.
+- El usuario puede cancelar una confirmación con Volver, Escape o cierre permitido por Fluent UI. Una solicitud repetida no reemplaza la operación pendiente.
+- Al cerrar, el foco vuelve al botón que abrió la confirmación; si vino de un menú, vuelve a su botón de apertura. Cambiar de ruta cancela las solicitudes pendientes.
+- El estado busy debe durar hasta que la operación termine; el servidor mantiene sus validaciones de concurrencia.
+- Comprobantes: diálogo de resultado después de confirmación del servidor. Descargar, imprimir y compartir siguen disponibles según el flujo existente.
 
-### Paso 1: Importar en el Componente Standalone
+## Texto y accesibilidad
 
-En tu archivo `[entidad]-list.component.ts`:
+- Español, frases breves y nombres coherentes. Sin emojis decorativos ni nombres de estados internos en inglés.
+- Campos vacíos sin ejemplos; buscadores con Buscar. Mantener las instrucciones de formato o consecuencias realmente necesarias.
+- Estados con texto además del color; contraste mediante tokens del tema claro y oscuro.
+- Etiquetas asociadas a los controles, nombres para botones con sólo icono y opciones accesibles de selección y orden.
 
-```typescript
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { CommandBarComponent, CommandBarItem } from '../../../../shared/components/command-bar';
-import { VistaItem } from '../../../../shared/components/view-selector';
-import {
-  EntityTableComponent,
-  CellDefDirective,
-  ColumnDef,
-} from '../../../../shared/components/entity-table';
-import { MiEntidadDto } from '../../models/mi-entidad.model';
-import { MiEntidadService } from '../../services/mi-entidad.service';
+## Comprobación antes de incorporar una vista
 
-@Component({
-  selector: 'app-mi-entidad-list',
-  standalone: true,
-  imports: [
-    CommonModule,
-    CommandBarComponent,
-    EntityTableComponent,
-    CellDefDirective,
-    // Demás módulos de NG-ZORRO que necesites para tus celdas (ej. NzTagModule, NzAvatarModule)
-  ],
-  templateUrl: './mi-entidad-list.html',
-  styleUrl: './mi-entidad-list.component.css',
-})
-export class MiEntidadListComponent implements OnInit {
-  private service = inject(MiEntidadService);
-  private router = inject(Router);
-  private cdr = inject(ChangeDetectorRef);
-
-  // 1. Datos y Estado
-  items: MiEntidadDto[] = [];
-  loading = false;
-  selectedIds = new Set<string>();
-
-  // 2. Vistas del Sistema
-  vistaActual = 'Activos';
-  vistasSistema: VistaItem[] = [
-    { key: 'Activos', nombre: 'Registros Activos', esSistema: true, esPredeterminada: true },
-    { key: 'Inactivos', nombre: 'Registros Inactivos', esSistema: true },
-    { key: 'Todos', nombre: 'Todos los Registros', esSistema: true },
-  ];
-
-  // 3. Definición Tipada de Columnas
-  columnas: ColumnDef<MiEntidadDto>[] = [
-    {
-      key: 'codigo',
-      title: 'Código',
-      width: '120px',
-      sortable: true,
-      dataType: 'text',
-    },
-    {
-      key: 'nombre',
-      title: 'Nombre de la Entidad',
-      width: '280px',
-      sortable: true,
-      dataType: 'text',
-      primaryLink: true, // Estilo azul clickeable D365
-      canHide: false,    // Columna obligatoria
-    },
-    {
-      key: 'precio',
-      title: 'Precio Base',
-      width: '120px',
-      align: 'right',
-      sortable: true,
-      dataType: 'currency',
-    },
-    {
-      key: 'fechaRegistro',
-      title: 'Fecha de Registro',
-      width: '140px',
-      align: 'center',
-      sortable: true,
-      dataType: 'date',
-    },
-    {
-      key: 'activo',
-      title: 'Estado',
-      width: '110px',
-      align: 'center',
-      sortable: true,
-      dataType: 'boolean',
-      filterType: 'select',
-      filterOptions: [
-        { label: 'Activo', value: true },
-        { label: 'Inactivo', value: false },
-      ],
-    },
-  ];
-
-  ngOnInit(): void {
-    this.cargarDatos();
-  }
-
-  cargarDatos(): void {
-    this.loading = true;
-    this.service.getTodos().subscribe({
-      next: (data) => {
-        this.items = data;
-        this.loading = false;
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.loading = false;
-        this.cdr.markForCheck();
-      },
-    });
-  }
-
-  onVistaChange(vista: VistaItem): void {
-    this.vistaActual = vista.key;
-    this.selectedIds.clear();
-    this.cargarDatos();
-  }
-
-  onSelectedIdsChange(ids: Set<string>): void {
-    this.selectedIds = ids;
-    this.cdr.markForCheck();
-  }
-
-  editar(id: string): void {
-    this.router.navigate(['/ruta/editar', id]);
-  }
-}
-```
-
----
-
-### Paso 2: Estructurar la Plantilla HTML
-
-En tu archivo `[entidad]-list.html`:
-
-```html
-<!-- 1. Barra de Comandos Superior Dynamics 365 -->
-<app-command-bar [items]="commandBarItems"></app-command-bar>
-
-<!-- 2. Contenedor del Listado Reutilizable -->
-<div class="catalogo-view-wrapper">
-  <app-entity-table
-    entidad="Nombre de Entidad"
-    [vistasSistema]="vistasSistema"
-    [(vistaActualKey)]="vistaActual"
-    [columnas]="columnas"
-    [datos]="items"
-    [loading]="loading"
-    [(selectedIds)]="selectedIds"
-    (selectedIdsChange)="onSelectedIdsChange($event)"
-    (vistaChange)="onVistaChange($event)"
-    (recargar)="cargarDatos()"
-    (rowDblClick)="editar($event.id)"
-  >
-    <!-- Template para la columna primaria (enlace) -->
-    <ng-template cellDef="nombre" let-item>
-      <span class="nombre-link" (click)="editar(item.id)">
-        {{ item.nombre }}
-      </span>
-    </ng-template>
-
-    <!-- Template para montos monetarios -->
-    <ng-template cellDef="precio" let-item>
-      <span>{{ item.precio | currency:'PEN':'symbol':'1.2-2' }}</span>
-    </ng-template>
-
-    <!-- Template institucional para estado activo/inactivo -->
-    <ng-template cellDef="activo" let-item>
-      <nz-tag
-        class="d365-status-tag"
-        [class.tag-active]="item.activo"
-        [class.tag-inactive]="!item.activo"
-      >
-        {{ item.activo ? 'Activo' : 'Inactivo' }}
-      </nz-tag>
-    </ng-template>
-  </app-entity-table>
-</div>
-```
-
----
-
-## 4. Referencia de Configuración de Columnas (`ColumnDef`)
-
-La interfaz `ColumnDef<T>` configura el comportamiento de cada columna:
-
-```typescript
-export interface ColumnDef<T = any> {
-  key: string;                    // Clave del campo en el objeto de datos (ej: 'nombre', 'activo')
-  title: string;                  // Título mostrado en el encabezado
-  width?: string;                 // Ancho CSS (ej: '120px', '280px')
-  align?: 'left' | 'center' | 'right'; // Alineación del texto
-  sortable?: boolean;             // Si permite ordenar haciendo click en la cabecera
-  dataType?: ColumnDataType;      // Tipo de dato: 'text' | 'number' | 'currency' | 'date' | 'boolean' | 'select'
-  filterType?: 'text' | 'select' | 'none'; // Tipo de filtro de cabecera rápida
-  filterOptions?: FilterOption[]; // Opciones cuando filterType es 'select'
-  hidden?: boolean;               // Si inicia oculta por defecto
-  canHide?: boolean;              // Si false, el usuario no puede ocultarla en Editar Columnas
-  primaryLink?: boolean;          // Aplica estilo visual de enlace principal D365
-  headerClass?: string;           // Clase CSS personalizada para <th>
-  cellClass?: string;             // Clase CSS personalizada para <td>
-}
-```
-
-### Tipos de Datos Soportados (`ColumnDataType`)
-Indicar el `dataType` es fundamental para que el **Filtro Avanzado (Query Builder)** muestre los operadores correctos de Dynamics 365:
-
-| `dataType` | Operadores Automáticos | Control de Entrada en Drawer |
-| :--- | :--- | :--- |
-| `'text'` | Es igual a, No es igual a, Contiene, No contiene, Comienza con, Termina con, Tiene datos, No tiene datos | Input de texto |
-| `'number'` / `'currency'` | Es igual a, No es igual a, Es mayor que, Es mayor o igual que, Es menor que, Es menor o igual que, Entre, Tiene datos, No tiene datos | Input numérico / Doble input para "Entre" |
-| `'date'` | Es igual a, Anterior a, Posterior a, En o antes de, En o después de, Entre, Hoy, Ayer, Este mes, Tiene datos, No tiene datos | DatePicker / Rango de fechas |
-| `'boolean'` | Es igual a (Verdadero / Falso) | Selector Sí / No |
-| `'select'` | Es igual a, No es igual a, En la lista, No en la lista | Selector con las `filterOptions` definidas |
-
----
-
-## 5. Propiedades y Eventos de `<app-entity-table>`
-
-### Inputs
-
-| Propiedad | Tipo | Por Defecto | Descripción |
-| :--- | :--- | :--- | :--- |
-| `[entidad]` | `string` | *(Requerido)* | Nombre legible de la entidad (ej. `'Colaboradores'`, `'Clientes'`) |
-| `[vistasSistema]` | `VistaItem[]` | `[]` | Lista de vistas del sistema disponibles para el selector |
-| `[(vistaActualKey)]` | `string` | `''` | Clave de la vista seleccionada actualmente |
-| `[columnas]` | `ColumnDef[]` | `[]` | Colección de columnas a mostrar y configurar |
-| `[datos]` | `any[]` | `[]` | Array con los registros de la entidad |
-| `[loading]` | `boolean` | `false` | Activa el spinner de carga en la tabla |
-| `[(selectedIds)]` | `Set<string>` | `new Set()` | Conjunto con los IDs seleccionados |
-| `[pageSize]` | `number` | `15` | Cantidad de registros por página |
-| `[rowKey]` | `string` | `'id'` | Nombre de la propiedad identificadora del registro |
-| `[scrollX]` | `string?` | `undefined` | Ancho total para scroll horizontal en tablas muy anchas (ej. `'1900px'`) |
-| `[searchPlaceholder]` | `string` | `'Filtrar por palabra clave'` | Placeholder del cuadro de búsqueda |
-| `[showEditColumns]` | `boolean` | `true` | Muestra el botón para editar y reordenar columnas |
-| `[allowColumnReorder]`| `boolean` | `true` | Permite arrastrar y soltar columnas en el drawer |
-| `[showAdvancedFilter]`| `boolean` | `true` | Muestra el botón de Filtros Avanzados (Query Builder) |
-| `[showViews]` | `boolean` | `true` | Muestra el selector de vistas D365 |
-| `[showSearch]` | `boolean` | `true` | Muestra el buscador rápido en la toolbar |
-
-### Outputs
-
-| Evento | Tipo de Emisión | Descripción |
-| :--- | :--- | :--- |
-| `(vistaChange)` | `VistaItem` | Emitido cuando el usuario selecciona una vista diferente |
-| `(selectedIdsChange)`| `Set<string>` | Emitido cuando cambia la selección de filas |
-| `(recargar)` | `void` | Emitido cuando el usuario solicita refrescar la información |
-| `(rowClick)` | `any` | Emitido al hacer un click simple sobre una fila |
-| `(rowDblClick)` | `any` | Emitido al hacer doble click en una fila (ideal para abrir edición) |
-| `(searchChange)` | `string` | Emitido en tiempo real al escribir en el buscador rápido |
-| `(advancedFilterChange)`| `FilterGroup \| null` | Emitido cuando se aplican filtros avanzados personalizados |
-
----
-
-## 6. Personalización de Celdas con `cellDef`
-
-Si una columna no tiene `ng-template cellDef`, la tabla mostrará el valor directo en texto plano.
-Para renderizado personalizado, utiliza la directiva `cellDef="[keyDeLaColumna]"`:
-
-```html
-<!-- Ejemplo: Avatar con iniciales y enlace -->
-<ng-template cellDef="nombreCompleto" let-item>
-  <div style="display: flex; align-items: center; gap: 8px;">
-    <nz-avatar [nzText]="item.nombre[0]" nzSize="small"></nz-avatar>
-    <span class="nombre-link" (click)="irAEditar(item.id)">
-      {{ item.nombreCompleto }}
-    </span>
-  </div>
-</ng-template>
-
-<!-- Ejemplo: Píldora de estado oficial D365 -->
-<ng-template cellDef="activo" let-item>
-  <nz-tag
-    class="d365-status-tag"
-    [class.tag-active]="item.activo"
-    [class.tag-inactive]="!item.activo"
-  >
-    {{ item.activo ? 'Activo' : 'Inactivo' }}
-  </nz-tag>
-</ng-template>
-```
-
----
-
-## 7. Reglas de Estilo y Cumplimiento de Temas (Tolerancia Cero)
-
-1. **NO usar colores fijos (`#ffffff`, `#000000`, etc.)**:
-   - Emplea siempre las variables institucionales:
-     - `var(--d365-bg-card)` para fondos de contenedor.
-     - `var(--d365-border-color)` para bordes de tablas y separadores.
-     - `var(--d365-text-primary)` para textos principales.
-     - `var(--d365-subtext-color)` para textos secundarios y placeholders.
-     - `var(--d365-link-color)` para enlaces `.nombre-link`.
-2. **NO modificar el espaciado interno de botones NG-ZORRO (`.ant-btn`)**:
-   - NG-ZORRO maneja de forma nativa el espaciado entre icono y texto (`margin-left: 8px`).
-   - NUNCA agregues `gap: 6px` o `display: inline-flex` sobre botones estándar.
-3. **El archivo `.component.css` de tu listado debe ser mínimo**:
-   - No dupliques estilos de tablas, scrolls ni cabeceras; todo está provisto por `d365-list.css` y `entity-table.component.css`.
-
----
-
-## 8. Inventario de Pantallas Migradas
-
-Todas las entidades del ERP cuentan con este estándar implementado y verificado:
-
-- **Recursos Humanos**:
-  - `CargosListComponent` (`src/app/features/recursos-humanos/pages/cargos-list`)
-  - `DepartamentosListComponent` (`src/app/features/recursos-humanos/pages/departamentos-list`)
-  - `EmpleadosListComponent` (`src/app/features/recursos-humanos/pages/empleados-list`)
-- **Configuración**:
-  - `UsuariosListComponent` (`src/app/features/configuracion/pages/usuarios-list`)
-  - `SucursalesListComponent` (`src/app/features/configuracion/pages/sucursales-list`)
-- **CRM**:
-  - `ClientesListComponent` (`src/app/features/crm/pages/clientes-list`)
-- **Ventas**:
-  - `CatalogosComercialesListComponent` (`src/app/features/ventas/pages/catalogos-comerciales-list`)
-  - `ListasPrecioListComponent` (`src/app/features/ventas/pages/listas-precio-list`)
-- **Servicio de Campo**:
-  - `OrdenesListComponent` (`src/app/features/servicio-campo/pages/ordenes-list`)
-  - `ServiciosListComponent` (`src/app/features/servicio-campo/pages/servicios-list`)
-  - `CatalogosServicioListComponent` (`src/app/features/servicio-campo/pages/catalogos-servicio-list`)
-  - `TarifasServicioListComponent` (`src/app/features/servicio-campo/pages/tarifas-servicio-list`)
-  - `TiposOrdenListComponent` (`src/app/features/servicio-campo/pages/tipos-orden-list`)
-  - `MotivosIncidenciaListComponent` (`src/app/features/servicio-campo/pages/motivos-incidencia-list`)
+Compilar el cliente y verificar a 1440, 390 y 320 px: lectura, campos largos, errores, tarjetas, selección, menús, diálogos, tema oscuro y navegación por teclado. Las pruebas del servicio de confirmación comprueban aceptación, cancelación y solicitud repetida. La revisión de navegador debe incluir foco inicial, Escape y ausencia de solapamientos.

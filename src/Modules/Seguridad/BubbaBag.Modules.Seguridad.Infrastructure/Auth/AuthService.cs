@@ -397,41 +397,52 @@ public class AuthService(UserManager<Usuario> usuarios, RoleManager<Rol> roles, 
     {
         var catalogo = new List<PermisoDefinicionDto>
         {
+            // Configuración institucional: la lectura requiere únicamente iniciar sesión.
+            new(Permissions.Configuracion.EmpresaDatosFiscalesGestionar, "Empresa y sucursales", "Modificar datos fiscales de la empresa", "Cambiar razón social, nombre comercial, RUC y dirección fiscal. Consultar estos datos o incluirlos en un PDF sólo requiere una sesión válida y acceso a la operación correspondiente."),
+            new(Permissions.Configuracion.EmpresaPresentacionGestionar, "Empresa y sucursales", "Modificar logo y contacto de la empresa", "Cambiar teléfono, correo, logo y pie de documentos. No permite modificar la razón social, RUC ni dirección fiscal."),
+            new(Permissions.Configuracion.SucursalesGestionar, "Empresa y sucursales", "Crear y editar sucursales, sedes y bases", "Registrar sucursales y sedes operativas, y editar nombre, ciudad, dirección y teléfono. Cambiar la sede principal y activar o desactivar requieren permisos separados."),
+            new(Permissions.Configuracion.SucursalesSedePrincipalGestionar, "Empresa y sucursales", "Cambiar la sede principal", "Marcar o desmarcar una sucursal o sede como principal. Para guardar los demás datos se necesita también Crear y editar sucursales, sedes y bases."),
+            new(Permissions.Configuracion.SucursalesEstadoGestionar, "Empresa y sucursales", "Activar o desactivar sucursales, sedes y bases", "Habilitar o deshabilitar una sucursal o sede operativa. Consultar y editar datos generales son autorizaciones distintas."),
             // Inventario
-            new(Permissions.Inventario.Acceso, "Inventario", "Acceso al módulo", "Consultar inventario, productos, almacenes y movimientos."),
-            new(Permissions.Inventario.CatalogosGestionar, "Inventario", "Gestionar catálogos", "Crear y modificar productos, almacenes, sedes y categorías."),
-            new(Permissions.Inventario.Operar, "Inventario", "Operar movimientos", "Registrar recepciones, despachos y transferencias en almacenes."),
-            new(Permissions.Inventario.AccesosGestionar, "Inventario", "Gestionar autorizaciones", "Asignar autorizaciones y permisos de acceso por almacén."),
+            new(Permissions.Inventario.Acceso, "Inventario", "Consultar inventario y documentos", "Consultar productos, almacenes, existencias, compras y movimientos dentro del alcance autorizado. La consulta no permite registrar movimientos."),
+            new(Permissions.Inventario.CatalogosGestionar, "Inventario", "Administrar productos y almacenes", "Crear y editar productos, categorías, unidades de medida, almacenes, territorios y recursos. Administrar sucursales y sedes requiere los permisos de Empresa y sucursales. Requiere también Consultar inventario y documentos."),
+            new(Permissions.Inventario.Operar, "Inventario", "Registrar compras y movimientos de inventario", "Registrar compras, recepciones, despachos, transferencias y ajustes. Requiere acceso a Inventario; los movimientos también exigen autorización en los almacenes involucrados."),
+            new(Permissions.Inventario.AccesosGestionar, "Inventario", "Administrar autorizaciones por almacén", "Identifica la administración de accesos por almacén. Actualmente modificar autorizaciones también requiere Administrador de inventario, Administrador de Servicio de Campo o Super Administrador; un rol personalizado con esta casilla no basta."),
 
             // Servicio de Campo
-            new(Permissions.ServicioCampo.Acceso, "Servicio de Campo", "Acceso al módulo", "Acceder al portal operativo de servicio de campo."),
-            new(Permissions.ServicioCampo.OrdenesVerTodas, "Servicio de Campo", "Ver todas las órdenes", "Visualizar el listado general de órdenes de trabajo de toda la organización."),
-            new(Permissions.ServicioCampo.OrdenesVerAsignadas, "Servicio de Campo", "Ver órdenes asignadas", "Visualizar únicamente las órdenes asignadas a su técnico o cuadrilla."),
-            new(Permissions.ServicioCampo.OrdenesCrear, "Servicio de Campo", "Crear órdenes", "Registrar nuevas órdenes de trabajo de servicio."),
-            new(Permissions.ServicioCampo.OrdenesAsignar, "Servicio de Campo", "Asignar órdenes", "Despachar y asignar órdenes de trabajo a recursos técnicos."),
-            new(Permissions.ServicioCampo.OrdenesOperarCampo, "Servicio de Campo", "Operar en campo", "Registrar traslados, check-in, checklists y evidencias en sitio."),
-            new(Permissions.ServicioCampo.OrdenesCerrar, "Servicio de Campo", "Cerrar órdenes", "Finalizar, liquidar y cerrar técnicamente órdenes de trabajo."),
-            new(Permissions.ServicioCampo.CatalogosGestionar, "Servicio de Campo", "Gestionar catálogos", "Parametrizar tarifarios, tipos de orden y servicios."),
+            new(Permissions.ServicioCampo.Acceso, "Servicio de Campo", "Consultar Servicio de Campo y órdenes", "Entrar al módulo. Las órdenes visibles requieren autorización para consultar todas, consultar las asignadas o gestionar las creadas por el usuario."),
+            new(Permissions.ServicioCampo.OrdenesVerTodas, "Servicio de Campo", "Consultar todas las órdenes", "Consultar órdenes de toda la organización. Requiere acceso a Servicio de Campo; modificar o cerrar exige su permiso específico."),
+            new(Permissions.ServicioCampo.OrdenesVerAsignadas, "Servicio de Campo", "Consultar órdenes asignadas", "Consultar y operar, con los permisos correspondientes, las órdenes cuya asignación más reciente corresponde al recurso vinculado a su usuario."),
+            new(Permissions.ServicioCampo.OrdenesCrear, "Servicio de Campo", "Crear, editar y eliminar órdenes de trabajo", "Registrar, editar y eliminar órdenes y sus trabajos cuando su estado lo permita. Programar y completar trabajos son acciones con permisos separados. Requiere acceso a Servicio de Campo."),
+            new(Permissions.ServicioCampo.OrdenesAsignar, "Servicio de Campo", "Programar y cambiar el estado de órdenes", "Programar la atención y cambiar el estado de las órdenes según las reglas de la operación. Requiere acceso a Servicio de Campo."),
+            new(Permissions.ServicioCampo.OrdenesOperarCampo, "Servicio de Campo", "Completar trabajos y tareas de campo", "Completar tareas y trabajos dentro de las órdenes autorizadas. Requiere acceso a Servicio de Campo y autorización de consulta sobre la orden."),
+            new(Permissions.ServicioCampo.OrdenesCerrar, "Servicio de Campo", "Completar o cancelar órdenes", "Cambiar una orden autorizada a Completado o Cancelado. El cierre conserva las validaciones de trabajos pendientes; programar requiere un permiso separado."),
+            new(Permissions.ServicioCampo.CatalogosGestionar, "Servicio de Campo", "Administrar tipos de orden y servicios", "Crear y editar tipos de orden, tareas, motivos de incidencia y configuraciones de servicio. Requiere acceso a Servicio de Campo."),
 
             // CRM y Clientes
-            new(Permissions.Crm.Acceso, "CRM y Clientes", "Acceso al módulo", "Acceder al directorio comercial de clientes y contactos."),
-            new(Permissions.Crm.ClientesVer, "CRM y Clientes", "Consultar clientes", "Visualizar fichas y datos de clientes."),
-            new(Permissions.Crm.ClientesCrear, "CRM y Clientes", "Crear clientes", "Registrar nuevos clientes en la cartera comercial."),
-            new(Permissions.Crm.ClientesEditar, "CRM y Clientes", "Editar clientes", "Modificar información comercial y de contacto de clientes."),
-            new(Permissions.Crm.ClientesEliminar, "CRM y Clientes", "Eliminar clientes", "Desactivar o eliminar clientes de la cartera."),
-            new(Permissions.Crm.SegmentacionAvanzada, "CRM y Clientes", "Segmentación comercial", "Acceso a filtros avanzados y segmentación de clientes."),
+            new(Permissions.Crm.Acceso, "CRM y Clientes", "Acceder a CRM y Clientes", "Entrar al módulo de clientes. Seleccione Consultar clientes para abrir el directorio y las fichas; crear y editar requieren sus propios permisos."),
+            new(Permissions.Crm.ClientesVer, "CRM y Clientes", "Consultar fichas de clientes", "Ver el directorio, datos de identificación, direcciones y contactos de clientes. Requiere acceso a CRM y Clientes para usar sus pantallas."),
+            new(Permissions.Crm.ClientesCrear, "CRM y Clientes", "Registrar nuevos clientes", "Crear clientes en el directorio. Para consultar sus fichas seleccione también Consultar fichas de clientes y acceso a CRM y Clientes."),
+            new(Permissions.Crm.ClientesEditar, "CRM y Clientes", "Editar y activar o desactivar clientes", "Modificar datos comerciales y de contacto, y activar o desactivar clientes. Para consultar sus fichas seleccione también Consultar fichas de clientes y acceso a CRM y Clientes."),
+            new(Permissions.Crm.ClientesEliminar, "CRM y Clientes", "Eliminar clientes (función prevista)", "La eliminación de registros aún no está disponible. Para activar o desactivar clientes use Editar y activar o desactivar clientes; este permiso no lo sustituye."),
+            new(Permissions.Crm.SegmentacionAvanzada, "CRM y Clientes", "Segmentación comercial (función prevista)", "Reservado para segmentación comercial avanzada. Actualmente no habilita una función adicional de segmentación."),
 
             // Recursos Humanos
-            new(Permissions.Rrhh.Acceso, "Recursos Humanos", "Acceso al módulo", "Acceder a la gestión de personal y colaboradores."),
-            new(Permissions.Rrhh.ColaboradoresVer, "Recursos Humanos", "Consultar colaboradores", "Visualizar el directorio de colaboradores."),
-            new(Permissions.Rrhh.ColaboradoresGestionar, "Recursos Humanos", "Gestionar colaboradores", "Dar de alta, actualizar datos laborales y cesar colaboradores."),
-            new(Permissions.Rrhh.SalariosConfidencial, "Recursos Humanos", "Salarios confidenciales", "Acceso a remuneraciones, sueldos y cuentas bancarias."),
-            new(Permissions.Rrhh.CatalogosGestionar, "Recursos Humanos", "Gestionar catálogos", "Parametrizar cargos, departamentos y tipos de contrato."),
+            new(Permissions.Rrhh.Acceso, "Recursos Humanos", "Acceder a Recursos Humanos", "Entrar al módulo y consultar sus catálogos. Consultar colaboradores, gestionarlos y acceder a información confidencial requieren permisos separados."),
+            new(Permissions.Rrhh.ColaboradoresVer, "Recursos Humanos", "Consultar datos de colaboradores", "Consultar fichas y datos laborales. Los salarios y cuentas bancarias se ocultan sin el permiso de información confidencial. Requiere acceso a Recursos Humanos."),
+            new(Permissions.Rrhh.ColaboradoresGestionar, "Recursos Humanos", "Registrar, editar y cesar colaboradores", "Registrar, editar, cesar y reactivar colaboradores. No permite modificar salarios ni cuentas bancarias sin el permiso confidencial. Requiere acceso a Recursos Humanos."),
+            new(Permissions.Rrhh.SalariosConfidencial, "Recursos Humanos", "Acceder a salarios y datos bancarios", "Consultar remuneraciones, pensiones, salarios referenciales y cuentas bancarias. Modificarlos requiere además gestionar colaboradores o catálogos, según corresponda."),
+            new(Permissions.Rrhh.CatalogosGestionar, "Recursos Humanos", "Administrar cargos y departamentos", "Crear, editar y activar o desactivar cargos y departamentos. Modificar salarios referenciales requiere además información confidencial. Requiere acceso a Recursos Humanos."),
 
+            new(Permissions.Inventario.AjustesAprobar, "Inventario", "Aprobar o rechazar ajustes de inventario", "Aplicar o rechazar ajustes dentro de almacenes donde tenga autorización de consulta y supervisor. Aplicar modifica existencias y Kardex; registrar ajustes requiere Operar inventario."),
+            new(Permissions.GestionDatos.Importar, "Importaciones", "Importar datos desde archivos", "Previsualizar e importar datos sólo de entidades que pueda gestionar. Inventario inicial requiere autorización de recepción en el almacén; actualizar clientes requiere permiso de edición."),
+            new(Permissions.GestionDatos.HistorialVer, "Importaciones", "Consultar mis importaciones", "Consultar el historial propio de entidades que pueda consultar. No permite importar ni eliminar registros."),
+            new(Permissions.GestionDatos.HistorialVerTodas, "Importaciones", "Consultar importaciones de otras personas de mi área", "Ampliar el historial a otros responsables dentro de las entidades autorizadas. Requiere Consultar mis importaciones y no abre información de otras áreas."),
+            new(Permissions.GestionDatos.HistorialEliminar, "Importaciones", "Eliminar registros del historial", "Eliminar registros terminados dentro del alcance autorizado; no elimina los datos importados. El historial de otras personas requiere su permiso adicional. Los procesos en curso no se pueden eliminar."),
             // Seguridad
-            new(Permissions.Seguridad.Acceso, "Seguridad", "Acceso al módulo", "Consultar el directorio de usuarios y catálogo de roles."),
-            new(Permissions.Seguridad.UsuariosGestionar, "Seguridad", "Gestionar usuarios", "Crear usuarios, asignar roles y restablecer contraseñas."),
-            new(Permissions.Seguridad.RolesGestionar, "Seguridad", "Gestionar roles y permisos", "Crear, modificar y eliminar roles y su matriz de permisos.")
+            new(Permissions.Seguridad.Acceso, "Seguridad", "Consultar usuarios, roles y permisos", "Consultar el directorio de usuarios y el catálogo de roles y permisos. Modificar empresa, sucursales o cuentas de usuario requiere sus permisos específicos."),
+            new(Permissions.Seguridad.UsuariosGestionar, "Seguridad", "Administrar usuarios y asignarles roles", "Crear y editar usuarios, habilitar o deshabilitar cuentas, asignar roles y restablecer contraseñas. Requiere acceso a Seguridad para usar sus pantallas."),
+            new(Permissions.Seguridad.RolesGestionar, "Seguridad", "Crear roles personalizados y asignar permisos", "Crear, editar y eliminar roles personalizados y elegir sus permisos. Los roles predefinidos están protegidos. Requiere acceso a Seguridad para usar sus pantallas.")
         };
 
         return Task.FromResult(Result<List<PermisoDefinicionDto>>.Success(catalogo));

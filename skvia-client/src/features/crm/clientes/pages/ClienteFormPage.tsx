@@ -1,3 +1,6 @@
+import { D365FormContent } from '../../../../components/common/D365FormContent';
+import { useValidationFocus } from '../../../../hooks/useValidationFocus';
+import { useUnsavedChanges } from '../../../../hooks/useUnsavedChanges';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -15,6 +18,11 @@ import {
   useId,
   useToastController,
   Spinner,
+  Button,
+  Badge,
+  Text,
+  Select,
+  tokens,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -25,6 +33,9 @@ import {
   Building24Regular,
   DismissCircle16Regular,
   CheckmarkCircle16Regular,
+  Location16Regular,
+  Search16Regular,
+  Edit16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
@@ -54,9 +65,34 @@ export const ClienteFormPage: React.FC = () => {
   const [mensaje, setMensaje] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
   const [selectedTab, setSelectedTab] = useState<'resumen' | 'clasificacion'>('resumen');
 
-  // Catálogo de Ubigeos
-  const [ubigeos, setUbigeos] = useState<UbigeoDto[]>([]);
+// Lista oficial de los 25 departamentos del Perú
+const DEPARTAMENTOS_PERU = [
+  'AMAZONAS', 'ANCASH', 'APURIMAC', 'AREQUIPA', 'AYACUCHO',
+  'CAJAMARCA', 'CALLAO', 'CUSCO', 'HUANCAVELICA', 'HUANUCO',
+  'ICA', 'JUNIN', 'LA LIBERTAD', 'LAMBAYEQUE', 'LIMA',
+  'LORETO', 'MADRE DE DIOS', 'MOQUEGUA', 'PASCO', 'PIURA',
+  'PUNO', 'SAN MARTIN', 'TACNA', 'TUMBES', 'UCAYALI'
+];
+
+  // Catálogo de Ubigeos y Selector Estructurado
+  const [ubigeoSeleccionado, setUbigeoSeleccionado] = useState<{
+    codigo: string;
+    distrito: string;
+    provincia: string;
+    departamento: string;
+  } | null>(null);
+  const [modoUbicacion, setModoUbicacion] = useState<'busqueda' | 'cascada'>('busqueda');
   const [busquedaUbigeo, setBusquedaUbigeo] = useState('');
+  const [resultadosBusquedaUbigeo, setResultadosBusquedaUbigeo] = useState<UbigeoDto[]>([]);
+  const [buscandoUbigeos, setBuscandoUbigeos] = useState(false);
+
+  // Estados Cascada
+  const [depSeleccionado, setDepSeleccionado] = useState('');
+  const [provSeleccionada, setProvSeleccionada] = useState('');
+  const [provinciasDisponibles, setProvinciasDisponibles] = useState<string[]>([]);
+  const [distritosDisponibles, setDistritosDisponibles] = useState<UbigeoDto[]>([]);
+  const [cargandoProvincias, setCargandoProvincias] = useState(false);
+  const [cargandoDistritos, setCargandoDistritos] = useState(false);
 
   // Estados del Formulario
   const [codigoCliente, setCodigoCliente] = useState('');
@@ -82,6 +118,9 @@ export const ClienteFormPage: React.FC = () => {
   // El encabezado solo cambia al guardar o al cargar (no mientras se escribe)
   const [savedTitle, setSavedTitle] = useState(esNuevo ? 'Nuevo' : '');
   const [savedSubtitle, setSavedSubtitle] = useState(esNuevo ? 'Ficha de cuenta / cliente' : '');
+  const focusValidation = useValidationFocus();
+  const draft = useUnsavedChanges({ tipoPersona,tipoDocumento,documentoIdentidad,nombres,apellidos,razonSocial,nombreComercial,telefonoPrincipal,telefonoSecundario,email,direccion,referenciaUbicacion,ubigeoCodigo,coordenadaLat,coordenadaLng,esClienteFacturacion,esClienteServicio }, !loading);
+
 
   const notifySuccess = useCallback((title: string) => {
     dispatchToast(
@@ -92,32 +131,95 @@ export const ClienteFormPage: React.FC = () => {
     );
   }, [dispatchToast]);
 
-  // Cargar Ubigeos iniciales o por búsqueda
+  // Cascada: Cuando se selecciona departamento -> Cargar provincias
   useEffect(() => {
-    let activo = true;
-    const buscar = async () => {
-      try {
-        const queryTerm = busquedaUbigeo.trim();
-        const ubs = await ClienteService.obtenerUbigeos(
-          queryTerm.length >= 2 ? { search: queryTerm } : undefined
-        );
-        if (activo) {
-          setUbigeos(ubs || []);
-        }
-      } catch (e) {
-        console.error('Error cargando ubigeos', e);
-      }
+    if (!depSeleccionado) {
+      setProvinciasDisponibles([]);
+      setProvSeleccionada('');
+      setDistritosDisponibles([]);
+      return;
+    }
+    let vigente = true;
+    setCargandoProvincias(true);
+    setProvSeleccionada('');
+    setDistritosDisponibles([]);
+    ClienteService.obtenerUbigeos({ departamento: depSeleccionado })
+      .then((ubs) => {
+        if (!vigente) return;
+        const provs = Array.from(new Set(ubs.map((u) => u.provincia))).sort();
+        setProvinciasDisponibles(provs);
+      })
+      .catch((err) => console.error('Error cargando provincias:', err))
+      .finally(() => {
+        if (vigente) setCargandoProvincias(false);
+      });
+    return () => {
+      vigente = false;
     };
+  }, [depSeleccionado]);
 
+  // Cascada: Cuando se selecciona provincia -> Cargar distritos
+  useEffect(() => {
+    if (!depSeleccionado || !provSeleccionada) {
+      setDistritosDisponibles([]);
+      return;
+    }
+    let vigente = true;
+    setCargandoDistritos(true);
+    ClienteService.obtenerUbigeos({ departamento: depSeleccionado, provincia: provSeleccionada })
+      .then((ubs) => {
+        if (!vigente) return;
+        setDistritosDisponibles(ubs.sort((a, b) => a.distrito.localeCompare(b.distrito)));
+      })
+      .catch((err) => console.error('Error cargando distritos:', err))
+      .finally(() => {
+        if (vigente) setCargandoDistritos(false);
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [depSeleccionado, provSeleccionada]);
+
+  // Búsqueda inteligente de ubigeos con debounce
+  useEffect(() => {
+    const term = busquedaUbigeo.trim();
+    if (term.length < 2) {
+      setResultadosBusquedaUbigeo([]);
+      setBuscandoUbigeos(false);
+      return;
+    }
+    let vigente = true;
+    setBuscandoUbigeos(true);
     const timer = setTimeout(() => {
-      void buscar();
+      ClienteService.obtenerUbigeos({ search: term })
+        .then((ubs) => {
+          if (vigente) {
+            setResultadosBusquedaUbigeo((ubs || []).slice(0, 15));
+          }
+        })
+        .catch((e) => console.error('Error en búsqueda de ubigeos:', e))
+        .finally(() => {
+          if (vigente) setBuscandoUbigeos(false);
+        });
     }, 250);
 
     return () => {
-      activo = false;
+      vigente = false;
       clearTimeout(timer);
     };
   }, [busquedaUbigeo]);
+
+  const handleSeleccionarUbigeo = (u: UbigeoDto) => {
+    setUbigeoCodigo(u.codigo);
+    setUbigeoSeleccionado({
+      codigo: u.codigo,
+      distrito: u.distrito,
+      provincia: u.provincia,
+      departamento: u.departamento,
+    });
+    setBusquedaUbigeo('');
+    setResultadosBusquedaUbigeo([]);
+  };
 
   const resetForm = useCallback(() => {
     setCodigoCliente('');
@@ -134,6 +236,13 @@ export const ClienteFormPage: React.FC = () => {
     setDireccion('');
     setReferenciaUbicacion('');
     setUbigeoCodigo('');
+    setUbigeoSeleccionado(null);
+    setBusquedaUbigeo('');
+    setResultadosBusquedaUbigeo([]);
+    setDepSeleccionado('');
+    setProvSeleccionada('');
+    setProvinciasDisponibles([]);
+    setDistritosDisponibles([]);
     setCoordenadaLat('');
     setCoordenadaLng('');
     setEsClienteFacturacion(false);
@@ -169,6 +278,16 @@ export const ClienteFormPage: React.FC = () => {
         setDireccion(cli.direccion);
         setReferenciaUbicacion(cli.referenciaUbicacion || '');
         setUbigeoCodigo(cli.ubigeoCodigo);
+        if (cli.ubigeoCodigo) {
+          setUbigeoSeleccionado({
+            codigo: cli.ubigeoCodigo,
+            distrito: cli.distrito || '',
+            provincia: cli.provincia || '',
+            departamento: cli.departamento || '',
+          });
+        } else {
+          setUbigeoSeleccionado(null);
+        }
         setCoordenadaLat(cli.coordenadaLat !== null && cli.coordenadaLat !== undefined ? String(cli.coordenadaLat) : '');
         setCoordenadaLng(cli.coordenadaLng !== null && cli.coordenadaLng !== undefined ? String(cli.coordenadaLng) : '');
         setEsClienteFacturacion(cli.esClienteFacturacion);
@@ -190,37 +309,44 @@ export const ClienteFormPage: React.FC = () => {
   }, [id, esNuevo]);
 
   const handleGuardar = async (cerrar: boolean) => {
+    const savedDraft = draft.capture();
     if (!documentoIdentidad.trim()) {
+      setSelectedTab('resumen'); focusValidation("N° Documento");
       setMensaje({ tipo: 'error', texto: 'Ingrese el número de documento de identidad.' });
       setSelectedTab('resumen');
       return;
     }
 
     if (tipoPersona === 'NATURAL' && !nombres.trim()) {
+      setSelectedTab('resumen'); focusValidation("Nombres");
       setMensaje({ tipo: 'error', texto: 'Ingrese los nombres del cliente.' });
       setSelectedTab('resumen');
       return;
     }
 
     if (tipoPersona === 'JURIDICA' && !razonSocial.trim()) {
+      setSelectedTab('resumen'); focusValidation("Razón Social");
       setMensaje({ tipo: 'error', texto: 'Ingrese la razón social de la empresa.' });
       setSelectedTab('resumen');
       return;
     }
 
     if (!telefonoPrincipal.trim()) {
+      setSelectedTab('resumen'); focusValidation("Teléfono Principal");
       setMensaje({ tipo: 'error', texto: 'Ingrese el teléfono principal de contacto.' });
       setSelectedTab('resumen');
       return;
     }
 
     if (!direccion.trim()) {
+      setSelectedTab('resumen'); focusValidation("Dirección de Servicio");
       setMensaje({ tipo: 'error', texto: 'Ingrese la dirección de servicio.' });
       setSelectedTab('resumen');
       return;
     }
 
     if (!ubigeoCodigo.trim()) {
+      setSelectedTab('resumen'); focusValidation("Distrito / Ubigeo");
       setMensaje({ tipo: 'error', texto: 'Seleccione el distrito o ubigeo correspondiente.' });
       setSelectedTab('resumen');
       return;
@@ -253,15 +379,19 @@ export const ClienteFormPage: React.FC = () => {
           coordenadaLng: !isNaN(lngNum as number) ? lngNum : undefined,
         };
 
+        const res = await ClienteService.crearCliente(dto);
+
         const nom = tipoPersona === 'JURIDICA' ? razonSocial.trim() : `${nombres.trim()} ${apellidos.trim()}`.trim();
         setSavedTitle(nom || 'Cliente');
         setSavedSubtitle(documentoIdentidad ? `${tipoDocumento}: ${documentoIdentidad}` : 'Ficha de cuenta / cliente');
 
-        const res = await ClienteService.crearCliente(dto);
+        draft.markSaved(savedDraft);
         notifySuccess('Cliente registrado exitosamente.');
         if (cerrar) {
+          draft.markSaved(savedDraft);
           navigate('/servicio-campo/clientes');
         } else {
+          draft.markSaved(savedDraft);
           navigate(`/servicio-campo/clientes/${res.id}`, { replace: true });
         }
       } else {
@@ -276,13 +406,16 @@ export const ClienteFormPage: React.FC = () => {
           esClienteServicio,
         };
 
+        await ClienteService.actualizarCliente(id!, dto);
+
         const nom = tipoPersona === 'JURIDICA' ? razonSocial.trim() : `${nombres.trim()} ${apellidos.trim()}`.trim();
         setSavedTitle(nom || 'Cliente');
         setSavedSubtitle(documentoIdentidad ? `${tipoDocumento}: ${documentoIdentidad}` : 'Ficha de cuenta / cliente');
 
-        await ClienteService.actualizarCliente(id!, dto);
+        draft.markSaved(savedDraft);
         notifySuccess('Cliente actualizado exitosamente.');
         if (cerrar) {
+          draft.markSaved(savedDraft);
           navigate('/servicio-campo/clientes');
         }
       }
@@ -351,10 +484,10 @@ export const ClienteFormPage: React.FC = () => {
               <D365CommandButton
                 icon={<Add16Regular />}
                 tone="create"
-                onClick={() => {
+                onClick={() => void draft.discardAndRun(() => { void (() => {
                   resetForm();
                   navigate('/servicio-campo/clientes/nuevo');
-                }}
+                })(); })}
               >
                 Nuevo
               </D365CommandButton>
@@ -413,7 +546,7 @@ export const ClienteFormPage: React.FC = () => {
       )}
 
       {/* 4. CONTENIDO POR TAB */}
-      <div className={formStyles.contentBody}>
+      <D365FormContent busy={submitting} className={formStyles.contentBody}>
         {selectedTab === 'resumen' && (
           <div className={formStyles.grid2Cols}>
             {/* Tarjeta 1: Identificación Principal */}
@@ -573,36 +706,179 @@ export const ClienteFormPage: React.FC = () => {
                   />
                 </D365FormField>
 
-                <D365FormField label="Distrito / Ubigeo" required info="Seleccione el distrito de cobertura">
-                  <Combobox
-                    style={{ width: '100%' }}
-                    placeholder="Escriba para buscar distrito o departamento..."
-                    value={busquedaUbigeo}
-                    selectedOptions={ubigeoCodigo ? [ubigeoCodigo] : []}
-                    onOptionSelect={(_, d) => {
-                      if (d.optionValue) {
-                        setUbigeoCodigo(d.optionValue);
-                        const sel = ubigeos.find((u) => u.codigo === d.optionValue);
-                        if (sel) {
-                          setBusquedaUbigeo(
-                            `${sel.distrito} - ${sel.provincia}, ${sel.departamento}`
-                          );
-                        } else if (d.optionText) {
-                          setBusquedaUbigeo(d.optionText);
-                        }
-                      }
-                    }}
-                    onChange={(e) => {
-                      setBusquedaUbigeo((e.target as HTMLInputElement).value);
-                      if (ubigeoCodigo) setUbigeoCodigo('');
-                    }}
-                  >
-                    {ubigeos.map((u) => (
-                      <Option key={u.codigo} value={u.codigo} text={`${u.distrito} - ${u.provincia}, ${u.departamento}`}>
-                        {u.distrito} — {u.provincia}, {u.departamento} ({u.codigo})
-                      </Option>
-                    ))}
-                  </Combobox>
+                <D365FormField label="Distrito / Ubigeo" required info="Distrito y región de cobertura técnica">
+                  {ubigeoSeleccionado ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 14px',
+                        background: tokens.colorNeutralBackground3,
+                        border: `1px solid ${tokens.colorNeutralStroke2}`,
+                        borderRadius: '6px',
+                        width: '100%',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Location16Regular style={{ color: tokens.colorBrandForeground1, fontSize: '20px', flexShrink: 0 }} />
+                        <div>
+                          <Text weight="semibold" style={{ fontSize: '13px', display: 'block' }}>
+                            {ubigeoSeleccionado.distrito} — {ubigeoSeleccionado.provincia}, {ubigeoSeleccionado.departamento}
+                          </Text>
+                          <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                            Ubigeo INEI: <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{ubigeoSeleccionado.codigo}</span>
+                          </Text>
+                        </div>
+                      </div>
+                      <Button
+                        size="small"
+                        appearance="subtle"
+                        icon={<Edit16Regular />}
+                        onClick={() => {
+                          setUbigeoCodigo('');
+                          setUbigeoSeleccionado(null);
+                        }}
+                        title="Cambiar distrito"
+                      >
+                        Cambiar
+                      </Button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                      {/* Selector de modo */}
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <Button
+                          size="small"
+                          appearance={modoUbicacion === 'busqueda' ? 'primary' : 'subtle'}
+                          icon={<Search16Regular />}
+                          onClick={() => setModoUbicacion('busqueda')}
+                        >
+                          Búsqueda Rápida
+                        </Button>
+                        <Button
+                          size="small"
+                          appearance={modoUbicacion === 'cascada' ? 'primary' : 'subtle'}
+                          icon={<Location16Regular />}
+                          onClick={() => setModoUbicacion('cascada')}
+                        >
+                          Por Departamento
+                        </Button>
+                      </div>
+
+                      {modoUbicacion === 'busqueda' ? (
+                        <div style={{ position: 'relative', width: '100%' }}>
+                          <Input
+                            style={{ width: '100%' }}
+                            contentBefore={<Search16Regular />}
+                            contentAfter={buscandoUbigeos ? <Spinner size="extra-tiny" /> : undefined}
+                            placeholder="Escriba distrito o código (ej: San Borja, Miraflores, 150130...)"
+                            value={busquedaUbigeo}
+                            onChange={(_, d) => setBusquedaUbigeo(d.value)}
+                          />
+                          {resultadosBusquedaUbigeo.length > 0 && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: '100%',
+                                left: 0,
+                                right: 0,
+                                zIndex: 1000,
+                                maxHeight: '220px',
+                                overflowY: 'auto',
+                                background: tokens.colorNeutralBackground1,
+                                border: `1px solid ${tokens.colorNeutralStroke1}`,
+                                borderRadius: '4px',
+                                boxShadow: tokens.shadow8,
+                                marginTop: '4px',
+                              }}
+                            >
+                              {resultadosBusquedaUbigeo.map((u) => (
+                                <div
+                                  key={u.codigo}
+                                  onClick={() => handleSeleccionarUbigeo(u)}
+                                  style={{
+                                    padding: '8px 12px',
+                                    cursor: 'pointer',
+                                    borderBottom: `1px solid ${tokens.colorNeutralStroke3}`,
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = tokens.colorNeutralBackground2)}
+                                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                                >
+                                  <div>
+                                    <Text weight="medium" style={{ fontSize: '13px' }}>
+                                      {u.distrito}
+                                    </Text>
+                                    <Text size={200} block style={{ color: tokens.colorNeutralForeground3 }}>
+                                      {u.provincia}, {u.departamento}
+                                    </Text>
+                                  </div>
+                                  <Badge appearance="tint" shape="rounded">
+                                    {u.codigo}
+                                  </Badge>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {busquedaUbigeo.trim().length >= 2 && !buscandoUbigeos && resultadosBusquedaUbigeo.length === 0 && (
+                            <div style={{ padding: '6px 2px', fontSize: '12px', color: tokens.colorNeutralForeground4 }}>
+                              No se encontraron distritos que coincidan con "{busquedaUbigeo}".
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                          <Select
+                            style={{ flex: 1, minWidth: '120px' }}
+                            value={depSeleccionado}
+                            onChange={(_, d) => setDepSeleccionado(d.value)}
+                          >
+                            <option value="">Departamento...</option>
+                            {DEPARTAMENTOS_PERU.map((dep) => (
+                              <option key={dep} value={dep}>
+                                {dep}
+                              </option>
+                            ))}
+                          </Select>
+
+                          <Select
+                            style={{ flex: 1, minWidth: '120px' }}
+                            value={provSeleccionada}
+                            disabled={!depSeleccionado || cargandoProvincias}
+                            onChange={(_, d) => setProvSeleccionada(d.value)}
+                          >
+                            <option value="">{cargandoProvincias ? 'Cargando...' : 'Provincia...'}</option>
+                            {provinciasDisponibles.map((prov) => (
+                              <option key={prov} value={prov}>
+                                {prov}
+                              </option>
+                            ))}
+                          </Select>
+
+                          <Select
+                            style={{ flex: 1, minWidth: '140px' }}
+                            value=""
+                            disabled={!provSeleccionada || cargandoDistritos}
+                            onChange={(_, d) => {
+                              const sel = distritosDisponibles.find((x) => x.codigo === d.value);
+                              if (sel) handleSeleccionarUbigeo(sel);
+                            }}
+                          >
+                            <option value="">{cargandoDistritos ? 'Cargando distritos...' : 'Distrito...'}</option>
+                            {distritosDisponibles.map((dist) => (
+                              <option key={dist.codigo} value={dist.codigo}>
+                                {dist.distrito} ({dist.codigo})
+                              </option>
+                            ))}
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </D365FormField>
 
                 <D365FormField label="Latitud GPS" info="Coordenada geográfica de latitud">
@@ -612,7 +888,7 @@ export const ClienteFormPage: React.FC = () => {
                     step="any"
                     value={coordenadaLat}
                     onChange={(_, d) => setCoordenadaLat(d.value)}
-                    placeholder="-12.046374"
+                    placeholder=""
                   />
                 </D365FormField>
 
@@ -623,7 +899,7 @@ export const ClienteFormPage: React.FC = () => {
                     step="any"
                     value={coordenadaLng}
                     onChange={(_, d) => setCoordenadaLng(d.value)}
-                    placeholder="-77.042793"
+                    placeholder=""
                   />
                 </D365FormField>
               </div>
@@ -662,7 +938,7 @@ export const ClienteFormPage: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
+      </D365FormContent>
     </div>
   );
 };

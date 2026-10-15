@@ -41,19 +41,27 @@ public class PostgresCodigoSecuencialService : ICodigoSecuencialService
             await connection.OpenAsync(cancellationToken);
         }
 
+        // Serializar la creación inicial: IF NOT EXISTS no evita carreras en los catálogos del servidor.
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        await using (var schemaLock = new NpgsqlCommand("SELECT pg_advisory_xact_lock(761004305, hashtext(@schema))", connection, transaction))
+        {
+            schemaLock.Parameters.AddWithValue("schema", esquema);
+            await schemaLock.ExecuteNonQueryAsync(cancellationToken);
+        }
         // Asegurar que el esquema y la secuencia existan en PostgreSQL
         var ensureSql = $"CREATE SCHEMA IF NOT EXISTS \"{esquema}\"; CREATE SEQUENCE IF NOT EXISTS \"{esquema}\".\"{nombreSecuencia}\" START WITH 1 INCREMENT BY 1;";
-        await using (var cmdEnsure = new NpgsqlCommand(ensureSql, connection))
+        await using (var cmdEnsure = new NpgsqlCommand(ensureSql, connection, transaction))
         {
             await cmdEnsure.ExecuteNonQueryAsync(cancellationToken);
         }
 
         // Obtener el siguiente valor atómico
         var nextValSql = $"SELECT nextval('\"{esquema}\".\"{nombreSecuencia}\"');";
-        await using (var cmdNext = new NpgsqlCommand(nextValSql, connection))
+        await using (var cmdNext = new NpgsqlCommand(nextValSql, connection, transaction))
         {
             var result = await cmdNext.ExecuteScalarAsync(cancellationToken);
             long valor = Convert.ToInt64(result);
+            await transaction.CommitAsync(cancellationToken);
             return $"{prefijo}-{valor.ToString().PadLeft(longitud, '0')}";
         }
     }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace BubbaBag.SharedKernel.Authorization;
 
@@ -10,6 +11,7 @@ public static class RolePermissions
     {
         [Roles.InventarioAdmin] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
+            Permissions.Inventario.AjustesAprobar, Permissions.GestionDatos.Importar, Permissions.GestionDatos.HistorialVer, Permissions.GestionDatos.HistorialVerTodas,
             Permissions.Inventario.Acceso, Permissions.Inventario.CatalogosGestionar,
             Permissions.Inventario.Operar, Permissions.Inventario.AccesosGestionar,
         },
@@ -23,6 +25,12 @@ public static class RolePermissions
         // 2. Gerencia: visualización ejecutiva y confidencial de todos los módulos
         [Roles.Gerencia] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
+            Permissions.Inventario.AjustesAprobar, Permissions.GestionDatos.Importar, Permissions.GestionDatos.HistorialVer, Permissions.GestionDatos.HistorialVerTodas,
+            Permissions.Configuracion.EmpresaDatosFiscalesGestionar,
+            Permissions.Configuracion.EmpresaPresentacionGestionar,
+            Permissions.Configuracion.SucursalesGestionar,
+            Permissions.Configuracion.SucursalesSedePrincipalGestionar,
+            Permissions.Configuracion.SucursalesEstadoGestionar,
             Permissions.Inventario.Acceso,
             Permissions.ServicioCampo.Acceso,
             Permissions.ServicioCampo.OrdenesVerTodas,
@@ -48,6 +56,8 @@ public static class RolePermissions
         // 3. Recursos Humanos: Administrador
         [Roles.RrhhAdmin] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
+            Permissions.GestionDatos.Importar, Permissions.GestionDatos.HistorialVer, Permissions.GestionDatos.HistorialVerTodas,
+            Permissions.Configuracion.SucursalesGestionar,
             Permissions.Rrhh.Acceso,
             Permissions.Rrhh.ColaboradoresVer,
             Permissions.Rrhh.ColaboradoresGestionar,
@@ -66,6 +76,7 @@ public static class RolePermissions
         // 5. Servicio de Campo: Administrador
         [Roles.ServicioCampoAdmin] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
+            Permissions.Inventario.AjustesAprobar, Permissions.GestionDatos.Importar, Permissions.GestionDatos.HistorialVer, Permissions.GestionDatos.HistorialVerTodas,
             Permissions.Inventario.Acceso, Permissions.Inventario.CatalogosGestionar,
             Permissions.Inventario.Operar, Permissions.Inventario.AccesosGestionar,
             Permissions.ServicioCampo.Acceso,
@@ -115,6 +126,7 @@ public static class RolePermissions
         // 8. CRM: Administrador
         [Roles.CrmAdmin] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
+            Permissions.GestionDatos.Importar, Permissions.GestionDatos.HistorialVer, Permissions.GestionDatos.HistorialVerTodas,
             Permissions.Crm.Acceso,
             Permissions.Crm.ClientesVer,
             Permissions.Crm.ClientesCrear,
@@ -132,6 +144,15 @@ public static class RolePermissions
             Permissions.Crm.ClientesEditar,
         }
     };
+
+    // Los perfiles del sistema se conservan aparte del catálogo cargado desde la base.
+    private static readonly IReadOnlyDictionary<string, HashSet<string>> _systemDefaults =
+        _rolePermissions.ToDictionary(x => x.Key, x => new HashSet<string>(x.Value, StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase);
+
+    public static IReadOnlySet<string> GetSystemPermissionsForRole(string role) =>
+        _systemDefaults.TryGetValue(role, out var permissions)
+            ? new HashSet<string>(permissions, StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
     public static void SetRolePermissions(string role, IEnumerable<string> permissions)
     {

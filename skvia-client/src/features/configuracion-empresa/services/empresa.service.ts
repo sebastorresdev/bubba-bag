@@ -35,4 +35,18 @@ export const EmpresaService = {
       body: JSON.stringify(datos),
     });
   },
+
+  guardarDatosFiscales: (datos: ActualizarEmpresaDto): Promise<ConfiguracionEmpresaDto> =>
+    apiClient('/api/configuracion/empresa/datos-fiscales', {
+      method: 'PATCH',
+      body: JSON.stringify({ razonSocial: datos.razonSocial, nombreComercial: datos.nombreComercial,
+        ruc: datos.ruc, direccionFiscal: datos.direccionFiscal }),
+    }),
+
+  guardarPresentacion: (datos: ActualizarEmpresaDto): Promise<ConfiguracionEmpresaDto> =>
+    apiClient('/api/configuracion/empresa/presentacion', {
+      method: 'PATCH',
+      body: JSON.stringify({ telefono: datos.telefono, email: datos.email,
+        logoBase64: datos.logoBase64, piePaginaDocumentos: datos.piePaginaDocumentos }),
+    }),
 };

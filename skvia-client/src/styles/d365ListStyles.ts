@@ -34,7 +34,9 @@ export const useD365ListStyles = makeStyles({
 
   // 2. View Header Row (Selector + Tools + Search)
   viewHeader: {
-    height: '42px',
+    minHeight: '42px',
+    gap: '8px',
+    '@media (max-width: 767px)': { flexWrap: 'wrap', padding: '8px 16px' },
     backgroundColor: tokens.colorNeutralBackground2,
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
     display: 'flex',
@@ -58,6 +60,8 @@ export const useD365ListStyles = makeStyles({
     },
   },
   viewToolsRight: {
+    minWidth: 0,
+    '@media (max-width: 767px)': { width: '100%', flexWrap: 'wrap' },
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
@@ -68,11 +72,13 @@ export const useD365ListStyles = makeStyles({
 
   // 3. Grid Container & Table
   gridWrapper: {
+    minHeight: 0, minWidth: 0,
     flexGrow: 1,
     overflow: 'auto',
     backgroundColor: tokens.colorNeutralBackground1,
   },
   gridContainer: {
+    minHeight: 0, minWidth: 0,
     flexGrow: 1,
     overflow: 'auto',
     backgroundColor: tokens.colorNeutralBackground1,
@@ -123,7 +129,8 @@ export const useD365ListStyles = makeStyles({
     },
   },
   footer: {
-    height: '32px',
+    minHeight: '32px',
+    flexWrap: 'wrap', gap: '4px',
     borderTop: `1px solid ${tokens.colorNeutralStroke1}`,
     backgroundColor: tokens.colorNeutralBackground2,
     display: 'flex',

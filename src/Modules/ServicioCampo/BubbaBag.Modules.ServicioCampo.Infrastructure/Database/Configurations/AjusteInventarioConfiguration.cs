@@ -19,7 +19,7 @@ public class AjusteInventarioConfiguration : IEntityTypeConfiguration<AjusteInve
         builder.Property(x => x.Estado).HasMaxLength(50).IsRequired();
         builder.Property(x => x.UsuarioRegistro).HasMaxLength(150).IsRequired();
         builder.Property(x => x.UsuarioAprobacion).HasMaxLength(150);
-        builder.Property(x => x.TotalCantidad).HasPrecision(18, 4);
+        builder.Property(x => x.TotalCantidad).HasPrecision(19, 5);
         builder.Property(x => x.ValorTotal).HasPrecision(18, 2);
         builder.Property(x => x.LineasJson).IsRequired();
 

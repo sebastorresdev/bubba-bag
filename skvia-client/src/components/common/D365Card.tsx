@@ -1,16 +1,20 @@
 import React from 'react';
 import { Card, makeStyles, tokens } from '@fluentui/react-components';
+import { semanticTokens } from '../../styles/semanticTokens';
 
 const useStyles = makeStyles({
   card: {
-    padding: '20px 24px',
+    flexShrink: 0,
+    padding: semanticTokens.layout.cardPadding,
+    minWidth: 0,
+    '@media (max-width: 767px)': { padding: semanticTokens.layout.mobilePadding },
     backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: tokens.borderRadiusMedium,
     boxShadow: tokens.shadow2,
     border: `1px solid ${tokens.colorNeutralStroke2}`,
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px',
+    gap: semanticTokens.layout.fieldGap,
     width: '100%',
     boxSizing: 'border-box',
   },
@@ -28,6 +32,7 @@ const useStyles = makeStyles({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flexWrap: 'wrap', gap: '8px',
     paddingBottom: '8px',
     marginBottom: '4px',
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,

@@ -21,6 +21,12 @@ public class CrearEmpleadoHandler : ICommandHandler<CrearEmpleadoCommand, Result
 
     public async Task<Result<Guid>> HandleAsync(CrearEmpleadoCommand request, CancellationToken cancellationToken)
     {
+        if (!_currentUser.IsAuthenticated || !_currentUser.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.ColaboradoresGestionar)) throw new UnauthorizedAccessException();
+        if (!_currentUser.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.SalariosConfidencial)
+            && (request.SalarioBase.HasValue || !string.IsNullOrWhiteSpace(request.MonedaSalario)
+                || !string.IsNullOrWhiteSpace(request.RegimenPensionario) || !string.IsNullOrWhiteSpace(request.Cuspp)
+                || !string.IsNullOrWhiteSpace(request.EntidadFinanciera) || !string.IsNullOrWhiteSpace(request.CuentaBancaria)
+                || !string.IsNullOrWhiteSpace(request.CuentaInterbancaria) || request.TieneAsignacionFamiliar)) throw new UnauthorizedAccessException();
         // Validación de duplicidad de documento
         if (await _context.Empleados.AnyAsync(e => e.TipoDocumento == request.TipoDocumento && e.NumeroDocumento == request.NumeroDocumento, cancellationToken))
         {
@@ -47,7 +53,7 @@ public class CrearEmpleadoHandler : ICommandHandler<CrearEmpleadoCommand, Result
         }
         empleado.ActualizarDatosLaborales(request.FechaIngreso, request.DepartamentoId, request.CargoId, request.TipoContrato);
 
-        var tieneAccesoConfidencial = _currentUser.HasAnyRole(BubbaBag.SharedKernel.Authorization.Roles.AccesoRrhhConfidencial);
+        var tieneAccesoConfidencial = _currentUser.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.SalariosConfidencial);
         if (tieneAccesoConfidencial)
         {
             empleado.ActualizarPlanilla(request.SalarioBase, request.MonedaSalario, request.TieneAsignacionFamiliar, request.RegimenPensionario, request.Cuspp);

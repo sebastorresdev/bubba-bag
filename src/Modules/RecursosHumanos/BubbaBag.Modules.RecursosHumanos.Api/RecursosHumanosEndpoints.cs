@@ -41,7 +41,7 @@ public static class RecursosHumanosEndpoints
     {
         var rootGroup = app.MapGroup("/api/rrhh")
             .WithTags("Recursos Humanos")
-            .RequireAuthorization(p => p.RequireRole(BubbaBag.SharedKernel.Authorization.Roles.AccesoRrhhModulo));
+            .RequireAuthorization(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.Acceso);
 
         // Catálogos
         rootGroup.MapGet("/catalogos", ObtenerCatalogos);
@@ -50,31 +50,31 @@ public static class RecursosHumanosEndpoints
         var departamentosGroup = rootGroup.MapGroup("/departamentos");
         departamentosGroup.MapGet("/", ObtenerDepartamentos);
         departamentosGroup.MapGet("/{id:guid}", ObtenerDepartamentoPorId);
-        departamentosGroup.MapPost("/", CrearDepartamento);
-        departamentosGroup.MapPut("/{id:guid}", ActualizarDepartamento);
-        departamentosGroup.MapDelete("/{id:guid}", EliminarDepartamento);
-        departamentosGroup.MapPatch("/{id:guid}/estado", CambiarEstadoDepartamento);
+        departamentosGroup.MapPost("/", CrearDepartamento).RequireAuthorization(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.CatalogosGestionar);
+        departamentosGroup.MapPut("/{id:guid}", ActualizarDepartamento).RequireAuthorization(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.CatalogosGestionar);
+        departamentosGroup.MapDelete("/{id:guid}", EliminarDepartamento).RequireAuthorization(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.CatalogosGestionar);
+        departamentosGroup.MapPatch("/{id:guid}/estado", CambiarEstadoDepartamento).RequireAuthorization(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.CatalogosGestionar);
 
         // Cargos
         var cargosGroup = rootGroup.MapGroup("/cargos");
         cargosGroup.MapGet("/", ObtenerCargos);
         cargosGroup.MapGet("/{id:guid}", ObtenerCargoPorId);
-        cargosGroup.MapPost("/", CrearCargo);
-        cargosGroup.MapPut("/{id:guid}", ActualizarCargo);
-        cargosGroup.MapDelete("/{id:guid}", EliminarCargo);
-        cargosGroup.MapPatch("/{id:guid}/estado", CambiarEstadoCargo);
+        cargosGroup.MapPost("/", CrearCargo).RequireAuthorization(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.CatalogosGestionar);
+        cargosGroup.MapPut("/{id:guid}", ActualizarCargo).RequireAuthorization(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.CatalogosGestionar);
+        cargosGroup.MapDelete("/{id:guid}", EliminarCargo).RequireAuthorization(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.CatalogosGestionar);
+        cargosGroup.MapPatch("/{id:guid}/estado", CambiarEstadoCargo).RequireAuthorization(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.CatalogosGestionar);
 
         // Empleados
         var empleadosGroup = rootGroup.MapGroup("/empleados");
 
-        empleadosGroup.MapGet("/", ObtenerEmpleados);
-        empleadosGroup.MapGet("/{id:guid}", ObtenerEmpleadoPorId);
-        empleadosGroup.MapPost("/", CrearEmpleado);
-        empleadosGroup.MapPut("/{id:guid}", ActualizarEmpleado);
-        empleadosGroup.MapPost("/{id:guid}/baja", DarDeBajaEmpleado);
-        empleadosGroup.MapPost("/{id:guid}/reactivar", ReactivarEmpleado);
+        empleadosGroup.MapGet("/", ObtenerEmpleados).RequireAuthorization(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.ColaboradoresVer);
+        empleadosGroup.MapGet("/{id:guid}", ObtenerEmpleadoPorId).RequireAuthorization(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.ColaboradoresVer);
+        empleadosGroup.MapPost("/", CrearEmpleado).RequireAuthorization(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.ColaboradoresGestionar);
+        empleadosGroup.MapPut("/{id:guid}", ActualizarEmpleado).RequireAuthorization(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.ColaboradoresGestionar);
+        empleadosGroup.MapPost("/{id:guid}/baja", DarDeBajaEmpleado).RequireAuthorization(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.ColaboradoresGestionar);
+        empleadosGroup.MapPost("/{id:guid}/reactivar", ReactivarEmpleado).RequireAuthorization(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.ColaboradoresGestionar);
         empleadosGroup.MapDelete("/{id:guid}", EliminarEmpleado)
-            .RequireAuthorization(p => p.RequireRole(BubbaBag.SharedKernel.Authorization.Roles.AccesoRrhhConfidencial));
+            .RequireAuthorization(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.ColaboradoresGestionar, BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.SalariosConfidencial);
     }
 
     private static async Task<IResult> ObtenerCatalogos(IDispatcher dispatcher)

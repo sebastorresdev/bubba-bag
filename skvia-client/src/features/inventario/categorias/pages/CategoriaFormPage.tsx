@@ -1,3 +1,6 @@
+import { D365FormContent } from '../../../../components/common/D365FormContent';
+import { useValidationFocus } from '../../../../hooks/useValidationFocus';
+import { useUnsavedChanges } from '../../../../hooks/useUnsavedChanges';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -122,6 +125,9 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
 
   // Estado y lógica para TagPicker de Categoría Padre (Estilo Dynamics 365)
   const [categoriaPadreQuery, setCategoriaPadreQuery] = useState('');
+  const focusValidation = useValidationFocus();
+  const draft = useUnsavedChanges({ formData }, !loading);
+
 
   const categoriaPadreSeleccionada = useMemo(
     () => categoriasDisponibles.find((c) => c.id === formData.categoriaPadreId),
@@ -171,7 +177,9 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
   };
 
   const handleSave = async (closeAfter: boolean = false) => {
+    const savedDraft = draft.capture();
     if (!validate()) {
+      focusValidation();
       setStatusMessage({
         type: 'error',
         text: 'Por favor completa todos los campos requeridos antes de guardar.',
@@ -194,6 +202,7 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
           categoriaPadreId: formData.categoriaPadreId,
           descripcion: formData.descripcion,
         });
+        draft.markSaved(savedDraft);
         notifySuccess(`Categoría "${formData.nombre}" actualizada con éxito.`);
         setStatusMessage(null);
         await cargarCategoriasDisponibles();
@@ -201,10 +210,12 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
         const res = await CategoriaService.createCategoria(formData);
         savedId = res.id;
         setCurrentId(res.id);
+        draft.markSaved(savedDraft);
         notifySuccess(`Categoría "${formData.nombre}" creada con éxito.`);
         setStatusMessage(null);
         await cargarCategoriasDisponibles();
         if (!closeAfter) {
+          draft.markSaved(savedDraft);
           navigate(`/servicio-campo/categorias-producto/${res.id}`, { replace: true });
         }
       }
@@ -219,6 +230,7 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
         setTimeout(() => {
           if (propOnSaved) propOnSaved(savedId || '');
           if (propOnCreated) propOnCreated(savedId || '');
+          draft.markSaved(savedDraft);
           navigate('/servicio-campo/categorias-producto');
         }, 800);
       }
@@ -339,7 +351,7 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
 
       {/* 3. Form Body */}
       {loading ? (
-        <div className={styles.contentBody}>
+        <D365FormContent busy={saving} className={styles.contentBody}>
           <div className={styles.grid2Cols}>
             <Card className={styles.card}>
               <Skeleton animation="pulse">
@@ -351,9 +363,9 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
               </Skeleton>
             </Card>
           </div>
-        </div>
+        </D365FormContent>
       ) : (
-        <div className={styles.contentBody}>
+        <D365FormContent busy={saving} className={styles.contentBody}>
           <Card className={styles.card}>
             <Text className={styles.cardSectionTitle}>Datos de la Categoría</Text>
 
@@ -430,7 +442,7 @@ export const CategoriaFormPage: React.FC<CategoriaFormPageProps> = ({
               />
             </D365FormField>
           </Card>
-        </div>
+        </D365FormContent>
       )}
 
     </div>

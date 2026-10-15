@@ -24,7 +24,7 @@ import type { PermisoDefinicionDto } from '../types/seguridad.types';
 
 const useStyles = makeStyles({
   surface: {
-    maxWidth: '680px',
+    maxWidth: '800px',
     width: '100%',
   },
   dialogHeader: {
@@ -35,6 +35,7 @@ const useStyles = makeStyles({
   filtersRow: {
     display: 'flex',
     gap: tokens.spacingHorizontalS,
+    flexWrap: 'wrap',
     marginBottom: tokens.spacingVerticalS,
   },
   searchInput: {
@@ -51,11 +52,12 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground1,
   },
   tableHeader: {
+    '@media (max-width: 767px)': { gridTemplateColumns: '40px minmax(0, 1fr)', '& > :nth-child(3)': { display: 'none' } },
     position: 'sticky',
     top: 0,
     zIndex: 1,
     display: 'grid',
-    gridTemplateColumns: '40px 1.8fr 1.2fr 1.4fr',
+    gridTemplateColumns: '40px minmax(0, 1fr) 150px',
     padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
     backgroundColor: tokens.colorNeutralBackground3,
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
@@ -64,8 +66,9 @@ const useStyles = makeStyles({
     color: tokens.colorNeutralForeground2,
   },
   tableRow: {
+    '@media (max-width: 767px)': { gridTemplateColumns: '40px minmax(0, 1fr)', rowGap: '8px', '& > :nth-child(3)': { gridColumn: '2' } },
     display: 'grid',
-    gridTemplateColumns: '40px 1.8fr 1.2fr 1.4fr',
+    gridTemplateColumns: '40px minmax(0, 1fr) 150px',
     alignItems: 'center',
     padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
     borderBottom: `1px solid ${tokens.colorNeutralStroke3}`,
@@ -80,14 +83,16 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
   },
   permDesc: {
-    color: tokens.colorNeutralForeground3,
-    fontSize: tokens.fontSizeBase100,
-    lineHeight: '1.2',
+    color: tokens.colorNeutralForeground2,
+    fontSize: tokens.fontSizeBase200,
+    lineHeight: '1.5',
+    marginTop: tokens.spacingVerticalXS,
   },
-  permCode: {
-    fontFamily: 'monospace',
-    fontSize: tokens.fontSizeBase100,
-    color: tokens.colorNeutralForeground3,
+  guidance: {
+    color: tokens.colorNeutralForeground2,
+    fontSize: tokens.fontSizeBase200,
+    lineHeight: '1.5',
+    marginBottom: tokens.spacingVerticalM,
   },
   emptyNotice: {
     padding: tokens.spacingVerticalL,
@@ -226,18 +231,24 @@ export function ManageRolePermissionsDialog({
           </DialogTitle>
 
           <DialogContent>
+            <div className={styles.guidance}>
+              Cada permiso indica qué acción puede realizar el usuario y qué otros accesos necesita.
+              Los roles predefinidos ya incluyen sus permisos; cree un rol personalizado cuando necesite una combinación distinta.
+            </div>
             {/* Filtros rápidos: búsqueda y módulo */}
             <div className={styles.filtersRow}>
               <Input
                 className={styles.searchInput}
                 size="medium"
                 contentBefore={<Search16Regular />}
-                placeholder="Buscar permiso por nombre o código..."
+                placeholder="Buscar"
+                aria-label="Buscar permisos por acción o descripción"
                 value={search}
                 onChange={(_, d) => setSearch(d.value)}
               />
               <Select
                 className={styles.moduleSelect}
+                aria-label="Filtrar permisos por módulo"
                 value={selectedModule}
                 onChange={(_, d) => setSelectedModule(d.value)}
               >
@@ -254,6 +265,7 @@ export function ManageRolePermissionsDialog({
             <div className={styles.tableContainer}>
               <div className={styles.tableHeader}>
                 <Checkbox
+                  aria-label={allFilteredSelected ? 'Quitar todos los permisos visibles' : 'Seleccionar todos los permisos visibles'}
                   checked={
                     allFilteredSelected ? true : someFilteredSelected ? 'mixed' : false
                   }
@@ -265,9 +277,8 @@ export function ManageRolePermissionsDialog({
                     }
                   }}
                 />
-                <span>Capacidad / Permiso</span>
+                <span>Acción y alcance del permiso</span>
                 <span>Módulo</span>
-                <span>Código técnico</span>
               </div>
 
               {filteredPermissions.length === 0 ? (
@@ -284,6 +295,7 @@ export function ManageRolePermissionsDialog({
                       onClick={() => toggleOne(p.codigo)}
                     >
                       <Checkbox
+                        aria-label={p.titulo}
                         checked={isChecked}
                         onChange={() => toggleOne(p.codigo)}
                         onClick={(e) => e.stopPropagation()}
@@ -299,7 +311,6 @@ export function ManageRolePermissionsDialog({
                           {p.modulo}
                         </Badge>
                       </div>
-                      <div className={styles.permCode}>{p.codigo}</div>
                     </div>
                   );
                 })
@@ -309,14 +320,15 @@ export function ManageRolePermissionsDialog({
 
           <DialogActions style={{ justifyContent: 'space-between', marginTop: tokens.spacingVerticalM }}>
             <span className={styles.footerInfo}>
-              <strong>{selected.size}</strong> de {catalogoPermisos.length} seleccionados
+              <strong>{selected.size}</strong> de {catalogoPermisos.length} seleccionados.
+              <br />Guarde el rol para confirmar los cambios.
             </span>
             <div style={{ display: 'flex', gap: tokens.spacingHorizontalS }}>
               <Button appearance="secondary" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
               <Button appearance="primary" onClick={handleSave}>
-                Aceptar
+                Aplicar selección
               </Button>
             </div>
           </DialogActions>

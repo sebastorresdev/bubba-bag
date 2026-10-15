@@ -567,7 +567,7 @@ export function ProductosCompraGrid({
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                   <Input
                     size="small"
-                    placeholder="Buscar serie..."
+                    placeholder="Buscar"
                     contentBefore={<Search16Regular />}
                     value={busquedaSerie}
                     onChange={(_, d) => setBusquedaSerie(d.value)}
@@ -673,7 +673,7 @@ export function ProductosCompraGrid({
                       <Combobox
                         id="compra-producto"
                         className={styles.control}
-                        placeholder="Seleccione o busque un producto..."
+                        placeholder=""
                         value={producto ? `${producto.codigo} · ${producto.nombre}` : busqueda}
                         selectedOptions={linea.productoId ? [linea.productoId] : []}
                         disabled={soloLectura}

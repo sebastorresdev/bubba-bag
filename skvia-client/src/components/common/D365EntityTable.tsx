@@ -1,3 +1,5 @@
+import { useIsMobile } from '../../hooks/useMediaQuery';
+import { D365MobileRecords } from './D365MobileRecords';
 import React, { useState, useMemo, useRef } from 'react';
 import {
   DataGrid,
@@ -12,6 +14,7 @@ import {
   Button,
   Badge,
   Input,
+  Select,
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
@@ -259,6 +262,7 @@ export function D365TableToolbarTools({
   searchPlaceholder = 'Buscar',
   searchAriaLabel,
 }: D365TableToolbarToolsProps) {
+  const isMobile = useIsMobile(768);
   const handleFilters = () => {
     if (tableRef?.current) tableRef.current.openFilters();
     else if (onOpenFilters) onOpenFilters();
@@ -272,7 +276,7 @@ export function D365TableToolbarTools({
   const count = tableRef?.current ? tableRef.current.getActiveFilterCount() : activeFilterCount;
 
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', minWidth: 0, maxWidth: '100%' }}>
       {/* 1° Editar columnas */}
       <Button
         appearance="subtle"
@@ -281,7 +285,7 @@ export function D365TableToolbarTools({
         aria-label="Editar columnas"
         onClick={handleColumns}
       >
-        Editar columnas
+        {!isMobile && 'Editar columnas'}
       </Button>
 
       {/* 2° Editar filtros (con Drawer) */}
@@ -292,7 +296,7 @@ export function D365TableToolbarTools({
         aria-label="Editar filtros"
         onClick={handleFilters}
       >
-        Editar filtros
+        {!isMobile && 'Editar filtros'}
         {count > 0 && (
           <Badge appearance="filled" color="brand" size="small" style={{ marginLeft: '4px' }}>
             {count}
@@ -333,6 +337,7 @@ function D365EntityTableInner<T extends { id: string }>(
   }: D365EntityTableProps<T>,
   ref: React.Ref<D365EntityTableRef>
 ) {
+  const isMobile = useIsMobile(768);
   const styles = useD365ListStyles();
   const customStyles = useStyles();
   const storageId = tableId || entityName.toLowerCase().replace(/\s+/g, '_');
@@ -547,7 +552,7 @@ function D365EntityTableInner<T extends { id: string }>(
     }
 
     return result;
-  }, [items, advancedConditions, advancedLogicalOp, sortColumn, sortDirection, columns]);
+  }, [items, advancedConditions, advancedLogicalOp, sortColumn, sortDirection, columns, derivedFields]);
 
   // Columnas visibles y ordenadas
   const activeColumns = useMemo(() => {
@@ -577,7 +582,17 @@ function D365EntityTableInner<T extends { id: string }>(
 
       <div className={styles.gridWrapper}>
         <D365ListState loading={loading} error={error} onRetry={onRetry}>
-          <DataGrid
+          {isMobile ? <>
+            <div style={{ display: 'flex', gap: '8px', padding: '12px 16px', flexWrap: 'wrap' }}>
+              <Select aria-label="Ordenar por" value={sortColumn ?? ''} onChange={(_, data) => { setSortColumn(data.value || null); setSortDirection('asc'); }}>
+                <option value="">Sin orden</option>
+                {activeColumns.map(column => <option key={column.columnId} value={String(column.columnId)}>{defaultColumnsConfig.find(c => c.id === String(column.columnId))?.label}</option>)}
+              </Select>
+              {sortColumn && <Button aria-label={sortDirection === 'asc' ? 'Cambiar a orden descendente' : 'Cambiar a orden ascendente'} icon={sortDirection === 'asc' ? <ArrowSortUp16Regular /> : <ArrowSortDown16Regular />} onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')} />}
+              {selectionMode === 'multiselect' && processedItems.length > 0 && <Button onClick={event => onSelectionChange?.(event, { selectedItems: processedItems.every(item => selectedItems?.has(item.id)) ? new Set() : new Set(processedItems.map(item => item.id)) })}>{processedItems.every(item => selectedItems?.has(item.id)) ? 'Quitar selección' : 'Seleccionar todos'}</Button>}
+            </div>
+            {processedItems.length === 0 ? <TableEmptyState /> : <D365MobileRecords items={processedItems} columns={activeColumns} getRowId={item => item.id} selectionMode={selectionMode} selectedItems={selectedItems} onSelectionChange={onSelectionChange} onOpen={onRowDoubleClick} label={entityName} />}
+          </> : <DataGrid
             items={processedItems}
             columns={activeColumns}
             getRowId={(item) => item.id}
@@ -596,6 +611,7 @@ function D365EntityTableInner<T extends { id: string }>(
                   return (
                     <DataGridHeaderCell
                       sortIcon={null}
+                      aria-sort={isSorted ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
                       className={customStyles.headerCell}
                       onClick={() => handleToggleSort(idStr)}
                       style={{
@@ -609,9 +625,12 @@ function D365EntityTableInner<T extends { id: string }>(
                       }}
                     >
                       <div className={customStyles.headerCellContent}>
-                        <div
+                        <button
+                          type="button"
                           className={customStyles.headerTitleBtn}
+                          style={{ background: 'transparent', color: 'inherit', border: 0, padding: 0, font: 'inherit', textAlign: 'left', cursor: 'pointer' }}
                           title="Haga clic para ordenar"
+                          onClick={event => { event.stopPropagation(); handleToggleSort(idStr); }}
                         >
                           {renderHeaderCell()}
                           {isSorted &&
@@ -620,7 +639,7 @@ function D365EntityTableInner<T extends { id: string }>(
                             ) : (
                               <ArrowSortDown16Regular className={customStyles.sortIcon} />
                             ))}
-                        </div>
+                        </button>
 
                         {/* Control de redimensionamiento de columna */}
                         <div
@@ -644,6 +663,7 @@ function D365EntityTableInner<T extends { id: string }>(
                     key={rowId}
                     className={styles.dataRow}
                     onDoubleClick={() => onRowDoubleClick?.(item)}
+                    onKeyDown={event => { if (event.key === 'Enter' && onRowDoubleClick && !(event.target as HTMLElement).closest('button, input, a')) { event.preventDefault(); onRowDoubleClick(item); } }}
                   >
                     {({ renderCell, columnId }) => {
                       const idStr = String(columnId);
@@ -667,7 +687,7 @@ function D365EntityTableInner<T extends { id: string }>(
                 )}
               </DataGridBody>
             )}
-          </DataGrid>
+          </DataGrid>}
         </D365ListState>
       </div>
 

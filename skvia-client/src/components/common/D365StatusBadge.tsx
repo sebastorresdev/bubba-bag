@@ -1,5 +1,6 @@
 import React from 'react';
-import { Badge, type BadgeProps } from '@fluentui/react-components';
+import { Badge, makeStyles, tokens, type BadgeProps } from '@fluentui/react-components';
+import { Checkmark12Regular } from '@fluentui/react-icons';
 
 export type D365StatusColor =
   | 'brand'
@@ -10,6 +11,14 @@ export type D365StatusColor =
   | 'subtle'
   | 'success'
   | 'warning';
+
+export interface StatusResolution {
+  color: D365StatusColor;
+  label: string;
+  hasCheckmark?: boolean;
+  isPulsing?: boolean;
+  hasBorder?: boolean;
+}
 
 export interface D365StatusBadgeProps {
   status?: string | boolean | number | null;
@@ -22,152 +31,199 @@ export interface D365StatusBadgeProps {
   style?: React.CSSProperties;
 }
 
+const useStyles = makeStyles({
+  pulseDot: {
+    width: '6px',
+    height: '6px',
+    borderRadius: '50%',
+    backgroundColor: 'currentColor',
+    display: 'inline-block',
+    marginRight: '6px',
+    flexShrink: 0,
+    animationName: {
+      '0%': { transform: 'scale(0.85)', opacity: 0.6 },
+      '50%': { transform: 'scale(1.35)', opacity: 1 },
+      '100%': { transform: 'scale(0.85)', opacity: 0.6 },
+    },
+    animationDuration: '1.8s',
+    animationIterationCount: 'infinite',
+    animationTimingFunction: 'ease-in-out',
+  },
+  checkmarkIcon: {
+    marginRight: '4px',
+    flexShrink: 0,
+    verticalAlign: 'middle',
+  },
+  badgeSubtleBorder: {
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+  },
+  badgeBase: {
+    fontSize: tokens.fontSizeBase200,
+    fontWeight: tokens.fontWeightMedium,
+    display: 'inline-flex',
+    alignItems: 'center',
+  },
+});
+
 /**
- * Resolves standard business/ERP status terms to appropriate Fluent UI Badge colors
- * matching Dynamics 365 / Power Apps tint badges.
+ * Matriz Semántica de Estados Estandarizada:
+ * - Borrador / Pendiente: Neutral / Gris con borde suave (subtle).
+ * - Pendiente Programar: Ámbar / Amarillo tenue (warning).
+ * - Programada / En Ruta: Azul corporativo (brand).
+ * - En Progreso: Azul intenso / Púrpura con punto pulsante de actividad (informative + pulse).
+ * - Completada / Liquidada / Finalizada: Verde esmeralda con icono Checkmark (success + checkmark).
+ * - Cancelada / Rechazada / Defectuoso: Rojo suave (danger).
  */
-export function resolveStatusColor(status?: string | boolean | number | null): {
-  color: D365StatusColor;
-  label: string;
-} {
+export function resolveStatusColor(status?: string | boolean | number | null): StatusResolution {
   if (status === null || status === undefined) {
-    return { color: 'subtle', label: '—' };
+    return { color: 'subtle', label: '—', hasBorder: true };
   }
 
   if (typeof status === 'boolean') {
     return status
-      ? { color: 'success', label: 'Activo' }
+      ? { color: 'success', label: 'Activo', hasCheckmark: true }
       : { color: 'danger', label: 'Inactivo' };
   }
 
   const str = String(status).trim();
-  const normalized = str.toLowerCase();
+  const normalized = str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f\s_-]/g, '');
 
-  // 1. Success (Green)
-  if (
-    normalized === 'completed' ||
-    normalized === 'completado' ||
-    normalized === 'completada' ||
-    normalized === 'aplicado' ||
-    normalized === 'aprobado' ||
-    normalized === 'aprobada' ||
-    normalized === 'recibida' ||
-    normalized === 'recibido' ||
-    normalized === 'cerrada' ||
-    normalized === 'cerrado' ||
-    normalized === 'activo' ||
-    normalized === 'activa' ||
-    normalized === 'conforme' ||
-    normalized === 'finalizado' ||
-    normalized === 'utilizable'
-  ) {
-    return { color: 'success', label: str };
+  // 1. Borrador / Pendiente (Neutral con borde suave)
+  if (normalized === 'borrador' || normalized === 'draft' || normalized === 'nuevo' || normalized === 'nueva') {
+    return { color: 'subtle', label: 'Borrador', hasBorder: true };
+  }
+  if (normalized === 'pendiente' || normalized === 'pending') {
+    return { color: 'subtle', label: 'Pendiente', hasBorder: true };
   }
 
-  // 2. Scheduled / In Progress / Brand (Blue)
+  // 2. Pendiente Programar / Por Aprobar / En Revisión (Ámbar / Amarillo tenue)
   if (
-    normalized === 'scheduled' ||
+    normalized === 'pendienteprogramar' ||
+    normalized === 'unscheduled' ||
+    normalized === 'sinprogramar' ||
+    normalized === 'poraprobar' ||
+    normalized === 'enrevision' ||
+    normalized === 'observado' ||
+    normalized === 'parcialmenterecibida'
+  ) {
+    const labelMap: Record<string, string> = {
+      pendienteprogramar: 'Pendiente Programar',
+      unscheduled: 'Sin programar',
+      sinprogramar: 'Sin programar',
+      poraprobar: 'Por aprobar',
+      enrevision: 'En revisión',
+      parcialmenterecibida: 'Parcialmente Recibida',
+    };
+    return { color: 'warning', label: labelMap[normalized] || str };
+  }
+
+  // 3. Programada / En Ruta / En Tránsito (Azul corporativo)
+  if (
     normalized === 'programado' ||
     normalized === 'programada' ||
+    normalized === 'scheduled' ||
+    normalized === 'enruta' ||
     normalized === 'entransito' ||
-    normalized === 'en transito' ||
-    normalized === 'en tránsito' ||
-    normalized === 'enviado' ||
-    normalized === 'enviada' ||
     normalized === 'despachado' ||
-    normalized === 'despachada'
+    normalized === 'despachada' ||
+    normalized === 'enviado' ||
+    normalized === 'enviada'
   ) {
-    return {
-      color: 'brand',
-      label: normalized === 'entransito' ? 'En Tránsito' : str,
+    const labelMap: Record<string, string> = {
+      programado: 'Programado',
+      programada: 'Programada',
+      enruta: 'En Ruta',
+      entransito: 'En Tránsito',
     };
+    return { color: 'brand', label: labelMap[normalized] || str };
   }
 
-  // 3. Informative / Cyan / In Progress
+  // 4. En Progreso (Azul intenso / Púrpura con punto pulsante de actividad)
   if (
-    normalized === 'in progress' ||
+    normalized === 'enprogreso' ||
     normalized === 'inprogress' ||
-    normalized === 'en proceso' ||
-    normalized === 'en curso' ||
-    normalized === 'bodega' ||
-    normalized === 'custodia personal' ||
-    normalized === 'custodia'
+    normalized === 'enproceso' ||
+    normalized === 'encurso' ||
+    normalized === 'operando'
   ) {
-    return {
-      color: 'informative',
-      label: str,
-    };
+    return { color: 'informative', label: 'En Progreso', isPulsing: true };
   }
 
-  // 4. Warning / Amber / Orange
+  // 5. Completada / Liquidada / Finalizada (Verde esmeralda con icono Checkmark)
   if (
-    normalized === 'unscheduled' ||
-    normalized === 'no programado' ||
-    normalized === 'pendiente' ||
-    normalized === 'enrevision' ||
-    normalized === 'en revision' ||
-    normalized === 'en revisión' ||
-    normalized === 'poraprobar' ||
-    normalized === 'por aprobar' ||
-    normalized === 'parcialmenterecibida' ||
-    normalized === 'parcialmente recibida' ||
-    normalized === 'parcial' ||
-    normalized === 'observado'
+    normalized === 'completado' ||
+    normalized === 'completada' ||
+    normalized === 'completed' ||
+    normalized === 'completa' ||
+    normalized === 'liquidada' ||
+    normalized === 'liquidado' ||
+    normalized === 'finalizada' ||
+    normalized === 'finalizado' ||
+    normalized === 'cerrada' ||
+    normalized === 'cerrado' ||
+    normalized === 'aprobado' ||
+    normalized === 'aprobada' ||
+    normalized === 'recibido' ||
+    normalized === 'recibida' ||
+    normalized === 'activo' ||
+    normalized === 'activa' ||
+    normalized === 'conforme'
   ) {
-    return {
-      color: 'warning',
-      label:
-        normalized === 'enrevision'
-          ? 'En revisión'
-          : normalized === 'parcialmenterecibida'
-          ? 'Parcialmente Recibida'
-          : str,
+    const labelMap: Record<string, string> = {
+      completado: 'Completado',
+      completada: 'Completada',
+      completa: 'Completa',
+      liquidada: 'Liquidada',
+      liquidado: 'Liquidado',
+      finalizada: 'Finalizada',
+      finalizado: 'Finalizado',
     };
+    return { color: 'success', label: labelMap[normalized] || str, hasCheckmark: true };
   }
 
-  // 5. Danger / Red
+  // 6. Cancelada / Rechazada / Defectuoso (Rojo suave)
   if (
     normalized === 'cancelado' ||
     normalized === 'cancelada' ||
-    normalized === 'anulado' ||
-    normalized === 'anulada' ||
+    normalized === 'canceled' ||
+    normalized === 'cancelled' ||
     normalized === 'rechazado' ||
     normalized === 'rechazada' ||
-    normalized === 'inactivo' ||
-    normalized === 'inactiva' ||
+    normalized === 'anulado' ||
+    normalized === 'anulada' ||
     normalized === 'defectuoso' ||
     normalized === 'baja' ||
-    normalized === 'eliminado'
+    normalized === 'eliminado' ||
+    normalized === 'inactivo' ||
+    normalized === 'inactiva'
   ) {
-    return { color: 'danger', label: str };
+    const labelMap: Record<string, string> = {
+      cancelado: 'Cancelado',
+      cancelada: 'Cancelada',
+      rechazado: 'Rechazado',
+      rechazada: 'Rechazada',
+      defectuoso: 'Defectuoso',
+    };
+    return { color: 'danger', label: labelMap[normalized] || str };
   }
 
-  // 6. Subtle / Gray (Draft, New, etc.)
-  if (
-    normalized === 'borrador' ||
-    normalized === 'draft' ||
-    normalized === 'nuevo' ||
-    normalized === 'nueva'
-  ) {
-    return { color: 'subtle', label: str };
-  }
-
-  return { color: 'subtle', label: str };
+  return { color: 'subtle', label: str, hasBorder: true };
 }
 
 /**
-  * Dynamics 365 status badge using native Fluent UI Badge with ghost appearance (borderless by default in Fluent UI).
-  */
+ * Dynamics 365 status badge using native Fluent UI Badge with tint appearance and standardized semantics.
+ */
 export const D365StatusBadge: React.FC<D365StatusBadgeProps> = ({
   status,
   text,
   color,
-  appearance = 'ghost',
+  appearance = 'tint',
   shape = 'rounded',
-  size = 'small',
+  size = 'medium',
   className,
   style,
 }) => {
+  const styles = useStyles();
   const resolved = resolveStatusColor(status);
   const badgeColor = color ?? resolved.color;
   const badgeLabel = text ?? resolved.label;
@@ -178,9 +234,11 @@ export const D365StatusBadge: React.FC<D365StatusBadgeProps> = ({
       shape={shape}
       color={badgeColor}
       size={size}
-      className={className}
+      className={`${styles.badgeBase} ${resolved.hasBorder ? styles.badgeSubtleBorder : ''} ${className ?? ''}`}
       style={style}
     >
+      {resolved.isPulsing && <span className={styles.pulseDot} aria-hidden="true" />}
+      {resolved.hasCheckmark && <Checkmark12Regular className={styles.checkmarkIcon} aria-hidden="true" />}
       {badgeLabel}
     </Badge>
   );

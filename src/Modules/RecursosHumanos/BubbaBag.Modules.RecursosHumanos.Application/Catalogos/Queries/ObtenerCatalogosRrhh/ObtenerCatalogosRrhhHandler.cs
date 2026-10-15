@@ -14,10 +14,12 @@ namespace BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Queries.Obtener
 public class ObtenerCatalogosRrhhHandler : IQueryHandler<ObtenerCatalogosRrhhQuery, Result<CatalogosRrhhDto>>
 {
     private readonly IRecursosHumanosDbContext _context;
+    private readonly ICurrentUser _currentUser;
 
-    public ObtenerCatalogosRrhhHandler(IRecursosHumanosDbContext context)
+    public ObtenerCatalogosRrhhHandler(IRecursosHumanosDbContext context, ICurrentUser currentUser)
     {
         _context = context;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<CatalogosRrhhDto>> HandleAsync(ObtenerCatalogosRrhhQuery query, CancellationToken cancellationToken = default)
@@ -33,7 +35,7 @@ public class ObtenerCatalogosRrhhHandler : IQueryHandler<ObtenerCatalogosRrhhQue
             d.Id,
             d.Nombre,
             d.Descripcion,
-            d.Cargos.OrderBy(c => c.Nombre).Select(c => new CargoCatalogoDto(c.Id, c.Nombre, c.SalarioReferencial)).ToList()
+            d.Cargos.OrderBy(c => c.Nombre).Select(c => new CargoCatalogoDto(c.Id, c.Nombre, _currentUser.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.SalariosConfidencial) ? c.SalarioReferencial : null)).ToList()
         )).ToList();
 
         var tiposDocumento = new List<string>

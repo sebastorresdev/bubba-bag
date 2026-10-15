@@ -70,7 +70,7 @@ public record ActualizarSucursalCommand(
     string? Ciudad = null,
     string? Direccion = null,
     string? Telefono = null,
-    bool EsSedePrincipal = false
+    bool? EsSedePrincipal = null
 ) : ICommand<Result>;
 
 public class ActualizarSucursalHandler : ICommandHandler<ActualizarSucursalCommand, Result>
@@ -92,7 +92,7 @@ public class ActualizarSucursalHandler : ICommandHandler<ActualizarSucursalComma
             return Result.Failure($"No se encontró la sucursal con id '{command.Id}'.");
         }
 
-        if (command.EsSedePrincipal && !sucursal.EsSedePrincipal)
+        if (command.EsSedePrincipal == true && !sucursal.EsSedePrincipal)
         {
             var otrasPrincipales = await _context.Sucursales
                 .Where(s => s.EsSedePrincipal && s.Id != command.Id)
@@ -108,7 +108,7 @@ public class ActualizarSucursalHandler : ICommandHandler<ActualizarSucursalComma
             command.Ciudad,
             command.Direccion,
             command.Telefono,
-            command.EsSedePrincipal
+            command.EsSedePrincipal ?? sucursal.EsSedePrincipal
         );
 
         await _context.SaveChangesAsync(cancellationToken);

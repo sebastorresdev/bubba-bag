@@ -78,10 +78,36 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
             }
             catch
             {
-                await transaccion.RollbackAsync(cancellationToken);
+                await transaccion.RollbackAsync(CancellationToken.None);
                 throw;
             }
         });
+    }
+
+    public async Task EjecutarConBloqueoAjusteAsync(Guid id, Func<CancellationToken, Task> operacion, CancellationToken ct = default)
+    {
+        if (!Database.IsRelational()) { await operacion(ct); return; }
+        await EjecutarEnTransaccionAsync(async token =>
+        {
+            ChangeTracker.Clear();
+            if (Database.IsNpgsql())
+                await Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(761004302, hashtext({id.ToString()}))", token);
+            try { await operacion(token); }
+            catch { ChangeTracker.Clear(); throw; }
+        }, ct);
+    }
+
+    public async Task EjecutarConBloqueoOrdenAsync(Guid id, Func<CancellationToken, Task> operacion, CancellationToken ct = default)
+    {
+        if (!Database.IsRelational()) { await operacion(ct); return; }
+        await EjecutarEnTransaccionAsync(async token =>
+        {
+            ChangeTracker.Clear();
+            if (Database.IsNpgsql())
+                await Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(761004303, hashtext({id.ToString()}))", token);
+            try { await operacion(token); }
+            catch { ChangeTracker.Clear(); throw; }
+        }, ct);
     }
 
     // Ejecución de Trabajos y Liquidación de Materiales

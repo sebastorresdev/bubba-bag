@@ -1,3 +1,4 @@
+import { confirmAction } from '../../../../services/uiFeedback';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   TableCellLayout,
@@ -180,7 +181,7 @@ export function TareasListPage() {
         ? `¿Está seguro de eliminar la tarea "${itemsAEliminar[0].nombre}"?`
         : `¿Está seguro de eliminar las ${itemsAEliminar.length} tareas seleccionadas?`;
 
-    if (!window.confirm(mensajeConfirm)) return;
+    if (!await confirmAction(mensajeConfirm)) return;
 
     try {
       setLoading(true);

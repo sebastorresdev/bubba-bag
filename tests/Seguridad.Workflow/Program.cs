@@ -107,7 +107,7 @@ Token(adminToken);
 await using (var scope = app.Services.CreateAsyncScope())
 {
     var accessor = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Http.IHttpContextAccessor>();
-    accessor.HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext { User = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity([new(System.Security.Claims.ClaimTypes.Role, Roles.SuperAdmin)], "fixture")) };
+    accessor.HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext { User = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity([new(System.Security.Claims.ClaimTypes.NameIdentifier, adminId.ToString()), new(System.Security.Claims.ClaimTypes.Role, Roles.SuperAdmin)], "fixture")) };
     var provider = scope.ServiceProvider.GetServices<BubbaBag.Modules.GestionDatos.Application.Services.IEntityImportProvider>().OfType<UsuariosImportProvider>().Single();
     var result = await provider.ImportAsync("Usuario", [new() { ["Email"] = "masivo@pruebas.invalid", ["NombreCompleto"] = "Carga manual aislada", ["Roles"] = Roles.ServicioCampoTecnico }, new() { ["Email"] = "fallido@pruebas.invalid", ["NombreCompleto"] = "No persistir", ["Roles"] = "Inventado" }], "Error");
     Check(result.TotalExitosos == 1 && result.TotalFallidos == 1, "Importación informa éxito y error por fila");

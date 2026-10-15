@@ -1,3 +1,7 @@
+import { D365FormContent } from '../../../../components/common/D365FormContent';
+import { useValidationFocus } from '../../../../hooks/useValidationFocus';
+import { useUnsavedChanges } from '../../../../hooks/useUnsavedChanges';
+import { confirmAction } from '../../../../services/uiFeedback';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -61,6 +65,7 @@ import { D365EntityHeader } from '../../../../components/common/D365EntityHeader
 import { LookupDropdownWithQuickCreate } from '../../../../components/common/LookupDropdownWithQuickCreate';
 import { SelectorEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
 import { useCurrentUser } from '../../../../hooks/useCurrentUser';
+import { useAuthSession } from '../../../../services/authSession';
 
 export interface AlmacenFormPageProps {
   almacenId?: string | null;
@@ -88,6 +93,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   onSaved: propOnSaved,
   onCreated: propOnCreated,
 }) => {
+  const { permisos } = useAuthSession();
   const styles = useD365FormStyles();
   const pageStyles = useAlmacenPageStyles();
   const { id: routeId } = useParams<{ id: string }>();
@@ -175,6 +181,9 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busquedaSede, setBusquedaSede] = useState<string>('');
   const [busquedaRecurso, setBusquedaRecurso] = useState<string>('');
+  const focusValidation = useValidationFocus();
+  const draft = useUnsavedChanges({ formData }, !loading);
+
   // Si se está creando un almacén o es de tipo custodia personal, restringir pestañas inactivas
   useEffect(() => {
     if (!currentId && selectedTab !== 'general') {
@@ -297,7 +306,9 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   };
 
   const handleSave = async (closeAfterSave = false): Promise<string | null> => {
+    const savedDraft = draft.capture();
     if (!validate()) {
+      setSelectedTab('general'); focusValidation();
       setSelectedTab('general');
       setStatusMessage({
         type: 'error',
@@ -329,6 +340,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
         }));
 
         const successMessage = `Almacén "${formData.nombre.trim()}" actualizado correctamente.`;
+        draft.markSaved(savedDraft);
         notifySuccess(successMessage);
         setStatusMessage(null);
 
@@ -336,7 +348,8 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
 
         if (closeAfterSave) {
           if (propOnBack) propOnBack();
-          else navigate('/servicio-campo/almacenes', { state: { successMessage } });
+          else { draft.markSaved(savedDraft);
+navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
         }
 
         return currentId;
@@ -354,6 +367,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
         });
 
         const successMessage = `Almacén "${formData.nombre.trim()}" creado exitosamente.`;
+        draft.markSaved(savedDraft);
         notifySuccess(successMessage);
         setStatusMessage(null);
 
@@ -362,8 +376,10 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
 
         if (closeAfterSave) {
           if (propOnBack) propOnBack();
-          else navigate('/servicio-campo/almacenes', { state: { successMessage } });
+          else { draft.markSaved(savedDraft);
+navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
         } else {
+          draft.markSaved(savedDraft);
           navigate(`/servicio-campo/almacenes/${res.id}`, { replace: true });
         }
 
@@ -403,7 +419,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   const handleDelete = async () => {
     if (!currentId) return;
     const nombreAlm = savedHeader.nombre || formData.nombre || 'este almacén';
-    if (!window.confirm(`¿Está seguro de eliminar el almacén "${nombreAlm}"?`)) return;
+    if (!await confirmAction(`¿Está seguro de eliminar el almacén "${nombreAlm}"?`)) return;
 
     try {
       setSaving(true);
@@ -412,9 +428,9 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
       if (propOnBack) {
         propOnBack();
       } else {
-        navigate('/servicio-campo/almacenes', {
+        (draft.markSaved(), navigate('/servicio-campo/almacenes', {
           state: { successMessage: `Almacén "${nombreAlm}" eliminado correctamente.` },
-        });
+        }));
       }
     } catch (err: any) {
       console.error('Error al eliminar almacén:', err);
@@ -642,7 +658,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
         }
       />
 
-      <div className={styles.contentBody} aria-busy={loading}>
+      <D365FormContent busy={saving} className={styles.contentBody} aria-busy={loading}>
         {loading ? (
           <div className={pageStyles.halfCardWrapper}>
             <Card className={styles.card} role="status" aria-label="Cargando almacén">
@@ -735,6 +751,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
                       error={errors.unidadOrganizativaId}
                     >
                       <LookupDropdownWithQuickCreate
+                        puedeCrear={permisos.includes('configuracion.sucursales.gestionar')}
                         idEntrada="almacen-unidad-org"
                         etiquetaGrupo="Unidades Organizativas (Sedes)"
                         icono={<Building16Regular />}
@@ -863,7 +880,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
                       </span>
                       <Input
                         contentBefore={<Search16Regular />}
-                        placeholder="Buscar por producto o código..."
+                        placeholder="Buscar"
                         aria-label="Buscar producto o código"
                         value={filtroStock}
                         onChange={(_e, d) => setFiltroStock(d.value)}
@@ -1036,7 +1053,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
             )}
           </>
         )}
-      </div>
+      </D365FormContent>
     </div>
   );
 };

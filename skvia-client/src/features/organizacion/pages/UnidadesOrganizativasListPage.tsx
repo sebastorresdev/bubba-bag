@@ -34,6 +34,7 @@ import { ImportacionDrawer } from '../../../components/common/ImportacionDrawer'
 import { useD365ListStyles } from '../../../styles/d365ListStyles';
 import { OrganizacionService } from '../services/organizacion.service';
 import type { UnidadOrganizativaDto } from '../types/organizacion.types';
+import { useAuthSession } from '../../../services/authSession';
 
 type VistaUnidades = 'activas' | 'todas' | 'principales' | 'inactivas';
 
@@ -47,6 +48,10 @@ const nombresVistaUnidades: Record<VistaUnidades, string> = {
 export function UnidadesOrganizativasListPage() {
   const styles = useD365ListStyles();
   const navigate = useNavigate();
+  const { permisos } = useAuthSession();
+  const puedeEditar = permisos.includes('configuracion.sucursales.gestionar');
+  const puedeCambiarEstado = permisos.includes('configuracion.sucursales.estado.gestionar');
+  const puedeImportar = puedeEditar && permisos.includes('gestiondatos.importar');
   const tableRef = useRef<D365EntityTableRef>(null);
   const [datos, setDatos] = useState<UnidadOrganizativaDto[]>([]);
   const [buscar, setBuscar] = useState('');
@@ -96,7 +101,7 @@ export function UnidadesOrganizativasListPage() {
   }, [seleccionados, datos]);
 
   const cambiarEstado = async () => {
-    if (!itemSeleccionado) return;
+    if (!itemSeleccionado || !puedeCambiarEstado) return;
     try {
       setLoading(true);
       const nuevoEstado = !itemSeleccionado.activo;
@@ -194,6 +199,7 @@ export function UnidadesOrganizativasListPage() {
             icon={<Add16Regular />}
             tone="create"
             onClick={() => navigate('/servicio-campo/unidades-organizativas/nuevo')}
+            disabled={!puedeEditar || loading}
           >
             Nuevo
           </D365CommandButton>
@@ -210,6 +216,7 @@ export function UnidadesOrganizativasListPage() {
                 icon={itemSeleccionado.activo ? <DismissCircle16Regular /> : <Checkmark16Regular />}
                 tone={itemSeleccionado.activo ? 'danger' : 'create'}
                 onClick={() => void cambiarEstado()}
+                disabled={!puedeCambiarEstado || loading}
               >
                 {itemSeleccionado.activo ? 'Desactivar' : 'Activar'}
               </D365CommandButton>
@@ -229,6 +236,7 @@ export function UnidadesOrganizativasListPage() {
           <D365CommandButton
             icon={<ArrowUpload16Regular />}
             onClick={() => setImportDrawerOpen(true)}
+            disabled={!puedeImportar || loading}
           >
             Importar de Excel
           </D365CommandButton>

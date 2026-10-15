@@ -87,6 +87,7 @@ const useStyles = makeStyles({
   mappingRow: {
     display: 'grid',
     gridTemplateColumns: '1fr 28px 1.4fr',
+    '@media (max-width: 767px)': { gridTemplateColumns: 'minmax(0, 1fr)', '& > :nth-child(2)': { display: 'none' } },
     alignItems: 'center',
     gap: '10px',
     padding: '8px 10px',
@@ -117,7 +118,7 @@ const useStyles = makeStyles({
     marginBottom: '2px',
   },
   sampleText: {
-    fontSize: tokens.fontSizeBase100,
+    fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground3,
     whiteSpace: 'nowrap',
     overflow: 'hidden',
@@ -214,6 +215,7 @@ export const ImportacionDrawer: React.FC<ImportacionDrawerProps> = ({
   );
 
   const resetForm = () => {
+    if (importResult) ImportacionService.cerrarIntentoInventario(importResult.id);
     setSelectedFile(null);
     setPreviewData(null);
     setColumnMapping({});
@@ -600,15 +602,21 @@ export const ImportacionDrawer: React.FC<ImportacionDrawerProps> = ({
         {currentStep === 3 && (
           <div className={styles.settingsCard}>
             <div className={styles.sectionTitle}>Tratamiento de Registros Duplicados</div>
+            {currentEntity?.entityName === 'InventarioInicial' && (
+              <D365MessageBar intent="info" title="Carga de existencias">
+                Las cantidades se suman al inventario; las series existentes se rechazan. Una carga nueva del mismo archivo volverá a sumar las cantidades no serializadas.
+              </D365MessageBar>
+            )}
 
             <div className={styles.formRow}>
               <Text size={200} weight="semibold">Modo de Tratamiento de Duplicados</Text>
               <Select
                 value={duplicateMode}
+                disabled={currentEntity?.entityName === 'InventarioInicial'}
                 onChange={(_, d) => setDuplicateMode(d.value)}
                 size="small"
               >
-                <option value="Upsert">Actualizar registros existentes</option>
+                <option value="Upsert">{currentEntity?.entityName === 'InventarioInicial' ? 'Sumar cantidades y rechazar series existentes' : 'Actualizar registros existentes'}</option>
                 <option value="Skip">Omitir duplicados</option>
                 <option value="Error">Rechazar duplicados</option>
               </Select>
@@ -647,6 +655,12 @@ export const ImportacionDrawer: React.FC<ImportacionDrawerProps> = ({
             >
               Se procesaron {importResult.totalProcesados} filas: {importResult.totalExitosos} creadas/actualizadas y {importResult.totalFallidos} fallidas.
             </D365MessageBar>
+
+            {currentEntity?.entityName === 'InventarioInicial' && (
+              <D365MessageBar intent="info" title="Resultado confirmado">
+                Después de cerrar este resultado, importar nuevamente el archivo se considera una carga nueva. Si hay filas fallidas, prepare otro archivo sólo con esas filas.
+              </D365MessageBar>
+            )}
 
             {/* Tarjeta de Métricas estilo D365 */}
             <div

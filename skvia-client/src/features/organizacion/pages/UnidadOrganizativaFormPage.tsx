@@ -1,3 +1,6 @@
+import { D365FormContent } from '../../../components/common/D365FormContent';
+import { useValidationFocus } from '../../../hooks/useValidationFocus';
+import { useUnsavedChanges } from '../../../hooks/useUnsavedChanges';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -40,11 +43,17 @@ import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../
 import { D365MessageBar } from '../../../components/common/D365MessageBar';
 import { D365EntityHeader } from '../../../components/common/D365EntityHeader';
 import { D365SubGrid } from '../../../components/common/D365SubGrid';
+import { useAuthSession } from '../../../services/authSession';
 
 export function UnidadOrganizativaFormPage() {
   const styles = useD365FormStyles();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { permisos } = useAuthSession();
+  const puedeEditar = permisos.includes('configuracion.sucursales.gestionar');
+  const puedeCambiarPrincipal = permisos.includes('configuracion.sucursales.sede_principal.gestionar');
+  const puedeConsultarInventario = permisos.includes('inventario.acceso');
+  const puedeCrearRelacionados = permisos.includes('inventario.catalogos.gestionar');
 
   const toasterId = useId('unidad-toaster');
   const { dispatchToast } = useToastController(toasterId);
@@ -95,14 +104,17 @@ export function UnidadOrganizativaFormPage() {
   const [saving, setSaving] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const focusValidation = useValidationFocus();
+  const draft = useUnsavedChanges({ formData }, !loading);
+
 
   const cargarDatos = useCallback(async (unidadId: string) => {
     try {
       setLoading(true);
       const [unidad, terrs, alms] = await Promise.all([
         OrganizacionService.getUnidadOrganizativaById(unidadId),
-        OrganizacionService.getTerritorios(unidadId),
-        AlmacenService.getAlmacenes(),
+        puedeConsultarInventario ? OrganizacionService.getTerritorios(unidadId) : Promise.resolve([]),
+        puedeConsultarInventario ? AlmacenService.getAlmacenes() : Promise.resolve([]),
       ]);
 
       setFormData({
@@ -132,7 +144,7 @@ export function UnidadOrganizativaFormPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [puedeConsultarInventario]);
 
   useEffect(() => {
     if (isEditMode && id) {
@@ -151,7 +163,10 @@ export function UnidadOrganizativaFormPage() {
   };
 
   const handleSave = async (closeAfterSave = false): Promise<void> => {
+    const savedDraft = draft.capture();
+    if (!puedeEditar || saving) return;
     if (!validate()) {
+      setSelectedTab('general'); focusValidation();
       setStatusMessage({ type: 'error', text: 'Por favor complete todos los campos obligatorios.' });
       return;
     }
@@ -166,7 +181,7 @@ export function UnidadOrganizativaFormPage() {
           ciudad: formData.ciudad?.trim() || null,
           direccion: formData.direccion?.trim() || null,
           telefono: formData.telefono?.trim() || null,
-          esSedePrincipal: formData.esSedePrincipal,
+          esSedePrincipal: puedeCambiarPrincipal ? formData.esSedePrincipal : undefined,
         });
 
         setHeaderInfo((prev) => ({
@@ -177,9 +192,11 @@ export function UnidadOrganizativaFormPage() {
 
         const successMsg = `Sede "${formData.nombre.trim()}" actualizada exitosamente.`;
         setStatusMessage(null);
+        draft.markSaved(savedDraft);
         notifySuccess(successMsg);
 
         if (closeAfterSave) {
+          draft.markSaved(savedDraft);
           navigate('/servicio-campo/unidades-organizativas');
         }
       } else {
@@ -189,15 +206,18 @@ export function UnidadOrganizativaFormPage() {
           ciudad: formData.ciudad?.trim() || null,
           direccion: formData.direccion?.trim() || null,
           telefono: formData.telefono?.trim() || null,
-          esSedePrincipal: formData.esSedePrincipal,
+          esSedePrincipal: puedeCambiarPrincipal && formData.esSedePrincipal,
         });
 
         setStatusMessage(null);
+        draft.markSaved(savedDraft);
         notifySuccess(`Sede "${formData.nombre.trim()}" creada exitosamente.`);
 
         if (closeAfterSave) {
+          draft.markSaved(savedDraft);
           navigate('/servicio-campo/unidades-organizativas');
         } else {
+          draft.markSaved(savedDraft);
           navigate(`/servicio-campo/unidades-organizativas/${res.id}`, { replace: true });
         }
       }
@@ -296,7 +316,7 @@ export function UnidadOrganizativaFormPage() {
           <D365CommandButton
             icon={<Save16Regular />}
             tone="save"
-            disabled={saving || loading}
+            disabled={saving || loading || !puedeEditar}
             onClick={() => void handleSave(false)}
           >
             Guardar
@@ -304,7 +324,7 @@ export function UnidadOrganizativaFormPage() {
           <D365CommandButton
             icon={<SaveMultiple16Regular />}
             tone="save"
-            disabled={saving || loading}
+            disabled={saving || loading || !puedeEditar}
             onClick={() => void handleSave(true)}
           >
             Guardar y cerrar
@@ -313,7 +333,7 @@ export function UnidadOrganizativaFormPage() {
           <D365CommandButton
             icon={<Add16Regular />}
             tone="create"
-            disabled={saving}
+            disabled={saving || !puedeEditar}
             onClick={() => navigate('/servicio-campo/unidades-organizativas/nuevo')}
           >
             Nuevo
@@ -357,14 +377,14 @@ export function UnidadOrganizativaFormPage() {
             }
           >
             <Tab value="general">General</Tab>
-            <Tab value="territorios" disabled={!isEditMode || loading}>Territorios</Tab>
-            <Tab value="almacenes" disabled={!isEditMode || loading}>Almacenes</Tab>
+            <Tab value="territorios" disabled={!isEditMode || loading || !puedeConsultarInventario}>Territorios</Tab>
+            <Tab value="almacenes" disabled={!isEditMode || loading || !puedeConsultarInventario}>Almacenes</Tab>
             <Tab value="detalle" disabled={!isEditMode || loading}>Detalle / Auditoría</Tab>
           </TabList>
         }
       />
 
-      <div className={styles.contentBody}>
+      <D365FormContent busy={saving} className={styles.contentBody}>
         {loading ? (
           <div className={styles.grid2Cols}>
             <Card className={styles.card}>
@@ -403,7 +423,7 @@ export function UnidadOrganizativaFormPage() {
                       className={styles.d365ControlFull}
                       value={formData.codigo}
                       maxLength={10}
-                      disabled={isEditMode}
+                      disabled={isEditMode || !puedeEditar || saving}
                       onChange={(_, d) => setFormData((p) => ({ ...p, codigo: d.value.toUpperCase() }))}
                     />
                   </D365FormField>
@@ -412,6 +432,7 @@ export function UnidadOrganizativaFormPage() {
                     <Input
                       className={styles.d365ControlFull}
                       value={formData.nombre}
+                      disabled={!puedeEditar || saving}
                       maxLength={150}
                       onChange={(_, d) => setFormData((p) => ({ ...p, nombre: d.value }))}
                     />
@@ -421,6 +442,7 @@ export function UnidadOrganizativaFormPage() {
                     <Checkbox
                       label="Declarar como Sede Principal de la empresa"
                       checked={formData.esSedePrincipal}
+                      disabled={!puedeEditar || !puedeCambiarPrincipal || saving}
                       onChange={(_, d) => setFormData((p) => ({ ...p, esSedePrincipal: Boolean(d.checked) }))}
                     />
                   </D365FormField>
@@ -434,6 +456,7 @@ export function UnidadOrganizativaFormPage() {
                     <Input
                       className={styles.d365ControlFull}
                       value={formData.ciudad || ''}
+                      disabled={!puedeEditar || saving}
                       maxLength={100}
                       onChange={(_, d) => setFormData((p) => ({ ...p, ciudad: d.value }))}
                     />
@@ -443,6 +466,7 @@ export function UnidadOrganizativaFormPage() {
                     <Input
                       className={styles.d365ControlFull}
                       value={formData.direccion || ''}
+                      disabled={!puedeEditar || saving}
                       maxLength={200}
                       onChange={(_, d) => setFormData((p) => ({ ...p, direccion: d.value }))}
                     />
@@ -452,6 +476,7 @@ export function UnidadOrganizativaFormPage() {
                     <Input
                       className={styles.d365ControlFull}
                       value={formData.telefono || ''}
+                      disabled={!puedeEditar || saving}
                       maxLength={30}
                       onChange={(_, d) => setFormData((p) => ({ ...p, telefono: d.value }))}
                     />
@@ -463,7 +488,7 @@ export function UnidadOrganizativaFormPage() {
                 title="Territorios asignados a esta Sede"
                 items={territorios}
                 columns={columnasTerritorios}
-                onAdd={() => navigate('/servicio-campo/territorios/nuevo')}
+                onAdd={puedeCrearRelacionados ? () => navigate('/servicio-campo/territorios/nuevo') : undefined}
                 addLabel="Nuevo Territorio"
                 onRowClick={(t) => navigate(`/servicio-campo/territorios/${t.id}`)}
                 emptyMessage="No hay territorios asignados a esta sede."
@@ -473,7 +498,7 @@ export function UnidadOrganizativaFormPage() {
                 title="Almacenes y bodegas de esta Sede"
                 items={almacenes}
                 columns={columnasAlmacenes}
-                onAdd={() => navigate('/servicio-campo/almacenes/nuevo')}
+                onAdd={puedeCrearRelacionados ? () => navigate('/servicio-campo/almacenes/nuevo') : undefined}
                 addLabel="Nuevo Almacén"
                 onRowClick={(a) => navigate(`/servicio-campo/almacenes/${a.id}`)}
                 emptyMessage="No hay almacenes asociados a esta sede."
@@ -505,7 +530,7 @@ export function UnidadOrganizativaFormPage() {
             )}
           </>
         )}
-      </div>
+      </D365FormContent>
     </div>
   );
 }

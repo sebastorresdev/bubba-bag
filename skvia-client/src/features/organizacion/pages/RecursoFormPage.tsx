@@ -1,3 +1,6 @@
+import { D365FormContent } from '../../../components/common/D365FormContent';
+import { useValidationFocus } from '../../../hooks/useValidationFocus';
+import { useUnsavedChanges } from '../../../hooks/useUnsavedChanges';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -101,6 +104,9 @@ export function RecursoFormPage() {
   const [saving, setSaving] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const focusValidation = useValidationFocus();
+  const draft = useUnsavedChanges({ formData }, !loading);
+
 
   useEffect(() => {
     let activo = true;
@@ -196,7 +202,9 @@ export function RecursoFormPage() {
   };
 
   const handleSave = async (closeAfterSave = false): Promise<void> => {
+    const savedDraft = draft.capture();
     if (!validate()) {
+      setSelectedTab('general'); focusValidation();
       setStatusMessage({ type: 'error', text: 'Por favor complete todos los campos obligatorios.' });
       return;
     }
@@ -227,21 +235,27 @@ export function RecursoFormPage() {
           nombre: formData.nombreCompleto.trim(),
           tipoNombre: formData.tipo === 1 ? 'Técnico de Campo' : formData.tipo === 4 ? 'Despachador' : 'Recurso',
         }));
+        draft.markSaved(savedDraft);
         notifySuccess(`Recurso "${formData.nombreCompleto.trim()}" actualizado correctamente.`);
         setStatusMessage(null);
-        if (closeAfterSave) navigate('/servicio-campo/recursos');
+        if (closeAfterSave) { draft.markSaved(savedDraft);
+navigate('/servicio-campo/recursos'); }
       } else {
         const res = await OrganizacionService.createRecurso({
           ...payload,
           codigo: formData.codigo?.trim() ? formData.codigo.trim().toUpperCase() : undefined,
         });
 
+        draft.markSaved(savedDraft);
+
         notifySuccess(`Recurso "${formData.nombreCompleto.trim()}" creado exitosamente.`);
         setStatusMessage(null);
 
         if (closeAfterSave) {
+          draft.markSaved(savedDraft);
           navigate('/servicio-campo/recursos');
         } else {
+          draft.markSaved(savedDraft);
           navigate(`/servicio-campo/recursos/${res.id}`, { replace: true });
         }
       }
@@ -341,7 +355,7 @@ export function RecursoFormPage() {
             }
           />
 
-          <div className={styles.contentBody}>
+          <D365FormContent busy={saving} className={styles.contentBody}>
             {selectedTab === 'general' ? (
               <div className={styles.grid2Cols}>
                 <div className={styles.card}>
@@ -537,7 +551,7 @@ export function RecursoFormPage() {
                 </div>
               </div>
             )}
-          </div>
+          </D365FormContent>
         </>
       )}
     </div>

@@ -19,7 +19,6 @@ public interface IDataImportEngineService
         Stream stream,
         string fileName,
         ExecuteImportRequestDto request,
-        string currentUser,
         CancellationToken cancellationToken = default);
 
     Task<List<DataImportJobDto>> GetRecentJobsAsync(

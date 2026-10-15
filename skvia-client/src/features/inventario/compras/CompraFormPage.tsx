@@ -1,3 +1,5 @@
+import { D365FormContent } from '../../../components/common/D365FormContent';
+import { useUnsavedChanges } from '../../../hooks/useUnsavedChanges';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, Dialog, DialogSurface, DialogTitle, DialogBody, DialogContent, DialogActions, Input, Select, Skeleton, SkeletonItem, Tab, TabList, Text, Textarea, tokens } from '@fluentui/react-components';
@@ -34,6 +36,8 @@ export function CompraFormPage() {
   const [busquedaAlmacen, setBusquedaAlmacen] = useState('');
   const [dialogEliminarBorrador, setDialogEliminarBorrador] = useState(false);
   const [eliminandoBorrador, setEliminandoBorrador] = useState(false);
+  const draft = useUnsavedChanges({ proveedor,tipo,documento,fecha,moneda,almacenId,observacion,lineas }, !loading);
+
   const guardando = useRef(false);
   useEffect(() => {
     let activo = true; setLoading(true); setError(null);
@@ -70,17 +74,22 @@ export function CompraFormPage() {
   const datos = (): CrearCompra => ({ proveedor: proveedor.trim(), tipoDocumento: tipo, numeroDocumento: documento.trim(), fechaDocumento: fecha, moneda, almacenId: almacenId || null, observacion: observacion.trim() || null,
     lineas: lineas.map(x => ({ productoId: x.productoId, cantidad: Number(x.cantidad), costoUnitario: Number(x.costo), series: x.series.split(/\r?\n/).map(s => s.trim()).filter(Boolean) })) });
   const guardar = async (cerrar: boolean) => {
+    const savedDraft = draft.capture();
     if (guardando.current || bloqueado) return;
     guardando.current = true; setSaving(true); setError(null); setMensaje(null);
     try {
       const resultado = id ? await CompraService.actualizar(id, datos()) : await CompraService.crear(datos());
-      if (cerrar) navigate('/servicio-campo/recepciones-compra', { state: { successMessage: 'Compra guardada.' } });
-      else if (!id) navigate(`/servicio-campo/recepciones-compra/${resultado.id}`, { replace: true });
+      draft.markSaved(savedDraft);
+      if (cerrar) { draft.markSaved(savedDraft);
+navigate('/servicio-campo/recepciones-compra', { state: { successMessage: 'Compra guardada.' } }); }
+      else if (!id) { draft.markSaved(savedDraft);
+navigate(`/servicio-campo/recepciones-compra/${resultado.id}`, { replace: true }); }
       else { cargarCompra(await CompraService.obtenerPorId(resultado.id)); setMensaje('Compra guardada.'); }
     } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo guardar la compra.'); }
     finally { guardando.current = false; setSaving(false); }
   };
   const procesar = async (accion: 'solicitar' | 'enviar' | 'recepcionar', recepcion?: RecepcionCompraDatos) => {
+    const savedDraft = draft.capture();
     if (guardando.current || loading) return;
     guardando.current = true; setSaving(true); setError(null); setMensaje(null);
     try {
@@ -96,6 +105,7 @@ export function CompraFormPage() {
         await CompraService.recepcionar(compraId, recepcion);
       } else await CompraService[accion](compraId);
       cargarCompra(await CompraService.obtenerPorId(compraId));
+      draft.markSaved(savedDraft);
       if (!id) navigate(`/servicio-campo/recepciones-compra/${compraId}`, { replace: true });
       setMensaje(accion === 'solicitar' ? 'Compra solicitada.' : accion === 'enviar' ? 'Envío registrado.' : 'Compra recibida.');
     } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo procesar la compra.'); }
@@ -168,7 +178,7 @@ export function CompraFormPage() {
         </TabList>
       }
     />
-    <div className={form.contentBody} aria-busy={cargandoDatos}>{cargandoDatos ? <div className={form.card} role="status" aria-label="Cargando compra">
+    <D365FormContent busy={saving} className={form.contentBody} aria-busy={cargandoDatos}>{cargandoDatos ? <div className={form.card} role="status" aria-label="Cargando compra">
       <Skeleton animation="pulse">
         <SkeletonItem size={16} className={form.skeletonHeader} />
         <div className={form.grid2Cols}>
@@ -348,7 +358,7 @@ export function CompraFormPage() {
           alCargarProducto={p => setProductos(ps => [...ps.filter(x => x.id !== p.id), p])}
         />
       </Card>
-    )}</div>
+    )}</D365FormContent>
 
     <Dialog
       open={dialogEliminarBorrador}
@@ -373,7 +383,7 @@ export function CompraFormPage() {
             </Button>
             <Button
               appearance="primary"
-              style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: '#fff' }}
+              style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: tokens.colorNeutralForegroundOnBrand }}
               disabled={eliminandoBorrador}
               onClick={async () => {
                 if (!id) return;

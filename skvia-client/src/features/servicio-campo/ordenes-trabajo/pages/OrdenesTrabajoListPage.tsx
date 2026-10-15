@@ -1,3 +1,4 @@
+import { useAuthSession } from '../../../../services/authSession';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -47,8 +48,8 @@ type VistaOrdenes =
 
 const nombresVistaOrdenes: Record<VistaOrdenes, string> = {
   todas: 'Todas las órdenes de trabajo',
-  programadas: 'Órdenes programadas (Scheduled)',
-  pendientes: 'Pendientes de programar (Unscheduled)',
+  programadas: 'Órdenes programadas',
+  pendientes: 'Pendientes de programar',
   en_progreso: 'Órdenes en curso (In Progress)',
   completadas: 'Órdenes completadas (Completed)',
   borrador: 'Borradores (Draft)',
@@ -77,6 +78,7 @@ const filterFields: D365FilterField[] = [
 ];
 
 export const OrdenesTrabajoListPage: React.FC = () => {
+  const { permisos } = useAuthSession();
   const styles = useD365ListStyles();
   const navigate = useNavigate();
   const tableRef = useRef<D365EntityTableRef>(null);
@@ -298,6 +300,7 @@ export const OrdenesTrabajoListPage: React.FC = () => {
           <D365CommandButton
             icon={<Add16Regular />}
             tone="create"
+            disabled={!permisos.includes('serviciocampo.ordenes.crear')}
             onClick={() => navigate('/servicio-campo/ordenes/nuevo')}
           >
             Nuevo

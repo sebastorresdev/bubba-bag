@@ -5,6 +5,8 @@ using BubbaBag.SharedKernel;
 using BubbaBag.Modules.ServicioCampo.Domain.Productos;
 using BubbaBag.Modules.ServicioCampo.Domain.Plantillas;
 
+using BubbaBag.Modules.ServicioCampo.Domain.Enums;
+
 namespace BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
 
 /// <summary>
@@ -208,6 +210,8 @@ public class Trabajo : Entity<Guid>
 
     public void Cancelar(string? motivo = null)
     {
+        foreach (var tarea in _tareas.Where(t => t.Estado is EstadoTarea.Abierta or EstadoTarea.EnProgreso))
+            tarea.Cancelar(motivo);
         Estado = EstadoTrabajo.Cancelado;
         FechaFin = DateTime.UtcNow;
         Observaciones = motivo?.Trim();

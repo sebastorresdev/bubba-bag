@@ -21,6 +21,12 @@ public class ActualizarEmpleadoHandler : ICommandHandler<ActualizarEmpleadoComma
 
     public async Task<Result<Guid>> HandleAsync(ActualizarEmpleadoCommand request, CancellationToken cancellationToken)
     {
+        if (!_currentUser.IsAuthenticated || !_currentUser.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.ColaboradoresGestionar)) throw new UnauthorizedAccessException();
+        if (!_currentUser.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.SalariosConfidencial)
+            && (request.SalarioBase.HasValue || !string.IsNullOrWhiteSpace(request.MonedaSalario)
+                || !string.IsNullOrWhiteSpace(request.RegimenPensionario) || !string.IsNullOrWhiteSpace(request.Cuspp)
+                || !string.IsNullOrWhiteSpace(request.EntidadFinanciera) || !string.IsNullOrWhiteSpace(request.CuentaBancaria)
+                || !string.IsNullOrWhiteSpace(request.CuentaInterbancaria) || request.TieneAsignacionFamiliar)) throw new UnauthorizedAccessException();
         var empleado = await _context.Empleados.FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
 
         if (empleado is null)
@@ -55,7 +61,7 @@ public class ActualizarEmpleadoHandler : ICommandHandler<ActualizarEmpleadoComma
         empleado.ActualizarFoto(request.FotoUrl);
         empleado.ActualizarDatosLaborales(request.FechaIngreso, request.DepartamentoId, request.CargoId, request.TipoContrato);
 
-        var tieneAccesoConfidencial = _currentUser.HasAnyRole(BubbaBag.SharedKernel.Authorization.Roles.AccesoRrhhConfidencial);
+        var tieneAccesoConfidencial = _currentUser.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.SalariosConfidencial);
         if (tieneAccesoConfidencial)
         {
             empleado.ActualizarPlanilla(request.SalarioBase, request.MonedaSalario, request.TieneAsignacionFamiliar, request.RegimenPensionario, request.Cuspp);
@@ -64,7 +70,7 @@ public class ActualizarEmpleadoHandler : ICommandHandler<ActualizarEmpleadoComma
         else
         {
             // Conservar los datos confidenciales existentes
-            empleado.ActualizarPlanilla(empleado.SalarioBase, empleado.MonedaSalario, request.TieneAsignacionFamiliar, empleado.RegimenPensionario, empleado.Cuspp);
+            empleado.ActualizarPlanilla(empleado.SalarioBase, empleado.MonedaSalario, empleado.TieneAsignacionFamiliar, empleado.RegimenPensionario, empleado.Cuspp);
             empleado.ActualizarDatosBancarios(empleado.EntidadFinanciera, empleado.CuentaBancaria, empleado.CuentaInterbancaria);
         }
 

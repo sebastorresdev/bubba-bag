@@ -1,3 +1,8 @@
+import { D365FormContent } from '../../../components/common/D365FormContent';
+import { useValidationFocus } from '../../../hooks/useValidationFocus';
+import { D365ResponsiveDataGrid } from '../../../components/common/D365ResponsiveDataGrid';
+import { useUnsavedChanges } from '../../../hooks/useUnsavedChanges';
+import { confirmAction } from '../../../services/uiFeedback';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -8,7 +13,7 @@ import {
   Spinner,
   makeStyles,
   tokens,
-  DataGrid,
+
   DataGridHeader,
   DataGridRow,
   DataGridHeaderCell,
@@ -179,6 +184,9 @@ export function RecepcionCompraPage() {
   const [popupRecibirTodoTopOpen, setPopupRecibirTodoTopOpen] = useState(false);
   const [ubicaciones, setUbicaciones] = useState<UbicacionInventarioDto[]>([]);
   const [ubicacionDestinoId, setUbicacionDestinoId] = useState<string>('');
+  const focusValidation = useValidationFocus();
+  const draft = useUnsavedChanges({ seriesVerificadas,cantidadesNoSeriadas,ubicacionDestinoId }, !loading);
+
 
   // Auto-eliminar mensaje de escaneo/recepción exitoso o aviso a los 3.5 segundos
   useEffect(() => {
@@ -652,16 +660,19 @@ export function RecepcionCompraPage() {
   ], [cantidadesNoSeriadas, productosInfo, soloLectura, saving]);
 
   const guardarRecepcion = async () => {
+    const savedDraft = draft.capture();
     if (!compra || !id) return;
 
     if (totalUnidadesRecibidas <= 0) {
+      focusValidation();
       setError('Debe recepcionar al menos un producto o serie.');
       return;
     }
 
     if (tieneSerializados && cantidadVerificadas < totalSeries) {
-      const conf = window.confirm(
-        `Se recepcionarán ${cantidadVerificadas} de ${totalSeries} series. Las restantes quedarán como faltantes. ¿Desea confirmar el ingreso?`
+      const conf = await confirmAction(
+        `Se recibirán ${cantidadVerificadas} de ${totalSeries} series. Las restantes quedarán pendientes.`,
+        { title: 'Confirmar recepción parcial', action: 'Registrar recepción', danger: false }
       );
       if (!conf) return;
     }
@@ -697,6 +708,8 @@ export function RecepcionCompraPage() {
         lineas: lineasARecepcionar,
       });
       setMensaje('Recepción registrada correctamente. El inventario ha sido actualizado.');
+      draft.markSaved(savedDraft);
+      draft.markSaved(savedDraft);
       void cargarCompra(id);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al procesar la recepción.');
@@ -830,7 +843,7 @@ export function RecepcionCompraPage() {
         ]}
       />
 
-      <div className={formStyles.contentBody}>
+      <D365FormContent busy={saving} className={formStyles.contentBody}>
         {/* Selector de Ubicación de Destino en el Almacén */}
         {ubicaciones.length > 0 && (
           <div
@@ -936,7 +949,7 @@ export function RecepcionCompraPage() {
                     className={styles.scannerInput}
                     id="recepcion-compra-serie"
                     contentBefore={<BarcodeScanner20Regular />}
-                    placeholder="Escanee o ingrese código SKU o serie..."
+                    placeholder=""
                     value={serieInput}
                     disabled={saving}
                     onChange={(_, d) => setSerieInput(d.value)}
@@ -1054,7 +1067,7 @@ export function RecepcionCompraPage() {
                   <Text size={200}>Seleccione otra pestaña para ver series pendientes o recibidas.</Text>
                 </div>
               ) : (
-                <DataGrid
+                <D365ResponsiveDataGrid mobileLabel="Materiales por recibir"
                   items={seriesVisibles}
                   columns={columnasSeries}
                   getRowId={item => item.serie}
@@ -1080,7 +1093,7 @@ export function RecepcionCompraPage() {
                       </DataGridRow>
                     )}
                   </DataGridBody>
-                </DataGrid>
+                </D365ResponsiveDataGrid>
               )}
             </div>
           </div>
@@ -1110,7 +1123,7 @@ export function RecepcionCompraPage() {
                     className={styles.scannerInput}
                     id="recepcion-compra-sku"
                     contentBefore={<BarcodeScanner20Regular />}
-                    placeholder="Escanee o ingrese código SKU..."
+                    placeholder=""
                     value={serieInput}
                     disabled={saving}
                     onChange={(_, d) => setSerieInput(d.value)}
@@ -1150,17 +1163,17 @@ export function RecepcionCompraPage() {
               </div>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
               <Text weight="semibold" size={300}>
                 Insumos y materiales por cantidad
               </Text>
-              <Badge appearance="tint" shape="rounded" color="brand" size="small">
+              <Badge appearance="tint" shape="rounded" color="brand" size="medium" style={{ flexShrink: 0 }}>
                 {lineasNoSeriadas.length} {lineasNoSeriadas.length === 1 ? 'producto' : 'productos'}
               </Badge>
             </div>
 
             <div className={styles.tableWrapper}>
-              <DataGrid
+              <D365ResponsiveDataGrid
                 items={lineasNoSeriadas}
                 columns={columnasNoSeriadas}
                 getRowId={item => item.productoId}
@@ -1182,11 +1195,11 @@ export function RecepcionCompraPage() {
                     </DataGridRow>
                   )}
                 </DataGridBody>
-              </DataGrid>
+              </D365ResponsiveDataGrid>
             </div>
           </div>
         )}
-      </div>
+      </D365FormContent>
     </div>
   );
 }

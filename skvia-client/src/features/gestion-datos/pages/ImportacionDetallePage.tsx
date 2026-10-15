@@ -1,4 +1,7 @@
+import { D365ResponsiveDataGrid } from '../../../components/common/D365ResponsiveDataGrid';
+import { confirmAction, showError } from '../../../services/uiFeedback';
 import React, { useState, useEffect, useMemo } from 'react';
+import { useAuthSession } from '../../../services/authSession';
 import {
   TabList,
   Tab,
@@ -9,7 +12,6 @@ import {
   Card,
   Button,
   Link,
-  DataGrid,
   DataGridHeader,
   DataGridHeaderCell,
   DataGridBody,
@@ -46,6 +48,7 @@ import type { ProductoDto } from '../../inventario/productos/types/producto.type
 
 const useLocalStyles = makeStyles({
   subgridHeader: {
+    '@media (max-width: 767px)': { flexWrap: 'wrap', gap: '8px' },
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -86,8 +89,8 @@ const useLocalStyles = makeStyles({
     width: '100%',
   },
   dateIcon: { color: semanticTokens.text.muted },
-  subgridActions: { display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS },
-  subgridSearch: { width: '260px' },
+  subgridActions: { display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalS, '@media (max-width: 767px)': { flexWrap: 'wrap', width: '100%', minWidth: 0 } },
+  subgridSearch: { width: '260px', '@media (max-width: 767px)': { width: '100%', minWidth: 0 } },
   searchInput: { width: '100%' },
   tableOverflow: {
     width: '100%',
@@ -106,6 +109,8 @@ const useLocalStyles = makeStyles({
 });
 
 export const ImportacionDetallePage: React.FC = () => {
+  const { permisos } = useAuthSession();
+  const puedeEliminar = permisos.includes('gestiondatos.historial.eliminar');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -164,9 +169,10 @@ export const ImportacionDetallePage: React.FC = () => {
   }, [id]);
 
   const handleDelete = async () => {
+    if (!puedeEliminar) return;
     if (!job) return;
     if (
-      !window.confirm(
+      !await confirmAction(
         `¿Está seguro de eliminar el registro de importación '${job.nombreArchivo}'?`
       )
     ) {
@@ -177,7 +183,7 @@ export const ImportacionDetallePage: React.FC = () => {
       await ImportacionService.deleteImportJob(job.id);
       navigate('/gestion-datos/importaciones');
     } catch (err: any) {
-      alert(err?.message || 'Error al eliminar el registro.');
+      showError(err?.message || 'Error al eliminar el registro.');
     }
   };
 
@@ -414,6 +420,7 @@ export const ImportacionDetallePage: React.FC = () => {
 
           <D365CommandButton
             icon={<Delete16Regular />}
+            disabled={!puedeEliminar || job?.estado === 'Procesando'}
             tone="danger"
             onClick={handleDelete}
           >
@@ -654,7 +661,7 @@ export const ImportacionDetallePage: React.FC = () => {
 
               {/* DataGrid mostrando siempre la cabecera, y TableEmptyState dentro cuando no hay filas */}
               <div className={localStyles.tableOverflow}>
-                <DataGrid
+                <D365ResponsiveDataGrid
                   items={filteredErrores}
                   columns={errorColumns}
                   getRowId={(item) => item.id}
@@ -685,7 +692,7 @@ export const ImportacionDetallePage: React.FC = () => {
                       )}
                     </DataGridBody>
                   )}
-                </DataGrid>
+                </D365ResponsiveDataGrid>
               </div>
             </div>
           </Card>
@@ -723,7 +730,7 @@ export const ImportacionDetallePage: React.FC = () => {
                 </div>
               ) : (
                 <div className={localStyles.tableOverflow}>
-                  <DataGrid
+                  <D365ResponsiveDataGrid
                     items={filteredProducts}
                     columns={productColumns}
                     getRowId={(item) => item.id}
@@ -755,7 +762,7 @@ export const ImportacionDetallePage: React.FC = () => {
                         )}
                       </DataGridBody>
                     )}
-                  </DataGrid>
+                  </D365ResponsiveDataGrid>
                 </div>
               )}
             </div>

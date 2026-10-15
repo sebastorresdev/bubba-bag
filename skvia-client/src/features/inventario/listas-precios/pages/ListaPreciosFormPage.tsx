@@ -1,4 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { D365FormContent } from '../../../../components/common/D365FormContent';
+import { guardarListaNuevaPendiente, type ListaPreciosPendiente } from '../services/listaPreciosDraft';
+import { useValidationFocus } from '../../../../hooks/useValidationFocus';
+import { D365ResponsiveDataGrid } from '../../../../components/common/D365ResponsiveDataGrid';
+import { useUnsavedChanges } from '../../../../hooks/useUnsavedChanges';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   makeStyles,
@@ -12,7 +17,7 @@ import {
   Card,
   Text,
   Label,
-  DataGrid,
+
   DataGridHeader,
   DataGridHeaderCell,
   DataGridBody,
@@ -211,6 +216,10 @@ export const ListaPreciosFormPage: React.FC = () => {
 
   // Import Excel Dialog State
   const [importExcelOpen, setImportExcelOpen] = useState<boolean>(false);
+  const focusValidation = useValidationFocus();
+  const pendingCreation = useRef<ListaPreciosPendiente>({ elementos: new Map() });
+  const draft = useUnsavedChanges({ formData,elementos: isNew ? elementos : undefined }, !loading);
+
 
   const filteredProducts = useMemo(() => {
     if (!busquedaProducto.trim()) return availableProducts;
@@ -224,6 +233,7 @@ export const ListaPreciosFormPage: React.FC = () => {
   }, [availableProducts, busquedaProducto, selectedProductIds]);
 
   const resetForm = useCallback(() => {
+    pendingCreation.current = { elementos: new Map() };
     setFormData({
       nombre: '',
       moneda: 'PEN',
@@ -321,7 +331,9 @@ export const ListaPreciosFormPage: React.FC = () => {
 
   // Handle Save
   const handleSave = async (closeAfter: boolean = false) => {
+    const savedDraft = draft.capture();
     if (!formData.nombre.trim()) {
+      setSelectedTab('general'); focusValidation("lp-nombre");
       setBanner({ text: 'El campo "Nombre de la lista" es obligatorio.', intent: 'error' });
       return;
     }
@@ -338,29 +350,17 @@ export const ListaPreciosFormPage: React.FC = () => {
           fechaFin: formData.fechaFin ? new Date(formData.fechaFin).toISOString() : null,
         };
 
-        const res = await ListaPreciosService.createListaPrecios(createDto);
+        const res = await guardarListaNuevaPendiente(pendingCreation.current, createDto, elementos);
 
-        // Guardar elementos que hayan sido agregados en memoria antes de guardar la lista
-        if (elementos.length > 0) {
-          for (const elem of elementos) {
-            try {
-              await ListaPreciosService.guardarElemento(res.id, {
-                productoId: elem.productoId,
-                monto: elem.monto,
-                unidadMedidaId: elem.unidadMedidaId || null,
-                metodoFijacion: elem.metodoFijacion,
-              });
-            } catch (elemErr) {
-              console.error('Error guardando elemento en lista de precios:', elemErr);
-            }
-          }
-        }
+        draft.markSaved(savedDraft);
 
         setBanner({ text: 'Lista de precios creada exitosamente.', intent: 'success' });
 
         if (closeAfter) {
+          draft.markSaved(savedDraft);
           navigate('/servicio-campo/listas-precios');
         } else {
+          draft.markSaved(savedDraft);
           navigate(`/servicio-campo/listas-precios/${res.id}`, { replace: true });
         }
       } else {
@@ -378,9 +378,11 @@ export const ListaPreciosFormPage: React.FC = () => {
           nombre: updateDto.nombre,
           moneda: updateDto.moneda,
         }));
+        draft.markSaved(savedDraft);
         setBanner({ text: 'Lista de precios actualizada correctamente.', intent: 'success' });
 
         if (closeAfter) {
+          draft.markSaved(savedDraft);
           navigate('/servicio-campo/listas-precios');
         } else {
           loadData();
@@ -743,10 +745,10 @@ export const ListaPreciosFormPage: React.FC = () => {
           <D365CommandButton
             icon={<Add16Regular />}
             tone="create"
-            onClick={() => {
+            onClick={() => void draft.discardAndRun(() => { void (() => {
               resetForm();
               navigate('/servicio-campo/listas-precios/nuevo');
-            }}
+            })(); })}
             disabled={saving || loading}
             appearance="subtle"
           >
@@ -756,7 +758,7 @@ export const ListaPreciosFormPage: React.FC = () => {
           <D365CommandButton
             icon={<ArrowClockwise16Regular />}
             disabled={saving || loading}
-            onClick={isNew ? () => {
+            onClick={() => void draft.discardAndRun(() => { void (isNew ? () => {
               setFormData({
                 nombre: '',
                 moneda: 'PEN',
@@ -765,7 +767,7 @@ export const ListaPreciosFormPage: React.FC = () => {
                 fechaFin: '',
                 activo: true,
               });
-            } : loadData}
+            } : loadData)(); })}
             appearance="subtle"
           >
             Deshacer
@@ -815,7 +817,7 @@ export const ListaPreciosFormPage: React.FC = () => {
       />
 
       {/* 3. Form Content Body */}
-      <div className={styles.contentBody}>
+      <D365FormContent busy={saving} className={styles.contentBody}>
         {loading ? (
           <div className={styles.grid2Cols}>
             <Card className={styles.card}>
@@ -952,7 +954,7 @@ export const ListaPreciosFormPage: React.FC = () => {
                 <D365CommandButton
                   size="medium"
                   icon={<ArrowClockwise16Regular />}
-                  onClick={isNew ? undefined : loadData}
+                  onClick={() => void draft.discardAndRun(() => { void (isNew ? undefined : loadData)?.(); })}
                 >
                   Actualizar
                 </D365CommandButton>
@@ -960,7 +962,7 @@ export const ListaPreciosFormPage: React.FC = () => {
 
               {/* Subgrid DataGrid con cabeceras fijas y scroll propio */}
               <div className={localStyles.tableContainer}>
-                <DataGrid
+                <D365ResponsiveDataGrid onMobileOpen={handleEditarElemento} mobileLabel="Precios"
                   items={filteredElementos}
                   columns={elementoColumns}
                   getRowId={(item) => item.id}
@@ -990,7 +992,7 @@ export const ListaPreciosFormPage: React.FC = () => {
                       )}
                     </DataGridBody>
                   )}
-                </DataGrid>
+                </D365ResponsiveDataGrid>
               </div>
 
               {/* Subgrid Footer */}
@@ -1004,7 +1006,7 @@ export const ListaPreciosFormPage: React.FC = () => {
             </div>
           </Card>
         )}
-      </div>
+      </D365FormContent>
 
       <OverlayDrawer
         open={itemDrawerOpen}
@@ -1043,7 +1045,7 @@ export const ListaPreciosFormPage: React.FC = () => {
               placeholder={
                 selectedProductIds.length > 0
                   ? `${selectedProductIds.length} producto(s) seleccionado(s)`
-                  : 'Escriba o marque los productos...'
+                  : ''
               }
               value={
                 editingElemento

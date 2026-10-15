@@ -1,3 +1,4 @@
+import { confirmAction, showError } from '../../../services/uiFeedback';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Button,
@@ -127,6 +128,7 @@ const useStyles = makeStyles({
     maxHeight: '340px',
   },
   tableHeader: {
+    '@media (max-width: 767px)': { display: 'none' },
     display: 'grid',
     gridTemplateColumns: '110px 1fr 140px 80px',
     padding: '10px 14px',
@@ -141,6 +143,7 @@ const useStyles = makeStyles({
     overflowY: 'auto',
   },
   tableRow: {
+    '@media (max-width: 767px)': { gridTemplateColumns: 'minmax(0, 1fr)', gap: '8px', overflowWrap: 'anywhere' },
     display: 'grid',
     gridTemplateColumns: '110px 1fr 140px 80px',
     padding: '10px 14px',
@@ -362,15 +365,16 @@ export function RecepcionarCompraDrawer({
   const totalInsumosRecepcionados = Object.values(cantidadesNoSeriadas).reduce((acc, curr) => acc + (curr > 0 ? curr : 0), 0);
   const totalGeneralUnidades = cantidadVerificadas + totalInsumosRecepcionados;
 
-  const confirmarIngreso = () => {
+  const confirmarIngreso = async () => {
     if (totalGeneralUnidades <= 0) {
-      alert('Debe recepcionar al menos un insumo con cantidad mayor a cero o pistolear una serie.');
+      showError('Debe recepcionar al menos un insumo con cantidad mayor a cero o pistolear una serie.');
       return;
     }
 
     if (tieneProductosSerializados && !todasCompletadas) {
-      const confirmar = window.confirm(
-        `Atención: Solo se ingresarán las ${cantidadVerificadas} series que fueron pistoleadas/verificadas. Las ${totalSeries - cantidadVerificadas} faltantes quedarán pendientes. ¿Deseas continuar?`
+      const confirmar = await confirmAction(
+        `Se recibirán ${cantidadVerificadas} series verificadas. Las ${totalSeries - cantidadVerificadas} restantes quedarán pendientes.`,
+        { title: 'Confirmar recepción parcial', action: 'Registrar recepción', danger: false }
       );
       if (!confirmar) return;
     }

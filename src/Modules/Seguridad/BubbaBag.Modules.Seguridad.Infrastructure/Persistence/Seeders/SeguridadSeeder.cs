@@ -103,14 +103,30 @@ public static class CatalogoRolesSistema
                 }
             }
 
-            // Asegurar que los roles base tengan sus claims iniciales de permisos registrados
+            // Actualizar también instalaciones existentes: los roles fijos son perfiles protegidos.
             var claimsActuales = await roleManager.GetClaimsAsync(rol);
-            if (!claimsActuales.Any(c => c.Type == "permission"))
+            var permisosBase = RolePermissions.GetSystemPermissionsForRole(nombre);
+            var permisosActuales = claimsActuales.Where(c => c.Type == "permission").ToList();
+            var permisosCambiaron = false;
+            foreach (var claim in permisosActuales.Where(c => !permisosBase.Contains(c.Value)))
             {
-                var permisosBase = RolePermissions.GetPermissionsForRole(nombre);
-                foreach (var p in permisosBase)
+                var resultado = await roleManager.RemoveClaimAsync(rol, claim);
+                if (!resultado.Succeeded) throw new InvalidOperationException(string.Join(", ", resultado.Errors.Select(e => e.Description)));
+                permisosCambiaron = true;
+            }
+            foreach (var permiso in permisosBase.Where(p => !permisosActuales.Any(c => c.Value == p)))
+            {
+                var resultado = await roleManager.AddClaimAsync(rol, new System.Security.Claims.Claim("permission", permiso));
+                if (!resultado.Succeeded) throw new InvalidOperationException(string.Join(", ", resultado.Errors.Select(e => e.Description)));
+                permisosCambiaron = true;
+            }
+            if (permisosCambiaron)
+            {
+                var userManager = serviceProvider.GetRequiredService<UserManager<Usuario>>();
+                foreach (var usuario in await userManager.GetUsersInRoleAsync(nombre))
                 {
-                    await roleManager.AddClaimAsync(rol, new System.Security.Claims.Claim("permission", p));
+                    var resultado = await userManager.UpdateSecurityStampAsync(usuario);
+                    if (!resultado.Succeeded) throw new InvalidOperationException(string.Join(", ", resultado.Errors.Select(e => e.Description)));
                 }
             }
         }

@@ -1,3 +1,4 @@
+import { confirmAction } from '../../../../services/uiFeedback';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -281,7 +282,7 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
         ? '¿Está seguro de eliminar el almacén seleccionado?'
         : `¿Está seguro de eliminar los ${count} almacenes seleccionados?`;
 
-    if (!window.confirm(confirmMsg)) return;
+    if (!await confirmAction(confirmMsg)) return;
 
     try {
       setLoading(true);

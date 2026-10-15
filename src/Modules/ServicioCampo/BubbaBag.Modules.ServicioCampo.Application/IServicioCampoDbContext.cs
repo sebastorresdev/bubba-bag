@@ -70,4 +70,6 @@ public interface IServicioCampoDbContext
     Task EjecutarEnTransaccionAsync(
         Func<CancellationToken, Task> operacion,
         CancellationToken cancellationToken = default);
+    Task EjecutarConBloqueoAjusteAsync(Guid id, Func<CancellationToken, Task> operacion, CancellationToken cancellationToken = default);
+    Task EjecutarConBloqueoOrdenAsync(Guid id, Func<CancellationToken, Task> operacion, CancellationToken cancellationToken = default);
 }

@@ -1,3 +1,7 @@
+import { D365FormContent } from '../../../../components/common/D365FormContent';
+import { useValidationFocus } from '../../../../hooks/useValidationFocus';
+import { useUnsavedChanges } from '../../../../hooks/useUnsavedChanges';
+import { confirmAction } from '../../../../services/uiFeedback';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -85,6 +89,9 @@ export function TipoOrdenFormPage() {
   const [saving, setSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const focusValidation = useValidationFocus();
+  const draft = useUnsavedChanges({ formData,propietarioId,listaPrecioId }, !loading);
+
 
   useEffect(() => {
     void ListaPreciosService.getListasPrecios(undefined, true)
@@ -195,7 +202,9 @@ export function TipoOrdenFormPage() {
   };
 
   const guardar = async (cerrarAlFinal = false): Promise<string | null> => {
+    const savedDraft = draft.capture();
     if (!validar()) {
+      focusValidation();
       setStatusMessage({ type: 'error', text: 'Por favor complete todos los campos obligatorios.' });
       return null;
     }
@@ -213,17 +222,21 @@ export function TipoOrdenFormPage() {
       if (isEditMode && id) {
         await TipoOrdenService.actualizarTipoOrden(id, payload);
         setSavedTitle(formData.nombre.trim());
+        draft.markSaved(savedDraft);
         notifySuccess('Tipo de orden actualizado correctamente.');
       } else {
         const res = await TipoOrdenService.crearTipoOrden(payload);
         savedId = res.id;
         setSavedTitle(formData.nombre.trim());
+        draft.markSaved(savedDraft);
         notifySuccess('Tipo de orden registrado exitosamente.');
       }
 
       if (cerrarAlFinal) {
+        draft.markSaved(savedDraft);
         navigate('/servicio-campo/tipos-orden');
       } else if (!isEditMode && savedId) {
+        draft.markSaved(savedDraft);
         navigate(`/servicio-campo/tipos-orden/${savedId}`, { replace: true });
       }
 
@@ -258,11 +271,11 @@ export function TipoOrdenFormPage() {
 
   const eliminar = async () => {
     if (!id || !isEditMode) return;
-    if (!window.confirm('¿Está seguro de eliminar este tipo de orden de trabajo?')) return;
+    if (!await confirmAction('¿Está seguro de eliminar este tipo de orden de trabajo?')) return;
     try {
       setSaving(true);
       await TipoOrdenService.eliminarTipoOrden(id);
-      navigate('/servicio-campo/tipos-orden');
+      (draft.markSaved(), navigate('/servicio-campo/tipos-orden'));
     } catch (e) {
       setStatusMessage({
         type: 'error',
@@ -314,10 +327,10 @@ export function TipoOrdenFormPage() {
         <D365CommandButton
           icon={<Add16Regular />}
           tone="create"
-          onClick={() => {
+          onClick={() => void draft.discardAndRun(() => { void (() => {
             resetForm();
             navigate('/servicio-campo/tipos-orden/nuevo');
-          }}
+          })(); })}
         >
           Nuevo
         </D365CommandButton>
@@ -373,7 +386,7 @@ export function TipoOrdenFormPage() {
       />
 
       {/* Formulario */}
-      <div className={styles.contentBody}>
+      <D365FormContent busy={saving} className={styles.contentBody}>
         <div className={styles.halfCardWrapper} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Tarjeta 1: General */}
           <div className={styles.card}>
@@ -473,7 +486,7 @@ export function TipoOrdenFormPage() {
             </div>
           </div>
         </div>
-      </div>
+      </D365FormContent>
     </div>
   );
 }

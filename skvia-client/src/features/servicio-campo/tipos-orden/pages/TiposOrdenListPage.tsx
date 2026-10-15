@@ -1,3 +1,4 @@
+import { confirmAction } from '../../../../services/uiFeedback';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -135,7 +136,7 @@ export function TiposOrdenListPage() {
         ? `¿Está seguro de eliminar el tipo de orden "${itemsAEliminar[0].nombre}"?`
         : `¿Está seguro de eliminar los ${itemsAEliminar.length} tipos de orden seleccionados?`;
 
-    if (!window.confirm(confirmMsg)) return;
+    if (!await confirmAction(confirmMsg)) return;
 
     try {
       setLoading(true);

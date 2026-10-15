@@ -1,15 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using BubbaBag.Modules.ServicioCampo.Application;
+using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
 using BubbaBag.Modules.ServicioCampo.Domain.Enums;
 using BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
 using BubbaBag.Modules.ServicioCampo.Domain.Plantillas;
 using BubbaBag.Modules.ServicioCampo.Domain.Productos;
+using BubbaBag.Modules.ServicioCampo.Infrastructure.Services;
 using BubbaBag.SharedKernel.Authorization;
+using BubbaBag.SharedKernel;
+using BubbaBag.Modules.ServicioCampo.Application.OrdenesTrabajo;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -23,13 +26,13 @@ public static class OrdenesTrabajoEndpoints
     {
         var group = app.MapGroup("/api/serviciocampo/ordenes")
             .WithTags("Servicio de Campo - Órdenes de Trabajo")
-            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
+            .RequireAuthorization(Permissions.ServicioCampo.Acceso).AddEndpointFilter<OrdenMutationFilter>();
 
         group.MapGet("/", ObtenerOrdenesTrabajo);
         group.MapGet("/{id:guid}", ObtenerOrdenTrabajoPorId);
         group.MapPost("/", CrearOrdenTrabajo).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear);
         group.MapPut("/{id:guid}", ActualizarOrdenTrabajo).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear);
-        group.MapPatch("/{id:guid}/estado-sistema", CambiarEstadoSistema).RequireAuthorization(Permissions.ServicioCampo.OrdenesAsignar);
+        group.MapPatch("/{id:guid}/estado-sistema", CambiarEstadoSistema);
         group.MapPost("/{id:guid}/programar", ProgramarOrdenTrabajo).RequireAuthorization(Permissions.ServicioCampo.OrdenesAsignar);
         group.MapDelete("/{id:guid}", EliminarOrdenTrabajo).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear);
         group.MapPost("/{id:guid}/trabajos", AgregarTrabajoAOrden).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear);
@@ -37,6 +40,10 @@ public static class OrdenesTrabajoEndpoints
         group.MapPost("/{id:guid}/trabajos/{trabajoId:guid}/completar", CompletarTrabajo).RequireAuthorization(Permissions.ServicioCampo.OrdenesOperarCampo);
         group.MapPut("/{id:guid}/trabajos/{trabajoId:guid}/tareas/{tareaId:guid}", CompletarTarea).RequireAuthorization(Permissions.ServicioCampo.OrdenesOperarCampo);
         group.MapDelete("/{id:guid}/trabajos/{trabajoId:guid}", EliminarTrabajoDeOrden).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear);
+        group.MapGet("/{id:guid}/acta-pdf", GenerarActaServicioPdf);
+        group.MapPost("/{id:guid}/liquidar", LiquidarOrdenTrabajo).RequireAuthorization(Permissions.ServicioCampo.OrdenesOperarCampo);
+        group.MapPost("/{id:guid}/visitas/{visitaId:guid}/reprogramar", ReprogramarVisita).RequireAuthorization(Permissions.ServicioCampo.OrdenesAsignar);
+        group.MapPost("/{id:guid}/visitas/{visitaId:guid}/cancelar", CancelarVisita).RequireAuthorization(Permissions.ServicioCampo.OrdenesAsignar);
     }
 
     private static async Task<ListaPrecios> ObtenerLista(Guid? id, IServicioCampoDbContext db, CancellationToken ct)
@@ -86,8 +93,10 @@ public static class OrdenesTrabajoEndpoints
         return trabajo;
     }
 
-    private static async Task<IResult> ActualizarTrabajo(Guid id, Guid trabajoId, ActualizarTrabajoRequest request, IServicioCampoDbContext db, CancellationToken ct)
+    private static async Task<IResult> ActualizarTrabajo(Guid id, Guid trabajoId, ActualizarTrabajoRequest request, IServicioCampoDbContext db, ICurrentUser currentUser, CancellationToken ct)
     {
+        await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
+
         var trabajo = await db.Trabajos.Include(t => t.OrdenTrabajo).FirstOrDefaultAsync(t => t.Id == trabajoId && t.OrdenTrabajoId == id, ct);
         if (trabajo == null) return Results.NotFound();
         try { trabajo.OrdenTrabajo.ValidarEditable(); trabajo.ActualizarDatos(request.ReferenciaEquipo, request.Observaciones, request.CodigoExterno); }
@@ -96,8 +105,10 @@ public static class OrdenesTrabajoEndpoints
         return Results.NoContent();
     }
 
-    private static async Task<IResult> CompletarTarea(Guid id, Guid trabajoId, Guid tareaId, CompletarTareaRequest request, IServicioCampoDbContext db, CancellationToken ct)
+    private static async Task<IResult> CompletarTarea(Guid id, Guid trabajoId, Guid tareaId, CompletarTareaRequest request, IServicioCampoDbContext db, ICurrentUser currentUser, CancellationToken ct)
     {
+        await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
+
         var trabajo = await db.Trabajos.Include(t => t.OrdenTrabajo).Include(t => t.Tareas).FirstOrDefaultAsync(t => t.Id == trabajoId && t.OrdenTrabajoId == id, ct);
         var tarea = trabajo?.Tareas.FirstOrDefault(t => t.Id == tareaId);
         if (trabajo == null || tarea == null) return Results.NotFound();
@@ -111,8 +122,10 @@ public static class OrdenesTrabajoEndpoints
         await db.SaveChangesAsync(ct); return Results.NoContent();
     }
 
-    private static async Task<IResult> CompletarTrabajo(Guid id, Guid trabajoId, IServicioCampoDbContext db, CancellationToken ct)
+    private static async Task<IResult> CompletarTrabajo(Guid id, Guid trabajoId, IServicioCampoDbContext db, ICurrentUser currentUser, CancellationToken ct)
     {
+        await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
+
         var trabajo = await db.Trabajos.Include(t => t.OrdenTrabajo).Include(t => t.Tareas).FirstOrDefaultAsync(t => t.Id == trabajoId && t.OrdenTrabajoId == id, ct);
         if (trabajo == null) return Results.NotFound();
         try { trabajo.OrdenTrabajo.ValidarEditable(); trabajo.Completar(); }
@@ -121,14 +134,14 @@ public static class OrdenesTrabajoEndpoints
     }
 
     private static async Task<IResult> ObtenerOrdenesTrabajo(
-        IServicioCampoDbContext db,
+        IServicioCampoDbContext db, ICurrentUser currentUser,
         string? search,
         string? estadoSistema,
         Guid? clienteId,
         Guid? zonaOperativaId,
         CancellationToken ct)
     {
-        var query = db.OrdenesTrabajo
+        var query = OrdenesAcceso.Consultables(db, currentUser)
             .AsNoTracking()
             .Include(o => o.TipoOrden)
             .Include(o => o.ClienteFacturacion)
@@ -214,10 +227,10 @@ public static class OrdenesTrabajoEndpoints
 
     private static async Task<IResult> ObtenerOrdenTrabajoPorId(
         Guid id,
-        IServicioCampoDbContext db,
+        IServicioCampoDbContext db, ICurrentUser currentUser,
         CancellationToken ct)
     {
-        var orden = await db.OrdenesTrabajo
+        var orden = await OrdenesAcceso.Consultables(db, currentUser)
             .AsNoTracking()
             .Include(o => o.TipoOrden)
             .Include(o => o.ClienteFacturacion)
@@ -313,7 +326,7 @@ public static class OrdenesTrabajoEndpoints
         }
 
         var detalle = new OrdenTrabajoDetalleDto(
-            ListaPreciosId: orden.ListaPreciosId, Moneda: orden.Moneda,
+            ListaPreciosId: orden.ListaPreciosId, Moneda: orden.Moneda, Version: orden.Version,
             Id: orden.Id,
             CodigoWo: orden.CodigoWo,
             TipoOrdenId: orden.TipoOrdenId,
@@ -403,12 +416,12 @@ public static class OrdenesTrabajoEndpoints
 
     private static async Task<IResult> CrearOrdenTrabajo(
         CrearOrdenTrabajoRequest request,
-        IServicioCampoDbContext db,
-        ClaimsPrincipal user,
+        IServicioCampoDbContext db, ICurrentUser currentUser,
         CancellationToken ct)
     {
-        var userIdStr = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        Guid creadoPorId = Guid.TryParse(userIdStr, out var parsedGuid) ? parsedGuid : Guid.NewGuid();
+        if (!currentUser.IsAuthenticated || currentUser.Id == Guid.Empty) return Results.Unauthorized();
+        if (request.RecursoTecnicoId.HasValue && !currentUser.HasPermission(Permissions.ServicioCampo.OrdenesAsignar)) return Results.Forbid();
+        Guid creadoPorId = currentUser.Id;
 
         // Generar CodigoWo si no se envió
         var anioActual = DateTime.UtcNow.Year;
@@ -440,16 +453,18 @@ public static class OrdenesTrabajoEndpoints
         foreach (var item in request.Trabajos ?? [])
             await PrepararTrabajo(orden, item, db, ct);
 
+        orden.ActualizarObservaciones(request.Observaciones);
         // Si se especificó recurso y fecha, programar visita inicial
         if (request.RecursoTecnicoId.HasValue && !string.IsNullOrWhiteSpace(request.FechaProgramada) &&
             DateOnly.TryParse(request.FechaProgramada, out var fechaProg))
         {
-            orden.ProgramarVisita(
+            var nuevaVisita = orden.ProgramarVisita(
                 codigoVisita: $"{orden.CodigoWo}-V1",
                 recursoTecnicoId: request.RecursoTecnicoId.Value,
                 fechaProgramada: fechaProg,
                 bloqueHorario: request.BloqueHorario
             );
+            ((DbContext)db).Entry(nuevaVisita).State = EntityState.Added;
         }
 
         db.OrdenesTrabajo.Add(orden);
@@ -461,15 +476,25 @@ public static class OrdenesTrabajoEndpoints
     private static async Task<IResult> ActualizarOrdenTrabajo(
         Guid id,
         ActualizarOrdenTrabajoRequest request,
-        IServicioCampoDbContext db,
+        IServicioCampoDbContext db, ICurrentUser currentUser,
         CancellationToken ct)
     {
+        await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
+        if (request.RecursoTecnicoId.HasValue && !currentUser.HasPermission(Permissions.ServicioCampo.OrdenesAsignar)) return Results.Forbid();
+
         var orden = await db.OrdenesTrabajo
             .Include(o => o.Visitas)
             .FirstOrDefaultAsync(o => o.Id == id, ct);
 
         if (orden == null)
             return Results.NotFound(new { message = $"No se encontró la orden de trabajo con ID {id}." });
+
+        try
+        {
+            orden.ValidarEditable();
+            if (request.Observaciones != null) orden.ActualizarObservaciones(request.Observaciones);
+        }
+        catch (InvalidOperationException ex) { return Results.BadRequest(new { message = ex.Message }); }
 
         if (request.ZonaOperativaId.HasValue)
             orden.AsignarZonaOperativa(request.ZonaOperativaId.Value);
@@ -479,12 +504,13 @@ public static class OrdenesTrabajoEndpoints
             DateOnly.TryParse(request.FechaProgramada, out var fechaProg))
         {
             var visitCount = orden.Visitas.Count + 1;
-            orden.ProgramarVisita(
+            var nuevaVisita = orden.ProgramarVisita(
                 codigoVisita: $"{orden.CodigoWo}-V{visitCount}",
                 recursoTecnicoId: request.RecursoTecnicoId.Value,
                 fechaProgramada: fechaProg,
                 bloqueHorario: request.BloqueHorario
             );
+            ((DbContext)db).Entry(nuevaVisita).State = EntityState.Added;
         }
 
         await ((DbContext)db).SaveChangesAsync(ct);
@@ -494,53 +520,40 @@ public static class OrdenesTrabajoEndpoints
     private static async Task<IResult> CambiarEstadoSistema(
         Guid id,
         CambiarEstadoSistemaRequest request,
-        IServicioCampoDbContext db,
+        IServicioCampoDbContext db, ICurrentUser currentUser,
         CancellationToken ct)
     {
+        await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
+
         var orden = await db.OrdenesTrabajo
-            .Include(o => o.Visitas).Include(o => o.Trabajos)
+            .Include(o => o.TipoOrden).Include(o => o.Visitas).ThenInclude(v => v.Evidencias).Include(o => o.Trabajos).ThenInclude(t => t.Tareas).Include(o => o.Tareas)
             .FirstOrDefaultAsync(o => o.Id == id, ct);
 
         if (orden == null)
             return Results.NotFound(new { message = $"No se encontró la orden de trabajo con ID {id}." });
 
-        if (!Enum.TryParse<EstadoSistema>(request.NuevoEstadoSistema, true, out var nuevoEstadoSis))
+        if (!Enum.TryParse<EstadoSistema>(request.NuevoEstadoSistema, true, out var nuevoEstadoSis) || !Enum.IsDefined(nuevoEstadoSis))
             return Results.BadRequest(new { message = $"Estado del sistema inválido: '{request.NuevoEstadoSistema}'." });
+        var permisoEstado = nuevoEstadoSis is EstadoSistema.Completado or EstadoSistema.Cancelado
+            ? Permissions.ServicioCampo.OrdenesCerrar : Permissions.ServicioCampo.OrdenesAsignar;
+        if (!currentUser.HasPermission(permisoEstado)) return Results.Forbid();
 
-        // Si el estado es Programado y no tiene visita, validar o crear una
-        if (nuevoEstadoSis == EstadoSistema.Programado && orden.Visitas.Count == 0 && request.RecursoTecnicoId.HasValue &&
-            !string.IsNullOrWhiteSpace(request.FechaProgramada) && DateOnly.TryParse(request.FechaProgramada, out var fechaProg))
+        try
         {
-            orden.ProgramarVisita(
-                codigoVisita: $"{orden.CodigoWo}-V1",
-                recursoTecnicoId: request.RecursoTecnicoId.Value,
-                fechaProgramada: fechaProg,
-                bloqueHorario: request.BloqueHorario
-            );
-        }
-        else
-        {
-            // Transición a través de reflexión o cambio directo de backing fields de EstadoSistema y Estado
-            if (nuevoEstadoSis == EstadoSistema.Completado)
+            orden.ValidarEditable();
+            if (nuevoEstadoSis == EstadoSistema.Programado && orden.Visitas.Count == 0)
             {
-                try { orden.ValidarCierreTrabajos(); }
-                catch (InvalidOperationException ex) { return Results.BadRequest(new { message = ex.Message }); }
+                if (orden.EstadoSistema != EstadoSistema.PendienteProgramar || !request.RecursoTecnicoId.HasValue
+                    || !DateOnly.TryParse(request.FechaProgramada, out var fechaProg))
+                    return Results.BadRequest(new { message = "Seleccione técnico y fecha para programar la orden." });
+                if (!await db.Recursos.AnyAsync(r => r.Id == request.RecursoTecnicoId && r.Activo, ct))
+                    return Results.BadRequest(new { message = "El técnico seleccionado no existe o está inactivo." });
+                var visita = orden.ProgramarVisita($"{orden.CodigoWo}-V1", request.RecursoTecnicoId.Value, fechaProg, request.BloqueHorario);
+                ((DbContext)db).Entry(visita).State = EntityState.Added;
             }
-            typeof(OrdenTrabajo).GetProperty(nameof(OrdenTrabajo.EstadoSistema))?.SetValue(orden, nuevoEstadoSis);
-            
-            var nuevoEstadoOperativo = nuevoEstadoSis switch
-            {
-                EstadoSistema.Borrador => EstadoOrdenTrabajo.Pendiente,
-                EstadoSistema.PendienteProgramar => EstadoOrdenTrabajo.Pendiente,
-                EstadoSistema.Programado => EstadoOrdenTrabajo.Programada,
-                EstadoSistema.EnProgreso => EstadoOrdenTrabajo.EnProgreso,
-                EstadoSistema.Completado => EstadoOrdenTrabajo.Finalizada,
-                EstadoSistema.Cancelado => EstadoOrdenTrabajo.Cancelada,
-                _ => orden.Estado
-            };
-            typeof(OrdenTrabajo).GetProperty(nameof(OrdenTrabajo.Estado))?.SetValue(orden, nuevoEstadoOperativo);
+            else orden.CambiarEstadoSistema(nuevoEstadoSis, request.MotivoId, request.Observaciones);
         }
-
+        catch (InvalidOperationException ex) { return Results.BadRequest(new { message = ex.Message }); }
         await ((DbContext)db).SaveChangesAsync(ct);
         return Results.Ok(new { message = $"Estado del sistema actualizado a {nuevoEstadoSis}." });
     }
@@ -548,9 +561,11 @@ public static class OrdenesTrabajoEndpoints
     private static async Task<IResult> ProgramarOrdenTrabajo(
         Guid id,
         ProgramarOrdenTrabajoRequest request,
-        IServicioCampoDbContext db,
+        IServicioCampoDbContext db, ICurrentUser currentUser,
         CancellationToken ct)
     {
+        await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
+
         var orden = await db.OrdenesTrabajo
             .Include(o => o.Visitas)
             .FirstOrDefaultAsync(o => o.Id == id, ct);
@@ -569,15 +584,18 @@ public static class OrdenesTrabajoEndpoints
             bloqueHorario: request.BloqueHorario
         );
 
+        ((DbContext)db).Entry(visita).State = EntityState.Added;
         await ((DbContext)db).SaveChangesAsync(ct);
         return Results.Ok(new { message = "Visita programada exitosamente.", visitaId = visita.Id });
     }
 
     private static async Task<IResult> EliminarOrdenTrabajo(
         Guid id,
-        IServicioCampoDbContext db,
+        IServicioCampoDbContext db, ICurrentUser currentUser,
         CancellationToken ct)
     {
+        await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
+
         var orden = await db.OrdenesTrabajo
             .Include(o => o.Visitas)
             .Include(o => o.Materiales)
@@ -599,9 +617,11 @@ public static class OrdenesTrabajoEndpoints
     private static async Task<IResult> AgregarTrabajoAOrden(
         Guid id,
         CrearOrdenTrabajoItemRequest request,
-        IServicioCampoDbContext db,
+        IServicioCampoDbContext db, ICurrentUser currentUser,
         CancellationToken ct)
     {
+        await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
+
         var orden = await db.OrdenesTrabajo
             .Include(o => o.Trabajos)
             .Include(o => o.TipoOrden)
@@ -620,9 +640,11 @@ public static class OrdenesTrabajoEndpoints
     private static async Task<IResult> EliminarTrabajoDeOrden(
         Guid id,
         Guid trabajoId,
-        IServicioCampoDbContext db,
+        IServicioCampoDbContext db, ICurrentUser currentUser,
         CancellationToken ct)
     {
+        await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
+
         var trabajo = await db.Trabajos
             .Include(t => t.Tareas)
             .Include(t => t.Materiales)
@@ -637,6 +659,416 @@ public static class OrdenesTrabajoEndpoints
         db.Trabajos.Remove(trabajo);
         await ((DbContext)db).SaveChangesAsync(ct);
         return Results.Ok(new { message = "Trabajo eliminado exitosamente de la orden." });
+    }
+
+    private static async Task<IResult> GenerarActaServicioPdf(
+        Guid id,
+        IServicioCampoDbContext db,
+        ICurrentUser currentUser,
+        CancellationToken ct)
+    {
+        await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
+
+        var orden = await db.OrdenesTrabajo
+            .Include(o => o.TipoOrden)
+            .Include(o => o.ClienteServicio).ThenInclude(c => c.Ubigeo)
+            .Include(o => o.ClienteFacturacion)
+            .Include(o => o.ZonaOperativa)
+            .Include(o => o.Visitas).ThenInclude(v => v.Recurso)
+            .Include(o => o.Visitas).ThenInclude(v => v.Evidencias)
+            .Include(o => o.Trabajos).ThenInclude(t => t.Producto)
+            .Include(o => o.Trabajos).ThenInclude(t => t.Tareas).ThenInclude(tt => tt.Tarea)
+            .Include(o => o.Trabajos).ThenInclude(t => t.Materiales).ThenInclude(m => m.Producto)
+            .Include(o => o.Materiales)
+            .Include(o => o.LiquidacionesMaterial).ThenInclude(l => l.Items).ThenInclude(i => i.Producto)
+            .FirstOrDefaultAsync(o => o.Id == id, ct);
+
+        if (orden == null)
+            return Results.NotFound(new { message = $"No se encontró la orden de trabajo con ID {id}." });
+
+        var empresa = await db.ConfiguracionEmpresas.AsNoTracking().FirstOrDefaultAsync(ct);
+        var pdfBytes = ActaServicioPdfGenerator.GenerarActa(orden, empresa);
+
+        return Results.File(pdfBytes, "application/pdf", $"Acta-Servicio-{orden.CodigoWo}.pdf");
+    }
+
+    private static async Task<IResult> LiquidarOrdenTrabajo(
+        Guid id,
+        LiquidarOrdenTrabajoRequest request,
+        IServicioCampoDbContext db,
+        ICurrentUser currentUser,
+        CancellationToken ct)
+    {
+        await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
+
+        var orden = await db.OrdenesTrabajo
+            .Include(o => o.Visitas).ThenInclude(v => v.Recurso)
+            .Include(o => o.Trabajos).ThenInclude(t => t.Materiales)
+            .Include(o => o.Trabajos).ThenInclude(t => t.Tareas)
+            .Include(o => o.Materiales)
+            .Include(o => o.LiquidacionesMaterial).ThenInclude(l => l.Items)
+            .FirstOrDefaultAsync(o => o.Id == id, ct);
+
+        if (orden == null)
+            return Results.NotFound(new { message = $"No se encontró la orden de trabajo con ID {id}." });
+
+        orden.ValidarEditable();
+
+        if (orden.Estado != EstadoOrdenTrabajo.Completa && orden.EstadoSistema != EstadoSistema.Completado)
+            return Results.BadRequest(new { message = "Solo se pueden liquidar materiales cuando la labor técnica en campo ha sido completada." });
+
+        if (orden.DescargaMaterialesConfirmada)
+            return Results.BadRequest(new { message = "Los materiales de esta orden ya han sido liquidados previamente." });
+
+        // 1. Determinar el almacén de descarga (Móvil del técnico o provisto)
+        Almacen? almacen = null;
+        if (request.AlmacenId.HasValue && request.AlmacenId.Value != Guid.Empty)
+        {
+            almacen = await db.Almacenes.FirstOrDefaultAsync(a => a.Id == request.AlmacenId.Value && a.Activo, ct);
+            if (almacen == null)
+                return Results.BadRequest(new { message = "El almacén indicado no existe o está inactivo." });
+        }
+        else
+        {
+            var ultimaVisita = orden.Visitas.OrderByDescending(v => v.NumeroVisita).FirstOrDefault();
+            if (ultimaVisita == null)
+                return Results.BadRequest(new { message = "La orden no tiene visitas programadas ni técnico asignado para identificar el almacén móvil de descarga." });
+
+            almacen = await db.Almacenes.FirstOrDefaultAsync(a => a.RecursoId == ultimaVisita.RecursoId && a.Tipo == TipoAlmacen.CustodiaPersonal && a.Activo, ct);
+            if (almacen == null)
+            {
+                return Results.BadRequest(new { message = "No se encontró un almacén de custodia móvil activo para el técnico asignado. Indique el almacén de descarga manualmente." });
+            }
+        }
+
+        // 2. Ubicación principal del almacén
+        var ubicacion = await db.UbicacionesInventario.FirstOrDefaultAsync(u => u.AlmacenId == almacen.Id && u.Activa, ct);
+        if (ubicacion == null)
+        {
+            ubicacion = UbicacionInventario.Crear(almacen.Id, "PRINCIPAL", "Principal", true);
+            db.UbicacionesInventario.Add(ubicacion);
+            await ((DbContext)db).SaveChangesAsync(ct);
+        }
+
+        var liqNumero = $"LIQ-{orden.CodigoWo}";
+        var liquidacion = orden.GenerarLiquidacionMaterial(liqNumero, almacen.Id, currentUser.Id, request.Observaciones);
+
+        // 3. Procesar consumos
+        if (request.Consumos != null && request.Consumos.Count > 0)
+        {
+            foreach (var c in request.Consumos)
+            {
+                var prod = await db.Productos.FirstOrDefaultAsync(p => p.Id == c.ProductoId && p.Activo, ct);
+                if (prod == null || prod.Tipo != TipoProducto.Inventario)
+                    return Results.BadRequest(new { message = $"El producto con ID {c.ProductoId} no es un artículo de inventario válido." });
+
+                if (prod.EsSerializado)
+                {
+                    if (string.IsNullOrWhiteSpace(c.NumeroSerie))
+                        return Results.BadRequest(new { message = $"El producto '{prod.Nombre}' es serializado y requiere especificar el número de serie instalado." });
+
+                    var serieNorm = c.NumeroSerie.Trim().ToUpperInvariant();
+                    var itemSerie = await db.ItemsSeriados.FirstOrDefaultAsync(s => s.ProductoId == prod.Id && s.NumeroSerie == serieNorm, ct);
+
+                    if (itemSerie == null)
+                        return Results.BadRequest(new { message = $"La serie '{serieNorm}' del producto '{prod.Nombre}' no existe en el sistema." });
+
+                    if (itemSerie.Estado != EstadoItemSeriado.EnCustodiaTecnico && itemSerie.Estado != EstadoItemSeriado.EnAlmacen)
+                        return Results.BadRequest(new { message = $"La serie '{serieNorm}' no está disponible para instalación (Estado: {itemSerie.Estado})." });
+
+                    if (itemSerie.UbicacionActualId != ubicacion.Id)
+                        return Results.BadRequest(new { message = $"La serie '{serieNorm}' no se encuentra en el almacén '{almacen.Nombre}' (Ubicación actual no coincide)." });
+
+                    itemSerie.InstalarEnCliente(orden.ClienteServicioId, orden.Id);
+
+                    var stock = await db.StocksAlmacen.FirstOrDefaultAsync(s => s.UbicacionId == ubicacion.Id && s.ProductoId == prod.Id && s.Condicion == CondicionInventario.Utilizable, ct);
+                    if (stock == null || stock.CantidadDisponible < 1m)
+                        return Results.BadRequest(new { message = $"Stock insuficiente para '{prod.Nombre}' en almacén '{almacen.Nombre}'. Saldo disponible: {stock?.CantidadDisponible ?? 0}." });
+
+                    stock.DisminuirStock(1m);
+
+                    var movKardex = MovimientoInventario.Registrar(
+                        TipoMovimientoInventario.ConsumoEnOrdenTrabajo,
+                        prod.Id,
+                        1m,
+                        almacenOrigenId: almacen.Id,
+                        itemSeriadoId: itemSerie.Id,
+                        clienteId: orden.ClienteServicioId,
+                        ordenTrabajoId: orden.Id,
+                        numeroDocumento: orden.CodigoWo,
+                        usuarioResponsableId: currentUser.Id,
+                        observaciones: $"Instalación serie {serieNorm} en OT {orden.CodigoWo}",
+                        ubicacionOrigenId: ubicacion.Id,
+                        condicion: CondicionInventario.Utilizable
+                    );
+                    db.MovimientosInventario.Add(movKardex);
+
+                    liquidacion.AgregarItem(prod.Id, 1m, 0m, esSeriado: true, itemSeriadoId: itemSerie.Id, numeroSerie: serieNorm, esRetiro: false, observaciones: c.Observaciones);
+                    orden.RegistrarMaterialConsumido(prod.Id, 1m, itemSerie.Id, serieNorm, null, null, c.Observaciones);
+                }
+                else
+                {
+                    if (c.Cantidad <= 0)
+                        return Results.BadRequest(new { message = $"La cantidad a consumir para '{prod.Nombre}' debe ser mayor a cero." });
+
+                    if (!ReglasCantidadInventario.EsValida(prod, c.Cantidad))
+                        return Results.BadRequest(new { message = $"La cantidad '{c.Cantidad}' para '{prod.Nombre}' no cumple con las reglas de precisión e inventario." });
+
+                    var stock = await db.StocksAlmacen.FirstOrDefaultAsync(s => s.UbicacionId == ubicacion.Id && s.ProductoId == prod.Id && s.Condicion == CondicionInventario.Utilizable, ct);
+                    if (stock == null || stock.CantidadDisponible < c.Cantidad)
+                        return Results.BadRequest(new { message = $"Stock insuficiente para '{prod.Nombre}' en almacén '{almacen.Nombre}'. Saldo disponible: {stock?.CantidadDisponible ?? 0}, solicitado: {c.Cantidad}." });
+
+                    stock.DisminuirStock(c.Cantidad);
+
+                    var movKardex = MovimientoInventario.Registrar(
+                        TipoMovimientoInventario.ConsumoEnOrdenTrabajo,
+                        prod.Id,
+                        c.Cantidad,
+                        almacenOrigenId: almacen.Id,
+                        clienteId: orden.ClienteServicioId,
+                        ordenTrabajoId: orden.Id,
+                        numeroDocumento: orden.CodigoWo,
+                        usuarioResponsableId: currentUser.Id,
+                        observaciones: $"Consumo en OT {orden.CodigoWo}: {c.Observaciones}",
+                        ubicacionOrigenId: ubicacion.Id,
+                        condicion: CondicionInventario.Utilizable
+                    );
+                    db.MovimientosInventario.Add(movKardex);
+
+                    liquidacion.AgregarItem(prod.Id, c.Cantidad, 0m, esSeriado: false, esRetiro: false, observaciones: c.Observaciones);
+                    orden.RegistrarMaterialConsumido(prod.Id, c.Cantidad, null, null, null, null, c.Observaciones);
+                }
+            }
+        }
+        else
+        {
+            liquidacion.ConsolidarDesdeOrden(orden);
+            foreach (var itemLiq in liquidacion.Items.Where(i => !i.EsRetiro))
+            {
+                var prod = await db.Productos.FirstOrDefaultAsync(p => p.Id == itemLiq.ProductoId, ct);
+                if (prod == null) continue;
+
+                if (itemLiq.EsSeriado && !string.IsNullOrWhiteSpace(itemLiq.NumeroSerie))
+                {
+                    var serieNorm = itemLiq.NumeroSerie.Trim().ToUpperInvariant();
+                    var itemSerie = await db.ItemsSeriados.FirstOrDefaultAsync(s => s.ProductoId == prod.Id && s.NumeroSerie == serieNorm, ct);
+                    if (itemSerie != null)
+                    {
+                        itemSerie.InstalarEnCliente(orden.ClienteServicioId, orden.Id);
+                    }
+
+                    var stock = await db.StocksAlmacen.FirstOrDefaultAsync(s => s.UbicacionId == ubicacion.Id && s.ProductoId == prod.Id && s.Condicion == CondicionInventario.Utilizable, ct);
+                    if (stock != null && stock.CantidadDisponible >= 1m)
+                    {
+                        stock.DisminuirStock(1m);
+                    }
+
+                    var mov = MovimientoInventario.Registrar(
+                        TipoMovimientoInventario.ConsumoEnOrdenTrabajo,
+                        prod.Id,
+                        1m,
+                        almacenOrigenId: almacen.Id,
+                        itemSeriadoId: itemSerie?.Id,
+                        clienteId: orden.ClienteServicioId,
+                        ordenTrabajoId: orden.Id,
+                        numeroDocumento: orden.CodigoWo,
+                        usuarioResponsableId: currentUser.Id,
+                        observaciones: $"Consumo automático OT {orden.CodigoWo}",
+                        ubicacionOrigenId: ubicacion.Id,
+                        condicion: CondicionInventario.Utilizable
+                    );
+                    db.MovimientosInventario.Add(mov);
+                }
+                else if (!itemLiq.EsSeriado && itemLiq.CantidadConsumida > 0)
+                {
+                    var stock = await db.StocksAlmacen.FirstOrDefaultAsync(s => s.UbicacionId == ubicacion.Id && s.ProductoId == prod.Id && s.Condicion == CondicionInventario.Utilizable, ct);
+                    if (stock == null || stock.CantidadDisponible < itemLiq.CantidadConsumida)
+                        return Results.BadRequest(new { message = $"Stock insuficiente para consolidar '{prod.Nombre}' en almacén '{almacen.Nombre}'. Saldo: {stock?.CantidadDisponible ?? 0}, requerido: {itemLiq.CantidadConsumida}." });
+
+                    stock.DisminuirStock(itemLiq.CantidadConsumida);
+
+                    var mov = MovimientoInventario.Registrar(
+                        TipoMovimientoInventario.ConsumoEnOrdenTrabajo,
+                        prod.Id,
+                        itemLiq.CantidadConsumida,
+                        almacenOrigenId: almacen.Id,
+                        clienteId: orden.ClienteServicioId,
+                        ordenTrabajoId: orden.Id,
+                        numeroDocumento: orden.CodigoWo,
+                        usuarioResponsableId: currentUser.Id,
+                        observaciones: $"Consumo automático OT {orden.CodigoWo}",
+                        ubicacionOrigenId: ubicacion.Id,
+                        condicion: CondicionInventario.Utilizable
+                    );
+                    db.MovimientosInventario.Add(mov);
+                }
+            }
+        }
+
+        // 4. Procesar equipos retirados / chatarra / averiados
+        if (request.Retiros != null && request.Retiros.Count > 0)
+        {
+            foreach (var r in request.Retiros)
+            {
+                if (string.IsNullOrWhiteSpace(r.NumeroSerie))
+                    return Results.BadRequest(new { message = "Cada equipo retirado requiere especificar su número de serie." });
+
+                var serieNorm = r.NumeroSerie.Trim().ToUpperInvariant();
+                var prod = await db.Productos.FirstOrDefaultAsync(p => p.Id == r.ProductoId && p.Activo, ct);
+                if (prod == null)
+                    return Results.BadRequest(new { message = $"El equipo con ID {r.ProductoId} no es un producto válido." });
+
+                var itemSerie = await db.ItemsSeriados.FirstOrDefaultAsync(s => s.ProductoId == prod.Id && s.NumeroSerie == serieNorm, ct);
+                if (itemSerie != null)
+                {
+                    itemSerie.RetirarPorAveria(ubicacion.Id, orden.ClienteServicioId, orden.Id, r.Motivo);
+                }
+                else
+                {
+                    itemSerie = ItemSeriado.Crear(prod.Id, serieNorm, ubicacion.Id, observaciones: $"Retiro en OT {orden.CodigoWo}: {r.Motivo}");
+                    itemSerie.RetirarPorAveria(ubicacion.Id, orden.ClienteServicioId, orden.Id, r.Motivo);
+                    db.ItemsSeriados.Add(itemSerie);
+                }
+
+                var stockDef = await db.StocksAlmacen.FirstOrDefaultAsync(s => s.UbicacionId == ubicacion.Id && s.ProductoId == prod.Id && s.Condicion == CondicionInventario.Defectuoso, ct);
+                if (stockDef == null)
+                {
+                    stockDef = StockAlmacen.Crear(ubicacion.Id, prod.Id, 1m, CondicionInventario.Defectuoso);
+                    db.StocksAlmacen.Add(stockDef);
+                }
+                else
+                {
+                    stockDef.AumentarStock(1m);
+                }
+
+                var movRetiro = MovimientoInventario.Registrar(
+                    TipoMovimientoInventario.RetiroEnOrdenTrabajo,
+                    prod.Id,
+                    1m,
+                    almacenDestinoId: almacen.Id,
+                    itemSeriadoId: itemSerie.Id,
+                    clienteId: orden.ClienteServicioId,
+                    ordenTrabajoId: orden.Id,
+                    numeroDocumento: orden.CodigoWo,
+                    usuarioResponsableId: currentUser.Id,
+                    observaciones: $"Retiro equipo averiado/chatarra OT {orden.CodigoWo}: {r.Motivo}",
+                    ubicacionDestinoId: ubicacion.Id,
+                    condicion: CondicionInventario.Defectuoso
+                );
+                db.MovimientosInventario.Add(movRetiro);
+
+                liquidacion.AgregarItem(prod.Id, 0m, 1m, esSeriado: true, itemSeriadoId: itemSerie.Id, numeroSerie: serieNorm, esRetiro: true, observaciones: r.Motivo);
+                orden.RegistrarEquipoRetirado(prod.Id, serieNorm, itemSerie.Id, null, null, r.Motivo);
+            }
+        }
+
+        // 5. Confirmar Liquidación y verificar promoción a Finalizada
+        orden.ConfirmarLiquidacionMateriales(liquidacion.Id, request.Observaciones);
+        orden.VerificarPromocionAFinalizada();
+
+        await ((DbContext)db).SaveChangesAsync(ct);
+
+        return Results.Ok(new
+        {
+            message = "Liquidación de materiales procesada y confirmada exitosamente.",
+            numeroLiquidacion = liquidacion.NumeroLiquidacion,
+            almacen = almacen.Nombre,
+            estadoOrden = orden.Estado.ToString(),
+            estadoSistema = orden.EstadoSistema.ToString()
+        });
+    }
+
+    private static async Task<IResult> ReprogramarVisita(
+        Guid id,
+        Guid visitaId,
+        ReprogramarVisitaRequest request,
+        IServicioCampoDbContext db,
+        ICurrentUser currentUser,
+        CancellationToken ct)
+    {
+        await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
+
+        var orden = await db.OrdenesTrabajo
+            .Include(o => o.Visitas)
+            .FirstOrDefaultAsync(o => o.Id == id, ct);
+
+        if (orden == null)
+            return Results.NotFound(new { message = $"No se encontró la orden de trabajo con ID {id}." });
+
+        orden.ValidarEditable();
+
+        var visitaActual = orden.Visitas.FirstOrDefault(v => v.Id == visitaId);
+        if (visitaActual == null)
+            return Results.NotFound(new { message = $"No se encontró la visita con ID {visitaId} en esta orden." });
+
+        if (visitaActual.Estado == EstadoVisita.Completada)
+            return Results.BadRequest(new { message = "No se puede reprogramar una visita que ya ha sido completada." });
+
+        if (!DateOnly.TryParse(request.FechaProgramada, out var nuevaFecha))
+            return Results.BadRequest(new { message = "La nueva fecha programada no es válida." });
+
+        var recursoId = request.RecursoTecnicoId ?? visitaActual.RecursoId;
+        if (!await db.Recursos.AnyAsync(r => r.Id == recursoId && r.Activo, ct))
+            return Results.BadRequest(new { message = "El técnico seleccionado no existe o está inactivo." });
+
+        visitaActual.CancelarVisita(request.MotivoId, $"Reprogramada: {request.Observaciones}");
+
+        var visitCount = orden.Visitas.Count + 1;
+        var nuevaVisita = orden.ProgramarVisita(
+            codigoVisita: $"{orden.CodigoWo}-V{visitCount}",
+            recursoTecnicoId: recursoId,
+            fechaProgramada: nuevaFecha,
+            bloqueHorario: request.BloqueHorario
+        );
+        ((DbContext)db).Entry(nuevaVisita).State = EntityState.Added;
+
+        await ((DbContext)db).SaveChangesAsync(ct);
+
+        return Results.Ok(new
+        {
+            message = "Visita reprogramada exitosamente.",
+            nuevaVisitaId = nuevaVisita.Id,
+            codigoVisita = nuevaVisita.CodigoVisita,
+            fechaProgramada = nuevaFecha.ToString("yyyy-MM-dd")
+        });
+    }
+
+    private static async Task<IResult> CancelarVisita(
+        Guid id,
+        Guid visitaId,
+        CancelarVisitaRequest request,
+        IServicioCampoDbContext db,
+        ICurrentUser currentUser,
+        CancellationToken ct)
+    {
+        await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
+
+        var orden = await db.OrdenesTrabajo
+            .Include(o => o.Visitas)
+            .FirstOrDefaultAsync(o => o.Id == id, ct);
+
+        if (orden == null)
+            return Results.NotFound(new { message = $"No se encontró la orden de trabajo con ID {id}." });
+
+        orden.ValidarEditable();
+
+        var visita = orden.Visitas.FirstOrDefault(v => v.Id == visitaId);
+        if (visita == null)
+            return Results.NotFound(new { message = $"No se encontró la visita con ID {visitaId} en esta orden." });
+
+        if (visita.Estado == EstadoVisita.Completada)
+            return Results.BadRequest(new { message = "No se puede cancelar una visita que ya ha sido completada." });
+
+        orden.NotificarVisitaCancelada(visitaId, request.MotivoId, request.Observaciones);
+
+        await ((DbContext)db).SaveChangesAsync(ct);
+
+        return Results.Ok(new
+        {
+            message = "Visita cancelada exitosamente.",
+            estadoOrden = orden.Estado.ToString(),
+            estadoSistema = orden.EstadoSistema.ToString()
+        });
     }
 }
 
@@ -729,7 +1161,8 @@ public record OrdenTrabajoDetalleDto(
     List<OrdenTrabajoTareaDto> Tareas,
     List<OrdenTrabajoVisitaDto> Visitas,
     Guid? ListaPreciosId = null,
-    string Moneda = "PEN"
+    string Moneda = "PEN",
+    uint Version = 0
 );
 
 public record OrdenTrabajoMaterialDto(
@@ -811,7 +1244,9 @@ public record CambiarEstadoSistemaRequest(
     string NuevoEstadoSistema,
     Guid? RecursoTecnicoId,
     string? FechaProgramada,
-    string? BloqueHorario
+    string? BloqueHorario,
+    Guid? MotivoId = null,
+    string? Observaciones = null
 );
 
 public record ProgramarOrdenTrabajoRequest(
@@ -822,3 +1257,38 @@ public record ProgramarOrdenTrabajoRequest(
 
 public record ActualizarTrabajoRequest(string? ReferenciaEquipo, string? Observaciones, string? CodigoExterno);
 public record CompletarTareaRequest(string? EvidenciaUrl, string? Observaciones);
+
+public record LiquidarOrdenTrabajoRequest(
+    Guid? AlmacenId,
+    string? Observaciones,
+    List<LiquidacionConsumoItemInput>? Consumos = null,
+    List<LiquidacionRetiroItemInput>? Retiros = null
+);
+
+public record LiquidacionConsumoItemInput(
+    Guid ProductoId,
+    decimal Cantidad,
+    string? NumeroSerie = null,
+    Guid? ItemSeriadoId = null,
+    string? Observaciones = null
+);
+
+public record LiquidacionRetiroItemInput(
+    Guid ProductoId,
+    string NumeroSerie,
+    string? Motivo = null
+);
+
+public record ReprogramarVisitaRequest(
+    string FechaProgramada,
+    string? BloqueHorario = null,
+    Guid? RecursoTecnicoId = null,
+    Guid? MotivoId = null,
+    string? Observaciones = null
+);
+
+public record CancelarVisitaRequest(
+    Guid MotivoId,
+    string? Observaciones = null
+);
+

@@ -25,7 +25,7 @@ export interface UpdateUnidadOrganizativaDto {
   ciudad?: string | null;
   direccion?: string | null;
   telefono?: string | null;
-  esSedePrincipal: boolean;
+  esSedePrincipal?: boolean;
 }
 
 export interface TerritorioDto {

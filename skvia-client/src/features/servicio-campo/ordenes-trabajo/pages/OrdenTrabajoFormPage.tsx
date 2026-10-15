@@ -1,3 +1,8 @@
+import { D365FormContent } from '../../../../components/common/D365FormContent';
+import { useValidationFocus } from '../../../../hooks/useValidationFocus';
+import { useUnsavedChanges } from '../../../../hooks/useUnsavedChanges';
+import { confirmAction } from '../../../../services/uiFeedback';
+import { useAuthSession } from '../../../../services/authSession';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -47,6 +52,8 @@ import {
   Person16Regular,
   Edit16Regular,
   Dismiss24Regular,
+  Print16Regular,
+  Box20Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
@@ -54,6 +61,7 @@ import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { SelectorEntidadRelacionada, type OpcionEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
 import { D365SubGrid } from '../../../../components/common/D365SubGrid';
+import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { WorkOrderEtapas } from '../components/WorkOrderEtapas';
 import { OrdenTrabajoService } from '../services/ordenTrabajo.service';
@@ -111,7 +119,29 @@ export interface TrabajoFormItem {
   materiales?: (OrdenTrabajoMaterialDto | ConfiguracionMaterialItemDto)[];
 }
 
+export interface LiquidacionConsumoDraft {
+  productoId: string;
+  productoCodigo: string;
+  productoNombre: string;
+  cantidadPrevista: number;
+  cantidadUtilizada: number;
+  esSerializado: boolean;
+  numeroSerie: string;
+  observaciones: string;
+}
+
+export interface LiquidacionRetiroDraft {
+  idTemp: string;
+  productoId: string;
+  numeroSerie: string;
+  motivo: string;
+}
+
 export const OrdenTrabajoFormPage: React.FC = () => {
+  const { permisos } = useAuthSession();
+  const puedeGestionar = permisos.includes('serviciocampo.ordenes.crear');
+  const puedeAsignar = permisos.includes('serviciocampo.ordenes.asignar');
+  const puedeCerrar = permisos.includes('serviciocampo.ordenes.cerrar');
   const formStyles = useD365FormStyles();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -190,9 +220,29 @@ export const OrdenTrabajoFormPage: React.FC = () => {
   const [fechaProgramada, setFechaProgramada] = useState('');
   const [bloqueHorario, setBloqueHorario] = useState('09:00 - 13:00');
 
+  // Estados para Reprogramar y Cancelar Visita
+  const [visitaSeleccionada, setVisitaSeleccionada] = useState<OrdenTrabajoVisitaDto | null>(null);
+  const [drawerReprogramarOpen, setDrawerReprogramarOpen] = useState(false);
+  const [drawerCancelarVisitaOpen, setDrawerCancelarVisitaOpen] = useState(false);
+  const [reprogramarFecha, setReprogramarFecha] = useState('');
+  const [reprogramarBloque, setReprogramarBloque] = useState('08:00 - 12:00');
+  const [reprogramarMotivo, setReprogramarMotivo] = useState('CLIENTE_SOLICITA_CAMBIO');
+  const [reprogramarObservaciones, setReprogramarObservaciones] = useState('');
+  const [cancelarMotivo, setCancelarMotivo] = useState('CLIENTE_DESISTE');
+  const [cancelarObservaciones, setCancelarObservaciones] = useState('');
+
+  // Estados para Liquidación de Materiales
+  const [drawerLiquidacionOpen, setDrawerLiquidacionOpen] = useState(false);
+  const [draftConsumos, setDraftConsumos] = useState<LiquidacionConsumoDraft[]>([]);
+  const [draftRetiros, setDraftRetiros] = useState<LiquidacionRetiroDraft[]>([]);
+  const [obsLiquidacion, setObsLiquidacion] = useState('');
+
   // Encabezado estático durante edición (solo cambia al cargar o al guardar)
   const [savedTitle, setSavedTitle] = useState(esNuevo ? 'Nuevo' : '');
   const [savedSubtitle, setSavedSubtitle] = useState(esNuevo ? 'Ficha de orden de trabajo' : '');
+  const focusValidation = useValidationFocus();
+  const draft = useUnsavedChanges({ tipoOrdenId,listaPreciosId,clienteFacturacionId,clienteServicioId,numeroOrden,referenciaExterna,codigoContrato,numeroPedido,observaciones,recursoTecnicoId,fechaProgramada,bloqueHorario,trabajos: trabajos.map(t => ({productoId:t.productoId,configuracionServicioId:t.configuracionServicioId,codigoExterno:t.codigoExterno,referenciaEquipo:t.referenciaEquipo,observaciones:t.observaciones})) }, !loading);
+
 
   const notifySuccess = useCallback((title: string) => {
     dispatchToast(
@@ -231,66 +281,67 @@ export const OrdenTrabajoFormPage: React.FC = () => {
   }, [esNuevo]);
 
   // Cargar Orden Existente
-  useEffect(() => {
-    if (esNuevo) return;
+  const cargarOrden = useCallback(async () => {
+    if (!id || esNuevo) return;
 
-    const cargarOrden = async () => {
-      try {
-        setLoading(true);
-        const data = await OrdenTrabajoService.obtenerOrdenPorId(id);
-        setOrden(data);
-        setSavedTitle(data.codigoWo || 'Orden de Trabajo');
-        setSavedSubtitle(`${data.tipoOrdenNombre || 'Servicio'} — ${data.clienteServicioNombre || ''}`);
-        setCodigoWo(data.codigoWo);
-        setTipoOrdenId(data.tipoOrdenId);
-        setListaPreciosId(data.listaPreciosId || '');
-        setClienteFacturacionId(data.clienteFacturacionId);
-        setClienteServicioId(data.clienteServicioId);
-        setZonaOperativaNombre(data.zonaOperativaNombre || 'Lima Metropolitana');
-        setNumeroOrden(data.numeroOrden || '');
-        setReferenciaExterna(data.referenciaExterna || '');
-        setCodigoContrato(data.codigoContrato || '');
-        setNumeroPedido(data.numeroPedido || '');
-        setEstadoSistema((data.estadoSistema as EstadoSistema) || 'Borrador');
-        setEstadoOperativo(data.estado || 'Pendiente');
-        setObservaciones(data.observacionesGenerales || '');
-        setRecursoTecnicoId(data.recursoTecnicoId || '');
-        setRecursoTecnicoNombre(data.recursoTecnicoNombre || '');
-        setFechaProgramada(data.fechaProgramada || '');
-        setBloqueHorario(data.bloqueHorario || '09:00 - 13:00');
+    try {
+      setLoading(true);
+      const data = await OrdenTrabajoService.obtenerOrdenPorId(id);
+      setOrden(data);
+      setSavedTitle(data.codigoWo || 'Orden de Trabajo');
+      setSavedSubtitle(`${data.tipoOrdenNombre || 'Servicio'} — ${data.clienteServicioNombre || ''}`);
+      setCodigoWo(data.codigoWo);
+      setTipoOrdenId(data.tipoOrdenId);
+      setListaPreciosId(data.listaPreciosId || '');
+      setClienteFacturacionId(data.clienteFacturacionId);
+      setClienteServicioId(data.clienteServicioId);
+      setZonaOperativaNombre(data.zonaOperativaNombre || 'Lima Metropolitana');
+      setNumeroOrden(data.numeroOrden || '');
+      setReferenciaExterna(data.referenciaExterna || '');
+      setCodigoContrato(data.codigoContrato || '');
+      setNumeroPedido(data.numeroPedido || '');
+      setEstadoSistema((data.estadoSistema as EstadoSistema) || 'Borrador');
+      setEstadoOperativo(data.estado || 'Pendiente');
+      setObservaciones(data.observacionesGenerales || '');
+      setRecursoTecnicoId(data.recursoTecnicoId || '');
+      setRecursoTecnicoNombre(data.recursoTecnicoNombre || '');
+      setFechaProgramada(data.fechaProgramada || '');
+      setBloqueHorario(data.bloqueHorario || '09:00 - 13:00');
 
-        if (data.trabajos && data.trabajos.length > 0) {
-          setTrabajos(
-            data.trabajos.map((t) => ({
-              idTemp: t.id,
-              id: t.id,
-              codigoTrabajo: t.codigoTrabajo,
-                productoNombre: t.productoNombre, referenciaEquipo: t.referenciaEquipo || '',
-              codigoExterno: t.codigoExterno || '',
-              productoId: t.productoId,
-              configuracionServicioId: t.configuracionServicioId || '',
-              tarifaBase: t.tarifaBaseCongelada ?? 0,
-              observaciones: t.observaciones || '',
-              totalTareas: t.totalTareas,
-              totalMateriales: t.totalMateriales,
-              estado: t.estado,
-              tareas: t.tareas || [],
-              materiales: t.materiales || [],
-            }))
-          );
-        } else {
-          setTrabajos([]);
-        }
-      } catch (e) {
-        console.error(e);
-        setMensaje({ tipo: 'error', texto: 'No se pudo cargar la orden de trabajo.' });
-      } finally {
-        setLoading(false);
+      if (data.trabajos && data.trabajos.length > 0) {
+        setTrabajos(
+          data.trabajos.map((t) => ({
+            idTemp: t.id,
+            id: t.id,
+            codigoTrabajo: t.codigoTrabajo,
+            productoNombre: t.productoNombre,
+            referenciaEquipo: t.referenciaEquipo || '',
+            codigoExterno: t.codigoExterno || '',
+            productoId: t.productoId,
+            configuracionServicioId: t.configuracionServicioId || '',
+            tarifaBase: t.tarifaBaseCongelada ?? 0,
+            observaciones: t.observaciones || '',
+            totalTareas: t.totalTareas,
+            totalMateriales: t.totalMateriales,
+            estado: t.estado,
+            tareas: t.tareas || [],
+            materiales: t.materiales || [],
+          }))
+        );
+      } else {
+        setTrabajos([]);
       }
-    };
-
-    void cargarOrden();
+    } catch (e) {
+      console.error(e);
+      setMensaje({ tipo: 'error', texto: 'No se pudo cargar la orden de trabajo.' });
+    } finally {
+      setLoading(false);
+    }
   }, [id, esNuevo]);
+
+  useEffect(() => {
+    void cargarOrden();
+  }, [cargarOrden]);
 
   // Cargar Lista de Precios asociada al Tipo de Orden seleccionado
   useEffect(() => {
@@ -563,28 +614,35 @@ export const OrdenTrabajoFormPage: React.FC = () => {
     setDrawerTrabajoOpen(false);
   };
 
-  // Materiales Descargados / Consumidos Reales de la Orden (Pestaña "Materiales Descargados")
+  // Materiales Consolidados Realmente Liquidados de la Orden (Pestaña "Materiales")
   const materialesConsolidados = useMemo(() => {
+    // Solo mostrar materiales cuando realmente existan registros liquidados en la orden
     if (orden?.materiales && orden.materiales.length > 0) {
-      return orden.materiales.map((m) => ({
-        id: m.id,
-        productoCodigo: m.codigoProducto || '-',
-        productoNombre: m.nombreProducto,
-        trabajoOrigen: m.trabajoCodigo || 'Orden principal',
-        cantidad: m.cantidad,
-        tipoAccion: m.tipoAccion || 'Instalación',
-        numeroSerie: m.numeroSerie || '-',
-        observaciones: m.observaciones || '',
-      }));
+      const liquidados = orden.materiales.filter((m) => (m.cantidadUtilizada ?? 0) > 0 || m.tipoAccion === 'Retiro');
+      if (liquidados.length > 0) {
+        return liquidados.map((m) => ({
+          id: m.id,
+          productoId: m.productoId,
+          productoCodigo: m.codigoProducto || '-',
+          productoNombre: m.nombreProducto,
+          trabajoOrigen: m.trabajoCodigo || 'Orden principal',
+          cantidad: m.cantidad,
+          cantidadPrevista: m.cantidadPrevista ?? m.cantidad,
+          cantidadUtilizada: m.cantidadUtilizada,
+          tipoAccion: m.tipoAccion || 'Instalación',
+          numeroSerie: m.numeroSerie || '-',
+          observaciones: m.observaciones || '',
+        }));
+      }
     }
-    // Solo se muestran materiales cuando la orden ha sido atendida/liquidada y se descargó inventario real
+    // No copiar sugeridos/previstos a esta tabla (los previstos se gestionan en la pestaña Trabajos)
     return [];
   }, [orden?.materiales]);
 
   const handleEliminarFilaTrabajo = async (idx: number) => {
     const item = trabajos[idx];
     if (item.id && id && !esNuevo) {
-      if (!window.confirm('¿Está seguro de eliminar este trabajo/trabajo de la orden?')) return;
+      if (!await confirmAction('¿Está seguro de eliminar este trabajo de la orden?')) return;
       try {
         await OrdenTrabajoService.eliminarTrabajo(id, item.id);
         notifySuccess('Trabajo eliminado de la orden.');
@@ -608,11 +666,38 @@ export const OrdenTrabajoFormPage: React.FC = () => {
         },
       }),
       createTableColumn<TrabajoFormItem>({
+        columnId: 'codigoTrabajo',
+        renderHeaderCell: () => 'Código',
+        renderCell: (item) => (
+          <span style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 600, color: item.codigoTrabajo ? tokens.colorBrandForeground1 : tokens.colorNeutralForeground4 }}>
+            {item.codigoTrabajo || '(Al guardar)'}
+          </span>
+        ),
+      }),
+      createTableColumn<TrabajoFormItem>({
+        columnId: 'codigoExterno',
+        renderHeaderCell: () => 'Cód. Externo',
+        renderCell: (item) => (
+          <span style={{ fontFamily: 'monospace', fontSize: '12px', color: item.codigoExterno ? tokens.colorNeutralForeground1 : tokens.colorNeutralForeground4 }}>
+            {item.codigoExterno || '—'}
+          </span>
+        ),
+      }),
+      createTableColumn<TrabajoFormItem>({
         columnId: 'tipoTrabajo',
         renderHeaderCell: () => 'Servicio',
         renderCell: (item) => {
-          const producto = productosServicios.find(p => p.id === item.productoId);
-          return <div><Text weight="medium">{item.productoNombre || producto?.nombre || 'Servicio'}</Text><Text block size={200}>{item.codigoTrabajo || 'Código al guardar'}{item.referenciaEquipo ? ` · ${item.referenciaEquipo}` : ''}</Text></div>;
+          const producto = productosServicios.find((p) => p.id === item.productoId);
+          return (
+            <div>
+              <Text weight="medium">{item.productoNombre || producto?.nombre || 'Servicio'}</Text>
+              {item.referenciaEquipo ? (
+                <Text block size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                  Ref: {item.referenciaEquipo}
+                </Text>
+              ) : null}
+            </div>
+          );
         },
       }),
       createTableColumn<TrabajoFormItem>({
@@ -645,7 +730,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
       }),
       createTableColumn<TrabajoFormItem>({
         columnId: 'materiales',
-        renderHeaderCell: () => 'Materiales',
+        renderHeaderCell: () => 'Materiales Previstos',
         renderCell: (item) => {
           const plantilla = configuracionesServicio.find((pl) => pl.id === item.configuracionServicioId);
           const cantMat = item.totalMateriales ?? (item.materiales?.length ?? plantilla?.cantidadMateriales ?? 0);
@@ -673,6 +758,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                 icon={<Edit16Regular />}
                 size="small"
                 appearance="subtle"
+                disabled={!puedeGestionar}
                 title="Editar descripción o plantilla"
                 aria-label="Editar descripción o plantilla"
                 onClick={() => handleAbrirDrawerEditarTrabajo(idx)}
@@ -682,6 +768,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                 size="small"
                 appearance="subtle"
                 style={{ color: tokens.colorStatusDangerForeground1 }}
+                disabled={!puedeGestionar}
                 title="Eliminar trabajo"
                 onClick={() => void handleEliminarFilaTrabajo(idx)}
               />
@@ -690,8 +777,259 @@ export const OrdenTrabajoFormPage: React.FC = () => {
         },
       }),
     ],
-    [trabajos, configuracionesServicio, handleAbrirDrawerEditarTrabajo, handleEliminarFilaTrabajo]
+    [trabajos, configuracionesServicio, handleAbrirDrawerEditarTrabajo, handleEliminarFilaTrabajo, puedeGestionar]
   );
+
+  // Handler Acta de Servicio PDF
+  const handleDescargarActaPdf = async () => {
+    if (!id || esNuevo) return;
+    try {
+      setSubmitting(true);
+      await OrdenTrabajoService.abrirActaPdf(id);
+      notifySuccess('Generando Acta de Servicio en formato PDF...');
+    } catch (err: any) {
+      dispatchToast(
+        <Toast><ToastTitle>Error al generar acta: {err?.message || 'Error desconocido'}</ToastTitle></Toast>,
+        { intent: 'error' }
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Handlers Reprogramar Visita
+  const handleAbrirReprogramar = (v: OrdenTrabajoVisitaDto) => {
+    setVisitaSeleccionada(v);
+    setReprogramarFecha(v.fechaProgramada || new Date().toISOString().slice(0, 10));
+    setReprogramarBloque(v.bloqueHorario || '08:00 - 12:00');
+    setReprogramarMotivo('CLIENTE_SOLICITA_CAMBIO');
+    setReprogramarObservaciones('');
+    setDrawerReprogramarOpen(true);
+  };
+
+  const handleConfirmarReprogramar = async () => {
+    if (!id || !visitaSeleccionada) return;
+    if (!reprogramarFecha) {
+      dispatchToast(<Toast><ToastTitle>Ingrese la fecha de reprogramación.</ToastTitle></Toast>, { intent: 'error' });
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await OrdenTrabajoService.reprogramarVisita(id, visitaSeleccionada.id, {
+        fechaProgramada: reprogramarFecha,
+        bloqueHorario: reprogramarBloque,
+        motivoId: reprogramarMotivo,
+        observaciones: reprogramarObservaciones,
+      });
+      notifySuccess('Visita reprogramada exitosamente.');
+      setDrawerReprogramarOpen(false);
+      await cargarOrden();
+    } catch (err: any) {
+      dispatchToast(<Toast><ToastTitle>Error al reprogramar: {err?.message || 'Error'}</ToastTitle></Toast>, { intent: 'error' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Handlers Cancelar Visita
+  const handleAbrirCancelarVisita = (v: OrdenTrabajoVisitaDto) => {
+    setVisitaSeleccionada(v);
+    setCancelarMotivo('CLIENTE_DESISTE');
+    setCancelarObservaciones('');
+    setDrawerCancelarVisitaOpen(true);
+  };
+
+  const handleConfirmarCancelarVisita = async () => {
+    if (!id || !visitaSeleccionada) return;
+    try {
+      setSubmitting(true);
+      await OrdenTrabajoService.cancelarVisita(id, visitaSeleccionada.id, {
+        motivoId: cancelarMotivo || 'CLIENTE_DESISTE',
+        observaciones: cancelarObservaciones,
+      });
+      notifySuccess('Visita técnica cancelada.');
+      setDrawerCancelarVisitaOpen(false);
+      await cargarOrden();
+    } catch (err: any) {
+      dispatchToast(<Toast><ToastTitle>Error al cancelar visita: {err?.message || 'Error'}</ToastTitle></Toast>, { intent: 'error' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Estados de control de liquidación
+  const estaCompleta = orden?.estado === 'Completa' || orden?.estadoSistema === 'Completado';
+  const yaLiquidada = orden?.estado === 'Liquidada' || orden?.estado === 'Finalizada' || orden?.descargaMaterialesConfirmada;
+
+  // Handlers Liquidación de Materiales
+  const handleAbrirLiquidacion = () => {
+    if (!estaCompleta) {
+      dispatchToast(
+        <Toast><ToastTitle>La liquidación de materiales solo está permitida cuando la orden esté en estado 'Completa' (trabajo de campo realizado).</ToastTitle></Toast>,
+        { intent: 'warning' }
+      );
+      return;
+    }
+    if (yaLiquidada) {
+      dispatchToast(
+        <Toast><ToastTitle>Los materiales de esta orden ya han sido liquidados.</ToastTitle></Toast>,
+        { intent: 'info' }
+      );
+      return;
+    }
+
+    // Cargar los materiales previstos configurados en los trabajos para que el usuario valide las cantidades consumidas reales
+    const consumosIniciales: LiquidacionConsumoDraft[] = [];
+    trabajos.forEach((t) => {
+      if (t.materiales && t.materiales.length > 0) {
+        t.materiales.forEach((m: any) => {
+          const prod = productosServicios.find((p) => p.id === m.productoId);
+          consumosIniciales.push({
+            productoId: m.productoId,
+            productoCodigo: m.codigoProducto || m.productoCodigo || prod?.codigo || 'N/A',
+            productoNombre: m.nombreProducto || m.productoNombre || prod?.nombre || 'Material',
+            cantidadPrevista: m.cantidad || m.cantidadPrevista || 1,
+            cantidadUtilizada: m.cantidadUtilizada ?? m.cantidadPrevista ?? m.cantidad ?? 1,
+            esSerializado: prod?.esSerializado ?? false,
+            numeroSerie: (m.numeroSerie && m.numeroSerie !== '-') ? m.numeroSerie : '',
+            observaciones: m.observaciones || '',
+          });
+        });
+      }
+    });
+
+    setDraftConsumos(consumosIniciales);
+    setDraftRetiros([]);
+    setObsLiquidacion('');
+    setDrawerLiquidacionOpen(true);
+  };
+
+  const handleAgregarConsumoManual = () => {
+    const productosFisicos = productosServicios.filter((p) => p.tipo !== 'Servicio' && p.tipo !== 3);
+    const primerProd = productosFisicos[0];
+    if (!primerProd) return;
+    setDraftConsumos((prev) => [
+      ...prev,
+      {
+        productoId: primerProd.id,
+        productoCodigo: primerProd.codigo,
+        productoNombre: primerProd.nombre,
+        cantidadPrevista: 0,
+        cantidadUtilizada: 1,
+        esSerializado: primerProd.esSerializado ?? false,
+        numeroSerie: '',
+        observaciones: 'Consumo adicional de almacén móvil',
+      },
+    ]);
+  };
+
+  const handleEliminarConsumo = (index: number) => {
+    setDraftConsumos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleCambiarProductoConsumo = (index: number, productoId: string) => {
+    const prod = productosServicios.find((p) => p.id === productoId);
+    if (!prod) return;
+    setDraftConsumos((prev) => {
+      const copia = [...prev];
+      copia[index] = {
+        ...copia[index],
+        productoId: prod.id,
+        productoCodigo: prod.codigo,
+        productoNombre: prod.nombre,
+        esSerializado: prod.esSerializado ?? false,
+      };
+      return copia;
+    });
+  };
+
+  const handleAgregarRetiro = () => {
+    const productosFisicos = productosServicios.filter((p) => p.tipo !== 'Servicio' && p.tipo !== 3);
+    const primerProd = productosFisicos[0]?.id || '';
+    setDraftRetiros((prev) => [
+      ...prev,
+      {
+        idTemp: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
+        productoId: primerProd,
+        numeroSerie: '',
+        motivo: 'Averiado / Chatarra técnica',
+      },
+    ]);
+  };
+
+  const handleEliminarRetiro = (index: number) => {
+    setDraftRetiros((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleActualizarRetiro = (index: number, campo: keyof LiquidacionRetiroDraft, valor: string) => {
+    setDraftRetiros((prev) => {
+      const copia = [...prev];
+      copia[index] = { ...copia[index], [campo]: valor };
+      return copia;
+    });
+  };
+
+  const handleActualizarConsumo = (index: number, campo: 'cantidadUtilizada' | 'numeroSerie' | 'observaciones', valor: any) => {
+    setDraftConsumos((prev) => {
+      const copia = [...prev];
+      copia[index] = { ...copia[index], [campo]: valor };
+      return copia;
+    });
+  };
+
+  const handleConfirmarLiquidacion = async () => {
+    if (!id) return;
+    for (const c of draftConsumos) {
+      if (c.cantidadUtilizada > 0 && c.esSerializado && !c.numeroSerie.trim()) {
+        dispatchToast(
+          <Toast><ToastTitle>El material serializado "{c.productoNombre}" requiere el número de serie instalado.</ToastTitle></Toast>,
+          { intent: 'error' }
+        );
+        return;
+      }
+    }
+    for (const r of draftRetiros) {
+      if (!r.productoId) {
+        dispatchToast(<Toast><ToastTitle>Seleccione el producto para el equipo retirado.</ToastTitle></Toast>, { intent: 'error' });
+        return;
+      }
+      if (!r.numeroSerie.trim()) {
+        dispatchToast(<Toast><ToastTitle>Ingrese el número de serie del equipo retirado (obligatorio para trazabilidad).</ToastTitle></Toast>, { intent: 'error' });
+        return;
+      }
+    }
+
+    try {
+      setSubmitting(true);
+      await OrdenTrabajoService.liquidarMateriales(id, {
+        observaciones: obsLiquidacion.trim() || undefined,
+        consumos: draftConsumos
+          .filter((c) => c.cantidadUtilizada > 0)
+          .map((c) => ({
+            productoId: c.productoId,
+            cantidad: Number(c.cantidadUtilizada),
+            numeroSerie: c.numeroSerie.trim() || undefined,
+            observaciones: c.observaciones.trim() || undefined,
+          })),
+        retiros: draftRetiros.map((r) => ({
+          productoId: r.productoId,
+          numeroSerie: r.numeroSerie.trim(),
+          motivo: r.motivo.trim() || undefined,
+        })),
+      });
+
+      notifySuccess('Materiales liquidados y stock descontado del almacén móvil con éxito.');
+      setDrawerLiquidacionOpen(false);
+      await cargarOrden();
+    } catch (err: any) {
+      dispatchToast(
+        <Toast><ToastTitle>Error en liquidación: {err?.message || 'Error desconocido'}</ToastTitle></Toast>,
+        { intent: 'error' }
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const columnasVisitas: TableColumnDefinition<OrdenTrabajoVisitaDto>[] = useMemo(
     () => [
@@ -711,16 +1049,48 @@ export const OrdenTrabajoFormPage: React.FC = () => {
         renderCell: (v) => v.fechaProgramada,
       }),
       createTableColumn<OrdenTrabajoVisitaDto>({
+        columnId: 'bloque',
+        renderHeaderCell: () => 'Bloque Horario',
+        renderCell: (v) => v.bloqueHorario || '—',
+      }),
+      createTableColumn<OrdenTrabajoVisitaDto>({
         columnId: 'estado',
         renderHeaderCell: () => 'Estado',
-        renderCell: (v) => (
-          <Badge appearance="tint" shape="rounded" color="brand">
-            {v.estado}
-          </Badge>
-        ),
+        renderCell: (v) => <D365StatusBadge status={v.estado} size="small" />,
+      }),
+      createTableColumn<OrdenTrabajoVisitaDto>({
+        columnId: 'acciones',
+        renderHeaderCell: () => 'Acciones',
+        renderCell: (v) => {
+          const esActiva = v.estado === 'Programada' || v.estado === 'Pendiente' || v.estado === 'EnRuta';
+          if (!esActiva || !puedeAsignar) return <span style={{ color: tokens.colorNeutralForeground4 }}>—</span>;
+          return (
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <Button
+                size="small"
+                appearance="subtle"
+                icon={<CalendarClock16Regular />}
+                title="Reprogramar Visita"
+                onClick={() => handleAbrirReprogramar(v)}
+              >
+                Reprogramar
+              </Button>
+              <Button
+                size="small"
+                appearance="subtle"
+                icon={<DismissCircle16Regular />}
+                style={{ color: tokens.colorPaletteRedForeground1 }}
+                title="Cancelar Visita"
+                onClick={() => handleAbrirCancelarVisita(v)}
+              >
+                Cancelar
+              </Button>
+            </div>
+          );
+        },
       }),
     ],
-    []
+    [puedeAsignar]
   );
 
   const columnasMaterialesConsolidados: TableColumnDefinition<any>[] = useMemo(
@@ -751,7 +1121,24 @@ export const OrdenTrabajoFormPage: React.FC = () => {
       createTableColumn<any>({
         columnId: 'cantidad',
         renderHeaderCell: () => 'Cant. Prevista',
-        renderCell: (m) => <span style={{ fontWeight: 600 }}>{m.cantidad}</span>,
+        renderCell: (m) => <span style={{ fontWeight: 600 }}>{m.cantidadPrevista ?? m.cantidad}</span>,
+      }),
+      createTableColumn<any>({
+        columnId: 'cantidadLiquidada',
+        renderHeaderCell: () => 'Cant. Consumida',
+        renderCell: (m) => (
+          <span
+            style={{
+              fontWeight: 600,
+              color:
+                m.cantidadUtilizada !== undefined && m.cantidadUtilizada !== null
+                  ? tokens.colorPaletteGreenForeground1
+                  : tokens.colorNeutralForeground4,
+            }}
+          >
+            {m.cantidadUtilizada !== undefined && m.cantidadUtilizada !== null ? m.cantidadUtilizada : '—'}
+          </span>
+        ),
       }),
       createTableColumn<any>({
         columnId: 'serie',
@@ -777,16 +1164,21 @@ export const OrdenTrabajoFormPage: React.FC = () => {
   );
 
   const handleGuardar = async (cerrar = false) => {
-    if (!listaPreciosId) { setMensaje({tipo: 'error', texto: 'Seleccione una lista de precios.'}); return; }
+    const savedDraft = draft.capture();
+    if (!listaPreciosId) {
+      setSelectedTab('resumen'); focusValidation("Lista de Precios"); setMensaje({tipo: 'error', texto: 'Seleccione una lista de precios.'}); return; }
     if (!tipoOrdenId) {
+      setSelectedTab('resumen'); focusValidation("Tipo de Orden de Trabajo");
       setMensaje({ tipo: 'error', texto: 'Seleccione un tipo de orden de trabajo.' });
       return;
     }
     if (!clienteFacturacionId) {
+      setSelectedTab('resumen'); focusValidation("Cliente de Facturación");
       setMensaje({ tipo: 'error', texto: 'Seleccione un cliente de facturación.' });
       return;
     }
     if (!clienteServicioId) {
+      setSelectedTab('resumen'); focusValidation("Cliente Receptor (Abonado)");
       setMensaje({ tipo: 'error', texto: 'Seleccione el cliente abonado para la atención.' });
       return;
     }
@@ -814,9 +1206,9 @@ export const OrdenTrabajoFormPage: React.FC = () => {
           referenciaExterna: referenciaExterna.trim() || undefined,
           codigoContrato: codigoContrato.trim() || undefined,
           numeroPedido: numeroPedido.trim() || undefined,
-          recursoTecnicoId: recursoTecnicoId || undefined,
-          fechaProgramada: fechaProgramada || undefined,
-          bloqueHorario: bloqueHorario || undefined,
+          recursoTecnicoId: puedeAsignar ? recursoTecnicoId || undefined : undefined,
+          fechaProgramada: puedeAsignar ? fechaProgramada || undefined : undefined,
+          bloqueHorario: puedeAsignar ? bloqueHorario || undefined : undefined,
           observaciones: observaciones.trim() || undefined,
           trabajos: trabajosValidos.length > 0 ? trabajosValidos : undefined,
         };
@@ -826,17 +1218,20 @@ export const OrdenTrabajoFormPage: React.FC = () => {
         const clienteNombre = clientesServicio.find((c) => c.id === clienteServicioId)?.nombreCompletoODenominacion || '';
         setSavedTitle(res.codigoWo || 'Orden de Trabajo');
         setSavedSubtitle(`${tipoNombre} — ${clienteNombre}`);
+        draft.markSaved(savedDraft);
         notifySuccess('Orden de Trabajo registrada exitosamente.');
         if (cerrar) {
+          draft.markSaved(savedDraft);
           navigate('/servicio-campo/ordenes');
         } else {
+          draft.markSaved(savedDraft);
           navigate(`/servicio-campo/ordenes/${res.id}`, { replace: true });
         }
       } else {
         const dto: ActualizarOrdenTrabajoDto = {
-          recursoTecnicoId: recursoTecnicoId || undefined,
-          fechaProgramada: fechaProgramada || undefined,
-          bloqueHorario: bloqueHorario || undefined,
+          recursoTecnicoId: puedeAsignar ? recursoTecnicoId || undefined : undefined,
+          fechaProgramada: puedeAsignar ? fechaProgramada || undefined : undefined,
+          bloqueHorario: puedeAsignar ? bloqueHorario || undefined : undefined,
           observaciones: observaciones.trim() || undefined,
         };
 
@@ -864,8 +1259,10 @@ export const OrdenTrabajoFormPage: React.FC = () => {
         const clienteNombre = clientesServicio.find((c) => c.id === clienteServicioId)?.nombreCompletoODenominacion || '';
         setSavedTitle(codigoWo || 'Orden de Trabajo');
         setSavedSubtitle(`${tipoNombre} — ${clienteNombre}`);
+        draft.markSaved(savedDraft);
         notifySuccess('Orden de Trabajo actualizada con éxito.');
         if (cerrar) {
+          draft.markSaved(savedDraft);
           navigate('/servicio-campo/ordenes');
         } else {
           const dataActualizada = await OrdenTrabajoService.obtenerOrdenPorId(id);
@@ -894,7 +1291,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
       }
     } catch (e) {
       console.error(e);
-      setMensaje({ tipo: 'error', texto: 'Error al guardar la orden de trabajo.' });
+      setMensaje({ tipo: 'error', texto: e instanceof Error ? e.message : 'Error al guardar la orden de trabajo.' });
     } finally {
       setSubmitting(false);
     }
@@ -906,15 +1303,15 @@ export const OrdenTrabajoFormPage: React.FC = () => {
       setSubmitting(true);
       await OrdenTrabajoService.cambiarEstadoSistema(id, {
         nuevoEstadoSistema: nuevoEstado,
-        recursoTecnicoId: recursoTecnicoId || undefined,
-        fechaProgramada: fechaProgramada || undefined,
-        bloqueHorario: bloqueHorario || undefined,
+        recursoTecnicoId: puedeAsignar ? recursoTecnicoId || undefined : undefined,
+        fechaProgramada: puedeAsignar ? fechaProgramada || undefined : undefined,
+        bloqueHorario: puedeAsignar ? bloqueHorario || undefined : undefined,
       });
       setEstadoSistema(nuevoEstado);
       notifySuccess(`Estado cambiado a: ${nuevoEstado}`);
     } catch (err) {
       console.error(err);
-      setMensaje({ tipo: 'error', texto: 'Error al cambiar de estado.' });
+      setMensaje({ tipo: 'error', texto: err instanceof Error ? err.message : 'Error al cambiar de estado.' });
     } finally {
       setSubmitting(false);
     }
@@ -922,12 +1319,12 @@ export const OrdenTrabajoFormPage: React.FC = () => {
 
   const handleEliminar = async () => {
     if (!id || esNuevo) return;
-    if (!window.confirm('¿Está seguro de eliminar esta orden de trabajo?')) return;
+    if (!await confirmAction('¿Está seguro de eliminar esta orden de trabajo?')) return;
     try {
       setSubmitting(true);
       await OrdenTrabajoService.eliminarOrden(id);
       notifySuccess('Orden eliminada exitosamente.');
-      navigate('/servicio-campo/ordenes');
+      (draft.markSaved(), navigate('/servicio-campo/ordenes'));
     } catch (err) {
       console.error(err);
       setMensaje({ tipo: 'error', texto: 'Error al eliminar la orden.' });
@@ -955,7 +1352,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             icon={<Save16Regular />}
             tone="save"
             onClick={() => void handleGuardar(false)}
-            disabled={submitting}
+            disabled={submitting || !puedeGestionar}
           >
             Guardar
           </D365CommandButton>
@@ -964,7 +1361,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             icon={<SaveMultiple16Regular />}
             tone="save"
             onClick={() => void handleGuardar(true)}
-            disabled={submitting}
+            disabled={submitting || !puedeGestionar}
           >
             Guardar y cerrar
           </D365CommandButton>
@@ -979,7 +1376,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                   icon={<CalendarClock16Regular />}
                   tone="brand"
                   onClick={() => void handleCambiarEstado('PendienteProgramar')}
-                  disabled={submitting}
+                  disabled={submitting || !puedeAsignar}
                 >
                   Liberar para Programar
                 </D365CommandButton>
@@ -995,7 +1392,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                     }
                     void handleCambiarEstado('Programado');
                   }}
-                  disabled={submitting}
+                  disabled={submitting || !puedeAsignar}
                 >
                   Confirmar y Programar Cita
                 </D365CommandButton>
@@ -1006,7 +1403,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                   icon={<Play16Regular />}
                   tone="brand"
                   onClick={() => void handleCambiarEstado('EnProgreso')}
-                  disabled={submitting}
+                  disabled={submitting || !puedeAsignar}
                 >
                   Iniciar Atención en Campo
                 </D365CommandButton>
@@ -1017,7 +1414,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                   icon={<CheckmarkCircle16Regular />}
                   tone="create"
                   onClick={() => void handleCambiarEstado('Completado')}
-                  disabled={submitting}
+                  disabled={submitting || !puedeCerrar}
                 >
                   Completar Orden
                 </D365CommandButton>
@@ -1028,7 +1425,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                   icon={<DismissCircle16Regular />}
                   tone="danger"
                   onClick={() => void handleCambiarEstado('Cancelado')}
-                  disabled={submitting}
+                  disabled={submitting || !puedeCerrar}
                 >
                   Cancelar Orden
                 </D365CommandButton>
@@ -1039,7 +1436,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                   icon={<Delete16Regular />}
                   tone="danger"
                   onClick={() => void handleEliminar()}
-                  disabled={submitting}
+                  disabled={submitting || !puedeGestionar}
                 >
                   Eliminar
                 </D365CommandButton>
@@ -1047,8 +1444,17 @@ export const OrdenTrabajoFormPage: React.FC = () => {
 
               <D365CommandDivider />
               <D365CommandButton
+                icon={<Print16Regular />}
+                onClick={() => void handleDescargarActaPdf()}
+                disabled={submitting || loading}
+                title="Visualizar y descargar Acta de Servicio en PDF para firma del cliente"
+              >
+                Acta de Servicio (PDF)
+              </D365CommandButton>
+              <D365CommandButton
                 icon={<Add16Regular />}
                 tone="create"
+                disabled={!puedeGestionar}
                 onClick={() => navigate('/servicio-campo/ordenes/nuevo')}
               >
                 Nuevo
@@ -1064,10 +1470,10 @@ export const OrdenTrabajoFormPage: React.FC = () => {
         subtitle={savedSubtitle || 'Ficha de orden de trabajo'}
         avatarIcon={<ClipboardTask24Regular />}
         metadata={[
-          { label: 'System Status', value: estadoSistema },
-          { label: 'Estado Operativo', value: estadoOperativo },
+          { label: 'System Status', value: <D365StatusBadge status={estadoSistema} size="small" /> },
+          { label: 'Estado Operativo', value: <D365StatusBadge status={estadoOperativo} size="small" /> },
           { label: 'Técnico', value: recursoTecnicoNombre || 'Sin Asignar' },
-          { label: 'Fecha Cita', value: fechaProgramada || 'Sin Programar' },
+          { label: 'Fecha Cita', value: fechaProgramada ? `${fechaProgramada}${bloqueHorario ? ` (${bloqueHorario})` : ''}` : 'Sin Programar' },
         ]}
         processFlow={
           <WorkOrderEtapas
@@ -1076,8 +1482,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
           />
         }
         tabs={
-
-      <TabList
+          <TabList
             selectedValue={selectedTab}
             onTabSelect={(_, data) =>
               setSelectedTab(
@@ -1086,10 +1491,37 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             }
           >
             <Tab value="resumen">Resumen y Cliente</Tab>
-            <Tab value="trabajos">Trabajos</Tab>
+            <Tab value="trabajos">
+              Trabajos
+              {trabajos.length > 0 && (
+                <Badge
+                  size="small"
+                  appearance="tint"
+                  color={trabajos.some((t) => !t.id) ? 'warning' : 'informative'}
+                  style={{ marginLeft: '6px' }}
+                >
+                  {trabajos.length}
+                  {trabajos.some((t) => !t.id) ? ' •' : ''}
+                </Badge>
+              )}
+            </Tab>
             <Tab value="direcciones">Direcciones</Tab>
-            <Tab value="programacion">Programación y Despacho</Tab>
-            <Tab value="materiales">Materiales Descargados</Tab>
+            <Tab value="programacion">
+              Visitas
+              {(orden?.visitas?.length ?? 0) > 0 && (
+                <Badge size="small" appearance="tint" color="informative" style={{ marginLeft: '6px' }}>
+                  {orden?.visitas?.length}
+                </Badge>
+              )}
+            </Tab>
+            <Tab value="materiales">
+              Materiales
+              {materialesConsolidados.length > 0 && (
+                <Badge size="small" appearance="tint" color="informative" style={{ marginLeft: '6px' }}>
+                  {materialesConsolidados.length}
+                </Badge>
+              )}
+            </Tab>
           </TabList>
         }
       />
@@ -1104,7 +1536,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
       )}
 
       {/* 4. CONTENIDO DE PESTAÑAS */}
-      <div className={formStyles.contentBody}>
+      <D365FormContent busy={submitting} className={formStyles.contentBody}>
         {loading ? (
           <div className={formStyles.grid2Cols}>
             <Card className={formStyles.card}>
@@ -1140,27 +1572,6 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                 {/* TARJETA 1 (IZQUIERDA): GENERAL - IDENTIFICACIÓN Y CUENTAS (EXACTO A DYNAMICS 365) */}
                 <div className={formStyles.card}>
                   <div className={formStyles.cardSectionTitle}>General</div>
-                  <D365FormField label="Lista de precios de la orden" required>
-                    <Select
-                      aria-label="Lista de precios de la orden"
-                      className={formStyles.d365ControlFull}
-                      value={listaPreciosId}
-                      disabled={!esNuevo}
-                      onChange={(_, data) => setListaPreciosId(data.value)}
-                    >
-                      <option value="">Seleccione una lista de precios</option>
-                      {listasPrecios.map((l) => (
-                        <option key={l.id} value={l.id}>
-                          {l.nombre}
-                        </option>
-                      ))}
-                      {listaPreciosId && !listasPrecios.some((l) => l.id === listaPreciosId) && (
-                        <option value={listaPreciosId}>
-                          {listaPreciosActiva?.nombre || 'Lista guardada en la orden'}
-                        </option>
-                      )}
-                    </Select>
-                  </D365FormField>
 
                   <D365FormField label="Código WO" htmlFor="wo-codigo">
                     <Input
@@ -1222,14 +1633,28 @@ export const OrdenTrabajoFormPage: React.FC = () => {
 
                   <D365FormField
                     label="Lista de Precios"
-                    info="Price List: lista de precios y tarifario contractual vinculado al tipo de orden."
+                    required
+                    info="Price List: lista de precios y tarifario contractual vinculado a la orden. Se autocompleta con la lista del Tipo de Orden pero puede cambiarse."
                   >
-                    <Input
+                    <Select
+                      aria-label="Lista de precios de la orden"
                       className={formStyles.d365ControlFull}
-                      value={listaPreciosActiva?.nombre || (tipoOrdenSeleccionado?.detalle?.replace('Tarifario: ', '') || 'Sin lista de precios asignada')}
-                      readOnly
-                      appearance="filled-darker"
-                    />
+                      value={listaPreciosId}
+                      disabled={!esNuevo}
+                      onChange={(_, data) => setListaPreciosId(data.value)}
+                    >
+                      <option value="">Seleccione una lista de precios</option>
+                      {listasPrecios.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.nombre}
+                        </option>
+                      ))}
+                      {listaPreciosId && !listasPrecios.some((l) => l.id === listaPreciosId) && (
+                        <option value={listaPreciosId}>
+                          {listaPreciosActiva?.nombre || 'Lista guardada en la orden'}
+                        </option>
+                      )}
+                    </Select>
                   </D365FormField>
 
                   <D365FormField label="Zona Operativa / Territorio" htmlFor="wo-zona">
@@ -1248,7 +1673,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                       rows={3}
                       value={observaciones}
                       onChange={(e) => setObservaciones(e.target.value)}
-                      placeholder="Notas generales o instrucciones de la orden..."
+                      placeholder=""
                     />
                   </D365FormField>
                 </div>
@@ -1449,8 +1874,9 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                 columns={columnasTrabajos}
                 onAdd={handleAbrirDrawerNuevoTrabajo}
                 addLabel="Agregar Trabajo"
+                addDisabled={!puedeGestionar}
                 onRowClick={(item) => handleAbrirDetalleTrabajo(item, 'tareas')}
-                emptyMessage="No hay trabajos configurados para esta orden. Toda orden debe contener al menos un trabajo de trabajo."
+                emptyMessage="No hay trabajos configurados para esta orden. Toda orden debe contener al menos un trabajo."
               />
             )}
 
@@ -1464,9 +1890,10 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                     <Input
                       id="wo-recurso"
                       className={formStyles.d365ControlFull}
+                      disabled={!puedeAsignar}
                       value={recursoTecnicoNombre}
                       onChange={(e) => setRecursoTecnicoNombre(e.target.value)}
-                      placeholder="Nombre del técnico responsable..."
+                      placeholder=""
                     />
                   </D365FormField>
 
@@ -1475,6 +1902,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                       id="wo-fecha-prog"
                       type="date"
                       className={formStyles.d365ControlFull}
+                      disabled={!puedeAsignar}
                       value={fechaProgramada}
                       onChange={(e) => setFechaProgramada(e.target.value)}
                     />
@@ -1484,6 +1912,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                     <Select
                       id="wo-bloque"
                       className={formStyles.d365ControlFull}
+                      disabled={!puedeAsignar}
                       value={bloqueHorario}
                       onChange={(_, d) => setBloqueHorario(d.value)}
                     >
@@ -1514,17 +1943,49 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                     Existen líneas de trabajo nuevas pendientes por guardar. Al pulsar "Guardar" en la barra de comandos se registrarán y confirmarán formalmente en el sistema.
                   </D365MessageBar>
                 )}
+                {(orden?.estado === 'Liquidada' || orden?.estado === 'Finalizada') && (
+                  <D365MessageBar intent="success">
+                    La liquidación de materiales de esta orden de trabajo se encuentra confirmada. Los consumos y series instaladas/retiradas fueron descontados y auditados en Kardex.
+                  </D365MessageBar>
+                )}
                 <D365SubGrid
                   title="Materiales y Equipos Consolidados de la Orden"
                   items={materialesConsolidados}
                   columns={columnasMaterialesConsolidados}
-                  emptyMessage="No hay materiales descargados registrados en esta orden."
+                  emptyMessage="No hay materiales liquidados aún en esta orden. Los materiales sugeridos y previstos se configuran en la pestaña 'Trabajos'. La liquidación de consumos reales se efectúa cuando los trabajos han sido completados en campo por el técnico."
+                  actions={
+                    !esNuevo ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {!estaCompleta && !yaLiquidada && (
+                          <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                            (Solo disponible cuando la orden esté Completa)
+                          </Text>
+                        )}
+                        <Button
+                          size="small"
+                          appearance="primary"
+                          icon={<Box20Regular />}
+                          disabled={submitting || !estaCompleta || yaLiquidada}
+                          onClick={handleAbrirLiquidacion}
+                          title={
+                            !estaCompleta
+                              ? 'La liquidación solo está disponible cuando los trabajos están en estado Completa.'
+                              : yaLiquidada
+                              ? 'Los materiales de esta orden ya han sido liquidados.'
+                              : 'Consolidar consumos, series instaladas y retiros de averías para descontar del almacén móvil del técnico'
+                          }
+                        >
+                          {yaLiquidada ? 'Materiales Liquidados' : 'Liquidar Materiales'}
+                        </Button>
+                      </div>
+                    ) : undefined
+                  }
                 />
               </div>
             )}
           </>
         )}
-      </div>
+      </D365FormContent>
 
       {/* 5. DRAWER LATERAL QUICK CREATE (CREACIÓN/EDICIÓN DE INCIDENTE) */}
       <OverlayDrawer
@@ -1562,6 +2023,31 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             </D365MessageBar>
           )}
 
+          {/* Código interno de trabajo si ya está guardado */}
+          {trabajoEnEdicionIndex !== null && trabajos[trabajoEnEdicionIndex]?.codigoTrabajo && (
+            <D365FormField label="Código de Trabajo">
+              <Input
+                className={formStyles.d365ControlFull}
+                value={trabajos[trabajoEnEdicionIndex].codigoTrabajo}
+                readOnly
+                appearance="filled-darker"
+              />
+            </D365FormField>
+          )}
+
+          {/* Código Externo para Siebel, DirecTV, Claro, Telefónica, etc. */}
+          <D365FormField
+            label="Código Externo / Incidente"
+            info="ID o código asignado por sistemas CRM/operativos externos (Siebel, Claro, DirecTV, Telefónica, etc.)"
+          >
+            <Input
+              className={formStyles.d365ControlFull}
+              value={drawerCodigoExterno}
+              placeholder="Ej: SIEBEL-109482, CLARO-84920"
+              onChange={(_, d) => setDrawerCodigoExterno(d.value)}
+            />
+          </D365FormField>
+
           {/* Campo 1: Servicio */}
           <D365FormField label="Servicio" required>
             <Select
@@ -1580,7 +2066,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             </Select>
           </D365FormField>
           <Text size={200}>{drawerPlantillaId ? 'Pasos y materiales según la configuración del servicio aplicada.' : 'Sin configuración activa: este trabajo se creará sin pasos ni materiales previstos.'}</Text>
-          <D365FormField label="Equipo o ubicación"><Input value={drawerReferenciaEquipo} placeholder="Ej.: aire acondicionado de la sala" onChange={(_, d) => setDrawerReferenciaEquipo(d.value)} /></D365FormField>
+          <D365FormField label="Equipo o ubicación"><Input value={drawerReferenciaEquipo} placeholder="" onChange={(_, d) => setDrawerReferenciaEquipo(d.value)} /></D365FormField>
           <D365FormField label="Precio del servicio"><Text>{listaPreciosActiva?.moneda || orden?.moneda || ''} {drawerTarifaBase.toFixed(2)} · {resolverTarifa(drawerProductoId).origen}</Text></D365FormField>
 
           {/* Campo 2: Descripción Breve */}
@@ -1607,7 +2093,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
           <Button appearance="secondary" onClick={() => setDrawerTrabajoOpen(false)}>
             Cancelar
           </Button>
-          <Button appearance="primary" onClick={handleGuardarDrawerTrabajo}>
+          <Button appearance="primary" disabled={!puedeGestionar} onClick={handleGuardarDrawerTrabajo}>
             {trabajoEnEdicionIndex !== null ? 'Guardar Cambios' : 'Agregar Trabajo'}
           </Button>
         </DrawerFooter>
@@ -1754,6 +2240,464 @@ export const OrdenTrabajoFormPage: React.FC = () => {
         >
           <Button appearance="secondary" onClick={() => setDrawerDetalleTrabajoOpen(false)}>
             Cerrar
+          </Button>
+        </DrawerFooter>
+      </OverlayDrawer>
+
+      {/* 7. DRAWER REPROGRAMAR VISITA */}
+      <OverlayDrawer
+        open={drawerReprogramarOpen}
+        position="end"
+        size="medium"
+        onOpenChange={(_, { open }) => setDrawerReprogramarOpen(open)}
+      >
+        <DrawerHeader style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}` }}>
+          <DrawerHeaderTitle
+            action={
+              <Button
+                appearance="subtle"
+                aria-label="Cerrar"
+                icon={<Dismiss24Regular />}
+                onClick={() => setDrawerReprogramarOpen(false)}
+              />
+            }
+          >
+            <div>
+              <Text weight="semibold" style={{ fontSize: '16px' }}>
+                Reprogramar Cita Técnica ({visitaSeleccionada?.codigoVisita})
+              </Text>
+              <Text block style={{ fontSize: '12px', color: tokens.colorNeutralForeground3, marginTop: '2px' }}>
+                Modifique la fecha de atención y registre el motivo de la reprogramación.
+              </Text>
+            </div>
+          </DrawerHeaderTitle>
+        </DrawerHeader>
+
+        <DrawerBody style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '24px 20px' }}>
+          <D365FormField label="Nueva Fecha de Atención" required>
+            <Input
+              type="date"
+              className={formStyles.d365ControlFull}
+              value={reprogramarFecha}
+              onChange={(e) => setReprogramarFecha(e.target.value)}
+            />
+          </D365FormField>
+
+          <D365FormField label="Ventana / Bloque Horario">
+            <Select
+              className={formStyles.d365ControlFull}
+              value={reprogramarBloque}
+              onChange={(_, d) => setReprogramarBloque(d.value)}
+            >
+              <option value="08:00 - 12:00">08:00 - 12:00 (Mañana)</option>
+              <option value="13:00 - 17:00">13:00 - 17:00 (Tarde)</option>
+              <option value="17:00 - 20:00">17:00 - 20:00 (Vespertino)</option>
+              <option value="JORNADA_COMPLETA">Jornada Completa</option>
+            </Select>
+          </D365FormField>
+
+          <D365FormField label="Motivo de Reprogramación" required>
+            <Select
+              className={formStyles.d365ControlFull}
+              value={reprogramarMotivo}
+              onChange={(_, d) => setReprogramarMotivo(d.value)}
+            >
+              <option value="CLIENTE_SOLICITA_CAMBIO">Cliente solicita cambio de fecha/horario</option>
+              <option value="FALTA_ACCESO_PREDIO">Falta de acceso al predio / Cliente ausente</option>
+              <option value="PROBLEMA_LOGISTICO_TECNICO">Problema logístico o transporte del técnico</option>
+              <option value="CLIMA_O_FUERZA_MAYOR">Condiciones climáticas / Fuerza mayor</option>
+              <option value="OTRO">Otro motivo operativo</option>
+            </Select>
+          </D365FormField>
+
+          <D365FormField label="Observaciones / Justificación" align="top">
+            <Textarea
+              className={formStyles.d365ControlFull}
+              rows={3}
+              value={reprogramarObservaciones}
+              onChange={(e) => setReprogramarObservaciones(e.target.value)}
+              placeholder="Detalle la justificación del cambio de cita..."
+            />
+          </D365FormField>
+        </DrawerBody>
+
+        <DrawerFooter
+          style={{
+            borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+            padding: '16px 20px',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 8,
+          }}
+        >
+          <Button appearance="secondary" onClick={() => setDrawerReprogramarOpen(false)}>
+            Cancelar
+          </Button>
+          <Button appearance="primary" disabled={submitting} onClick={handleConfirmarReprogramar}>
+            Confirmar Reprogramación
+          </Button>
+        </DrawerFooter>
+      </OverlayDrawer>
+
+      {/* 8. DRAWER CANCELAR VISITA */}
+      <OverlayDrawer
+        open={drawerCancelarVisitaOpen}
+        position="end"
+        size="medium"
+        onOpenChange={(_, { open }) => setDrawerCancelarVisitaOpen(open)}
+      >
+        <DrawerHeader style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}` }}>
+          <DrawerHeaderTitle
+            action={
+              <Button
+                appearance="subtle"
+                aria-label="Cerrar"
+                icon={<Dismiss24Regular />}
+                onClick={() => setDrawerCancelarVisitaOpen(false)}
+              />
+            }
+          >
+            <div>
+              <Text weight="semibold" style={{ fontSize: '16px', color: tokens.colorPaletteRedForeground1 }}>
+                Cancelar Cita Técnica ({visitaSeleccionada?.codigoVisita})
+              </Text>
+              <Text block style={{ fontSize: '12px', color: tokens.colorNeutralForeground3, marginTop: '2px' }}>
+                Esta acción cancelará la visita técnica programada.
+              </Text>
+            </div>
+          </DrawerHeaderTitle>
+        </DrawerHeader>
+
+        <DrawerBody style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '24px 20px' }}>
+          <D365FormField label="Motivo de Cancelación" required>
+            <Select
+              className={formStyles.d365ControlFull}
+              value={cancelarMotivo}
+              onChange={(_, d) => setCancelarMotivo(d.value)}
+            >
+              <option value="CLIENTE_DESISTE">Cliente desiste del servicio</option>
+              <option value="CLIENTE_AUSENTE">Cliente ausente en la dirección</option>
+              <option value="DIRECCION_ERRONEA">Dirección errónea o fuera de cobertura</option>
+              <option value="EQUIPO_YA_OPERATIVO">Problema resuelto previamente / Ya operativo</option>
+              <option value="OTRO">Otro motivo</option>
+            </Select>
+          </D365FormField>
+
+          <D365FormField label="Observaciones de Cancelación" align="top">
+            <Textarea
+              className={formStyles.d365ControlFull}
+              rows={3}
+              value={cancelarObservaciones}
+              onChange={(e) => setCancelarObservaciones(e.target.value)}
+              placeholder="Explique las circunstancias de la cancelación..."
+            />
+          </D365FormField>
+        </DrawerBody>
+
+        <DrawerFooter
+          style={{
+            borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+            padding: '16px 20px',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 8,
+          }}
+        >
+          <Button appearance="secondary" onClick={() => setDrawerCancelarVisitaOpen(false)}>
+            Cerrar
+          </Button>
+          <Button
+            appearance="primary"
+            style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: tokens.colorNeutralForegroundStaticInverted }}
+            disabled={submitting}
+            onClick={handleConfirmarCancelarVisita}
+          >
+            Confirmar Cancelación
+          </Button>
+        </DrawerFooter>
+      </OverlayDrawer>
+
+      {/* 9. DRAWER LIQUIDACIÓN DE MATERIALES E INVENTARIO */}
+      <OverlayDrawer
+        open={drawerLiquidacionOpen}
+        position="end"
+        size="large"
+        onOpenChange={(_, { open }) => setDrawerLiquidacionOpen(open)}
+      >
+        <DrawerHeader style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}` }}>
+          <DrawerHeaderTitle
+            action={
+              <Button
+                appearance="subtle"
+                aria-label="Cerrar"
+                icon={<Dismiss24Regular />}
+                onClick={() => setDrawerLiquidacionOpen(false)}
+              />
+            }
+          >
+            <div>
+              <Text weight="semibold" style={{ fontSize: '17px' }}>
+                Liquidación Real de Materiales de Campo
+              </Text>
+              <Text block style={{ fontSize: '12px', color: tokens.colorNeutralForeground3, marginTop: '2px' }}>
+                Consolide consumos reales, ingrese series instaladas y registre equipos retirados/averiados. El stock se descontará del almacén móvil del técnico con Kardex.
+              </Text>
+            </div>
+          </DrawerHeaderTitle>
+        </DrawerHeader>
+
+        <DrawerBody style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '24px 20px' }}>
+          {/* Tarjeta del Técnico Asignado y Almacén Móvil de Descarga */}
+          <div
+            style={{
+              padding: '12px 16px',
+              backgroundColor: tokens.colorNeutralBackground3,
+              borderRadius: '6px',
+              border: `1px solid ${tokens.colorNeutralStroke2}`,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <div>
+              <Text weight="semibold" style={{ fontSize: '13px', display: 'block' }}>
+                👨‍🔧 Técnico Responsable: {orden?.recursoTecnicoNombre || recursoTecnicoNombre || 'Técnico de Cuadrilla'}
+              </Text>
+              <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                📦 Almacén Móvil de Descarga: {orden?.almacenTecnicoNombre || 'Custodia Móvil del Técnico (Kardex)'}
+              </Text>
+            </div>
+            <Badge appearance="tint" color="success">
+              Atención Completa
+            </Badge>
+          </div>
+
+          {/* SECCIÓN 1: CONSUMOS */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <div>
+                <Text weight="semibold" style={{ fontSize: '14px' }}>
+                  1. Materiales e Insumos Consumidos / Instalados
+                </Text>
+                <Text block style={{ fontSize: '12px', color: tokens.colorNeutralForeground3 }}>
+                  Materiales descontados de la custodia del técnico con registro de Kardex.
+                </Text>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Badge appearance="tint" color="brand">{draftConsumos.length} items</Badge>
+                <Button
+                  size="small"
+                  appearance="outline"
+                  icon={<Add16Regular />}
+                  onClick={handleAgregarConsumoManual}
+                >
+                  + Material Adicional
+                </Button>
+              </div>
+            </div>
+
+            {draftConsumos.length === 0 ? (
+              <D365MessageBar intent="info">
+                No hay materiales previstos cargados para esta orden. Pulse "+ Material Adicional" si el técnico consumió insumos de su almacén móvil.
+              </D365MessageBar>
+            ) : (
+              <Table size="small">
+                <TableHeader>
+                  <TableRow>
+                    <TableHeaderCell style={{ width: '30px' }}>#</TableHeaderCell>
+                    <TableHeaderCell style={{ width: '100px' }}>Código</TableHeaderCell>
+                    <TableHeaderCell>Material / Producto</TableHeaderCell>
+                    <TableHeaderCell style={{ width: '70px', textAlign: 'center' }}>Previsto</TableHeaderCell>
+                    <TableHeaderCell style={{ width: '80px' }}>Cant. Real</TableHeaderCell>
+                    <TableHeaderCell style={{ width: '150px' }}>N° Serie Instalado</TableHeaderCell>
+                    <TableHeaderCell style={{ width: '40px' }}></TableHeaderCell>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {draftConsumos.map((c, idx) => (
+                    <TableRow key={c.productoId + idx}>
+                      <TableCell style={{ color: tokens.colorNeutralForeground4, fontWeight: 600 }}>{idx + 1}</TableCell>
+                      <TableCell style={{ fontFamily: 'monospace', fontSize: '12px' }}>{c.productoCodigo}</TableCell>
+                      <TableCell>
+                        {c.cantidadPrevista === 0 ? (
+                          <Select
+                            size="small"
+                            value={c.productoId}
+                            onChange={(_, d) => handleCambiarProductoConsumo(idx, d.value)}
+                            style={{ width: '100%' }}
+                          >
+                            {productosServicios
+                              .filter((p) => p.tipo !== 'Servicio' && p.tipo !== 3)
+                              .map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.codigo} — {p.nombre}
+                                </option>
+                              ))}
+                          </Select>
+                        ) : (
+                          <>
+                            <Text weight="medium">{c.productoNombre}</Text>
+                            {c.esSerializado && (
+                              <Badge size="small" appearance="outline" color="warning" style={{ marginLeft: '6px' }}>
+                                Seriado
+                              </Badge>
+                            )}
+                          </>
+                        )}
+                      </TableCell>
+                      <TableCell style={{ textAlign: 'center', fontWeight: 600 }}>{c.cantidadPrevista}</TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min={0}
+                          style={{ width: '70px' }}
+                          value={String(c.cantidadUtilizada)}
+                          onChange={(e) => handleActualizarConsumo(idx, 'cantidadUtilizada', Number(e.target.value))}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          placeholder={c.esSerializado ? 'Serie obligatoria' : 'Opcional'}
+                          style={{ width: '100%' }}
+                          value={c.numeroSerie}
+                          onChange={(e) => handleActualizarConsumo(idx, 'numeroSerie', e.target.value)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {c.cantidadPrevista === 0 && (
+                          <Button
+                            size="small"
+                            appearance="subtle"
+                            icon={<Dismiss24Regular />}
+                            title="Quitar material adicional"
+                            onClick={() => handleEliminarConsumo(idx)}
+                          />
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+
+          {/* SECCIÓN 2: RETIROS */}
+          <div style={{ borderTop: `1px solid ${tokens.colorNeutralStroke2}`, paddingTop: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <div>
+                <Text weight="semibold" style={{ fontSize: '14px' }}>
+                  2. Equipos Retirados / Scrap del Cliente (Averías)
+                </Text>
+                <Text block style={{ fontSize: '12px', color: tokens.colorNeutralForeground3 }}>
+                  Equipos desmontados que ingresarán al stock en condición de Defectuoso.
+                </Text>
+              </div>
+              <Button
+                size="small"
+                appearance="outline"
+                icon={<Add16Regular />}
+                onClick={handleAgregarRetiro}
+              >
+                + Registrar Equipo Retirado
+              </Button>
+            </div>
+
+            {draftRetiros.length === 0 ? (
+              <Text style={{ fontSize: '13px', color: tokens.colorNeutralForeground4 }}>
+                No se han registrado equipos retirados para esta atención.
+              </Text>
+            ) : (
+              <Table size="small">
+                <TableHeader>
+                  <TableRow>
+                    <TableHeaderCell style={{ width: '35px' }}>#</TableHeaderCell>
+                    <TableHeaderCell style={{ width: '220px' }}>Equipo / Producto</TableHeaderCell>
+                    <TableHeaderCell style={{ width: '160px' }}>N° Serie Retirado</TableHeaderCell>
+                    <TableHeaderCell>Motivo / Estado</TableHeaderCell>
+                    <TableHeaderCell style={{ width: '45px' }}></TableHeaderCell>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {draftRetiros.map((r, idx) => (
+                    <TableRow key={r.idTemp || idx}>
+                      <TableCell style={{ color: tokens.colorNeutralForeground4, fontWeight: 600 }}>{idx + 1}</TableCell>
+                      <TableCell>
+                        <Select
+                          style={{ width: '100%' }}
+                          value={r.productoId}
+                          onChange={(_, d) => handleActualizarRetiro(idx, 'productoId', d.value)}
+                        >
+                          <option value="">Seleccione equipo</option>
+                          {productosServicios.filter((p) => p.tipo !== 'Servicio' && p.tipo !== 3).map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.codigo} — {p.nombre}
+                            </option>
+                          ))}
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          placeholder="Serie retirada (obligatoria)"
+                          style={{ width: '100%' }}
+                          value={r.numeroSerie}
+                          onChange={(e) => handleActualizarRetiro(idx, 'numeroSerie', e.target.value)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          placeholder="Motivo de avería / retiro"
+                          style={{ width: '100%' }}
+                          value={r.motivo}
+                          onChange={(e) => handleActualizarRetiro(idx, 'motivo', e.target.value)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          appearance="subtle"
+                          icon={<Delete16Regular />}
+                          onClick={() => handleEliminarRetiro(idx)}
+                          title="Eliminar fila"
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+
+          {/* SECCIÓN 3: OBSERVACIONES GENERALES */}
+          <div style={{ borderTop: `1px solid ${tokens.colorNeutralStroke2}`, paddingTop: '16px' }}>
+            <D365FormField label="Observaciones de Liquidación" align="top">
+              <Textarea
+                className={formStyles.d365ControlFull}
+                rows={3}
+                placeholder="Observaciones generales sobre la liquidación de materiales e inventario..."
+                value={obsLiquidacion}
+                onChange={(e) => setObsLiquidacion(e.target.value)}
+              />
+            </D365FormField>
+          </div>
+        </DrawerBody>
+
+        <DrawerFooter
+          style={{
+            borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+            padding: '16px 20px',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 8,
+          }}
+        >
+          <Button appearance="secondary" onClick={() => setDrawerLiquidacionOpen(false)}>
+            Cancelar
+          </Button>
+          <Button
+            appearance="primary"
+            disabled={submitting}
+            onClick={handleConfirmarLiquidacion}
+          >
+            Confirmar Liquidación y Descargar Stock
           </Button>
         </DrawerFooter>
       </OverlayDrawer>

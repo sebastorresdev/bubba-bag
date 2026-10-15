@@ -344,7 +344,7 @@ export function TrazabilidadSeriesPage() {
             className={listStyles.searchBox}
             size="medium"
             contentBefore={<Search16Regular />}
-            placeholder="Buscar serie, producto, MAC..."
+            placeholder="Buscar"
             aria-label="Buscar en esta vista"
             value={buscar}
             onChange={(_, d) => setBuscar(d.value)}

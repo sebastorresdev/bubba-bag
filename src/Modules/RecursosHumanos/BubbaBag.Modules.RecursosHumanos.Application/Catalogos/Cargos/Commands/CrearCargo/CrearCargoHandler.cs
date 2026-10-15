@@ -11,14 +11,17 @@ namespace BubbaBag.Modules.RecursosHumanos.Application.Catalogos.Cargos.Commands
 public class CrearCargoHandler : ICommandHandler<CrearCargoCommand, Result<Guid>>
 {
     private readonly IRecursosHumanosDbContext _context;
+    private readonly ICurrentUser _currentUser;
 
-    public CrearCargoHandler(IRecursosHumanosDbContext context)
+    public CrearCargoHandler(IRecursosHumanosDbContext context, ICurrentUser currentUser)
     {
         _context = context;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<Guid>> HandleAsync(CrearCargoCommand request, CancellationToken cancellationToken = default)
     {
+        if (request.SalarioReferencial.HasValue && !_currentUser.HasPermission(BubbaBag.SharedKernel.Authorization.Permissions.Rrhh.SalariosConfidencial)) throw new UnauthorizedAccessException();
         var nombreNormalizado = request.Nombre.Trim();
 
         var departamentoExiste = await _context.Departamentos
