@@ -8,6 +8,9 @@ import { D365MessageBar } from '../../../components/common/D365MessageBar';
 import { D365EntityTable, D365TableToolbarTools, type D365EntityTableRef } from '../../../components/common/D365EntityTable';
 import { D365StatusBadge } from '../../../components/common/D365StatusBadge';
 import { useD365ListStyles } from '../../../styles/d365ListStyles';
+import { useAuthSession } from '../../../services/authSession';
+import { useCurrentUser } from '../../../hooks/useCurrentUser';
+import { Box16Regular } from '@fluentui/react-icons';
 import { CompraService } from './compra.service';
 import type { CompraDto } from './compra.service';
 
@@ -18,6 +21,15 @@ export function ComprasListPage() {
   const styles = useD365ListStyles();
   const navigate = useNavigate();
   const location = useLocation();
+  const { permisos } = useAuthSession();
+  const currentUser = useCurrentUser();
+  const puedeGestionarCompras =
+    currentUser.roles.includes('SuperAdmin') ||
+    currentUser.roles.includes('InventarioAdmin') ||
+    currentUser.roles.includes('Gerencia') ||
+    permisos.includes('inventario.compras.gestionar') ||
+    permisos.includes('inventario.catalogos.gestionar') ||
+    permisos.includes('inventario.ajustes.aprobar');
   const [datos, setDatos] = useState<CompraDto[]>([]);
   const [buscar, setBuscar] = useState('');
   const [vista, setVista] = useState<Vista>('recientes');
@@ -114,21 +126,35 @@ export function ComprasListPage() {
     {mensaje && <D365MessageBar intent="success" onDismiss={() => setMensaje(null)}>{mensaje}</D365MessageBar>}
     <D365CommandBar ariaLabel="Comandos de compras">
       <div className={styles.toolbarLeft}>
-        <D365CommandButton icon={<Add16Regular />} tone="create" onClick={() => navigate('/servicio-campo/recepciones-compra/nuevo')}>Nuevo</D365CommandButton>
-        <D365CommandDivider />
+        {puedeGestionarCompras && (
+          <>
+            <D365CommandButton icon={<Add16Regular />} tone="create" onClick={() => navigate('/servicio-campo/recepciones-compra/nuevo')}>Nuevo</D365CommandButton>
+            <D365CommandDivider />
+          </>
+        )}
         {seleccionados.size === 1 && (() => {
           const itemSel = itemsSeleccionados[0] ?? datos.find((d) => seleccionados.has(d.id));
           const esBorrador = itemSel?.estado === 'Borrador';
+          const puedeRecibir = itemSel?.estado === 'Enviada' || itemSel?.estado === 'Recibida con faltantes';
           const idSel = itemSel?.id;
           return (
             <>
+              {puedeRecibir && (
+                <D365CommandButton
+                  icon={<Box16Regular />}
+                  tone="create"
+                  onClick={() => idSel && navigate(`/servicio-campo/recepciones-compra/${idSel}/recepcion`)}
+                >
+                  Recepcionar
+                </D365CommandButton>
+              )}
               <D365CommandButton
                 icon={<Eye16Regular />}
                 onClick={() => idSel && navigate(`/servicio-campo/recepciones-compra/${idSel}`)}
               >
                 Ver detalle
               </D365CommandButton>
-              {esBorrador && (
+              {esBorrador && puedeGestionarCompras && (
                 <D365CommandButton
                   icon={<Delete16Regular />}
                   tone="danger"
@@ -143,7 +169,7 @@ export function ComprasListPage() {
         })()}
         {seleccionados.size > 1 && (
           <>
-            {borradoresSeleccionados.length > 0 && (
+            {borradoresSeleccionados.length > 0 && puedeGestionarCompras && (
               <D365CommandButton
                 icon={<Delete16Regular />}
                 tone="danger"

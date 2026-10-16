@@ -69,14 +69,14 @@ public static class AlmacenesEndpoints
 
         var compras = app.MapGroup("/api/inventario/compras").WithTags("Servicio de Campo - Compras").RequireAuthorization(Permissions.Inventario.Acceso);
         compras.MapGet("/", ObtenerCompras);
-        compras.MapPost("/", CrearCompra).RequireAuthorization(Permissions.Inventario.Operar);
+        compras.MapPost("/", CrearCompra).RequireAuthorization(Permissions.Inventario.ComprasGestionar);
         compras.MapGet("/{id:guid}", ObtenerCompra);
-        compras.MapPut("/{id:guid}", ActualizarCompra).RequireAuthorization(Permissions.Inventario.Operar);
-        compras.MapDelete("/{id:guid}", EliminarCompra).RequireAuthorization(Permissions.Inventario.Operar);
-        compras.MapPost("/{id:guid}/solicitar", SolicitarCompra).RequireAuthorization(Permissions.Inventario.Operar);
-        compras.MapPost("/{id:guid}/enviar", EnviarCompra).RequireAuthorization(Permissions.Inventario.Operar);
+        compras.MapPut("/{id:guid}", ActualizarCompra).RequireAuthorization(Permissions.Inventario.ComprasGestionar);
+        compras.MapDelete("/{id:guid}", EliminarCompra).RequireAuthorization(Permissions.Inventario.ComprasGestionar);
+        compras.MapPost("/{id:guid}/solicitar", SolicitarCompra).RequireAuthorization(Permissions.Inventario.ComprasGestionar);
+        compras.MapPost("/{id:guid}/enviar", EnviarCompra).RequireAuthorization(Permissions.Inventario.ComprasGestionar);
         compras.MapPost("/{id:guid}/recepcionar", RecepcionarCompra).RequireAuthorization(Permissions.Inventario.Operar);
-        compras.MapPost("/{id:guid}/cerrar-faltantes", CerrarFaltantesCompra).RequireAuthorization(Permissions.Inventario.Operar);
+        compras.MapPost("/{id:guid}/cerrar-faltantes", CerrarFaltantesCompra).RequireAuthorization(Permissions.Inventario.ComprasGestionar);
     }
 
     private static async Task<IResult> ObtenerCompras(

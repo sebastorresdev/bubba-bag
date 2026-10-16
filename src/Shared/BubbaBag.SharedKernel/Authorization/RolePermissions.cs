@@ -14,6 +14,7 @@ public static class RolePermissions
             Permissions.Inventario.AjustesAprobar, Permissions.GestionDatos.Importar, Permissions.GestionDatos.HistorialVer, Permissions.GestionDatos.HistorialVerTodas,
             Permissions.Inventario.Acceso, Permissions.Inventario.CatalogosGestionar,
             Permissions.Inventario.Operar, Permissions.Inventario.AccesosGestionar,
+            Permissions.Inventario.ComprasGestionar,
         },
         [Roles.InventarioAlmacenero] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -25,7 +26,7 @@ public static class RolePermissions
         // 2. Gerencia: visualización ejecutiva y confidencial de todos los módulos
         [Roles.Gerencia] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            Permissions.Inventario.AjustesAprobar, Permissions.GestionDatos.Importar, Permissions.GestionDatos.HistorialVer, Permissions.GestionDatos.HistorialVerTodas,
+            Permissions.Inventario.AjustesAprobar, Permissions.Inventario.ComprasGestionar, Permissions.GestionDatos.Importar, Permissions.GestionDatos.HistorialVer, Permissions.GestionDatos.HistorialVerTodas,
             Permissions.Configuracion.EmpresaDatosFiscalesGestionar,
             Permissions.Configuracion.EmpresaPresentacionGestionar,
             Permissions.Configuracion.SucursalesGestionar,

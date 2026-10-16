@@ -13,6 +13,8 @@ import { D365StatusField } from '../../../components/common/D365StatusField';
 import { D365MessageBar } from '../../../components/common/D365MessageBar';
 import { LookupDropdownWithQuickCreate } from '../../../components/common/LookupDropdownWithQuickCreate';
 import { useD365FormStyles } from '../../../styles/d365FormStyles';
+import { useAuthSession } from '../../../services/authSession';
+import { useCurrentUser } from '../../../hooks/useCurrentUser';
 import { AlmacenService } from '../almacenes/services/almacen.service';
 import type { AlmacenDto } from '../almacenes/types/almacen.types';
 import { ProductoService } from '../productos/services/producto.service';
@@ -28,6 +30,17 @@ const fechaISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).pad
 
 export function CompraFormPage() {
   const form = useD365FormStyles(); const navigate = useNavigate(); const { id } = useParams();
+  const { permisos } = useAuthSession();
+  const currentUser = useCurrentUser();
+  const puedeGestionarCompras =
+    currentUser.roles.includes('SuperAdmin') ||
+    currentUser.roles.includes('InventarioAdmin') ||
+    currentUser.roles.includes('Gerencia') ||
+    permisos.includes('inventario.compras.gestionar') ||
+    permisos.includes('inventario.catalogos.gestionar') ||
+    permisos.includes('inventario.ajustes.aprobar');
+  const esAlmaceneroOperativo = !puedeGestionarCompras;
+
   const [almacenes, setAlmacenes] = useState<AlmacenDto[]>([]); const [productos, setProductos] = useState<ProductoDto[]>([]);
   const [proveedor, setProveedor] = useState(''); const [tipo, setTipo] = useState('Factura'); const [documento, setDocumento] = useState('');
   const [fecha, setFecha] = useState(() => fechaISO(new Date())); const [moneda, setMoneda] = useState('PEN');
@@ -107,7 +120,7 @@ export function CompraFormPage() {
   };
   const cargandoDatos = loading || Boolean(id && compra?.id !== id && !error);
   const estado = compra?.estado ?? 'Borrador';
-  const bloqueado = cargandoDatos || saving || Boolean(id && compra?.id !== id) || estado === 'Recibida' || estado === 'Recibida con faltantes' || estado === 'Enviada';
+  const bloqueado = esAlmaceneroOperativo || cargandoDatos || saving || Boolean(id && compra?.id !== id) || estado === 'Recibida' || estado === 'Recibida con faltantes' || estado === 'Enviada';
   const bloqueadoPedido = bloqueado || estado !== 'Borrador';
   const total = lineas.reduce((s, x) => s + importeLinea(x), 0);
   const dinero = (valor: number) => valor.toLocaleString('es-PE', { style: 'currency', currency: moneda });
@@ -193,6 +206,16 @@ export function CompraFormPage() {
   return <div className={form.root}>
     {error && <D365MessageBar intent="error" onDismiss={() => setError(null)}>{error}</D365MessageBar>}
     {mensaje && <D365MessageBar intent="success" onDismiss={() => setMensaje(null)}>{mensaje}</D365MessageBar>}
+    {!id && esAlmaceneroOperativo && (
+      <D365MessageBar intent="warning">
+        Tu cuenta tiene perfil operativo de Almacenero. La emisión y creación de nuevas órdenes de compra está reservada para el Supervisor de Almacén o Administrador de Inventario. Los almaceneros están facultados para realizar la recepción física cuando la orden esté en estado Enviada.
+      </D365MessageBar>
+    )}
+    {id && esAlmaceneroOperativo && estado !== 'Enviada' && estado !== 'Recibida con faltantes' && estado !== 'Recibida' && (
+      <D365MessageBar intent="info">
+        Ficha de orden de compra en modo solo lectura para control operativo. La recepción física se habilitará cuando la orden se encuentre en estado "Enviada".
+      </D365MessageBar>
+    )}
     <D365CommandBar ariaLabel="Comandos de compra" busy={saving || cargandoDatos} busyLabel={cargandoDatos ? 'Cargando...' : 'Guardando...'}><div className={form.toolbarLeft}>
       <D365CommandButton
         icon={<ArrowLeft16Regular />}
@@ -203,45 +226,53 @@ export function CompraFormPage() {
         onClick={() => navigate('/servicio-campo/recepciones-compra')}
       />
       <D365CommandDivider />
-      <D365CommandButton icon={<Save16Regular />} tone="save" disabled={bloqueado} onClick={() => void guardar(false)}>Guardar</D365CommandButton>
-      <D365CommandButton icon={<SaveMultiple16Regular />} tone="save" disabled={bloqueado} onClick={() => void guardar(true)}>Guardar y cerrar</D365CommandButton>
-      {!cargandoDatos && estado === 'Borrador' && <D365CommandButton icon={<Checkmark16Regular />} disabled={loading || saving || !id} onClick={() => void procesar('solicitar')}>Solicitar compra</D365CommandButton>}
-      {!cargandoDatos && estado === 'Borrador' && Boolean(id) && (
-        <D365CommandButton
-          icon={<Delete16Regular />}
-          tone="danger"
-          disabled={loading || saving}
-          onClick={() => setDialogEliminarBorrador(true)}
-        >
-          Eliminar borrador
-        </D365CommandButton>
+      {puedeGestionarCompras && (
+        <>
+          <D365CommandButton icon={<Save16Regular />} tone="save" disabled={bloqueado} onClick={() => void guardar(false)}>Guardar</D365CommandButton>
+          <D365CommandButton icon={<SaveMultiple16Regular />} tone="save" disabled={bloqueado} onClick={() => void guardar(true)}>Guardar y cerrar</D365CommandButton>
+          {!cargandoDatos && estado === 'Borrador' && <D365CommandButton icon={<Checkmark16Regular />} disabled={loading || saving || !id} onClick={() => void procesar('solicitar')}>Solicitar compra</D365CommandButton>}
+          {!cargandoDatos && estado === 'Borrador' && Boolean(id) && (
+            <D365CommandButton
+              icon={<Delete16Regular />}
+              tone="danger"
+              disabled={loading || saving}
+              onClick={() => setDialogEliminarBorrador(true)}
+            >
+              Eliminar borrador
+            </D365CommandButton>
+          )}
+          {!cargandoDatos && estado === 'Solicitada' && <D365CommandButton icon={<Box16Regular />} disabled={loading || saving || lineas.some(x => productos.find(p => p.id === x.productoId)?.esSerializado && x.series.split(/\r?\n/).filter(s => s.trim()).length !== Number(x.cantidad))} onClick={() => void procesar('enviar')}>Registrar envío</D365CommandButton>}
+        </>
       )}
-      {!cargandoDatos && estado === 'Solicitada' && <D365CommandButton icon={<Box16Regular />} disabled={loading || saving || lineas.some(x => productos.find(p => p.id === x.productoId)?.esSerializado && x.series.split(/\r?\n/).filter(s => s.trim()).length !== Number(x.cantidad))} onClick={() => void procesar('enviar')}>Registrar envío</D365CommandButton>}
       {!cargandoDatos && estado === 'Enviada' && (
         <D365CommandButton
           icon={<Box16Regular />}
+          tone="create"
           disabled={loading || saving}
           onClick={() => navigate(`/servicio-campo/recepciones-compra/${id}/recepcion`)}
         >
-          Recepcionar
+          Recepcionar mercadería
         </D365CommandButton>
       )}
       {!cargandoDatos && estado === 'Recibida con faltantes' && (
         <>
           <D365CommandButton
             icon={<Box16Regular />}
+            tone="create"
             disabled={loading || saving}
             onClick={() => navigate(`/servicio-campo/recepciones-compra/${id}/recepcion`)}
           >
             Recepcionar faltantes
           </D365CommandButton>
-          <D365CommandButton
-            icon={<CheckmarkCircle16Regular />}
-            disabled={loading || saving}
-            onClick={() => void handleCerrarFaltantes()}
-          >
-            Cerrar pedido
-          </D365CommandButton>
+          {puedeGestionarCompras && (
+            <D365CommandButton
+              icon={<CheckmarkCircle16Regular />}
+              disabled={loading || saving}
+              onClick={() => void handleCerrarFaltantes()}
+            >
+              Cerrar pedido
+            </D365CommandButton>
+          )}
         </>
       )}
       {!cargandoDatos && estado === 'Recibida' && (

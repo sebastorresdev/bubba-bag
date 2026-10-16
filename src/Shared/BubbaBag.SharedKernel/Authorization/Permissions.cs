@@ -21,6 +21,7 @@ public static class Permissions
         public const string Operar = "inventario.operar";
         public const string AccesosGestionar = "inventario.accesos.gestionar";
         public const string AjustesAprobar = "inventario.ajustes.aprobar";
+        public const string ComprasGestionar = "inventario.compras.gestionar";
     }
     // =========================================================================
     // SERVICIO DE CAMPO

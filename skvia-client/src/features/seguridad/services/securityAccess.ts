@@ -26,9 +26,16 @@ export function canAccessPath(path: string, permisos: readonly string[]): boolea
   if (path.startsWith('/servicio-campo/tipos-orden') || path.startsWith('/servicio-campo/configuraciones-servicio') || path.startsWith('/servicio-campo/tareas')) {
     return has('serviciocampo.acceso') || has('inventario.acceso');
   }
+  if (path.startsWith('/servicio-campo/recepciones-compra')) {
+    if (!has('inventario.acceso')) return false;
+    if (path.endsWith('/nuevo')) {
+      return has('inventario.compras.gestionar') || has('inventario.catalogos.gestionar') || has('inventario.ajustes.aprobar');
+    }
+    return true;
+  }
   if (path.startsWith('/servicio-campo/') || path.startsWith('/grupos-unidades')) {
     if (!has('inventario.acceso')) return false;
-    if (path.endsWith('/nuevo') && !/transferencias|despacho-tecnicos|devolucion-tecnicos|recepciones-compra/.test(path)) return has('inventario.catalogos.gestionar');
+    if (path.endsWith('/nuevo') && !/transferencias|despacho-tecnicos|devolucion-tecnicos/.test(path)) return has('inventario.catalogos.gestionar');
     return true;
   }
   return has('seguridad.acceso');
