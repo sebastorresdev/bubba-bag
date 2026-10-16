@@ -21,6 +21,7 @@ import {
   Print16Regular,
   Add16Regular,
   ArrowRight16Regular,
+  Dismiss24Regular,
 } from '@fluentui/react-icons';
 import { showError } from '../../services/uiFeedback';
 import { WhatsAppIcon } from './WhatsAppIcon';
@@ -88,7 +89,7 @@ export const D365OperacionExitosaDialog: React.FC<D365OperacionExitosaDialogProp
 
   return (
     <Dialog open={open} onOpenChange={(_, d) => !d.open && onClose()}>
-      <DialogSurface style={{ maxWidth: '520px', width: 'calc(100vw - 32px)', minWidth: 0, maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto', padding: '0', borderRadius: tokens.borderRadiusMedium }}>
+      <DialogSurface style={{ maxWidth: '520px', width: 'calc(100vw - 32px)', minWidth: 0, maxHeight: 'calc(100dvh - 32px)', overflowX: 'hidden', overflowY: 'auto', padding: '0', borderRadius: tokens.borderRadiusMedium }}>
         <DialogBody style={{ padding: '0', margin: '0', display: 'block' }}>
           {/* Header con acento verde de éxito usando 100% tokens oficiales de Fluent UI */}
           <div
@@ -96,17 +97,17 @@ export const D365OperacionExitosaDialog: React.FC<D365OperacionExitosaDialogProp
               width: '100%',
               boxSizing: 'border-box',
               backgroundColor: tokens.colorPaletteGreenBackground2,
-              padding: '20px 24px',
+              padding: '16px 20px',
               borderBottom: `1px solid ${tokens.colorPaletteGreenBorder2}`,
               display: 'flex',
               alignItems: 'center',
-              gap: '16px',
+              gap: '14px',
             }}
           >
             <div
               style={{
-                width: '42px',
-                height: '42px',
+                width: '40px',
+                height: '40px',
                 borderRadius: tokens.borderRadiusCircular,
                 backgroundColor: tokens.colorPaletteGreenBackground1,
                 color: tokens.colorPaletteGreenForeground1,
@@ -117,16 +118,28 @@ export const D365OperacionExitosaDialog: React.FC<D365OperacionExitosaDialogProp
                 boxShadow: tokens.shadow4,
               }}
             >
-              <CheckmarkCircle24Filled style={{ fontSize: '26px' }} />
+              <CheckmarkCircle24Filled style={{ fontSize: '24px' }} />
             </div>
-            <div style={{ flex: 1 }}>
-              <DialogTitle style={{ color: tokens.colorPaletteGreenForeground1, display: 'block', lineHeight: 1.25 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <DialogTitle style={{ color: tokens.colorPaletteGreenForeground1, display: 'block', lineHeight: 1.25, fontSize: '18px' }}>
                 {titulo}
               </DialogTitle>
               <Text size={200} style={{ color: tokens.colorPaletteGreenForeground2, marginTop: '2px', display: 'block' }}>
                 {subtitulo}
               </Text>
             </div>
+            <Button
+              appearance="subtle"
+              aria-label="Cerrar ventana"
+              title="Cerrar ventana"
+              icon={<Dismiss24Regular />}
+              onClick={onClose}
+              style={{
+                color: tokens.colorPaletteGreenForeground1,
+                minWidth: 'auto',
+                padding: '6px',
+              }}
+            />
           </div>
 
           <DialogContent style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -197,7 +210,7 @@ export const D365OperacionExitosaDialog: React.FC<D365OperacionExitosaDialogProp
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Box16Regular style={{ color: tokens.colorNeutralForeground3 }} />
                     <Text size={200} weight="semibold">
-                      {datos.totalItems ?? 0} {Number(datos.totalItems) === 1 ? 'unidad' : 'unidades'} ({datos.totalLineas ?? 0} {Number(datos.totalLineas) === 1 ? 'material' : 'materiales'})
+                      {datos.totalLineas ?? 0} {Number(datos.totalLineas) === 1 ? 'material' : 'materiales'}
                     </Text>
                   </div>
                 </div>
@@ -268,29 +281,39 @@ export const D365OperacionExitosaDialog: React.FC<D365OperacionExitosaDialogProp
               borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
               backgroundColor: tokens.colorNeutralBackground1,
               display: 'flex',
-              justifyContent: 'flex-end', flexWrap: 'wrap',
+              justifyContent: 'space-between',
               alignItems: 'center',
+              flexWrap: 'wrap',
               gap: '12px',
               margin: 0,
             }}
           >
             <Button
-              appearance="subtle"
-              icon={<Add16Regular />}
+              appearance="secondary"
               style={{ whiteSpace: 'nowrap' }}
-              onClick={onNuevaOperacion}
+              onClick={onClose}
             >
-              {botonNuevoTexto}
+              Cerrar
             </Button>
-            <Button
-              appearance="primary"
-              icon={<ArrowRight16Regular />}
-              iconPosition="after"
-              style={{ whiteSpace: 'nowrap' }}
-              onClick={onIrHistorial}
-            >
-              Ir al historial
-            </Button>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Button
+                appearance="subtle"
+                icon={<Add16Regular />}
+                style={{ whiteSpace: 'nowrap' }}
+                onClick={onNuevaOperacion}
+              >
+                {botonNuevoTexto}
+              </Button>
+              <Button
+                appearance="primary"
+                icon={<ArrowRight16Regular />}
+                iconPosition="after"
+                style={{ whiteSpace: 'nowrap' }}
+                onClick={onIrHistorial}
+              >
+                Ir al historial
+              </Button>
+            </div>
           </DialogActions>
         </DialogBody>
       </DialogSurface>

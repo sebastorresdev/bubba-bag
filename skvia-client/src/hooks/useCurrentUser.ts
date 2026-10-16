@@ -11,7 +11,7 @@ export function useCurrentUser(): CurrentUser & { logout: () => void; refreshUse
     id: usuario?.id ?? '', nombre, email: usuario?.email ?? '', rol: usuario?.roles[0] ?? '', roles: usuario?.roles ?? [],
     initials: nombre.split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0]).join('').toUpperCase() || 'US',
     isAuthenticated: !!usuario, logout: async () => {
-      if (hasUnsavedDrafts() && !await confirmAction('Si cierra la sesión, se perderán los cambios que todavía no ha guardado.', { title: 'Cambios sin guardar', action: 'Cerrar sesión', danger: true })) return;
+      if (hasUnsavedDrafts() && !await confirmAction('Si cierra la sesión, se perderán los cambios que todavía no ha guardado.', { title: 'Cambios sin guardar', action: 'Cerrar sesión', danger: false })) return;
       clearSession();
     }, refreshUser: () => { void loadSession().catch(() => undefined); },
   };

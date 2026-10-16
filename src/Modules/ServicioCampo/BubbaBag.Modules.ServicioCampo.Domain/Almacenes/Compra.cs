@@ -61,7 +61,7 @@ public class Compra : Entity<Guid>
 
     public void Recepcionar(Guid? usuarioRecepcionId = null, bool conFaltantes = false, string? lineasActualizadasJson = null)
     {
-        if (Estado != "Enviada") throw new InvalidOperationException("La compra debe estar enviada.");
+        if (Estado != "Enviada" && Estado != "Recibida con faltantes") throw new InvalidOperationException("La compra debe estar enviada o tener faltantes pendientes.");
         Estado = conFaltantes ? "Recibida con faltantes" : "Recibida";
         UsuarioRecepcionId = usuarioRecepcionId;
         FechaRecepcion = DateTime.UtcNow;
@@ -71,9 +71,17 @@ public class Compra : Entity<Guid>
         }
     }
 
+    public void CerrarFaltantes(Guid? usuarioId = null)
+    {
+        if (Estado != "Recibida con faltantes") throw new InvalidOperationException("La compra debe tener faltantes para poder cerrarla.");
+        Estado = "Recibida";
+        UsuarioRecepcionId = usuarioId ?? UsuarioRecepcionId;
+        FechaRecepcion = DateTime.UtcNow;
+    }
+
     public void CompletarComprobanteRecepcion(string tipoDocumento, string documento, DateOnly fecha)
     {
-        if (Estado != "Enviada") throw new InvalidOperationException("La compra debe estar enviada.");
+        if (Estado != "Enviada" && Estado != "Recibida con faltantes") throw new InvalidOperationException("La compra debe estar enviada o tener faltantes pendientes.");
         TipoDocumento = tipoDocumento;
         NumeroDocumento = documento.Trim().ToUpperInvariant();
         FechaDocumento = fecha;

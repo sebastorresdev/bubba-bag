@@ -37,6 +37,13 @@ import {
   Card,
   Skeleton,
   SkeletonItem,
+  Menu,
+  MenuItem,
+  MenuList,
+  MenuPopover,
+  MenuTrigger,
+  MessageBar,
+  MessageBarBody,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -54,7 +61,10 @@ import {
   Dismiss24Regular,
   Print16Regular,
   Box20Regular,
+  Prohibited16Regular,
+  MoreHorizontal20Regular,
 } from '@fluentui/react-icons';
+import { DatePicker } from '@fluentui/react-datepicker-compat';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
 import { D365FormField } from '../../../../components/common/D365FormField';
@@ -62,6 +72,7 @@ import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { SelectorEntidadRelacionada, type OpcionEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
 import { D365SubGrid } from '../../../../components/common/D365SubGrid';
 import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
+import { D365StatusField } from '../../../../components/common/D365StatusField';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { WorkOrderEtapas } from '../components/WorkOrderEtapas';
 import { OrdenTrabajoService } from '../services/ordenTrabajo.service';
@@ -78,6 +89,8 @@ import type {
 import type { ClienteListadoItemDto } from '../../../crm/clientes/types/cliente.types';
 import { ListaPreciosService } from '../../../inventario/listas-precios/services/listaPrecios.service';
 import type { DetalleListaPreciosDto } from '../../../inventario/listas-precios/types/listaPrecios.types';
+import { OrganizacionService } from '../../../organizacion/services/organizacion.service';
+import type { RecursoDto, TerritorioDto, UnidadOrganizativaDto } from '../../../organizacion/types/organizacion.types';
 import type {
   OrdenTrabajoDetalleDto,
   CrearOrdenTrabajoDto,
@@ -87,6 +100,7 @@ import type {
   OrdenTrabajoTareaDto,
   OrdenTrabajoMaterialDto,
   OrdenTrabajoVisitaDto,
+  MotivoIncidenciaDto,
 } from '../types/ordenTrabajo.types';
 
 export interface DrawerServicioItem {
@@ -205,7 +219,13 @@ export const OrdenTrabajoFormPage: React.FC = () => {
   useEffect(() => { ListaPreciosService.getListasPrecios(undefined, true).then(setListasPrecios).catch(e => setMensaje({tipo: 'error', texto: e.message})); }, []);
   const [clienteFacturacionId, setClienteFacturacionId] = useState('');
   const [clienteServicioId, setClienteServicioId] = useState('');
+  const [unidadOrganizativaId, setUnidadOrganizativaId] = useState('');
+  const [unidadOrganizativaNombre, setUnidadOrganizativaNombre] = useState('');
+  const [unidadesOrganizativas, setUnidadesOrganizativas] = useState<UnidadOrganizativaDto[]>([]);
+  const [zonaOperativaId, setZonaOperativaId] = useState('');
   const [zonaOperativaNombre, setZonaOperativaNombre] = useState('');
+  const [zonasOperativas, setZonasOperativas] = useState<TerritorioDto[]>([]);
+  const [recursosTecnicos, setRecursosTecnicos] = useState<RecursoDto[]>([]);
   const [numeroOrden, setNumeroOrden] = useState('');
   const [referenciaExterna, setReferenciaExterna] = useState('');
   const [codigoContrato, setCodigoContrato] = useState('');
@@ -213,6 +233,22 @@ export const OrdenTrabajoFormPage: React.FC = () => {
   const [estadoSistema, setEstadoSistema] = useState<EstadoSistema>('Borrador');
   const [estadoOperativo, setEstadoOperativo] = useState('Pendiente');
   const [observaciones, setObservaciones] = useState('');
+
+  // Bloqueo estricto de edición: si la orden está cerrada/anulada no admite cambios
+  const estaCerrada =
+    estadoSistema === 'Cancelado' ||
+    estadoSistema === 'Completado' ||
+    estadoOperativo === 'Cancelada' ||
+    estadoOperativo === 'Rechazada' ||
+    estadoOperativo === 'Finalizada' ||
+    estadoOperativo === 'Liquidada';
+
+  const esEditable = !estaCerrada && puedeGestionar;
+
+  // Drawer para Cancelar Orden de Trabajo con motivo estructurado
+  const [drawerCancelarOrdenOpen, setDrawerCancelarOrdenOpen] = useState(false);
+  const [motivoCancelarOrden, setMotivoCancelarOrden] = useState('ORD-CAN-01');
+  const [obsCancelarOrden, setObsCancelarOrden] = useState('');
 
   // Programación y Despacho
   const [recursoTecnicoId, setRecursoTecnicoId] = useState('');
@@ -231,6 +267,85 @@ export const OrdenTrabajoFormPage: React.FC = () => {
   const [cancelarMotivo, setCancelarMotivo] = useState('CLIENTE_DESISTE');
   const [cancelarObservaciones, setCancelarObservaciones] = useState('');
 
+  // Estados para Cambiar Estado de Trabajo (Cancelar / Rechazar)
+  const [motivosIncidenciaCatalogo, setMotivosIncidenciaCatalogo] = useState<MotivoIncidenciaDto[]>([]);
+  const [drawerEstadoTrabajoOpen, setDrawerEstadoTrabajoOpen] = useState(false);
+  const [trabajosParaEstado, setTrabajosParaEstado] = useState<TrabajoFormItem[]>([]);
+  const [accionEstadoTrabajo, setAccionEstadoTrabajo] = useState<'cancelar' | 'rechazar'>('cancelar');
+  const [motivoEstadoTrabajo, setMotivoEstadoTrabajo] = useState('');
+  const [obsEstadoTrabajo, setObsEstadoTrabajo] = useState('');
+
+  // Motivos filtrados dinámicamente según el catálogo configurado en el sistema
+  const motivosDisponibles = useMemo(() => {
+    if (!motivosIncidenciaCatalogo || motivosIncidenciaCatalogo.length === 0) {
+      return accionEstadoTrabajo === 'cancelar'
+        ? [
+            { id: '1', codigo: 'ORD-CAN-01', nombre: 'Cliente desiste del servicio / contrato' },
+            { id: '2', codigo: 'ORD-CAN-02', nombre: 'Desestimado por coordinación / duplicado' },
+            { id: '3', codigo: 'ORD-CAN-03', nombre: 'No requerido en sitio tras evaluación' },
+            { id: '4', codigo: 'OTRO', nombre: 'Otro motivo de cancelación' },
+          ]
+        : [
+            { id: '5', codigo: 'ORD-RECH-01', nombre: 'Inviabilidad técnica o estructural en el predio' },
+            { id: '6', codigo: 'ORD-RECH-02', nombre: 'Cliente no autoriza perforación / ruta de cableado' },
+            { id: '7', codigo: 'ORD-RECH-03', nombre: 'Falta de facilidades o acceso denegado' },
+            { id: '8', codigo: 'ORD-RECH-04', nombre: 'Riesgo de seguridad / Trabajo en altura no apto' },
+            { id: '9', codigo: 'OTRO', nombre: 'Otro motivo de rechazo' },
+          ];
+    }
+
+    const filtrados = motivosIncidenciaCatalogo.filter((m) => {
+      const matchAmbito = !m.ambito || m.ambito === 'OrdenTrabajo' || m.ambito === 'Visita';
+      if (!matchAmbito) return false;
+      if (accionEstadoTrabajo === 'cancelar') {
+        return m.codigo.includes('CAN') || m.nombre.toLowerCase().includes('cancel') || m.nombre.toLowerCase().includes('desist');
+      }
+      return m.codigo.includes('RECH') || m.nombre.toLowerCase().includes('rechaz') || m.nombre.toLowerCase().includes('inviab') || m.nombre.toLowerCase().includes('seguridad') || m.nombre.toLowerCase().includes('facilidades');
+    });
+
+    return filtrados.length > 0 ? filtrados : motivosIncidenciaCatalogo;
+  }, [motivosIncidenciaCatalogo, accionEstadoTrabajo]);
+
+  // Motivos específicos para cancelación de la Orden de Trabajo completa
+  const motivosCancelacionOrden = useMemo(() => {
+    if (!motivosIncidenciaCatalogo || motivosIncidenciaCatalogo.length === 0) {
+      return [
+        { id: '1', codigo: 'ORD-CAN-01', nombre: 'Cliente desiste del servicio / contrato' },
+        { id: '2', codigo: 'ORD-CAN-02', nombre: 'Desestimado por coordinación / duplicado' },
+        { id: '3', codigo: 'ORD-CAN-03', nombre: 'No requerido en sitio tras evaluación' },
+        { id: '4', codigo: 'OTRO', nombre: 'Otro motivo de cancelación' },
+      ];
+    }
+    const filtrados = motivosIncidenciaCatalogo.filter((m) => {
+      const matchAmbito = !m.ambito || m.ambito === 'OrdenTrabajo';
+      if (!matchAmbito) return false;
+      return m.codigo.includes('CAN') || m.nombre.toLowerCase().includes('cancel') || m.nombre.toLowerCase().includes('desist');
+    });
+    return filtrados.length > 0 ? filtrados : motivosIncidenciaCatalogo;
+  }, [motivosIncidenciaCatalogo]);
+
+  // Selección en la cuadrícula de Trabajos (checkboxes múltiples)
+  const [selectedTrabajoIds, setSelectedTrabajoIds] = useState<string[]>([]);
+  const trabajosActivosSeleccionados = useMemo(() => {
+    if (selectedTrabajoIds.length === 0) return [];
+    const setIds = new Set(selectedTrabajoIds);
+    return trabajos.filter(
+      (t) => setIds.has(t.idTemp || t.id || '') && Boolean(t.id) && (t.estado === 'Pendiente' || t.estado === 'EnProgreso')
+    );
+  }, [selectedTrabajoIds, trabajos]);
+
+  // Territorios filtrados estrictamente por la Sede (Unidad Organizativa) seleccionada
+  const zonasOperativasFiltradas = useMemo(() => {
+    if (!unidadOrganizativaId) return zonasOperativas;
+    return zonasOperativas.filter((z) => z.unidadOrganizativaId === unidadOrganizativaId);
+  }, [zonasOperativas, unidadOrganizativaId]);
+
+  // Técnicos y cuadrillas filtrados estrictamente por la Sede (Unidad Organizativa) seleccionada
+  const recursosTecnicosFiltrados = useMemo(() => {
+    if (!unidadOrganizativaId) return [];
+    return recursosTecnicos.filter((r) => r.unidadOrganizativaId === unidadOrganizativaId);
+  }, [recursosTecnicos, unidadOrganizativaId]);
+
   // Estados para Liquidación de Materiales
   const [drawerLiquidacionOpen, setDrawerLiquidacionOpen] = useState(false);
   const [draftConsumos, setDraftConsumos] = useState<LiquidacionConsumoDraft[]>([]);
@@ -241,7 +356,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
   const [savedTitle, setSavedTitle] = useState(esNuevo ? 'Nuevo' : '');
   const [savedSubtitle, setSavedSubtitle] = useState(esNuevo ? 'Ficha de orden de trabajo' : '');
   const focusValidation = useValidationFocus();
-  const draft = useUnsavedChanges({ tipoOrdenId,listaPreciosId,clienteFacturacionId,clienteServicioId,numeroOrden,referenciaExterna,codigoContrato,numeroPedido,observaciones,recursoTecnicoId,fechaProgramada,bloqueHorario,trabajos: trabajos.map(t => ({productoId:t.productoId,configuracionServicioId:t.configuracionServicioId,codigoExterno:t.codigoExterno,referenciaEquipo:t.referenciaEquipo,observaciones:t.observaciones})) }, !loading);
+  const draft = useUnsavedChanges({ tipoOrdenId,listaPreciosId,clienteFacturacionId,clienteServicioId,unidadOrganizativaId,zonaOperativaId,numeroOrden,referenciaExterna,codigoContrato,numeroPedido,observaciones,recursoTecnicoId,fechaProgramada,bloqueHorario,trabajos: trabajos.map(t => ({productoId:t.productoId,configuracionServicioId:t.configuracionServicioId,codigoExterno:t.codigoExterno,referenciaEquipo:t.referenciaEquipo,observaciones:t.observaciones})) }, !loading);
 
 
   const notifySuccess = useCallback((title: string) => {
@@ -257,13 +372,17 @@ export const OrdenTrabajoFormPage: React.FC = () => {
   useEffect(() => {
     const cargarCatalogos = async () => {
       try {
-        const [tipos, clientesFact, clientesServ, todosClientes, prods, plants] = await Promise.all([
+        const [tipos, clientesFact, clientesServ, todosClientes, prods, plants, motivos, territorios, recursos, sedes] = await Promise.all([
           OrdenTrabajoService.obtenerTiposOrden(),
           ClienteService.obtenerClientes({ soloFacturacion: true }),
           ClienteService.obtenerClientes({ soloServicio: true }),
           ClienteService.obtenerClientes({ soloActivos: true }),
           ProductoService.getProductos(undefined, undefined, true),
           ConfiguracionServicioService.getPlantillas({ soloActivos: true }),
+          OrdenTrabajoService.obtenerMotivosIncidencia().catch(() => []),
+          OrganizacionService.getTerritorios(undefined, true).catch(() => []),
+          OrganizacionService.getRecursos(undefined, undefined, true).catch(() => []),
+          OrganizacionService.getUnidadesOrganizativas(true).catch(() => []),
         ]);
 
         setTiposOrden(tipos);
@@ -272,6 +391,10 @@ export const OrdenTrabajoFormPage: React.FC = () => {
         setClientesServicio(clientesServ.length > 0 ? clientesServ : todosClientes);
         setProductosServicios(prods);
         setConfiguracionesServicio(plants);
+        setMotivosIncidenciaCatalogo(motivos || []);
+        setZonasOperativas(territorios || []);
+        setRecursosTecnicos((recursos || []).filter((r) => r.tipo === 1 || r.tipo === 2 || !r.tipo));
+        setUnidadesOrganizativas(sedes || []);
       } catch (err) {
         console.error('Error cargando catálogos:', err);
       }
@@ -295,7 +418,10 @@ export const OrdenTrabajoFormPage: React.FC = () => {
       setListaPreciosId(data.listaPreciosId || '');
       setClienteFacturacionId(data.clienteFacturacionId);
       setClienteServicioId(data.clienteServicioId);
-      setZonaOperativaNombre(data.zonaOperativaNombre || 'Lima Metropolitana');
+      setUnidadOrganizativaId(data.unidadOrganizativaId || '');
+      setUnidadOrganizativaNombre(data.unidadOrganizativaNombre || '');
+      setZonaOperativaId(data.zonaOperativaId || '');
+      setZonaOperativaNombre(data.zonaOperativaNombre || '');
       setNumeroOrden(data.numeroOrden || '');
       setReferenciaExterna(data.referenciaExterna || '');
       setCodigoContrato(data.codigoContrato || '');
@@ -639,20 +765,63 @@ export const OrdenTrabajoFormPage: React.FC = () => {
     return [];
   }, [orden?.materiales]);
 
-  const handleEliminarFilaTrabajo = async (idx: number) => {
-    const item = trabajos[idx];
-    if (item.id && id && !esNuevo) {
-      if (!await confirmAction('¿Está seguro de eliminar este trabajo de la orden?')) return;
-      try {
-        await OrdenTrabajoService.eliminarTrabajo(id, item.id);
-        notifySuccess('Trabajo eliminado de la orden.');
-      } catch (err) {
-        console.error(err);
-        setMensaje({ tipo: 'error', texto: 'No se pudo eliminar el trabajo.' });
-        return;
+  // Handlers Cancelar y Rechazar Trabajo (Individual o Múltiple)
+  const handleAbrirEstadoTrabajo = (items: TrabajoFormItem | TrabajoFormItem[], accion: 'cancelar' | 'rechazar') => {
+    const arr = Array.isArray(items) ? items : [items];
+    if (arr.length === 0) return;
+    setTrabajosParaEstado(arr);
+    setAccionEstadoTrabajo(accion);
+    setObsEstadoTrabajo('');
+    setDrawerEstadoTrabajoOpen(true);
+  };
+
+  useEffect(() => {
+    if (drawerEstadoTrabajoOpen && motivosDisponibles.length > 0) {
+      if (!motivoEstadoTrabajo || !motivosDisponibles.some((m) => m.codigo === motivoEstadoTrabajo)) {
+        setMotivoEstadoTrabajo(motivosDisponibles[0].codigo);
       }
     }
-    setTrabajos((prev) => prev.filter((_, i) => i !== idx));
+  }, [drawerEstadoTrabajoOpen, accionEstadoTrabajo, motivosDisponibles, motivoEstadoTrabajo]);
+
+  const handleConfirmarEstadoTrabajo = async () => {
+    if (!id || trabajosParaEstado.length === 0) return;
+    const idsValidos = trabajosParaEstado.map((t) => t.id).filter(Boolean) as string[];
+    if (idsValidos.length === 0) return;
+
+    try {
+      setSubmitting(true);
+      const detalleMotivo = obsEstadoTrabajo.trim()
+        ? `[${motivoEstadoTrabajo}] ${obsEstadoTrabajo.trim()}`
+        : motivoEstadoTrabajo;
+
+      if (accionEstadoTrabajo === 'cancelar') {
+        await OrdenTrabajoService.cancelarTrabajosBatch(id, idsValidos, detalleMotivo);
+        notifySuccess(
+          idsValidos.length === 1
+            ? `Trabajo ${trabajosParaEstado[0].codigoTrabajo || ''} cancelado.`
+            : `${idsValidos.length} trabajos cancelados.`
+        );
+      } else {
+        await OrdenTrabajoService.rechazarTrabajosBatch(id, idsValidos, detalleMotivo);
+        notifySuccess(
+          idsValidos.length === 1
+            ? `Trabajo ${trabajosParaEstado[0].codigoTrabajo || ''} rechazado.`
+            : `${idsValidos.length} trabajos rechazados.`
+        );
+      }
+
+      setSelectedTrabajoIds([]);
+      setTrabajosParaEstado([]);
+      setDrawerEstadoTrabajoOpen(false);
+      await cargarOrden();
+    } catch (err: any) {
+      dispatchToast(
+        <Toast><ToastTitle>Error al cambiar estado: {err?.message || 'Error desconocido'}</ToastTitle></Toast>,
+        { intent: 'error' }
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const columnasTrabajos: TableColumnDefinition<TrabajoFormItem>[] = useMemo(
@@ -748,36 +917,90 @@ export const OrdenTrabajoFormPage: React.FC = () => {
         },
       }),
       createTableColumn<TrabajoFormItem>({
+        columnId: 'estado',
+        renderHeaderCell: () => 'Estado',
+        renderCell: (item) => (
+          <D365StatusBadge
+            status={item.estado || (item.id ? 'Pendiente' : 'Borrador')}
+            size="small"
+          />
+        ),
+      }),
+      createTableColumn<TrabajoFormItem>({
         columnId: 'acciones',
         renderHeaderCell: () => 'Acciones',
         renderCell: (item) => {
           const idx = trabajos.indexOf(item);
+          const esCreado = Boolean(item.id);
+          const estado = item.estado || 'Pendiente';
+          const esActivo = estado === 'Pendiente' || estado === 'EnProgreso';
+
+          // Si es un borrador nuevo aún no guardado en la orden, se permite editarlo o quitarlo del formulario
+          if (!esCreado) {
+            return (
+              <div style={{ display: 'inline-flex', gap: '4px' }} onClick={(e) => e.stopPropagation()}>
+                <Button
+                  icon={<Edit16Regular />}
+                  size="small"
+                  appearance="subtle"
+                  disabled={!esEditable}
+                  title="Editar borrador antes de guardar"
+                  onClick={() => handleAbrirDrawerEditarTrabajo(idx)}
+                />
+                <Button
+                  icon={<Delete16Regular />}
+                  size="small"
+                  appearance="subtle"
+                  disabled={!esEditable}
+                  style={{ color: tokens.colorStatusDangerForeground1 }}
+                  title="Quitar borrador antes de guardar"
+                  onClick={() => setTrabajos((prev) => prev.filter((_, i) => i !== idx))}
+                />
+              </div>
+            );
+          }
+
+          // Si ya fue creado en la orden: NO se permite editar ni eliminar.
+          // Solo se puede cambiar de estado (Cancelar o Rechazar) si sigue activo y la orden es editable.
+          if (!esActivo || !esEditable) {
+            return <span style={{ color: tokens.colorNeutralForeground4 }}>—</span>;
+          }
+
           return (
-            <div style={{ display: 'inline-flex', gap: '4px' }} onClick={(e) => e.stopPropagation()}>
-              <Button
-                icon={<Edit16Regular />}
-                size="small"
-                appearance="subtle"
-                disabled={!puedeGestionar}
-                title="Editar descripción o plantilla"
-                aria-label="Editar descripción o plantilla"
-                onClick={() => handleAbrirDrawerEditarTrabajo(idx)}
-              />
-              <Button
-                icon={<Delete16Regular />}
-                size="small"
-                appearance="subtle"
-                style={{ color: tokens.colorStatusDangerForeground1 }}
-                disabled={!puedeGestionar}
-                title="Eliminar trabajo"
-                onClick={() => void handleEliminarFilaTrabajo(idx)}
-              />
+            <div style={{ display: 'inline-flex', gap: '6px' }} onClick={(e) => e.stopPropagation()}>
+              <Menu positioning="below-end">
+                <MenuTrigger disableButtonEnhancement>
+                  <Button
+                    size="small"
+                    appearance="subtle"
+                    icon={<MoreHorizontal20Regular />}
+                    aria-label="Más acciones del trabajo"
+                    title="Más acciones"
+                  />
+                </MenuTrigger>
+                <MenuPopover>
+                  <MenuList>
+                    <MenuItem
+                      icon={<DismissCircle16Regular style={{ color: tokens.colorPaletteRedForeground1 }} />}
+                      onClick={() => handleAbrirEstadoTrabajo(item, 'cancelar')}
+                    >
+                      Cancelar Trabajo
+                    </MenuItem>
+                    <MenuItem
+                      icon={<Prohibited16Regular style={{ color: tokens.colorPaletteDarkOrangeForeground1 }} />}
+                      onClick={() => handleAbrirEstadoTrabajo(item, 'rechazar')}
+                    >
+                      Rechazar Trabajo
+                    </MenuItem>
+                  </MenuList>
+                </MenuPopover>
+              </Menu>
             </div>
           );
         },
       }),
     ],
-    [trabajos, configuracionesServicio, handleAbrirDrawerEditarTrabajo, handleEliminarFilaTrabajo, puedeGestionar]
+    [trabajos, configuracionesServicio, handleAbrirDrawerEditarTrabajo, handleAbrirEstadoTrabajo, puedeGestionar]
   );
 
   // Handler Acta de Servicio PDF
@@ -1182,6 +1405,11 @@ export const OrdenTrabajoFormPage: React.FC = () => {
       setMensaje({ tipo: 'error', texto: 'Seleccione el cliente abonado para la atención.' });
       return;
     }
+    if (!unidadOrganizativaId) {
+      setSelectedTab('resumen'); focusValidation("Sede / Base Operativa");
+      setMensaje({ tipo: 'error', texto: 'Seleccione la sede operativa donde se atenderá la orden de trabajo.' });
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -1199,9 +1427,12 @@ export const OrdenTrabajoFormPage: React.FC = () => {
           }));
 
         const dto: CrearOrdenTrabajoDto = {
-          tipoOrdenId, listaPreciosId,
+          tipoOrdenId,
+          listaPreciosId,
           clienteFacturacionId,
           clienteServicioId,
+          unidadOrganizativaId: unidadOrganizativaId || undefined,
+          zonaOperativaId: zonaOperativaId || undefined,
           numeroOrden: numeroOrden.trim() || undefined,
           referenciaExterna: referenciaExterna.trim() || undefined,
           codigoContrato: codigoContrato.trim() || undefined,
@@ -1229,6 +1460,8 @@ export const OrdenTrabajoFormPage: React.FC = () => {
         }
       } else {
         const dto: ActualizarOrdenTrabajoDto = {
+          unidadOrganizativaId: unidadOrganizativaId || undefined,
+          zonaOperativaId: zonaOperativaId || undefined,
           recursoTecnicoId: puedeAsignar ? recursoTecnicoId || undefined : undefined,
           fechaProgramada: puedeAsignar ? fechaProgramada || undefined : undefined,
           bloqueHorario: puedeAsignar ? bloqueHorario || undefined : undefined,
@@ -1317,6 +1550,39 @@ export const OrdenTrabajoFormPage: React.FC = () => {
     }
   };
 
+  const handleAbrirCancelarOrden = () => {
+    const primerMotivo = motivosCancelacionOrden[0]?.codigo || 'ORD-CAN-01';
+    setMotivoCancelarOrden(primerMotivo);
+    setObsCancelarOrden('');
+    setDrawerCancelarOrdenOpen(true);
+  };
+
+  const handleConfirmarCancelarOrden = async () => {
+    if (!id || esNuevo) return;
+    try {
+      setSubmitting(true);
+      const detalle = obsCancelarOrden.trim()
+        ? `[${motivoCancelarOrden}] ${obsCancelarOrden.trim()}`
+        : motivoCancelarOrden;
+
+      await OrdenTrabajoService.cambiarEstadoSistema(id, {
+        nuevoEstadoSistema: 'Cancelado',
+        observaciones: detalle,
+      });
+
+      setDrawerCancelarOrdenOpen(false);
+      notifySuccess('Orden de trabajo cancelada correctamente.');
+      await cargarOrden();
+    } catch (err: any) {
+      dispatchToast(
+        <Toast><ToastTitle>Error al cancelar la orden: {err?.message || 'Error desconocido'}</ToastTitle></Toast>,
+        { intent: 'error' }
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleEliminar = async () => {
     if (!id || esNuevo) return;
     if (!await confirmAction('¿Está seguro de eliminar esta orden de trabajo?')) return;
@@ -1352,7 +1618,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             icon={<Save16Regular />}
             tone="save"
             onClick={() => void handleGuardar(false)}
-            disabled={submitting || !puedeGestionar}
+            disabled={submitting || !esEditable}
           >
             Guardar
           </D365CommandButton>
@@ -1361,7 +1627,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             icon={<SaveMultiple16Regular />}
             tone="save"
             onClick={() => void handleGuardar(true)}
-            disabled={submitting || !puedeGestionar}
+            disabled={submitting || !esEditable}
           >
             Guardar y cerrar
           </D365CommandButton>
@@ -1371,7 +1637,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
               <D365CommandDivider />
 
               {/* Acciones de Flujo de Estados Dynamics 365 */}
-              {estadoSistema === 'Borrador' && (
+              {estadoSistema === 'Borrador' && !estaCerrada && (
                 <D365CommandButton
                   icon={<CalendarClock16Regular />}
                   tone="brand"
@@ -1382,11 +1648,19 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                 </D365CommandButton>
               )}
 
-              {estadoSistema === 'PendienteProgramar' && (
+              {estadoSistema === 'PendienteProgramar' && !estaCerrada && (
                 <D365CommandButton
                   icon={<CalendarClock16Regular />}
                   tone="brand"
                   onClick={() => {
+                    if (!recursoTecnicoId) {
+                      setSelectedTab('programacion');
+                      setMensaje({
+                        tipo: 'error',
+                        texto: 'Seleccione un técnico de campo en la pestaña "Visitas" antes de confirmar la programación.',
+                      });
+                      return;
+                    }
                     if (!fechaProgramada) {
                       setFechaProgramada(new Date().toISOString().slice(0, 10));
                     }
@@ -1398,7 +1672,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                 </D365CommandButton>
               )}
 
-              {estadoSistema === 'Programado' && (
+              {estadoSistema === 'Programado' && !estaCerrada && (
                 <D365CommandButton
                   icon={<Play16Regular />}
                   tone="brand"
@@ -1409,7 +1683,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                 </D365CommandButton>
               )}
 
-              {estadoSistema === 'EnProgreso' && (
+              {estadoSistema === 'EnProgreso' && !estaCerrada && (
                 <D365CommandButton
                   icon={<CheckmarkCircle16Regular />}
                   tone="create"
@@ -1420,18 +1694,18 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                 </D365CommandButton>
               )}
 
-              {estadoSistema !== 'Cancelado' && estadoSistema !== 'Completado' && (
+              {estadoSistema !== 'Cancelado' && estadoSistema !== 'Completado' && !estaCerrada && (
                 <D365CommandButton
                   icon={<DismissCircle16Regular />}
                   tone="danger"
-                  onClick={() => void handleCambiarEstado('Cancelado')}
+                  onClick={handleAbrirCancelarOrden}
                   disabled={submitting || !puedeCerrar}
                 >
                   Cancelar Orden
                 </D365CommandButton>
               )}
 
-              {(estadoSistema === 'Borrador' || estadoSistema === 'Cancelado') && (
+              {estadoSistema === 'Borrador' && (
                 <D365CommandButton
                   icon={<Delete16Regular />}
                   tone="danger"
@@ -1583,8 +1857,23 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                     />
                   </D365FormField>
 
+                  <D365FormField label="Estado del Sistema (Status)" htmlFor="wo-estado-sistema">
+                    <D365StatusField
+                      id="wo-estado-sistema"
+                      value={estadoSistema}
+                    />
+                  </D365FormField>
+
+                  <D365FormField label="Estado Operativo" htmlFor="wo-estado-operativo">
+                    <D365StatusField
+                      id="wo-estado-operativo"
+                      value={estadoOperativo}
+                    />
+                  </D365FormField>
+
                   <D365FormField label="Cliente Receptor (Abonado)" required info="Service Account: cuenta receptora del servicio en campo">
                     <SelectorEntidadRelacionada
+                      deshabilitado={!esEditable}
                       etiquetaGrupo="Abonados / Clientes de Servicio"
                       opciones={opcionesClientesServicio}
                       seleccionada={clienteServicioSeleccionadoObj}
@@ -1601,6 +1890,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
 
                   <D365FormField label="Cliente de Facturación" required info="Billing Account: cuenta comercial de cobro y facturación">
                     <SelectorEntidadRelacionada
+                      deshabilitado={!esEditable}
                       etiquetaGrupo="Clientes de Facturación"
                       opciones={opcionesClientesFacturacion}
                       seleccionada={clienteFacturacionSeleccionado}
@@ -1617,6 +1907,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
 
                   <D365FormField label="Tipo de Orden de Trabajo" required info="Work Order Type: tipo de requerimiento técnico">
                     <SelectorEntidadRelacionada
+                      deshabilitado={!esEditable}
                       etiquetaGrupo="Tipos de Orden Disponibles"
                       opciones={opcionesTiposOrden}
                       seleccionada={tipoOrdenSeleccionado}
@@ -1640,7 +1931,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                       aria-label="Lista de precios de la orden"
                       className={formStyles.d365ControlFull}
                       value={listaPreciosId}
-                      disabled={!esNuevo}
+                      disabled={!esNuevo || !esEditable}
                       onChange={(_, data) => setListaPreciosId(data.value)}
                     >
                       <option value="">Seleccione una lista de precios</option>
@@ -1657,13 +1948,88 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                     </Select>
                   </D365FormField>
 
+                  <D365FormField label="Sede / Base Operativa" htmlFor="wo-sede" required>
+                    <Select
+                      id="wo-sede"
+                      className={formStyles.d365ControlFull}
+                      disabled={!esEditable}
+                      value={unidadOrganizativaId}
+                      onChange={(_, d) => {
+                        const newSedeId = d.value;
+                        setUnidadOrganizativaId(newSedeId);
+                        const sede = unidadesOrganizativas.find((u) => u.id === newSedeId);
+                        setUnidadOrganizativaNombre(sede?.nombre || '');
+
+                        // Si la zona operativa actual no pertenece a la nueva sede, limpiarla
+                        if (zonaOperativaId) {
+                          const perteneceZona = zonasOperativas.some(
+                            (z) => z.id === zonaOperativaId && (!newSedeId || z.unidadOrganizativaId === newSedeId)
+                          );
+                          if (!perteneceZona) {
+                            setZonaOperativaId('');
+                            setZonaOperativaNombre('');
+                          }
+                        }
+
+                        // Si el técnico actual no pertenece a la nueva sede, limpiarlo
+                        if (recursoTecnicoId && newSedeId) {
+                          const perteneceTecnico = recursosTecnicos.some(
+                            (r) => r.id === recursoTecnicoId && r.unidadOrganizativaId === newSedeId
+                          );
+                          if (!perteneceTecnico) {
+                            setRecursoTecnicoId('');
+                            setRecursoTecnicoNombre('');
+                            setMensaje({
+                              tipo: 'error',
+                              texto: 'La sede cambió; el técnico asignado previamente fue removido por no pertenecer a esta sede.',
+                            });
+                          }
+                        }
+                      }}
+                    >
+                      <option value="">Seleccione la sede operativa...</option>
+                      {unidadesOrganizativas.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.codigo ? `${u.codigo} — ` : ''}{u.nombre} {u.ciudad ? `(${u.ciudad})` : ''}
+                        </option>
+                      ))}
+                      {unidadOrganizativaId && !unidadesOrganizativas.some((u) => u.id === unidadOrganizativaId) && (
+                        <option value={unidadOrganizativaId}>
+                          {unidadOrganizativaNombre || 'Sede registrada en la orden'}
+                        </option>
+                      )}
+                    </Select>
+                  </D365FormField>
+
                   <D365FormField label="Zona Operativa / Territorio" htmlFor="wo-zona">
-                    <Input
+                    <Select
                       id="wo-zona"
                       className={formStyles.d365ControlFull}
-                      value={zonaOperativaNombre}
-                      onChange={(e) => setZonaOperativaNombre(e.target.value)}
-                    />
+                      disabled={!esEditable}
+                      value={zonaOperativaId}
+                      onChange={(_, d) => {
+                        setZonaOperativaId(d.value);
+                        const terr = zonasOperativas.find((z) => z.id === d.value);
+                        setZonaOperativaNombre(terr?.nombre || '');
+                        // Si aún no se había seleccionado sede y el territorio tiene sede asociada, sincronizarla
+                        if (!unidadOrganizativaId && terr?.unidadOrganizativaId) {
+                          setUnidadOrganizativaId(terr.unidadOrganizativaId);
+                          setUnidadOrganizativaNombre(terr.unidadOrganizativaNombre || '');
+                        }
+                      }}
+                    >
+                      <option value="">(Sin delimitar / Cobertura general)</option>
+                      {zonasOperativasFiltradas.map((z) => (
+                        <option key={z.id} value={z.id}>
+                          {z.codigo ? `${z.codigo} — ` : ''}{z.nombre}
+                        </option>
+                      ))}
+                      {zonaOperativaId && !zonasOperativasFiltradas.some((z) => z.id === zonaOperativaId) && (
+                        <option value={zonaOperativaId}>
+                          {zonaOperativaNombre || 'Zona registrada en la orden'}
+                        </option>
+                      )}
+                    </Select>
                   </D365FormField>
 
                   <D365FormField label="Observaciones" htmlFor="wo-obs" align="top">
@@ -1672,6 +2038,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                       className={formStyles.d365ControlFull}
                       rows={3}
                       value={observaciones}
+                      disabled={!esEditable}
                       onChange={(e) => setObservaciones(e.target.value)}
                       placeholder=""
                     />
@@ -1733,8 +2100,8 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                         id="wo-num-orden"
                         className={formStyles.d365ControlFull}
                         value={numeroOrden}
+                        disabled={!esEditable}
                         onChange={(e) => setNumeroOrden(e.target.value)}
-                        
                       />
                     </D365FormField>
 
@@ -1743,8 +2110,8 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                         id="wo-contrato"
                         className={formStyles.d365ControlFull}
                         value={codigoContrato}
+                        disabled={!esEditable}
                         onChange={(e) => setCodigoContrato(e.target.value)}
-                        
                       />
                     </D365FormField>
 
@@ -1753,8 +2120,8 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                         id="wo-pedido"
                         className={formStyles.d365ControlFull}
                         value={numeroPedido}
+                        disabled={!esEditable}
                         onChange={(e) => setNumeroPedido(e.target.value)}
-                        
                       />
                     </D365FormField>
                   </div>
@@ -1872,9 +2239,35 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                 title="Trabajos de la Orden de Trabajo"
                 items={trabajos}
                 columns={columnasTrabajos}
+                selectionMode="multiselect"
+                selectedItems={selectedTrabajoIds}
+                onSelectionChange={(selected) => setSelectedTrabajoIds(selected.map(String))}
+                getRowId={(item) => item.idTemp || item.id || ''}
                 onAdd={handleAbrirDrawerNuevoTrabajo}
                 addLabel="Agregar Trabajo"
-                addDisabled={!puedeGestionar}
+                addDisabled={!esEditable}
+                actions={
+                  trabajosActivosSeleccionados.length > 0 && esEditable ? (
+                    <div style={{ display: 'inline-flex', gap: '6px' }}>
+                      <Button
+                        size="small"
+                        appearance="subtle"
+                        icon={<DismissCircle16Regular style={{ color: tokens.colorPaletteRedForeground1 }} />}
+                        onClick={() => handleAbrirEstadoTrabajo(trabajosActivosSeleccionados, 'cancelar')}
+                      >
+                        Cancelar ({trabajosActivosSeleccionados.length})
+                      </Button>
+                      <Button
+                        size="small"
+                        appearance="subtle"
+                        icon={<Prohibited16Regular style={{ color: tokens.colorPaletteDarkOrangeForeground1 }} />}
+                        onClick={() => handleAbrirEstadoTrabajo(trabajosActivosSeleccionados, 'rechazar')}
+                      >
+                        Rechazar ({trabajosActivosSeleccionados.length})
+                      </Button>
+                    </div>
+                  ) : undefined
+                }
                 onRowClick={(item) => handleAbrirDetalleTrabajo(item, 'tareas')}
                 emptyMessage="No hay trabajos configurados para esta orden. Toda orden debe contener al menos un trabajo."
               />
@@ -1886,25 +2279,53 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                 <div className={formStyles.card}>
                   <div className={formStyles.cardSectionTitle}>Asignación de Visita y Técnico</div>
 
+                  {!unidadOrganizativaId && (
+                    <D365MessageBar intent="warning" style={{ marginBottom: 12 }}>
+                      Debe seleccionar la <strong>Sede / Base Operativa</strong> en la pestaña "Resumen" para habilitar la lista de técnicos de campo de dicha sede.
+                    </D365MessageBar>
+                  )}
+
                   <D365FormField label="Técnico de Campo (Recurso)" htmlFor="wo-recurso">
-                    <Input
+                    <Select
                       id="wo-recurso"
                       className={formStyles.d365ControlFull}
-                      disabled={!puedeAsignar}
-                      value={recursoTecnicoNombre}
-                      onChange={(e) => setRecursoTecnicoNombre(e.target.value)}
-                      placeholder=""
-                    />
+                      disabled={!puedeAsignar || !unidadOrganizativaId}
+                      value={recursoTecnicoId}
+                      onChange={(_, d) => {
+                        setRecursoTecnicoId(d.value);
+                        const tec = recursosTecnicos.find((r) => r.id === d.value);
+                        setRecursoTecnicoNombre(tec?.nombreCompleto || '');
+                      }}
+                    >
+                      <option value="">
+                        {!unidadOrganizativaId
+                          ? '(Seleccione primero una sede operativa en Resumen)'
+                          : recursosTecnicosFiltrados.length === 0
+                          ? '(No hay técnicos registrados en esta sede)'
+                          : 'Seleccione un técnico o cuadrilla responsable...'}
+                      </option>
+                      {recursosTecnicosFiltrados.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.codigo ? `${r.codigo} — ` : ''}{r.nombreCompleto} {r.unidadOrganizativaNombre ? `[${r.unidadOrganizativaNombre}]` : ''}
+                        </option>
+                      ))}
+                      {recursoTecnicoId && !recursosTecnicosFiltrados.some((r) => r.id === recursoTecnicoId) && (
+                        <option value={recursoTecnicoId}>
+                          {recursoTecnicoNombre || 'Técnico asignado'}
+                        </option>
+                      )}
+                    </Select>
                   </D365FormField>
 
                   <D365FormField label="Fecha Programada de Atención" htmlFor="wo-fecha-prog">
-                    <Input
+                    <DatePicker
                       id="wo-fecha-prog"
-                      type="date"
                       className={formStyles.d365ControlFull}
                       disabled={!puedeAsignar}
-                      value={fechaProgramada}
-                      onChange={(e) => setFechaProgramada(e.target.value)}
+                      value={fechaProgramada ? new Date(fechaProgramada + 'T00:00:00') : undefined}
+                      formatDate={(d) => d?.toLocaleDateString('es-PE') ?? ''}
+                      onSelectDate={(d) => setFechaProgramada(d ? d.toISOString().split('T')[0] : '')}
+                      placeholder="Seleccionar fecha de atención..."
                     />
                   </D365FormField>
 
@@ -2275,11 +2696,12 @@ export const OrdenTrabajoFormPage: React.FC = () => {
 
         <DrawerBody style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '24px 20px' }}>
           <D365FormField label="Nueva Fecha de Atención" required>
-            <Input
-              type="date"
+            <DatePicker
               className={formStyles.d365ControlFull}
-              value={reprogramarFecha}
-              onChange={(e) => setReprogramarFecha(e.target.value)}
+              value={reprogramarFecha ? new Date(reprogramarFecha + 'T00:00:00') : undefined}
+              formatDate={(d) => d?.toLocaleDateString('es-PE') ?? ''}
+              onSelectDate={(d) => setReprogramarFecha(d ? d.toISOString().split('T')[0] : '')}
+              placeholder="Seleccionar nueva fecha..."
             />
           </D365FormField>
 
@@ -2413,6 +2835,207 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             onClick={handleConfirmarCancelarVisita}
           >
             Confirmar Cancelación
+          </Button>
+        </DrawerFooter>
+      </OverlayDrawer>
+
+      {/* DRAWER: CANCELAR ORDEN DE TRABAJO */}
+      <OverlayDrawer
+        open={drawerCancelarOrdenOpen}
+        position="end"
+        size="medium"
+        onOpenChange={(_, { open }) => setDrawerCancelarOrdenOpen(open)}
+      >
+        <DrawerHeader style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}` }}>
+          <DrawerHeaderTitle
+            action={
+              <Button
+                appearance="subtle"
+                aria-label="Cerrar"
+                icon={<Dismiss24Regular />}
+                onClick={() => setDrawerCancelarOrdenOpen(false)}
+              />
+            }
+          >
+            <div>
+              <Text weight="semibold" style={{ fontSize: '16px', color: tokens.colorPaletteRedForeground1 }}>
+                Cancelar Orden de Trabajo ({codigoWo || 'Sin código'})
+              </Text>
+              <Text block style={{ fontSize: '12px', color: tokens.colorNeutralForeground3, marginTop: '2px' }}>
+                Esta acción cancelará la orden de forma definitiva, interrumpiendo todas las visitas y tareas pendientes.
+              </Text>
+            </div>
+          </DrawerHeaderTitle>
+        </DrawerHeader>
+
+        <DrawerBody style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '24px 20px' }}>
+          <MessageBar intent="warning">
+            <MessageBarBody>
+              Al cancelar la orden de trabajo, pasará al estado <strong>Cancelada</strong> y quedará bloqueada en modo de solo lectura. No se podrán realizar más cambios en los trabajos ni despachar visitas técnicas.
+            </MessageBarBody>
+          </MessageBar>
+
+          <D365FormField label="Motivo de Cancelación" required>
+            <Select
+              className={formStyles.d365ControlFull}
+              value={motivoCancelarOrden}
+              onChange={(_, d) => setMotivoCancelarOrden(d.value)}
+            >
+              {motivosCancelacionOrden.map((m) => (
+                <option key={m.id || m.codigo} value={m.codigo}>
+                  [{m.codigo}] {m.nombre}
+                </option>
+              ))}
+            </Select>
+          </D365FormField>
+
+          <D365FormField label="Observaciones / Justificación" align="top">
+            <Textarea
+              className={formStyles.d365ControlFull}
+              rows={4}
+              value={obsCancelarOrden}
+              onChange={(e) => setObsCancelarOrden(e.target.value)}
+              placeholder="Describa el motivo o justificación de la cancelación..."
+            />
+          </D365FormField>
+        </DrawerBody>
+
+        <DrawerFooter
+          style={{
+            borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+            padding: '16px 20px',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 8,
+          }}
+        >
+          <Button appearance="secondary" onClick={() => setDrawerCancelarOrdenOpen(false)}>
+            Cerrar
+          </Button>
+          <Button
+            appearance="primary"
+            style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: tokens.colorNeutralForegroundStaticInverted }}
+            disabled={submitting}
+            onClick={handleConfirmarCancelarOrden}
+          >
+            Confirmar Cancelación
+          </Button>
+        </DrawerFooter>
+      </OverlayDrawer>
+
+      {/* DRAWER: CANCELAR O RECHAZAR TRABAJO */}
+      <OverlayDrawer
+        open={drawerEstadoTrabajoOpen}
+        position="end"
+        size="medium"
+        onOpenChange={(_, { open }) => setDrawerEstadoTrabajoOpen(open)}
+      >
+        <DrawerHeader style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}` }}>
+          <DrawerHeaderTitle
+            action={
+              <Button
+                appearance="subtle"
+                aria-label="Cerrar"
+                icon={<Dismiss24Regular />}
+                onClick={() => setDrawerEstadoTrabajoOpen(false)}
+              />
+            }
+          >
+            <div>
+              <Text
+                weight="semibold"
+                style={{
+                  fontSize: '16px',
+                  color:
+                    accionEstadoTrabajo === 'cancelar'
+                      ? tokens.colorPaletteRedForeground1
+                      : tokens.colorPaletteDarkOrangeForeground1,
+                }}
+              >
+                {accionEstadoTrabajo === 'cancelar' ? 'Cancelar Trabajo' : 'Rechazar Trabajo'}{' '}
+                {trabajosParaEstado.length === 1
+                  ? `(${trabajosParaEstado[0].codigoTrabajo || trabajosParaEstado[0].productoNombre})`
+                  : `(${trabajosParaEstado.length} seleccionados)`}
+              </Text>
+              <Text block style={{ fontSize: '12px', color: tokens.colorNeutralForeground3, marginTop: '2px' }}>
+                {accionEstadoTrabajo === 'cancelar'
+                  ? (trabajosParaEstado.length === 1
+                      ? 'El trabajo se marcará como Cancelado. Las tareas pendientes asociadas serán canceladas.'
+                      : `Los ${trabajosParaEstado.length} trabajos seleccionados se marcarán como Cancelados. Si todos los trabajos quedan cancelados, la orden pasará automáticamente a Cancelada.`)
+                  : (trabajosParaEstado.length === 1
+                      ? 'El trabajo se marcará como Rechazado indicando el motivo de imposibilidad u objeción técnica.'
+                      : `Los ${trabajosParaEstado.length} trabajos seleccionados se marcarán como Rechazados. Si todos los trabajos quedan rechazados, la orden pasará automáticamente a Rechazada.`)}
+              </Text>
+            </div>
+          </DrawerHeaderTitle>
+        </DrawerHeader>
+
+        <DrawerBody style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '24px 20px' }}>
+          {trabajosParaEstado.length > 1 && (
+            <div style={{ backgroundColor: tokens.colorNeutralBackground3, padding: '10px 14px', borderRadius: '4px', border: `1px solid ${tokens.colorNeutralStroke2}` }}>
+              <Text size={200} weight="semibold">Trabajos seleccionados a afectar ({trabajosParaEstado.length}):</Text>
+              <ul style={{ margin: '6px 0 0 16px', padding: 0, fontSize: '12px', color: tokens.colorNeutralForeground2 }}>
+                {trabajosParaEstado.map((t) => (
+                  <li key={t.id || t.idTemp}>
+                    <b style={{ fontFamily: 'monospace' }}>{t.codigoTrabajo || 'Trabajo'}</b> - {t.productoNombre || 'Servicio'}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <D365FormField
+            label={accionEstadoTrabajo === 'cancelar' ? 'Motivo de Cancelación' : 'Motivo de Rechazo'}
+            required
+          >
+            <Select
+              className={formStyles.d365ControlFull}
+              value={motivoEstadoTrabajo}
+              onChange={(_, d) => setMotivoEstadoTrabajo(d.value)}
+            >
+              {motivosDisponibles.map((m) => (
+                <option key={m.id || m.codigo} value={m.codigo}>
+                  [{m.codigo}] {m.nombre}
+                </option>
+              ))}
+            </Select>
+          </D365FormField>
+
+          <D365FormField label="Detalle u Observaciones" align="top">
+            <Textarea
+              className={formStyles.d365ControlFull}
+              rows={4}
+              value={obsEstadoTrabajo}
+              onChange={(e) => setObsEstadoTrabajo(e.target.value)}
+              placeholder="Explique las razones o circunstancias..."
+            />
+          </D365FormField>
+        </DrawerBody>
+
+        <DrawerFooter
+          style={{
+            borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+            padding: '16px 20px',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 8,
+          }}
+        >
+          <Button appearance="secondary" onClick={() => setDrawerEstadoTrabajoOpen(false)}>
+            Cerrar
+          </Button>
+          <Button
+            appearance="primary"
+            style={{
+              backgroundColor:
+                accionEstadoTrabajo === 'cancelar'
+                  ? tokens.colorPaletteRedBackground3
+                  : tokens.colorPaletteDarkOrangeBackground3,
+              color: tokens.colorNeutralForegroundStaticInverted,
+            }}
+            disabled={submitting}
+            onClick={handleConfirmarEstadoTrabajo}
+          >
+            {accionEstadoTrabajo === 'cancelar' ? 'Confirmar Cancelación' : 'Confirmar Rechazo'}
           </Button>
         </DrawerFooter>
       </OverlayDrawer>

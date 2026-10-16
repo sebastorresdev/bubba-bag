@@ -76,6 +76,7 @@ public static class AlmacenesEndpoints
         compras.MapPost("/{id:guid}/solicitar", SolicitarCompra).RequireAuthorization(Permissions.Inventario.Operar);
         compras.MapPost("/{id:guid}/enviar", EnviarCompra).RequireAuthorization(Permissions.Inventario.Operar);
         compras.MapPost("/{id:guid}/recepcionar", RecepcionarCompra).RequireAuthorization(Permissions.Inventario.Operar);
+        compras.MapPost("/{id:guid}/cerrar-faltantes", CerrarFaltantesCompra).RequireAuthorization(Permissions.Inventario.Operar);
     }
 
     private static async Task<IResult> ObtenerCompras(
@@ -225,6 +226,11 @@ public static class AlmacenesEndpoints
     private static async Task<IResult> RecepcionarCompra(Guid id, RecepcionCompraDatos datos, IDispatcher dispatcher)
     {
         var resultado = await dispatcher.SendAsync(new RecepcionarCompraCommand(id, datos));
+        return resultado.IsSuccess ? Results.Ok() : Results.BadRequest(resultado.Error);
+    }
+    private static async Task<IResult> CerrarFaltantesCompra(Guid id, IDispatcher dispatcher)
+    {
+        var resultado = await dispatcher.SendAsync(new CerrarFaltantesCompraCommand(id));
         return resultado.IsSuccess ? Results.Ok() : Results.BadRequest(resultado.Error);
     }
 

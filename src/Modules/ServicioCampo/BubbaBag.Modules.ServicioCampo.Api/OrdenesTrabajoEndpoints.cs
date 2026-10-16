@@ -38,6 +38,10 @@ public static class OrdenesTrabajoEndpoints
         group.MapPost("/{id:guid}/trabajos", AgregarTrabajoAOrden).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear);
         group.MapPut("/{id:guid}/trabajos/{trabajoId:guid}", ActualizarTrabajo).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear);
         group.MapPost("/{id:guid}/trabajos/{trabajoId:guid}/completar", CompletarTrabajo).RequireAuthorization(Permissions.ServicioCampo.OrdenesOperarCampo);
+        group.MapPost("/{id:guid}/trabajos/{trabajoId:guid}/cancelar", CancelarTrabajo).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear);
+        group.MapPost("/{id:guid}/trabajos/{trabajoId:guid}/rechazar", RechazarTrabajo).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear);
+        group.MapPost("/{id:guid}/trabajos/cancelar-batch", CancelarTrabajosBatch).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear);
+        group.MapPost("/{id:guid}/trabajos/rechazar-batch", RechazarTrabajosBatch).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear);
         group.MapPut("/{id:guid}/trabajos/{trabajoId:guid}/tareas/{tareaId:guid}", CompletarTarea).RequireAuthorization(Permissions.ServicioCampo.OrdenesOperarCampo);
         group.MapDelete("/{id:guid}/trabajos/{trabajoId:guid}", EliminarTrabajoDeOrden).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear);
         group.MapGet("/{id:guid}/acta-pdf", GenerarActaServicioPdf);
@@ -133,12 +137,181 @@ public static class OrdenesTrabajoEndpoints
         await db.SaveChangesAsync(ct); return Results.NoContent();
     }
 
+    private static async Task<IResult> CancelarTrabajo(
+        Guid id,
+        Guid trabajoId,
+        CancelarTrabajoRequest? request,
+        IServicioCampoDbContext db,
+        ICurrentUser currentUser,
+        CancellationToken ct)
+    {
+        await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
+
+        var orden = await db.OrdenesTrabajo
+            .Include(o => o.Trabajos)
+                .ThenInclude(t => t.Tareas)
+            .Include(o => o.Visitas)
+            .FirstOrDefaultAsync(o => o.Id == id, ct);
+
+        if (orden == null)
+            return Results.NotFound(new { message = $"No se encontró la orden de trabajo con ID {id}." });
+
+        var trabajo = orden.Trabajos.FirstOrDefault(t => t.Id == trabajoId);
+        if (trabajo == null)
+            return Results.NotFound(new { message = $"No se encontró el trabajo con ID {trabajoId}." });
+
+        try
+        {
+            orden.ValidarEditable();
+            trabajo.Cancelar(request?.Motivo);
+            orden.SincronizarEstadoDesdeTrabajos(request?.Motivo);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Results.BadRequest(new { message = ex.Message });
+        }
+
+        await db.SaveChangesAsync(ct);
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> RechazarTrabajo(
+        Guid id,
+        Guid trabajoId,
+        RechazarTrabajoRequest request,
+        IServicioCampoDbContext db,
+        ICurrentUser currentUser,
+        CancellationToken ct)
+    {
+        await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
+
+        var orden = await db.OrdenesTrabajo
+            .Include(o => o.Trabajos)
+                .ThenInclude(t => t.Tareas)
+            .Include(o => o.Visitas)
+            .FirstOrDefaultAsync(o => o.Id == id, ct);
+
+        if (orden == null)
+            return Results.NotFound(new { message = $"No se encontró la orden de trabajo con ID {id}." });
+
+        if (string.IsNullOrWhiteSpace(request?.Motivo))
+            return Results.BadRequest(new { message = "El motivo de rechazo es obligatorio." });
+
+        var trabajo = orden.Trabajos.FirstOrDefault(t => t.Id == trabajoId);
+        if (trabajo == null)
+            return Results.NotFound(new { message = $"No se encontró el trabajo con ID {trabajoId}." });
+
+        try
+        {
+            orden.ValidarEditable();
+            trabajo.Rechazar(request.Motivo);
+            orden.SincronizarEstadoDesdeTrabajos(request.Motivo);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Results.BadRequest(new { message = ex.Message });
+        }
+
+        await db.SaveChangesAsync(ct);
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> CancelarTrabajosBatch(
+        Guid id,
+        BatchEstadoTrabajosRequest request,
+        IServicioCampoDbContext db,
+        ICurrentUser currentUser,
+        CancellationToken ct)
+    {
+        await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
+
+        if (request?.TrabajoIds == null || request.TrabajoIds.Count == 0)
+            return Results.BadRequest(new { message = "Debe proporcionar al menos un ID de trabajo." });
+
+        var orden = await db.OrdenesTrabajo
+            .Include(o => o.Trabajos)
+                .ThenInclude(t => t.Tareas)
+            .Include(o => o.Visitas)
+            .FirstOrDefaultAsync(o => o.Id == id, ct);
+
+        if (orden == null)
+            return Results.NotFound(new { message = $"No se encontró la orden de trabajo con ID {id}." });
+
+        try
+        {
+            orden.ValidarEditable();
+            foreach (var tId in request.TrabajoIds)
+            {
+                var trabajo = orden.Trabajos.FirstOrDefault(t => t.Id == tId);
+                if (trabajo != null && (trabajo.Estado == EstadoTrabajo.Pendiente || trabajo.Estado == EstadoTrabajo.EnProgreso))
+                {
+                    trabajo.Cancelar(request.Motivo);
+                }
+            }
+            orden.SincronizarEstadoDesdeTrabajos(request.Motivo);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Results.BadRequest(new { message = ex.Message });
+        }
+
+        await db.SaveChangesAsync(ct);
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> RechazarTrabajosBatch(
+        Guid id,
+        BatchEstadoTrabajosRequest request,
+        IServicioCampoDbContext db,
+        ICurrentUser currentUser,
+        CancellationToken ct)
+    {
+        await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
+
+        if (request?.TrabajoIds == null || request.TrabajoIds.Count == 0)
+            return Results.BadRequest(new { message = "Debe proporcionar al menos un ID de trabajo." });
+
+        if (string.IsNullOrWhiteSpace(request.Motivo))
+            return Results.BadRequest(new { message = "El motivo de rechazo es obligatorio." });
+
+        var orden = await db.OrdenesTrabajo
+            .Include(o => o.Trabajos)
+                .ThenInclude(t => t.Tareas)
+            .Include(o => o.Visitas)
+            .FirstOrDefaultAsync(o => o.Id == id, ct);
+
+        if (orden == null)
+            return Results.NotFound(new { message = $"No se encontró la orden de trabajo con ID {id}." });
+
+        try
+        {
+            orden.ValidarEditable();
+            foreach (var tId in request.TrabajoIds)
+            {
+                var trabajo = orden.Trabajos.FirstOrDefault(t => t.Id == tId);
+                if (trabajo != null && (trabajo.Estado == EstadoTrabajo.Pendiente || trabajo.Estado == EstadoTrabajo.EnProgreso))
+                {
+                    trabajo.Rechazar(request.Motivo);
+                }
+            }
+            orden.SincronizarEstadoDesdeTrabajos(request.Motivo);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Results.BadRequest(new { message = ex.Message });
+        }
+
+        await db.SaveChangesAsync(ct);
+        return Results.NoContent();
+    }
+
     private static async Task<IResult> ObtenerOrdenesTrabajo(
         IServicioCampoDbContext db, ICurrentUser currentUser,
         string? search,
         string? estadoSistema,
         Guid? clienteId,
         Guid? zonaOperativaId,
+        Guid? unidadOrganizativaId,
         CancellationToken ct)
     {
         var query = OrdenesAcceso.Consultables(db, currentUser)
@@ -146,6 +319,7 @@ public static class OrdenesTrabajoEndpoints
             .Include(o => o.TipoOrden)
             .Include(o => o.ClienteFacturacion)
             .Include(o => o.ClienteServicio)
+            .Include(o => o.UnidadOrganizativa)
             .Include(o => o.ZonaOperativa)
             .Include(o => o.Visitas).ThenInclude(v => v.Recurso)
             .AsQueryable();
@@ -176,6 +350,11 @@ public static class OrdenesTrabajoEndpoints
         if (clienteId.HasValue)
         {
             query = query.Where(o => o.ClienteFacturacionId == clienteId || o.ClienteServicioId == clienteId);
+        }
+
+        if (unidadOrganizativaId.HasValue)
+        {
+            query = query.Where(o => o.UnidadOrganizativaId == unidadOrganizativaId || (o.UnidadOrganizativaId == null && o.ZonaOperativa != null && o.ZonaOperativa.SucursalId == unidadOrganizativaId));
         }
 
         if (zonaOperativaId.HasValue)
@@ -218,7 +397,9 @@ public static class OrdenesTrabajoEndpoints
                 BloqueHorario: ultimaVisita?.BloqueHorario,
                 DireccionServicio: o.ClienteServicio?.Direccion,
                 UbigeoTexto: o.ClienteServicio?.UbigeoCodigo,
-                FechaCreacion: o.CreatedAt
+                FechaCreacion: o.CreatedAt,
+                UnidadOrganizativaId: o.UnidadOrganizativaId ?? o.ZonaOperativa?.SucursalId,
+                UnidadOrganizativaNombre: o.UnidadOrganizativa?.Nombre
             );
         }).ToList();
 
@@ -235,6 +416,7 @@ public static class OrdenesTrabajoEndpoints
             .Include(o => o.TipoOrden)
             .Include(o => o.ClienteFacturacion)
             .Include(o => o.ClienteServicio)
+            .Include(o => o.UnidadOrganizativa)
             .Include(o => o.ZonaOperativa)
             .Include(o => o.Visitas).ThenInclude(v => v.Recurso)
             .Include(o => o.Materiales)
@@ -408,7 +590,9 @@ public static class OrdenesTrabajoEndpoints
                 FechaProgramada: v.FechaProgramada.ToString("yyyy-MM-dd"),
                 BloqueHorario: v.BloqueHorario,
                 Estado: v.Estado.ToString()
-            )).ToList()
+            )).ToList(),
+            UnidadOrganizativaId: orden.UnidadOrganizativaId ?? orden.ZonaOperativa?.SucursalId,
+            UnidadOrganizativaNombre: orden.UnidadOrganizativa?.Nombre
         );
 
         return Results.Ok(detalle);
@@ -436,6 +620,24 @@ public static class OrdenesTrabajoEndpoints
         if (tipo == null) return Results.BadRequest(new { message = "Seleccione un tipo de orden activo." });
         var lista = await ObtenerLista(request.ListaPreciosId ?? tipo.ListaPreciosId, db, ct);
 
+        // Resolver Unidad Organizativa / Sede de la orden (directa o derivada del territorio)
+        var unidadOrgId = request.UnidadOrganizativaId;
+        if (!unidadOrgId.HasValue && request.ZonaOperativaId.HasValue)
+        {
+            var zo = await db.ZonasOperativas.AsNoTracking().FirstOrDefaultAsync(z => z.Id == request.ZonaOperativaId.Value, ct);
+            unidadOrgId = zo?.SucursalId;
+        }
+
+        // Validación estricta: Si se asigna un técnico de campo, debe pertenecer a la misma Unidad Organizativa (Sede)
+        if (request.RecursoTecnicoId.HasValue)
+        {
+            var recurso = await db.Recursos.AsNoTracking().FirstOrDefaultAsync(r => r.Id == request.RecursoTecnicoId.Value, ct);
+            if (recurso != null && unidadOrgId.HasValue && recurso.UnidadOrganizativaId.HasValue && recurso.UnidadOrganizativaId != unidadOrgId)
+            {
+                return Results.BadRequest(new { message = "El técnico seleccionado no pertenece a la unidad organizativa (sede) asignada a la orden de trabajo." });
+            }
+        }
+
         var orden = OrdenTrabajo.Crear(
             codigoWo: codigoWo,
             tipoOrdenId: request.TipoOrdenId,
@@ -447,7 +649,8 @@ public static class OrdenesTrabajoEndpoints
             codigoContrato: request.CodigoContrato,
             numeroPedido: request.NumeroPedido,
             estadoOrigen: request.EstadoOrigen,
-            referenciaExterna: request.ReferenciaExterna, listaPreciosId: lista.Id, moneda: lista.Moneda
+            referenciaExterna: request.ReferenciaExterna, listaPreciosId: lista.Id, moneda: lista.Moneda,
+            unidadOrganizativaId: unidadOrgId
         );
 
         foreach (var item in request.Trabajos ?? [])
@@ -496,6 +699,9 @@ public static class OrdenesTrabajoEndpoints
         }
         catch (InvalidOperationException ex) { return Results.BadRequest(new { message = ex.Message }); }
 
+        if (request.UnidadOrganizativaId.HasValue)
+            orden.AsignarUnidadOrganizativa(request.UnidadOrganizativaId.Value);
+
         if (request.ZonaOperativaId.HasValue)
             orden.AsignarZonaOperativa(request.ZonaOperativaId.Value);
 
@@ -503,6 +709,12 @@ public static class OrdenesTrabajoEndpoints
         if (request.RecursoTecnicoId.HasValue && !string.IsNullOrWhiteSpace(request.FechaProgramada) &&
             DateOnly.TryParse(request.FechaProgramada, out var fechaProg))
         {
+            var recurso = await db.Recursos.AsNoTracking().FirstOrDefaultAsync(r => r.Id == request.RecursoTecnicoId.Value, ct);
+            if (recurso == null || !recurso.Activo)
+                return Results.BadRequest(new { message = "El técnico seleccionado no existe o está inactivo." });
+            if (orden.UnidadOrganizativaId.HasValue && recurso.UnidadOrganizativaId.HasValue && recurso.UnidadOrganizativaId != orden.UnidadOrganizativaId)
+                return Results.BadRequest(new { message = "El técnico seleccionado no pertenece a la unidad organizativa (sede) de la orden de trabajo." });
+
             var visitCount = orden.Visitas.Count + 1;
             var nuevaVisita = orden.ProgramarVisita(
                 codigoVisita: $"{orden.CodigoWo}-V{visitCount}",
@@ -546,8 +758,11 @@ public static class OrdenesTrabajoEndpoints
                 if (orden.EstadoSistema != EstadoSistema.PendienteProgramar || !request.RecursoTecnicoId.HasValue
                     || !DateOnly.TryParse(request.FechaProgramada, out var fechaProg))
                     return Results.BadRequest(new { message = "Seleccione técnico y fecha para programar la orden." });
-                if (!await db.Recursos.AnyAsync(r => r.Id == request.RecursoTecnicoId && r.Activo, ct))
+                var recurso = await db.Recursos.AsNoTracking().FirstOrDefaultAsync(r => r.Id == request.RecursoTecnicoId && r.Activo, ct);
+                if (recurso == null)
                     return Results.BadRequest(new { message = "El técnico seleccionado no existe o está inactivo." });
+                if (orden.UnidadOrganizativaId.HasValue && recurso.UnidadOrganizativaId.HasValue && recurso.UnidadOrganizativaId != orden.UnidadOrganizativaId)
+                    return Results.BadRequest(new { message = "El técnico seleccionado no pertenece a la unidad organizativa (sede) de la orden de trabajo." });
                 var visita = orden.ProgramarVisita($"{orden.CodigoWo}-V1", request.RecursoTecnicoId.Value, fechaProg, request.BloqueHorario);
                 ((DbContext)db).Entry(visita).State = EntityState.Added;
             }
@@ -575,6 +790,12 @@ public static class OrdenesTrabajoEndpoints
 
         if (!DateOnly.TryParse(request.FechaProgramada, out var fechaProg))
             return Results.BadRequest(new { message = "Fecha programada inválida." });
+
+        var recurso = await db.Recursos.AsNoTracking().FirstOrDefaultAsync(r => r.Id == request.RecursoTecnicoId && r.Activo, ct);
+        if (recurso == null)
+            return Results.BadRequest(new { message = "El técnico seleccionado no existe o está inactivo." });
+        if (orden.UnidadOrganizativaId.HasValue && recurso.UnidadOrganizativaId.HasValue && recurso.UnidadOrganizativaId != orden.UnidadOrganizativaId)
+            return Results.BadRequest(new { message = "El técnico seleccionado no pertenece a la unidad organizativa (sede) de la orden de trabajo." });
 
         var visitCount = orden.Visitas.Count + 1;
         var visita = orden.ProgramarVisita(
@@ -645,20 +866,7 @@ public static class OrdenesTrabajoEndpoints
     {
         await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
 
-        var trabajo = await db.Trabajos
-            .Include(t => t.Tareas)
-            .Include(t => t.Materiales)
-            .FirstOrDefaultAsync(t => t.Id == trabajoId && t.OrdenTrabajoId == id, ct);
-
-        if (trabajo == null)
-            return Results.NotFound(new { message = $"No se encontró el trabajo con ID {trabajoId} en la orden {id}." });
-
-        if (trabajo.Estado != EstadoTrabajo.Pendiente)
-            return Results.BadRequest(new { message = "Solo se pueden eliminar líneas de trabajo en estado Pendiente." });
-
-        db.Trabajos.Remove(trabajo);
-        await ((DbContext)db).SaveChangesAsync(ct);
-        return Results.Ok(new { message = "Trabajo eliminado exitosamente de la orden." });
+        return Results.BadRequest(new { message = "Una vez creado, un trabajo no puede eliminarse; debe cancelarse o rechazarse para mantener la trazabilidad operativa." });
     }
 
     private static async Task<IResult> GenerarActaServicioPdf(
@@ -1008,8 +1216,11 @@ public static class OrdenesTrabajoEndpoints
             return Results.BadRequest(new { message = "La nueva fecha programada no es válida." });
 
         var recursoId = request.RecursoTecnicoId ?? visitaActual.RecursoId;
-        if (!await db.Recursos.AnyAsync(r => r.Id == recursoId && r.Activo, ct))
+        var recurso = await db.Recursos.AsNoTracking().FirstOrDefaultAsync(r => r.Id == recursoId && r.Activo, ct);
+        if (recurso == null)
             return Results.BadRequest(new { message = "El técnico seleccionado no existe o está inactivo." });
+        if (orden.UnidadOrganizativaId.HasValue && recurso.UnidadOrganizativaId.HasValue && recurso.UnidadOrganizativaId != orden.UnidadOrganizativaId)
+            return Results.BadRequest(new { message = "El técnico seleccionado no pertenece a la unidad organizativa (sede) de la orden de trabajo." });
 
         visitaActual.CancelarVisita(request.MotivoId, $"Reprogramada: {request.Observaciones}");
 
@@ -1100,7 +1311,9 @@ public record OrdenTrabajoListadoItemDto(
     string? BloqueHorario,
     string? DireccionServicio,
     string? UbigeoTexto,
-    DateTime FechaCreacion
+    DateTime FechaCreacion,
+    Guid? UnidadOrganizativaId = null,
+    string? UnidadOrganizativaNombre = null
 );
 
 public record OrdenTrabajoItemDto(
@@ -1162,7 +1375,9 @@ public record OrdenTrabajoDetalleDto(
     List<OrdenTrabajoVisitaDto> Visitas,
     Guid? ListaPreciosId = null,
     string Moneda = "PEN",
-    uint Version = 0
+    uint Version = 0,
+    Guid? UnidadOrganizativaId = null,
+    string? UnidadOrganizativaNombre = null
 );
 
 public record OrdenTrabajoMaterialDto(
@@ -1229,7 +1444,8 @@ public record CrearOrdenTrabajoRequest(
     string? BloqueHorario,
     string? Observaciones,
     List<CrearOrdenTrabajoItemRequest>? Trabajos,
-    Guid? ListaPreciosId = null
+    Guid? ListaPreciosId = null,
+    Guid? UnidadOrganizativaId = null
 );
 
 public record ActualizarOrdenTrabajoRequest(
@@ -1237,7 +1453,8 @@ public record ActualizarOrdenTrabajoRequest(
     Guid? RecursoTecnicoId,
     string? FechaProgramada,
     string? BloqueHorario,
-    string? Observaciones
+    string? Observaciones,
+    Guid? UnidadOrganizativaId = null
 );
 
 public record CambiarEstadoSistemaRequest(
@@ -1256,6 +1473,9 @@ public record ProgramarOrdenTrabajoRequest(
 );
 
 public record ActualizarTrabajoRequest(string? ReferenciaEquipo, string? Observaciones, string? CodigoExterno);
+public record CancelarTrabajoRequest(string? Motivo);
+public record RechazarTrabajoRequest(string Motivo);
+public record BatchEstadoTrabajosRequest(List<Guid> TrabajoIds, string? Motivo);
 public record CompletarTareaRequest(string? EvidenciaUrl, string? Observaciones);
 
 public record LiquidarOrdenTrabajoRequest(

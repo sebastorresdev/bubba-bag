@@ -50,6 +50,7 @@ public static class WebApplicationExtensions
             
             var logger = scope.ServiceProvider.GetRequiredService<ILogger<WebApplication>>();
             await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.UbigeoSeeder.SeedAsync(servicioCampoDbContext, logger);
+            await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.MotivosIncidenciaSeeder.SeedAsync(servicioCampoDbContext, logger);
 
             // Asegurar registro inicial de configuración de empresa mediante EF Core
             if (!await servicioCampoDbContext.ConfiguracionEmpresas.AnyAsync())

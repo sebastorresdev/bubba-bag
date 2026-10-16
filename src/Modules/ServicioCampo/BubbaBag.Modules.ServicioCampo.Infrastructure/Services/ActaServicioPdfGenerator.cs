@@ -185,7 +185,7 @@ public static class ActaServicioPdfGenerator
                             r.RelativeItem(3.0f).Row(rx =>
                             {
                                 rx.ConstantItem(55).Background(Color.FromHex("#DCE6F1")).Padding(2).Text("Barrio / Zona:").Bold().FontSize(6.8f);
-                                rx.RelativeItem().Padding(2).Text(orden.ZonaOperativa?.Nombre ?? "Lima Metropolitana").FontSize(6.8f);
+                                rx.RelativeItem().Padding(2).Text(orden.ZonaOperativa?.Nombre ?? "Sin asignar").FontSize(6.8f);
                             });
                         });
 
@@ -209,7 +209,7 @@ public static class ActaServicioPdfGenerator
 
                         var tecNombre = ultimaVisita?.Recurso?.NombreCompleto ?? "Técnico Asignado de Cuadrilla";
                         var tecDni = ultimaVisita?.Recurso?.DocumentoIdentidad ?? "—";
-                        var cuadrilla = orden.ZonaOperativa?.Nombre ?? "Cuadrilla Técnica Oficial";
+                        var cuadrilla = orden.ZonaOperativa?.Nombre ?? "Sin asignar";
                         var tecCodigo = ultimaVisita?.Recurso?.Codigo ?? "I280000";
 
                         c.Item().BorderTop(0.5f).BorderColor(Colors.Black).Row(r =>

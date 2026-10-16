@@ -65,6 +65,10 @@ import { OrganizacionService } from '../../../organizacion/services/organizacion
 import type { RecursoDto } from '../../../organizacion/types/organizacion.types';
 import { InventarioProductoService } from '../../inventario-productos/services/inventario-producto.service';
 import type { InventarioProductoDto, ItemSeriadoStockDto } from '../../inventario-productos/types/inventario-producto.types';
+import { ProductoService } from '../../productos/services/producto.service';
+import type { ProductoDto } from '../../productos/types/producto.types';
+import { UnidadMedidaService } from '../../unidades-medida/services/unidadMedida.service';
+import type { UnidadMedidaDto } from '../../unidades-medida/types/unidadMedida.types';
 import { TransferenciaService } from '../services/transferencia.service';
 import { TransferenciaEtapas } from '../components/TransferenciaEtapas';
 
@@ -144,6 +148,9 @@ interface LineaDespacho {
   unidad: string;
   cantidad: number;
   series: string[];
+  unidadSeleccionada?: string;
+  cantidadIngresada?: number;
+  factorConversion?: number;
 }
 
 export const DespachoTecnicoPage: React.FC = () => {
@@ -156,6 +163,9 @@ export const DespachoTecnicoPage: React.FC = () => {
   const [tecnicos, setTecnicos] = useState<RecursoDto[]>([]);
   const [, setUbicacionesOrigen] = useState<UbicacionInventarioDto[]>([]);
   const [productosStock, setProductosStock] = useState<InventarioProductoDto[]>([]);
+  const [catalogoProductos, setCatalogoProductos] = useState<ProductoDto[]>([]);
+  const [unidadesMedida, setUnidadesMedida] = useState<UnidadMedidaDto[]>([]);
+  const [unidadSeleccionadaId, setUnidadSeleccionadaId] = useState<string>('');
 
   // Form states
   const [transferenciaId, setTransferenciaId] = useState<string | null>(null);
@@ -222,12 +232,16 @@ export const DespachoTecnicoPage: React.FC = () => {
     const init = async () => {
       try {
         setLoading(true);
-        const [alms, tecs] = await Promise.all([
+        const [alms, tecs, prodsCat, ums] = await Promise.all([
           AlmacenService.getAlmacenes(true),
           OrganizacionService.getRecursos(1, undefined, true),
+          ProductoService.getProductos(undefined, undefined, true).catch(() => []),
+          UnidadMedidaService.getUnidadesMedida(undefined, true).catch(() => []),
         ]);
         setAlmacenes(alms);
         setTecnicos(tecs);
+        setCatalogoProductos(prodsCat);
+        setUnidadesMedida(ums);
 
         if (id && id !== 'nuevo') {
           const det = await TransferenciaService.obtenerDetalle(id);
@@ -380,6 +394,51 @@ export const DespachoTecnicoPage: React.FC = () => {
     return todasSeriesStock.filter((s) => !seriesUsadas.has(s.numeroSerie));
   }, [todasSeriesStock, lineas]);
 
+  // Productos no seriados disponibles en bodega
+  const productosNoSeriadosStock = useMemo(() => {
+    return productosStock.filter((p) => !p.esSerializado && p.cantidadDisponible > 0);
+  }, [productosStock]);
+
+  // Unidades disponibles para el producto seleccionado
+  const unidadesDisponiblesProducto = useMemo(() => {
+    if (!productoSeleccionadoScanner) return [];
+    const prodCat = catalogoProductos.find((p) => p.id === productoSeleccionadoScanner.productoId);
+    if (!prodCat?.grupoUnidadMedidaId) return [];
+    return unidadesMedida.filter(
+      (u) => u.grupoUnidadMedidaId === prodCat.grupoUnidadMedidaId && u.estaActivo
+    );
+  }, [productoSeleccionadoScanner, catalogoProductos, unidadesMedida]);
+
+  const unidadSeleccionadaObj = useMemo(() => {
+    if (unidadesDisponiblesProducto.length === 0) return null;
+    if (unidadSeleccionadaId) {
+      const match = unidadesDisponiblesProducto.find((u) => u.id === unidadSeleccionadaId);
+      if (match) return match;
+    }
+    return unidadesDisponiblesProducto.find((u) => u.esUnidadBase) || unidadesDisponiblesProducto[0];
+  }, [unidadSeleccionadaId, unidadesDisponiblesProducto]);
+
+  const factorConversion =
+    unidadSeleccionadaObj?.factorConversionTotal && unidadSeleccionadaObj.factorConversionTotal > 0
+      ? unidadSeleccionadaObj.factorConversionTotal
+      : 1;
+
+  useEffect(() => {
+    if (productoSeleccionadoScanner) {
+      const prodCat = catalogoProductos.find((p) => p.id === productoSeleccionadoScanner.productoId);
+      if (prodCat?.unidadMedidaDefectoId) {
+        setUnidadSeleccionadaId(prodCat.unidadMedidaDefectoId);
+      } else {
+        const uBase = unidadesMedida.find(
+          (u) => u.grupoUnidadMedidaId === prodCat?.grupoUnidadMedidaId && u.esUnidadBase
+        );
+        setUnidadSeleccionadaId(uBase?.id || '');
+      }
+    } else {
+      setUnidadSeleccionadaId('');
+    }
+  }, [productoSeleccionadoScanner, catalogoProductos, unidadesMedida]);
+
   // PROCESAR BÚSQUEDA DEL SCANNER SYMBAR (SKU O SERIE)
   const procesarScannerBusqueda = (query: string) => {
     const q = query.trim().toUpperCase();
@@ -432,6 +491,22 @@ export const DespachoTecnicoPage: React.FC = () => {
     );
 
     if (prodEncontrado) {
+      if (prodEncontrado.esSerializado) {
+        const seriesDelProd = seriesLibresAlmacen.filter((s) => s.productoId === prodEncontrado.productoId);
+        if (seriesDelProd.length === 1) {
+          setSerieSeleccionadaScanner(seriesDelProd[0]);
+          setProductoSeleccionadoScanner(prodEncontrado);
+          setScannerCantidad('1');
+          return;
+        }
+        setScannerError(
+          `El producto "${prodEncontrado.nombreProducto}" es serializado y cuenta con ${seriesDelProd.length} series en existencias. Seleccione la serie específica a despachar.`
+        );
+        setSerieSeleccionadaScanner(null);
+        setProductoSeleccionadoScanner(null);
+        return;
+      }
+
       setSerieSeleccionadaScanner(null);
       setProductoSeleccionadoScanner(prodEncontrado);
       setScannerCantidad('1');
@@ -497,22 +572,33 @@ export const DespachoTecnicoPage: React.FC = () => {
       notifySuccess(`Serie ${serieSeleccionadaScanner.numeroSerie} agregada.`);
     } else {
       // Es producto no seriado
+      const cantidadBase = cant * factorConversion;
       const lineaExistente = lineas.find(
         (l) => l.productoId === productoSeleccionadoScanner.productoId
       );
 
       const yaAgregado = lineaExistente ? lineaExistente.cantidad : 0;
-      if (yaAgregado + cant > productoSeleccionadoScanner.cantidadDisponible) {
+      if (yaAgregado + cantidadBase > productoSeleccionadoScanner.cantidadDisponible) {
         setScannerError(
           `La cantidad supera las existencias disponibles (${productoSeleccionadoScanner.cantidadDisponible} ${productoSeleccionadoScanner.nombreUnidadMedida || 'UND'}).`
         );
         return;
       }
 
+      const unidadNombre = unidadSeleccionadaObj?.nombre || productoSeleccionadoScanner.nombreUnidadMedida || 'UND';
+
       if (lineaExistente) {
         setLineas((prev) =>
           prev.map((l) =>
-            l.idTemp === lineaExistente.idTemp ? { ...l, cantidad: l.cantidad + cant } : l
+            l.idTemp === lineaExistente.idTemp
+              ? {
+                  ...l,
+                  cantidad: l.cantidad + cantidadBase,
+                  cantidadIngresada: (l.cantidadIngresada ?? l.cantidad) + cant,
+                  unidadSeleccionada: factorConversion > 1 ? unidadNombre : l.unidad,
+                  factorConversion: factorConversion,
+                }
+              : l
           )
         );
       } else {
@@ -522,13 +608,20 @@ export const DespachoTecnicoPage: React.FC = () => {
           codigo: productoSeleccionadoScanner.codigoProducto || '',
           nombre: productoSeleccionadoScanner.nombreProducto,
           unidad: productoSeleccionadoScanner.nombreUnidadMedida || 'UND',
-          cantidad: cant,
+          cantidad: cantidadBase,
           series: [],
+          unidadSeleccionada: factorConversion > 1 ? unidadNombre : undefined,
+          cantidadIngresada: cant,
+          factorConversion: factorConversion,
         };
         setLineas((prev) => [...prev, nuevaLinea]);
       }
 
-      notifySuccess(`Producto ${productoSeleccionadoScanner.nombreProducto} agregado.`);
+      notifySuccess(
+        factorConversion > 1
+          ? `Agregado: ${cant} ${unidadNombre} (${cantidadBase} ${productoSeleccionadoScanner.nombreUnidadMedida || 'UND'}).`
+          : `Producto ${productoSeleccionadoScanner.nombreProducto} agregado.`
+      );
     }
 
     // Limpiar scanner y reenfocar
@@ -786,9 +879,20 @@ export const DespachoTecnicoPage: React.FC = () => {
       createTableColumn({
         columnId: 'cantidad',
         renderHeaderCell: () => 'Cantidad',
-        renderCell: (linea) => (
+        renderCell: (linea: LineaDespacho) => (
           <TableCellLayout>
-            <Text weight="bold">{linea.cantidad.toLocaleString('es-PE')}</Text>
+            {linea.factorConversion && linea.factorConversion > 1 ? (
+              <div>
+                <Text weight="bold">
+                  {linea.cantidadIngresada} {linea.unidadSeleccionada}
+                </Text>
+                <Text block size={100} style={{ color: tokens.colorNeutralForeground3 }}>
+                  Equivalente: {linea.cantidad.toLocaleString('es-PE')} {linea.unidad}
+                </Text>
+              </div>
+            ) : (
+              <Text weight="bold">{linea.cantidad.toLocaleString('es-PE')}</Text>
+            )}
           </TableCellLayout>
         ),
       }),
@@ -1092,7 +1196,11 @@ export const DespachoTecnicoPage: React.FC = () => {
                       <label className={classes.scannerLabel}>Producto</label>
                       {productoSeleccionadoScanner && !serieSeleccionadaScanner && (
                         <Text size={100} style={{ color: tokens.colorBrandForeground1 }}>
-                          Disp: {productoSeleccionadoScanner.cantidadDisponible} {productoSeleccionadoScanner.nombreUnidadMedida || 'UND'}
+                          Disp: {Math.floor(productoSeleccionadoScanner.cantidadDisponible / factorConversion)}{' '}
+                          {unidadSeleccionadaObj?.nombre || productoSeleccionadoScanner.nombreUnidadMedida || 'UND'}
+                          {factorConversion > 1
+                            ? ` (${productoSeleccionadoScanner.cantidadDisponible} ${productoSeleccionadoScanner.nombreUnidadMedida || 'm'})`
+                            : ''}
                         </Text>
                       )}
                     </div>
@@ -1156,7 +1264,7 @@ export const DespachoTecnicoPage: React.FC = () => {
                               setScannerError(null);
                             }
                           } else {
-                            const prod = productosStock.find((p) => p.productoId === val);
+                            const prod = productosNoSeriadosStock.find((p) => p.productoId === val);
                             if (prod) {
                               setProductoSeleccionadoScanner(prod);
                               setSerieSeleccionadaScanner(null);
@@ -1168,19 +1276,19 @@ export const DespachoTecnicoPage: React.FC = () => {
                         }}
                       >
                         <option value="">
-                          Buscar en disponibles ({productosStock.length} productos, {seriesLibresAlmacen.length} series)...
+                          Buscar en disponibles ({productosNoSeriadosStock.length} materiales, {seriesLibresAlmacen.length} series)...
                         </option>
-                        {productosStock.map((p) => (
+                        {productosNoSeriadosStock.map((p) => (
                           <option key={p.productoId} value={p.productoId}>
                             {p.codigoProducto ? `${p.codigoProducto} — ` : ''}
-                            {p.nombreProducto} (Disp: {p.cantidadDisponible} {p.nombreUnidadMedida || 'UND'}{p.esSerializado ? ' · Serializado' : ''})
+                            {p.nombreProducto} (Disp: {p.cantidadDisponible} {p.nombreUnidadMedida || 'UND'})
                           </option>
                         ))}
                         {seriesLibresAlmacen.length > 0 && (
                           <optgroup label="Series individuales disponibles">
-                            {seriesLibresAlmacen.slice(0, 50).map((s) => (
-                              <option key={s.numeroSerie} value={`serie:${s.numeroSerie}`}>
-                                {s.numeroSerie} ({s.codigoProducto} - {s.nombreProducto})
+                            {seriesLibresAlmacen.map((s) => (
+                              <option key={s.id} value={`serie:${s.numeroSerie}`}>
+                                [Serie: {s.numeroSerie}] — {s.nombreProducto} ({s.codigoProducto})
                               </option>
                             ))}
                           </optgroup>
@@ -1191,28 +1299,55 @@ export const DespachoTecnicoPage: React.FC = () => {
 
                   {/* Campo 3: UOM */}
                   <div className={classes.scannerField}>
-                    <label className={classes.scannerLabel}>UOM</label>
-                    <Input
-                      readOnly
-                      appearance="filled-darker"
-                      value={
-                        serieSeleccionadaScanner
-                          ? 'UND'
-                          : productoSeleccionadoScanner?.nombreUnidadMedida || 'UND'
-                      }
-                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <label className={classes.scannerLabel}>UOM</label>
+                      {factorConversion > 1 && (
+                        <Text size={100} style={{ color: tokens.colorBrandForeground1, fontWeight: 600 }}>
+                          1 = {factorConversion} {productoSeleccionadoScanner?.nombreUnidadMedida || 'm'}
+                        </Text>
+                      )}
+                    </div>
+                    {serieSeleccionadaScanner ? (
+                      <Input readOnly appearance="filled-darker" value="UND" />
+                    ) : unidadesDisponiblesProducto.length > 1 ? (
+                      <Select
+                        value={unidadSeleccionadaObj?.id || ''}
+                        onChange={(_, d) => setUnidadSeleccionadaId(d.value)}
+                      >
+                        {unidadesDisponiblesProducto.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.nombre} {u.factorConversionTotal > 1 ? `(${u.factorConversionTotal} ${productoSeleccionadoScanner?.nombreUnidadMedida || 'm'})` : ''}
+                          </option>
+                        ))}
+                      </Select>
+                    ) : (
+                      <Input
+                        readOnly
+                        appearance="filled-darker"
+                        value={productoSeleccionadoScanner?.nombreUnidadMedida || 'UND'}
+                      />
+                    )}
                   </div>
 
                   {/* Campo 4: Cantidad */}
                   <div className={classes.scannerField}>
-                    <label className={classes.scannerLabel}>Cantidad</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <label className={classes.scannerLabel}>Cantidad</label>
+                      {factorConversion > 1 && (
+                        <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
+                          Total: {Number(scannerCantidad || 0) * factorConversion} {productoSeleccionadoScanner?.nombreUnidadMedida || 'm'}
+                        </Text>
+                      )}
+                    </div>
                     <Input
                       type="number"
                       min={1}
                       max={
                         serieSeleccionadaScanner
                           ? 1
-                          : productoSeleccionadoScanner?.cantidadDisponible || undefined
+                          : productoSeleccionadoScanner
+                          ? Math.max(1, Math.floor(productoSeleccionadoScanner.cantidadDisponible / factorConversion))
+                          : undefined
                       }
                       disabled={Boolean(serieSeleccionadaScanner)}
                       value={scannerCantidad}
@@ -1279,16 +1414,8 @@ export const DespachoTecnicoPage: React.FC = () => {
             {lineas.length > 0 && (
               <div className={classes.totalsBar}>
                 <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                  Total ítems: {lineas.length}
+                  Materiales registrados: {lineas.length} {lineas.length === 1 ? 'ítem' : 'ítems'}
                 </Text>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                    Total unidades a despachar:
-                  </Text>
-                  <Text weight="bold" size={400}>
-                    {totalCantidad.toLocaleString('es-PE')}
-                  </Text>
-                </div>
               </div>
             )}
           </div>

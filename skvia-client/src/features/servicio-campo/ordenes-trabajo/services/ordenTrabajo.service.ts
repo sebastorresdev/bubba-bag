@@ -10,6 +10,7 @@ import type {
   LiquidarOrdenTrabajoDto,
   ReprogramarVisitaDto,
   CancelarVisitaDto,
+  MotivoIncidenciaDto,
 } from '../types/ordenTrabajo.types';
 const base = '/api/serviciocampo/ordenes';
 const write = (method: string, data?: unknown): RequestInit => ({ method, ...(data !== undefined ? { body: JSON.stringify(data) } : {}) });
@@ -28,7 +29,7 @@ async function modificar<T>(id: string, path: string, method: string, data?: unk
   return result;
 }
 export const OrdenTrabajoService = {
-  obtenerOrdenes(params?: { search?: string; estadoSistema?: string; clienteId?: string; zonaOperativaId?: string }): Promise<OrdenTrabajoListadoItemDto[]> {
+  obtenerOrdenes(params?: { search?: string; estadoSistema?: string; clienteId?: string; zonaOperativaId?: string; unidadOrganizativaId?: string }): Promise<OrdenTrabajoListadoItemDto[]> {
     const query = new URLSearchParams();
     Object.entries(params || {}).forEach(([key, value]) => { if (value) query.set(key, value); });
     return apiClient(`${base}?${query}`);
@@ -39,10 +40,23 @@ export const OrdenTrabajoService = {
   cambiarEstadoSistema(id: string, dto: CambiarEstadoSistemaDto): Promise<void> { return modificar(id, `${base}/${id}/estado-sistema`, 'PATCH', dto); },
   eliminarOrden(id: string): Promise<void> { return modificar(id, `${base}/${id}`, 'DELETE'); },
   obtenerTiposOrden(): Promise<TipoOrdenTrabajoOpcion[]> { return apiClient('/api/serviciocampo/mantenimientos/tipos-orden'); },
+  obtenerMotivosIncidencia(ambito?: 'Visita' | 'OrdenTrabajo' | 'Tarea'): Promise<MotivoIncidenciaDto[]> {
+    const params = new URLSearchParams({ soloActivos: 'true' });
+    if (ambito) params.append('ambito', ambito);
+    return apiClient(`/api/serviciocampo/mantenimientos/motivos-incidencia?${params.toString()}`);
+  },
   agregarTrabajo(id: string, item: CrearOrdenTrabajoItemDto): Promise<{ id: string; codigoTrabajo: string }> { return modificar(id, `${base}/${id}/trabajos`, 'POST', item); },
   actualizarTrabajo(id: string, trabajoId: string, data: { referenciaEquipo?: string; observaciones?: string; codigoExterno?: string }): Promise<void> { return modificar(id, `${base}/${id}/trabajos/${trabajoId}`, 'PUT', data); },
   eliminarTrabajo(id: string, trabajoId: string): Promise<void> { return modificar(id, `${base}/${id}/trabajos/${trabajoId}`, 'DELETE'); },
   completarTrabajo(id: string, trabajoId: string): Promise<void> { return modificar(id, `${base}/${id}/trabajos/${trabajoId}/completar`, 'POST'); },
+  cancelarTrabajo(id: string, trabajoId: string, motivo?: string): Promise<void> { return modificar(id, `${base}/${id}/trabajos/${trabajoId}/cancelar`, 'POST', { motivo }); },
+  rechazarTrabajo(id: string, trabajoId: string, motivo: string): Promise<void> { return modificar(id, `${base}/${id}/trabajos/${trabajoId}/rechazar`, 'POST', { motivo }); },
+  async cancelarTrabajosBatch(id: string, trabajoIds: string[], motivo?: string): Promise<void> {
+    await Promise.all(trabajoIds.map((tId) => OrdenTrabajoService.cancelarTrabajo(id, tId, motivo)));
+  },
+  async rechazarTrabajosBatch(id: string, trabajoIds: string[], motivo: string): Promise<void> {
+    await Promise.all(trabajoIds.map((tId) => OrdenTrabajoService.rechazarTrabajo(id, tId, motivo)));
+  },
   completarTarea(id: string, trabajoId: string, tareaId: string, data: { evidenciaUrl?: string; observaciones?: string }): Promise<void> { return modificar(id, `${base}/${id}/trabajos/${trabajoId}/tareas/${tareaId}`, 'PUT', data); },
   liquidarMateriales(id: string, payload: LiquidarOrdenTrabajoDto): Promise<void> { return modificar(id, `${base}/${id}/liquidar`, 'POST', payload); },
   reprogramarVisita(id: string, visitaId: string, payload: ReprogramarVisitaDto): Promise<void> { return modificar(id, `${base}/${id}/visitas/${visitaId}/reprogramar`, 'POST', payload); },

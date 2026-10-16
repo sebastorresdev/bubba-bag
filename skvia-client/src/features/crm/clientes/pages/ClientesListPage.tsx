@@ -279,7 +279,7 @@ export const ClientesListPage: React.FC = () => {
           >
             Actualizar
           </D365CommandButton>
-          <Menu positioning="below-start">
+          <Menu positioning="below-end">
             <MenuTrigger disableButtonEnhancement>
               {(triggerProps: MenuButtonProps) => (
                 <SplitButton

@@ -10,6 +10,8 @@ import {
   MenuList,
   MenuPopover,
   MenuTrigger,
+  SplitButton,
+  type MenuButtonProps,
   TableCellLayout,
   Text,
   createTableColumn,
@@ -17,11 +19,14 @@ import {
 import type { SelectionItemId, TableColumnDefinition } from '@fluentui/react-components';
 import {
   ArrowClockwise16Regular,
+  ArrowDownload16Regular,
   BarcodeScanner20Regular,
   Checkmark16Regular,
   ChevronDown16Regular,
+  DocumentTable20Regular,
+  DocumentText20Regular,
 } from '@fluentui/react-icons';
-import { D365CommandBar, D365CommandButton } from '../../../../components/common/D365CommandBar';
+import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import {
   D365EntityTable,
   D365TableToolbarTools,
@@ -32,7 +37,8 @@ import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 import { AlmacenService } from '../../almacenes/services/almacen.service';
 import type { AlmacenDto } from '../../almacenes/types/almacen.types';
 import { InventarioProductoService } from '../services/inventario-producto.service';
-import type { InventarioProductoDto } from '../types/inventario-producto.types';
+import type { InventarioProductoDto, ItemSeriadoStockDto } from '../types/inventario-producto.types';
+import { exportToExcel, exportToCSV, type ExportColumn } from '../../../../utils/exportUtils';
 import { SeriesAlmacenDrawer } from '../components/SeriesAlmacenDrawer';
 
 const formatoCantidad = new Intl.NumberFormat('es-PE', { maximumFractionDigits: 4 });
@@ -229,6 +235,70 @@ export function InventarioProductosPage() {
     }),
   ], [navigate, styles.primaryLink]);
 
+  const handleExportExcel = () => {
+    const cols: ExportColumn<InventarioProductoItem>[] = [
+      { header: 'Código', accessor: x => x.codigoProducto },
+      { header: 'Producto', accessor: x => x.nombreProducto },
+      { header: 'Almacén', accessor: x => x.nombreAlmacen },
+      { header: 'Ubicación', accessor: x => x.nombreUbicacion || 'Principal' },
+      { header: 'Condición', accessor: x => x.condicion || 'Utilizable' },
+      { header: 'Unidad', accessor: x => x.nombreUnidadMedida || 'UND' },
+      { header: 'Disponible', accessor: x => x.cantidadDisponible },
+      { header: 'Reservado', accessor: x => x.cantidadReservada },
+      { header: 'Total', accessor: x => x.cantidadTotal },
+      { header: 'Valor (PEN)', accessor: x => x.valorInventario },
+    ];
+    const nombreAlm = almacenId ? (almacenes.find(a => a.id === almacenId)?.nombre || 'Almacen').replace(/\s+/g, '_') : 'General';
+    exportToExcel(itemsConId, cols, `Existencias_Inventario_${nombreAlm}_${new Date().toISOString().split('T')[0]}`);
+  };
+
+  const handleExportSeriesReporte34 = async () => {
+    try {
+      setCargando(true);
+      const seriesData = await InventarioProductoService.obtenerSeries(almacenId || undefined);
+      if (!seriesData || seriesData.length === 0) {
+        alert('No se encontraron series registradas para el almacén seleccionado.');
+        return;
+      }
+      const cols: ExportColumn<ItemSeriadoStockDto>[] = [
+        { header: 'Almacén / Organización', accessor: s => (s.nombreAlmacen || '').replace(/^[\p{Emoji}\s]+/u, '').trim() },
+        { header: 'Subinventario / Ubicación', accessor: s => s.nombreUbicacion || 'Principal' },
+        { header: 'Código de Producto (SKU)', accessor: s => s.codigoProducto },
+        { header: 'Descripción del Producto', accessor: s => s.nombreProducto },
+        { header: 'Número de Serie', accessor: s => s.numeroSerie },
+        { header: 'SmartCard', accessor: s => s.numeroSmartCard || '' },
+        { header: 'MAC Address', accessor: s => s.macAddress || '' },
+        { header: 'Estado del Material', accessor: s => s.condicion || (s.estado === 'EnAlmacen' ? 'Disponible' : s.estado) },
+        { header: 'Cantidad en Existencia', accessor: () => 1 },
+        { header: 'Unidad de Medida', accessor: () => 'Unidad' },
+        { header: 'Fecha de Recepción / Ingreso', accessor: s => s.createdAt ? new Date(s.createdAt).toLocaleString('es-PE') : '' },
+      ];
+      const nombreAlm = almacenId ? (almacenes.find(a => a.id === almacenId)?.nombre || 'Almacen').replace(/\s+/g, '_') : 'General';
+      exportToExcel(seriesData, cols, `Reporte34_Series_Ubicaciones_${nombreAlm}_${new Date().toISOString().split('T')[0]}`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error al exportar el reporte de series.');
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const handleExportCSV = () => {
+    const cols: ExportColumn<InventarioProductoItem>[] = [
+      { header: 'Código', accessor: x => x.codigoProducto },
+      { header: 'Producto', accessor: x => x.nombreProducto },
+      { header: 'Almacén', accessor: x => x.nombreAlmacen },
+      { header: 'Ubicación', accessor: x => x.nombreUbicacion || 'Principal' },
+      { header: 'Condición', accessor: x => x.condicion || 'Utilizable' },
+      { header: 'Unidad', accessor: x => x.nombreUnidadMedida || 'UND' },
+      { header: 'Disponible', accessor: x => x.cantidadDisponible },
+      { header: 'Reservado', accessor: x => x.cantidadReservada },
+      { header: 'Total', accessor: x => x.cantidadTotal },
+      { header: 'Valor (PEN)', accessor: x => x.valorInventario },
+    ];
+    const nombreAlm = almacenId ? (almacenes.find(a => a.id === almacenId)?.nombre || 'Almacen').replace(/\s+/g, '_') : 'General';
+    exportToCSV(itemsConId, cols, `Existencias_Inventario_${nombreAlm}_${new Date().toISOString().split('T')[0]}`);
+  };
+
   return (
     <div className={styles.root}>
       <D365CommandBar ariaLabel="Comandos de inventario de productos">
@@ -236,6 +306,39 @@ export function InventarioProductosPage() {
           <D365CommandButton icon={<ArrowClockwise16Regular />} onClick={() => void cargar()}>
             Actualizar
           </D365CommandButton>
+          <D365CommandDivider />
+          <Menu positioning="below-end">
+            <MenuTrigger disableButtonEnhancement>
+              {(triggerProps: MenuButtonProps) => (
+                <SplitButton
+                  menuButton={triggerProps}
+                  primaryActionButton={{
+                    onClick: handleExportExcel,
+                    title: 'Exportar existencias a Excel (*.xlsx)',
+                  }}
+                  icon={<ArrowDownload16Regular />}
+                  appearance="subtle"
+                  size="medium"
+                  disabled={cargando || itemsConId.length === 0}
+                >
+                  Exportar a Excel
+                </SplitButton>
+              )}
+            </MenuTrigger>
+            <MenuPopover>
+              <MenuList>
+                <MenuItem icon={<DocumentTable20Regular />} onClick={handleExportExcel}>
+                  Libro de Excel estático (*.xlsx)
+                </MenuItem>
+                <MenuItem icon={<DocumentTable20Regular />} onClick={() => void handleExportSeriesReporte34()}>
+                  Reporte 34 (Series y Ubicaciones)
+                </MenuItem>
+                <MenuItem icon={<DocumentText20Regular />} onClick={handleExportCSV}>
+                  Valores separados por comas (*.csv)
+                </MenuItem>
+              </MenuList>
+            </MenuPopover>
+          </Menu>
         </div>
       </D365CommandBar>
 

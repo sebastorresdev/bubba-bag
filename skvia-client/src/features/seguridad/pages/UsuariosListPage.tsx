@@ -130,18 +130,35 @@ export function UsuariosListPage() {
       columnId: 'nombre',
       compare: (a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto),
       renderHeaderCell: () => 'Nombre',
-      renderCell: x => <Link as="button" onClick={() => navigate(`/configuracion/usuarios/${x.id}`)}>{x.nombreCompleto}</Link>
+      renderCell: (x) => (
+        <TableCellLayout truncate title={x.nombreCompleto}>
+          <Link as="button" onClick={() => navigate(`/configuracion/usuarios/${x.id}`)}>
+            {x.nombreCompleto}
+          </Link>
+        </TableCellLayout>
+      ),
     }),
     createTableColumn<UsuarioDto>({
       columnId: 'email',
       compare: (a, b) => a.email.localeCompare(b.email),
       renderHeaderCell: () => 'Correo electrónico',
-      renderCell: x => x.email
+      renderCell: (x) => (
+        <TableCellLayout truncate title={x.email}>
+          <Text>{x.email}</Text>
+        </TableCellLayout>
+      ),
     }),
     createTableColumn<UsuarioDto>({
       columnId: 'roles',
       renderHeaderCell: () => 'Roles',
-      renderCell: x => x.roles.join(', ') || 'Sin roles'
+      renderCell: (x) => {
+        const rolesStr = x.roles.join(', ') || 'Sin roles';
+        return (
+          <TableCellLayout truncate title={rolesStr}>
+            <Text>{rolesStr}</Text>
+          </TableCellLayout>
+        );
+      },
     }),
     createTableColumn<UsuarioDto>({
       columnId: 'estado',

@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, Dialog, DialogSurface, DialogTitle, DialogBody, DialogContent, DialogActions, Input, Select, Skeleton, SkeletonItem, Tab, TabList, Text, Textarea, tokens } from '@fluentui/react-components';
 import { DatePicker } from '@fluentui/react-datepicker-compat';
-import { Add16Regular, ArrowLeft16Regular, Box16Regular, Checkmark16Regular, Delete16Regular, LockClosed16Regular, Save16Regular, SaveMultiple16Regular } from '@fluentui/react-icons';
+import { Add16Regular, ArrowLeft16Regular, Box16Regular, Checkmark16Regular, CheckmarkCircle16Regular, Delete16Regular, LockClosed16Regular, Save16Regular, SaveMultiple16Regular } from '@fluentui/react-icons';
+import { confirmAction } from '../../../services/uiFeedback';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../components/common/D365CommandBar';
 import { D365EntityHeader } from '../../../components/common/D365EntityHeader';
 import { D365FormField } from '../../../components/common/D365FormField';
+import { D365StatusField } from '../../../components/common/D365StatusField';
 import { D365MessageBar } from '../../../components/common/D365MessageBar';
 import { LookupDropdownWithQuickCreate } from '../../../components/common/LookupDropdownWithQuickCreate';
 import { useD365FormStyles } from '../../../styles/d365FormStyles';
@@ -36,7 +38,25 @@ export function CompraFormPage() {
   const [busquedaAlmacen, setBusquedaAlmacen] = useState('');
   const [dialogEliminarBorrador, setDialogEliminarBorrador] = useState(false);
   const [eliminandoBorrador, setEliminandoBorrador] = useState(false);
-  const draft = useUnsavedChanges({ proveedor,tipo,documento,fecha,moneda,almacenId,observacion,lineas }, !loading);
+  const draft = useUnsavedChanges(
+    {
+      proveedor: proveedor.trim(),
+      tipo,
+      documento: documento.trim(),
+      fecha,
+      moneda,
+      almacenId: almacenId || '',
+      observacion: observacion.trim(),
+      lineas: lineas.map(x => ({
+        productoId: x.productoId,
+        cantidad: x.cantidad,
+        costo: x.costo,
+        series: x.series,
+        unidadMedidaId: x.unidadMedidaId || '',
+      })),
+    },
+    !loading
+  );
 
   const guardando = useRef(false);
   useEffect(() => {
@@ -52,9 +72,10 @@ export function CompraFormPage() {
     return () => { activo = false; };
   }, [id]);
   const cargarCompra = (c: CompraDto) => {
-    setCompra(c); setProveedor(c.proveedor); setTipo(c.tipoDocumento); setDocumento(c.numeroDocumento); setFecha(c.fechaDocumento);
+    const fechaDoc = c.fechaDocumento ? c.fechaDocumento.split('T')[0] : fechaISO(new Date());
+    setCompra(c); setProveedor(c.proveedor); setTipo(c.tipoDocumento); setDocumento(c.numeroDocumento); setFecha(fechaDoc);
     setMoneda(c.moneda); setAlmacenId(c.almacenId ?? ''); setObservacion(c.observacion ?? '');
-    setLineas(c.lineas.map(x => ({
+    const mappedLineas: LineaCompraForm[] = c.lineas.map(x => ({
       clave: crypto.randomUUID(),
       productoId: x.productoId,
       cantidad: String(x.cantidad),
@@ -62,7 +83,27 @@ export function CompraFormPage() {
       series: x.series.join('\n'),
       cantidadRecibida: x.cantidadRecibida != null ? String(x.cantidadRecibida) : undefined,
       seriesRecibidas: x.seriesRecibidas ? x.seriesRecibidas.join('\n') : undefined,
-    })));
+      unidadMedidaId: x.unidadMedidaId ?? undefined,
+      unidadMedidaNombre: x.unidad ?? undefined,
+      factorConversion: x.factorConversion ?? 1,
+    }));
+    setLineas(mappedLineas);
+    draft.markSaved(JSON.stringify({
+      proveedor: c.proveedor.trim(),
+      tipo: c.tipoDocumento,
+      documento: c.numeroDocumento.trim(),
+      fecha: fechaDoc,
+      moneda: c.moneda,
+      almacenId: c.almacenId ?? '',
+      observacion: (c.observacion ?? '').trim(),
+      lineas: mappedLineas.map(x => ({
+        productoId: x.productoId,
+        cantidad: x.cantidad,
+        costo: x.costo,
+        series: x.series,
+        unidadMedidaId: x.unidadMedidaId || '',
+      })),
+    }));
   };
   const cargandoDatos = loading || Boolean(id && compra?.id !== id && !error);
   const estado = compra?.estado ?? 'Borrador';
@@ -71,20 +112,38 @@ export function CompraFormPage() {
   const total = lineas.reduce((s, x) => s + importeLinea(x), 0);
   const dinero = (valor: number) => valor.toLocaleString('es-PE', { style: 'currency', currency: moneda });
   const almacen = almacenes.find(x => x.id === almacenId);
-  const datos = (): CrearCompra => ({ proveedor: proveedor.trim(), tipoDocumento: tipo, numeroDocumento: documento.trim(), fechaDocumento: fecha, moneda, almacenId: almacenId || null, observacion: observacion.trim() || null,
-    lineas: lineas.map(x => ({ productoId: x.productoId, cantidad: Number(x.cantidad), costoUnitario: Number(x.costo), series: x.series.split(/\r?\n/).map(s => s.trim()).filter(Boolean) })) });
+  const datos = (): CrearCompra => ({
+    proveedor: proveedor.trim(),
+    tipoDocumento: tipo,
+    numeroDocumento: documento.trim(),
+    fechaDocumento: fecha,
+    moneda,
+    almacenId: almacenId || null,
+    observacion: observacion.trim() || null,
+    lineas: lineas.map(x => ({
+      productoId: x.productoId,
+      cantidad: Number(x.cantidad),
+      costoUnitario: Number(x.costo),
+      series: x.series.split(/\r?\n/).map(s => s.trim()).filter(Boolean),
+      unidadMedidaId: x.unidadMedidaId || null,
+      factorConversion: x.factorConversion || 1,
+    })),
+  });
   const guardar = async (cerrar: boolean) => {
-    const savedDraft = draft.capture();
     if (guardando.current || bloqueado) return;
     guardando.current = true; setSaving(true); setError(null); setMensaje(null);
     try {
       const resultado = id ? await CompraService.actualizar(id, datos()) : await CompraService.crear(datos());
-      draft.markSaved(savedDraft);
-      if (cerrar) { draft.markSaved(savedDraft);
-navigate('/servicio-campo/recepciones-compra', { state: { successMessage: 'Compra guardada.' } }); }
-      else if (!id) { draft.markSaved(savedDraft);
-navigate(`/servicio-campo/recepciones-compra/${resultado.id}`, { replace: true }); }
-      else { cargarCompra(await CompraService.obtenerPorId(resultado.id)); setMensaje('Compra guardada.'); }
+      draft.markSaved();
+      if (cerrar) {
+        navigate('/servicio-campo/recepciones-compra', { state: { successMessage: 'Compra guardada.' } });
+      } else if (!id) {
+        navigate(`/servicio-campo/recepciones-compra/${resultado.id}`, { replace: true, state: { successMessage: 'Compra guardada.' } });
+      } else {
+        const cActualizada = await CompraService.obtenerPorId(resultado.id);
+        cargarCompra(cActualizada);
+        setMensaje('Compra guardada.');
+      }
     } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo guardar la compra.'); }
     finally { guardando.current = false; setSaving(false); }
   };
@@ -110,6 +169,26 @@ navigate(`/servicio-campo/recepciones-compra/${resultado.id}`, { replace: true }
       setMensaje(accion === 'solicitar' ? 'Compra solicitada.' : accion === 'enviar' ? 'Envío registrado.' : 'Compra recibida.');
     } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo procesar la compra.'); }
     finally { guardando.current = false; setSaving(false); }
+  };
+  const handleCerrarFaltantes = async () => {
+    if (!id || saving || guardando.current) return;
+    const conf = await confirmAction(
+      '¿Está seguro de cerrar este pedido con las unidades efectivamente recibidas? Los productos faltantes quedarán cancelados definitivamente.',
+      { title: 'Cerrar pedido con lo recibido', action: 'Cerrar pedido', danger: false }
+    );
+    if (!conf) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await CompraService.cerrarFaltantes(id);
+      const c = await CompraService.obtenerPorId(id);
+      cargarCompra(c);
+      setMensaje('Pedido cerrado con las cantidades recibidas. El saldo faltante ha sido cancelado.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo cerrar el pedido.');
+    } finally {
+      setSaving(false);
+    }
   };
   return <div className={form.root}>
     {error && <D365MessageBar intent="error" onDismiss={() => setError(null)}>{error}</D365MessageBar>}
@@ -147,7 +226,25 @@ navigate(`/servicio-campo/recepciones-compra/${resultado.id}`, { replace: true }
           Recepcionar
         </D365CommandButton>
       )}
-      {!cargandoDatos && (estado === 'Recibida' || estado === 'Recibida con faltantes') && (
+      {!cargandoDatos && estado === 'Recibida con faltantes' && (
+        <>
+          <D365CommandButton
+            icon={<Box16Regular />}
+            disabled={loading || saving}
+            onClick={() => navigate(`/servicio-campo/recepciones-compra/${id}/recepcion`)}
+          >
+            Recepcionar faltantes
+          </D365CommandButton>
+          <D365CommandButton
+            icon={<CheckmarkCircle16Regular />}
+            disabled={loading || saving}
+            onClick={() => void handleCerrarFaltantes()}
+          >
+            Cerrar pedido
+          </D365CommandButton>
+        </>
+      )}
+      {!cargandoDatos && estado === 'Recibida' && (
         <D365CommandButton
           icon={<Box16Regular />}
           disabled={loading || saving}
@@ -204,13 +301,9 @@ navigate(`/servicio-campo/recepciones-compra/${resultado.id}`, { replace: true }
           </D365FormField>
 
           <D365FormField label="Estado" htmlFor="compra-estado">
-            <Input
+            <D365StatusField
               id="compra-estado"
-              className={form.d365ControlFull}
               value={estado}
-              appearance="filled-darker"
-              readOnly
-              contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />}
             />
           </D365FormField>
 

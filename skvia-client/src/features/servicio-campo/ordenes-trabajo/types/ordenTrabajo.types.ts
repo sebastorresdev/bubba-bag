@@ -28,6 +28,8 @@ export interface OrdenTrabajoListadoItemDto {
   clienteServicioNombre: string;
   zonaOperativaId?: string | null;
   zonaOperativaNombre?: string | null;
+  unidadOrganizativaId?: string | null;
+  unidadOrganizativaNombre?: string | null;
   numeroOrden?: string | null;
   referenciaExterna?: string | null;
   codigoContrato?: string | null;
@@ -132,6 +134,8 @@ export interface OrdenTrabajoDetalleDto {
   clienteServicioEmail?: string | null;
   zonaOperativaId?: string | null;
   zonaOperativaNombre?: string | null;
+  unidadOrganizativaId?: string | null;
+  unidadOrganizativaNombre?: string | null;
   numeroOrden?: string | null;
   referenciaExterna?: string | null;
   codigoContrato?: string | null;
@@ -162,6 +166,7 @@ export interface CrearOrdenTrabajoDto {
   tipoOrdenId: string;
   clienteFacturacionId: string;
   clienteServicioId: string;
+  unidadOrganizativaId?: string;
   zonaOperativaId?: string;
   numeroOrden?: string;
   referenciaExterna?: string;
@@ -176,6 +181,7 @@ export interface CrearOrdenTrabajoDto {
 }
 
 export interface ActualizarOrdenTrabajoDto {
+  unidadOrganizativaId?: string;
   zonaOperativaId?: string;
   recursoTecnicoId?: string;
   fechaProgramada?: string;
@@ -188,6 +194,8 @@ export interface CambiarEstadoSistemaDto {
   recursoTecnicoId?: string;
   fechaProgramada?: string;
   bloqueHorario?: string;
+  motivoId?: string;
+  observaciones?: string;
 }
 
 export interface TipoOrdenTrabajoOpcion {
@@ -231,4 +239,13 @@ export interface ReprogramarVisitaDto {
 export interface CancelarVisitaDto {
   motivoId: string;
   observaciones?: string | null;
+}
+
+export interface MotivoIncidenciaDto {
+  id: string;
+  codigo: string;
+  nombre: string;
+  descripcion?: string | null;
+  ambito: 'Visita' | 'OrdenTrabajo' | 'Tarea';
+  activo: boolean;
 }

@@ -198,9 +198,11 @@ export function RolesListPage() {
         columnId: 'nombre',
         renderHeaderCell: () => 'Rol de seguridad',
         renderCell: (x) => (
-          <Link as="button" onClick={() => navigate(`/configuracion/roles/${x.id}`)}>
-            {x.nombreVisible}
-          </Link>
+          <TableCellLayout truncate title={x.nombreVisible}>
+            <Link as="button" onClick={() => navigate(`/configuracion/roles/${x.id}`)}>
+              {x.nombreVisible}
+            </Link>
+          </TableCellLayout>
         ),
       }),
       createTableColumn<RolDto>({
@@ -216,34 +218,48 @@ export function RolesListPage() {
         columnId: 'modulo',
         compare: (a, b) => a.modulo.localeCompare(b.modulo),
         renderHeaderCell: () => 'Módulo',
-        renderCell: (x) => x.modulo,
+        renderCell: (x) => (
+          <TableCellLayout truncate title={x.modulo}>
+            <Text>{x.modulo}</Text>
+          </TableCellLayout>
+        ),
       }),
       createTableColumn<RolDto>({
         columnId: 'permisos',
         renderHeaderCell: () => 'Permisos',
         renderCell: (x) => (
-          <Button
-            size="small"
-            appearance="subtle"
-            icon={<Eye16Regular />}
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedDrawer(x);
-            }}
-          >
-            {x.permisos.length} asignados
-          </Button>
+          <TableCellLayout>
+            <Button
+              size="small"
+              appearance="subtle"
+              icon={<Eye16Regular />}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedDrawer(x);
+              }}
+            >
+              {x.permisos.length} asignados
+            </Button>
+          </TableCellLayout>
         ),
       }),
       createTableColumn<RolDto>({
         columnId: 'usuarios',
         renderHeaderCell: () => 'Usuarios',
-        renderCell: (x) => x.usuariosCount ?? 0,
+        renderCell: (x) => (
+          <TableCellLayout>
+            <Text>{x.usuariosCount ?? 0}</Text>
+          </TableCellLayout>
+        ),
       }),
       createTableColumn<RolDto>({
         columnId: 'descripcion',
         renderHeaderCell: () => 'Alcance / Propósito',
-        renderCell: (x) => x.descripcion,
+        renderCell: (x) => (
+          <TableCellLayout truncate title={x.descripcion}>
+            <Text truncate>{x.descripcion}</Text>
+          </TableCellLayout>
+        ),
       }),
     ],
     [navigate]

@@ -382,6 +382,11 @@ export const DevolucionTecnicoPage: React.FC = () => {
     return todasSeriesCustodia.filter((s) => !seriesUsadas.has(s.numeroSerie));
   }, [todasSeriesCustodia, lineas]);
 
+  // Productos no seriados en custodia (materiales, insumos, cables)
+  const productosNoSeriadosCustodia = useMemo(() => {
+    return productosCustodia.filter((p) => !p.esSerializado);
+  }, [productosCustodia]);
+
   // PROCESAR BÚSQUEDA DEL SCANNER SYMBAR (SKU O SERIE) EN CUSTODIA
   const procesarScannerBusqueda = (query: string) => {
     const q = query.trim().toUpperCase();
@@ -434,6 +439,24 @@ export const DevolucionTecnicoPage: React.FC = () => {
     );
 
     if (prodEncontrado) {
+      if (prodEncontrado.esSerializado) {
+        const seriesDeProd = seriesLibresCustodia.filter((s) => s.productoId === prodEncontrado.productoId);
+        if (seriesDeProd.length === 0) {
+          setScannerError(`Todas las series de "${prodEncontrado.nombreProducto}" ya están agregadas para devolución.`);
+          return;
+        }
+        if (seriesDeProd.length === 1) {
+          setSerieSeleccionadaScanner(seriesDeProd[0]);
+          setProductoSeleccionadoScanner(prodEncontrado);
+          setScannerCantidad('1');
+          return;
+        }
+        setProductoSeleccionadoScanner(null);
+        setSerieSeleccionadaScanner(null);
+        setScannerError(`El producto "${prodEncontrado.nombreProducto}" es serializado (${seriesDeProd.length} series en custodia). Seleccione la serie específica en el desplegable.`);
+        return;
+      }
+
       setSerieSeleccionadaScanner(null);
       setProductoSeleccionadoScanner(prodEncontrado);
       setScannerCantidad('1');
@@ -1164,7 +1187,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
                               setScannerError(null);
                             }
                           } else {
-                            const prod = productosCustodia.find((p) => p.productoId === val);
+                            const prod = productosNoSeriadosCustodia.find((p) => p.productoId === val);
                             if (prod) {
                               setProductoSeleccionadoScanner(prod);
                               setSerieSeleccionadaScanner(null);
@@ -1178,19 +1201,23 @@ export const DevolucionTecnicoPage: React.FC = () => {
                         <option value="">
                           {!custodiaTecnico
                             ? 'Seleccione primero un técnico con custodia'
-                            : `Buscar en custodia (${productosCustodia.length} productos, ${seriesLibresCustodia.length} series)...`}
+                            : `Buscar en custodia (${productosNoSeriadosCustodia.length} materiales, ${seriesLibresCustodia.length} series)...`}
                         </option>
-                        {productosCustodia.map((p) => (
-                          <option key={p.productoId} value={p.productoId}>
-                            {p.codigoProducto ? `${p.codigoProducto} — ` : ''}
-                            {p.nombreProducto} (En custodia: {p.cantidadDisponible} {p.nombreUnidadMedida || 'UND'}{p.esSerializado ? ' · Serializado' : ''})
-                          </option>
-                        ))}
+                        {productosNoSeriadosCustodia.length > 0 && (
+                          <optgroup label="Materiales y Productos no seriados">
+                            {productosNoSeriadosCustodia.map((p) => (
+                              <option key={p.productoId} value={p.productoId}>
+                                {p.codigoProducto ? `${p.codigoProducto} — ` : ''}
+                                {p.nombreProducto} (En custodia: {p.cantidadDisponible} {p.nombreUnidadMedida || 'UND'})
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
                         {seriesLibresCustodia.length > 0 && (
-                          <optgroup label="Series en custodia del técnico">
-                            {seriesLibresCustodia.slice(0, 50).map((s) => (
+                          <optgroup label="Equipos y Series en custodia del técnico (Seleccione serie)">
+                            {seriesLibresCustodia.map((s) => (
                               <option key={s.numeroSerie} value={`serie:${s.numeroSerie}`}>
-                                {s.numeroSerie} ({s.codigoProducto} - {s.nombreProducto})
+                                Serie: {s.numeroSerie} — {s.codigoProducto} {s.nombreProducto}
                               </option>
                             ))}
                           </optgroup>

@@ -709,10 +709,29 @@ export function RecepcionCompraPage() {
       });
       setMensaje('Recepción registrada correctamente. El inventario ha sido actualizado.');
       draft.markSaved(savedDraft);
-      draft.markSaved(savedDraft);
       void cargarCompra(id);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al procesar la recepción.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCerrarFaltantes = async () => {
+    if (!id || saving) return;
+    const conf = await confirmAction(
+      '¿Está seguro de cerrar este pedido con las unidades efectivamente recibidas? Los productos faltantes quedarán cancelados definitivamente.',
+      { title: 'Cerrar pedido con lo recibido', action: 'Cerrar pedido', danger: false }
+    );
+    if (!conf) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await CompraService.cerrarFaltantes(id);
+      setMensaje('Pedido cerrado con las cantidades recibidas. El saldo faltante ha sido cancelado.');
+      void cargarCompra(id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo cerrar el pedido.');
     } finally {
       setSaving(false);
     }
@@ -810,6 +829,15 @@ export function RecepcionCompraPage() {
                 </div>
               </PopoverSurface>
             </Popover>
+          )}
+          {compra?.estado === 'Recibida con faltantes' && (
+            <D365CommandButton
+              icon={<CheckmarkCircle16Regular />}
+              disabled={saving || loading}
+              onClick={() => void handleCerrarFaltantes()}
+            >
+              Cerrar pedido con lo recibido
+            </D365CommandButton>
           )}
           <D365CommandButton
             icon={<ArrowClockwise16Regular />}

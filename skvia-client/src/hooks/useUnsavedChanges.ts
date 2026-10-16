@@ -42,12 +42,12 @@ export function useUnsavedChanges(value: unknown, enabled = true) {
   useEffect(() => () => removeDraft(id), [id]);
   const capture = useCallback(() => current.current, []);
   const markSaved = useCallback((savedSnapshot: string = current.current) => {
-    normalizeAfterSave.current = current.current === savedSnapshot;
+    normalizeAfterSave.current = true;
     setBaseline(savedSnapshot);
-    updateDraft(id, current.current !== savedSnapshot);
+    updateDraft(id, false);
   }, [id]);
   const discardAndRun = useCallback(async (action: () => void | Promise<void>) => {
-    if (dirty && !await confirmAction('Los cambios de esta ficha todavía no se han guardado. Si continúa, se descartarán.', { title: 'Cambios sin guardar', action: 'Descartar cambios', danger: true })) return;
+    if (dirty && !await confirmAction('Los cambios de esta ficha todavía no se han guardado. Si continúa, se descartarán.', { title: 'Cambios sin guardar', action: 'Descartar cambios', danger: false })) return;
     markSaved();
     await action();
   }, [dirty, markSaved]);

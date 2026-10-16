@@ -60,6 +60,7 @@ const filterFields: D365FilterField[] = [
   { id: 'clienteFacturacionNombre', label: 'Cliente Facturación', type: 'string' },
   { id: 'clienteServicioNombre', label: 'Abonado / Contacto', type: 'string' },
   { id: 'tipoOrdenNombre', label: 'Tipo de Orden', type: 'string' },
+  { id: 'unidadOrganizativaNombre', label: 'Sede Operativa', type: 'string' },
   { id: 'zonaOperativaNombre', label: 'Zona / Territorio', type: 'string' },
   { id: 'recursoTecnicoNombre', label: 'Técnico Asignado', type: 'string' },
   {
@@ -232,12 +233,14 @@ export const OrdenesTrabajoListPage: React.FC = () => {
       }),
       createTableColumn<OrdenTrabajoListadoItemDto>({
         columnId: 'zonaOperativa',
-        compare: (a, b) => (a.zonaOperativaNombre || '').localeCompare(b.zonaOperativaNombre || ''),
-        renderHeaderCell: () => 'Zona / Territorio',
+        compare: (a, b) => ((a.unidadOrganizativaNombre || '') + (a.zonaOperativaNombre || '')).localeCompare((b.unidadOrganizativaNombre || '') + (b.zonaOperativaNombre || '')),
+        renderHeaderCell: () => 'Sede / Zona',
         renderCell: (item) => (
           <TableCellLayout>
-            <Text style={{ fontSize: tokens.fontSizeBase200, color: item.zonaOperativaNombre ? tokens.colorNeutralForeground1 : tokens.colorNeutralForeground4 }}>
-              {item.zonaOperativaNombre || 'Sin asignar'}
+            <Text style={{ fontSize: tokens.fontSizeBase200, color: (item.unidadOrganizativaNombre || item.zonaOperativaNombre) ? tokens.colorNeutralForeground1 : tokens.colorNeutralForeground4 }}>
+              {item.unidadOrganizativaNombre
+                ? `${item.unidadOrganizativaNombre}${item.zonaOperativaNombre ? ` — ${item.zonaOperativaNombre}` : ''}`
+                : item.zonaOperativaNombre || 'Sin asignar'}
             </Text>
           </TableCellLayout>
         ),

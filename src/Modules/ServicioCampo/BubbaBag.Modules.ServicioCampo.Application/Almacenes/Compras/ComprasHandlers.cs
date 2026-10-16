@@ -7,8 +7,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BubbaBag.Modules.ServicioCampo.Application.Almacenes.Compras;
 
-public record LineaCompra(Guid ProductoId, decimal Cantidad, decimal CostoUnitario, IReadOnlyList<string>? Series);
-public record LineaCompraDetalle(Guid ProductoId, string Producto, string? Unidad, decimal Cantidad, decimal CostoUnitario, IReadOnlyList<string> Series, decimal? CantidadRecibida = null, IReadOnlyList<string>? SeriesRecibidas = null);
+public record LineaCompra(Guid ProductoId, decimal Cantidad, decimal CostoUnitario, IReadOnlyList<string>? Series, Guid? UnidadMedidaId = null, decimal? FactorConversion = null);
+public record LineaCompraDetalle(Guid ProductoId, string Producto, string? Unidad, decimal Cantidad, decimal CostoUnitario, IReadOnlyList<string> Series, decimal? CantidadRecibida = null, IReadOnlyList<string>? SeriesRecibidas = null, Guid? UnidadMedidaId = null, decimal? FactorConversion = null, decimal? CantidadBase = null);
 public record CompraDto(Guid Id, string Numero, string Proveedor, string TipoDocumento, string NumeroDocumento,
     DateOnly FechaDocumento, string Moneda, Guid? AlmacenId, string Almacen, decimal Total, string? Observacion, IReadOnlyList<LineaCompraDetalle> Lineas, string Estado,
     Guid? UsuarioRecepcionId = null, string? RecibidoPor = null, string? RecibidoPorEmail = null, DateTime? FechaRecepcion = null);
@@ -67,8 +67,33 @@ public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser us
         var ids = lineas.Select(x => x.ProductoId).ToList();
         var productos = await context.Productos.Include(x => x.UnidadMedidaDefecto).Where(x => ids.Contains(x.Id) && x.Activo && x.Tipo == TipoProducto.Inventario).ToDictionaryAsync(x => x.Id, ct);
         if (productos.Count != ids.Count) return Result<Guid>.Failure("Los productos deben estar activos y ser inventariables.");
-        var detalles = lineas.Select(x => new LineaCompraDetalle(x.ProductoId, productos[x.ProductoId].Nombre, productos[x.ProductoId].UnidadMedidaDefecto?.Nombre,
-            x.Cantidad, x.CostoUnitario, (x.Series ?? []).Select(s => (s ?? "").Trim().ToUpperInvariant()).ToList())).ToList();
+
+        var uIds = lineas.Where(x => x.UnidadMedidaId.HasValue).Select(x => x.UnidadMedidaId!.Value).Distinct().ToList();
+        var unidadesMap = uIds.Count > 0
+            ? await context.UnidadesMedida.Where(u => uIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, ct)
+            : new Dictionary<Guid, UnidadMedida>();
+
+        var detalles = lineas.Select(x => {
+            UnidadMedida? uElegida = null;
+            if (x.UnidadMedidaId.HasValue)
+            {
+                unidadesMap.TryGetValue(x.UnidadMedidaId.Value, out uElegida);
+            }
+            var nombreUnidad = uElegida?.Nombre ?? productos[x.ProductoId].UnidadMedidaDefecto?.Nombre;
+            var factor = uElegida?.FactorConversionTotal ?? (x.FactorConversion is > 0 ? x.FactorConversion.Value : 1m);
+            var cantBase = x.Cantidad * factor;
+            return new LineaCompraDetalle(
+                x.ProductoId,
+                productos[x.ProductoId].Nombre,
+                nombreUnidad,
+                x.Cantidad,
+                x.CostoUnitario,
+                (x.Series ?? []).Select(s => (s ?? "").Trim().ToUpperInvariant()).ToList(),
+                UnidadMedidaId: uElegida?.Id,
+                FactorConversion: factor,
+                CantidadBase: cantBase
+            );
+        }).ToList();
         if (detalles.Any(x => decimal.Round(x.Cantidad, Math.Clamp(productos[x.ProductoId].DecimalesCantidad, 0, 5)) != x.Cantidad ||
             (productos[x.ProductoId].EsSerializado && decimal.Truncate(x.Cantidad) != x.Cantidad) || x.Series.Any(s => s.Length > 100))) return Result<Guid>.Failure("Revise las cantidades y series.");
         var total = detalles.Sum(x => decimal.Round(x.Cantidad * x.CostoUnitario, 2, MidpointRounding.AwayFromZero));
@@ -113,11 +138,13 @@ public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser us
     {
         var compra = await context.Compras.FindAsync([id], cancellationToken);
         if (compra is null) return Result<Guid>.Failure("La compra no existe.");
-        if (compra.Estado != (enviar ? "Solicitada" : recepcionar ? "Enviada" : "Borrador")) return Result<Guid>.Failure("El estado de la compra no permite esta operación.");
+        if (recepcionar && compra.Estado != "Enviada" && compra.Estado != "Recibida con faltantes") return Result<Guid>.Failure("El estado de la compra no permite recepcionar.");
+        if (enviar && compra.Estado != "Solicitada") return Result<Guid>.Failure("El estado de la compra no permite registrar envío.");
+        if (!recepcionar && !enviar && compra.Estado != "Borrador") return Result<Guid>.Failure("El estado de la compra no permite esta operación.");
         if (recepcionar && (!compra.AlmacenId.HasValue || !await InventarioAcceso.PuedeAsync(context,user,compra.AlmacenId.Value,"recibir",cancellationToken))) return Result<Guid>.Failure("No puede recepcionar en este almacén.");
         var guardadas = JsonSerializer.Deserialize<List<LineaCompraDetalle>>(compra.LineasJson) ?? [];
         var command = new CrearCompraCommand(compra.Proveedor, compra.TipoDocumento, compra.NumeroDocumento, compra.FechaDocumento, compra.Moneda, compra.AlmacenId,
-            guardadas.Select(x => new LineaCompra(x.ProductoId, x.Cantidad, x.CostoUnitario, x.Series)).ToList(), compra.Observacion);
+            guardadas.Select(x => new LineaCompra(x.ProductoId, x.Cantidad, x.CostoUnitario, x.Series, x.UnidadMedidaId, x.FactorConversion)).ToList(), compra.Observacion);
         if (recepcionar && recepcion is not null)
         {
             if (recepcion.NumeroDocumento is null) return Result<Guid>.Failure("Ingrese el número de comprobante.");
@@ -145,6 +172,12 @@ public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser us
         var ids = command.Lineas.Select(x => x.ProductoId).ToList();
         var productos = await context.Productos.Include(x => x.UnidadMedidaDefecto).Where(x => ids.Contains(x.Id) && x.Activo && x.Tipo == TipoProducto.Inventario).ToDictionaryAsync(x => x.Id, cancellationToken);
         if (productos.Count != ids.Count) return Result<Guid>.Failure("Todos los productos deben estar activos y ser inventariables.");
+
+        var uIds = command.Lineas.Where(x => x.UnidadMedidaId.HasValue).Select(x => x.UnidadMedidaId!.Value).Distinct().ToList();
+        var unidadesMap = uIds.Count > 0
+            ? await context.UnidadesMedida.Where(u => uIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, cancellationToken)
+            : new Dictionary<Guid, UnidadMedida>();
+
         var detalles = new List<LineaCompraDetalle>();
         foreach (var linea in command.Lineas)
         {
@@ -154,7 +187,17 @@ public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser us
                 return Result<Guid>.Failure($"Revise los decimales de cantidad de {producto.Nombre}.");
             if (producto.EsSerializado ? ((recepcionar || enviar) ? linea.Cantidad != series.Count : series.Count > linea.Cantidad) || series.Any(x => x.Length == 0 || x.Length > 100) : series.Count != 0)
                 return Result<Guid>.Failure($"{producto.Nombre}: registre una serie válida por cada unidad, únicamente para productos serializados.");
-            detalles.Add(new(linea.ProductoId, producto.Nombre, producto.UnidadMedidaDefecto?.Nombre, linea.Cantidad, linea.CostoUnitario, series));
+
+            UnidadMedida? uElegida = null;
+            if (linea.UnidadMedidaId.HasValue)
+            {
+                unidadesMap.TryGetValue(linea.UnidadMedidaId.Value, out uElegida);
+            }
+            var nombreUnidad = uElegida?.Nombre ?? producto.UnidadMedidaDefecto?.Nombre;
+            var factor = uElegida?.FactorConversionTotal ?? (linea.FactorConversion is > 0 ? linea.FactorConversion.Value : 1m);
+            var cantBase = linea.Cantidad * factor;
+
+            detalles.Add(new LineaCompraDetalle(linea.ProductoId, producto.Nombre, nombreUnidad, linea.Cantidad, linea.CostoUnitario, series, UnidadMedidaId: uElegida?.Id, FactorConversion: factor, CantidadBase: cantBase));
         }
         bool conFaltantes = false;
         var lineasFinales = detalles;
@@ -176,14 +219,15 @@ public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser us
                     }
                     if (cantRec > 0)
                     {
-                        lineasFinales.Add(new LineaCompraDetalle(orig.ProductoId, orig.Producto, orig.Unidad, cantRec, orig.CostoUnitario, seriesRec));
+                        var factor = orig.FactorConversion ?? 1m;
+                        lineasFinales.Add(new LineaCompraDetalle(orig.ProductoId, orig.Producto, orig.Unidad, cantRec, orig.CostoUnitario, seriesRec, UnidadMedidaId: orig.UnidadMedidaId, FactorConversion: factor, CantidadBase: cantRec * factor));
                     }
-                    lineasActualizadas.Add(new LineaCompraDetalle(orig.ProductoId, orig.Producto, orig.Unidad, orig.Cantidad, orig.CostoUnitario, orig.Series, cantRec, seriesRec));
+                    lineasActualizadas.Add(new LineaCompraDetalle(orig.ProductoId, orig.Producto, orig.Unidad, orig.Cantidad, orig.CostoUnitario, orig.Series, cantRec, seriesRec, UnidadMedidaId: orig.UnidadMedidaId, FactorConversion: orig.FactorConversion, CantidadBase: orig.CantidadBase));
                 }
                 else
                 {
                     conFaltantes = true;
-                    lineasActualizadas.Add(new LineaCompraDetalle(orig.ProductoId, orig.Producto, orig.Unidad, orig.Cantidad, orig.CostoUnitario, orig.Series, 0, []));
+                    lineasActualizadas.Add(new LineaCompraDetalle(orig.ProductoId, orig.Producto, orig.Unidad, orig.Cantidad, orig.CostoUnitario, orig.Series, 0, [], UnidadMedidaId: orig.UnidadMedidaId, FactorConversion: orig.FactorConversion, CantidadBase: orig.CantidadBase));
                 }
             }
             if (lineasFinales.Count == 0)
@@ -193,11 +237,16 @@ public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser us
         {
             foreach (var orig in detalles)
             {
-                lineasActualizadas.Add(new LineaCompraDetalle(orig.ProductoId, orig.Producto, orig.Unidad, orig.Cantidad, orig.CostoUnitario, orig.Series, orig.Cantidad, orig.Series));
+                lineasActualizadas.Add(new LineaCompraDetalle(orig.ProductoId, orig.Producto, orig.Unidad, orig.Cantidad, orig.CostoUnitario, orig.Series, orig.Cantidad, orig.Series, UnidadMedidaId: orig.UnidadMedidaId, FactorConversion: orig.FactorConversion, CantidadBase: orig.CantidadBase));
             }
         }
-        var todasSeries = lineasFinales.SelectMany(x => x.Series).ToList();
-        if (todasSeries.Distinct().Count() != todasSeries.Count || await context.ItemsSeriados.AnyAsync(x => todasSeries.Contains(x.NumeroSerie), cancellationToken))
+        var mapaPrevias = guardadas.ToDictionary(g => g.ProductoId, g => g);
+        var seriesNuevasTotal = lineasFinales.SelectMany(x =>
+        {
+            var prevSeries = mapaPrevias.TryGetValue(x.ProductoId, out var prev) && prev.SeriesRecibidas != null ? prev.SeriesRecibidas : [];
+            return x.Series.Except(prevSeries);
+        }).ToList();
+        if (seriesNuevasTotal.Distinct().Count() != seriesNuevasTotal.Count || await context.ItemsSeriados.AnyAsync(x => seriesNuevasTotal.Contains(x.NumeroSerie), cancellationToken))
             return Result<Guid>.Failure("Hay series repetidas o que ya están registradas.");
         var total = detalles.Sum(x => decimal.Round(x.Cantidad * x.CostoUnitario, 2, MidpointRounding.AwayFromZero));
         if (total >= 10000000000000000m) return Result<Guid>.Failure("El importe de la compra excede el límite permitido.");
@@ -235,25 +284,49 @@ public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser us
                         if (ubEspecifica != null) idUbicacionFinal = ubEspecifica.Id;
                     }
 
+                    mapaPrevias.TryGetValue(linea.ProductoId, out var prevDetalle);
+                    decimal cantPrevia = prevDetalle?.CantidadRecibida ?? 0m;
+                    decimal deltaCantidad = linea.Cantidad - cantPrevia;
+                    decimal factor = linea.FactorConversion ?? 1m;
+
                     var stock = await context.StocksAlmacen.FirstOrDefaultAsync(x => x.UbicacionId == idUbicacionFinal && x.Condicion == CondicionInventario.Utilizable && x.ProductoId == linea.ProductoId, ct);
                     if (stock == null)
                     {
                         stock = StockAlmacen.Crear(idUbicacionFinal, linea.ProductoId);
                         await context.StocksAlmacen.AddAsync(stock, ct);
                     }
-                    stock.AumentarStock(linea.Cantidad);
 
-                    if (linea.Series.Count == 0)
+                    if (deltaCantidad > 0)
                     {
-                        await context.MovimientosInventario.AddAsync(MovimientoInventario.Registrar(TipoMovimientoInventario.IngresoProveedor, linea.ProductoId, linea.Cantidad,
-                            almacenDestinoId: command.AlmacenId, numeroDocumento: compra.Numero, usuarioResponsableId: user.Id, observaciones: command.Observacion, ubicacionDestinoId: idUbicacionFinal, eventoId: compra.Id), ct);
+                        decimal cantidadAumentar = deltaCantidad * factor;
+                        stock.AumentarStock(cantidadAumentar);
+                        if (linea.Series.Count == 0)
+                        {
+                            await context.MovimientosInventario.AddAsync(MovimientoInventario.Registrar(TipoMovimientoInventario.IngresoProveedor, linea.ProductoId, cantidadAumentar,
+                                almacenDestinoId: command.AlmacenId, numeroDocumento: compra.Numero, usuarioResponsableId: user.Id, observaciones: factor > 1 ? $"{compra.Numero} ({deltaCantidad} {linea.Unidad} = {cantidadAumentar:G29} base)" : command.Observacion, ubicacionDestinoId: idUbicacionFinal, eventoId: compra.Id), ct);
+                        }
                     }
-                    foreach (var serie in linea.Series)
+                    else if (deltaCantidad < 0)
+                    {
+                        decimal cantidadReducir = Math.Abs(deltaCantidad) * factor;
+                        stock.DisminuirStock(cantidadReducir);
+                    }
+
+                    var seriesPrevias = prevDetalle?.SeriesRecibidas ?? [];
+                    var seriesNuevas = linea.Series.Except(seriesPrevias).ToList();
+                    foreach (var serie in seriesNuevas)
                     {
                         var item = ItemSeriado.Crear(linea.ProductoId, serie, idUbicacionFinal);
                         await context.ItemsSeriados.AddAsync(item, ct);
                         await context.MovimientosInventario.AddAsync(MovimientoInventario.Registrar(TipoMovimientoInventario.IngresoProveedor, linea.ProductoId, 1,
                             almacenDestinoId: command.AlmacenId, itemSeriadoId: item.Id, numeroDocumento: compra.Numero, usuarioResponsableId: user.Id, observaciones: command.Observacion, ubicacionDestinoId: idUbicacionFinal, eventoId: compra.Id), ct);
+                    }
+
+                    var seriesRemovidas = seriesPrevias.Except(linea.Series).ToList();
+                    if (seriesRemovidas.Count > 0)
+                    {
+                        var itemsEliminar = await context.ItemsSeriados.Where(x => x.ProductoId == linea.ProductoId && seriesRemovidas.Contains(x.NumeroSerie)).ToListAsync(ct);
+                        context.ItemsSeriados.RemoveRange(itemsEliminar);
                     }
                 }
                 await context.SaveChangesAsync(ct);
@@ -264,6 +337,19 @@ public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser us
             var detalle = ex.InnerException?.Message ?? ex.Message;
             return Result<Guid>.Failure($"No se pudo registrar la compra: {detalle}");
         }
+        return Result<Guid>.Success(compra.Id);
+    }
+
+    public async Task<Result<Guid>> CerrarFaltantesAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var compra = await context.Compras.FindAsync([id], cancellationToken);
+        if (compra is null) return Result<Guid>.Failure("La compra no existe.");
+        if (compra.Estado != "Recibida con faltantes") return Result<Guid>.Failure("Solo se pueden cerrar compras que se encuentren en estado 'Recibida con faltantes'.");
+        if (!compra.AlmacenId.HasValue || !await InventarioAcceso.PuedeAsync(context, user, compra.AlmacenId.Value, "recibir", cancellationToken))
+            return Result<Guid>.Failure("No tiene permisos para modificar la recepción de este almacén.");
+
+        compra.CerrarFaltantes(user.Id);
+        await context.SaveChangesAsync(cancellationToken);
         return Result<Guid>.Success(compra.Id);
     }
 }
@@ -277,6 +363,14 @@ public class ProcesarCompraHandler(IServicioCampoDbContext context, ICurrentUser
 {
     public Task<Result<Guid>> HandleAsync(ProcesarCompraCommand command, CancellationToken cancellationToken = default)
         => new CrearCompraHandler(context, user, seqService).ProcesarAsync(command.Id, command.Accion == "recepcionar", cancellationToken, command.Accion == "enviar");
+}
+
+public record CerrarFaltantesCompraCommand(Guid Id) : ICommand<Result<Guid>>;
+
+public class CerrarFaltantesCompraHandler(IServicioCampoDbContext context, ICurrentUser user, ICodigoSecuencialService? seqService = null) : ICommandHandler<CerrarFaltantesCompraCommand, Result<Guid>>
+{
+    public Task<Result<Guid>> HandleAsync(CerrarFaltantesCompraCommand command, CancellationToken cancellationToken = default)
+        => new CrearCompraHandler(context, user, seqService).CerrarFaltantesAsync(command.Id, cancellationToken);
 }
 public class RecepcionarCompraHandler(IServicioCampoDbContext context, ICurrentUser user, ICodigoSecuencialService? seqService = null) : ICommandHandler<RecepcionarCompraCommand, Result<Guid>>
 {

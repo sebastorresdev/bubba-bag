@@ -580,6 +580,17 @@ export function TransferenciaFormPage() {
     return null;
   }, [almacenOrigen, almacenDestino,modalidad]);
 
+  // Series libres del almacén origen (que no están ya agregadas)
+  const seriesLibresOrigen = useMemo(() => {
+    const seriesUsadas = new Set(lineas.map((l) => l.serie?.toUpperCase()).filter(Boolean));
+    return seriesOrigen.filter((s) => !seriesUsadas.has(s.numeroSerie.toUpperCase()));
+  }, [seriesOrigen, lineas]);
+
+  // Productos no seriados disponibles
+  const stocksOrigenNoSeriados = useMemo(() => {
+    return stocksOrigen.filter((p) => !p.esSerializado && p.cantidadDisponible > 0);
+  }, [stocksOrigen]);
+
   // SYMBAR SCANNER: Manejar búsqueda / escaneo al escribir o presionar Enter
   const procesarScannerBusqueda = (query: string) => {
     const q = query.trim().toUpperCase();
@@ -633,6 +644,22 @@ export function TransferenciaFormPage() {
     );
 
     if (prodEncontrado) {
+      if (prodEncontrado.esSerializado) {
+        const seriesDelProd = seriesLibresOrigen.filter((s) => s.productoId === prodEncontrado.productoId);
+        if (seriesDelProd.length === 1) {
+          setSerieSeleccionada(seriesDelProd[0]);
+          setProductoSeleccionado(prodEncontrado);
+          setScannerCantidad('1');
+          return;
+        }
+        setScannerError(
+          `El producto "${prodEncontrado.nombreProducto}" es serializado y cuenta con ${seriesDelProd.length} series disponibles. Seleccione la serie específica a transferir.`
+        );
+        setSerieSeleccionada(null);
+        setProductoSeleccionado(null);
+        return;
+      }
+
       setSerieSeleccionada(null);
       setProductoSeleccionado(prodEncontrado);
       setScannerCantidad('1');
@@ -1673,23 +1700,69 @@ navigate('/servicio-campo/transferencias'); }
                           <Select
                             value=""
                             onChange={(_, d) => {
-                              const prod = stocksOrigen.find((s) => s.productoId === d.value);
-                              if (prod) {
-                                setProductoSeleccionado(prod);
-                                setSerieSeleccionada(null);
-                                setScannerQuery(prod.codigoProducto || prod.nombreProducto);
-                                setScannerCantidad('1');
-                                setScannerError(null);
+                              const val = d.value;
+                              if (val.startsWith('serie:')) {
+                                const numSerie = val.replace('serie:', '');
+                                const s = seriesLibresOrigen.find((x) => x.numeroSerie === numSerie);
+                                if (s) {
+                                  setSerieSeleccionada(s);
+                                  const prod = stocksOrigen.find((p) => p.productoId === s.productoId);
+                                  setProductoSeleccionado(
+                                    prod || {
+                                      stockId: '',
+                                      productoId: s.productoId,
+                                      codigoProducto: s.codigoProducto,
+                                      nombreProducto: s.nombreProducto,
+                                      almacenId: origenId,
+                                      nombreAlmacen: '',
+                                      unidadMedidaId: null,
+                                      nombreUnidadMedida: 'UND',
+                                      cantidadDisponible: 1,
+                                      cantidadReservada: 0,
+                                      cantidadTotal: 1,
+                                      costoActual: 0,
+                                      valorInventario: 0,
+                                      actualizadoEn: '',
+                                      esSerializado: true,
+                                      ubicacionId: ubicacionOrigenId,
+                                      nombreUbicacion: '',
+                                      condicion: condicion === 1 ? 'Utilizable' : 'Defectuoso',
+                                    }
+                                  );
+                                  setScannerQuery(s.numeroSerie);
+                                  setScannerCantidad('1');
+                                  setScannerError(null);
+                                }
+                              } else {
+                                const prod = stocksOrigenNoSeriados.find((s) => s.productoId === val);
+                                if (prod) {
+                                  setProductoSeleccionado(prod);
+                                  setSerieSeleccionada(null);
+                                  setScannerQuery(prod.codigoProducto || prod.nombreProducto);
+                                  setScannerCantidad('1');
+                                  setScannerError(null);
+                                }
                               }
                             }}
                           >
-                            <option value="">Buscar en lista de disponibles ({stocksOrigen.length + seriesOrigen.length} ítems)...</option>
-                            {stocksOrigen.map((p) => (
+                            <option value="">
+                              Buscar en lista de disponibles ({stocksOrigenNoSeriados.length} materiales, {seriesLibresOrigen.length} series)...
+                            </option>
+                            {stocksOrigenNoSeriados.map((p) => (
                               <option key={p.productoId} value={p.productoId}>
                                 {p.codigoProducto ? `${p.codigoProducto} — ` : ''}
                                 {p.nombreProducto} (Disp: {p.cantidadDisponible} {p.nombreUnidadMedida || 'UND'})
                               </option>
                             ))}
+                            {seriesLibresOrigen.length > 0 && (
+                              <optgroup label="Series individuales disponibles">
+                                {seriesLibresOrigen.map((s) => (
+                                  <option key={s.id} value={`serie:${s.numeroSerie}`}>
+                                    [Serie: {s.numeroSerie}] — {s.nombreProducto} ({s.codigoProducto})
+                                  </option>
+                                ))}
+                              </optgroup>
+                            )}
                           </Select>
                         )}
                       </div>
@@ -1784,16 +1857,8 @@ navigate('/servicio-campo/transferencias'); }
                 {lineas.length > 0 && (
                   <div className={styles.totalsBar}>
                     <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                      Líneas en transferencia: {lineas.length}
+                      Materiales registrados: {lineas.length} {lineas.length === 1 ? 'ítem' : 'ítems'}
                     </Text>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                        Total unidades a transferir:
-                      </Text>
-                      <Text weight="bold" size={400}>
-                        {totalCantidad.toLocaleString('es-PE')}
-                      </Text>
-                    </div>
                   </div>
                 )}
               </>

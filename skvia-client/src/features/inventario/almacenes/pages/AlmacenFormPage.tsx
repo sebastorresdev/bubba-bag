@@ -5,6 +5,7 @@ import { confirmAction } from '../../../../services/uiFeedback';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
+  Button,
   Input,
   Textarea,
   Select,
@@ -29,6 +30,12 @@ import {
   ToastTitle,
   useToastController,
   useId,
+  Text,
+  OverlayDrawer,
+  DrawerHeader,
+  DrawerHeaderTitle,
+  DrawerBody,
+  DrawerFooter,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -36,6 +43,7 @@ import {
   SaveMultiple16Regular,
   Add16Regular,
   ArrowClockwise16Regular,
+  ArrowDownload16Regular,
   Building16Regular,
   Checkmark16Regular,
   DismissCircle16Regular,
@@ -44,6 +52,9 @@ import {
   Box16Regular,
   Person16Regular,
   Search16Regular,
+  Dismiss24Regular,
+  Copy16Regular,
+  Tag16Regular,
 } from '@fluentui/react-icons';
 import { AlmacenConfiguracion } from '../components/AlmacenConfiguracion';
 import { CrearUnidadOrganizativaDrawer } from '../components/CrearUnidadOrganizativaDrawer';
@@ -55,7 +66,11 @@ import type {
   TipoAlmacen,
 } from '../types/almacen.types';
 import { InventarioProductoService } from '../../inventario-productos/services/inventario-producto.service';
-import type { InventarioProductoDto } from '../../inventario-productos/types/inventario-producto.types';
+import type {
+  InventarioProductoDto,
+  ItemSeriadoStockDto,
+} from '../../inventario-productos/types/inventario-producto.types';
+import { exportToExcel, type ExportColumn } from '../../../../utils/exportUtils';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { getCurrentUserSession } from '../../../../services/sessionService';
 import { D365FormField } from '../../../../components/common/D365FormField';
@@ -170,6 +185,91 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   const [existencias, setExistencias] = useState<InventarioProductoDto[]>([]);
   const [cargandoExistencias, setCargandoExistencias] = useState<boolean>(false);
   const [filtroStock, setFiltroStock] = useState<string>('');
+
+  // Drawer de Series del Almacén
+  const [drawerSeriesOpen, setDrawerSeriesOpen] = useState(false);
+  const [productoSeriesSeleccionado, setProductoSeriesSeleccionado] = useState<InventarioProductoDto | null>(null);
+  const [seriesAlmacen, setSeriesAlmacen] = useState<ItemSeriadoStockDto[]>([]);
+  const [cargandoSeries, setCargandoSeries] = useState(false);
+  const [filtroSeries, setFiltroSeries] = useState('');
+  const [serieCopiada, setSerieCopiada] = useState<string | null>(null);
+
+  const handleCopiarSerie = async (serie: string) => {
+    try {
+      await navigator.clipboard.writeText(serie);
+      setSerieCopiada(serie);
+      setTimeout(() => setSerieCopiada(null), 2000);
+    } catch {
+      // fallback
+    }
+  };
+
+  const handleVerSeriesProducto = async (prod: InventarioProductoDto) => {
+    if (!currentId) return;
+    setProductoSeriesSeleccionado(prod);
+    setFiltroSeries('');
+    setDrawerSeriesOpen(true);
+    setCargandoSeries(true);
+    try {
+      const data = await InventarioProductoService.obtenerSeries(currentId, prod.productoId);
+      setSeriesAlmacen(data || []);
+    } catch (err) {
+      console.error('Error al cargar series:', err);
+      setSeriesAlmacen([]);
+    } finally {
+      setCargandoSeries(false);
+    }
+  };
+
+  const handleVerTodasSeriesAlmacen = async () => {
+    if (!currentId) return;
+    setProductoSeriesSeleccionado(null);
+    setFiltroSeries('');
+    setDrawerSeriesOpen(true);
+    setCargandoSeries(true);
+    try {
+      const data = await InventarioProductoService.obtenerSeries(currentId);
+      setSeriesAlmacen(data || []);
+    } catch (err) {
+      console.error('Error al cargar series del almacén:', err);
+      setSeriesAlmacen([]);
+    } finally {
+      setCargandoSeries(false);
+    }
+  };
+
+  const seriesFiltradas = useMemo(() => {
+    if (!filtroSeries.trim()) return seriesAlmacen;
+    const q = filtroSeries.trim().toUpperCase();
+    return seriesAlmacen.filter(
+      (s) =>
+        s.numeroSerie.toUpperCase().includes(q) ||
+        (s.codigoProducto && s.codigoProducto.toUpperCase().includes(q)) ||
+        (s.nombreProducto && s.nombreProducto.toUpperCase().includes(q)) ||
+        (s.macAddress && s.macAddress.toUpperCase().includes(q)) ||
+        (s.numeroSmartCard && s.numeroSmartCard.toUpperCase().includes(q))
+    );
+  }, [seriesAlmacen, filtroSeries]);
+
+  const handleExportarSeries = () => {
+    const cols: ExportColumn<ItemSeriadoStockDto>[] = [
+      { header: 'N° Serie', accessor: (x) => x.numeroSerie },
+      { header: 'Código', accessor: (x) => x.codigoProducto },
+      { header: 'Producto', accessor: (x) => x.nombreProducto },
+      { header: 'SmartCard', accessor: (x) => x.numeroSmartCard || '' },
+      { header: 'MAC Address', accessor: (x) => x.macAddress || '' },
+      { header: 'Condición', accessor: (x) => x.condicion || 'Utilizable' },
+      { header: 'Estado', accessor: (x) => x.estado || 'Disponible' },
+      { header: 'Ubicación', accessor: (x) => x.nombreUbicacion || 'Principal' },
+    ];
+    const nombreAlm = (savedHeader.nombre || formData.nombre || 'Almacen').replace(/\s+/g, '_');
+    const sufijo = productoSeriesSeleccionado ? `_${productoSeriesSeleccionado.codigoProducto}` : '_Todas';
+    exportToExcel(
+      seriesFiltradas,
+      cols,
+      `Series_${nombreAlm}${sufijo}_${new Date().toISOString().split('T')[0]}`
+    );
+  };
 
   // UI state
   const [loading, setLoading] = useState<boolean>(true);
@@ -499,6 +599,26 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
         (e.codigoProducto && e.codigoProducto.toLowerCase().includes(term))
     );
   }, [existenciasConStock, filtroStock]);
+
+  const handleExportarExistenciasAlmacen = () => {
+    const cols: ExportColumn<InventarioProductoDto>[] = [
+      { header: 'Código', accessor: (x) => x.codigoProducto },
+      { header: 'Producto', accessor: (x) => x.nombreProducto },
+      { header: 'Ubicación', accessor: (x) => x.nombreUbicacion || 'Principal' },
+      { header: 'Condición', accessor: (x) => x.condicion || 'Utilizable' },
+      { header: 'Control', accessor: (x) => (x.esSerializado ? 'Seriado' : 'No seriado') },
+      { header: 'Disponible', accessor: (x) => x.cantidadDisponible },
+      { header: 'Reservado', accessor: (x) => x.cantidadReservada },
+      { header: 'Total', accessor: (x) => x.cantidadTotal },
+      { header: 'Unidad', accessor: (x) => x.nombreUnidadMedida || 'UND' },
+    ];
+    const nombreAlm = (savedHeader.nombre || formData.nombre || 'Almacen').replace(/\s+/g, '_');
+    exportToExcel(
+      existenciasFiltradas,
+      cols,
+      `Existencias_${nombreAlm}_${new Date().toISOString().split('T')[0]}`
+    );
+  };
 
   return (
     <div className={styles.root}>
@@ -873,19 +993,40 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         marginBottom: 12,
+                        gap: 12,
+                        flexWrap: 'wrap',
                       }}
                     >
                       <span style={{ fontSize: 13, color: tokens.colorNeutralForeground3 }}>
                         Total líneas con stock: <strong>{existenciasFiltradas.length}</strong>
                       </span>
-                      <Input
-                        contentBefore={<Search16Regular />}
-                        placeholder="Buscar"
-                        aria-label="Buscar producto o código"
-                        value={filtroStock}
-                        onChange={(_e, d) => setFiltroStock(d.value)}
-                        style={{ width: 280 }}
-                      />
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <Button
+                          size="small"
+                          icon={<Tag16Regular />}
+                          onClick={handleVerTodasSeriesAlmacen}
+                          disabled={existenciasFiltradas.length === 0}
+                          title="Ver todas las series registradas en este almacén"
+                        >
+                          Ver Series
+                        </Button>
+                        <Button
+                          size="small"
+                          icon={<ArrowDownload16Regular />}
+                          onClick={handleExportarExistenciasAlmacen}
+                          disabled={existenciasFiltradas.length === 0}
+                        >
+                          Exportar a Excel
+                        </Button>
+                        <Input
+                          contentBefore={<Search16Regular />}
+                          placeholder="Buscar"
+                          aria-label="Buscar producto o código"
+                          value={filtroStock}
+                          onChange={(_e, d) => setFiltroStock(d.value)}
+                          style={{ width: 280 }}
+                        />
+                      </div>
                     </div>
 
                     {cargandoExistencias ? (
@@ -941,9 +1082,17 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
                               </TableCell>
                               <TableCell>
                                 {item.esSerializado ? (
-                                  <Badge appearance="tint" shape="rounded" color="brand">
-                                    Seriado
-                                  </Badge>
+                                  <Button
+                                    appearance="subtle"
+                                    size="small"
+                                    style={{ padding: '0 4px', height: '24px' }}
+                                    onClick={() => handleVerSeriesProducto(item)}
+                                    title="Haga clic para ver los números de serie"
+                                  >
+                                    <Badge appearance="tint" shape="rounded" color="brand" style={{ cursor: 'pointer' }}>
+                                      Seriado ({item.cantidadDisponible}) 🔍
+                                    </Badge>
+                                  </Button>
                                 ) : (
                                   <Badge appearance="tint" shape="rounded" color="subtle">
                                     No seriado
@@ -951,13 +1100,32 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
                                 )}
                               </TableCell>
                               <TableCell style={{ textAlign: 'right' }}>
-                                <Badge
-                                  appearance="tint"
-                                  shape="rounded"
-                                  color={item.cantidadDisponible > 0 ? 'success' : 'subtle'}
-                                >
-                                  {item.cantidadDisponible} {item.nombreUnidadMedida || 'UND'}
-                                </Badge>
+                                {item.esSerializado ? (
+                                  <Button
+                                    appearance="subtle"
+                                    size="small"
+                                    style={{ padding: '0 4px', height: '24px', fontWeight: 600 }}
+                                    onClick={() => handleVerSeriesProducto(item)}
+                                    title="Ver números de serie disponibles"
+                                  >
+                                    <Badge
+                                      appearance="tint"
+                                      shape="rounded"
+                                      color={item.cantidadDisponible > 0 ? 'success' : 'subtle'}
+                                      style={{ cursor: 'pointer' }}
+                                    >
+                                      {item.cantidadDisponible} {item.nombreUnidadMedida || 'UND'}
+                                    </Badge>
+                                  </Button>
+                                ) : (
+                                  <Badge
+                                    appearance="tint"
+                                    shape="rounded"
+                                    color={item.cantidadDisponible > 0 ? 'success' : 'subtle'}
+                                  >
+                                    {item.cantidadDisponible} {item.nombreUnidadMedida || 'UND'}
+                                  </Badge>
+                                )}
                               </TableCell>
                               <TableCell style={{ textAlign: 'right' }}>
                                 {item.cantidadReservada > 0 ? (
@@ -1054,6 +1222,170 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
           </>
         )}
       </D365FormContent>
+
+      {/* DRAWER: DETALLE DE SERIES EN ALMACÉN / CUSTODIA */}
+      <OverlayDrawer
+        open={drawerSeriesOpen}
+        position="end"
+        size="large"
+        onOpenChange={(_, { open }) => setDrawerSeriesOpen(open)}
+      >
+        <DrawerHeader style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}` }}>
+          <DrawerHeaderTitle
+            action={
+              <Button
+                appearance="subtle"
+                aria-label="Cerrar"
+                icon={<Dismiss24Regular />}
+                onClick={() => setDrawerSeriesOpen(false)}
+              />
+            }
+          >
+            <div>
+              <Text weight="semibold" style={{ fontSize: '16px', color: tokens.colorBrandForeground1 }}>
+                {productoSeriesSeleccionado
+                  ? `Series: ${productoSeriesSeleccionado.nombreProducto}`
+                  : `Series en ${savedHeader.nombre || formData.nombre || 'Almacén'}`}
+              </Text>
+              <Text block style={{ fontSize: '12px', color: tokens.colorNeutralForeground3, marginTop: '2px' }}>
+                {productoSeriesSeleccionado
+                  ? `Código SKU: ${productoSeriesSeleccionado.codigoProducto} · Total: ${seriesFiltradas.length} series registradas`
+                  : `Total: ${seriesFiltradas.length} series en custodia / stock de este almacén`}
+              </Text>
+            </div>
+          </DrawerHeaderTitle>
+        </DrawerHeader>
+
+        <DrawerBody style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <Input
+              contentBefore={<Search16Regular />}
+              placeholder="Buscar por N° de serie, SKU o MAC..."
+              value={filtroSeries}
+              onChange={(_, d) => setFiltroSeries(d.value)}
+              style={{ width: 320 }}
+            />
+            <Button
+              size="small"
+              icon={<ArrowDownload16Regular />}
+              onClick={handleExportarSeries}
+              disabled={seriesFiltradas.length === 0}
+            >
+              Exportar Series a Excel
+            </Button>
+          </div>
+
+          {cargandoSeries ? (
+            <div style={{ padding: 40, textAlign: 'center' }}>
+              <Spinner label="Cargando números de serie..." size="medium" />
+            </div>
+          ) : seriesFiltradas.length === 0 ? (
+            <div style={{ padding: 40, textAlign: 'center', color: tokens.colorNeutralForeground3 }}>
+              <p style={{ margin: 0, fontWeight: 500 }}>
+                {filtroSeries ? 'Sin resultados para la búsqueda.' : 'No hay series registradas en este almacén.'}
+              </p>
+            </div>
+          ) : (
+            <div style={{ maxHeight: 'calc(100vh - 240px)', overflowY: 'auto' }}>
+              <Table aria-label="Detalle de series">
+                <TableHeader>
+                  <TableRow>
+                    <TableHeaderCell style={{ width: 40 }}>#</TableHeaderCell>
+                    <TableHeaderCell>Número de Serie</TableHeaderCell>
+                    {!productoSeriesSeleccionado && <TableHeaderCell>Producto</TableHeaderCell>}
+                    <TableHeaderCell>MAC / SmartCard</TableHeaderCell>
+                    <TableHeaderCell>Condición</TableHeaderCell>
+                    <TableHeaderCell>Estado</TableHeaderCell>
+                    <TableHeaderCell>Ubicación</TableHeaderCell>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {seriesFiltradas.map((s, idx) => (
+                    <TableRow key={s.id || s.numeroSerie}>
+                      <TableCell style={{ color: tokens.colorNeutralForeground4, fontSize: '12px' }}>
+                        {idx + 1}
+                      </TableCell>
+                      <TableCell>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '13px' }}>
+                            {s.numeroSerie}
+                          </span>
+                          <Button
+                            appearance="subtle"
+                            size="small"
+                            icon={<Copy16Regular />}
+                            title="Copiar número de serie"
+                            onClick={() => handleCopiarSerie(s.numeroSerie)}
+                            style={{ padding: 2, height: 22, minWidth: 22 }}
+                          />
+                          {serieCopiada === s.numeroSerie && (
+                            <Badge appearance="filled" color="success" size="small">
+                              Copiado
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      {!productoSeriesSeleccionado && (
+                        <TableCell>
+                          <div>
+                            <Text weight="semibold" style={{ fontSize: '12px' }}>
+                              {s.codigoProducto}
+                            </Text>
+                            <Text block style={{ fontSize: '11px', color: tokens.colorNeutralForeground3 }}>
+                              {s.nombreProducto}
+                            </Text>
+                          </div>
+                        </TableCell>
+                      )}
+                      <TableCell style={{ fontSize: '12px', color: tokens.colorNeutralForeground3 }}>
+                        {s.macAddress || s.numeroSmartCard || '—'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          appearance="tint"
+                          shape="rounded"
+                          color={s.condicion === 'Defectuoso' ? 'danger' : 'success'}
+                        >
+                          {s.condicion || 'Utilizable'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          appearance="tint"
+                          shape="rounded"
+                          color={s.estado === 'Disponible' ? 'success' : 'brand'}
+                        >
+                          {s.estado || 'En Stock'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell style={{ fontSize: '12px' }}>
+                        {s.nombreUbicacion || 'Principal'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </DrawerBody>
+
+        <DrawerFooter
+          style={{
+            borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+            padding: '16px 20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+            Mostrando {seriesFiltradas.length} series
+          </Text>
+          <Button appearance="secondary" onClick={() => setDrawerSeriesOpen(false)}>
+            Cerrar
+          </Button>
+        </DrawerFooter>
+      </OverlayDrawer>
     </div>
   );
 };

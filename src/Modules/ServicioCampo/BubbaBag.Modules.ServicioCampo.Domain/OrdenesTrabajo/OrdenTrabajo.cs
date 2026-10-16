@@ -3,6 +3,7 @@ using BubbaBag.Modules.ServicioCampo.Domain.Enums;
 using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 using BubbaBag.Modules.ServicioCampo.Domain.Recursos;
 using BubbaBag.Modules.ServicioCampo.Domain.Clientes;
+using BubbaBag.Modules.ServicioCampo.Domain.Organizacion;
 
 namespace BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
 
@@ -22,6 +23,10 @@ public class OrdenTrabajo : Entity<Guid>
     public TipoOrdenTrabajo TipoOrden { get; private set; } = default!;
 
     public Guid CreadoPorId { get; private set; }
+
+    // Unidad Organizativa / Sede de atención principal
+    public Guid? UnidadOrganizativaId { get; private set; }
+    public UnidadOrganizativa? UnidadOrganizativa { get; private set; }
 
     // Zona Operativa / Territorio de despacho
     public Guid? ZonaOperativaId { get; private set; }
@@ -169,7 +174,10 @@ public class OrdenTrabajo : Entity<Guid>
         string? numeroPedido = null,
         string? estadoOrigen = null,
         bool descargaMaterialesObligatoria = true,
-        string? referenciaExterna = null, Guid? listaPreciosId = null, string moneda = "PEN")
+        string? referenciaExterna = null,
+        Guid? listaPreciosId = null,
+        string moneda = "PEN",
+        Guid? unidadOrganizativaId = null)
     {
         var refExt = referenciaExterna?.Trim() ?? numeroOrden?.Trim();
         var orden = new OrdenTrabajo
@@ -180,6 +188,7 @@ public class OrdenTrabajo : Entity<Guid>
             CreadoPorId = creadoPorId,
             ClienteFacturacionId = clienteFacturacionId,
             ClienteServicioId = clienteServicioId,
+            UnidadOrganizativaId = unidadOrganizativaId,
             ZonaOperativaId = zonaOperativaId,
             NumeroOrden = refExt,
             ReferenciaExterna = refExt,
@@ -252,8 +261,16 @@ public class OrdenTrabajo : Entity<Guid>
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void AsignarZonaOperativa(Guid zonaOperativaId)
+    public void AsignarUnidadOrganizativa(Guid? unidadOrganizativaId)
     {
+        ValidarEditable();
+        UnidadOrganizativaId = unidadOrganizativaId;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void AsignarZonaOperativa(Guid? zonaOperativaId)
+    {
+        ValidarEditable();
         ZonaOperativaId = zonaOperativaId;
         UpdatedAt = DateTime.UtcNow;
     }
@@ -533,6 +550,48 @@ public class OrdenTrabajo : Entity<Guid>
     {
         EstadoOrigen = nuevoEstadoOrigen.Trim();
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Sincroniza el ciclo de vida de la Orden de Trabajo según el estado de sus trabajos operativos:
+    /// - Si todos los trabajos quedan Cancelados: la orden pasa automáticamente a Cancelada.
+    /// - Si todos los trabajos quedan Rechazados (o combinación de Rechazados y Cancelados sin ningún completado): la orden pasa a Rechazada.
+    /// </summary>
+    public void SincronizarEstadoDesdeTrabajos(string? motivo = null)
+    {
+        if (_trabajos.Count == 0) return;
+
+        bool tieneActivos = _trabajos.Any(t => t.Estado is EstadoTrabajo.Pendiente or EstadoTrabajo.EnProgreso);
+        if (tieneActivos) return;
+
+        bool tieneCompletados = _trabajos.Any(t => t.Estado == EstadoTrabajo.Completado);
+        if (tieneCompletados) return;
+
+        bool todosCancelados = _trabajos.All(t => t.Estado == EstadoTrabajo.Cancelado);
+        bool todosRechazadosOCancelados = _trabajos.All(t => t.Estado is EstadoTrabajo.Cancelado or EstadoTrabajo.Rechazado);
+
+        if (todosCancelados)
+        {
+            Estado = EstadoOrdenTrabajo.Cancelada;
+            EstadoSistema = EstadoSistema.Cancelado;
+            ObservacionesCierre = motivo?.Trim() ?? "Todos los trabajos de la orden fueron cancelados.";
+            if (VisitaActual != null && VisitaActual.Estado != EstadoVisita.Completada && VisitaActual.Estado != EstadoVisita.Cancelada)
+            {
+                VisitaActual.CancelarVisita(null, ObservacionesCierre);
+            }
+            UpdatedAt = DateTime.UtcNow;
+        }
+        else if (todosRechazadosOCancelados)
+        {
+            Estado = EstadoOrdenTrabajo.Rechazada;
+            EstadoSistema = EstadoSistema.Cancelado;
+            ObservacionesCierre = motivo?.Trim() ?? "Todos los trabajos de la orden fueron rechazados.";
+            if (VisitaActual != null && VisitaActual.Estado != EstadoVisita.Completada && VisitaActual.Estado != EstadoVisita.Cancelada)
+            {
+                VisitaActual.CancelarVisita(null, ObservacionesCierre);
+            }
+            UpdatedAt = DateTime.UtcNow;
+        }
     }
 
     public OrdenTrabajoTarea AgregarTarea(

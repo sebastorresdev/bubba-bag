@@ -34,6 +34,10 @@ public class OrdenTrabajoConfiguration : IEntityTypeConfiguration<OrdenTrabajo>
         builder.Property(w => w.NumeroPedido)
             .HasMaxLength(100);
 
+        // Unidad Organizativa / Sede principal de la orden
+        builder.Property(w => w.UnidadOrganizativaId);
+        builder.HasIndex(w => w.UnidadOrganizativaId);
+
         // Zona Operativa / Territorio
         builder.Property(w => w.ZonaOperativaId);
         builder.HasIndex(w => w.ZonaOperativaId);
@@ -92,6 +96,11 @@ public class OrdenTrabajoConfiguration : IEntityTypeConfiguration<OrdenTrabajo>
         builder.Ignore(w => w.EvidenciasConfirmadas);
 
         // Relaciones maestras
+        builder.HasOne(w => w.UnidadOrganizativa)
+            .WithMany()
+            .HasForeignKey(w => w.UnidadOrganizativaId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasOne(w => w.ZonaOperativa)
             .WithMany()
             .HasForeignKey(w => w.ZonaOperativaId)

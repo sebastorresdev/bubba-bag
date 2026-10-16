@@ -17,7 +17,7 @@ export function UnsavedChangesGuard() {
   useEffect(() => {
     if (blocker.state !== 'blocked') return;
     let active = true;
-    void confirmAction('Los cambios de esta ficha todavía no se han guardado. Si sale, se perderán.', { title: 'Cambios sin guardar', action: 'Salir sin guardar', danger: true }).then(accepted => {
+    void confirmAction('Los cambios de esta ficha todavía no se han guardado. Si sale, se perderán.', { title: 'Cambios sin guardar', action: 'Salir sin guardar', danger: false }).then(accepted => {
       if (!active) return;
       const pending = latestBlocker.current;
       if (pending.state !== 'blocked') return;

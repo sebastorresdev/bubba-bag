@@ -1,7 +1,12 @@
 import { apiClient } from '../../../services/apiClient';
 
 export interface LineaCompra {
-  productoId: string; cantidad: number; costoUnitario: number; series: string[];
+  productoId: string;
+  cantidad: number;
+  costoUnitario: number;
+  series: string[];
+  unidadMedidaId?: string | null;
+  factorConversion?: number | null;
 }
 export interface CrearCompra {
   proveedor: string; tipoDocumento: string; numeroDocumento: string; fechaDocumento: string;
@@ -35,6 +40,7 @@ export interface CompraDto extends CrearCompra {
     unidad: string | null;
     cantidadRecibida?: number | null;
     seriesRecibidas?: string[] | null;
+    cantidadBase?: number | null;
   })[];
 }
 export const CompraService = {
@@ -46,4 +52,5 @@ export const CompraService = {
   solicitar: (id: string) => apiClient<void>(`/api/inventario/compras/${id}/solicitar`, { method: 'POST' }),
   enviar: (id: string) => apiClient<void>(`/api/inventario/compras/${id}/enviar`, { method: 'POST' }),
   recepcionar: (id: string, datos: RecepcionCompraDatos) => apiClient<void>(`/api/inventario/compras/${id}/recepcionar`, { method: 'POST', body: JSON.stringify(datos) }),
+  cerrarFaltantes: (id: string) => apiClient<void>(`/api/inventario/compras/${id}/cerrar-faltantes`, { method: 'POST' }),
 };

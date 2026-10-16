@@ -274,17 +274,6 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
         },
       }),
       createTableColumn({
-        columnId: 'cantidad',
-        compare: (a: TransferenciaInventarioDto, b: TransferenciaInventarioDto) =>
-          (a.totalCantidad ?? a.cantidad ?? 0) - (b.totalCantidad ?? b.cantidad ?? 0),
-        renderHeaderCell: () => 'Total Unidades',
-        renderCell: (x: TransferenciaInventarioDto) => (
-          <TableCellLayout truncate>
-            <Text>{(x.totalCantidad ?? x.cantidad ?? 0).toLocaleString('es-PE')}</Text>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn({
         columnId: 'acciones',
         renderHeaderCell: () => 'Cargo Oficial',
         renderCell: (x: TransferenciaInventarioDto) => (

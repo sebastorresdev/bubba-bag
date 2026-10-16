@@ -277,7 +277,7 @@ export function TrazabilidadSeriesPage() {
           <D365CommandButton icon={<ArrowClockwise16Regular />} onClick={() => void cargar()}>
             Actualizar
           </D365CommandButton>
-          <Menu positioning="below-start">
+          <Menu positioning="below-end">
             <MenuTrigger disableButtonEnhancement>
               {(triggerProps: MenuButtonProps) => (
                 <SplitButton

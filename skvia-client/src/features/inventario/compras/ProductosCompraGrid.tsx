@@ -3,6 +3,7 @@ import {
   Button,
   Combobox,
   Option,
+  Select,
   DataGrid,
   DataGridBody,
   DataGridCell,
@@ -45,6 +46,8 @@ import { TableEmptyState } from '../../../components/common/TableEmptyState';
 import { useD365ListStyles } from '../../../styles/d365ListStyles';
 import type { ProductoDto } from '../productos/types/producto.types';
 import { ProductoService } from '../productos/services/producto.service';
+import { UnidadMedidaService } from '../unidades-medida/services/unidadMedida.service';
+import type { UnidadMedidaDto } from '../unidades-medida/types/unidadMedida.types';
 import { SeriesCompraTable, obtenerSeriesCompra } from './SeriesCompraTable';
 
 export type LineaCompraForm = {
@@ -55,6 +58,9 @@ export type LineaCompraForm = {
   series: string;
   cantidadRecibida?: string;
   seriesRecibidas?: string;
+  unidadMedidaId?: string;
+  unidadMedidaNombre?: string;
+  factorConversion?: number;
 };
 
 export const importeLinea = (x: LineaCompraForm) =>
@@ -183,6 +189,32 @@ export function ProductosCompraGrid({
     };
   }, [abierto, consulta, productoId, soloLectura, soloSeries]);
 
+  const [unidadesProducto, setUnidadesProducto] = useState<UnidadMedidaDto[]>([]);
+  const [cargandoUnidades, setCargandoUnidades] = useState(false);
+
+  useEffect(() => {
+    if (!producto?.grupoUnidadMedidaId) {
+      setUnidadesProducto([]);
+      return;
+    }
+    let cancel = false;
+    setCargandoUnidades(true);
+    void UnidadMedidaService.getUnidadesMedida(undefined, true, producto.grupoUnidadMedidaId)
+      .then(ums => {
+        if (!cancel) setUnidadesProducto(ums);
+      })
+      .catch(() => {
+        if (!cancel) setUnidadesProducto([]);
+      })
+      .finally(() => {
+        if (!cancel) setCargandoUnidades(false);
+      });
+    return () => { cancel = true; };
+  }, [producto?.grupoUnidadMedidaId]);
+
+  const unidadBase = unidadesProducto.find(u => u.esUnidadBase) || unidadesProducto.find(u => u.factorConversionTotal === 1);
+  const nombreUnidadBase = unidadBase?.nombre || producto?.nombreUnidadMedidaDefecto || 'unidad';
+
   const opciones = producto
     ? [producto]
     : resultados.length > 0
@@ -191,7 +223,7 @@ export function ProductosCompraGrid({
   const dinero = (valor: number) => valor.toLocaleString('es-PE', { style: 'currency', currency: moneda });
 
   const abrir = (x?: LineaCompraForm) => {
-    setLinea(x ? { ...x } : { clave: crypto.randomUUID(), productoId: '', cantidad: '', costo: '', series: '' });
+    setLinea(x ? { ...x } : { clave: crypto.randomUUID(), productoId: '', cantidad: '', costo: '0', series: '', factorConversion: 1 });
     setEditando(Boolean(x));
     setBusqueda('');
     setBusquedaSerie('');
@@ -206,15 +238,15 @@ export function ProductosCompraGrid({
     const costo = Number(linea.costo);
     if (
       !producto?.activo ||
-      !linea.cantidad ||
+      !linea.cantidad.trim() ||
       !Number.isFinite(cantidad) ||
       cantidad <= 0 ||
-      !linea.costo ||
+      linea.costo.trim() === '' ||
       !Number.isFinite(costo) ||
       costo < 0 ||
       Math.round(costo * 100) / 100 !== costo
     ) {
-      setError('Seleccione un producto y registre cantidad y costo válidos.');
+      setError('Seleccione un producto y registre cantidad y costo válidos (0 o mayor).');
       return;
     }
     if (lineas.some(x => x.clave !== linea.clave && x.productoId === linea.productoId)) {
@@ -244,11 +276,18 @@ export function ProductosCompraGrid({
       setError('Las series deben ser únicas y corresponder a la cantidad.');
       return;
     }
-    const nueva = { ...linea, series: producto.esSerializado ? series.join('\n') : '' };
+    const unidadElegida = unidadesProducto.find(u => u.id === linea.unidadMedidaId);
+    const nueva: LineaCompraForm = {
+      ...linea,
+      series: producto.esSerializado ? series.join('\n') : '',
+      unidadMedidaNombre: unidadElegida?.nombre || linea.unidadMedidaNombre || producto.nombreUnidadMedidaDefecto || undefined,
+      factorConversion: unidadElegida?.factorConversionTotal || linea.factorConversion || 1,
+    };
     alCambiar(editando ? lineas.map(x => (x.clave === nueva.clave ? nueva : x)) : [...lineas, nueva]);
     setLinea(null);
   };
 
+  const tieneRecepcion = lineas.some(x => x.cantidadRecibida !== undefined);
   const columns: TableColumnDefinition<LineaCompraForm>[] = [
     createTableColumn({
       columnId: 'producto',
@@ -270,50 +309,73 @@ export function ProductosCompraGrid({
     createTableColumn({
       columnId: 'unidad',
       renderHeaderCell: () => 'Unidad',
-      renderCell: x => (
-        <TableCellLayout>
-          {productos.find(p => p.id === x.productoId)?.nombreUnidadMedidaDefecto ?? '---'}
-        </TableCellLayout>
-      ),
-    }),
-    createTableColumn({
-      columnId: 'cantidad',
-      compare: (a, b) => Number(a.cantidad) - Number(b.cantidad),
-      renderHeaderCell: () => 'Cantidad',
       renderCell: x => {
-        if (x.cantidadRecibida !== undefined) {
-          const esperada = Number(x.cantidad);
-          const recibida = Number(x.cantidadRecibida);
-          const faltante = esperada - recibida;
-          return (
-            <TableCellLayout>
-              <div>
-                <span>
-                  {recibida.toLocaleString('es-PE')} de {esperada.toLocaleString('es-PE')}
-                </span>
-                {faltante > 0 && (
-                  <span
-                    style={{
-                      marginLeft: '6px',
-                      color: tokens.colorPaletteRedForeground1,
-                      fontWeight: 600,
-                      fontSize: '11px',
-                      backgroundColor: tokens.colorPaletteRedBackground2,
-                      border: `1px solid ${tokens.colorPaletteRedBorder2}`,
-                      padding: '2px 6px',
-                      borderRadius: tokens.borderRadiusSmall,
-                    }}
-                  >
-                    Faltante: -{faltante}
-                  </span>
-                )}
-              </div>
-            </TableCellLayout>
-          );
-        }
-        return <TableCellLayout>{Number(x.cantidad).toLocaleString('es-PE')}</TableCellLayout>;
+        const prod = productos.find(p => p.id === x.productoId);
+        const unidadNombre = x.unidadMedidaNombre || prod?.nombreUnidadMedidaDefecto || '---';
+        return (
+          <TableCellLayout>
+            <Text>{unidadNombre}</Text>
+          </TableCellLayout>
+        );
       },
     }),
+    ...(tieneRecepcion
+      ? [
+          createTableColumn<LineaCompraForm>({
+            columnId: 'cantidadPedida',
+            compare: (a, b) => Number(a.cantidad) - Number(b.cantidad),
+            renderHeaderCell: () => 'Cant. pedida',
+            renderCell: x => (
+              <TableCellLayout>
+                <span>{Number(x.cantidad).toLocaleString('es-PE')}</span>
+              </TableCellLayout>
+            ),
+          }),
+          createTableColumn<LineaCompraForm>({
+            columnId: 'cantidadRecibida',
+            compare: (a, b) => Number(a.cantidadRecibida ?? 0) - Number(b.cantidadRecibida ?? 0),
+            renderHeaderCell: () => 'Cant. recibida',
+            renderCell: x => (
+              <TableCellLayout>
+                <span>{Number(x.cantidadRecibida ?? 0).toLocaleString('es-PE')}</span>
+              </TableCellLayout>
+            ),
+          }),
+          createTableColumn<LineaCompraForm>({
+            columnId: 'faltante',
+            compare: (a, b) => (Number(a.cantidad) - Number(a.cantidadRecibida ?? 0)) - (Number(b.cantidad) - Number(b.cantidadRecibida ?? 0)),
+            renderHeaderCell: () => 'Faltante',
+            renderCell: x => {
+              const faltante = Math.max(0, Number(x.cantidad) - Number(x.cantidadRecibida ?? 0));
+              if (faltante > 0) {
+                return (
+                  <TableCellLayout>
+                    <Badge appearance="tint" color="warning" shape="rounded">
+                      {faltante.toLocaleString('es-PE')}
+                    </Badge>
+                  </TableCellLayout>
+                );
+              }
+              return (
+                <TableCellLayout>
+                  <Text size={200} style={{ color: tokens.colorNeutralForeground4 }}>0</Text>
+                </TableCellLayout>
+              );
+            },
+          }),
+        ]
+      : [
+          createTableColumn<LineaCompraForm>({
+            columnId: 'cantidad',
+            compare: (a, b) => Number(a.cantidad) - Number(b.cantidad),
+            renderHeaderCell: () => 'Cantidad',
+            renderCell: x => (
+              <TableCellLayout>
+                <span>{Number(x.cantidad).toLocaleString('es-PE')}</span>
+              </TableCellLayout>
+            ),
+          }),
+        ]),
     createTableColumn({
       columnId: 'costo',
       compare: (a, b) => Number(a.costo) - Number(b.costo),
@@ -699,7 +761,10 @@ export function ProductosCompraGrid({
                             ...linea,
                             productoId: p.id,
                             series: '',
-                            costo: linea.costo || (p.costoActual ? String(p.costoActual) : p.costoEstandar ? String(p.costoEstandar) : ''),
+                            costo: linea.costo !== '' ? linea.costo : (p.costoActual != null ? String(p.costoActual) : p.costoEstandar != null ? String(p.costoEstandar) : '0'),
+                            unidadMedidaId: p.unidadMedidaDefectoId || '',
+                            unidadMedidaNombre: p.nombreUnidadMedidaDefecto || '',
+                            factorConversion: 1,
                           });
                           setBusqueda('');
                         }}
@@ -722,27 +787,54 @@ export function ProductosCompraGrid({
                         )}
                       </Combobox>
                     </D365FormField>
-                    <D365FormField label="Unidad" htmlFor="compra-unidad">
-                      <Input
+                    <D365FormField label="Unidad de medida" htmlFor="compra-unidad">
+                      <Select
                         id="compra-unidad"
                         className={styles.control}
-                        value={producto?.nombreUnidadMedidaDefecto ?? '---'}
-                        readOnly
-                        appearance="filled-darker"
-                        contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />}
-                      />
+                        value={linea.unidadMedidaId || producto?.unidadMedidaDefectoId || ''}
+                        disabled={soloLectura || cargandoUnidades}
+                        onChange={e => {
+                          const uId = e.target.value;
+                          const u = unidadesProducto.find(x => x.id === uId);
+                          setLinea({
+                            ...linea,
+                            unidadMedidaId: uId,
+                            unidadMedidaNombre: u?.nombre || '',
+                            factorConversion: u?.factorConversionTotal || 1,
+                          });
+                        }}
+                      >
+                        {unidadesProducto.length === 0 ? (
+                          <option value={linea.unidadMedidaId || ''}>
+                            {linea.unidadMedidaNombre || producto?.nombreUnidadMedidaDefecto || (cargandoUnidades ? 'Cargando unidades…' : '---')}
+                          </option>
+                        ) : (
+                          unidadesProducto.map(u => (
+                            <option key={u.id} value={u.id}>
+                              {u.nombre}{u.factorConversionTotal && u.factorConversionTotal !== 1 ? ` (${u.factorConversionTotal} ${nombreUnidadBase})` : u.esUnidadBase ? ' (Base)' : ''}
+                            </option>
+                          ))
+                        )}
+                      </Select>
                     </D365FormField>
                     <D365FormField label="Cantidad" required htmlFor="compra-cantidad">
-                      <Input
-                        id="compra-cantidad"
-                        className={styles.control}
-                        type="number"
-                        min={0}
-                        step={producto?.esSerializado ? 1 : 'any'}
-                        value={linea.cantidad}
-                        disabled={soloLectura}
-                        onChange={(_, d) => setLinea({ ...linea, cantidad: d.value })}
-                      />
+                      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '4px' }}>
+                        <Input
+                          id="compra-cantidad"
+                          className={styles.control}
+                          type="number"
+                          min={0}
+                          step={producto?.esSerializado ? 1 : 'any'}
+                          value={linea.cantidad}
+                          disabled={soloLectura}
+                          onChange={(_, d) => setLinea({ ...linea, cantidad: d.value })}
+                        />
+                        {Boolean(linea.factorConversion && linea.factorConversion > 1 && Number(linea.cantidad) > 0) && (
+                          <Text size={200} style={{ color: tokens.colorCompoundBrandForeground1, marginTop: '2px', display: 'block' }}>
+                            💡 Equivale a <strong>{(Number(linea.cantidad) * (linea.factorConversion ?? 1)).toLocaleString('es-PE')} {nombreUnidadBase}</strong> en stock del almacén.
+                          </Text>
+                        )}
+                      </div>
                     </D365FormField>
                     <D365FormField label="Costo unitario" required htmlFor="compra-costo">
                       <Input
