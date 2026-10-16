@@ -158,9 +158,9 @@ export function UsuariosListPage() {
       columnId: 'roles',
       renderHeaderCell: () => 'Roles',
       renderCell: (x) => {
-        const rolesStr = x.roles.join(', ') || 'Sin roles';
+        const rolesStr = x.roles.join(', ');
         return (
-          <TableCellLayout truncate title={rolesStr}>
+          <TableCellLayout truncate title={rolesStr || undefined}>
             <Text>{rolesStr}</Text>
           </TableCellLayout>
         );
