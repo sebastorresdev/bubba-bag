@@ -174,37 +174,37 @@ const CAMPOS_DESTINO: CampoSistema[] = [
     id: 'sku',
     nombreVisible: 'Código / SKU',
     requerido: true,
-    sinonimos: ['sku', 'codigo', 'código', 'cod', 'item', 'material', 'ref'],
+    sinonimos: ['codigo', 'sku', 'codigo de producto', 'codigo producto'],
   },
   {
     id: 'cantidad',
-    nombreVisible: 'Cantidad esperada',
+    nombreVisible: 'Cantidad',
     requerido: true,
-    sinonimos: ['esperado', 'cantidad', 'cant', 'qty', 'unidades', 'cant.'],
+    sinonimos: ['cantidad'],
   },
   {
     id: 'serie',
     nombreVisible: 'Número de Serie',
     requerido: false,
-    sinonimos: ['serie', 'series', 'numero de serie', 'número de serie', 'serial', 'sn', 's/n'],
+    sinonimos: ['serie', 'numero de serie', 'numero serie'],
   },
   {
     id: 'producto',
     nombreVisible: 'Descripción del producto',
     requerido: false,
-    sinonimos: ['producto', 'descripcion', 'descripción', 'nombre', 'detalle'],
+    sinonimos: ['descripcion', 'nombre', 'descripcion de producto', 'descripcion producto'],
   },
   {
     id: 'costo',
     nombreVisible: 'Costo unitario',
     requerido: false,
-    sinonimos: ['costo', 'costo unitario', 'precio', 'valor', 'unit price'],
+    sinonimos: ['costo', 'costo unitario'],
   },
   {
     id: 'uom',
     nombreVisible: 'Unidad de medida',
     requerido: false,
-    sinonimos: ['uom', 'unidad', 'um', 'und', 'unidad de medida'],
+    sinonimos: ['unidad de medida', 'unidad'],
   },
 ];
 
@@ -249,42 +249,20 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Mapeador inteligente en 2 fases con exclusividad
+  // Mapeo automático estrictamente estándar por nombre canónico
   const ejecutarMapeoInteligente = (columnas: string[]) => {
     const mapeo: Record<string, string> = {};
     const camposUsados = new Set<string>();
 
-    // Fase 1: Coincidencias exactas
     columnas.forEach((col) => {
       const normCol = normalizar(col);
       for (const campo of CAMPOS_DESTINO) {
         if (camposUsados.has(campo.id)) continue;
         const normId = normalizar(campo.id);
         const normVis = normalizar(campo.nombreVisible);
-        const coincideSinonimo = campo.sinonimos.some((s) => normalizar(s) === normCol);
+        const coincide = campo.sinonimos.some((s) => normalizar(s) === normCol);
 
-        if (normCol === normId || normCol === normVis || coincideSinonimo) {
-          mapeo[col] = campo.id;
-          camposUsados.add(campo.id);
-          break;
-        }
-      }
-    });
-
-    // Fase 2: Coincidencias aproximadas
-    columnas.forEach((col) => {
-      if (mapeo[col]) return;
-      const normCol = normalizar(col);
-
-      for (const campo of CAMPOS_DESTINO) {
-        if (camposUsados.has(campo.id)) continue;
-        const coincideParcial = campo.sinonimos.some((s) => {
-          const normS = normalizar(s);
-          if (normS.length < 3) return false;
-          return normCol.includes(normS) || normS.includes(normCol);
-        });
-
-        if (coincideParcial) {
+        if (normCol === normId || normCol === normVis || coincide) {
           mapeo[col] = campo.id;
           camposUsados.add(campo.id);
           break;
