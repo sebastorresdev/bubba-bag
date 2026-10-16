@@ -15,6 +15,7 @@ export interface D365MessageBarProps {
   title?: ReactNode;
   onDismiss?: () => void;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 const defaultTitles: Record<NonNullable<MessageBarProps['intent']>, string> = {
@@ -30,8 +31,9 @@ export const D365MessageBar: React.FC<D365MessageBarProps> = ({
   title,
   onDismiss,
   className,
+  style,
 }) => (
-  <MessageBar role={intent === 'error' ? 'alert' : 'status'} intent={intent} shape="square" className={className}>
+  <MessageBar role={intent === 'error' ? 'alert' : 'status'} intent={intent} shape="square" className={className} style={style}>
     <MessageBarBody>
       <MessageBarTitle>{title ?? defaultTitles[intent]}</MessageBarTitle>
       {children}

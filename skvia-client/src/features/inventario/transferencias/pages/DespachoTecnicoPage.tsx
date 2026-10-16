@@ -949,8 +949,6 @@ export const DespachoTecnicoPage: React.FC = () => {
     [lineas, estado, classes.seriesBadgeList]
   );
 
-  const totalCantidad = lineas.reduce((acc, l) => acc + l.cantidad, 0);
-
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
