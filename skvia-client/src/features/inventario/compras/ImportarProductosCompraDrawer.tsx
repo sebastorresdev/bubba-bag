@@ -347,6 +347,17 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
       return false;
     }
 
+    // Consultar el catálogo maestro para validación de SKUs
+    let catalogo = productosExistentes;
+    try {
+      const dbProductos = await ProductoService.getProductos(undefined, undefined, true);
+      if (dbProductos && dbProductos.length > 0) {
+        catalogo = dbProductos;
+      }
+    } catch {
+      // continuar con productos cargados en memoria
+    }
+
     const mapaAgrupado = new Map<string, FilaConsolidada>();
 
     for (const r of rawRows) {
@@ -365,7 +376,7 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
       let existente = mapaAgrupado.get(key);
 
       if (!existente) {
-        const match = productosExistentes.find(
+        const match = catalogo.find(
           (p) => p.codigo?.trim().toUpperCase() === key
         );
 
@@ -405,61 +416,28 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
     return true;
   };
 
-  const handleCargarLineas = async () => {
+  const handleCargarLineas = () => {
     try {
       setProcesando(true);
       setError(null);
 
-      const nuevosProdsCreados: ProductoDto[] = [];
-      const lineasFinales: LineaCompraForm[] = [];
+      const filasValidas = filasConsolidadas.filter((f) => f.encontradoEnCatalogo && f.productoId);
 
-      for (const item of filasConsolidadas) {
-        let prodId = item.productoId;
-
-        if (!prodId) {
-          try {
-            const busq = await ProductoService.buscarInventariables(item.sku);
-            const coincidencia = busq.find((p) => p.codigo?.trim().toUpperCase() === item.sku.toUpperCase());
-
-            if (coincidencia) {
-              prodId = coincidencia.id;
-            } else {
-              const nuevo = await ProductoService.createProducto({
-                codigo: item.sku,
-                nombre: item.nombre || item.sku,
-                tipo: 'Inventario',
-                esSerializado: item.series.length > 0,
-                costoActual: item.costo,
-                costoEstandar: item.costo,
-                precioBase: item.costo > 0 ? item.costo * 1.2 : 0,
-              });
-              prodId = nuevo.id;
-              const prodCompleto = await ProductoService.getProductoById(nuevo.id);
-              nuevosProdsCreados.push(prodCompleto);
-            }
-          } catch {
-            // Omitir si falla auto-creación
-          }
-        }
-
-        if (prodId) {
-          lineasFinales.push({
-            clave: crypto.randomUUID(),
-            productoId: prodId,
-            cantidad: String(item.cantidad),
-            costo: String(item.costo || 0),
-            series: item.series.join('\n'),
-            factorConversion: 1,
-            unidadMedidaNombre: item.uom,
-          });
-        }
+      if (filasValidas.length === 0) {
+        throw new Error('Ningún producto del archivo existe en el catálogo maestro. Las filas han sido rechazadas.');
       }
 
-      if (lineasFinales.length === 0) {
-        throw new Error('No se pudo vincular ningún producto de la lista con el catálogo.');
-      }
+      const lineasFinales: LineaCompraForm[] = filasValidas.map((item) => ({
+        clave: crypto.randomUUID(),
+        productoId: item.productoId!,
+        cantidad: String(item.cantidad),
+        costo: String(item.costo || 0),
+        series: item.series.join('\n'),
+        factorConversion: 1,
+        unidadMedidaNombre: item.uom,
+      }));
 
-      onImportarLineas(lineasFinales, nuevosProdsCreados);
+      onImportarLineas(lineasFinales);
       handleClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar las líneas a la orden.');
@@ -484,13 +462,21 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
     return CAMPOS_DESTINO.filter((c) => c.requerido && !asignados.has(c.id));
   }, [columnMapping]);
 
-  const totalSeries = useMemo(() => {
-    return filasConsolidadas.reduce((acc, f) => acc + f.series.length, 0);
+  const filasValidas = useMemo(() => {
+    return filasConsolidadas.filter((f) => f.encontradoEnCatalogo);
   }, [filasConsolidadas]);
 
-  const totalUnidades = useMemo(() => {
-    return filasConsolidadas.reduce((acc, f) => acc + f.cantidad, 0);
+  const filasRechazadas = useMemo(() => {
+    return filasConsolidadas.filter((f) => !f.encontradoEnCatalogo);
   }, [filasConsolidadas]);
+
+  const totalSeriesValidas = useMemo(() => {
+    return filasValidas.reduce((acc, f) => acc + f.series.length, 0);
+  }, [filasValidas]);
+
+  const totalUnidadesValidas = useMemo(() => {
+    return filasValidas.reduce((acc, f) => acc + f.cantidad, 0);
+  }, [filasValidas]);
 
   const renderFieldMapping = (campo: CampoSistema) => {
     const sourceHeader = Object.entries(columnMapping).find(
@@ -669,29 +655,49 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
 
             <div className={importStyles.metricsGrid}>
               <div className={importStyles.metricCard}>
-                <Text size={600} weight="bold" style={{ color: tokens.colorBrandForeground1 }}>
-                  {filasConsolidadas.length}
+                <Text size={600} weight="bold" style={{ color: tokens.colorPaletteGreenForeground1 }}>
+                  {filasValidas.length}
                 </Text>
                 <br />
-                <Text size={100} className={importStyles.muted}>Líneas</Text>
+                <Text size={100} className={importStyles.muted}>Válidas</Text>
+              </div>
+
+              <div className={importStyles.metricCard}>
+                <Text
+                  size={600}
+                  weight="bold"
+                  style={{ color: filasRechazadas.length > 0 ? tokens.colorPaletteRedForeground1 : tokens.colorNeutralForeground3 }}
+                >
+                  {filasRechazadas.length}
+                </Text>
+                <br />
+                <Text size={100} className={importStyles.muted}>Rechazadas</Text>
               </div>
 
               <div className={importStyles.metricCard}>
                 <Text size={600} weight="bold">
-                  {totalUnidades.toLocaleString('es-PE')}
+                  {totalUnidadesValidas.toLocaleString('es-PE')}
                 </Text>
                 <br />
-                <Text size={100} className={importStyles.muted}>Unidades</Text>
+                <Text size={100} className={importStyles.muted}>Unidades válidas</Text>
               </div>
 
               <div className={importStyles.metricCard}>
                 <Text size={600} weight="bold">
-                  {totalSeries.toLocaleString('es-PE')}
+                  {totalSeriesValidas.toLocaleString('es-PE')}
                 </Text>
                 <br />
-                <Text size={100} className={importStyles.muted}>Series</Text>
+                <Text size={100} className={importStyles.muted}>Series válidas</Text>
               </div>
             </div>
+
+            {filasRechazadas.length > 0 && (
+              <D365MessageBar intent={filasValidas.length === 0 ? 'error' : 'warning'}>
+                {filasValidas.length === 0
+                  ? 'Ningún producto del archivo existe en el catálogo maestro. Todas las filas han sido rechazadas. Registre primero los productos en el Catálogo de Productos antes de importarlos.'
+                  : `Se detectaron ${filasRechazadas.length} producto(s) no registrados en el catálogo maestro. Estas filas fueron rechazadas y no se cargarán a la orden.`}
+              </D365MessageBar>
+            )}
 
             <div className={styles.tableWrapper}>
               <Table size="small" style={{ minWidth: '500px' }}>
@@ -705,47 +711,58 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filasConsolidadas.map((f, i) => (
-                    <TableRow key={i}>
-                      <TableCell>
-                        <TableCellLayout>
-                          <span className={styles.codeFont}>{f.sku}</span>
-                        </TableCellLayout>
-                      </TableCell>
-                      <TableCell>
-                        <TableCellLayout truncate>
-                          <Text size={200}>{f.nombre}</Text>
-                        </TableCellLayout>
-                      </TableCell>
-                      <TableCell style={{ textAlign: 'right' }}>
-                        <TableCellLayout style={{ justifyContent: 'flex-end' }}>
-                          <Text weight="semibold" size={200}>{f.cantidad}</Text>
-                        </TableCellLayout>
-                      </TableCell>
-                      <TableCell>
-                        <TableCellLayout>
-                          {f.series.length > 0 ? (
-                            <Tooltip content={`Series: ${f.series.slice(0, 5).join(', ')}${f.series.length > 5 ? '...' : ''}`} relationship="description">
-                              <Badge appearance="tint" color="brand" icon={<BarcodeScanner20Regular />}>
-                                {f.series.length} series
-                              </Badge>
-                            </Tooltip>
-                          ) : (
-                            <Text size={200} className={importStyles.muted}>—</Text>
-                          )}
-                        </TableCellLayout>
-                      </TableCell>
-                      <TableCell>
-                        <TableCellLayout>
-                          {f.encontradoEnCatalogo ? (
-                            <Badge appearance="tint" color="success">Existe</Badge>
-                          ) : (
-                            <Badge appearance="tint" color="informative">Auto-crear</Badge>
-                          )}
-                        </TableCellLayout>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {filasConsolidadas.map((f, i) => {
+                    const rechazada = !f.encontradoEnCatalogo;
+                    return (
+                      <TableRow
+                        key={i}
+                        style={rechazada ? { opacity: 0.6, backgroundColor: tokens.colorNeutralBackground3 } : undefined}
+                      >
+                        <TableCell>
+                          <TableCellLayout>
+                            <span
+                              className={styles.codeFont}
+                              style={rechazada ? { textDecoration: 'line-through' } : undefined}
+                            >
+                              {f.sku}
+                            </span>
+                          </TableCellLayout>
+                        </TableCell>
+                        <TableCell>
+                          <TableCellLayout truncate>
+                            <Text size={200}>{f.nombre}</Text>
+                          </TableCellLayout>
+                        </TableCell>
+                        <TableCell style={{ textAlign: 'right' }}>
+                          <TableCellLayout style={{ justifyContent: 'flex-end' }}>
+                            <Text weight="semibold" size={200}>{f.cantidad}</Text>
+                          </TableCellLayout>
+                        </TableCell>
+                        <TableCell>
+                          <TableCellLayout>
+                            {f.series.length > 0 ? (
+                              <Tooltip content={`Series: ${f.series.slice(0, 5).join(', ')}${f.series.length > 5 ? '...' : ''}`} relationship="description">
+                                <Badge appearance="tint" color={rechazada ? 'subtle' : 'brand'} icon={<BarcodeScanner20Regular />}>
+                                  {f.series.length} series
+                                </Badge>
+                              </Tooltip>
+                            ) : (
+                              <Text size={200} className={importStyles.muted}>—</Text>
+                            )}
+                          </TableCellLayout>
+                        </TableCell>
+                        <TableCell>
+                          <TableCellLayout>
+                            {rechazada ? (
+                              <Badge appearance="tint" color="danger">Rechazado</Badge>
+                            ) : (
+                              <Badge appearance="tint" color="success">Existe</Badge>
+                            )}
+                          </TableCellLayout>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -804,13 +821,15 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
             <Button
               appearance="primary"
               icon={<Checkmark16Regular />}
-              disabled={procesando || filasConsolidadas.length === 0}
+              disabled={procesando || filasValidas.length === 0}
               onClick={() => void handleCargarLineas()}
             >
               {procesando ? (
                 <Spinner size="tiny" label="Cargando productos..." />
+              ) : filasValidas.length > 0 ? (
+                `Cargar ${filasValidas.length} producto(s) válidos`
               ) : (
-                'Finalizar y Cargar'
+                'Sin productos válidos'
               )}
             </Button>
           </>
