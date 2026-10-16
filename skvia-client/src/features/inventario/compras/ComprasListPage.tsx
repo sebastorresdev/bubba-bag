@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Link, Button, Dialog, DialogSurface, DialogTitle, DialogBody, DialogContent, DialogActions, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, TableCellLayout, Text, createTableColumn, tokens } from '@fluentui/react-components';
 import type { SelectionItemId, TableColumnDefinition } from '@fluentui/react-components';
-import { Add16Regular, ArrowClockwise16Regular, Checkmark16Regular, ChevronDown16Regular, Delete16Regular, Eye16Regular } from '@fluentui/react-icons';
+import { Add16Regular, ArrowClockwise16Regular, ArrowUpload16Regular, Checkmark16Regular, ChevronDown16Regular, Delete16Regular, Eye16Regular } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../components/common/D365CommandBar';
 import { D365MessageBar } from '../../../components/common/D365MessageBar';
 import { D365EntityTable, D365TableToolbarTools, type D365EntityTableRef } from '../../../components/common/D365EntityTable';
@@ -13,6 +13,7 @@ import { useCurrentUser } from '../../../hooks/useCurrentUser';
 import { Box16Regular } from '@fluentui/react-icons';
 import { CompraService } from './compra.service';
 import type { CompraDto } from './compra.service';
+import { ImportarManifiestoDrawer } from './ImportarManifiestoDrawer';
 
 type Vista = 'recientes' | 'todas' | 'Borrador' | 'Solicitada' | 'Enviada' | 'Recibida';
 const nombresVista: Record<Vista, string> = { recientes: 'Compras recientes', todas: 'Todas las compras', Borrador: 'Compras en borrador', Solicitada: 'Compras solicitadas', Enviada: 'Compras enviadas', Recibida: 'Compras recibidas' };
@@ -39,6 +40,7 @@ export function ComprasListPage() {
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [comprasAEliminar, setComprasAEliminar] = useState<CompraDto[] | null>(null);
   const [eliminando, setEliminando] = useState(false);
+  const [importarOpen, setImportarOpen] = useState(false);
   const tableRef = useRef<D365EntityTableRef>(null);
 
   const cargar = useCallback(async () => {
@@ -129,6 +131,7 @@ export function ComprasListPage() {
         {puedeGestionarCompras && (
           <>
             <D365CommandButton icon={<Add16Regular />} tone="create" onClick={() => navigate('/servicio-campo/recepciones-compra/nuevo')}>Nuevo</D365CommandButton>
+            <D365CommandButton icon={<ArrowUpload16Regular />} onClick={() => setImportarOpen(true)}>Importar manifiesto</D365CommandButton>
             <D365CommandDivider />
           </>
         )}
@@ -306,5 +309,14 @@ export function ComprasListPage() {
         </DialogBody>
       </DialogSurface>
     </Dialog>
+
+    <ImportarManifiestoDrawer
+      open={importarOpen}
+      onOpenChange={setImportarOpen}
+      onSuccess={(_id, num) => {
+        setMensaje(`Manifiesto importado exitosamente como compra ${num}.`);
+        void cargar();
+      }}
+    />
   </div>;
 }

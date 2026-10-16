@@ -1,7 +1,7 @@
 import { UnsavedChangesGuard } from '../common/UnsavedChangesGuard';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
-import { makeStyles, tokens } from '@fluentui/react-components';
+import { makeStyles, tokens, Spinner } from '@fluentui/react-components';
 import { SuiteBar } from './SuiteBar';
 import { SideNav } from './SideNav';
 import { availableApps } from '../../features/seguridad/services/securityAccess';
@@ -152,7 +152,27 @@ export const MainLayout: React.FC = () => {
 
         {/* Right Content Area: Rendered via React Router Outlet */}
         <main className={styles.mainContent}>
-          <Outlet />
+          <Suspense
+            fallback={
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexGrow: 1,
+                  height: '100%',
+                  minHeight: '320px',
+                  gap: '12px',
+                  backgroundColor: tokens.colorNeutralBackground3,
+                }}
+              >
+                <Spinner size="large" label="Cargando módulo..." />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

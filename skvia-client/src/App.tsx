@@ -86,7 +86,7 @@ const RouteLoadingFallback: React.FC = () => (
 
 const router = createBrowserRouter(createRoutesFromElements(
           <>
-            <Route path="/login" element={<LoginPage />} errorElement={<D365RouteError />} />
+            <Route path="/login" element={<Suspense fallback={<RouteLoadingFallback />}><LoginPage /></Suspense>} errorElement={<D365RouteError />} />
             <Route element={<RequireSession />} errorElement={<D365RouteError />}>
             <Route path="/" element={<MainLayout />}>
               <Route path="configuracion/usuarios" element={<UsuariosListPage />} />
@@ -202,9 +202,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <D365FeedbackHost />
-        <Suspense fallback={<RouteLoadingFallback />}>
-          <RouterProvider router={router} />
-        </Suspense>
+      <RouterProvider router={router} />
     </ThemeProvider>
   );
 }
