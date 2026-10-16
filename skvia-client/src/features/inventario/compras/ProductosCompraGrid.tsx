@@ -55,6 +55,8 @@ import { ImportarProductosCompraDrawer } from './ImportarProductosCompraDrawer';
 export type LineaCompraForm = {
   clave: string;
   productoId: string;
+  productoNombre?: string;
+  productoCodigo?: string;
   cantidad: string;
   costo: string;
   series: string;
@@ -157,6 +159,8 @@ export function ProductosCompraGrid({
   const [resultados, setResultados] = useState<ProductoDto[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [importDrawerOpen, setImportDrawerOpen] = useState(false);
+  const [mensajeImportacion, setMensajeImportacion] = useState<string | null>(null);
+  const [clavesUltimaImportacion, setClavesUltimaImportacion] = useState<string[]>([]);
 
   const producto = productos.find(p => p.id === linea?.productoId);
   const seleccionada = lineas.find(x => seleccionados.has(x.clave));
@@ -295,19 +299,23 @@ export function ProductosCompraGrid({
     createTableColumn({
       columnId: 'producto',
       renderHeaderCell: () => 'Producto',
-      renderCell: x => (
-        <TableCellLayout>
-          <Link
-            as="button"
-            onClick={e => {
-              e.stopPropagation();
-              abrir(x);
-            }}
-          >
-            {productos.find(p => p.id === x.productoId)?.nombre ?? '---'}
-          </Link>
-        </TableCellLayout>
-      ),
+      renderCell: x => {
+        const prod = productos.find(p => p.id === x.productoId);
+        const nombre = prod?.nombre || x.productoNombre || '---';
+        return (
+          <TableCellLayout>
+            <Link
+              as="button"
+              onClick={e => {
+                e.stopPropagation();
+                abrir(x);
+              }}
+            >
+              {nombre}
+            </Link>
+          </TableCellLayout>
+        );
+      },
     }),
     createTableColumn({
       columnId: 'unidad',
@@ -403,7 +411,9 @@ export function ProductosCompraGrid({
       ),
       renderCell: x => {
         const prod = productos.find(p => p.id === x.productoId);
-        if (!prod?.esSerializado) {
+        const tieneSeries = Boolean(x.series && x.series.trim());
+        const esSerializado = Boolean(prod?.esSerializado || tieneSeries);
+        if (!esSerializado) {
           return (
             <TableCellLayout>
               <Text size={200} style={{ color: tokens.colorNeutralForeground4 }}>
@@ -526,6 +536,35 @@ export function ProductosCompraGrid({
           </D365CommandButton>
         </div>
       </D365CommandBar>
+
+      {mensajeImportacion && (
+        <div style={{ padding: '8px 0' }}>
+          <D365MessageBar
+            intent="success"
+            onDismiss={() => {
+              setMensajeImportacion(null);
+              setClavesUltimaImportacion([]);
+            }}
+            actions={
+              clavesUltimaImportacion.length > 0 && !bloqueado && !soloLectura ? (
+                <Button
+                  appearance="subtle"
+                  size="small"
+                  onClick={() => {
+                    alCambiar(lineas.filter(l => !clavesUltimaImportacion.includes(l.clave)));
+                    setMensajeImportacion('Se revirtió la importación de productos.');
+                    setClavesUltimaImportacion([]);
+                  }}
+                >
+                  Deshacer importación
+                </Button>
+              ) : undefined
+            }
+          >
+            {mensajeImportacion}
+          </D365MessageBar>
+        </div>
+      )}
 
       <div className={styles.grid}>
         <DataGrid
@@ -906,6 +945,9 @@ export function ProductosCompraGrid({
           if (nuevosProductos && nuevosProductos.length > 0) {
             nuevosProductos.forEach((p) => alCargarProducto(p));
           }
+          const clavesNuevas = nuevasLineas.map(l => l.clave);
+          setClavesUltimaImportacion(clavesNuevas);
+          setMensajeImportacion(`Se importaron ${nuevasLineas.length} producto(s) a la orden de compra.`);
           alCambiar([...lineas, ...nuevasLineas]);
         }}
       />

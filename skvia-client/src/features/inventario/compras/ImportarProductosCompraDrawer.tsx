@@ -174,37 +174,37 @@ const CAMPOS_DESTINO: CampoSistema[] = [
     id: 'sku',
     nombreVisible: 'Código / SKU',
     requerido: true,
-    sinonimos: ['codigo', 'sku', 'codigo de producto', 'codigo producto'],
+    sinonimos: ['codigo', 'sku', 'codigo de producto', 'codigo producto', 'cod_producto', 'cod producto', 'item', 'referencia'],
   },
   {
     id: 'cantidad',
     nombreVisible: 'Cantidad',
     requerido: true,
-    sinonimos: ['cantidad'],
+    sinonimos: ['cantidad', 'esperado', 'cant', 'qty', 'cantidad esperada', 'procesado'],
   },
   {
     id: 'serie',
     nombreVisible: 'Número de Serie',
     requerido: false,
-    sinonimos: ['serie', 'numero de serie', 'numero serie'],
+    sinonimos: ['serie', 'numero de serie', 'numero serie', 'series', 'serial', 'sn', 'nro serie', 'n serie'],
   },
   {
     id: 'producto',
     nombreVisible: 'Descripción del producto',
     requerido: false,
-    sinonimos: ['descripcion', 'nombre', 'descripcion de producto', 'descripcion producto'],
+    sinonimos: ['descripcion', 'nombre', 'descripcion de producto', 'descripcion producto', 'producto', 'articulo', 'detalle'],
   },
   {
     id: 'costo',
     nombreVisible: 'Costo unitario',
     requerido: false,
-    sinonimos: ['costo', 'costo unitario'],
+    sinonimos: ['costo', 'costo unitario', 'precio', 'precio unitario', 'p.u.', 'pu', 'p unitario', 'costo unit'],
   },
   {
     id: 'uom',
     nombreVisible: 'Unidad de medida',
     requerido: false,
-    sinonimos: ['unidad de medida', 'unidad'],
+    sinonimos: ['unidad de medida', 'unidad', 'uom', 'und', 'medida', 'um'],
   },
 ];
 
@@ -217,6 +217,7 @@ interface FilaConsolidada {
   series: string[];
   productoId?: string;
   encontradoEnCatalogo: boolean;
+  productoOriginal?: ProductoDto;
 }
 
 function normalizar(texto: string): string {
@@ -245,6 +246,12 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
   const [rawRows, setRawRows] = useState<Record<string, any>[]>([]);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({}); // Header -> campoSistemaId
   const [filasConsolidadas, setFilasConsolidadas] = useState<FilaConsolidada[]>([]);
+  const [resumenCarga, setResumenCarga] = useState<{
+    totalValidas: number;
+    totalRechazadas: number;
+    totalUnidades: number;
+    totalSeries: number;
+  } | null>(null);
   const [analizando, setAnalizando] = useState(false);
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -389,6 +396,7 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
           series: [],
           productoId: match?.id,
           encontradoEnCatalogo: Boolean(match),
+          productoOriginal: match,
         };
         mapaAgrupado.set(key, existente);
       }
@@ -427,9 +435,15 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
         throw new Error('Ningún producto del archivo existe en el catálogo maestro. Las filas han sido rechazadas.');
       }
 
+      const prodsUtilizados = filasValidas
+        .map((f) => f.productoOriginal)
+        .filter((p): p is ProductoDto => Boolean(p));
+
       const lineasFinales: LineaCompraForm[] = filasValidas.map((item) => ({
         clave: crypto.randomUUID(),
         productoId: item.productoId!,
+        productoNombre: item.nombre,
+        productoCodigo: item.sku,
         cantidad: String(item.cantidad),
         costo: String(item.costo || 0),
         series: item.series.join('\n'),
@@ -437,8 +451,16 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
         unidadMedidaNombre: item.uom,
       }));
 
-      onImportarLineas(lineasFinales);
-      handleClose();
+      onImportarLineas(lineasFinales, prodsUtilizados);
+
+      setResumenCarga({
+        totalValidas: filasValidas.length,
+        totalRechazadas: filasRechazadas.length,
+        totalUnidades: totalUnidadesValidas,
+        totalSeries: totalSeriesValidas,
+      });
+
+      setCurrentStep(4);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar las líneas a la orden.');
     } finally {
@@ -453,6 +475,7 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
     setRawRows([]);
     setColumnMapping({});
     setFilasConsolidadas([]);
+    setResumenCarga(null);
     setError(null);
     onOpenChange(false);
   };
@@ -768,6 +791,81 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
             </div>
           </div>
         )}
+
+        {/* PASO 4: RESULTADO DE LA CARGA */}
+        {currentStep === 4 && resumenCarga && (
+          <div className={importStyles.resultColumn}>
+            <D365MessageBar
+              intent={resumenCarga.totalRechazadas === 0 ? 'success' : 'warning'}
+              title={
+                resumenCarga.totalRechazadas === 0
+                  ? 'Productos cargados exitosamente a la orden'
+                  : 'Productos cargados con líneas rechazadas'
+              }
+            >
+              Se cargaron {resumenCarga.totalValidas} producto(s) a la orden de compra
+              ({resumenCarga.totalUnidades.toLocaleString('es-PE')} unidades
+              {resumenCarga.totalSeries > 0 ? ` y ${resumenCarga.totalSeries.toLocaleString('es-PE')} series registradas` : ''}).
+              {resumenCarga.totalRechazadas > 0 &&
+                ` ${resumenCarga.totalRechazadas} producto(s) fueron rechazados por no encontrarse en el catálogo maestro.`}
+            </D365MessageBar>
+
+            <div className={importStyles.resultMetricsGrid}>
+              <div className={importStyles.metricCard}>
+                <Text size={600} weight="bold" className={importStyles.success}>
+                  {resumenCarga.totalValidas}
+                </Text>
+                <br />
+                <Text size={100} className={importStyles.muted}>
+                  Cargados
+                </Text>
+              </div>
+
+              <div className={importStyles.metricCard}>
+                <Text
+                  size={600}
+                  weight="bold"
+                  className={resumenCarga.totalRechazadas > 0 ? importStyles.danger : undefined}
+                >
+                  {resumenCarga.totalRechazadas}
+                </Text>
+                <br />
+                <Text size={100} className={importStyles.muted}>
+                  Rechazados
+                </Text>
+              </div>
+
+              <div className={importStyles.metricCard}>
+                <Text size={600} weight="bold">
+                  {resumenCarga.totalUnidades.toLocaleString('es-PE')}
+                </Text>
+                <br />
+                <Text size={100} className={importStyles.muted}>
+                  Unidades
+                </Text>
+              </div>
+
+              <div className={importStyles.metricCard}>
+                <Text size={600} weight="bold">
+                  {resumenCarga.totalSeries.toLocaleString('es-PE')}
+                </Text>
+                <br />
+                <Text size={100} className={importStyles.muted}>
+                  Series
+                </Text>
+              </div>
+            </div>
+
+            <div className={styles.settingsCard}>
+              <div className={styles.sectionTitle}>
+                Estado en la Orden
+              </div>
+              <Text size={200} className={importStyles.muted}>
+                Los productos ya fueron volcados a la tabla de productos de la orden de compra. Puede visualizarlos, verificar sus series haciendo clic en el badge de series de cada producto, y ajustar cantidades o costos si lo requiere antes de guardar.
+              </Text>
+            </div>
+          </div>
+        )}
       </DrawerBody>
 
       <DrawerFooter className={styles.drawerFooter}>
@@ -833,6 +931,12 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
               )}
             </Button>
           </>
+        )}
+
+        {currentStep === 4 && (
+          <Button appearance="primary" onClick={handleClose} className={importStyles.rightAligned}>
+            Aceptar y ver en la orden
+          </Button>
         )}
       </DrawerFooter>
     </OverlayDrawer>

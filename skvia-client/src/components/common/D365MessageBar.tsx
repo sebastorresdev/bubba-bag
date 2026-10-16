@@ -14,6 +14,7 @@ export interface D365MessageBarProps {
   children: ReactNode;
   title?: ReactNode;
   onDismiss?: () => void;
+  actions?: ReactNode;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -30,6 +31,7 @@ export const D365MessageBar: React.FC<D365MessageBarProps> = ({
   children,
   title,
   onDismiss,
+  actions,
   className,
   style,
 }) => (
@@ -38,17 +40,21 @@ export const D365MessageBar: React.FC<D365MessageBarProps> = ({
       <MessageBarTitle>{title ?? defaultTitles[intent]}</MessageBarTitle>
       {children}
     </MessageBarBody>
-    {onDismiss && (
+    {(actions || onDismiss) && (
       <MessageBarActions
         containerAction={
-          <Button
-            appearance="transparent"
-            aria-label="Cerrar notificación"
-            icon={<DismissRegular />}
-            onClick={onDismiss}
-          />
+          onDismiss ? (
+            <Button
+              appearance="transparent"
+              aria-label="Cerrar notificación"
+              icon={<DismissRegular />}
+              onClick={onDismiss}
+            />
+          ) : undefined
         }
-      />
+      >
+        {actions}
+      </MessageBarActions>
     )}
   </MessageBar>
 );
