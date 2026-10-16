@@ -28,6 +28,7 @@ import {
 import type { SelectionItemId, TableColumnDefinition } from '@fluentui/react-components';
 import {
   Add16Regular,
+  ArrowUpload16Regular,
   Delete16Regular,
   Dismiss16Regular,
   Edit16Regular,
@@ -49,6 +50,7 @@ import { ProductoService } from '../productos/services/producto.service';
 import { UnidadMedidaService } from '../unidades-medida/services/unidadMedida.service';
 import type { UnidadMedidaDto } from '../unidades-medida/types/unidadMedida.types';
 import { SeriesCompraTable, obtenerSeriesCompra } from './SeriesCompraTable';
+import { ImportarProductosCompraDrawer } from './ImportarProductosCompraDrawer';
 
 export type LineaCompraForm = {
   clave: string;
@@ -154,6 +156,7 @@ export function ProductosCompraGrid({
   const [error, setError] = useState('');
   const [resultados, setResultados] = useState<ProductoDto[]>([]);
   const [buscando, setBuscando] = useState(false);
+  const [importDrawerOpen, setImportDrawerOpen] = useState(false);
 
   const producto = productos.find(p => p.id === linea?.productoId);
   const seleccionada = lineas.find(x => seleccionados.has(x.clave));
@@ -493,6 +496,13 @@ export function ProductosCompraGrid({
             onClick={() => abrir()}
           >
             Agregar producto
+          </D365CommandButton>
+          <D365CommandButton
+            icon={<ArrowUpload16Regular />}
+            disabled={bloqueado || soloLectura || soloSeries}
+            onClick={() => setImportDrawerOpen(true)}
+          >
+            Importar productos
           </D365CommandButton>
           <D365CommandButton
             icon={<Edit16Regular />}
@@ -887,6 +897,18 @@ export function ProductosCompraGrid({
           )}
         </DrawerFooter>
       </OverlayDrawer>
+
+      <ImportarProductosCompraDrawer
+        open={importDrawerOpen}
+        onOpenChange={setImportDrawerOpen}
+        productosExistentes={productos}
+        onImportarLineas={(nuevasLineas, nuevosProductos) => {
+          if (nuevosProductos && nuevosProductos.length > 0) {
+            nuevosProductos.forEach((p) => alCargarProducto(p));
+          }
+          alCambiar([...lineas, ...nuevasLineas]);
+        }}
+      />
     </>
   );
 }
