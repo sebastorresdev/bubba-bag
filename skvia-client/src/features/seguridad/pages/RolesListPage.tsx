@@ -199,7 +199,13 @@ export function RolesListPage() {
         renderHeaderCell: () => 'Rol de seguridad',
         renderCell: (x) => (
           <TableCellLayout truncate title={x.nombreVisible}>
-            <Link as="button" onClick={() => navigate(`/configuracion/roles/${x.id}`)}>
+            <Link
+              as="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/configuracion/roles/${x.id}`);
+              }}
+            >
               {x.nombreVisible}
             </Link>
           </TableCellLayout>

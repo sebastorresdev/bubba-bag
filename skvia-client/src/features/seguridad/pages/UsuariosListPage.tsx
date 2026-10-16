@@ -132,7 +132,13 @@ export function UsuariosListPage() {
       renderHeaderCell: () => 'Nombre',
       renderCell: (x) => (
         <TableCellLayout truncate title={x.nombreCompleto}>
-          <Link as="button" onClick={() => navigate(`/configuracion/usuarios/${x.id}`)}>
+          <Link
+            as="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/configuracion/usuarios/${x.id}`);
+            }}
+          >
             {x.nombreCompleto}
           </Link>
         </TableCellLayout>

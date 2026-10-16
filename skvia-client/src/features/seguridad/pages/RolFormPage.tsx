@@ -22,6 +22,7 @@ import {
   ArrowLeft16Regular,
   Save16Regular,
   SaveMultiple16Regular,
+  Add16Regular,
   Delete16Regular,
   ShieldKeyhole20Regular,
   Dismiss16Regular,
@@ -240,6 +241,14 @@ navigate('/configuracion/roles'); }
                 onClick={() => void save(true)}
               >
                 Guardar y cerrar
+              </D365CommandButton>
+              <D365CommandButton
+                tone="create"
+                icon={<Add16Regular />}
+                disabled={busy || loading}
+                onClick={() => void draft.discardAndRun(() => navigate('/configuracion/roles/nuevo'))}
+              >
+                Nuevo
               </D365CommandButton>
               <D365CommandButton
                 icon={<Key16Regular />}

@@ -24,6 +24,7 @@ import {
   ArrowLeft16Regular,
   Save16Regular,
   SaveMultiple16Regular,
+  Add16Regular,
   LockClosed16Regular,
   Person20Regular,
   ShieldPerson20Regular,
@@ -311,6 +312,26 @@ navigate('/configuracion/usuarios'); }
     }
   }
 
+  const handleNuevo = () => {
+    void draft.discardAndRun(() => {
+      if (isNew) {
+        setNombre('');
+        setEmail('');
+        setRoles([]);
+        setActivo(true);
+        setPasswordModo('automatica');
+        setPasswordAuto(generarPasswordSegura());
+        setPasswordManual('');
+        setMostrarPassword(false);
+        setError('');
+        setSuccess('');
+        setTab('general');
+      } else {
+        navigate('/configuracion/usuarios/nuevo');
+      }
+    });
+  };
+
   return (
     <div className={styles.root}>
       {/* 1. COMMANDBAR ESTÁNDAR DYNAMICS 365 */}
@@ -344,6 +365,15 @@ navigate('/configuracion/usuarios'); }
                 onClick={() => void save(true)}
               >
                 Guardar y cerrar
+              </D365CommandButton>
+
+              <D365CommandButton
+                tone="create"
+                icon={<Add16Regular />}
+                disabled={busy || loading}
+                onClick={handleNuevo}
+              >
+                Nuevo
               </D365CommandButton>
 
               {id && (

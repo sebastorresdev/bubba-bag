@@ -209,7 +209,7 @@ export function TareasListPage() {
         renderHeaderCell: () => 'Nombre de la Tarea',
         renderCell: (item) => (
           <TableCellLayout>
-            <Link onClick={() => abrirEditar(item)}>
+            <Link onClick={(e) => { e.stopPropagation(); abrirEditar(item); }}>
               {item.nombre}
             </Link>
           </TableCellLayout>

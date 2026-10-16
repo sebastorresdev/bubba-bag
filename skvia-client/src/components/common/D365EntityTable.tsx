@@ -678,6 +678,11 @@ function D365EntityTableInner<T extends { id: string }>(
                             flex: width ? `0 0 ${width}px` : undefined,
                             boxSizing: 'border-box',
                           }}
+                          onClick={(e) => {
+                            if ((e.target as HTMLElement).closest('a, button, [role="button"], input, select, textarea')) {
+                              e.stopPropagation();
+                            }
+                          }}
                         >
                           {renderCell(item)}
                         </DataGridCell>
