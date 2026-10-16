@@ -24,7 +24,6 @@ import {
 } from '@fluentui/react-components';
 import {
   DismissRegular,
-  ArrowUpload16Regular,
   CheckmarkCircle16Filled,
   Alert16Filled,
   ArrowLeft16Regular,
@@ -40,8 +39,8 @@ import type { LineaCompraForm } from './ProductosCompraGrid';
 
 const useStyles = makeStyles({
   drawer: {
-    width: '640px',
-    maxWidth: '96vw',
+    width: '560px',
+    maxWidth: '95vw',
   },
   drawerHeader: {
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
@@ -61,29 +60,37 @@ const useStyles = makeStyles({
     alignItems: 'center',
     backgroundColor: tokens.colorNeutralBackground2,
   },
-  dropZone: {
-    borderTop: `2px dashed ${tokens.colorBrandStroke1}`,
-    borderBottom: `2px dashed ${tokens.colorBrandStroke1}`,
-    borderLeft: `2px dashed ${tokens.colorBrandStroke1}`,
-    borderRight: `2px dashed ${tokens.colorBrandStroke1}`,
-    borderRadius: tokens.borderRadiusMedium,
-    padding: '32px 16px',
-    textAlign: 'center',
+  sectionTitle: {
+    fontSize: tokens.fontSizeBase300,
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground1,
+    marginBottom: '6px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  settingsCard: {
     backgroundColor: tokens.colorNeutralBackground1,
-    cursor: 'pointer',
-    transition: 'all 0.15s ease',
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    borderRadius: tokens.borderRadiusMedium,
+    padding: '14px',
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    ':hover': {
-      backgroundColor: tokens.colorBrandBackground2,
-    },
+    gap: '12px',
+  },
+  formRow: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+  },
+  mappingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
   },
   mappingRow: {
     display: 'grid',
-    gridTemplateColumns: '1.2fr 28px 1.4fr',
+    gridTemplateColumns: '1fr 28px 1.4fr',
     '@media (max-width: 767px)': { gridTemplateColumns: 'minmax(0, 1fr)', '& > :nth-child(2)': { display: 'none' } },
     alignItems: 'center',
     gap: '10px',
@@ -94,6 +101,33 @@ const useStyles = makeStyles({
     ':hover': {
       backgroundColor: tokens.colorNeutralBackground1Hover,
     },
+  },
+  mappingSection: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  mappingSectionOptional: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    marginTop: '10px',
+    paddingTop: '16px',
+    borderTop: `1px solid ${tokens.colorNeutralStroke1}`,
+  },
+  mappingSectionTitle: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+    marginBottom: '2px',
+  },
+  sampleText: {
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground3,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    display: 'block',
   },
   statusIconMapped: {
     color: semanticTokens.status.success,
@@ -107,37 +141,15 @@ const useStyles = makeStyles({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sampleText: {
-    fontSize: tokens.fontSizeBase200,
-    color: tokens.colorNeutralForeground3,
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    display: 'block',
-  },
-  metricsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-    gap: '10px',
-  },
-  metricCard: {
-    backgroundColor: tokens.colorNeutralBackground2,
-    border: `1px solid ${tokens.colorNeutralStroke2}`,
-    borderRadius: tokens.borderRadiusMedium,
-    padding: '10px 14px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-  },
   tableWrapper: {
-    maxHeight: '320px',
+    maxHeight: '260px',
     overflowY: 'auto',
     border: `1px solid ${tokens.colorNeutralStroke2}`,
     borderRadius: tokens.borderRadiusMedium,
     backgroundColor: tokens.colorNeutralBackground1,
   },
   codeFont: {
-    fontFamily: 'Consolas, Monaco, monospace',
+    fontFamily: tokens.fontFamilyMonospace,
     fontSize: '12px',
     fontWeight: tokens.fontWeightSemibold,
   },
@@ -160,13 +172,13 @@ interface CampoSistema {
 const CAMPOS_DESTINO: CampoSistema[] = [
   {
     id: 'sku',
-    nombreVisible: 'Código / SKU de producto',
+    nombreVisible: 'Código / SKU',
     requerido: true,
     sinonimos: ['sku', 'codigo', 'código', 'cod', 'item', 'material', 'ref'],
   },
   {
     id: 'cantidad',
-    nombreVisible: 'Cantidad / Esperado',
+    nombreVisible: 'Cantidad esperada',
     requerido: true,
     sinonimos: ['esperado', 'cantidad', 'cant', 'qty', 'unidades', 'cant.'],
   },
@@ -178,7 +190,7 @@ const CAMPOS_DESTINO: CampoSistema[] = [
   },
   {
     id: 'producto',
-    nombreVisible: 'Descripción / Producto',
+    nombreVisible: 'Descripción del producto',
     requerido: false,
     sinonimos: ['producto', 'descripcion', 'descripción', 'nombre', 'detalle'],
   },
@@ -237,12 +249,12 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Mapeador inteligente en 2 fases (exacto y aproximado)
+  // Mapeador inteligente en 2 fases con exclusividad
   const ejecutarMapeoInteligente = (columnas: string[]) => {
     const mapeo: Record<string, string> = {};
     const camposUsados = new Set<string>();
 
-    // Fase 1: Coincidencia exacta o sinónimo exacto
+    // Fase 1: Coincidencias exactas
     columnas.forEach((col) => {
       const normCol = normalizar(col);
       for (const campo of CAMPOS_DESTINO) {
@@ -259,7 +271,7 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
       }
     });
 
-    // Fase 2: Coincidencia aproximada/parcial para columnas no asignadas
+    // Fase 2: Coincidencias aproximadas
     columnas.forEach((col) => {
       if (mapeo[col]) return;
       const normCol = normalizar(col);
@@ -283,7 +295,7 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
     setColumnMapping(mapeo);
   };
 
-  const procesarArchivo = async (file: File) => {
+  const handleFileChange = async (file: File) => {
     try {
       setAnalizando(true);
       setError(null);
@@ -293,7 +305,7 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
       const workbook = XLSX.read(buffer, { type: 'array' });
       const firstSheetName = workbook.SheetNames[0];
       if (!firstSheetName) {
-        throw new Error('El archivo no contiene hojas de cálculo con datos.');
+        throw new Error('El archivo no contiene hojas con datos.');
       }
 
       const worksheet = workbook.Sheets[firstSheetName];
@@ -303,7 +315,7 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
         throw new Error('El archivo seleccionado está vacío.');
       }
 
-      // Encontrar fila de encabezado
+      // Detectar fila de cabecera
       let headerRowIndex = 0;
       for (let i = 0; i < Math.min(json.length, 10); i++) {
         const row = json[i];
@@ -316,7 +328,7 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
         }
       }
 
-      const headerRow = json[headerRowIndex].map((h, idx) => String(h || `Col_${idx + 1}`).trim());
+      const headerRow = json[headerRowIndex].map((h, idx) => String(h || `Columna_${idx + 1}`).trim());
       const dataRows = json.slice(headerRowIndex + 1);
 
       const rows: Record<string, any>[] = [];
@@ -336,7 +348,6 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
       setHeaders(headerRow);
       setRawRows(rows);
       ejecutarMapeoInteligente(headerRow);
-      setCurrentStep(2);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al procesar el archivo seleccionado.');
     } finally {
@@ -344,7 +355,7 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
     }
   };
 
-  // Consolidar filas al pasar a Paso 3
+  // Consolidar filas para la vista previa del paso 3
   const consolidarFilas = async () => {
     const colSku = Object.entries(columnMapping).find(([, campo]) => campo === 'sku')?.[0];
     const colCant = Object.entries(columnMapping).find(([, campo]) => campo === 'cantidad')?.[0];
@@ -354,7 +365,7 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
     const colUom = Object.entries(columnMapping).find(([, campo]) => campo === 'uom')?.[0];
 
     if (!colSku || !colCant) {
-      setError('Debe asignar obligatoriamente las columnas de SKU / Código y Cantidad / Esperado.');
+      setError('Debe mapear los campos obligatorios: Código / SKU y Cantidad esperada.');
       return false;
     }
 
@@ -376,7 +387,6 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
       let existente = mapaAgrupado.get(key);
 
       if (!existente) {
-        // Buscar en productos ya cargados en la vista
         const match = productosExistentes.find(
           (p) => p.codigo?.trim().toUpperCase() === key
         );
@@ -428,7 +438,6 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
       for (const item of filasConsolidadas) {
         let prodId = item.productoId;
 
-        // Si no existe en el catálogo, buscar o auto-crear para tener un ID válido
         if (!prodId) {
           try {
             const busq = await ProductoService.buscarInventariables(item.sku);
@@ -437,7 +446,6 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
             if (coincidencia) {
               prodId = coincidencia.id;
             } else {
-              // Auto-crear producto inventariable
               const nuevo = await ProductoService.createProducto({
                 codigo: item.sku,
                 nombre: item.nombre || item.sku,
@@ -452,7 +460,7 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
               nuevosProdsCreados.push(prodCompleto);
             }
           } catch {
-            // Si falla la auto-creación, omitir o advertir
+            // Omitir si falla auto-creación
           }
         }
 
@@ -474,7 +482,7 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
       }
 
       onImportarLineas(lineasFinales, nuevosProdsCreados);
-      handleCerrar();
+      handleClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar las líneas a la orden.');
     } finally {
@@ -482,7 +490,7 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
     }
   };
 
-  const handleCerrar = () => {
+  const handleClose = () => {
     setCurrentStep(1);
     setSelectedFile(null);
     setHeaders([]);
@@ -506,13 +514,71 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
     return filasConsolidadas.reduce((acc, f) => acc + f.cantidad, 0);
   }, [filasConsolidadas]);
 
+  const renderFieldMapping = (campo: CampoSistema) => {
+    const sourceHeader = Object.entries(columnMapping).find(
+      ([, idDestino]) => idDestino === campo.id
+    )?.[0] || '';
+
+    const primerValor = sourceHeader && rawRows[0] ? String(rawRows[0][sourceHeader] ?? '') : '';
+
+    return (
+      <div key={campo.id} className={styles.mappingRow}>
+        <div className={importStyles.overflowHidden}>
+          <Select
+            value={sourceHeader}
+            size="medium"
+            aria-label={`Columna de origen para ${campo.nombreVisible}`}
+            onChange={(_, data) => {
+              setColumnMapping((prev) => {
+                const next = { ...prev };
+                Object.keys(next).forEach((h) => {
+                  if (next[h] === campo.id) delete next[h];
+                });
+                if (data.value) next[data.value] = campo.id;
+                return next;
+              });
+            }}
+          >
+            <option value="">Sin asignar</option>
+            {headers.map((h) => (
+              <option key={h} value={h}>
+                {h}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div className={importStyles.centered}>
+          {sourceHeader ? (
+            <span className={styles.statusIconMapped}>
+              <CheckmarkCircle16Filled />
+            </span>
+          ) : (
+            <span className={styles.statusIconUnmapped}>
+              <Alert16Filled />
+            </span>
+          )}
+        </div>
+
+        <div className={importStyles.overflowHidden}>
+          <Text weight="semibold" size={200} className={importStyles.blockText}>
+            {campo.nombreVisible}
+          </Text>
+          <span className={styles.sampleText}>
+            {primerValor ? `Ejemplo: ${primerValor}` : campo.requerido ? 'Campo obligatorio' : 'Campo opcional'}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <OverlayDrawer
       open={open}
       position="end"
       className={styles.drawer}
       onOpenChange={(_, state) => {
-        if (!state.open) handleCerrar();
+        if (!state.open) handleClose();
       }}
     >
       <DrawerHeader className={styles.drawerHeader}>
@@ -522,13 +588,13 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
               appearance="subtle"
               aria-label="Cerrar"
               icon={<DismissRegular />}
-              onClick={handleCerrar}
+              onClick={handleClose}
             />
           }
         >
           <div className={importStyles.column}>
             <Text weight="semibold" size={400}>
-              Importar Productos a la Orden
+              Importar desde Excel o CSV
             </Text>
             {selectedFile && (
               <Text size={200} className={importStyles.muted}>
@@ -549,141 +615,103 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
         {/* PASO 1: SELECCIÓN DE ARCHIVO */}
         {currentStep === 1 && (
           <>
-            <div
-              className={styles.dropZone}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <ArrowUpload16Regular style={{ fontSize: '32px', color: tokens.colorBrandForeground1 }} />
-              <Text weight="semibold" size={300}>
-                Haga clic para seleccionar o arrastre el archivo
-              </Text>
-              <Text size={200} className={importStyles.muted}>
-                Formatos compatibles: .xlsx, .xls, .csv, o archivo HTML exportado
-              </Text>
+            <div className={styles.formRow}>
+              <label htmlFor="archivo-importacion-orden">Archivo</label>
               <input
+                id="archivo-importacion-orden"
                 ref={fileInputRef}
                 type="file"
                 accept=".xlsx,.xls,.csv,.txt,.html,.htm"
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void procesarArchivo(f);
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void handleFileChange(file);
                 }}
               />
+              {selectedFile && (
+                <small>
+                  {selectedFile.name} · {(selectedFile.size / 1024).toFixed(1)} KB · {headers.length} columnas
+                </small>
+              )}
             </div>
 
             {analizando && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center', padding: '16px' }}>
-                <Spinner size="small" label="Analizando columnas y registros del archivo..." />
+              <div className={importStyles.analysisRow}>
+                <Spinner size="tiny" />
+                <Text size={200}>Analizando estructura del archivo...</Text>
               </div>
             )}
           </>
         )}
 
-        {/* PASO 2: MAPEO INTELIGENTE DE COLUMNAS */}
+        {/* PASO 2: MAPEO INTELIGENTE DE CAMPOS */}
         {currentStep === 2 && (
-          <>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <Text weight="semibold" size={300}>
-                Asignación de Columnas del Archivo
-              </Text>
-              <Text size={200} className={importStyles.muted}>
-                Verifique que las columnas del archivo correspondan a los campos de la orden.
-              </Text>
-            </div>
+          <div className={styles.mappingContainer}>
+            {camposRequeridosSinAsignar.length > 0 && (
+              <D365MessageBar intent="warning" title="Campos obligatorios requeridos">
+                Debe mapear los siguientes campos: {camposRequeridosSinAsignar.map((f) => f.nombreVisible).join(', ')}.
+              </D365MessageBar>
+            )}
 
-            <div className={importStyles.mappingHeader}>
-              <span>Columna en archivo</span>
-              <span />
-              <span>Campo en la orden</span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {CAMPOS_DESTINO.map((campo) => {
-                const headerAsignado = Object.entries(columnMapping).find(
-                  ([, idDestino]) => idDestino === campo.id
-                )?.[0] || '';
-
-                const primerValor = headerAsignado && rawRows[0] ? String(rawRows[0][headerAsignado] ?? '') : '';
-
-                return (
-                  <div key={campo.id} className={styles.mappingRow}>
-                    <div className={importStyles.overflowHidden}>
-                      <Select
-                        value={headerAsignado}
-                        size="medium"
-                        aria-label={`Columna para ${campo.nombreVisible}`}
-                        onChange={(_, data) => {
-                          setColumnMapping((prev) => {
-                            const next = { ...prev };
-                            Object.keys(next).forEach((k) => {
-                              if (next[k] === campo.id) delete next[k];
-                            });
-                            if (data.value) next[data.value] = campo.id;
-                            return next;
-                          });
-                        }}
-                      >
-                        <option value="">(Sin asignar)</option>
-                        {headers.map((h) => (
-                          <option key={h} value={h}>
-                            {h}
-                          </option>
-                        ))}
-                      </Select>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'center' }}>
-                      {headerAsignado ? (
-                        <span className={styles.statusIconMapped}>
-                          <CheckmarkCircle16Filled />
-                        </span>
-                      ) : (
-                        <span className={styles.statusIconUnmapped}>
-                          <Alert16Filled />
-                        </span>
-                      )}
-                    </div>
-
-                    <div className={importStyles.overflowHidden}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Text weight="semibold" size={200}>
-                          {campo.nombreVisible}
-                        </Text>
-                        {campo.requerido && (
-                          <Text size={200} style={{ color: tokens.colorPaletteRedForeground1, fontWeight: 'bold' }}>
-                            *
-                          </Text>
-                        )}
-                      </div>
-                      <span className={styles.sampleText}>
-                        {primerValor ? `Ej: ${primerValor}` : campo.requerido ? 'Requerido para la carga' : 'Opcional'}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-
-        {/* PASO 3: VISTA PREVIA Y CONSOLIDACIÓN */}
-        {currentStep === 3 && (
-          <>
-            <div className={styles.metricsGrid}>
-              <div className={styles.metricCard}>
-                <Text size={200} className={importStyles.muted}>Líneas a cargar</Text>
-                <Text weight="bold" size={500} style={{ color: tokens.colorBrandForeground1 }}>
-                  {filasConsolidadas.length}
+            <div className={styles.mappingSection}>
+              <div className={styles.mappingSectionTitle}>
+                <Text weight="semibold" size={300}>
+                  Mapeo obligatorio
                 </Text>
               </div>
-              <div className={styles.metricCard}>
-                <Text size={200} className={importStyles.muted}>Total unidades</Text>
-                <Text weight="bold" size={500}>{totalUnidades.toLocaleString('es-PE')}</Text>
+              <div className={importStyles.mappingHeader}>
+                <span>Columna del archivo</span>
+                <span />
+                <span>Campo del sistema</span>
               </div>
-              <div className={styles.metricCard}>
-                <Text size={200} className={importStyles.muted}>Series consolidadas</Text>
-                <Text weight="bold" size={500}>{totalSeries.toLocaleString('es-PE')}</Text>
+              {CAMPOS_DESTINO.filter((campo) => campo.requerido).map(renderFieldMapping)}
+            </div>
+
+            <div className={styles.mappingSectionOptional}>
+              <div className={styles.mappingSectionTitle}>
+                <Text weight="semibold" size={300}>
+                  Mapeo opcional
+                </Text>
+              </div>
+              <div className={importStyles.mappingHeader}>
+                <span>Columna del archivo</span>
+                <span />
+                <span>Campo del sistema</span>
+              </div>
+              {CAMPOS_DESTINO.filter((campo) => !campo.requerido).map(renderFieldMapping)}
+            </div>
+          </div>
+        )}
+
+        {/* PASO 3: REVISIÓN Y VISTA PREVIA FINAL */}
+        {currentStep === 3 && (
+          <div className={styles.settingsCard}>
+            <div className={styles.sectionTitle}>
+              Resumen de Productos Consolidados
+            </div>
+
+            <div className={importStyles.metricsGrid}>
+              <div className={importStyles.metricCard}>
+                <Text size={600} weight="bold" style={{ color: tokens.colorBrandForeground1 }}>
+                  {filasConsolidadas.length}
+                </Text>
+                <br />
+                <Text size={100} className={importStyles.muted}>Líneas</Text>
+              </div>
+
+              <div className={importStyles.metricCard}>
+                <Text size={600} weight="bold">
+                  {totalUnidades.toLocaleString('es-PE')}
+                </Text>
+                <br />
+                <Text size={100} className={importStyles.muted}>Unidades</Text>
+              </div>
+
+              <div className={importStyles.metricCard}>
+                <Text size={600} weight="bold">
+                  {totalSeries.toLocaleString('es-PE')}
+                </Text>
+                <br />
+                <Text size={100} className={importStyles.muted}>Series</Text>
               </div>
             </div>
 
@@ -743,28 +771,35 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
                 </TableBody>
               </Table>
             </div>
-          </>
+          </div>
         )}
       </DrawerBody>
 
       <DrawerFooter className={styles.drawerFooter}>
-        <Button appearance="secondary" onClick={handleCerrar} disabled={procesando}>
-          Cancelar
-        </Button>
+        {currentStep === 1 && (
+          <>
+            <Button appearance="secondary" onClick={handleClose}>
+              Cancelar
+            </Button>
+            <Button
+              appearance="primary"
+              disabled={!selectedFile || headers.length === 0 || analizando}
+              onClick={() => setCurrentStep(2)}
+            >
+              Siguiente
+            </Button>
+          </>
+        )}
 
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {currentStep > 1 && (
+        {currentStep === 2 && (
+          <>
             <Button
               appearance="secondary"
               icon={<ArrowLeft16Regular />}
-              onClick={() => setCurrentStep((s) => s - 1)}
-              disabled={procesando}
+              onClick={() => setCurrentStep(1)}
             >
               Atrás
             </Button>
-          )}
-
-          {currentStep === 2 && (
             <Button
               appearance="primary"
               disabled={camposRequeridosSinAsignar.length > 0}
@@ -775,9 +810,19 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
             >
               Siguiente
             </Button>
-          )}
+          </>
+        )}
 
-          {currentStep === 3 && (
+        {currentStep === 3 && (
+          <>
+            <Button
+              appearance="secondary"
+              icon={<ArrowLeft16Regular />}
+              disabled={procesando}
+              onClick={() => setCurrentStep(2)}
+            >
+              Atrás
+            </Button>
             <Button
               appearance="primary"
               icon={<Checkmark16Regular />}
@@ -787,11 +832,11 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
               {procesando ? (
                 <Spinner size="tiny" label="Cargando productos..." />
               ) : (
-                `Cargar ${filasConsolidadas.length} productos a la orden`
+                'Finalizar y Cargar'
               )}
             </Button>
-          )}
-        </div>
+          </>
+        )}
       </DrawerFooter>
     </OverlayDrawer>
   );
