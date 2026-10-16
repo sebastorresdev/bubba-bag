@@ -161,11 +161,15 @@ export function ProductosCompraGrid({
   const [importDrawerOpen, setImportDrawerOpen] = useState(false);
   const [mensajeImportacion, setMensajeImportacion] = useState<string | null>(null);
   const [clavesUltimaImportacion, setClavesUltimaImportacion] = useState<string[]>([]);
+  const [verSoloSeries, setVerSoloSeries] = useState(false);
 
   const producto = productos.find(p => p.id === linea?.productoId);
   const seleccionada = lineas.find(x => seleccionados.has(x.clave));
-  const seleccionadaSeriada = Boolean(productos.find(p => p.id === seleccionada?.productoId)?.esSerializado);
-  const drawerSoloLectura = soloLectura || (soloSeries && !producto?.esSerializado);
+  const seleccionadaTieneSeries = Boolean(seleccionada?.series && seleccionada.series.trim());
+  const seleccionadaSeriada = Boolean(productos.find(p => p.id === seleccionada?.productoId)?.esSerializado || seleccionadaTieneSeries);
+  const lineaTieneSeries = Boolean(linea?.series && linea.series.trim());
+  const esSerializadoActual = Boolean(producto?.esSerializado || lineaTieneSeries);
+  const drawerSoloLectura = soloLectura || (soloSeries && !esSerializadoActual);
   const consulta = busqueda.trim();
   const abierto = Boolean(linea);
   const productoId = linea?.productoId;
@@ -229,9 +233,10 @@ export function ProductosCompraGrid({
     : productos.filter(p => p.activo && p.tipo === 'Inventario');
   const dinero = (valor: number) => valor.toLocaleString('es-PE', { style: 'currency', currency: moneda });
 
-  const abrir = (x?: LineaCompraForm) => {
+  const abrir = (x?: LineaCompraForm, soloVerSeries = false) => {
     setLinea(x ? { ...x } : { clave: crypto.randomUUID(), productoId: '', cantidad: '', costo: '0', series: '', factorConversion: 1 });
     setEditando(Boolean(x));
+    setVerSoloSeries(Boolean(x && soloVerSeries));
     setBusqueda('');
     setBusquedaSerie('');
     setCopiadoExito(false);
@@ -264,7 +269,7 @@ export function ProductosCompraGrid({
       setError('La cantidad supera los decimales permitidos para el producto.');
       return;
     }
-    if (producto.esSerializado && !Number.isInteger(cantidad)) {
+    if (esSerializadoActual && !Number.isInteger(cantidad)) {
       setError('La cantidad de un producto serializado debe ser entera.');
       return;
     }
@@ -275,7 +280,7 @@ export function ProductosCompraGrid({
         .flatMap(x => x.series.split(/\r?\n/).map(s => s.trim().toUpperCase()).filter(Boolean))
     );
     if (
-      producto.esSerializado &&
+      esSerializadoActual &&
       (series.length > cantidad ||
         new Set(series).size !== series.length ||
         series.some(s => s.length > 100 || otrasSeries.has(s)))
@@ -286,8 +291,8 @@ export function ProductosCompraGrid({
     const unidadElegida = unidadesProducto.find(u => u.id === linea.unidadMedidaId);
     const nueva: LineaCompraForm = {
       ...linea,
-      series: producto.esSerializado ? series.join('\n') : '',
-      unidadMedidaNombre: unidadElegida?.nombre || linea.unidadMedidaNombre || producto.nombreUnidadMedidaDefecto || undefined,
+      series: esSerializadoActual ? series.join('\n') : '',
+      unidadMedidaNombre: unidadElegida?.nombre || linea.unidadMedidaNombre || producto?.nombreUnidadMedidaDefecto || undefined,
       factorConversion: unidadElegida?.factorConversionTotal || linea.factorConversion || 1,
     };
     alCambiar(editando ? lineas.map(x => (x.clave === nueva.clave ? nueva : x)) : [...lineas, nueva]);
@@ -442,7 +447,7 @@ export function ProductosCompraGrid({
                   as="button"
                   onClick={e => {
                     e.stopPropagation();
-                    abrir(x);
+                    abrir(x, true);
                   }}
                   style={{ textDecoration: 'none' }}
                 >
@@ -475,7 +480,7 @@ export function ProductosCompraGrid({
                 as="button"
                 onClick={e => {
                   e.stopPropagation();
-                  abrir(x);
+                  abrir(x, true);
                 }}
                 style={{ textDecoration: 'none' }}
               >
@@ -621,7 +626,7 @@ export function ProductosCompraGrid({
               />
             }
           >
-            {drawerSoloLectura && producto?.esSerializado ? (
+            {verSoloSeries || (drawerSoloLectura && esSerializadoActual) ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <BarcodeScanner20Regular style={{ color: tokens.colorBrandForeground1 }} />
                 <span>Series del producto</span>
@@ -642,7 +647,7 @@ export function ProductosCompraGrid({
           {error && <D365MessageBar intent="error" onDismiss={() => setError('')}>{error}</D365MessageBar>}
 
           {linea && (
-            drawerSoloLectura && producto?.esSerializado ? (
+            verSoloSeries || (drawerSoloLectura && esSerializadoActual) ? (
               /* VISTA DE SOLO LISTA DE SERIES (REQUERIMIENTO: lista de series con componente de lista) */
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 {/* Cabecera resumen del producto */}
@@ -659,10 +664,10 @@ export function ProductosCompraGrid({
                 >
                   <div>
                     <Text weight="semibold" style={{ display: 'block', fontSize: '14px' }}>
-                      {producto.nombre}
+                      {producto?.nombre || linea.productoNombre || 'Producto serializado'}
                     </Text>
                     <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                      Código: {producto.codigo} • Cantidad: {linea.cantidad} {producto.nombreUnidadMedidaDefecto || 'UND'}
+                      Código: {producto?.codigo || linea.productoCodigo || '---'} • Cantidad: {linea.cantidad} {linea.unidadMedidaNombre || producto?.nombreUnidadMedidaDefecto || 'UND'}
                     </Text>
                   </div>
                   <Badge
@@ -909,7 +914,7 @@ export function ProductosCompraGrid({
                     </D365FormField>
                   </>
                 )}
-                {(soloSeries || soloLectura || Boolean(linea.series)) && producto?.esSerializado && (
+                {(soloSeries || soloLectura || Boolean(linea.series) || esSerializadoActual) && (
                   <SeriesCompraTable
                     key={linea.clave}
                     valor={linea.series}
@@ -927,9 +932,9 @@ export function ProductosCompraGrid({
 
         <DrawerFooter className={styles.footer}>
           <Button onClick={() => setLinea(null)}>
-            {drawerSoloLectura ? 'Cerrar' : 'Cancelar'}
+            {drawerSoloLectura || verSoloSeries ? 'Cerrar' : 'Cancelar'}
           </Button>
-          {!drawerSoloLectura && (
+          {!drawerSoloLectura && !verSoloSeries && (
             <Button appearance="primary" disabled={bloqueado} onClick={confirmar}>
               {editando ? 'Guardar' : 'Agregar'}
             </Button>
