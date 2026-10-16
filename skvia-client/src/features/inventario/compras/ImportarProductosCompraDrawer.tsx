@@ -218,6 +218,8 @@ interface FilaConsolidada {
   productoId?: string;
   encontradoEnCatalogo: boolean;
   productoOriginal?: ProductoDto;
+  esValida: boolean;
+  motivoRechazo?: string;
 }
 
 function normalizar(texto: string): string {
@@ -397,6 +399,7 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
           productoId: match?.id,
           encontradoEnCatalogo: Boolean(match),
           productoOriginal: match,
+          esValida: true,
         };
         mapaAgrupado.set(key, existente);
       }
@@ -420,6 +423,19 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
       return false;
     }
 
+    // Regla de validación de incidencias e integridad con el catálogo
+    listado.forEach((fila) => {
+      if (!fila.encontradoEnCatalogo) {
+        fila.esValida = false;
+        fila.motivoRechazo = 'El producto no existe en el catálogo maestro.';
+      } else if (fila.productoOriginal && !fila.productoOriginal.esSerializado && fila.series.length > 0) {
+        fila.esValida = false;
+        fila.motivoRechazo = 'El producto está registrado como NO serializado en el catálogo, pero el archivo contiene números de serie.';
+      } else {
+        fila.esValida = true;
+      }
+    });
+
     setFilasConsolidadas(listado);
     return true;
   };
@@ -429,10 +445,10 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
       setProcesando(true);
       setError(null);
 
-      const filasValidas = filasConsolidadas.filter((f) => f.encontradoEnCatalogo && f.productoId);
+      const filasValidas = filasConsolidadas.filter((f) => f.esValida && f.productoId);
 
       if (filasValidas.length === 0) {
-        throw new Error('Ningún producto del archivo existe en el catálogo maestro. Las filas han sido rechazadas.');
+        throw new Error('Ningún producto del archivo cumple con las validaciones del catálogo maestro. Las filas han sido rechazadas.');
       }
 
       const prodsUtilizados = filasValidas
@@ -486,11 +502,11 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
   }, [columnMapping]);
 
   const filasValidas = useMemo(() => {
-    return filasConsolidadas.filter((f) => f.encontradoEnCatalogo);
+    return filasConsolidadas.filter((f) => f.esValida);
   }, [filasConsolidadas]);
 
   const filasRechazadas = useMemo(() => {
-    return filasConsolidadas.filter((f) => !f.encontradoEnCatalogo);
+    return filasConsolidadas.filter((f) => !f.esValida);
   }, [filasConsolidadas]);
 
   const totalSeriesValidas = useMemo(() => {
@@ -735,7 +751,7 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
                 </TableHeader>
                 <TableBody>
                   {filasConsolidadas.map((f, i) => {
-                    const rechazada = !f.encontradoEnCatalogo;
+                    const rechazada = !f.esValida;
                     return (
                       <TableRow
                         key={i}
@@ -777,7 +793,9 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
                         <TableCell>
                           <TableCellLayout>
                             {rechazada ? (
-                              <Badge appearance="tint" color="danger">Rechazado</Badge>
+                              <Tooltip content={f.motivoRechazo || 'Fila rechazada'} relationship="description">
+                                <Badge appearance="tint" color="danger">Rechazado</Badge>
+                              </Tooltip>
                             ) : (
                               <Badge appearance="tint" color="success">Existe</Badge>
                             )}
