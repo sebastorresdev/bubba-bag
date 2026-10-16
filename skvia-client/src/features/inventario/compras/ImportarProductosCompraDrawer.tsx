@@ -694,14 +694,14 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
             </div>
 
             <div className={styles.tableWrapper}>
-              <Table size="small">
+              <Table size="small" style={{ minWidth: '500px' }}>
                 <TableHeader>
                   <TableRow>
-                    <TableHeaderCell style={{ width: '130px' }}>Código / SKU</TableHeaderCell>
-                    <TableHeaderCell>Descripción</TableHeaderCell>
-                    <TableHeaderCell style={{ width: '70px', textAlign: 'right' }}>Cant.</TableHeaderCell>
-                    <TableHeaderCell style={{ width: '110px' }}>Series</TableHeaderCell>
-                    <TableHeaderCell style={{ width: '90px' }}>Catálogo</TableHeaderCell>
+                    <TableHeaderCell style={{ width: '100px', minWidth: '100px' }}>Código / SKU</TableHeaderCell>
+                    <TableHeaderCell style={{ minWidth: '140px' }}>Descripción</TableHeaderCell>
+                    <TableHeaderCell style={{ width: '60px', minWidth: '60px', textAlign: 'right' }}>Cant.</TableHeaderCell>
+                    <TableHeaderCell style={{ width: '95px', minWidth: '95px' }}>Series</TableHeaderCell>
+                    <TableHeaderCell style={{ width: '90px', minWidth: '90px' }}>Catálogo</TableHeaderCell>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
