@@ -20,7 +20,15 @@ public record ItemSeriadoStockDto(
     string? NumeroSmartCard,
     string? MacAddress,
     string Estado,
-    DateTime CreatedAt, Guid? UbicacionId, string? NombreUbicacion, string Condicion, Guid? TransferenciaEnTransitoId, string? TransferenciaNumero
+    DateTime CreatedAt,
+    Guid? UbicacionId,
+    string? NombreUbicacion,
+    string Condicion,
+    Guid? TransferenciaEnTransitoId,
+    string? TransferenciaNumero,
+    DateTime? FechaLlegadaAlmacen = null,
+    int? DiasEnAlmacen = null,
+    string? EstadoSla = null
 );
 
 public record ObtenerSeriesStockQuery(
@@ -59,23 +67,80 @@ public class ObtenerSeriesStockHandler(IServicioCampoDbContext context, ICurrent
                 (x.MacAddress != null && x.MacAddress.Contains(buscar)));
         }
 
-        var resultado = await items
+        var ahora = DateTime.UtcNow;
+
+        var rawItems = await items
             .OrderByDescending(x => x.CreatedAt)
-            .Select(x => new ItemSeriadoStockDto(
+            .Select(x => new
+            {
                 x.Id,
                 x.ProductoId,
-                x.Producto.Codigo,
-                x.Producto.Nombre,
-                x.UbicacionActual != null ? (Guid?)x.UbicacionActual.AlmacenId : null,
-                x.UbicacionActual != null ? x.UbicacionActual.Almacen.Nombre : null,
+                Codigo = x.Producto.Codigo,
+                Nombre = x.Producto.Nombre,
+                AlmacenId = x.UbicacionActual != null ? (Guid?)x.UbicacionActual.AlmacenId : null,
+                AlmacenNombre = x.UbicacionActual != null ? x.UbicacionActual.Almacen.Nombre : null,
                 x.NumeroSerie,
                 x.NumeroSmartCard,
                 x.MacAddress,
-                x.Estado.ToString(),
-                x.CreatedAt, x.UbicacionActualId, x.UbicacionActual != null ? x.UbicacionActual.Nombre : null, x.Condicion.ToString(), x.TransferenciaEnTransitoId,
-                context.Transferencias.Where(t=>t.Id==x.TransferenciaEnTransitoId).Select(t=>t.Numero).FirstOrDefault()
-            ))
+                Estado = x.Estado.ToString(),
+                x.CreatedAt,
+                x.UpdatedAt,
+                x.FechaInstalacion,
+                x.UbicacionActualId,
+                UbicacionNombre = x.UbicacionActual != null ? x.UbicacionActual.Nombre : null,
+                Condicion = x.Condicion.ToString(),
+                x.TransferenciaEnTransitoId,
+                TransferenciaNumero = context.Transferencias.Where(t => t.Id == x.TransferenciaEnTransitoId).Select(t => t.Numero).FirstOrDefault()
+            })
             .ToListAsync(cancellationToken);
+
+        var resultado = rawItems.Select(x =>
+        {
+            var fechaLlegada = x.UpdatedAt ?? x.CreatedAt;
+            int? diasEnAlmacen = null;
+            string estadoSla = "EnSla";
+
+            if (x.Estado == "InstaladoEnCliente")
+            {
+                estadoSla = "Instalado";
+                if (x.FechaInstalacion.HasValue)
+                {
+                    diasEnAlmacen = Math.Max(0, (int)(x.FechaInstalacion.Value - x.CreatedAt).TotalDays);
+                }
+            }
+            else
+            {
+                diasEnAlmacen = Math.Max(0, (int)(ahora - fechaLlegada).TotalDays);
+                if (diasEnAlmacen <= 15)
+                    estadoSla = "EnSla";
+                else if (diasEnAlmacen <= 30)
+                    estadoSla = "EnRiesgo";
+                else
+                    estadoSla = "Vencido";
+            }
+
+            return new ItemSeriadoStockDto(
+                x.Id,
+                x.ProductoId,
+                x.Codigo,
+                x.Nombre,
+                x.AlmacenId,
+                x.AlmacenNombre,
+                x.NumeroSerie,
+                x.NumeroSmartCard,
+                x.MacAddress,
+                x.Estado,
+                x.CreatedAt,
+                x.UbicacionActualId,
+                x.UbicacionNombre,
+                x.Condicion,
+                x.TransferenciaEnTransitoId,
+                x.TransferenciaNumero,
+                fechaLlegada,
+                diasEnAlmacen,
+                estadoSla
+            );
+        }).ToList();
 
         return Result<List<ItemSeriadoStockDto>>.Success(resultado);
     }

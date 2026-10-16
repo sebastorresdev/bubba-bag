@@ -10,6 +10,8 @@ import {
   Text,
   Input,
   SplitButton,
+  Badge,
+  tokens,
   type MenuButtonProps,
 } from '@fluentui/react-components';
 import type { TableColumnDefinition, SelectionItemId } from '@fluentui/react-components';
@@ -21,6 +23,10 @@ import {
   Checkmark16Regular,
   DocumentTable20Regular,
   DocumentText20Regular,
+  Warning16Regular,
+  CheckmarkCircle16Regular,
+  DismissCircle16Regular,
+  Box16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton } from '../../../components/common/D365CommandBar';
 import {
@@ -37,7 +43,62 @@ import { InventarioProductoService } from '../inventario-productos/services/inve
 import type { ItemSeriadoStockDto } from '../inventario-productos/types/inventario-producto.types';
 import { exportToExcel, exportToCSV, type ExportColumn } from '../../../utils/exportUtils';
 
+export interface SlaInfo {
+  dias: number | null;
+  estadoSla: 'EnSla' | 'EnRiesgo' | 'Vencido' | 'Instalado';
+  label: string;
+  badgeColor: 'success' | 'warning' | 'danger' | 'informative';
+  fechaLlegada: string;
+}
 
+export function obtenerSlaInfo(item: ItemSeriadoStockDto): SlaInfo {
+  const fechaRefStr = item.fechaLlegadaAlmacen || item.createdAt;
+  const fechaRef = new Date(fechaRefStr);
+  const ahora = new Date();
+
+  if (item.estado === 'InstaladoEnCliente') {
+    return {
+      dias: item.diasEnAlmacen ?? null,
+      estadoSla: 'Instalado',
+      label: 'Instalado',
+      badgeColor: 'informative',
+      fechaLlegada: fechaRefStr,
+    };
+  }
+
+  const dias =
+    typeof item.diasEnAlmacen === 'number'
+      ? item.diasEnAlmacen
+      : Math.max(0, Math.floor((ahora.getTime() - fechaRef.getTime()) / (1000 * 60 * 60 * 24)));
+
+  if (dias <= 15) {
+    return {
+      dias,
+      estadoSla: 'EnSla',
+      label: 'En SLA (≤ 15d)',
+      badgeColor: 'success',
+      fechaLlegada: fechaRefStr,
+    };
+  }
+
+  if (dias <= 30) {
+    return {
+      dias,
+      estadoSla: 'EnRiesgo',
+      label: 'En Riesgo (16-30d)',
+      badgeColor: 'warning',
+      fechaLlegada: fechaRefStr,
+    };
+  }
+
+  return {
+    dias,
+    estadoSla: 'Vencido',
+    label: `Vencido (${dias}d > 30d)`,
+    badgeColor: 'danger',
+    fechaLlegada: fechaRefStr,
+  };
+}
 
 const columnasExportacion: ExportColumn<ItemSeriadoStockDto>[] = [
   { header: 'Número de Serie', accessor: s => s.numeroSerie },
@@ -45,11 +106,16 @@ const columnasExportacion: ExportColumn<ItemSeriadoStockDto>[] = [
   { header: 'Producto', accessor: s => s.nombreProducto },
   { header: 'Estado de Custodia', accessor: s => s.estado },
   { header: 'Almacén / Custodio', accessor: s => (s.nombreAlmacen || '').replace(/^[\p{Emoji}\s]+/u, '').trim() },
+  { header: 'Fecha Llegada / Ingreso', accessor: s => new Date(s.fechaLlegadaAlmacen || s.createdAt).toLocaleDateString('es-PE') },
+  { header: 'Días en Almacén', accessor: s => {
+    const sla = obtenerSlaInfo(s);
+    return sla.dias !== null ? String(sla.dias) : '—';
+  }},
+  { header: 'SLA DirecTV (Aging)', accessor: s => obtenerSlaInfo(s).label },
   { header: 'Ubicación', accessor: s => s.nombreUbicacion || '' },
   { header: 'Condición', accessor: s => s.condicion || '' },
   { header: 'SmartCard', accessor: s => s.numeroSmartCard || '' },
   { header: 'MAC Address', accessor: s => s.macAddress || '' },
-  { header: 'Fecha de Ingreso', accessor: s => new Date(s.createdAt).toLocaleDateString('es-PE') },
 ];
 
 export function TrazabilidadSeriesPage() {
@@ -59,7 +125,8 @@ export function TrazabilidadSeriesPage() {
   const [almacenes, setAlmacenes] = useState<AlmacenDto[]>([]);
   const [almacenId] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState('TODOS');
-  const [vistaActual, setVistaActual] = useState<'todas' | 'almacen' | 'transito' | 'tecnico' | 'cliente' | 'averiado'>('todas');
+  const [slaFiltro, setSlaFiltro] = useState<'TODOS' | 'EnSla' | 'EnRiesgo' | 'Vencido' | 'Instalado'>('TODOS');
+  const [vistaActual, setVistaActual] = useState<string>('todas');
   const [selectedIds, setSelectedIds] = useState<Set<SelectionItemId>>(new Set());
   const [buscar, setBuscar] = useState('');
   const [cargando, setCargando] = useState(true);
@@ -83,6 +150,18 @@ export function TrazabilidadSeriesPage() {
       ],
     },
     {
+      id: 'estadoSla',
+      label: 'SLA DirecTV',
+      type: 'string',
+      options: [
+        { value: 'EnSla', label: 'En SLA (≤ 15 días)' },
+        { value: 'EnRiesgo', label: 'En Riesgo (16 - 30 días)' },
+        { value: 'Vencido', label: 'SLA Vencido (> 30 días)' },
+        { value: 'Instalado', label: 'Instalado en Cliente' },
+      ],
+    },
+    { id: 'diasEnAlmacen', label: 'Días en Almacén', type: 'number' },
+    {
       id: 'nombreAlmacen',
       label: 'Almacén / Custodio',
       type: 'string',
@@ -95,12 +174,15 @@ export function TrazabilidadSeriesPage() {
   ], [almacenes]);
 
   const vistas = useMemo(() => [
-    { id: 'todas', nombre: 'Todas las Series', estado: 'TODOS' },
-    { id: 'almacen', nombre: 'Series en Almacén', estado: 'EnAlmacen' },
-    { id: 'transito', nombre: 'Series en Tránsito', estado: 'EnTransito' },
-    { id: 'tecnico', nombre: 'Series en Custodia Técnico', estado: 'EnCustodiaTecnico' },
-    { id: 'cliente', nombre: 'Series en Cliente Abonado', estado: 'InstaladoEnCliente' },
-    { id: 'averiado', nombre: 'Series Averiadas / Retiradas', estado: 'AveriadoEnAlmacen' },
+    { id: 'todas', nombre: 'Todas las Series', estado: 'TODOS', sla: 'TODOS' as const },
+    { id: 'almacen', nombre: 'Series en Almacén', estado: 'EnAlmacen', sla: 'TODOS' as const },
+    { id: 'sla-vencido', nombre: '🚨 SLA Vencido (> 30 días)', estado: 'TODOS', sla: 'Vencido' as const },
+    { id: 'sla-riesgo', nombre: '⚠️ SLA en Riesgo (16 - 30 días)', estado: 'TODOS', sla: 'EnRiesgo' as const },
+    { id: 'sla-ok', nombre: '✅ Dentro de SLA (≤ 15 días)', estado: 'TODOS', sla: 'EnSla' as const },
+    { id: 'tecnico', nombre: 'Series en Custodia Técnico', estado: 'EnCustodiaTecnico', sla: 'TODOS' as const },
+    { id: 'transito', nombre: 'Series en Tránsito', estado: 'EnTransito', sla: 'TODOS' as const },
+    { id: 'cliente', nombre: 'Series en Cliente Abonado', estado: 'InstaladoEnCliente', sla: 'TODOS' as const },
+    { id: 'averiado', nombre: 'Series Averiadas / Retiradas', estado: 'AveriadoEnAlmacen', sla: 'TODOS' as const },
   ], []);
 
   const cargar = useCallback(async () => {
@@ -128,6 +210,11 @@ export function TrazabilidadSeriesPage() {
   const seriesFiltradas = useMemo(() => {
     const termino = buscar.trim().toUpperCase();
     return series.filter(item => {
+      const slaInfo = obtenerSlaInfo(item);
+      // Filtro de SLA
+      if (slaFiltro !== 'TODOS' && slaInfo.estadoSla !== slaFiltro) {
+        return false;
+      }
       // Filtro de estado
       if (estadoFiltro !== 'TODOS' && item.estado !== estadoFiltro) {
         return false;
@@ -140,10 +227,11 @@ export function TrazabilidadSeriesPage() {
         item.codigoProducto.toUpperCase().includes(termino) ||
         (item.nombreAlmacen && item.nombreAlmacen.toUpperCase().includes(termino)) ||
         (item.numeroSmartCard && item.numeroSmartCard.includes(termino)) ||
-        (item.macAddress && item.macAddress.includes(termino))
+        (item.macAddress && item.macAddress.includes(termino)) ||
+        slaInfo.label.toUpperCase().includes(termino)
       );
     });
-  }, [series, estadoFiltro, buscar]);
+  }, [series, estadoFiltro, slaFiltro, buscar]);
 
   // Exportar a Excel (.xlsx) y CSV (.csv)
   const exportarExcel = () => {
@@ -165,7 +253,7 @@ export function TrazabilidadSeriesPage() {
       renderHeaderCell: () => 'Número de Serie',
       renderCell: (item: ItemSeriadoStockDto) => (
         <TableCellLayout truncate>
-          <Text>{item.numeroSerie}</Text>
+          <Text weight="semibold">{item.numeroSerie}</Text>
         </TableCellLayout>
       ),
     }),
@@ -192,7 +280,7 @@ export function TrazabilidadSeriesPage() {
     createTableColumn({
       columnId: 'estado',
       compare: (a, b) => a.estado.localeCompare(b.estado),
-      renderHeaderCell: () => 'Estado de Custodia',
+      renderHeaderCell: () => 'Estado Custodia',
       renderCell: (item: ItemSeriadoStockDto) => {
         const estadoTexto =
           item.estado === 'EnAlmacen'
@@ -229,6 +317,81 @@ export function TrazabilidadSeriesPage() {
       },
     }),
     createTableColumn({
+      columnId: 'fecha',
+      compare: (a, b) => new Date(a.fechaLlegadaAlmacen || a.createdAt).getTime() - new Date(b.fechaLlegadaAlmacen || b.createdAt).getTime(),
+      renderHeaderCell: () => 'Fecha Llegada',
+      renderCell: (item: ItemSeriadoStockDto) => {
+        const fecha = new Date(item.fechaLlegadaAlmacen || item.createdAt);
+        return (
+          <TableCellLayout truncate title={`Fecha llegada: ${fecha.toLocaleDateString('es-PE')} ${fecha.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}`}>
+            <Text>{fecha.toLocaleDateString('es-PE')}</Text>
+          </TableCellLayout>
+        );
+      },
+    }),
+    createTableColumn({
+      columnId: 'diasEnAlmacen',
+      compare: (a, b) => (obtenerSlaInfo(a).dias ?? -1) - (obtenerSlaInfo(b).dias ?? -1),
+      renderHeaderCell: () => 'Días Almacén',
+      renderCell: (item: ItemSeriadoStockDto) => {
+        const sla = obtenerSlaInfo(item);
+        if (sla.dias === null) {
+          return (
+            <TableCellLayout truncate>
+              <Text style={{ color: tokens.colorNeutralForeground4 }}>—</Text>
+            </TableCellLayout>
+          );
+        }
+        return (
+          <TableCellLayout truncate title={`${sla.dias} días transcurridos desde su llegada al almacén`}>
+            <Text
+              weight="semibold"
+              style={{
+                color:
+                  sla.estadoSla === 'Vencido'
+                    ? tokens.colorStatusDangerForeground1
+                    : sla.estadoSla === 'EnRiesgo'
+                    ? tokens.colorPaletteDarkOrangeForeground1
+                    : tokens.colorNeutralForeground1,
+              }}
+            >
+              {sla.dias} d
+            </Text>
+          </TableCellLayout>
+        );
+      },
+    }),
+    createTableColumn({
+      columnId: 'estadoSla',
+      compare: (a, b) => obtenerSlaInfo(a).label.localeCompare(obtenerSlaInfo(b).label),
+      renderHeaderCell: () => 'SLA DirecTV',
+      renderCell: (item: ItemSeriadoStockDto) => {
+        const sla = obtenerSlaInfo(item);
+        return (
+          <TableCellLayout truncate title={`SLA de decodificador DirecTV: ${sla.label}`}>
+            <Badge
+              appearance="tint"
+              shape="rounded"
+              color={sla.badgeColor}
+              icon={
+                sla.estadoSla === 'EnSla' ? (
+                  <CheckmarkCircle16Regular />
+                ) : sla.estadoSla === 'EnRiesgo' ? (
+                  <Warning16Regular />
+                ) : sla.estadoSla === 'Vencido' ? (
+                  <DismissCircle16Regular />
+                ) : (
+                  <Box16Regular />
+                )
+              }
+            >
+              {sla.label}
+            </Badge>
+          </TableCellLayout>
+        );
+      },
+    }),
+    createTableColumn({
       columnId: 'ubicacion',
       compare: (a, b) => (a.nombreUbicacion ?? '').localeCompare(b.nombreUbicacion ?? ''),
       renderHeaderCell: () => 'Ubicación',
@@ -257,21 +420,11 @@ export function TrazabilidadSeriesPage() {
         </TableCellLayout>
       ),
     }),
-    createTableColumn({
-      columnId: 'fecha',
-      compare: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-      renderHeaderCell: () => 'Fecha Ingreso',
-      renderCell: (item: ItemSeriadoStockDto) => (
-        <TableCellLayout truncate>
-          <Text>{new Date(item.createdAt).toLocaleDateString('es-PE')}</Text>
-        </TableCellLayout>
-      ),
-    }),
   ], []);
 
   return (
     <div className={listStyles.root}>
-      {/* Barra de comandos */}
+      {/* 1. Barra de comandos */}
       <D365CommandBar ariaLabel="Comandos de trazabilidad de series">
         <div className={listStyles.toolbarLeft}>
           <D365CommandButton icon={<ArrowClockwise16Regular />} onClick={() => void cargar()}>
@@ -327,8 +480,9 @@ export function TrazabilidadSeriesPage() {
                   key={v.id}
                   icon={vistaActual === v.id ? <Checkmark16Regular /> : undefined}
                   onClick={() => {
-                    setVistaActual(v.id as any);
+                    setVistaActual(v.id);
                     setEstadoFiltro(v.estado);
+                    setSlaFiltro(v.sla);
                   }}
                 >
                   {v.nombre}
@@ -344,7 +498,7 @@ export function TrazabilidadSeriesPage() {
             className={listStyles.searchBox}
             size="medium"
             contentBefore={<Search16Regular />}
-            placeholder="Buscar"
+            placeholder="Buscar por serie, producto, smartcard o SLA..."
             aria-label="Buscar en esta vista"
             value={buscar}
             onChange={(_, d) => setBuscar(d.value)}
@@ -352,7 +506,7 @@ export function TrazabilidadSeriesPage() {
         </div>
       </div>
 
-      {/* Grid de Series con Redimensionamiento, Ordenamiento y Filtros Dynamics 365 */}
+      {/* 4. Grid de Series con Redimensionamiento, Ordenamiento y Filtros Dynamics 365 */}
       <D365EntityTable
         ref={tableRef}
         entityName="Series de Inventario"
@@ -368,7 +522,7 @@ export function TrazabilidadSeriesPage() {
         onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
       />
 
-      {/* Footer Estándar D365 */}
+      {/* 5. Footer Estándar D365 */}
       <footer className={listStyles.footer}>
         <div>
           1-{seriesFiltradas.length} de {seriesFiltradas.length}

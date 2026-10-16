@@ -36,4 +36,7 @@ export interface ItemSeriadoStockDto {
   transferenciaEnTransitoId?: string | null;
   transferenciaNumero?: string | null;
   condicion: string;
+  fechaLlegadaAlmacen?: string | null;
+  diasEnAlmacen?: number | null;
+  estadoSla?: 'EnSla' | 'EnRiesgo' | 'Vencido' | 'Instalado' | string | null;
 }

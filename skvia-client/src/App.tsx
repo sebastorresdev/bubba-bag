@@ -62,6 +62,7 @@ const TipoOrdenFormPage = lazy(() => import('./features/servicio-campo/tipos-ord
 const ConfiguracionesServicioListPage = lazy(() => import('./features/servicio-campo/configuraciones-servicio/pages/ConfiguracionesServicioListPage').then((m) => ({ default: m.ConfiguracionesServicioListPage })));
 const ConfiguracionServicioFormPage = lazy(() => import('./features/servicio-campo/configuraciones-servicio/pages/ConfiguracionServicioFormPage').then((m) => ({ default: m.ConfiguracionServicioFormPage })));
 const TareasListPage = lazy(() => import('./features/servicio-campo/tareas/pages/TareasListPage').then((m) => ({ default: m.TareasListPage })));
+const TareaFormPage = lazy(() => import('./features/servicio-campo/tareas/pages/TareaFormPage').then((m) => ({ default: m.TareaFormPage })));
 
 const PlaceholderPage = lazy(() => import('./components/common/PlaceholderPage').then((m) => ({ default: m.PlaceholderPage })));
 
@@ -177,6 +178,8 @@ const router = createBrowserRouter(createRoutesFromElements(
               <Route path="servicio-campo/configuraciones-servicio/nuevo" element={<ConfiguracionServicioFormPage />} />
               <Route path="servicio-campo/configuraciones-servicio/:id" element={<ConfiguracionServicioFormPage />} />
               <Route path="servicio-campo/tareas" element={<TareasListPage />} />
+              <Route path="servicio-campo/tareas/nuevo" element={<TareaFormPage />} />
+              <Route path="servicio-campo/tareas/:id" element={<TareaFormPage />} />
               <Route path="servicio-campo/motivos-incidencia" element={<Navigate to="/servicio-campo/configuraciones-servicio" replace />} />
 
               {/* Gestión global de datos e importaciones */}
