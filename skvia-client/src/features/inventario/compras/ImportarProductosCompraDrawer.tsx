@@ -434,9 +434,7 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
 
       if (rawUom) {
         const uMatch = unidadesGrupo.find(
-          (u) =>
-            clean(u.nombre) === clean(rawUom) ||
-            (u.codigo && clean(u.codigo) === clean(rawUom))
+          (u) => clean(u.nombre) === clean(rawUom)
         );
         const esDefecto = match.nombreUnidadMedidaDefecto && clean(match.nombreUnidadMedidaDefecto) === clean(rawUom);
 

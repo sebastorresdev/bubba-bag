@@ -121,7 +121,7 @@ export function CompraFormPage() {
   const cargandoDatos = loading || Boolean(id && compra?.id !== id && !error);
   const estado = compra?.estado ?? 'Borrador';
   const bloqueado = esAlmaceneroOperativo || cargandoDatos || saving || Boolean(id && compra?.id !== id) || estado.startsWith('Recibida') || estado === 'Enviada';
-  const bloqueadoPedido = bloqueado || estado === 'Enviada';
+  const bloqueadoPedido = bloqueado;
   const total = lineas.reduce((s, x) => s + importeLinea(x), 0);
   const dinero = (valor: number) => valor.toLocaleString('es-PE', { style: 'currency', currency: moneda });
   const almacen = almacenes.find(x => x.id === almacenId);
@@ -322,8 +322,12 @@ export function CompraFormPage() {
           Ver recepción
         </D365CommandButton>
       )}
-      <D365CommandDivider />
-      <D365CommandButton icon={<Add16Regular />} tone="create" disabled={saving || cargandoDatos} onClick={() => navigate('/servicio-campo/recepciones-compra/nuevo')}>Nuevo</D365CommandButton>
+      {puedeGestionarCompras && !cargandoDatos && (
+        <>
+          <D365CommandDivider />
+          <D365CommandButton icon={<Add16Regular />} tone="create" disabled={saving} onClick={() => navigate('/servicio-campo/recepciones-compra/nuevo')}>Nuevo</D365CommandButton>
+        </>
+      )}
     </div></D365CommandBar>
     <D365EntityHeader
       loading={cargandoDatos}

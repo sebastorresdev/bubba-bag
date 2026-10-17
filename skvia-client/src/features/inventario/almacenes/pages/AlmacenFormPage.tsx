@@ -60,6 +60,7 @@ import { AlmacenConfiguracion } from '../components/AlmacenConfiguracion';
 import { CrearUnidadOrganizativaDrawer } from '../components/CrearUnidadOrganizativaDrawer';
 import { AlmacenService } from '../services/almacen.service';
 import type {
+  AlmacenDto,
   CreateAlmacenDto,
   UnidadOrganizativaDto,
   RecursoTecnicoDto,
