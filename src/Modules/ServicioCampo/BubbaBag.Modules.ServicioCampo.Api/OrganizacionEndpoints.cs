@@ -724,6 +724,10 @@ public static class OrganizacionEndpoints
         );
 
         recurso.AsignarUnidadOrganizativa(request.UnidadOrganizativaId);
+        if (custodia != null && request.AlmacenBaseId != custodia.AlmacenPadreId)
+        {
+            custodia.AsignarAlmacenPadre(request.AlmacenBaseId);
+        }
         await context.SaveChangesAsync(ct);
 
         return Results.NoContent();

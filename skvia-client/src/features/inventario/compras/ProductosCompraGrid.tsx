@@ -163,7 +163,7 @@ export function ProductosCompraGrid({
   const [clavesUltimaImportacion, setClavesUltimaImportacion] = useState<string[]>([]);
   const [verSoloSeries, setVerSoloSeries] = useState(false);
 
-  const producto = productos.find(p => p.id === linea?.productoId);
+  const producto = productos.find(p => p.id === linea?.productoId) || resultados.find(p => p.id === linea?.productoId);
   const seleccionada = lineas.find(x => seleccionados.has(x.clave));
   const seleccionadaTieneSeries = Boolean(seleccionada?.series && seleccionada.series.trim());
   const seleccionadaSeriada = Boolean(productos.find(p => p.id === seleccionada?.productoId)?.esSerializado || seleccionadaTieneSeries);
@@ -281,11 +281,15 @@ export function ProductosCompraGrid({
     );
     if (
       esSerializadoActual &&
-      (series.length > cantidad ||
+      (series.length !== cantidad ||
         new Set(series).size !== series.length ||
         series.some(s => s.length > 100 || otrasSeries.has(s)))
     ) {
-      setError('Las series deben ser únicas y corresponder a la cantidad.');
+      if (series.length !== cantidad) {
+        setError(`Para productos serializados, debe ingresar exactamente tantas series como la cantidad indicada (${series.length} ingresadas vs ${cantidad} requeridas).`);
+      } else {
+        setError('Las series deben ser únicas y no repetirse en la orden de compra.');
+      }
       return;
     }
     const unidadElegida = unidadesProducto.find(u => u.id === linea.unidadMedidaId);
@@ -883,6 +887,11 @@ export function ProductosCompraGrid({
                           disabled={soloLectura}
                           onChange={(_, d) => setLinea({ ...linea, cantidad: d.value })}
                         />
+                        {producto?.esSerializado && (
+                          <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                            ℹ️ Producto serializado: puede ingresar las series en la sección inferior y la cantidad se sincronizará automáticamente.
+                          </Text>
+                        )}
                         {Boolean(linea.factorConversion && linea.factorConversion > 1 && Number(linea.cantidad) > 0) && (
                           <Text size={200} style={{ color: tokens.colorCompoundBrandForeground1, marginTop: '2px', display: 'block' }}>
                             💡 Equivale a <strong>{(Number(linea.cantidad) * (linea.factorConversion ?? 1)).toLocaleString('es-PE')} {nombreUnidadBase}</strong> en stock del almacén.
@@ -918,11 +927,14 @@ export function ProductosCompraGrid({
                   <SeriesCompraTable
                     key={linea.clave}
                     valor={linea.series}
-                    cantidad={Number(linea.cantidad)}
+                    cantidad={Number(linea.cantidad) || 0}
                     soloLectura={drawerSoloLectura || bloqueado}
                     otrasSeries={lineas.filter(x => x.clave !== linea.clave).flatMap(x => obtenerSeriesCompra(x.series))}
                     seriesRecibidas={linea.seriesRecibidas ? obtenerSeriesCompra(linea.seriesRecibidas) : undefined}
                     alCambiar={series => setLinea({ ...linea, series })}
+                    alCambiarCantidad={drawerSoloLectura || bloqueado ? undefined : (nuevaCantidad) => {
+                      setLinea(l => l ? { ...l, cantidad: String(nuevaCantidad) } : null);
+                    }}
                   />
                 )}
               </>

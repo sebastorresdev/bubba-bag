@@ -41,7 +41,7 @@ public class Compra : Entity<Guid>
     public void Actualizar(string proveedor, string tipoDocumento, string documento, DateOnly fecha,
         string moneda, Guid? almacenId, string? observacion, string lineasJson, decimal total)
     {
-        if (Estado is "Enviada" or "Recibida") throw new InvalidOperationException("La compra enviada o recibida no se puede editar.");
+        if (Estado is "Recibida") throw new InvalidOperationException("La compra recibida no se puede editar.");
         Proveedor = proveedor.Trim().ToUpperInvariant(); TipoDocumento = tipoDocumento;
         NumeroDocumento = documento.Trim().ToUpperInvariant(); FechaDocumento = fecha;
         Moneda = moneda; AlmacenId = almacenId; Observacion = observacion?.Trim(); LineasJson = lineasJson; Total = total;
@@ -59,9 +59,15 @@ public class Compra : Entity<Guid>
         Estado = "Enviada";
     }
 
+    public void RevertirABorrador()
+    {
+        if (Estado is "Recibida") throw new InvalidOperationException("No se puede revertir una compra ya recibida.");
+        Estado = "Borrador";
+    }
+
     public void Recepcionar(Guid? usuarioRecepcionId = null, bool conFaltantes = false, string? lineasActualizadasJson = null)
     {
-        if (Estado != "Enviada" && Estado != "Recibida con faltantes") throw new InvalidOperationException("La compra debe estar enviada o tener faltantes pendientes.");
+        if (Estado != "Solicitada" && Estado != "Enviada" && Estado != "Recibida con faltantes") throw new InvalidOperationException("La compra debe estar solicitada, enviada o tener faltantes pendientes.");
         Estado = conFaltantes ? "Recibida con faltantes" : "Recibida";
         UsuarioRecepcionId = usuarioRecepcionId;
         FechaRecepcion = DateTime.UtcNow;
@@ -81,7 +87,7 @@ public class Compra : Entity<Guid>
 
     public void CompletarComprobanteRecepcion(string tipoDocumento, string documento, DateOnly fecha)
     {
-        if (Estado != "Enviada" && Estado != "Recibida con faltantes") throw new InvalidOperationException("La compra debe estar enviada o tener faltantes pendientes.");
+        if (Estado != "Solicitada" && Estado != "Enviada" && Estado != "Recibida con faltantes") throw new InvalidOperationException("La compra debe estar solicitada, enviada o tener faltantes pendientes.");
         TipoDocumento = tipoDocumento;
         NumeroDocumento = documento.Trim().ToUpperInvariant();
         FechaDocumento = fecha;

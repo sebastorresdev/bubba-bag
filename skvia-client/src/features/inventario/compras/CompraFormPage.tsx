@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Card, Dialog, DialogSurface, DialogTitle, DialogBody, DialogContent, DialogActions, Input, Select, Skeleton, SkeletonItem, Tab, TabList, Text, Textarea, tokens } from '@fluentui/react-components';
 import { DatePicker } from '@fluentui/react-datepicker-compat';
-import { Add16Regular, ArrowLeft16Regular, Box16Regular, Checkmark16Regular, CheckmarkCircle16Regular, Delete16Regular, LockClosed16Regular, Save16Regular, SaveMultiple16Regular } from '@fluentui/react-icons';
+import { Add16Regular, ArrowLeft16Regular, ArrowUndo16Regular, Box16Regular, Checkmark16Regular, CheckmarkCircle16Regular, Delete16Regular, LockClosed16Regular, Save16Regular, SaveMultiple16Regular, VehicleTruckProfile16Regular } from '@fluentui/react-icons';
 import { confirmAction } from '../../../services/uiFeedback';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../components/common/D365CommandBar';
 import { D365EntityHeader } from '../../../components/common/D365EntityHeader';
@@ -120,8 +120,8 @@ export function CompraFormPage() {
   };
   const cargandoDatos = loading || Boolean(id && compra?.id !== id && !error);
   const estado = compra?.estado ?? 'Borrador';
-  const bloqueado = esAlmaceneroOperativo || cargandoDatos || saving || Boolean(id && compra?.id !== id) || estado === 'Recibida' || estado === 'Recibida con faltantes' || estado === 'Enviada';
-  const bloqueadoPedido = bloqueado || estado !== 'Borrador';
+  const bloqueado = esAlmaceneroOperativo || cargandoDatos || saving || Boolean(id && compra?.id !== id) || estado.startsWith('Recibida') || estado === 'Enviada';
+  const bloqueadoPedido = bloqueado || estado === 'Enviada';
   const total = lineas.reduce((s, x) => s + importeLinea(x), 0);
   const dinero = (valor: number) => valor.toLocaleString('es-PE', { style: 'currency', currency: moneda });
   const almacen = almacenes.find(x => x.id === almacenId);
@@ -183,6 +183,26 @@ export function CompraFormPage() {
     } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo procesar la compra.'); }
     finally { guardando.current = false; setSaving(false); }
   };
+  const handleRevertirBorrador = async () => {
+    if (!id || saving || guardando.current) return;
+    const conf = await confirmAction(
+      '¿Desea revertir esta orden de compra a estado Borrador? Podrá modificar libremente los datos del pedido.',
+      { title: 'Revertir orden a borrador', action: 'Revertir a borrador', danger: false }
+    );
+    if (!conf) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await CompraService.revertirBorrador(id);
+      const c = await CompraService.obtenerPorId(id);
+      cargarCompra(c);
+      setMensaje('Orden de compra revertida a Borrador.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo revertir la compra a borrador.');
+    } finally {
+      setSaving(false);
+    }
+  };
   const handleCerrarFaltantes = async () => {
     if (!id || saving || guardando.current) return;
     const conf = await confirmAction(
@@ -231,17 +251,35 @@ export function CompraFormPage() {
           <D365CommandButton icon={<Save16Regular />} tone="save" disabled={bloqueado} onClick={() => void guardar(false)}>Guardar</D365CommandButton>
           <D365CommandButton icon={<SaveMultiple16Regular />} tone="save" disabled={bloqueado} onClick={() => void guardar(true)}>Guardar y cerrar</D365CommandButton>
           {!cargandoDatos && estado === 'Borrador' && <D365CommandButton icon={<Checkmark16Regular />} disabled={loading || saving || !id} onClick={() => void procesar('solicitar')}>Solicitar compra</D365CommandButton>}
-          {!cargandoDatos && estado === 'Borrador' && Boolean(id) && (
+          {!cargandoDatos && (estado === 'Solicitada' || estado === 'Enviada') && (
+            <D365CommandButton
+              icon={<ArrowUndo16Regular />}
+              disabled={loading || saving}
+              onClick={() => void handleRevertirBorrador()}
+            >
+              Revertir a borrador
+            </D365CommandButton>
+          )}
+          {!cargandoDatos && !estado.startsWith('Recibida') && Boolean(id) && (
             <D365CommandButton
               icon={<Delete16Regular />}
               tone="danger"
               disabled={loading || saving}
               onClick={() => setDialogEliminarBorrador(true)}
             >
-              Eliminar borrador
+              Eliminar orden
             </D365CommandButton>
           )}
-          {!cargandoDatos && estado === 'Solicitada' && <D365CommandButton icon={<Box16Regular />} disabled={loading || saving || lineas.some(x => productos.find(p => p.id === x.productoId)?.esSerializado && x.series.split(/\r?\n/).filter(s => s.trim()).length !== Number(x.cantidad))} onClick={() => void procesar('enviar')}>Registrar envío</D365CommandButton>}
+          {!cargandoDatos && estado === 'Solicitada' && (
+            <D365CommandButton
+              icon={<VehicleTruckProfile16Regular />}
+              tone="create"
+              disabled={loading || saving || lineas.some(x => productos.find(p => p.id === x.productoId)?.esSerializado && x.series.split(/\r?\n/).filter(s => s.trim()).length !== Number(x.cantidad))}
+              onClick={() => void procesar('enviar')}
+            >
+              Registrar envío
+            </D365CommandButton>
+          )}
         </>
       )}
       {!cargandoDatos && estado === 'Enviada' && (
@@ -295,6 +333,8 @@ export function CompraFormPage() {
       metadata={[
         { label: 'Estado', value: estado },
         { label: 'Total', value: dinero(total) },
+        ...(compra?.creadoPor ? [{ label: 'Creado por', value: compra.creadoPor }] : []),
+        ...(compra?.fechaRegistro ? [{ label: 'Fecha creación', value: new Date(compra.fechaRegistro).toLocaleString('es-PE') }] : []),
         ...(compra?.recibidoPor ? [{ label: 'Recibido por', value: compra.recibidoPor }] : []),
         ...(compra?.fechaRecepcion ? [{ label: 'Fecha de recepción', value: new Date(compra.fechaRecepcion).toLocaleString('es-PE') }] : []),
       ]}
@@ -338,13 +378,39 @@ export function CompraFormPage() {
             />
           </D365FormField>
 
+          {compra?.creadoPor && (
+            <D365FormField label="Creado por" htmlFor="compra-creado-por">
+              <Input
+                id="compra-creado-por"
+                className={form.d365ControlFull}
+                value={compra.creadoPor}
+                appearance="filled-darker"
+                readOnly
+                contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />}
+              />
+            </D365FormField>
+          )}
+
+          {compra?.fechaRegistro && (
+            <D365FormField label="Fecha de creación" htmlFor="compra-fecha-creacion">
+              <Input
+                id="compra-fecha-creacion"
+                className={form.d365ControlFull}
+                value={new Date(compra.fechaRegistro).toLocaleString('es-PE')}
+                appearance="filled-darker"
+                readOnly
+                contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />}
+              />
+            </D365FormField>
+          )}
+
           {estado.startsWith('Recibida') && (
             <>
               <D365FormField label="Recibido por" htmlFor="compra-recibido-por">
                 <Input
                   id="compra-recibido-por"
                   className={form.d365ControlFull}
-                  value={compra?.recibidoPor || 'Confirmada'}
+                  value={compra?.recibidoPor || '—'}
                   appearance="filled-darker"
                   readOnly
                   contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Campo de solo lectura" />}
@@ -476,8 +542,8 @@ export function CompraFormPage() {
           productos={productos}
           moneda={moneda}
           bloqueado={bloqueado}
-          soloLectura={estado === 'Recibida' || estado === 'Enviada'}
-          soloSeries={estado === 'Solicitada'}
+          soloLectura={estado.startsWith('Recibida') || estado === 'Enviada'}
+          soloSeries={false}
           alCambiar={setLineas}
           alCargarProducto={p => setProductos(ps => [...ps.filter(x => x.id !== p.id), p])}
         />
@@ -492,9 +558,9 @@ export function CompraFormPage() {
     >
       <DialogSurface>
         <DialogBody>
-          <DialogTitle>Eliminar borrador de compra</DialogTitle>
+          <DialogTitle>Eliminar orden de compra</DialogTitle>
           <DialogContent>
-            ¿Está seguro de que desea eliminar el borrador de compra{' '}
+            ¿Está seguro de que desea eliminar la orden de compra{' '}
             <strong>{compra?.numero}</strong>? Esta acción no se puede deshacer.
           </DialogContent>
           <DialogActions>
@@ -515,10 +581,10 @@ export function CompraFormPage() {
                   setEliminandoBorrador(true);
                   await CompraService.eliminar(id);
                   navigate('/servicio-campo/recepciones-compra', {
-                    state: { successMessage: `Borrador ${compra?.numero ?? ''} eliminado exitosamente.` },
+                    state: { successMessage: `Orden de compra ${compra?.numero ?? ''} eliminada exitosamente.` },
                   });
                 } catch (e) {
-                  setError(e instanceof Error ? e.message : 'Error al eliminar el borrador.');
+                  setError(e instanceof Error ? e.message : 'Error al eliminar la orden de compra.');
                 } finally {
                   setEliminandoBorrador(false);
                 }

@@ -134,6 +134,9 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<Guid?>("AlmacenPadreId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("CreadoPorId")
                         .HasColumnType("uuid");
 
@@ -170,6 +173,8 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ActualizadoPorId");
+
+                    b.HasIndex("AlmacenPadreId");
 
                     b.HasIndex("Codigo");
 
@@ -2659,6 +2664,16 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     b.HasIndex("Departamento", "Provincia");
 
                     b.ToTable("ubigeos", "crm");
+                });
+
+            modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Almacenes.Almacen", b =>
+                {
+                    b.HasOne("BubbaBag.Modules.ServicioCampo.Domain.Almacenes.Almacen", "AlmacenPadre")
+                        .WithMany()
+                        .HasForeignKey("AlmacenPadreId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("AlmacenPadre");
                 });
 
             modelBuilder.Entity("BubbaBag.Modules.ServicioCampo.Domain.Almacenes.AjusteInventario", b =>

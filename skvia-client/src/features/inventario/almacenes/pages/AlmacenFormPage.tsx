@@ -156,6 +156,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   const [unidades, setUnidades] = useState<UnidadOrganizativaDto[]>([]);
   const [puedeSupervisar, setPuedeSupervisar] = useState(false);
   const [recursos, setRecursos] = useState<RecursoTecnicoDto[]>([]);
+  const [todasBodegas, setTodasBodegas] = useState<AlmacenDto[]>([]);
 
   // Form State
   const [formData, setFormData] = useState<CreateAlmacenDto>({
@@ -164,6 +165,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
     codigo: '',
     tipo: 1 as TipoAlmacen,
     unidadOrganizativaId: '',
+    almacenPadreId: '',
     recursoId: '',
   });
 
@@ -312,17 +314,19 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
     let activo = true;
     setLoading(true);
 
-    const promises: [Promise<UnidadOrganizativaDto[]>, Promise<RecursoTecnicoDto[]>, Promise<any>] = [
+    const promises: [Promise<UnidadOrganizativaDto[]>, Promise<RecursoTecnicoDto[]>, Promise<any>, Promise<AlmacenDto[]>] = [
       AlmacenService.getUnidadesOrganizativas().catch(() => []),
       AlmacenService.getRecursosTecnicos().catch(() => []),
       effectiveId ? AlmacenService.getAlmacenById(effectiveId) : Promise.resolve(null),
+      AlmacenService.getAlmacenes(true).catch(() => []),
     ];
 
     Promise.all(promises)
-      .then(([unids, recs, almacenData]) => {
+      .then(([unids, recs, almacenData, alms]) => {
         if (!activo) return;
         setUnidades(unids || []);
         setRecursos(recs || []);
+        setTodasBodegas(alms?.filter((a) => a.tipo === 1) || []);
 
         if (almacenData && effectiveId) {
           setCurrentId(effectiveId);
@@ -333,6 +337,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
             codigo: almacenData.codigo || '',
             tipo: (almacenData.tipo || 1) as TipoAlmacen,
             unidadOrganizativaId: almacenData.unidadOrganizativaId || '',
+            almacenPadreId: almacenData.almacenPadreId || '',
             recursoId: almacenData.recursoId || '',
           });
           setSavedHeader({
@@ -352,6 +357,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
             codigo: '',
             tipo: 1,
             unidadOrganizativaId: '',
+            almacenPadreId: '',
             recursoId: '',
           });
           setSavedHeader({
@@ -363,6 +369,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
           setExistencias([]);
           setStatusMessage(null);
           setErrors({});
+          draft.markSaved();
         }
       })
       .catch((err) => {
@@ -399,6 +406,9 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
           newErrors.recursoId = 'Este técnico ya cuenta con un almacén de custodia personal activo.';
         }
       }
+      if (!formData.almacenPadreId) {
+        newErrors.almacenPadreId = 'Seleccione la bodega base de abastecimiento.';
+      }
     }
 
     setErrors(newErrors);
@@ -428,6 +438,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
         tipo: formData.tipo,
         unidadOrganizativaId: formData.unidadOrganizativaId || null,
         recursoId: formData.recursoId || null,
+        almacenPadreId: formData.tipo === 2 ? (formData.almacenPadreId || null) : null,
       };
 
       if (isEditMode && currentId) {
@@ -551,30 +562,55 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
   };
 
   const handleNew = () => {
-    if (propAlmacenId !== undefined) {
-      setCurrentId(null);
-      setFormData({
-        nombre: '',
-        descripcion: '',
-        codigo: '',
-        tipo: 1,
-        unidadOrganizativaId: '',
-        recursoId: '',
-      });
-      setErrors({});
-      setStatusMessage(null);
-      setSelectedTab('general');
-      return;
+    setCurrentId(null);
+    setFormData({
+      nombre: '',
+      descripcion: '',
+      codigo: '',
+      tipo: 1,
+      unidadOrganizativaId: '',
+      recursoId: '',
+    });
+    setSavedHeader({
+      nombre: '',
+      tipo: 1,
+      activo: true,
+      creadoPorNombre: currentUser.nombre,
+    });
+    setExistencias([]);
+    setErrors({});
+    setStatusMessage(null);
+    setSelectedTab('general');
+    draft.markSaved();
+    if (propAlmacenId === undefined) {
+      navigate('/servicio-campo/almacenes/nuevo');
     }
-    navigate('/servicio-campo/almacenes/nuevo');
   };
+
+  // Sedes disponibles: si es custodia y ya hay técnico elegido, se limita a la sede del técnico
+  const sedesDisponibles = useMemo(() => {
+    if (formData.tipo === 2 && formData.recursoId) {
+      const tecnico = recursos.find((r) => r.id === formData.recursoId);
+      if (tecnico?.unidadOrganizativaId) {
+        return unidades.filter((u) => u.id === tecnico.unidadOrganizativaId);
+      }
+    }
+    return unidades;
+  }, [unidades, formData.tipo, formData.recursoId, recursos]);
 
   // Filtrar recursos según el tipo de almacén y la unidad organizativa
   const recursosDisponibles = useMemo(() => {
     return recursos.filter((r) => {
-      // Si el almacén es móvil, debe ser tipo 1 (Técnico)
-      if (formData.tipo === 2 && (r as any).tipo && (r as any).tipo !== 1) {
-        return false;
+      // Si el almacén es móvil/custodia (tipo 2), debe ser tipo 1 (Técnico)
+      if (formData.tipo === 2) {
+        const t = (r as any).tipo;
+        const esTecnico =
+          t === 1 ||
+          t === '1' ||
+          !t ||
+          String(t).toLowerCase().includes('tecnic') ||
+          String(t).toLowerCase().includes('técnic');
+        if (!esTecnico) return false;
       }
       // Si tiene unidad seleccionada, dar preferencia o filtrar
       if (formData.unidadOrganizativaId && r.unidadOrganizativaId) {
@@ -583,6 +619,12 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
       return true;
     });
   }, [recursos, formData.tipo, formData.unidadOrganizativaId]);
+
+  // Bodegas disponibles para abastecimiento (almacenes padre)
+  const bodegasDisponibles = useMemo(() => {
+    if (!formData.unidadOrganizativaId) return todasBodegas;
+    return todasBodegas.filter((b) => b.unidadOrganizativaId === formData.unidadOrganizativaId);
+  }, [todasBodegas, formData.unidadOrganizativaId]);
 
   // Filtrar solo líneas con stock positivo real
   const existenciasConStock = useMemo(() => {
@@ -871,14 +913,14 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
                       error={errors.unidadOrganizativaId}
                     >
                       <LookupDropdownWithQuickCreate
-                        puedeCrear={permisos.includes('configuracion.sucursales.gestionar')}
+                        puedeCrear={!formData.recursoId && permisos.includes('configuracion.sucursales.gestionar')}
                         idEntrada="almacen-unidad-org"
                         etiquetaGrupo="Unidades Organizativas (Sedes)"
                         icono={<Building16Regular />}
                         deshabilitado={isEditMode || saving}
                         tituloEnlace="Ver detalles de la sede"
                         alNavegar={(id) => navigate(`/servicio-campo/unidades-organizativas/${id}`)}
-                        opciones={unidades.map((u) => ({
+                        opciones={sedesDisponibles.map((u) => ({
                           id: u.id,
                           nombre: `${u.nombre} (${u.codigo})`,
                           detalle: u.ciudad || undefined,
@@ -894,12 +936,28 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
                         textoBusqueda={busquedaSede}
                         alCambiarBusqueda={setBusquedaSede}
                         alSeleccionar={(sedeId) => {
-                          setFormData((prev) => ({
-                            ...prev,
-                            unidadOrganizativaId: sedeId || '',
-                          }));
-                          if (errors.unidadOrganizativaId && sedeId) {
-                            setErrors((prev) => ({ ...prev, unidadOrganizativaId: '' }));
+                          setFormData((prev) => {
+                            let nextRecursoId = prev.recursoId;
+                            if (sedeId && nextRecursoId) {
+                              const rec = recursos.find((r) => r.id === nextRecursoId);
+                              if (rec && rec.unidadOrganizativaId && rec.unidadOrganizativaId !== sedeId) {
+                                nextRecursoId = '';
+                              }
+                            } else if (!sedeId) {
+                              nextRecursoId = '';
+                            }
+                            return {
+                              ...prev,
+                              unidadOrganizativaId: sedeId || '',
+                              recursoId: nextRecursoId,
+                            };
+                          });
+                          if (sedeId) {
+                            setErrors((prev) => {
+                              const copy = { ...prev };
+                              delete copy.unidadOrganizativaId;
+                              return copy;
+                            });
                           }
                         }}
                         renderizarCreacionRapida={({ abierto, cerrar }) => (
@@ -908,7 +966,7 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
                             alCerrar={cerrar}
                             alGuardar={(nueva) => {
                               setUnidades((prev) => [...prev, nueva]);
-                              setFormData((prev) => ({ ...prev, unidadOrganizativaId: nueva.id }));
+                              setFormData((prev) => ({ ...prev, unidadOrganizativaId: nueva.id, recursoId: '' }));
                               if (errors.unidadOrganizativaId) {
                                 setErrors((prev) => ({ ...prev, unidadOrganizativaId: '' }));
                               }
@@ -952,12 +1010,51 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
                           textoBusqueda={busquedaRecurso}
                           alCambiarBusqueda={setBusquedaRecurso}
                           alSeleccionar={(recId) => {
-                            setFormData((prev) => ({ ...prev, recursoId: recId || '' }));
-                            if (errors.recursoId && recId) {
-                              setErrors((prev) => ({ ...prev, recursoId: '' }));
-                            }
+                            const tecnico = recId ? recursos.find((r) => r.id === recId) : null;
+                            const sugeridoPadre = (tecnico as any)?.almacenBaseId ||
+                              (tecnico?.unidadOrganizativaId ? todasBodegas.find(b => b.unidadOrganizativaId === tecnico.unidadOrganizativaId)?.id : null);
+                            setFormData((prev) => ({
+                              ...prev,
+                              recursoId: recId || '',
+                              ...(tecnico?.unidadOrganizativaId ? { unidadOrganizativaId: tecnico.unidadOrganizativaId } : {}),
+                              ...(sugeridoPadre && !prev.almacenPadreId ? { almacenPadreId: sugeridoPadre } : {}),
+                            }));
+                            setErrors((prev) => {
+                              const copy = { ...prev };
+                              if (recId) delete copy.recursoId;
+                              if (tecnico?.unidadOrganizativaId) delete copy.unidadOrganizativaId;
+                              if (sugeridoPadre) delete copy.almacenPadreId;
+                              return copy;
+                            });
                           }}
                         />
+                      </D365FormField>
+                    )}
+
+                    {formData.tipo === 2 && (
+                      <D365FormField
+                        label="Bodega base de abastecimiento (Padre)"
+                        required
+                        error={errors.almacenPadreId}
+                      >
+                        <Select
+                          className={styles.d365ControlFull}
+                          value={formData.almacenPadreId || ''}
+                          disabled={saving}
+                          onChange={(_e, d) => {
+                            setFormData((prev) => ({ ...prev, almacenPadreId: d.value }));
+                            if (errors.almacenPadreId) {
+                              setErrors((prev) => ({ ...prev, almacenPadreId: '' }));
+                            }
+                          }}
+                        >
+                          <option value="">-- Seleccionar Bodega Base --</option>
+                          {bodegasDisponibles.map((b) => (
+                            <option key={b.id} value={b.id}>
+                              {b.nombre} {b.unidadOrganizativaNombre ? `(${b.unidadOrganizativaNombre})` : ''}
+                            </option>
+                          ))}
+                        </Select>
                       </D365FormField>
                     )}
 

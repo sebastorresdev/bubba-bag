@@ -41,7 +41,12 @@ public class ObtenerAlmacenPorIdHandler : IQueryHandler<ObtenerAlmacenPorIdQuery
                 a.CreadoPorNombre,
                 a.CreatedAt,
                 a.ActualizadoPorId,
-                a.UpdatedAt
+                a.UpdatedAt,
+                false,
+                false,
+                false,
+                a.AlmacenPadreId,
+                a.AlmacenPadre != null ? a.AlmacenPadre.Nombre : null
             ))
             .FirstOrDefaultAsync(cancellationToken);
 

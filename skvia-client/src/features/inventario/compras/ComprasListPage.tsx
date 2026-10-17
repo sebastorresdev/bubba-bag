@@ -61,7 +61,7 @@ export function ComprasListPage() {
     return datos.filter((item) => {
       if (vista === 'recientes' && new Date(item.fechaDocumento + 'T00:00:00') < limite) return false;
       if (vista !== 'recientes' && vista !== 'todas' && item.estado !== vista) return false;
-      return !q || [item.numero, item.proveedor, item.numeroDocumento, item.almacen, item.estado, item.recibidoPor || ''].some((valor) => valor.toLowerCase().includes(q));
+      return !q || [item.numero, item.proveedor, item.numeroDocumento, item.almacen, item.estado, item.creadoPor || '', item.recibidoPor || ''].some((valor) => valor.toLowerCase().includes(q));
     });
   }, [buscar, datos, vista]);
 
@@ -80,6 +80,16 @@ export function ComprasListPage() {
     createTableColumn({ columnId: 'fecha', compare: (a: CompraDto, b: CompraDto) => a.fechaDocumento.localeCompare(b.fechaDocumento), renderHeaderCell: () => 'Fecha', renderCell: (x: CompraDto) => <TableCellLayout truncate><Text>{new Date(x.fechaDocumento + 'T00:00:00').toLocaleDateString('es-PE')}</Text></TableCellLayout> }),
     createTableColumn({ columnId: 'origen', compare: (a: CompraDto, b: CompraDto) => a.proveedor.localeCompare(b.proveedor), renderHeaderCell: () => 'Proveedor', renderCell: (x: CompraDto) => <TableCellLayout truncate><Text>{x.proveedor}</Text></TableCellLayout> }),
     createTableColumn({ columnId: 'destino', compare: (a: CompraDto, b: CompraDto) => a.almacen.localeCompare(b.almacen), renderHeaderCell: () => 'Almacén', renderCell: (x: CompraDto) => <TableCellLayout truncate><Text>{x.almacen}</Text></TableCellLayout> }),
+    createTableColumn({
+      columnId: 'creadoPor',
+      compare: (a: CompraDto, b: CompraDto) => (a.creadoPor || '').localeCompare(b.creadoPor || ''),
+      renderHeaderCell: () => 'Creado por',
+      renderCell: (x: CompraDto) => (
+        <TableCellLayout truncate>
+          <Text>{x.creadoPor || '—'}</Text>
+        </TableCellLayout>
+      ),
+    }),
     createTableColumn({
       columnId: 'recibidoPor',
       compare: (a: CompraDto, b: CompraDto) => (a.recibidoPor || '').localeCompare(b.recibidoPor || ''),

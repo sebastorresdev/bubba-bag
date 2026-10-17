@@ -341,30 +341,36 @@ export const DespachoTecnicoPage: React.FC = () => {
   }, [almacenes, almacenOrigenId]);
 
   // Almacenes de custodia / receptor disponibles (tipo 2: Custodia personal / Técnicos)
-  // El recurso/almacén debe pertenecer a la misma organización que la bodega de origen
+  // El técnico debe tener como bodega base (padre) el almacén de origen
   const opcionesAlmacenesDestino = useMemo(() => {
     let lista = almacenes.filter(a => a.tipo === 2 && a.id !== almacenOrigenId);
     if (lista.length === 0) {
       lista = almacenes.filter(a => a.id !== almacenOrigenId);
     }
 
-    // Filtrar estrictamente por la misma organización que la bodega de origen
-    if (almacenOrigenObj?.unidadOrganizativaId) {
-      const orgId = almacenOrigenObj.unidadOrganizativaId;
-      lista = lista.filter(a => {
-        if (a.unidadOrganizativaId && a.unidadOrganizativaId === orgId) return true;
-        if (a.recursoId) {
-          const tec = tecnicos.find(t => t.id === a.recursoId);
-          if (tec?.unidadOrganizativaId === orgId) return true;
-        }
-        return false;
-      });
+    if (almacenOrigenId) {
+      // Prioridad 1: Técnicos cuya bodega base (padre) sea exactamente la bodega seleccionada
+      const directosPadre = lista.filter(a => a.almacenPadreId === almacenOrigenId);
+      if (directosPadre.length > 0) {
+        lista = directosPadre;
+      } else if (almacenOrigenObj?.unidadOrganizativaId) {
+        // Fallback por sede solo si aún no tienen bodega padre
+        const orgId = almacenOrigenObj.unidadOrganizativaId;
+        lista = lista.filter(a => {
+          if (a.unidadOrganizativaId && a.unidadOrganizativaId === orgId) return true;
+          if (a.recursoId) {
+            const tec = tecnicos.find(t => t.id === a.recursoId);
+            if (tec?.unidadOrganizativaId === orgId) return true;
+          }
+          return false;
+        });
+      }
     }
 
     return lista.map(a => ({
       id: a.id,
       nombre: a.nombre,
-      detalle: null,
+      detalle: a.almacenPadreNombre ? `Base: ${a.almacenPadreNombre}` : null,
     }));
   }, [almacenes, almacenOrigenId, almacenOrigenObj, tecnicos]);
 

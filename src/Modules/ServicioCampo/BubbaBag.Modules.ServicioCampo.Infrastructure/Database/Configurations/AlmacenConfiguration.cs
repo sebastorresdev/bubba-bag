@@ -30,6 +30,14 @@ public class AlmacenConfiguration : IEntityTypeConfiguration<Almacen>
         builder.Property(a => a.UnidadOrganizativaId)
             .IsRequired(false);
 
+        builder.Property(a => a.AlmacenPadreId)
+            .IsRequired(false);
+
+        builder.HasOne(a => a.AlmacenPadre)
+            .WithMany()
+            .HasForeignKey(a => a.AlmacenPadreId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.Property(a => a.RecursoId)
             .IsRequired(false);
 
@@ -47,6 +55,7 @@ public class AlmacenConfiguration : IEntityTypeConfiguration<Almacen>
         builder.HasIndex(a => a.Codigo);
         builder.HasIndex(a => a.Tipo);
         builder.HasIndex(a => a.UnidadOrganizativaId);
+        builder.HasIndex(a => a.AlmacenPadreId);
         builder.HasIndex(a => a.RecursoId).IsUnique().HasFilter("\"Tipo\" = 2 AND \"Activo\" = true");
         builder.HasIndex(a => a.CreadoPorId);
         builder.HasIndex(a => a.ActualizadoPorId);

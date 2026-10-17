@@ -7,6 +7,7 @@ function ActiveUnsavedChangesGuard() {
   const blocker = useBlocker(
     useCallback(
       ({ currentLocation, nextLocation }: { currentLocation: { pathname: string }; nextLocation: { pathname: string } }) => {
+        if (!hasUnsavedDrafts()) return false;
         return currentLocation.pathname !== nextLocation.pathname;
       },
       []
@@ -19,6 +20,10 @@ function ActiveUnsavedChangesGuard() {
 
   useEffect(() => {
     if (blocker.state !== 'blocked') return;
+    if (!hasUnsavedDrafts()) {
+      blocker.proceed();
+      return;
+    }
     let active = true;
     void confirmAction('Los cambios de esta ficha todavía no se han guardado. Si sale, se perderán.', {
       title: 'Cambios sin guardar',

@@ -337,6 +337,12 @@ export const DevolucionTecnicoPage: React.FC = () => {
   }, [opcionesBodegasDestino, almacenDestinoId]);
 
   useEffect(() => {
+    if (custodiaTecnico?.almacenPadreId && !almacenDestinoId) {
+      setAlmacenDestinoId(custodiaTecnico.almacenPadreId);
+    }
+  }, [custodiaTecnico, almacenDestinoId]);
+
+  useEffect(() => {
     if (!custodiaTecnico) {
       setProductosCustodia([]);
       setTodasSeriesCustodia([]);

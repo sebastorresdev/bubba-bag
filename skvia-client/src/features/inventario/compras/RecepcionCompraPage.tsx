@@ -866,6 +866,7 @@ export function RecepcionCompraPage() {
           { label: 'Proveedor', value: compra.proveedor },
           { label: 'Comprobante', value: `${compra.tipoDocumento} ${compra.numeroDocumento || 'S/N'}` },
           { label: 'Fecha Emisión', value: compra.fechaDocumento || '---' },
+          ...(compra.creadoPor ? [{ label: 'Creado por', value: compra.creadoPor }] : []),
           ...(compra.recibidoPor ? [{ label: 'Recibido por', value: compra.recibidoPor }] : []),
           ...(compra.fechaRecepcion ? [{ label: 'Fecha recepción', value: new Date(compra.fechaRecepcion).toLocaleString('es-PE') }] : []),
         ]}

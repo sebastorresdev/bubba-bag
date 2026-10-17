@@ -75,6 +75,7 @@ public static class AlmacenesEndpoints
         compras.MapDelete("/{id:guid}", EliminarCompra).RequireAuthorization(Permissions.Inventario.ComprasGestionar);
         compras.MapPost("/{id:guid}/solicitar", SolicitarCompra).RequireAuthorization(Permissions.Inventario.ComprasGestionar);
         compras.MapPost("/{id:guid}/enviar", EnviarCompra).RequireAuthorization(Permissions.Inventario.ComprasGestionar);
+        compras.MapPost("/{id:guid}/revertir-borrador", RevertirABorradorCompra).RequireAuthorization(Permissions.Inventario.ComprasGestionar);
         compras.MapPost("/{id:guid}/recepcionar", RecepcionarCompra).RequireAuthorization(Permissions.Inventario.Operar);
         compras.MapPost("/{id:guid}/cerrar-faltantes", CerrarFaltantesCompra).RequireAuthorization(Permissions.Inventario.ComprasGestionar);
     }
@@ -158,10 +159,11 @@ public static class AlmacenesEndpoints
         }
 
         var userIds = new HashSet<Guid>();
-        foreach (var c in comprasRecibidas)
+        foreach (var c in compras)
         {
-            if (c.UsuarioRecepcionId.HasValue) userIds.Add(c.UsuarioRecepcionId.Value);
-            else if (movimientosDict.TryGetValue(c.Id, out var m) && m.usuarioId.HasValue) userIds.Add(m.usuarioId.Value);
+            if (c.UsuarioId.HasValue && c.UsuarioId.Value != Guid.Empty) userIds.Add(c.UsuarioId.Value);
+            if (c.UsuarioRecepcionId.HasValue && c.UsuarioRecepcionId.Value != Guid.Empty) userIds.Add(c.UsuarioRecepcionId.Value);
+            else if (movimientosDict.TryGetValue(c.Id, out var m) && m.usuarioId.HasValue && m.usuarioId.Value != Guid.Empty) userIds.Add(m.usuarioId.Value);
         }
 
         var usersMap = new Dictionary<Guid, BubbaBag.Modules.Seguridad.Application.Auth.UsuarioDto>();
@@ -176,7 +178,22 @@ public static class AlmacenesEndpoints
 
         return compras.Select(c =>
         {
-            if (!c.Estado.StartsWith("Recibida")) return c;
+            string? creadoPor = null;
+            string? creadoPorEmail = null;
+            if (c.UsuarioId.HasValue && usersMap.TryGetValue(c.UsuarioId.Value, out var uCreador))
+            {
+                creadoPor = uCreador.NombreCompleto;
+                creadoPorEmail = uCreador.Email;
+            }
+
+            if (!c.Estado.StartsWith("Recibida"))
+            {
+                return c with
+                {
+                    CreadoPor = creadoPor,
+                    CreadoPorEmail = creadoPorEmail
+                };
+            }
 
             Guid? usrId = c.UsuarioRecepcionId;
             DateTime? fechaRec = c.FechaRecepcion;
@@ -188,22 +205,16 @@ public static class AlmacenesEndpoints
 
             string? nombre = null;
             string? email = null;
-            if (usrId.HasValue)
+            if (usrId.HasValue && usersMap.TryGetValue(usrId.Value, out var u))
             {
-                if (usersMap.TryGetValue(usrId.Value, out var u))
-                {
-                    nombre = u.NombreCompleto;
-                    email = u.Email;
-                }
-                else
-                {
-                    nombre = "SuperAdmin";
-                    email = "admin@bubbabag.local";
-                }
+                nombre = u.NombreCompleto;
+                email = u.Email;
             }
 
             return c with
             {
+                CreadoPor = creadoPor,
+                CreadoPorEmail = creadoPorEmail,
                 UsuarioRecepcionId = usrId,
                 RecibidoPor = nombre,
                 RecibidoPorEmail = email,
@@ -243,13 +254,19 @@ public static class AlmacenesEndpoints
         if (compra == null)
             return Results.NotFound(new { mensaje = "Compra no encontrada." });
 
-        if (compra.Estado != "Borrador")
-            return Results.BadRequest(new { mensaje = "Solo se pueden eliminar compras que se encuentren en estado Borrador." });
+        if (compra.Estado == "Recibida")
+            return Results.BadRequest(new { mensaje = "No se pueden eliminar compras que ya han sido recibidas en almacén." });
 
         context.Compras.Remove(compra);
         await context.SaveChangesAsync(ct);
 
         return Results.NoContent();
+    }
+
+    private static async Task<IResult> RevertirABorradorCompra(Guid id, IDispatcher dispatcher)
+    {
+        var resultado = await dispatcher.SendAsync(new RevertirABorradorCompraCommand(id));
+        return resultado.IsSuccess ? Results.Ok() : Results.BadRequest(resultado.Error);
     }
 
     private static async Task<IResult> EliminarTransferencia(
@@ -504,7 +521,8 @@ public static class AlmacenesEndpoints
             request.Codigo,
             request.Tipo,
             request.UnidadOrganizativaId,
-            request.RecursoId
+            request.RecursoId,
+            request.AlmacenPadreId
         );
 
         var result = await dispatcher.SendAsync(command);
@@ -525,7 +543,8 @@ public static class AlmacenesEndpoints
             request.Codigo,
             request.Tipo,
             request.UnidadOrganizativaId,
-            request.RecursoId
+            request.RecursoId,
+            request.AlmacenPadreId
         );
         var result = await dispatcher.SendAsync(command);
         return result.IsSuccess ? Results.NoContent() : Results.BadRequest(result.Error);
@@ -557,7 +576,8 @@ public record CrearAlmacenRequest(
     string? Codigo = null,
     int? Tipo = 1,
     Guid? UnidadOrganizativaId = null,
-    Guid? RecursoId = null
+    Guid? RecursoId = null,
+    Guid? AlmacenPadreId = null
 );
 
 public record ActualizarAlmacenRequest(
@@ -566,7 +586,8 @@ public record ActualizarAlmacenRequest(
     string? Codigo = null,
     int? Tipo = null,
     Guid? UnidadOrganizativaId = null,
-    Guid? RecursoId = null
+    Guid? RecursoId = null,
+    Guid? AlmacenPadreId = null
 );
 
 public record ValidarSeriesRequest(IReadOnlyCollection<string> Series);

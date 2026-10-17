@@ -20,6 +20,12 @@ public class Almacen : Entity<Guid>
     public Guid? UnidadOrganizativaId { get; private set; }
 
     /// <summary>
+    /// Almacén padre / Bodega base de abastecimiento (para subalmacenes o custodias personales).
+    /// </summary>
+    public Guid? AlmacenPadreId { get; private set; }
+    public virtual Almacen? AlmacenPadre { get; private set; }
+
+    /// <summary>
     /// Si el almacén es de custodia personal, referencia al recurso responsable.
     /// </summary>
     public Guid? RecursoId { get; private set; }
@@ -42,7 +48,8 @@ public class Almacen : Entity<Guid>
         string? codigo = null,
         TipoAlmacen tipo = TipoAlmacen.Bodega,
         Guid? unidadOrganizativaId = null,
-        Guid? recursoId = null)
+        Guid? recursoId = null,
+        Guid? almacenPadreId = null)
     {
         if (string.IsNullOrWhiteSpace(nombre))
             throw new ArgumentException("El nombre del almacén es obligatorio.", nameof(nombre));
@@ -59,6 +66,7 @@ public class Almacen : Entity<Guid>
             Descripcion = NormalizarDescripcion(descripcion),
             Tipo = tipo,
             UnidadOrganizativaId = unidadOrganizativaId,
+            AlmacenPadreId = almacenPadreId,
             RecursoId = tipo == TipoAlmacen.CustodiaPersonal ? recursoId : null,
             Activo = true,
             CreadoPorId = creadoPorId,
@@ -73,9 +81,10 @@ public class Almacen : Entity<Guid>
         Guid unidadOrganizativaId,
         string? descripcion = null,
         Guid? creadoPorId = null,
-        string? creadoPorNombre = null)
+        string? creadoPorNombre = null,
+        Guid? almacenPadreId = null)
     {
-        return Crear(nombre, descripcion, creadoPorId, creadoPorNombre, codigo, TipoAlmacen.Bodega, unidadOrganizativaId, null);
+        return Crear(nombre, descripcion, creadoPorId, creadoPorNombre, codigo, TipoAlmacen.Bodega, unidadOrganizativaId, null, almacenPadreId);
     }
 
     public static Almacen CrearCustodiaPersonal(
@@ -85,9 +94,10 @@ public class Almacen : Entity<Guid>
         Guid recursoId,
         string? descripcion = null,
         Guid? creadoPorId = null,
-        string? creadoPorNombre = null)
+        string? creadoPorNombre = null,
+        Guid? almacenPadreId = null)
     {
-        return Crear(nombre, descripcion, creadoPorId, creadoPorNombre, codigo, TipoAlmacen.CustodiaPersonal, unidadOrganizativaId, recursoId);
+        return Crear(nombre, descripcion, creadoPorId, creadoPorNombre, codigo, TipoAlmacen.CustodiaPersonal, unidadOrganizativaId, recursoId, almacenPadreId);
     }
 
     public void Actualizar(
@@ -97,7 +107,8 @@ public class Almacen : Entity<Guid>
         string? codigo = null,
         TipoAlmacen? tipo = null,
         Guid? unidadOrganizativaId = null,
-        Guid? recursoId = null)
+        Guid? recursoId = null,
+        Guid? almacenPadreId = null)
     {
         if (string.IsNullOrWhiteSpace(nombre))
             throw new ArgumentException("El nombre del almacén es obligatorio.", nameof(nombre));
@@ -114,8 +125,18 @@ public class Almacen : Entity<Guid>
             UnidadOrganizativaId = unidadOrganizativaId.Value;
         if (recursoId.HasValue)
             RecursoId = recursoId.Value;
+        if (almacenPadreId.HasValue)
+            AlmacenPadreId = almacenPadreId.Value == Guid.Empty ? null : almacenPadreId.Value;
 
         RegistrarActualizacion(actualizadoPorId);
+    }
+
+    public void AsignarAlmacenPadre(Guid? almacenPadreId)
+    {
+        if (almacenPadreId.HasValue && almacenPadreId.Value == Id)
+            throw new InvalidOperationException("Un almacén no puede ser padre de sí mismo.");
+        AlmacenPadreId = almacenPadreId;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void AsignarUnidadOrganizativa(Guid unidadOrganizativaId)

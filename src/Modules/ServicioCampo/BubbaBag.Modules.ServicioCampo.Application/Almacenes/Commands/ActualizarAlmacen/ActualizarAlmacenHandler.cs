@@ -15,7 +15,8 @@ public record ActualizarAlmacenCommand(
     string? Codigo = null,
     int? Tipo = null,
     Guid? UnidadOrganizativaId = null,
-    Guid? RecursoId = null
+    Guid? RecursoId = null,
+    Guid? AlmacenPadreId = null
 ) : ICommand<Result>;
 
 public class ActualizarAlmacenHandler : ICommandHandler<ActualizarAlmacenCommand, Result>
@@ -57,7 +58,18 @@ public class ActualizarAlmacenHandler : ICommandHandler<ActualizarAlmacenCommand
             command.Codigo,
             tipoAlm,
             command.UnidadOrganizativaId,
-            command.RecursoId);
+            command.RecursoId,
+            command.AlmacenPadreId);
+
+        if (command.AlmacenPadreId.HasValue && almacen.RecursoId.HasValue)
+        {
+            var rec = await _context.Recursos.FirstOrDefaultAsync(r => r.Id == almacen.RecursoId.Value, cancellationToken);
+            if (rec != null)
+            {
+                var padreId = command.AlmacenPadreId.Value == Guid.Empty ? null : (Guid?)command.AlmacenPadreId.Value;
+                rec.Actualizar(rec.NombreCompleto, rec.Tipo, rec.ZonaOperativaId, padreId, rec.AlmacenMovilId, rec.UsuarioId, rec.EmpleadoId, rec.Telefono, rec.DocumentoIdentidad, rec.Email, rec.CapacidadMaximaOrdenesPorDia, rec.ColorHex, rec.Notas);
+            }
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
 

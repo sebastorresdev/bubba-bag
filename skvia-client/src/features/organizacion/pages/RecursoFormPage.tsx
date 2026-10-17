@@ -24,6 +24,7 @@ import {
   LockClosed16Regular,
   Person16Regular,
   People20Regular,
+  Building16Regular,
 } from '@fluentui/react-icons';
 import { SeguridadService, type UsuarioDto } from '../../seguridad';
 import { SelectorEntidadRelacionada } from '../../../components/common/SelectorEntidadRelacionada';
@@ -40,6 +41,29 @@ import { D365FormField } from '../../../components/common/D365FormField';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../components/common/D365CommandBar';
 import { D365MessageBar } from '../../../components/common/D365MessageBar';
 import { D365EntityHeader } from '../../../components/common/D365EntityHeader';
+
+const DEFAULT_RECURSO_FORM_DATA: CreateRecursoDto = {
+  codigo: '',
+  nombreCompleto: '',
+  tipo: 1, // 1: Técnico, 4: Despachador
+  unidadOrganizativaId: '',
+  zonaOperativaId: '',
+  almacenBaseId: '',
+  almacenMovilId: '',
+  telefono: '',
+  documentoIdentidad: '',
+  email: '',
+  capacidadMaximaOrdenesPorDia: 6,
+  colorHex: '#0078d4',
+  notas: '',
+  usuarioId: '',
+};
+
+const DEFAULT_HEADER_INFO = {
+  nombre: '',
+  tipoNombre: 'Técnico de Campo',
+  activo: true,
+};
 
 export function RecursoFormPage() {
   const styles = useD365FormStyles();
@@ -64,37 +88,19 @@ export function RecursoFormPage() {
   const isEditMode = Boolean(id && id !== 'nuevo');
 
   // Form State
-  const [formData, setFormData] = useState<CreateRecursoDto>({
-    codigo: '',
-    nombreCompleto: '',
-    tipo: 1, // 1: Técnico, 4: Despachador
-    unidadOrganizativaId: '',
-    zonaOperativaId: '',
-    almacenBaseId: '',
-    almacenMovilId: '',
-    telefono: '',
-    documentoIdentidad: '',
-    email: '',
-    capacidadMaximaOrdenesPorDia: 6,
-    colorHex: '#0078d4',
-    notas: '',
-    usuarioId: '',
-  });
+  const [formData, setFormData] = useState<CreateRecursoDto>(DEFAULT_RECURSO_FORM_DATA);
 
   const [headerInfo, setHeaderInfo] = useState<{
     nombre: string;
     tipoNombre: string;
     activo: boolean;
-  }>({
-    nombre: '',
-    tipoNombre: 'Técnico de Campo',
-    activo: true,
-  });
+  }>(DEFAULT_HEADER_INFO);
 
   // Catálogos
   const [usuarios, setUsuarios] = useState<UsuarioDto[]>([]);
   const [busquedaUsuario, setBusquedaUsuario] = useState('');
   const [sedes, setSedes] = useState<UnidadOrganizativaDto[]>([]);
+  const [busquedaSede, setBusquedaSede] = useState('');
   const [territorios, setTerritorios] = useState<TerritorioDto[]>([]);
   const [almacenesBase, setAlmacenesBase] = useState<AlmacenDto[]>([]);
 
@@ -190,9 +196,29 @@ export function RecursoFormPage() {
     if (isEditMode && id) {
       void cargarDatos(id);
     } else {
+      setFormData(DEFAULT_RECURSO_FORM_DATA);
+      setHeaderInfo(DEFAULT_HEADER_INFO);
+      setBusquedaSede('');
+      setBusquedaUsuario('');
+      setSelectedTab('general');
+      setErrors({});
+      setStatusMessage(null);
       setLoading(false);
+      draft.markSaved();
     }
   }, [id, isEditMode, cargarDatos]);
+
+  const handleNuevo = () => {
+    setFormData(DEFAULT_RECURSO_FORM_DATA);
+    setHeaderInfo(DEFAULT_HEADER_INFO);
+    setBusquedaSede('');
+    setBusquedaUsuario('');
+    setSelectedTab('general');
+    setErrors({});
+    setStatusMessage(null);
+    draft.markSaved();
+    navigate('/servicio-campo/recursos/nuevo');
+  };
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -309,7 +335,7 @@ navigate('/servicio-campo/recursos'); }
             icon={<Add16Regular />}
             tone="create"
             disabled={saving}
-            onClick={() => navigate('/servicio-campo/recursos/nuevo')}
+            onClick={handleNuevo}
           >
             Nuevo
           </D365CommandButton>
@@ -395,21 +421,40 @@ navigate('/servicio-campo/recursos'); }
                       </Select>
                     </D365FormField>
 
-                    <D365FormField label="Unidad Organizativa (Sede)">
-                      <Select
-                        className={styles.d365ControlFull}
-                        value={formData.unidadOrganizativaId || ''}
-                        onChange={(_, d) =>
-                          setFormData((p) => ({ ...p, unidadOrganizativaId: d.value, zonaOperativaId: '' }))
+                    <D365FormField label="Unidad Organizativa (Sede)" error={errors.unidadOrganizativaId}>
+                      <SelectorEntidadRelacionada
+                        idEntrada="recurso-unidad-org"
+                        etiquetaGrupo="Unidades Organizativas (Sedes)"
+                        icono={<Building16Regular />}
+                        deshabilitado={saving}
+                        tituloEnlace="Ver detalles de la sede"
+                        alNavegar={(sedeId) => navigate(`/servicio-campo/unidades-organizativas/${sedeId}`)}
+                        opciones={sedes.map((s) => ({
+                          id: s.id,
+                          nombre: `${s.nombre} (${s.codigo})`,
+                          detalle: s.ciudad || undefined,
+                        }))}
+                        seleccionada={
+                          formData.unidadOrganizativaId
+                            ? (() => {
+                                const s = sedes.find((item) => item.id === formData.unidadOrganizativaId);
+                                return s ? { id: s.id, nombre: `${s.nombre} (${s.codigo})` } : null;
+                              })()
+                            : null
                         }
-                      >
-                        <option value="">Seleccione sede...</option>
-                        {sedes.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.nombre} ({s.codigo})
-                          </option>
-                        ))}
-                      </Select>
+                        textoBusqueda={busquedaSede}
+                        alCambiarBusqueda={setBusquedaSede}
+                        alSeleccionar={(sedeId) => {
+                          setFormData((p) => ({
+                            ...p,
+                            unidadOrganizativaId: sedeId || '',
+                            zonaOperativaId: '',
+                          }));
+                          if (errors.unidadOrganizativaId && sedeId) {
+                            setErrors((p) => ({ ...p, unidadOrganizativaId: '' }));
+                          }
+                        }}
+                      />
                     </D365FormField>
 
                     <D365FormField label="Territorio Habitual de Operación">

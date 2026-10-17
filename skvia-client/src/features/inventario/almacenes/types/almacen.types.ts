@@ -9,6 +9,8 @@ export interface AlmacenDto {
   tipoNombre?: string;
   unidadOrganizativaId?: string | null;
   unidadOrganizativaNombre?: string | null;
+  almacenPadreId?: string | null;
+  almacenPadreNombre?: string | null;
   recursoId?: string | null;
   recursoNombre?: string | null;
   puedeDespachar?: boolean;
@@ -28,6 +30,7 @@ export interface CreateAlmacenDto {
   codigo?: string | null;
   tipo?: TipoAlmacen;
   unidadOrganizativaId?: string | null;
+  almacenPadreId?: string | null;
   recursoId?: string | null;
 }
 
@@ -37,6 +40,7 @@ export interface UpdateAlmacenDto {
   codigo?: string | null;
   tipo?: TipoAlmacen;
   unidadOrganizativaId?: string | null;
+  almacenPadreId?: string | null;
   recursoId?: string | null;
 }
 

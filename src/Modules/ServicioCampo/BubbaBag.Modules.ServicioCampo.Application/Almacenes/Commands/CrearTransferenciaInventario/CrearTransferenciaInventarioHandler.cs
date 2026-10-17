@@ -32,6 +32,8 @@ public class CrearTransferenciaInventarioHandler(IServicioCampoDbContext db, ICu
         if (!a.UnidadOrganizativaId.HasValue || !b.UnidadOrganizativaId.HasValue) return Result<string>.Failure("Ambos almacenes deben tener unidad organizativa.");
         if (a.Tipo==TipoAlmacen.CustodiaPersonal && b.Tipo==TipoAlmacen.CustodiaPersonal && a.Id!=b.Id) return Result<string>.Failure("El material debe retornar a bodega antes de abastecer otra custodia personal.");
         var mismaUnidad=a.UnidadOrganizativaId==b.UnidadOrganizativaId;
+        if (b.Tipo == TipoAlmacen.CustodiaPersonal && b.AlmacenPadreId.HasValue && a.Id != b.AlmacenPadreId.Value)
+            return Result<string>.Failure("La custodia personal solo puede ser abastecida directamente desde su bodega base asignada.");
         if (!mismaUnidad && (a.Tipo==TipoAlmacen.CustodiaPersonal || b.Tipo==TipoAlmacen.CustodiaPersonal)) return Result<string>.Failure("La custodia personal solo intercambia material con bodegas de su unidad.");
         var modalidad=c.Modalidad ?? (mismaUnidad ? ModalidadTransferencia.Inmediata : ModalidadTransferencia.ConTransito);
         if (!Enum.IsDefined(modalidad) || !mismaUnidad && modalidad!=ModalidadTransferencia.ConTransito) return Result<string>.Failure("Entre unidades se exige despacho y recepción separados.");

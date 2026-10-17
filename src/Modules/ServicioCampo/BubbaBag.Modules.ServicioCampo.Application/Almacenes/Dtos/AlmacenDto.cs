@@ -19,5 +19,7 @@ public record AlmacenDto(
     DateTime CreatedAt,
     Guid? ActualizadoPorId,
     DateTime? UpdatedAt,
-    bool PuedeDespachar = false, bool PuedeRecepcionar = false, bool EsSupervisor = false
+    bool PuedeDespachar = false, bool PuedeRecepcionar = false, bool EsSupervisor = false,
+    Guid? AlmacenPadreId = null,
+    string? AlmacenPadreNombre = null
 );

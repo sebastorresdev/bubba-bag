@@ -49,6 +49,7 @@ export function SeriesCompraTable({
   otrasSeries,
   seriesRecibidas,
   alCambiar,
+  alCambiarCantidad,
 }: {
   valor: string;
   cantidad: number;
@@ -56,6 +57,7 @@ export function SeriesCompraTable({
   otrasSeries: string[];
   seriesRecibidas?: string[];
   alCambiar: (valor: string) => void;
+  alCambiarCantidad?: (nuevaCantidad: number) => void;
 }) {
   const styles = useStyles();
   const entradaId = useId();
@@ -66,6 +68,8 @@ export function SeriesCompraTable({
   const setRecibidas = seriesRecibidas
     ? new Set(seriesRecibidas.map((s) => s.trim().toUpperCase()))
     : null;
+
+  const limiteAlcanzado = !alCambiarCantidad && cantidad > 0 && series.length >= cantidad;
 
   const agregar = async () => {
     const raw = entrada.trim();
@@ -84,7 +88,7 @@ export function SeriesCompraTable({
       return;
     }
 
-    if (series.length + nuevas.length > cantidad) {
+    if (!alCambiarCantidad && cantidad > 0 && series.length + nuevas.length > cantidad) {
       setError(
         `No puede agregar ${nuevas.length} serie(s). La cantidad máxima permitida para este producto es ${cantidad} (actual: ${series.length}).`
       );
@@ -125,7 +129,11 @@ export function SeriesCompraTable({
         return;
       }
 
-      alCambiar([...series, ...nuevas].join('\n'));
+      const listaFinal = [...series, ...nuevas];
+      alCambiar(listaFinal.join('\n'));
+      if (alCambiarCantidad) {
+        alCambiarCantidad(listaFinal.length);
+      }
       setEntrada('');
       setError('');
     } catch (err: any) {
@@ -141,7 +149,7 @@ export function SeriesCompraTable({
     <section className={styles.root} aria-label="Números de serie">
       <D365CommandBar ariaLabel="Comandos de series">
         <Text weight="semibold">
-          Series ({series.length} / {cantidad})
+          Series ({series.length}{cantidad > 0 ? ` / ${cantidad}` : ''})
           {setRecibidas &&
             ` • ${setRecibidas.size} recibidas, ${
               series.length - setRecibidas.size
@@ -161,9 +169,10 @@ export function SeriesCompraTable({
           <Input
             aria-label="Nueva serie o escanear"
             className={styles.input}
+            placeholder="Escriba o pegue una o más series (Enter para agregar)..."
             value={entrada}
             id={entradaId}
-            disabled={validando || series.length >= cantidad}
+            disabled={validando || limiteAlcanzado}
             maxLength={100}
             onChange={(_, d) => setEntrada(d.value)}
             onKeyDown={(e) => {
@@ -176,7 +185,7 @@ export function SeriesCompraTable({
           <D365CommandButton
             icon={validando ? <Spinner size="tiny" /> : <Add16Regular />}
             tone="create"
-            disabled={validando || !entrada.trim() || series.length >= cantidad}
+            disabled={validando || !entrada.trim() || limiteAlcanzado}
             onClick={() => void agregar()}
           >
             {validando ? 'Validando...' : 'Agregar'}
@@ -220,7 +229,11 @@ export function SeriesCompraTable({
                         icon={<Delete16Regular />}
                         aria-label={`Eliminar serie ${serie}`}
                         onClick={() => {
-                          alCambiar(series.filter((s) => s !== serie).join('\n'));
+                          const filtradas = series.filter((s) => s !== serie);
+                          alCambiar(filtradas.join('\n'));
+                          if (alCambiarCantidad) {
+                            alCambiarCantidad(filtradas.length);
+                          }
                           setError('');
                         }}
                       />

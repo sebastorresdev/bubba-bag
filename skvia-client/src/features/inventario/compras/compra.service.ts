@@ -35,6 +35,10 @@ export interface CompraDto extends CrearCompra {
   recibidoPor?: string | null;
   recibidoPorEmail?: string | null;
   fechaRecepcion?: string | null;
+  usuarioId?: string | null;
+  creadoPor?: string | null;
+  creadoPorEmail?: string | null;
+  fechaRegistro?: string | null;
   lineas: (LineaCompra & {
     producto: string;
     unidad: string | null;
@@ -50,6 +54,7 @@ export const CompraService = {
   actualizar: (id: string, datos: CrearCompra) => apiClient<{ id: string }>(`/api/inventario/compras/${id}`, { method: 'PUT', body: JSON.stringify(datos) }),
   eliminar: (id: string) => apiClient<void>(`/api/inventario/compras/${id}`, { method: 'DELETE' }),
   solicitar: (id: string) => apiClient<void>(`/api/inventario/compras/${id}/solicitar`, { method: 'POST' }),
+  revertirBorrador: (id: string) => apiClient<void>(`/api/inventario/compras/${id}/revertir-borrador`, { method: 'POST' }),
   enviar: (id: string) => apiClient<void>(`/api/inventario/compras/${id}/enviar`, { method: 'POST' }),
   recepcionar: (id: string, datos: RecepcionCompraDatos) => apiClient<void>(`/api/inventario/compras/${id}/recepcionar`, { method: 'POST', body: JSON.stringify(datos) }),
   cerrarFaltantes: (id: string) => apiClient<void>(`/api/inventario/compras/${id}/cerrar-faltantes`, { method: 'POST' }),

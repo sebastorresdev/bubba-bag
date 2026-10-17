@@ -35,6 +35,8 @@ import { useD365ImportStyles } from '../../../styles/d365ImportStyles';
 import { semanticTokens } from '../../../styles/semanticTokens';
 import { ProductoService } from '../productos/services/producto.service';
 import type { ProductoDto } from '../productos/types/producto.types';
+import { UnidadMedidaService } from '../unidades-medida/services/unidadMedida.service';
+import type { UnidadMedidaDto } from '../unidades-medida/types/unidadMedida.types';
 import type { LineaCompraForm } from './ProductosCompraGrid';
 
 const useStyles = makeStyles({
@@ -214,6 +216,8 @@ interface FilaConsolidada {
   cantidad: number;
   costo: number;
   uom: string;
+  unidadMedidaId?: string;
+  factorConversion?: number;
   series: string[];
   productoId?: string;
   encontradoEnCatalogo: boolean;
@@ -356,16 +360,25 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
       return false;
     }
 
-    // Consultar el catálogo maestro para validación de SKUs
+    // Consultar el catálogo maestro para validación estricta de SKUs y unidades de medida
     let catalogo = productosExistentes;
+    let unidadesMedida: UnidadMedidaDto[] = [];
     try {
-      const dbProductos = await ProductoService.getProductos(undefined, undefined, true);
+      const [dbProductos, dbUnidades] = await Promise.all([
+        ProductoService.getProductos(undefined, undefined, true).catch(() => []),
+        UnidadMedidaService.getUnidadesMedida(undefined, true).catch(() => []),
+      ]);
       if (dbProductos && dbProductos.length > 0) {
         catalogo = dbProductos;
+      }
+      if (dbUnidades && dbUnidades.length > 0) {
+        unidadesMedida = dbUnidades;
       }
     } catch {
       // continuar con productos cargados en memoria
     }
+
+    const clean = (s?: string | null) => (s || '').toLowerCase().replace(/[\s_\-]/g, '').trim();
 
     const mapaAgrupado = new Map<string, FilaConsolidada>();
 
@@ -379,27 +392,97 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
       const serieRaw = colSerie ? String(r[colSerie] ?? '').trim() : '';
       const prodNombre = colProd ? String(r[colProd] ?? '').trim() : '';
       const costoVal = colCosto ? Number(r[colCosto]) || 0 : 0;
-      const uomVal = colUom ? String(r[colUom] ?? '').trim() : 'UND';
+      const rawUom = colUom ? String(r[colUom] ?? '').trim() : '';
 
-      const key = rawSku.toUpperCase();
+      const match = catalogo.find(
+        (p) => clean(p.codigo) === clean(rawSku)
+      );
+
+      // 1. Validación de Producto en el Catálogo Maestro
+      if (!match) {
+        const keyErr = `ERR_${rawSku.toUpperCase()}__${clean(rawUom)}`;
+        let filaErr = mapaAgrupado.get(keyErr);
+        if (!filaErr) {
+          filaErr = {
+            sku: rawSku,
+            nombre: prodNombre || rawSku,
+            cantidad: 0,
+            costo: costoVal,
+            uom: rawUom || '---',
+            series: [],
+            encontradoEnCatalogo: false,
+            esValida: false,
+            motivoRechazo: `El SKU '${rawSku}' no existe en el catálogo maestro.`,
+          };
+          mapaAgrupado.set(keyErr, filaErr);
+        }
+        if (serieRaw) filaErr.series.push(serieRaw);
+        filaErr.cantidad += cant;
+        continue;
+      }
+
+      // 2. Validación de Unidad de Medida contra el Grupo de Unidades del Producto
+      const unidadesGrupo = unidadesMedida.filter(
+        (u) => u.grupoUnidadMedidaId === match.grupoUnidadMedidaId
+      );
+
+      let uId: string | undefined = undefined;
+      let uNombre = rawUom;
+      let factor = 1;
+      let uValida = true;
+      let motivoUom = '';
+
+      if (rawUom) {
+        const uMatch = unidadesGrupo.find(
+          (u) =>
+            clean(u.nombre) === clean(rawUom) ||
+            (u.codigo && clean(u.codigo) === clean(rawUom))
+        );
+        const esDefecto = match.nombreUnidadMedidaDefecto && clean(match.nombreUnidadMedidaDefecto) === clean(rawUom);
+
+        if (uMatch) {
+          uId = uMatch.id;
+          uNombre = uMatch.nombre;
+          factor = uMatch.factorConversionTotal || 1;
+        } else if (esDefecto) {
+          uId = match.unidadMedidaDefectoId || undefined;
+          uNombre = match.nombreUnidadMedidaDefecto || rawUom;
+          factor = 1;
+        } else {
+          uValida = false;
+          const permitidas = unidadesGrupo.map((u) => u.nombre).join(', ') || match.nombreUnidadMedidaDefecto || 'Ninguna configurada';
+          motivoUom = `La unidad '${rawUom}' no es válida para el producto '${match.nombre}'. Unidades autorizadas en catálogo: [${permitidas}].`;
+        }
+      } else {
+        // El archivo no especificó columna de unidad: tomar la unidad oficial por defecto del producto
+        if (match.nombreUnidadMedidaDefecto) {
+          uId = match.unidadMedidaDefectoId || undefined;
+          uNombre = match.nombreUnidadMedidaDefecto;
+          factor = 1;
+        } else {
+          uValida = false;
+          motivoUom = `El producto '${match.nombre}' no tiene unidad de medida configurada en el catálogo y el archivo no la incluye.`;
+        }
+      }
+
+      const key = `${match.codigo.toUpperCase()}__${clean(uNombre)}`;
       let existente = mapaAgrupado.get(key);
 
       if (!existente) {
-        const match = catalogo.find(
-          (p) => p.codigo?.trim().toUpperCase() === key
-        );
-
         existente = {
-          sku: rawSku,
-          nombre: match?.nombre || prodNombre || rawSku,
+          sku: match.codigo,
+          nombre: match.nombre || prodNombre || rawSku,
           cantidad: 0,
           costo: costoVal,
-          uom: uomVal,
+          uom: uNombre,
+          unidadMedidaId: uId,
+          factorConversion: factor,
           series: [],
-          productoId: match?.id,
-          encontradoEnCatalogo: Boolean(match),
+          productoId: match.id,
+          encontradoEnCatalogo: true,
           productoOriginal: match,
-          esValida: true,
+          esValida: uValida,
+          motivoRechazo: uValida ? undefined : motivoUom,
         };
         mapaAgrupado.set(key, existente);
       }
@@ -407,13 +490,15 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
       if (serieRaw) {
         if (!existente.series.includes(serieRaw)) {
           existente.series.push(serieRaw);
+        } else {
+          existente.esValida = false;
+          existente.motivoRechazo = `La serie '${serieRaw}' se encuentra duplicada en el archivo para este producto.`;
         }
         existente.cantidad = existente.series.length;
       } else {
         existente.cantidad += cant;
       }
 
-      if (!existente.nombre && prodNombre) existente.nombre = prodNombre;
       if (existente.costo === 0 && costoVal > 0) existente.costo = costoVal;
     }
 
@@ -423,16 +508,21 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
       return false;
     }
 
-    // Regla de validación de incidencias e integridad con el catálogo
+    // Regla de validación de serialización e integridad
     listado.forEach((fila) => {
-      if (!fila.encontradoEnCatalogo) {
-        fila.esValida = false;
-        fila.motivoRechazo = 'El producto no existe en el catálogo maestro.';
+      if (!fila.esValida) return; // Ya fue rechazada por producto o unidad
+
+      if (fila.productoOriginal?.esSerializado) {
+        if (fila.series.length === 0) {
+          fila.esValida = false;
+          fila.motivoRechazo = 'El producto es serializado en el catálogo maestro pero el archivo no contiene números de serie.';
+        } else if (fila.cantidad !== fila.series.length) {
+          fila.esValida = false;
+          fila.motivoRechazo = `La cantidad esperada (${fila.cantidad}) no coincide con el número de series registradas (${fila.series.length}).`;
+        }
       } else if (fila.productoOriginal && !fila.productoOriginal.esSerializado && fila.series.length > 0) {
         fila.esValida = false;
         fila.motivoRechazo = 'El producto está registrado como NO serializado en el catálogo, pero el archivo contiene números de serie.';
-      } else {
-        fila.esValida = true;
       }
     });
 
@@ -463,7 +553,8 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
         cantidad: String(item.cantidad),
         costo: String(item.costo || 0),
         series: item.series.join('\n'),
-        factorConversion: 1,
+        factorConversion: item.factorConversion || 1,
+        unidadMedidaId: item.unidadMedidaId,
         unidadMedidaNombre: item.uom,
       }));
 
@@ -739,14 +830,15 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
             )}
 
             <div className={styles.tableWrapper}>
-              <Table size="small" style={{ minWidth: '500px' }}>
+              <Table size="small" style={{ minWidth: '550px' }}>
                 <TableHeader>
                   <TableRow>
-                    <TableHeaderCell style={{ width: '100px', minWidth: '100px' }}>Código / SKU</TableHeaderCell>
-                    <TableHeaderCell style={{ minWidth: '140px' }}>Descripción</TableHeaderCell>
-                    <TableHeaderCell style={{ width: '60px', minWidth: '60px', textAlign: 'right' }}>Cant.</TableHeaderCell>
-                    <TableHeaderCell style={{ width: '95px', minWidth: '95px' }}>Series</TableHeaderCell>
-                    <TableHeaderCell style={{ width: '90px', minWidth: '90px' }}>Catálogo</TableHeaderCell>
+                    <TableHeaderCell style={{ width: '90px', minWidth: '90px' }}>Código / SKU</TableHeaderCell>
+                    <TableHeaderCell style={{ minWidth: '130px' }}>Descripción</TableHeaderCell>
+                    <TableHeaderCell style={{ width: '55px', minWidth: '55px', textAlign: 'right' }}>Cant.</TableHeaderCell>
+                    <TableHeaderCell style={{ width: '85px', minWidth: '85px' }}>Unidad</TableHeaderCell>
+                    <TableHeaderCell style={{ width: '90px', minWidth: '90px' }}>Series</TableHeaderCell>
+                    <TableHeaderCell style={{ width: '95px', minWidth: '95px' }}>Catálogo</TableHeaderCell>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -755,7 +847,7 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
                     return (
                       <TableRow
                         key={i}
-                        style={rechazada ? { opacity: 0.6, backgroundColor: tokens.colorNeutralBackground3 } : undefined}
+                        style={rechazada ? { opacity: 0.8, backgroundColor: tokens.colorNeutralBackground3 } : undefined}
                       >
                         <TableCell>
                           <TableCellLayout>
@@ -769,12 +861,27 @@ export const ImportarProductosCompraDrawer: React.FC<ImportarProductosCompraDraw
                         </TableCell>
                         <TableCell>
                           <TableCellLayout truncate>
-                            <Text size={200}>{f.nombre}</Text>
+                            <div>
+                              <Text size={200} weight={rechazada ? 'medium' : 'regular'}>{f.nombre}</Text>
+                              {rechazada && f.motivoRechazo && (
+                                <Text size={100} style={{ color: tokens.colorPaletteRedForeground1, display: 'block', marginTop: '2px', whiteSpace: 'normal' }}>
+                                  ⚠️ {f.motivoRechazo}
+                                </Text>
+                              )}
+                            </div>
                           </TableCellLayout>
                         </TableCell>
                         <TableCell style={{ textAlign: 'right' }}>
                           <TableCellLayout style={{ justifyContent: 'flex-end' }}>
                             <Text weight="semibold" size={200}>{f.cantidad}</Text>
+                          </TableCellLayout>
+                        </TableCell>
+                        <TableCell>
+                          <TableCellLayout>
+                            <Badge appearance={rechazada ? 'outline' : 'tint'} size="small" color={rechazada ? 'danger' : 'subtle'}>
+                              {f.uom || '—'}
+                              {Boolean(f.factorConversion && f.factorConversion > 1) ? ` (x${f.factorConversion})` : ''}
+                            </Badge>
                           </TableCellLayout>
                         </TableCell>
                         <TableCell>

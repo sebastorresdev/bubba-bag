@@ -15,7 +15,8 @@ public record CrearAlmacenCommand(
     string? Codigo = null,
     int? Tipo = 1,
     Guid? UnidadOrganizativaId = null,
-    Guid? RecursoId = null
+    Guid? RecursoId = null,
+    Guid? AlmacenPadreId = null
 ) : ICommand<Result<Guid>>;
 
 public class CrearAlmacenHandler : ICommandHandler<CrearAlmacenCommand, Result<Guid>>
@@ -51,6 +52,24 @@ public class CrearAlmacenHandler : ICommandHandler<CrearAlmacenCommand, Result<G
             return Result<Guid>.Failure("La custodia personal requiere un recurso técnico responsable.");
         }
 
+        var padreId = command.AlmacenPadreId;
+        if (tipoAlmacen == TipoAlmacen.CustodiaPersonal)
+        {
+            if (!padreId.HasValue && command.RecursoId.HasValue)
+            {
+                var rec = await _context.Recursos.FirstOrDefaultAsync(r => r.Id == command.RecursoId.Value, cancellationToken);
+                if (rec != null && rec.AlmacenBaseId.HasValue)
+                {
+                    padreId = rec.AlmacenBaseId;
+                }
+                else if (command.UnidadOrganizativaId.HasValue)
+                {
+                    var bodegaSede = await _context.Almacenes.FirstOrDefaultAsync(a => a.Tipo == TipoAlmacen.Bodega && a.UnidadOrganizativaId == command.UnidadOrganizativaId.Value && a.Activo, cancellationToken);
+                    padreId = bodegaSede?.Id;
+                }
+            }
+        }
+
         var almacen = Almacen.Crear(
             command.Nombre,
             command.Descripcion,
@@ -59,7 +78,8 @@ public class CrearAlmacenHandler : ICommandHandler<CrearAlmacenCommand, Result<G
             command.Codigo,
             tipoAlmacen,
             command.UnidadOrganizativaId,
-            command.RecursoId);
+            command.RecursoId,
+            padreId);
 
         await _context.Almacenes.AddAsync(almacen, cancellationToken);
         _context.UbicacionesInventario.Add(UbicacionInventario.Crear(almacen.Id,"PRINCIPAL","Principal",true));

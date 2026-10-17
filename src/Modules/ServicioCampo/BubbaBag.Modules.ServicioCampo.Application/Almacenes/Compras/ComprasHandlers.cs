@@ -11,7 +11,8 @@ public record LineaCompra(Guid ProductoId, decimal Cantidad, decimal CostoUnitar
 public record LineaCompraDetalle(Guid ProductoId, string Producto, string? Unidad, decimal Cantidad, decimal CostoUnitario, IReadOnlyList<string> Series, decimal? CantidadRecibida = null, IReadOnlyList<string>? SeriesRecibidas = null, Guid? UnidadMedidaId = null, decimal? FactorConversion = null, decimal? CantidadBase = null);
 public record CompraDto(Guid Id, string Numero, string Proveedor, string TipoDocumento, string NumeroDocumento,
     DateOnly FechaDocumento, string Moneda, Guid? AlmacenId, string Almacen, decimal Total, string? Observacion, IReadOnlyList<LineaCompraDetalle> Lineas, string Estado,
-    Guid? UsuarioRecepcionId = null, string? RecibidoPor = null, string? RecibidoPorEmail = null, DateTime? FechaRecepcion = null);
+    Guid? UsuarioRecepcionId = null, string? RecibidoPor = null, string? RecibidoPorEmail = null, DateTime? FechaRecepcion = null,
+    Guid? UsuarioId = null, string? CreadoPor = null, string? CreadoPorEmail = null, DateTime? FechaRegistro = null);
 public record ObtenerComprasQuery(Guid? Id = null) : IQuery<Result<List<CompraDto>>>;
 public record CrearCompraCommand(string Proveedor, string TipoDocumento, string NumeroDocumento, DateOnly FechaDocumento,
     string Moneda, Guid? AlmacenId, IReadOnlyList<LineaCompra>? Lineas, string? Observacion) : ICommand<Result<Guid>>;
@@ -20,6 +21,20 @@ public record ProcesarCompraCommand(Guid Id, string Accion) : ICommand<Result<Gu
 public record LineaRecepcion(Guid ProductoId, decimal Cantidad, IReadOnlyList<string>? Series, Guid? UbicacionId = null);
 public record RecepcionCompraDatos(string TipoDocumento, string NumeroDocumento, DateOnly FechaDocumento, IReadOnlyList<LineaRecepcion>? Lineas = null, Guid? UbicacionId = null);
 public record RecepcionarCompraCommand(Guid Id, RecepcionCompraDatos Datos) : ICommand<Result<Guid>>;
+public record RevertirABorradorCompraCommand(Guid Id) : ICommand<Result<Guid>>;
+
+public class RevertirABorradorCompraHandler(IServicioCampoDbContext context) : ICommandHandler<RevertirABorradorCompraCommand, Result<Guid>>
+{
+    public async Task<Result<Guid>> HandleAsync(RevertirABorradorCompraCommand command, CancellationToken cancellationToken = default)
+    {
+        var compra = await context.Compras.FindAsync([command.Id], cancellationToken);
+        if (compra is null) return Result<Guid>.Failure("La compra no existe.");
+        if (compra.Estado == "Recibida") return Result<Guid>.Failure("No se puede revertir una compra ya recibida.");
+        compra.RevertirABorrador();
+        await context.SaveChangesAsync(cancellationToken);
+        return Result<Guid>.Success(compra.Id);
+    }
+}
 
 public class ObtenerComprasHandler(IServicioCampoDbContext context, ICurrentUser user) : IQueryHandler<ObtenerComprasQuery, Result<List<CompraDto>>>
 {
@@ -30,7 +45,8 @@ public class ObtenerComprasHandler(IServicioCampoDbContext context, ICurrentUser
         return Result<List<CompraDto>>.Success(compras.Select(x => new CompraDto(x.Id, x.Numero, x.Proveedor, x.TipoDocumento,
             x.NumeroDocumento, x.FechaDocumento, x.Moneda, x.AlmacenId, x.Almacen?.Nombre ?? "", x.Total, x.Observacion,
             JsonSerializer.Deserialize<List<LineaCompraDetalle>>(x.LineasJson) ?? [], x.Estado,
-            x.UsuarioRecepcionId, null, null, x.FechaRecepcion)).ToList());
+            x.UsuarioRecepcionId, null, null, x.FechaRecepcion,
+            x.UsuarioId, null, null, x.FechaRegistro)).ToList());
     }
 }
 
@@ -45,18 +61,10 @@ public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser us
             command.Moneda is not ("PEN" or "USD") || command.TipoDocumento is not ("Factura" or "Boleta" or "Guía de remisión") || command.FechaDocumento == default)
             return Result<Guid>.Failure("Revise los datos de la compra.");
         var compra = id.HasValue ? await context.Compras.FindAsync([id.Value], ct) : null;
-        if (id.HasValue && compra is null) return Result<Guid>.Failure("La compra no existe.");
-        if (compra is not null && compra.Estado is "Enviada" or "Recibida") return Result<Guid>.Failure("La compra enviada o recibida no se puede editar.");
+        if (compra is not null && compra.Estado is "Recibida") return Result<Guid>.Failure("La compra recibida no se puede editar.");
         var lineas = command.Lineas ?? [];
         if (lineas.Count > 500 || lineas.Any(x => x is null || x.Cantidad <= 0 || x.Cantidad >= 1000000000m || x.CostoUnitario < 0 || x.CostoUnitario > 1000000000m || decimal.Round(x.CostoUnitario, 2) != x.CostoUnitario) || lineas.Select(x => x.ProductoId).Distinct().Count() != lineas.Count)
             return Result<Guid>.Failure("Revise las cantidades, costos y productos repetidos.");
-        if (compra?.Estado == "Solicitada")
-        {
-            var originales = JsonSerializer.Deserialize<List<LineaCompraDetalle>>(compra.LineasJson) ?? [];
-            if (command.Proveedor.Trim().ToUpperInvariant() != compra.Proveedor || command.AlmacenId != compra.AlmacenId || command.Moneda != compra.Moneda || originales.Count != lineas.Count ||
-                lineas.Any(x => !originales.Any(o => o.ProductoId == x.ProductoId && o.Cantidad == x.Cantidad && o.CostoUnitario == x.CostoUnitario)))
-                return Result<Guid>.Failure("La solicitud conserva productos, cantidades y costos.");
-        }
         if (command.AlmacenId.HasValue)
         {
             var alm = await context.Almacenes.FirstOrDefaultAsync(x => x.Id == command.AlmacenId && x.Activo, ct);
@@ -138,7 +146,7 @@ public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser us
     {
         var compra = await context.Compras.FindAsync([id], cancellationToken);
         if (compra is null) return Result<Guid>.Failure("La compra no existe.");
-        if (recepcionar && compra.Estado != "Enviada" && compra.Estado != "Recibida con faltantes") return Result<Guid>.Failure("El estado de la compra no permite recepcionar.");
+        if (recepcionar && compra.Estado != "Solicitada" && compra.Estado != "Enviada" && compra.Estado != "Recibida con faltantes") return Result<Guid>.Failure("El estado de la compra no permite recepcionar.");
         if (enviar && compra.Estado != "Solicitada") return Result<Guid>.Failure("El estado de la compra no permite registrar envío.");
         if (!recepcionar && !enviar && compra.Estado != "Borrador") return Result<Guid>.Failure("El estado de la compra no permite esta operación.");
         if (recepcionar && (!compra.AlmacenId.HasValue || !await InventarioAcceso.PuedeAsync(context,user,compra.AlmacenId.Value,"recibir",cancellationToken))) return Result<Guid>.Failure("No puede recepcionar en este almacén.");

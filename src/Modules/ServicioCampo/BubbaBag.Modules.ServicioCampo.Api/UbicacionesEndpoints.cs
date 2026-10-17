@@ -110,15 +110,23 @@ public static class UbicacionesEndpoints
         return Results.NoContent();
     }
 
-    private static bool DestinoPermitido(Almacen a,Almacen b)=>b.Activo && a.UnidadOrganizativaId.HasValue && b.UnidadOrganizativaId.HasValue &&
-        (a.Id==b.Id || a.Tipo==TipoAlmacen.Bodega && (b.Tipo==TipoAlmacen.Bodega || a.UnidadOrganizativaId==b.UnidadOrganizativaId) || a.Tipo==TipoAlmacen.CustodiaPersonal && b.Tipo==TipoAlmacen.Bodega && a.UnidadOrganizativaId==b.UnidadOrganizativaId);
+    private static bool DestinoPermitido(Almacen a, Almacen b) =>
+        b.Activo &&
+        (a.Id == b.Id ||
+         (a.Tipo == TipoAlmacen.Bodega && b.Tipo == TipoAlmacen.Bodega) ||
+         (a.Tipo == TipoAlmacen.Bodega && b.Tipo == TipoAlmacen.CustodiaPersonal &&
+          ((b.AlmacenPadreId.HasValue && b.AlmacenPadreId == a.Id) ||
+           (!b.AlmacenPadreId.HasValue && a.UnidadOrganizativaId.HasValue && b.UnidadOrganizativaId.HasValue && a.UnidadOrganizativaId == b.UnidadOrganizativaId))) ||
+         (a.Tipo == TipoAlmacen.CustodiaPersonal && b.Tipo == TipoAlmacen.Bodega &&
+          ((a.AlmacenPadreId.HasValue && a.AlmacenPadreId == b.Id) ||
+           (!a.AlmacenPadreId.HasValue && a.UnidadOrganizativaId.HasValue && b.UnidadOrganizativaId.HasValue && a.UnidadOrganizativaId == b.UnidadOrganizativaId))));
 
     private static async Task<IResult> ObtenerDestinos(Guid id,IServicioCampoDbContext db,ICurrentUser user,CancellationToken ct)
     {
         if(!await InventarioAcceso.PuedeAsync(db,user,id,"despachar",ct)) return Results.Forbid();
         var origen=await db.Almacenes.FindAsync([id],ct); if(origen==null) return Results.NotFound();
         var almacenes=await db.Almacenes.Where(x=>x.Activo).OrderBy(x=>x.Nombre).ToListAsync(ct);
-        return Results.Ok(almacenes.Where(x=>DestinoPermitido(origen,x)).Select(x=>new{x.Id,x.Codigo,x.Nombre,Tipo=(int)x.Tipo,x.UnidadOrganizativaId,x.RecursoId,x.Activo}));
+        return Results.Ok(almacenes.Where(x=>DestinoPermitido(origen,x)).Select(x=>new{x.Id,x.Codigo,x.Nombre,Tipo=(int)x.Tipo,x.UnidadOrganizativaId,x.AlmacenPadreId,x.RecursoId,x.Activo}));
     }
 
     private static async Task<IResult> ObtenerAutorizaciones(Guid id,IServicioCampoDbContext db,ICurrentUser user,BubbaBag.Modules.Seguridad.Application.Auth.IAuthService usuarios,CancellationToken ct)
