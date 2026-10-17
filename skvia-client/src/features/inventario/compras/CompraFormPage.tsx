@@ -226,12 +226,12 @@ export function CompraFormPage() {
   return <div className={form.root}>
     {error && <D365MessageBar intent="error" onDismiss={() => setError(null)}>{error}</D365MessageBar>}
     {mensaje && <D365MessageBar intent="success" onDismiss={() => setMensaje(null)}>{mensaje}</D365MessageBar>}
-    {!id && esAlmaceneroOperativo && (
+    {!id && !cargandoDatos && esAlmaceneroOperativo && (
       <D365MessageBar intent="warning">
         Tu cuenta tiene perfil operativo de Almacenero. La emisión y creación de nuevas órdenes de compra está reservada para el Supervisor de Almacén o Administrador de Inventario. Los almaceneros están facultados para realizar la recepción física cuando la orden esté en estado Enviada.
       </D365MessageBar>
     )}
-    {id && esAlmaceneroOperativo && estado !== 'Enviada' && estado !== 'Recibida con faltantes' && estado !== 'Recibida' && (
+    {id && !cargandoDatos && esAlmaceneroOperativo && estado !== 'Enviada' && estado !== 'Recibida con faltantes' && estado !== 'Recibida' && (
       <D365MessageBar intent="info">
         Ficha de orden de compra en modo solo lectura para control operativo. La recepción física se habilitará cuando la orden se encuentre en estado "Enviada".
       </D365MessageBar>
