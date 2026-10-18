@@ -117,10 +117,8 @@ public static class MantenimientosEndpoints
         // MOTIVOS DE RETIRO DE EQUIPOS (Logística Inversa)
         // =====================================================================
         var motivosRetiroGroup = rootGroup.MapGroup("/motivos-retiro-equipo");
-        motivosRetiroGroup.MapGet("/", ObtenerMotivosRetiroEquipo)
-            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
-        motivosRetiroGroup.MapGet("/{id:guid}", ObtenerMotivoRetiroEquipoPorId)
-            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
+        motivosRetiroGroup.MapGet("/", ObtenerMotivosRetiroEquipo);
+        motivosRetiroGroup.MapGet("/{id:guid}", ObtenerMotivoRetiroEquipoPorId);
         motivosRetiroGroup.MapPost("/", CrearMotivoRetiroEquipo)
             .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
         motivosRetiroGroup.MapPut("/{id:guid}", ActualizarMotivoRetiroEquipo)

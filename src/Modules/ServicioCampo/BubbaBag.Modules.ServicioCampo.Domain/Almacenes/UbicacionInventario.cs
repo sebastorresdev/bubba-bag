@@ -67,6 +67,14 @@ public class UbicacionInventario : Entity<Guid>
         if (EsPrincipal && !activa) throw new InvalidOperationException("La ubicación principal no se puede desactivar.");
         Activa = activa;
     }
+
+    public void NormalizarPredeterminada(string codigo, string nombre, TipoUbicacion tipo, bool principal)
+    {
+        Codigo = codigo.Trim().ToUpperInvariant();
+        Nombre = nombre.Trim();
+        TipoUbicacion = tipo;
+        EsPrincipal = principal;
+    }
 }
 
 public enum TipoUbicacion

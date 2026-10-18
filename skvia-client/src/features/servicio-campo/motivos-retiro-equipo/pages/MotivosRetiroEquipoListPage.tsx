@@ -10,7 +10,6 @@ import {
   MenuPopover,
   TableCellLayout,
   createTableColumn,
-  Badge,
   Dialog,
   DialogSurface,
   DialogTitle,
@@ -18,6 +17,7 @@ import {
   DialogActions,
   DialogContent,
   Button,
+  tokens,
 } from '@fluentui/react-components';
 import type { TableColumnDefinition, SelectionItemId } from '@fluentui/react-components';
 import {
@@ -39,6 +39,7 @@ import { D365EntityTable, D365TableToolbarTools, type D365EntityTableRef } from 
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
+import { useAuthSession } from '../../../../services/authSession';
 
 export interface MotivosRetiroEquipoListPageProps {
   onNewMotivo?: () => void;
@@ -51,6 +52,15 @@ export const MotivosRetiroEquipoListPage: React.FC<MotivosRetiroEquipoListPagePr
 }) => {
   const styles = useD365ListStyles();
   const navigate = useNavigate();
+  const { permisos } = useAuthSession();
+
+  const puedeGestionar = useMemo(() => {
+    return (
+      permisos.includes('serviciocampo.catalogos.gestionar') ||
+      permisos.includes('inventario.catalogos.gestionar') ||
+      permisos.includes('seguridad.acceso')
+    );
+  }, [permisos]);
 
   const [motivos, setMotivos] = useState<MotivoRetiroEquipoDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -162,6 +172,7 @@ export const MotivosRetiroEquipoListPage: React.FC<MotivosRetiroEquipoListPagePr
           <TableCellLayout truncate>
             <Link
               as="button"
+              className={styles.primaryLink}
               onClick={(e) => {
                 e.stopPropagation();
                 if (onSelectMotivo) {
@@ -171,7 +182,6 @@ export const MotivosRetiroEquipoListPage: React.FC<MotivosRetiroEquipoListPagePr
                 }
               }}
               title={item.nombre}
-              style={{ fontWeight: 600 }}
             >
               {item.nombre}
             </Link>
@@ -186,27 +196,7 @@ export const MotivosRetiroEquipoListPage: React.FC<MotivosRetiroEquipoListPagePr
           const info = TIPOS_RETIRO_EQUIPO_INFO[item.tipoRetiro];
           return (
             <TableCellLayout truncate>
-              <Badge
-                appearance={info?.badgeAppearance || 'tint'}
-                color={info?.badgeColor || 'informative'}
-                size="medium"
-              >
-                {info?.badgeLabel || item.tipoRetiro}
-              </Badge>
-            </TableCellLayout>
-          );
-        },
-      }),
-      createTableColumn<MotivoRetiroEquipoDto>({
-        columnId: 'condicionOperativa',
-        renderHeaderCell: () => 'Condición Equipo',
-        renderCell: (item) => {
-          const info = TIPOS_RETIRO_EQUIPO_INFO[item.tipoRetiro];
-          return (
-            <TableCellLayout truncate>
-              <Text size={200} style={{ color: info?.esOperativo ? '#107c41' : '#a80000', fontWeight: 500 }}>
-                {info?.esOperativo ? '● Equipo Operativo' : '● Equipo Dañado / Falla'}
-              </Text>
+              <Text>{info?.badgeLabel || item.tipoRetiro}</Text>
             </TableCellLayout>
           );
         },
@@ -216,7 +206,7 @@ export const MotivosRetiroEquipoListPage: React.FC<MotivosRetiroEquipoListPagePr
         renderHeaderCell: () => 'Descripción / Guía',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text size={200} title={item.descripcion || ''} style={{ color: '#605e5c' }}>
+            <Text size={200} title={item.descripcion || ''} style={{ color: tokens.colorNeutralForeground2 }}>
               {item.descripcion || '—'}
             </Text>
           </TableCellLayout>
@@ -245,16 +235,18 @@ export const MotivosRetiroEquipoListPage: React.FC<MotivosRetiroEquipoListPagePr
         busyLabel="Cargando..."
       >
         <div className={styles.toolbarLeft}>
-          <D365CommandButton
-            icon={<Add16Regular />}
-            tone="create"
-            onClick={() => {
-              if (onNewMotivo) onNewMotivo();
-              else navigate('/servicio-campo/motivos-retiro/nuevo');
-            }}
-          >
-            Nuevo
-          </D365CommandButton>
+          {puedeGestionar && (
+            <D365CommandButton
+              icon={<Add16Regular />}
+              tone="create"
+              onClick={() => {
+                if (onNewMotivo) onNewMotivo();
+                else navigate('/servicio-campo/motivos-retiro/nuevo');
+              }}
+            >
+              Nuevo
+            </D365CommandButton>
+          )}
 
           <D365CommandButton
             icon={<ArrowClockwise16Regular />}
@@ -263,7 +255,7 @@ export const MotivosRetiroEquipoListPage: React.FC<MotivosRetiroEquipoListPagePr
             Actualizar
           </D365CommandButton>
 
-          {selectedIds.size === 1 && (
+          {puedeGestionar && selectedIds.size === 1 && (
             <>
               <D365CommandDivider />
 

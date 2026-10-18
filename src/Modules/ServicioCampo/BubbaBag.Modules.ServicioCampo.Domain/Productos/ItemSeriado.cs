@@ -90,8 +90,8 @@ public class ItemSeriado : Entity<Guid>
         TransferenciaEnTransitoId = null;
         if (condicion.HasValue) Condicion = condicion.Value;
         Estado = Condicion == CondicionInventario.Defectuoso
-            ? EstadoItemSeriado.AveriadoEnAlmacen
-            : tipo == TipoAlmacen.CustodiaPersonal ? EstadoItemSeriado.EnCustodiaTecnico : EstadoItemSeriado.EnAlmacen;
+            ? (tipo == TipoAlmacen.CustodiaPersonal ? EstadoItemSeriado.RetiradoPorAveria : EstadoItemSeriado.AveriadoEnAlmacen)
+            : (tipo == TipoAlmacen.CustodiaPersonal ? EstadoItemSeriado.EnCustodiaTecnico : EstadoItemSeriado.EnAlmacen);
         UpdatedAt = DateTime.UtcNow;
     }
 

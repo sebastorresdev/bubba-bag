@@ -3,8 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import {
   TableCellLayout,
   createTableColumn,
-  Badge,
   Text,
+  Link,
+  tokens,
+  Menu,
+  MenuTrigger,
+  MenuPopover,
+  MenuList,
+  MenuItem,
   type TableColumnDefinition,
   type SelectionItemId,
 } from '@fluentui/react-components';
@@ -12,9 +18,12 @@ import {
   Add16Regular,
   ArrowClockwise16Regular,
   ArrowDownload16Regular,
-  Warning16Regular,
+  ChevronDown16Regular,
+  Checkmark16Regular,
+  Eye16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton } from '../../../../components/common/D365CommandBar';
+import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
 import {
   D365EntityTable,
   D365TableToolbarTools,
@@ -23,7 +32,7 @@ import {
 } from '../../../../components/common/D365EntityTable';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 import { AlmacenService } from '../services/almacen.service';
-import type { ReclasificacionDoaDto } from '../types/almacen.types';
+import type { DocumentoDoaDto } from '../types/almacen.types';
 import { exportToExcel, type ExportColumn } from '../../../../utils/exportUtils';
 
 export const DeclaracionesDoaListPage: React.FC = () => {
@@ -31,11 +40,12 @@ export const DeclaracionesDoaListPage: React.FC = () => {
   const listStyles = useD365ListStyles();
   const tableRef = useRef<D365EntityTableRef>(null);
 
-  const [items, setItems] = useState<ReclasificacionDoaDto[]>([]);
+  const [items, setItems] = useState<DocumentoDoaDto[]>([]);
   const [buscar, setBuscar] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<SelectionItemId>>(new Set());
+  const [vista, setVista] = useState<'todas' | 'recientes'>('todas');
 
   const cargarDatos = useCallback(async () => {
     try {
@@ -56,29 +66,29 @@ export const DeclaracionesDoaListPage: React.FC = () => {
 
   const filterFields: D365FilterField[] = useMemo(
     () => [
-      { id: 'numeroSerie', label: 'Número de Serie', type: 'string' },
-      { id: 'productoNombre', label: 'Producto / Modelo', type: 'string' },
-      { id: 'almacenNombre', label: 'Almacén', type: 'string' },
-      { id: 'observaciones', label: 'Motivo / Detalle', type: 'string' },
+      { id: 'numero', label: 'N° Documento', type: 'string' },
+      { id: 'almacenNombre', label: 'Almacén Base', type: 'string' },
+      { id: 'ubicacionDestinoNombre', label: 'Ubicación Destino', type: 'string' },
+      { id: 'observaciones', label: 'Observaciones', type: 'string' },
     ],
     []
   );
 
-  const columnasExportacion: ExportColumn<ReclasificacionDoaDto>[] = useMemo(
+  const columnasExportacion: ExportColumn<DocumentoDoaDto>[] = useMemo(
     () => [
+      { header: 'N° Documento', accessor: (d) => d.numero },
       {
         header: 'Fecha',
         accessor: (d) =>
           d.fecha ? new Date(d.fecha).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' }) : '—',
       },
-      { header: 'Número de Serie', accessor: (d) => d.numeroSerie },
-      { header: 'SmartCard / MAC', accessor: (d) => d.numeroSmartCard || '—' },
-      { header: 'Producto', accessor: (d) => d.productoNombre },
-      { header: 'Almacén', accessor: (d) => d.almacenNombre },
+      { header: 'Almacén Base', accessor: (d) => d.almacenNombre },
       { header: 'Ubicación Origen', accessor: (d) => d.ubicacionOrigenNombre },
       { header: 'Ubicación Destino', accessor: (d) => d.ubicacionDestinoNombre },
-      { header: 'Observaciones / Motivo', accessor: (d) => d.observaciones || '—' },
-      { header: 'Condición', accessor: (d) => d.condicion },
+      { header: 'Total Equipos', accessor: (d) => d.totalEquipos },
+      { header: 'Estado', accessor: (d) => d.estado },
+      { header: 'Responsable', accessor: (d) => d.usuarioNombre || 'Almacenero' },
+      { header: 'Observaciones', accessor: (d) => d.observaciones || '—' },
     ],
     []
   );
@@ -87,29 +97,54 @@ export const DeclaracionesDoaListPage: React.FC = () => {
     exportToExcel(items, columnasExportacion, 'Declaraciones_DOA');
   }, [items, columnasExportacion]);
 
-  // Filtrado rápido por texto
+  // Filtrado rápido por texto y vista seleccionada
   const itemsFiltrados = useMemo(() => {
-    if (!buscar.trim()) return items;
+    const limite = new Date();
+    limite.setDate(limite.getDate() - 30);
     const term = buscar.trim().toLowerCase();
-    return items.filter(
-      (i) =>
-        i.numeroSerie?.toLowerCase().includes(term) ||
-        i.productoNombre?.toLowerCase().includes(term) ||
-        i.almacenNombre?.toLowerCase().includes(term) ||
-        i.observaciones?.toLowerCase().includes(term) ||
-        i.numeroSmartCard?.toLowerCase().includes(term)
-    );
-  }, [items, buscar]);
 
-  const columns: TableColumnDefinition<ReclasificacionDoaDto>[] = useMemo(
+    return items.filter((i) => {
+      if (vista === 'recientes' && i.fecha && new Date(i.fecha) < limite) {
+        return false;
+      }
+      if (!term) return true;
+      return (
+        i.numero?.toLowerCase().includes(term) ||
+        i.almacenNombre?.toLowerCase().includes(term) ||
+        i.ubicacionDestinoNombre?.toLowerCase().includes(term) ||
+        i.observaciones?.toLowerCase().includes(term) ||
+        i.items?.some(it => it.numeroSerie?.toLowerCase().includes(term) || it.productoNombre?.toLowerCase().includes(term))
+      );
+    });
+  }, [items, buscar, vista]);
+
+  const columns: TableColumnDefinition<DocumentoDoaDto>[] = useMemo(
     () => [
-      createTableColumn<ReclasificacionDoaDto>({
+      createTableColumn<DocumentoDoaDto>({
+        columnId: 'numero',
+        compare: (a, b) => a.numero.localeCompare(b.numero),
+        renderHeaderCell: () => 'N° Documento',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Link
+              as="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/servicio-campo/declaracion-doa/${item.id}`);
+              }}
+            >
+              {item.numero}
+            </Link>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<DocumentoDoaDto>({
         columnId: 'fecha',
         compare: (a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime(),
         renderHeaderCell: () => 'Fecha / Hora',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text size={200} style={{ color: '#605e5c' }}>
+            <Text size={200} style={{ color: tokens.colorNeutralForeground2 }}>
               {item.fecha
                 ? new Date(item.fecha).toLocaleString('es-PE', {
                     day: '2-digit',
@@ -123,62 +158,57 @@ export const DeclaracionesDoaListPage: React.FC = () => {
           </TableCellLayout>
         ),
       }),
-      createTableColumn<ReclasificacionDoaDto>({
-        columnId: 'numeroSerie',
-        compare: (a, b) => a.numeroSerie.localeCompare(b.numeroSerie),
-        renderHeaderCell: () => 'Número de Serie',
-        renderCell: (item) => (
-          <TableCellLayout truncate>
-            <Text weight="semibold" style={{ fontFamily: 'Consolas, monospace' }}>
-              {item.numeroSerie}
-            </Text>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<ReclasificacionDoaDto>({
-        columnId: 'productoNombre',
-        compare: (a, b) => a.productoNombre.localeCompare(b.productoNombre),
-        renderHeaderCell: () => 'Producto / Modelo',
-        renderCell: (item) => (
-          <TableCellLayout truncate>
-            <Text>{item.productoNombre}</Text>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<ReclasificacionDoaDto>({
+      createTableColumn<DocumentoDoaDto>({
         columnId: 'almacenNombre',
         compare: (a, b) => a.almacenNombre.localeCompare(b.almacenNombre),
         renderHeaderCell: () => 'Almacén Base',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text>{item.almacenNombre}</Text>
+            {item.almacenId ? (
+              <Link
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/servicio-campo/almacenes/${item.almacenId}`);
+                }}
+              >
+                {item.almacenNombre}
+              </Link>
+            ) : (
+              <Text weight="medium">{item.almacenNombre}</Text>
+            )}
           </TableCellLayout>
         ),
       }),
-      createTableColumn<ReclasificacionDoaDto>({
+      createTableColumn<DocumentoDoaDto>({
         columnId: 'ubicacionDestinoNombre',
         renderHeaderCell: () => 'Ubicación Destino',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Badge appearance="tint" color="danger">
-              {item.ubicacionDestinoNombre || 'Devolución'}
-            </Badge>
+            <Text size={200}>{item.ubicacionDestinoNombre || 'Devolución'}</Text>
           </TableCellLayout>
         ),
       }),
-      createTableColumn<ReclasificacionDoaDto>({
-        columnId: 'observaciones',
-        renderHeaderCell: () => 'Motivo / Detalle Falla',
+      createTableColumn<DocumentoDoaDto>({
+        columnId: 'totalEquipos',
+        compare: (a, b) => a.totalEquipos - b.totalEquipos,
+        renderHeaderCell: () => 'Equipos Reclasificados',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text size={200} title={item.observaciones || ''}>
-              {item.observaciones || 'Defecto de fábrica (DOA)'}
-            </Text>
+            <Text size={200} weight="semibold">{item.totalEquipos} equipo(s)</Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<DocumentoDoaDto>({
+        columnId: 'estado',
+        renderHeaderCell: () => 'Estado',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <D365StatusBadge status={item.estado || 'Reclasificado'} />
           </TableCellLayout>
         ),
       }),
     ],
-    []
+    [navigate]
   );
 
   return (
@@ -191,8 +221,20 @@ export const DeclaracionesDoaListPage: React.FC = () => {
             tone="create"
             onClick={() => navigate('/servicio-campo/declaracion-doa/nuevo')}
           >
-            Nueva Declaración DOA
+            Nuevo
           </D365CommandButton>
+
+          {selectedIds.size === 1 && (
+            <D365CommandButton
+              icon={<Eye16Regular />}
+              onClick={() => {
+                const selId = Array.from(selectedIds)[0];
+                navigate(`/servicio-campo/declaracion-doa/${selId}`);
+              }}
+            >
+              Ver Detalle
+            </D365CommandButton>
+          )}
 
           <D365CommandButton icon={<ArrowClockwise16Regular />} onClick={() => void cargarDatos()}>
             Actualizar
@@ -208,21 +250,43 @@ export const DeclaracionesDoaListPage: React.FC = () => {
         </div>
       </D365CommandBar>
 
-      {/* 2. Header de Vista */}
+      {/* 2. Header de Vista (Selector de Vista D365) */}
       <div className={listStyles.viewHeader}>
-        <div className={listStyles.viewSelectorTab} title="Declaraciones DOA / Reclasificación de Equipos">
-          <Warning16Regular style={{ color: '#d83b01', marginRight: 6 }} />
-          <Text weight="semibold" size={400}>
-            Declaraciones DOA / Reclasificación de Equipos
-          </Text>
-        </div>
+        <Menu>
+          <MenuTrigger disableButtonEnhancement>
+            <div className={listStyles.viewSelectorTab} title="Seleccionar vista">
+              <Text weight="semibold" size={400}>
+                {vista === 'recientes'
+                  ? 'Declaraciones Recientes (Últimos 30 días)'
+                  : 'Todas las Declaraciones DOA'}
+              </Text>
+              <ChevronDown16Regular />
+            </div>
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList className={listStyles.viewMenuPopover}>
+              <MenuItem
+                icon={vista === 'todas' ? <Checkmark16Regular /> : undefined}
+                onClick={() => setVista('todas')}
+              >
+                Todas las Declaraciones DOA
+              </MenuItem>
+              <MenuItem
+                icon={vista === 'recientes' ? <Checkmark16Regular /> : undefined}
+                onClick={() => setVista('recientes')}
+              >
+                Declaraciones Recientes (Últimos 30 días)
+              </MenuItem>
+            </MenuList>
+          </MenuPopover>
+        </Menu>
 
         <div className={listStyles.viewToolsRight}>
           <D365TableToolbarTools
             tableRef={tableRef}
             searchValue={buscar}
             onSearchChange={setBuscar}
-            searchPlaceholder="Buscar serie, modelo, almacén..."
+            searchPlaceholder="Buscar documento, almacén, serie..."
           />
         </div>
       </div>
@@ -238,6 +302,7 @@ export const DeclaracionesDoaListPage: React.FC = () => {
         loading={loading}
         error={error}
         onRetry={cargarDatos}
+        onRowDoubleClick={(item) => navigate(`/servicio-campo/declaracion-doa/${item.id}`)}
         selectionMode="multiselect"
         selectedItems={selectedIds}
         onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}

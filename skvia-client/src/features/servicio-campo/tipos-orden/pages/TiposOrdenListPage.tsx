@@ -165,6 +165,8 @@ export function TiposOrdenListPage() {
         renderCell: (item) => (
           <TableCellLayout>
             <Link
+              as="button"
+              className={styles.primaryLink}
               onClick={(e) => {
                 e.stopPropagation();
                 navigate(`/servicio-campo/tipos-orden/${item.id}`);

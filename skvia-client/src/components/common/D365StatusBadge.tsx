@@ -144,9 +144,13 @@ export function resolveStatusColor(status?: string | boolean | number | null): S
     normalized === 'inprogress' ||
     normalized === 'enproceso' ||
     normalized === 'encurso' ||
-    normalized === 'operando'
+    normalized === 'operando' ||
+    normalized === 'enretiro'
   ) {
-    return { color: 'informative', label: 'En Progreso', isPulsing: true };
+    const labelMap: Record<string, string> = {
+      enretiro: 'En Retiro a OL',
+    };
+    return { color: 'informative', label: labelMap[normalized] || 'En Progreso', isPulsing: true };
   }
 
   // 5. Completada / Liquidada / Finalizada (Verde esmeralda con icono Checkmark)

@@ -4,14 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import {
   TableCellLayout,
   Text,
-  Badge,
   Link,
   Toaster,
   Toast,
   ToastTitle,
   useId,
   useToastController,
-  tokens,
   createTableColumn,
 } from '@fluentui/react-components';
 import type { SelectionItemId, TableColumnDefinition } from '@fluentui/react-components';
@@ -20,8 +18,6 @@ import {
   ArrowClockwise16Regular,
   Edit16Regular,
   Delete16Regular,
-  Timer16Regular,
-  Camera16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import {
@@ -130,6 +126,8 @@ export function TareasListPage() {
         renderCell: (item) => (
           <TableCellLayout>
             <Link
+              as="button"
+              className={styles.primaryLink}
               onClick={(e) => {
                 e.stopPropagation();
                 navigate(`/servicio-campo/tareas/${item.id}`);
@@ -166,9 +164,7 @@ export function TareasListPage() {
         renderHeaderCell: () => 'Duración Est.',
         renderCell: (item) => (
           <TableCellLayout>
-            <Badge appearance="ghost" color="informative" icon={<Timer16Regular />}>
-              {item.duracionEstimadaMinutos} min
-            </Badge>
+            <Text>{item.duracionEstimadaMinutos} min</Text>
           </TableCellLayout>
         ),
       }),
@@ -178,15 +174,9 @@ export function TareasListPage() {
         renderHeaderCell: () => 'Evidencia Fotográfica',
         renderCell: (item) => (
           <TableCellLayout>
-            {item.requiereEvidenciaFotografica ? (
-              <Badge appearance="filled" color="important" icon={<Camera16Regular />}>
-                Exigida
-              </Badge>
-            ) : (
-              <Text size={200} style={{ color: tokens.colorNeutralForeground4 }}>
-                Opcional
-              </Text>
-            )}
+            <Text>
+              {item.requiereEvidenciaFotografica ? 'Exigida' : 'Opcional'}
+            </Text>
           </TableCellLayout>
         ),
       }),

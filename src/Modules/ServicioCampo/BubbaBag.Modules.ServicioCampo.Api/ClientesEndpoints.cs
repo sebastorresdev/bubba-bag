@@ -23,11 +23,9 @@ public static class ClientesEndpoints
             .RequireAuthorization();
 
         // Tabla de contenidos de rutas (Named Static Handlers sin lambdas anónimas)
-        clientesGroup.MapGet("/", ObtenerClientes)
-            .RequireAuthorization(Permissions.Crm.ClientesVer);
+        clientesGroup.MapGet("/", ObtenerClientes);
 
-        clientesGroup.MapGet("/{id:guid}", ObtenerClientePorId)
-            .RequireAuthorization(Permissions.Crm.ClientesVer);
+        clientesGroup.MapGet("/{id:guid}", ObtenerClientePorId);
 
         clientesGroup.MapPost("/", CrearCliente)
             .RequireAuthorization(Permissions.Crm.ClientesCrear);

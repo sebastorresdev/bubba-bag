@@ -1020,7 +1020,7 @@ public class ServicioCampoImportProvider : IEntityImportProvider
                 ubicacion = ubicacionesDb.FirstOrDefault(u => u.AlmacenId == almacen.Id && u.EsPrincipal);
                 if (ubicacion == null)
                 {
-                    ubicacion = UbicacionInventario.Crear(almacen.Id, "PRINCIPAL", "Principal", true);
+                    ubicacion = UbicacionInventario.Crear(almacen.Id, "DISPONIBLE", "Disponible", true, TipoUbicacion.Disponible);
                     nuevaUbicacion = true;
                 }
             }

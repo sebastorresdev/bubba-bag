@@ -82,8 +82,8 @@ public class CrearAlmacenHandler : ICommandHandler<CrearAlmacenCommand, Result<G
             padreId);
 
         await _context.Almacenes.AddAsync(almacen, cancellationToken);
-        _context.UbicacionesInventario.Add(UbicacionInventario.Crear(almacen.Id, "DISPONIBLE", "Disponible / Stock", principal: true, tipoUbicacion: TipoUbicacion.Disponible));
-        _context.UbicacionesInventario.Add(UbicacionInventario.Crear(almacen.Id, "DEVOLUCION", "Devolución / Recuperados", principal: false, tipoUbicacion: TipoUbicacion.Devolucion));
+        _context.UbicacionesInventario.Add(UbicacionInventario.Crear(almacen.Id, "DISPONIBLE", "Disponible", principal: true, tipoUbicacion: TipoUbicacion.Disponible));
+        _context.UbicacionesInventario.Add(UbicacionInventario.Crear(almacen.Id, "DEVOLUCION", "Devolución", principal: false, tipoUbicacion: TipoUbicacion.Devolucion));
         _context.UsuarioAlmacenAutorizaciones.Add(UsuarioAlmacenAutorizacion.Crear(_currentUser.Id, almacen.Id, esSupervisor: true));
         await _context.SaveChangesAsync(cancellationToken);
 

@@ -35,7 +35,6 @@ export interface TipoRetiroInfo {
   label: string;
   badgeLabel: string;
   descripcion: string;
-  esOperativo: boolean; // Indica si el equipo típicamente está operativo al retirarse
   badgeAppearance: 'filled' | 'tint' | 'outline';
   badgeColor: 'danger' | 'informative' | 'subtle' | 'warning' | 'important' | 'brand';
 }
@@ -46,7 +45,6 @@ export const TIPOS_RETIRO_EQUIPO_INFO: Record<TipoRetiroEquipo, TipoRetiroInfo> 
     label: 'Avería Técnica (Componentes / Hardware)',
     badgeLabel: 'Avería Técnica',
     descripcion: 'Falla técnica de componentes (fuente, tuner, disco, no enciende). Cubierto por garantía estándar.',
-    esOperativo: false,
     badgeAppearance: 'tint',
     badgeColor: 'danger',
   },
@@ -55,7 +53,6 @@ export const TIPOS_RETIRO_EQUIPO_INFO: Record<TipoRetiroEquipo, TipoRetiroInfo> 
     label: 'Cambio de Tecnología (Upgrade / Downgrade)',
     badgeLabel: 'Cambio Tecnología',
     descripcion: 'Equipo operativo retirado por migración de tecnología o reducción de decos.',
-    esOperativo: true,
     badgeAppearance: 'tint',
     badgeColor: 'brand',
   },
@@ -63,8 +60,7 @@ export const TIPOS_RETIRO_EQUIPO_INFO: Record<TipoRetiroEquipo, TipoRetiroInfo> 
     value: 'BajaComercial',
     label: 'Baja Comercial (Cancelación / Morosidad)',
     badgeLabel: 'Baja Comercial',
-    descripcion: 'Cancelación de contrato o corte. Equipo recuperado 100% operativo.',
-    esOperativo: true,
+    descripcion: 'Cancelación de contrato o corte. Equipo recuperado operativo.',
     badgeAppearance: 'tint',
     badgeColor: 'subtle',
   },
@@ -73,7 +69,6 @@ export const TIPOS_RETIRO_EQUIPO_INFO: Record<TipoRetiroEquipo, TipoRetiroInfo> 
     label: 'Daño Físico / Siniestro (No Cubierto)',
     badgeLabel: 'Daño / Siniestro',
     descripcion: 'Golpes, derrame de líquidos o sobretensión imputable al cliente. Fuera de garantía.',
-    esOperativo: false,
     badgeAppearance: 'filled',
     badgeColor: 'danger',
   },
@@ -82,7 +77,6 @@ export const TIPOS_RETIRO_EQUIPO_INFO: Record<TipoRetiroEquipo, TipoRetiroInfo> 
     label: 'Defecto de Fábrica / DOA (Dead On Arrival)',
     badgeLabel: 'Fábrica / DOA',
     descripcion: 'Equipo nuevo que falló durante la primera instalación. Aplica garantía directa con proveedor.',
-    esOperativo: false,
     badgeAppearance: 'tint',
     badgeColor: 'warning',
   },
@@ -91,7 +85,6 @@ export const TIPOS_RETIRO_EQUIPO_INFO: Record<TipoRetiroEquipo, TipoRetiroInfo> 
     label: 'Fin de Vida Útil / Obsolescencia (EOL)',
     badgeLabel: 'Obsolescencia EOL',
     descripcion: 'Apagón de tecnología antigua o descontinuada. Destinado a disposición o chatarreo.',
-    esOperativo: false,
     badgeAppearance: 'tint',
     badgeColor: 'important',
   },
@@ -100,7 +93,6 @@ export const TIPOS_RETIRO_EQUIPO_INFO: Record<TipoRetiroEquipo, TipoRetiroInfo> 
     label: 'Preventivo / Descarte (No Fault Found)',
     badgeLabel: 'Preventivo',
     descripcion: 'Cambio por sospecha de falla intermitente durante visita. Requiere validación técnica en laboratorio.',
-    esOperativo: true,
     badgeAppearance: 'tint',
     badgeColor: 'informative',
   },
@@ -109,8 +101,16 @@ export const TIPOS_RETIRO_EQUIPO_INFO: Record<TipoRetiroEquipo, TipoRetiroInfo> 
     label: 'Administrativo / Auditoría (Custodia)',
     badgeLabel: 'Auditoría',
     descripcion: 'Retención por discrepancia serial, sospecha de clonación o requerimiento legal.',
-    esOperativo: false,
     badgeAppearance: 'tint',
     badgeColor: 'warning',
   },
 };
+
+/**
+ * Naturalezas aplicables a la Declaración DOA / Reclasificación interna por falla
+ */
+export const TIPOS_RETIRO_DOA: TipoRetiroEquipo[] = [
+  'DefectoFabricaDOA',
+  'AveriaTecnica',
+  'DanoSiniestro',
+];

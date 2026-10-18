@@ -40,20 +40,23 @@ public class RecepcionarTransferenciaHandler(IServicioCampoDbContext db,ICurrent
         {
             await db.EjecutarEnTransaccionAsync(async ct=>
             {
+                var devDestino = await db.UbicacionesInventario.FirstOrDefaultAsync(u => u.AlmacenId == t.AlmacenDestinoId && u.Activa && (u.TipoUbicacion == TipoUbicacion.Devolucion || u.Codigo == "DEVOLUCION"), ct);
+
                 foreach(var l in c.Lineas)
                 {
                     var d=t.Lineas.Single(x=>x.Id==l.TransferenciaDetalleId); d.RegistrarRecepcion(l.Cantidad);
-                    (await InventarioSaldos.ObtenerAsync(db,destino.Id,d.ProductoId,d.Condicion,ct)).AumentarStock(l.Cantidad);
+                    var uDestinoLinea = (d.Condicion == CondicionInventario.Defectuoso && devDestino != null) ? devDestino : destino;
+                    (await InventarioSaldos.ObtenerAsync(db,uDestinoLinea.Id,d.ProductoId,d.Condicion,ct)).AumentarStock(l.Cantidad);
                     var rd=r.AgregarLinea(d.Id,d.ProductoId,l.Cantidad);
                     var series=(l.Series??[]).Select(s=>s.Trim().ToUpperInvariant()).ToList();
-                    if(series.Count==0) db.MovimientosInventario.Add(MovimientoInventario.Registrar(TipoMovimientoInventario.RecepcionDeTransito,d.ProductoId,l.Cantidad,almacenDestinoId:t.AlmacenDestinoId,numeroDocumento:r.NumeroRecepcion,usuarioResponsableId:user.Id,ubicacionDestinoId:destino.Id,transferenciaId:t.Id,eventoId:r.Id,fechaReal:r.FechaReal,condicion:d.Condicion));
+                    if(series.Count==0) db.MovimientosInventario.Add(MovimientoInventario.Registrar(TipoMovimientoInventario.RecepcionDeTransito,d.ProductoId,l.Cantidad,almacenDestinoId:t.AlmacenDestinoId,numeroDocumento:r.NumeroRecepcion,usuarioResponsableId:user.Id,ubicacionDestinoId:uDestinoLinea.Id,transferenciaId:t.Id,eventoId:r.Id,fechaReal:r.FechaReal,condicion:d.Condicion));
                     foreach(var s in series)
                     {
                         var sd=d.Series.Single(x=>x.NumeroSerie==s);
                         var item=await db.ItemsSeriados.SingleAsync(x=>x.Id==sd.ItemSeriadoId,ct);
                         if(item.TransferenciaEnTransitoId!=t.Id || item.UbicacionActualId.HasValue) throw new InvalidOperationException("La serie no está en tránsito en este envío.");
-                        sd.MarcarRecibida(rd.Id); item.Ubicar(destino.Id,destino.Almacen.Tipo,d.Condicion);
-                        db.MovimientosInventario.Add(MovimientoInventario.Registrar(TipoMovimientoInventario.RecepcionDeTransito,d.ProductoId,1,almacenDestinoId:t.AlmacenDestinoId,itemSeriadoId:item.Id,numeroDocumento:r.NumeroRecepcion,usuarioResponsableId:user.Id,ubicacionDestinoId:destino.Id,transferenciaId:t.Id,eventoId:r.Id,fechaReal:r.FechaReal,condicion:d.Condicion));
+                        sd.MarcarRecibida(rd.Id); item.Ubicar(uDestinoLinea.Id,destino.Almacen.Tipo,d.Condicion);
+                        db.MovimientosInventario.Add(MovimientoInventario.Registrar(TipoMovimientoInventario.RecepcionDeTransito,d.ProductoId,1,almacenDestinoId:t.AlmacenDestinoId,itemSeriadoId:item.Id,numeroDocumento:r.NumeroRecepcion,usuarioResponsableId:user.Id,ubicacionDestinoId:uDestinoLinea.Id,transferenciaId:t.Id,eventoId:r.Id,fechaReal:r.FechaReal,condicion:d.Condicion));
                     }
                 }
                 t.ActualizarEstadoPorRecepciones(); db.RecepcionesTransferencia.Add(r); await db.SaveChangesAsync(ct);

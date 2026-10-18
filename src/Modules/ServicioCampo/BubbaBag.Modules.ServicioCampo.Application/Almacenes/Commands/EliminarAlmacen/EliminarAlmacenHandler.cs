@@ -43,7 +43,7 @@ public class EliminarAlmacenHandler : ICommandHandler<EliminarAlmacenCommand, Re
 
         // 1. Validar existencias / stock positivo
         var tieneStock = ubicacionIds.Count > 0 && await _context.StocksAlmacen.AnyAsync(
-            s => ubicacionIds.Contains(s.UbicacionId) && (s.CantidadDisponible > 0 || s.CantidadReservada > 0),
+            s => ubicacionIds.Contains(s.UbicacionId) && s.CantidadDisponible > 0,
             cancellationToken);
         if (tieneStock)
             return Result.Failure("No se puede eliminar el almacén porque contiene existencias de productos. Primero debe transferir o retirar el stock. En su lugar, puede desactivarlo.");

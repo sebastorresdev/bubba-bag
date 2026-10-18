@@ -597,7 +597,7 @@ export function RecepcionarCompraDrawer({
                                 Recibida
                               </Badge>
                             ) : (
-                              <Badge appearance="outline" shape="rounded" color="warning" icon={<Clock16Regular />}>
+                              <Badge appearance="tint" shape="rounded" color="warning" icon={<Clock16Regular />}>
                                 Faltante
                               </Badge>
                             )}

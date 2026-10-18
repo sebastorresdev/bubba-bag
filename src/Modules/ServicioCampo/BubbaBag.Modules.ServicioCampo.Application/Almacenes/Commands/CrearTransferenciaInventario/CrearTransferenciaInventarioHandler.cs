@@ -137,36 +137,43 @@ public class CrearTransferenciaInventarioHandler(IServicioCampoDbContext db, ICu
         {
             await db.EjecutarEnTransaccionAsync(async ct =>
             {
+                var devOrigen = await db.UbicacionesInventario.FirstOrDefaultAsync(u => u.AlmacenId == a.Id && u.Activa && (u.TipoUbicacion == TipoUbicacion.Devolucion || u.Codigo == "DEVOLUCION"), ct);
+                var devDestino = await db.UbicacionesInventario.FirstOrDefaultAsync(u => u.AlmacenId == b.Id && u.Activa && (u.TipoUbicacion == TipoUbicacion.Devolucion || u.Codigo == "DEVOLUCION"), ct);
+
                 foreach (var l in t.Lineas)
                 {
                     var tipo = modalidad == ModalidadTransferencia.ConTransito ? TipoMovimientoInventario.SalidaATransito : a.Tipo == TipoAlmacen.Bodega && b.Tipo == TipoAlmacen.CustodiaPersonal ? TipoMovimientoInventario.DespachoATecnico : a.Tipo == TipoAlmacen.CustodiaPersonal && b.Tipo == TipoAlmacen.Bodega ? TipoMovimientoInventario.DevolucionTecnico : TipoMovimientoInventario.TransferenciaAlmacenes;
+                    var uOrigenLinea = (l.Condicion == CondicionInventario.Defectuoso && devOrigen != null) ? devOrigen : origen;
+                    var uDestinoLinea = (l.Condicion == CondicionInventario.Defectuoso && devDestino != null) ? devDestino : destino;
 
                     if (l.Series.Count > 0)
                     {
                         var seriesPorCondicionOrigen = l.Series.GroupBy(s => items[s.NumeroSerie].Condicion);
                         foreach (var grp in seriesPorCondicionOrigen)
                         {
-                            var saldoOrigenCondicion = await InventarioSaldos.ObtenerAsync(db, origen.Id, l.ProductoId, grp.Key, ct);
+                            var uOrigGrp = (grp.Key == CondicionInventario.Defectuoso && devOrigen != null) ? devOrigen : origen;
+                            var saldoOrigenCondicion = await InventarioSaldos.ObtenerAsync(db, uOrigGrp.Id, l.ProductoId, grp.Key, ct);
                             saldoOrigenCondicion.DisminuirStock(grp.Count());
                         }
 
                         if (modalidad == ModalidadTransferencia.Inmediata)
                         {
-                            var saldoDestino = await InventarioSaldos.ObtenerAsync(db, destino.Id, l.ProductoId, l.Condicion, ct);
+                            var saldoDestino = await InventarioSaldos.ObtenerAsync(db, uDestinoLinea.Id, l.ProductoId, l.Condicion, ct);
                             saldoDestino.AumentarStock(l.CantidadEnviada);
                         }
 
                         foreach (var s in l.Series)
                         {
                             var item = items[s.NumeroSerie];
-                            if (modalidad == ModalidadTransferencia.Inmediata) item.Ubicar(destino.Id, b.Tipo, l.Condicion);
+                            var uOrigItem = (item.Condicion == CondicionInventario.Defectuoso && devOrigen != null) ? devOrigen : origen;
+                            if (modalidad == ModalidadTransferencia.Inmediata) item.Ubicar(uDestinoLinea.Id, b.Tipo, l.Condicion);
                             else item.DespacharEnTransito(t.Id);
-                            db.MovimientosInventario.Add(MovimientoInventario.Registrar(tipo, l.ProductoId, 1, a.Id, modalidad == ModalidadTransferencia.Inmediata ? b.Id : null, itemSeriadoId: item.Id, numeroDocumento: t.Numero, usuarioResponsableId: user.Id, ubicacionOrigenId: origen.Id, ubicacionDestinoId: modalidad == ModalidadTransferencia.Inmediata ? destino.Id : null, transferenciaId: t.Id, eventoId: t.Id, fechaReal: t.FechaReal, condicion: l.Condicion));
+                            db.MovimientosInventario.Add(MovimientoInventario.Registrar(tipo, l.ProductoId, 1, a.Id, modalidad == ModalidadTransferencia.Inmediata ? b.Id : null, itemSeriadoId: item.Id, numeroDocumento: t.Numero, usuarioResponsableId: user.Id, ubicacionOrigenId: uOrigItem.Id, ubicacionDestinoId: modalidad == ModalidadTransferencia.Inmediata ? uDestinoLinea.Id : null, transferenciaId: t.Id, eventoId: t.Id, fechaReal: t.FechaReal, condicion: l.Condicion));
                         }
                     }
                     else
                     {
-                        var saldoOrigen = await InventarioSaldos.ObtenerAsync(db, origen.Id, l.ProductoId, l.Condicion, ct);
+                        var saldoOrigen = await InventarioSaldos.ObtenerAsync(db, uOrigenLinea.Id, l.ProductoId, l.Condicion, ct);
                         if (saldoOrigen.CantidadDisponible < l.CantidadEnviada && l.Condicion != CondicionInventario.Utilizable)
                         {
                             var saldoUtilizable = await InventarioSaldos.ObtenerAsync(db, origen.Id, l.ProductoId, CondicionInventario.Utilizable, ct);
@@ -179,11 +186,11 @@ public class CrearTransferenciaInventarioHandler(IServicioCampoDbContext db, ICu
 
                         if (modalidad == ModalidadTransferencia.Inmediata)
                         {
-                            var saldoDestino = await InventarioSaldos.ObtenerAsync(db, destino.Id, l.ProductoId, l.Condicion, ct);
+                            var saldoDestino = await InventarioSaldos.ObtenerAsync(db, uDestinoLinea.Id, l.ProductoId, l.Condicion, ct);
                             saldoDestino.AumentarStock(l.CantidadEnviada);
                         }
 
-                        db.MovimientosInventario.Add(MovimientoInventario.Registrar(tipo, l.ProductoId, l.CantidadEnviada, a.Id, modalidad == ModalidadTransferencia.Inmediata ? b.Id : null, numeroDocumento: t.Numero, usuarioResponsableId: user.Id, observaciones: c.Observacion, ubicacionOrigenId: origen.Id, ubicacionDestinoId: modalidad == ModalidadTransferencia.Inmediata ? destino.Id : null, transferenciaId: t.Id, eventoId: t.Id, fechaReal: t.FechaReal, condicion: l.Condicion));
+                        db.MovimientosInventario.Add(MovimientoInventario.Registrar(tipo, l.ProductoId, l.CantidadEnviada, a.Id, modalidad == ModalidadTransferencia.Inmediata ? b.Id : null, numeroDocumento: t.Numero, usuarioResponsableId: user.Id, observaciones: c.Observacion, ubicacionOrigenId: uOrigenLinea.Id, ubicacionDestinoId: modalidad == ModalidadTransferencia.Inmediata ? uDestinoLinea.Id : null, transferenciaId: t.Id, eventoId: t.Id, fechaReal: t.FechaReal, condicion: l.Condicion));
                     }
                 }
                 t.Despachar(user.Id, user.Nombre, t.NumeroGuiaRemision ?? numeroGuia);

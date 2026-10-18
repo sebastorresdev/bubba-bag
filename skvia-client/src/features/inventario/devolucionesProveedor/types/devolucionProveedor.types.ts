@@ -1,4 +1,4 @@
-export type EstadoDevolucion = 'Borrador' | 'Completada' | 'Anulada';
+export type EstadoDevolucion = 'Borrador' | 'EnRetiro' | 'EnTransito' | 'Completada' | 'Anulada';
 
 export interface LineaDevolucionDto {
   productoId: string;

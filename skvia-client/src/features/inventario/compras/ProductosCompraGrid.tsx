@@ -310,7 +310,7 @@ export function ProductosCompraGrid({
       renderHeaderCell: () => 'Producto',
       renderCell: x => {
         const prod = productos.find(p => p.id === x.productoId);
-        const nombre = prod?.nombre || x.productoNombre || '---';
+        const nombre = prod?.nombre || x.productoNombre || '';
         return (
           <TableCellLayout>
             <Link
@@ -331,7 +331,7 @@ export function ProductosCompraGrid({
       renderHeaderCell: () => 'Unidad',
       renderCell: x => {
         const prod = productos.find(p => p.id === x.productoId);
-        const unidadNombre = x.unidadMedidaNombre || prod?.nombreUnidadMedidaDefecto || '---';
+        const unidadNombre = x.unidadMedidaNombre || prod?.nombreUnidadMedidaDefecto || '';
         return (
           <TableCellLayout>
             <Text>{unidadNombre}</Text>
@@ -671,7 +671,7 @@ export function ProductosCompraGrid({
                       {producto?.nombre || linea.productoNombre || 'Producto serializado'}
                     </Text>
                     <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                      Código: {producto?.codigo || linea.productoCodigo || '---'} • Cantidad: {linea.cantidad} {linea.unidadMedidaNombre || producto?.nombreUnidadMedidaDefecto || 'UND'}
+                      Código: {producto?.codigo || linea.productoCodigo || ''} • Cantidad: {linea.cantidad} {linea.unidadMedidaNombre || producto?.nombreUnidadMedidaDefecto || 'UND'}
                     </Text>
                   </div>
                   <Badge
@@ -776,7 +776,7 @@ export function ProductosCompraGrid({
                         {producto?.nombre ?? 'Producto serializado'}
                       </Text>
                       <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                        Código SKU: {producto?.codigo || '---'} • Cantidad esperada: {linea.cantidad} {producto?.nombreUnidadMedidaDefecto || 'UND'}
+                        Código SKU: {producto?.codigo || ''} • Cantidad esperada: {linea.cantidad} {producto?.nombreUnidadMedidaDefecto || 'UND'}
                       </Text>
                     </div>
                     <Badge
@@ -864,7 +864,7 @@ export function ProductosCompraGrid({
                       >
                         {unidadesProducto.length === 0 ? (
                           <option value={linea.unidadMedidaId || ''}>
-                            {linea.unidadMedidaNombre || producto?.nombreUnidadMedidaDefecto || (cargandoUnidades ? 'Cargando unidades…' : '---')}
+                            {linea.unidadMedidaNombre || producto?.nombreUnidadMedidaDefecto || (cargandoUnidades ? 'Cargando unidades…' : 'Sin unidad')}
                           </option>
                         ) : (
                           unidadesProducto.map(u => (

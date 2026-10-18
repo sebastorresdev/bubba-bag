@@ -93,6 +93,7 @@ public static class AlmacenesEndpoints
         devolucionesProveedorGroup.MapPut("/{id:guid}", ActualizarDevolucionProveedor).RequireAuthorization(Permissions.Inventario.Operar);
         devolucionesProveedorGroup.MapPost("/{id:guid}/completar", CompletarDevolucionProveedor).RequireAuthorization(Permissions.Inventario.Operar);
         devolucionesProveedorGroup.MapDelete("/{id:guid}", EliminarDevolucionProveedor).RequireAuthorization(Permissions.Inventario.Operar);
+        devolucionesProveedorGroup.MapGet("/{id:guid}/cargo-pdf", DescargarCargoDevolucionPdf);
 
         var archivosGroup = app.MapGroup("/api/inventario/archivos")
             .WithTags("Servicio de Campo - Archivos y Comprobantes");
@@ -655,6 +656,25 @@ public static class AlmacenesEndpoints
         var command = new EliminarDevolucionProveedorCommand(id);
         var result = await dispatcher.SendAsync(command);
         return result.IsSuccess ? Results.NoContent() : Results.BadRequest(new { mensaje = result.Error });
+    }
+
+    private static async Task<IResult> DescargarCargoDevolucionPdf(
+        Guid id,
+        IDispatcher dispatcher,
+        IServicioCampoDbContext context,
+        CancellationToken ct)
+    {
+        var result = await dispatcher.QueryAsync(new BubbaBag.Modules.ServicioCampo.Application.Almacenes.DevolucionesProveedor.ObtenerDevolucionProveedorPorIdQuery(id));
+        if (result.IsFailure) return Results.NotFound(new { mensaje = result.Error });
+        var devolucion = result.Value;
+
+        var empresa = await context.ConfiguracionEmpresas.AsNoTracking().FirstOrDefaultAsync(ct);
+        var pdfBytes = BubbaBag.Modules.ServicioCampo.Infrastructure.Services.CargoPdfGenerator.GenerarCargoDevolucionProveedor(
+            devolucion,
+            empresa
+        );
+
+        return Results.File(pdfBytes, "application/pdf", $"Cargo-{devolucion.Numero}.pdf");
     }
 
     private static async Task<IResult> SubirArchivoComprobante(HttpRequest request)

@@ -53,8 +53,6 @@ const filterFields: D365FilterField[] = [
   { id: 'nombreUbicacion', label: 'Ubicación', type: 'string' },
   { id: 'condicion', label: 'Condición', type: 'string' },
   { id: 'nombreUnidadMedida', label: 'Unidad', type: 'string' },
-  { id: 'cantidadDisponible', label: 'Disponible', type: 'number' },
-  { id: 'cantidadReservada', label: 'Reservado', type: 'number' },
   { id: 'cantidadTotal', label: 'Cantidad', type: 'number' },
   { id: 'valorInventario', label: 'Valor', type: 'number' },
 ];
@@ -112,11 +110,10 @@ export function InventarioProductosPage() {
 
   const totales = useMemo(() => registrosFiltrados.reduce(
     (acumulado, registro) => ({
-      disponible: acumulado.disponible + registro.cantidadDisponible,
-      reservado: acumulado.reservado + registro.cantidadReservada,
+      cantidad: acumulado.cantidad + registro.cantidadTotal,
       valor: acumulado.valor + registro.valorInventario,
     }),
-    { disponible: 0, reservado: 0, valor: 0 },
+    { cantidad: 0, valor: 0 },
   ), [registrosFiltrados]);
 
   const columns: TableColumnDefinition<InventarioProductoItem>[] = useMemo(() => [
@@ -182,18 +179,6 @@ export function InventarioProductosPage() {
       renderCell: (item: InventarioProductoItem) => <TableCellLayout>{item.nombreUnidadMedida ?? '—'}</TableCellLayout>,
     }),
     createTableColumn({
-      columnId: 'cantidadDisponible',
-      compare: (a, b) => a.cantidadDisponible - b.cantidadDisponible,
-      renderHeaderCell: () => 'Disponible',
-      renderCell: (item: InventarioProductoItem) => <TableCellLayout>{formatoCantidad.format(item.cantidadDisponible)}</TableCellLayout>,
-    }),
-    createTableColumn({
-      columnId: 'cantidadReservada',
-      compare: (a, b) => a.cantidadReservada - b.cantidadReservada,
-      renderHeaderCell: () => 'Reservado',
-      renderCell: (item: InventarioProductoItem) => <TableCellLayout>{formatoCantidad.format(item.cantidadReservada)}</TableCellLayout>,
-    }),
-    createTableColumn({
       columnId: 'cantidadTotal',
       compare: (a, b) => a.cantidadTotal - b.cantidadTotal,
       renderHeaderCell: () => 'Cantidad',
@@ -243,9 +228,7 @@ export function InventarioProductosPage() {
       { header: 'Ubicación', accessor: x => x.nombreUbicacion || 'Principal' },
       { header: 'Condición', accessor: x => x.condicion || 'Utilizable' },
       { header: 'Unidad', accessor: x => x.nombreUnidadMedida || 'UND' },
-      { header: 'Disponible', accessor: x => x.cantidadDisponible },
-      { header: 'Reservado', accessor: x => x.cantidadReservada },
-      { header: 'Total', accessor: x => x.cantidadTotal },
+      { header: 'Cantidad', accessor: x => x.cantidadTotal },
       { header: 'Valor (PEN)', accessor: x => x.valorInventario },
     ];
     const nombreAlm = almacenId ? (almacenes.find(a => a.id === almacenId)?.nombre || 'Almacen').replace(/\s+/g, '_') : 'General';
@@ -405,7 +388,7 @@ export function InventarioProductosPage() {
           1-{registrosFiltrados.length} de {registrosFiltrados.length} ({seleccionados.size} seleccionados)
         </div>
         <div>
-          Disponible: {formatoCantidad.format(totales.disponible)} · Reservado: {formatoCantidad.format(totales.reservado)} · Valor: {formatoMoneda.format(totales.valor)}
+          Cantidad: {formatoCantidad.format(totales.cantidad)} · Valor: {formatoMoneda.format(totales.valor)}
         </div>
       </footer>
 

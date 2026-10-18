@@ -1135,7 +1135,7 @@ export const ListaPreciosFormPage: React.FC = () => {
               value={newUnidadMedidaId}
               onChange={(_, d) => setNewUnidadMedidaId(d.value)}
             >
-              <option value="">{selectedProductIds.length > 1 ? 'Unidad predeterminada de cada producto' : '---'}</option>
+              <option value="">{selectedProductIds.length > 1 ? 'Unidad predeterminada de cada producto' : 'Seleccionar unidad...'}</option>
               {availableUnidades.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.nombre}

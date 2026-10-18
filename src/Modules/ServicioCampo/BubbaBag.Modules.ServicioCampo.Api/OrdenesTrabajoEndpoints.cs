@@ -953,7 +953,7 @@ public static class OrdenesTrabajoEndpoints
         var ubicacion = await db.UbicacionesInventario.FirstOrDefaultAsync(u => u.AlmacenId == almacen.Id && u.Activa, ct);
         if (ubicacion == null)
         {
-            ubicacion = UbicacionInventario.Crear(almacen.Id, "PRINCIPAL", "Principal", true);
+            ubicacion = UbicacionInventario.Crear(almacen.Id, "DISPONIBLE", "Disponible", true, TipoUbicacion.Disponible);
             db.UbicacionesInventario.Add(ubicacion);
             await ((DbContext)db).SaveChangesAsync(ct);
         }

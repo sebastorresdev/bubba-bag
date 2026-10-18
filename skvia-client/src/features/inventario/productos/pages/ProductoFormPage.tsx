@@ -12,7 +12,6 @@ import {
   Tab,
   Card,
   Text,
-  Label,
   Skeleton,
   SkeletonItem,
   Toast,
@@ -31,6 +30,7 @@ import {
   Folder16Regular,
   LockClosed16Regular,
   Money16Regular,
+  Building16Regular,
 } from '@fluentui/react-icons';
 import { ProductoService } from '../services/producto.service';
 import type { CreateProductoDto, TipoProducto } from '../types/producto.types';
@@ -43,11 +43,14 @@ import { CrearUnidadDrawer } from '../../unidades-medida/components/CrearUnidadD
 import { ListaPreciosService } from '../../listas-precios/services/listaPrecios.service';
 import type { ListaPreciosDto } from '../../listas-precios/types/listaPrecios.types';
 import { CrearListaPreciosDrawer } from '../../listas-precios/components/CrearListaPreciosDrawer';
+import { ClienteService } from '../../../crm/clientes/services/cliente.service';
+import type { ClienteListadoItemDto } from '../../../crm/clientes/types/cliente.types';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
 import { D365FormField } from '../../../../components/common/D365FormField';
+import { SelectorEntidadRelacionada, type OpcionEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
 import { LookupDropdownWithQuickCreate } from '../../../../components/common/LookupDropdownWithQuickCreate';
 
 export interface ProductoFormPageProps {
@@ -144,6 +147,7 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
   const [unidadesList, setUnidadesList] = useState<UnidadMedidaDto[]>([]);
   const [gruposUnidadList, setGruposUnidadList] = useState<GrupoUnidadMedidaDto[]>([]);
   const [listasPreciosList, setListasPreciosList] = useState<ListaPreciosDto[]>([]);
+  const [cuentasList, setCuentasList] = useState<ClienteListadoItemDto[]>([]);
 
   const cargarCatalogos = useCallback(() => {
     CategoriaService.getCategorias(undefined, true)
@@ -161,6 +165,10 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
     ListaPreciosService.getListasPrecios(undefined, true)
       .then((lps) => setListasPreciosList(lps))
       .catch((err) => console.error('Error al cargar listas de precios:', err));
+
+    ClienteService.obtenerClientes({ soloActivos: true })
+      .then((cts) => setCuentasList(cts || []))
+      .catch((err) => console.error('Error al cargar catálogo de cuentas/proveedores:', err));
   }, []);
 
   useEffect(() => {
@@ -172,6 +180,39 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
 
   // Estado y lógica para TagPicker de Categoría (Estilo Dynamics 365)
   const [categoriaQuery, setCategoriaQuery] = useState('');
+
+  // Estado y lógica para TagPicker de Proveedor Habitual (Estilo Dynamics 365)
+  const [proveedorQuery, setProveedorQuery] = useState('');
+
+  const opcionesProveedores: OpcionEntidadRelacionada[] = useMemo(() => {
+    return cuentasList.map((c) => ({
+      id: c.id,
+      nombre: c.razonSocial || c.nombreCompletoODenominacion,
+      detalle: c.documentoIdentidad ? `RUC ${c.documentoIdentidad}` : undefined,
+    }));
+  }, [cuentasList]);
+
+  const proveedorSeleccionadoObj: OpcionEntidadRelacionada | null = useMemo(() => {
+    if (!formData.proveedorDefecto) return null;
+    const provUpper = formData.proveedorDefecto.trim().toUpperCase();
+    const c = cuentasList.find((x) =>
+      (x.razonSocial && x.razonSocial.toUpperCase() === provUpper) ||
+      (x.nombreCompletoODenominacion && x.nombreCompletoODenominacion.toUpperCase() === provUpper) ||
+      (x.nombres && x.nombres.toUpperCase() === provUpper)
+    );
+    if (c) {
+      return {
+        id: c.id,
+        nombre: c.razonSocial || c.nombreCompletoODenominacion,
+        detalle: c.documentoIdentidad ? `RUC ${c.documentoIdentidad}` : undefined,
+      };
+    }
+    return {
+      id: 'manual',
+      nombre: formData.proveedorDefecto,
+      detalle: 'Proveedor habitual',
+    };
+  }, [cuentasList, formData.proveedorDefecto]);
 
   const categoriaSeleccionadaObj = useMemo(
     () => categoriasList.find((c) => c.id === formData.categoriaProductoId),
@@ -840,153 +881,137 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
               <Card className={styles.card}>
                 <Text className={styles.cardSectionTitle}>General</Text>
 
-                <div className={styles.d365FieldRow}>
-                  <div className={styles.d365LabelCol}>
-                    <Label size="medium" htmlFor="prod-tipo-fs">Tipo</Label>
-                  </div>
-                  <div className={styles.d365ControlCol}>
-                    <Select
-                      id="prod-tipo-fs"
-                      appearance="outline"
-                      size="medium"
-                      className={styles.d365ControlFull}
-                      value={formData.tipo as string}
-                      onChange={(_, data) =>
-                        setFormData({ ...formData, tipo: data.value as TipoProducto })
-                      }
-                    >
-                      <option value="Inventario">Inventario</option>
-                      <option value="NoInventario">No inventario</option>
-                      <option value="Servicio">Servicio</option>
-                    </Select>
-                  </div>
-                </div>
+                <D365FormField label="Tipo" htmlFor="prod-tipo-fs">
+                  <Select
+                    id="prod-tipo-fs"
+                    appearance="outline"
+                    size="medium"
+                    className={styles.d365ControlFull}
+                    value={formData.tipo as string}
+                    onChange={(_, data) =>
+                      setFormData({ ...formData, tipo: data.value as TipoProducto })
+                    }
+                  >
+                    <option value="Inventario">Inventario</option>
+                    <option value="NoInventario">No inventario</option>
+                    <option value="Servicio">Servicio</option>
+                  </Select>
+                </D365FormField>
 
                 {/* Precio de Lista (Field Service) */}
-                <div className={styles.d365FieldRow}>
-                  <div className={styles.d365LabelCol}>
-                    <Label size="medium" htmlFor="prod-precio">
-                      Precio de Lista
-                    </Label>
-                  </div>
-                  <div className={styles.d365ControlCol}>
-                    <Input
-                      id="prod-precio"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      appearance="outline"
-                      size="medium"
-                      contentBefore="S/."
-                      className={styles.d365ControlFull}
-                      value={precioBaseStr}
-                      onChange={(_, data) => {
-                        setPrecioBaseStr(data.value);
-                        const val = parseFloat(data.value);
-                        setFormData((prev) => ({ ...prev, precioBase: isNaN(val) ? 0 : val }));
-                      }}
-                    />
-                  </div>
-                </div>
+                <D365FormField label="Precio de Lista" htmlFor="prod-precio">
+                  <Input
+                    id="prod-precio"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    appearance="outline"
+                    size="medium"
+                    contentBefore="S/."
+                    className={styles.d365ControlFull}
+                    value={precioBaseStr}
+                    onChange={(_, data) => {
+                      setPrecioBaseStr(data.value);
+                      const val = parseFloat(data.value);
+                      setFormData((prev) => ({ ...prev, precioBase: isNaN(val) ? 0 : val }));
+                    }}
+                  />
+                </D365FormField>
 
                 {/* Código de Barras / UPC */}
-                <div className={styles.d365FieldRow}>
-                  <div className={styles.d365LabelCol}>
-                    <Label size="medium" htmlFor="prod-upc">
-                      Código UPC / Barras
-                    </Label>
-                  </div>
-                  <div className={styles.d365ControlCol}>
-                    <Input
-                      id="prod-upc"
-                      appearance="outline"
-                      size="medium"
-                      className={styles.d365ControlFull}
-                      value={formData.codigoBarras || ''}
-                      onChange={(_, data) => setFormData({ ...formData, codigoBarras: data.value })}
-                    />
-                  </div>
-                </div>
+                <D365FormField label="Código UPC / Barras" htmlFor="prod-upc">
+                  <Input
+                    id="prod-upc"
+                    appearance="outline"
+                    size="medium"
+                    className={styles.d365ControlFull}
+                    value={formData.codigoBarras || ''}
+                    onChange={(_, data) => setFormData({ ...formData, codigoBarras: data.value })}
+                  />
+                </D365FormField>
               </Card>
 
               {/* Sección Derecha: COSTOS Y PROVEEDOR */}
               <Card className={styles.card}>
                 <Text className={styles.cardSectionTitle}>Costos y Proveedor</Text>
 
-                {/* Proveedor por Defecto */}
-                <div className={styles.d365FieldRow}>
-                  <div className={styles.d365LabelCol}>
-                    <Label size="medium" htmlFor="prod-proveedor">
-                      Proveedor Habitual
-                    </Label>
-                  </div>
-                  <div className={styles.d365ControlCol}>
-                    <Input
-                      id="prod-proveedor"
-                      appearance="outline"
-                      size="medium"
-                      className={styles.d365ControlFull}
-                      value={formData.proveedorDefecto || ''}
-                      onChange={(_, data) =>
-                        setFormData({ ...formData, proveedorDefecto: data.value })
+                {/* Proveedor Habitual con TagPicker / SelectorEntidadRelacionada */}
+                <D365FormField
+                  label="Proveedor Habitual"
+                  htmlFor="prod-proveedor"
+                  info="Seleccione la cuenta jurídica del proveedor habitual o ingrese uno nuevo."
+                >
+                  <SelectorEntidadRelacionada
+                    idEntrada="prod-proveedor"
+                    etiquetaGrupo="Proveedores y Cuentas"
+                    opciones={opcionesProveedores}
+                    seleccionada={proveedorSeleccionadoObj}
+                    textoBusqueda={proveedorQuery}
+                    alCambiarBusqueda={setProveedorQuery}
+                    alSeleccionar={(id) => {
+                      if (id && id !== 'manual') {
+                        const c = cuentasList.find((x) => x.id === id);
+                        setFormData((prev) => ({
+                          ...prev,
+                          proveedorDefecto: c?.razonSocial || c?.nombreCompletoODenominacion || '',
+                        }));
+                      } else {
+                        setFormData((prev) => ({ ...prev, proveedorDefecto: '' }));
                       }
-                    />
-                  </div>
-                </div>
+                    }}
+                    alCrearNuevo={(nombre) => {
+                      setFormData((prev) => ({ ...prev, proveedorDefecto: nombre }));
+                    }}
+                    alNavegar={(id) => {
+                      if (id && id !== 'manual') {
+                        window.open(`/servicio-campo/cuentas/${id}`, '_blank');
+                      }
+                    }}
+                    icono={<Building16Regular />}
+                    textoVacio="No se encontraron proveedores"
+                    tituloEnlace="Ver ficha del proveedor"
+                  />
+                </D365FormField>
 
                 {/* Costo Actual */}
-                <div className={styles.d365FieldRow}>
-                  <div className={styles.d365LabelCol}>
-                    <Label size="medium" htmlFor="prod-costo-actual">
-                      Costo Actual
-                    </Label>
-                  </div>
-                  <div className={styles.d365ControlCol}>
-                    <Input
-                      id="prod-costo-actual"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      appearance="outline"
-                      size="medium"
-                      contentBefore="S/."
-                      className={styles.d365ControlFull}
-                      value={costoActualStr}
-                      onChange={(_, data) => {
-                        setCostoActualStr(data.value);
-                        const val = parseFloat(data.value);
-                        setFormData((prev) => ({ ...prev, costoActual: isNaN(val) ? 0 : val }));
-                      }}
-                    />
-                  </div>
-                </div>
+                <D365FormField label="Costo Actual" htmlFor="prod-costo-actual">
+                  <Input
+                    id="prod-costo-actual"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    appearance="outline"
+                    size="medium"
+                    contentBefore="S/."
+                    className={styles.d365ControlFull}
+                    value={costoActualStr}
+                    onChange={(_, data) => {
+                      setCostoActualStr(data.value);
+                      const val = parseFloat(data.value);
+                      setFormData((prev) => ({ ...prev, costoActual: isNaN(val) ? 0 : val }));
+                    }}
+                  />
+                </D365FormField>
 
                 {/* Costo Estándar */}
-                <div className={styles.d365FieldRow}>
-                  <div className={styles.d365LabelCol}>
-                    <Label size="medium" htmlFor="prod-costo-estandar">
-                      Costo Estándar
-                    </Label>
-                  </div>
-                  <div className={styles.d365ControlCol}>
-                    <Input
-                      id="prod-costo-estandar"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      appearance="outline"
-                      size="medium"
-                      contentBefore="S/."
-                      className={styles.d365ControlFull}
-                      value={costoEstandarStr}
-                      onChange={(_, data) => {
-                        setCostoEstandarStr(data.value);
-                        const val = parseFloat(data.value);
-                        setFormData((prev) => ({ ...prev, costoEstandar: isNaN(val) ? 0 : val }));
-                      }}
-                    />
-                  </div>
-                </div>
+                <D365FormField label="Costo Estándar" htmlFor="prod-costo-estandar">
+                  <Input
+                    id="prod-costo-estandar"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    appearance="outline"
+                    size="medium"
+                    contentBefore="S/."
+                    className={styles.d365ControlFull}
+                    value={costoEstandarStr}
+                    onChange={(_, data) => {
+                      setCostoEstandarStr(data.value);
+                      const val = parseFloat(data.value);
+                      setFormData((prev) => ({ ...prev, costoEstandar: isNaN(val) ? 0 : val }));
+                    }}
+                  />
+                </D365FormField>
               </Card>
             </div>
           )}
@@ -996,24 +1021,17 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
             <Card className={styles.card}>
               <Text className={styles.cardSectionTitle}>Notas</Text>
 
-              <div className={styles.d365FieldRowTop}>
-                <div className={styles.d365LabelColTop}>
-                  <Label size="medium" htmlFor="prod-notas">
-                    Notas e Instrucciones
-                  </Label>
-                </div>
-                <div className={styles.d365ControlCol}>
-                  <Textarea
-                    id="prod-notas"
-                    appearance="outline"
-                    size="medium"
-                    rows={8}
-                    className={styles.d365ControlFull}
-                    value={formData.notas || ''}
-                    onChange={(_, data) => setFormData({ ...formData, notas: data.value })}
-                  />
-                </div>
-              </div>
+              <D365FormField label="Notas e Instrucciones" htmlFor="prod-notas" align="top">
+                <Textarea
+                  id="prod-notas"
+                  appearance="outline"
+                  size="medium"
+                  rows={8}
+                  className={styles.d365ControlFull}
+                  value={formData.notas || ''}
+                  onChange={(_, data) => setFormData({ ...formData, notas: data.value })}
+                />
+              </D365FormField>
             </Card>
           )}
         </D365FormContent>

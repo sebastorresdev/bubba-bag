@@ -259,22 +259,22 @@ export const HistorialSerieDrawer: React.FC<HistorialSerieDrawerProps> = ({
   const renderBadgeEstado = (estado: string) => {
     switch (estado) {
       case 'EnAlmacen':
-        return <Badge appearance="tint" color="success" icon={<CheckmarkCircle16Filled />}>En Almacén</Badge>;
+        return <Badge appearance="tint" shape="rounded" color="success" icon={<CheckmarkCircle16Filled />}>En Almacén</Badge>;
       case 'EnCustodiaTecnico':
-        return <Badge appearance="tint" color="brand" icon={<VehicleTruckProfile16Regular />}>Custodia Técnico</Badge>;
+        return <Badge appearance="tint" shape="rounded" color="brand" icon={<VehicleTruckProfile16Regular />}>Custodia Técnico</Badge>;
       case 'InstaladoEnCliente':
-        return <Badge appearance="filled" color="informative" icon={<Box16Filled />}>Instalado en Cliente</Badge>;
+        return <Badge appearance="tint" shape="rounded" color="informative" icon={<Box16Filled />}>Instalado en Cliente</Badge>;
       case 'DevueltoAProveedor':
-        return <Badge appearance="filled" color="warning" icon={<ArrowExit16Regular />}>Devuelto a Proveedor</Badge>;
+        return <Badge appearance="tint" shape="rounded" color="warning" icon={<ArrowExit16Regular />}>Devuelto a Proveedor</Badge>;
       case 'EnTransito':
-        return <Badge appearance="tint" color="warning" icon={<ArrowSync16Regular />}>En Tránsito</Badge>;
+        return <Badge appearance="tint" shape="rounded" color="warning" icon={<ArrowSync16Regular />}>En Tránsito</Badge>;
       case 'AveriadoEnAlmacen':
       case 'RetiradoPorAveria':
-        return <Badge appearance="filled" color="danger" icon={<Warning16Filled />}>Averiado</Badge>;
+        return <Badge appearance="tint" shape="rounded" color="danger" icon={<Warning16Filled />}>Averiado</Badge>;
       case 'BajaPorPerdida':
-        return <Badge appearance="tint" color="danger" icon={<DismissCircle16Filled />}>Baja / Pérdida</Badge>;
+        return <Badge appearance="tint" shape="rounded" color="danger" icon={<DismissCircle16Filled />}>Baja / Pérdida</Badge>;
       default:
-        return <Badge appearance="tint">{estado}</Badge>;
+        return <Badge appearance="tint" shape="rounded">{estado}</Badge>;
     }
   };
 
@@ -366,17 +366,12 @@ export const HistorialSerieDrawer: React.FC<HistorialSerieDrawerProps> = ({
 
               <div className={styles.gridTwoCols}>
                 <div>
-                  <span className={styles.label}>Ubicación Actual</span>
-                  <span className={styles.value}>{historial.ubicacionActual}</span>
+                  <span className={styles.label}>Almacén / Custodio</span>
+                  <span className={styles.value}>{historial.almacenActualNombre || '—'}</span>
                 </div>
                 <div>
-                  <span className={styles.label}>Condición</span>
-                  <Badge
-                    appearance="tint"
-                    color={historial.condicion === 'Utilizable' ? 'success' : 'danger'}
-                  >
-                    {historial.condicion}
-                  </Badge>
+                  <span className={styles.label}>Ubicación Interna</span>
+                  <span className={styles.value}>{historial.ubicacionActualNombre || historial.ubicacionActual || '—'}</span>
                 </div>
                 {historial.numeroSmartCard && (
                   <div>
@@ -456,7 +451,7 @@ export const HistorialSerieDrawer: React.FC<HistorialSerieDrawerProps> = ({
                             </span>
                           )}
                           {mov.condicion && (
-                            <Badge appearance="outline" size="small">
+                            <Badge appearance="tint" shape="rounded" size="small">
                               {mov.condicion}
                             </Badge>
                           )}

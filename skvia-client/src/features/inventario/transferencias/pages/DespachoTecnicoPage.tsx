@@ -90,7 +90,7 @@ const useStyles = makeStyles({
   },
   scannerGrid: {
     display: 'grid',
-    gridTemplateColumns: 'minmax(220px, 1.2fr) minmax(260px, 1.8fr) 100px 140px auto',
+    gridTemplateColumns: 'minmax(180px, 1.1fr) minmax(240px, 1.8fr) 110px 130px 100px auto',
     gap: '12px',
     alignItems: 'end',
     '@media (max-width: 900px)': {
@@ -405,6 +405,27 @@ export const DespachoTecnicoPage: React.FC = () => {
     return todasSeriesStock.filter((s) => !seriesUsadas.has(s.numeroSerie));
   }, [todasSeriesStock, lineas]);
 
+  // Obtener stock restante de un producto en bodega descontando lo ya asignado en el borrador
+  const getStockRestanteBodega = useCallback(
+    (productoId: string, cantidadDisponibleTotal: number) => {
+      const cantEnLineas = lineas
+        .filter((l) => l.productoId === productoId)
+        .reduce((acc, l) => acc + l.cantidad, 0);
+      return Math.max(0, cantidadDisponibleTotal - cantEnLineas);
+    },
+    [lineas]
+  );
+
+  // Stock restante del producto actualmente seleccionado en el escáner
+  const stockRestanteBodegaSeleccionado = useMemo(() => {
+    if (!productoSeleccionadoScanner) return 0;
+    if (serieSeleccionadaScanner) return 1;
+    return getStockRestanteBodega(
+      productoSeleccionadoScanner.productoId,
+      productoSeleccionadoScanner.cantidadDisponible
+    );
+  }, [productoSeleccionadoScanner, serieSeleccionadaScanner, getStockRestanteBodega]);
+
   // Productos no seriados disponibles en bodega
   const productosNoSeriadosStock = useMemo(() => {
     return productosStock.filter((p) => !p.esSerializado && p.cantidadDisponible > 0);
@@ -518,6 +539,12 @@ export const DespachoTecnicoPage: React.FC = () => {
         return;
       }
 
+      const restante = getStockRestanteBodega(prodEncontrado.productoId, prodEncontrado.cantidadDisponible);
+      if (restante <= 0) {
+        setScannerError(`El stock disponible de "${prodEncontrado.nombreProducto}" ya fue asignado en su totalidad al despacho.`);
+        return;
+      }
+
       setSerieSeleccionadaScanner(null);
       setProductoSeleccionadoScanner(prodEncontrado);
       setScannerCantidad('1');
@@ -584,17 +611,17 @@ export const DespachoTecnicoPage: React.FC = () => {
     } else {
       // Es producto no seriado
       const cantidadBase = cant * factorConversion;
-      const lineaExistente = lineas.find(
-        (l) => l.productoId === productoSeleccionadoScanner.productoId
-      );
 
-      const yaAgregado = lineaExistente ? lineaExistente.cantidad : 0;
-      if (yaAgregado + cantidadBase > productoSeleccionadoScanner.cantidadDisponible) {
+      if (cantidadBase > stockRestanteBodegaSeleccionado) {
         setScannerError(
-          `La cantidad supera las existencias disponibles (${productoSeleccionadoScanner.cantidadDisponible} ${productoSeleccionadoScanner.nombreUnidadMedida || 'UND'}).`
+          `La cantidad supera las existencias restantes (${cant} ${unidadSeleccionadaObj?.nombre || 'UND'} = ${cantidadBase} ${productoSeleccionadoScanner.nombreUnidadMedida || 'UND'}, disponible restante: ${stockRestanteBodegaSeleccionado} ${productoSeleccionadoScanner.nombreUnidadMedida || 'UND'}).`
         );
         return;
       }
+
+      const lineaExistente = lineas.find(
+        (l) => l.productoId === productoSeleccionadoScanner.productoId
+      );
 
       const unidadNombre = unidadSeleccionadaObj?.nombre || productoSeleccionadoScanner.nombreUnidadMedida || 'UND';
 
@@ -893,18 +920,7 @@ export const DespachoTecnicoPage: React.FC = () => {
         renderHeaderCell: () => 'Cantidad',
         renderCell: (linea: LineaDespacho) => (
           <TableCellLayout>
-            {linea.factorConversion && linea.factorConversion > 1 ? (
-              <div>
-                <Text weight="bold">
-                  {linea.cantidadIngresada} {linea.unidadSeleccionada}
-                </Text>
-                <Text block size={100} style={{ color: tokens.colorNeutralForeground3 }}>
-                  Equivalente: {linea.cantidad.toLocaleString('es-PE')} {linea.unidad}
-                </Text>
-              </div>
-            ) : (
-              <Text weight="bold">{linea.cantidad.toLocaleString('es-PE')}</Text>
-            )}
+            <Text weight="bold">{linea.cantidad.toLocaleString('es-PE')}</Text>
           </TableCellLayout>
         ),
       }),
@@ -1056,6 +1072,23 @@ export const DespachoTecnicoPage: React.FC = () => {
               </D365CommandButton>
             </>
           )}
+
+          <D365CommandDivider />
+          <D365CommandButton
+            icon={<Add16Regular />}
+            tone="create"
+            disabled={submitting}
+            onClick={() => {
+              if (esSoloLectura) draft.markSaved();
+              if (id && id !== 'nuevo') {
+                navigate('/servicio-campo/despacho-tecnicos/nuevo');
+              } else {
+                window.location.href = '/servicio-campo/despacho-tecnicos/nuevo';
+              }
+            }}
+          >
+            Nuevo
+          </D365CommandButton>
         </div>
       </D365CommandBar>
 
@@ -1066,7 +1099,27 @@ export const DespachoTecnicoPage: React.FC = () => {
         metadata={[
           ...(numeroTransferencia ? [{ label: 'N° Despacho', value: numeroTransferencia }] : []),
           ...(numeroGuiaRemision ? [{ label: 'Guía de Remisión', value: numeroGuiaRemision }] : []),
-          { label: 'Estado', value: estado === 'Cerrada' ? 'Recibida' : estado },
+          {
+            label: 'Estado',
+            value: (
+              <Badge
+                appearance="filled"
+                shape="rounded"
+                color={
+                  estado === 'Cerrada'
+                    ? 'success'
+                    : estado === 'Cancelada'
+                    ? 'danger'
+                    : estado === 'EnTransito'
+                    ? 'informative'
+                    : 'warning'
+                }
+                size="small"
+              >
+                {estado === 'Cerrada' ? 'Recibida' : estado === 'EnTransito' ? 'Despachada' : estado}
+              </Badge>
+            ) as any,
+          },
         ]}
         processFlow={<TransferenciaEtapas estado={estado} tipoOperacion="Despacho" embedded />}
         tabs={
@@ -1207,22 +1260,11 @@ export const DespachoTecnicoPage: React.FC = () => {
 
                   {/* Campo 2: Producto */}
                   <div className={classes.scannerField}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <label className={classes.scannerLabel}>Producto</label>
-                      {productoSeleccionadoScanner && !serieSeleccionadaScanner && (
-                        <Text size={100} style={{ color: tokens.colorBrandForeground1 }}>
-                          Disp: {Math.floor(productoSeleccionadoScanner.cantidadDisponible / factorConversion)}{' '}
-                          {unidadSeleccionadaObj?.nombre || productoSeleccionadoScanner.nombreUnidadMedida || 'UND'}
-                          {factorConversion > 1
-                            ? ` (${productoSeleccionadoScanner.cantidadDisponible} ${productoSeleccionadoScanner.nombreUnidadMedida || 'm'})`
-                            : ''}
-                        </Text>
-                      )}
-                    </div>
+                    <label className={classes.scannerLabel}>Producto</label>
                     {productoSeleccionadoScanner ? (
                       <Input
                         readOnly
-                        appearance="filled-darker"
+                        appearance="outline"
                         value={
                           serieSeleccionadaScanner
                             ? `${productoSeleccionadoScanner.nombreProducto} (Serie: ${serieSeleccionadaScanner.numeroSerie})`
@@ -1232,17 +1274,20 @@ export const DespachoTecnicoPage: React.FC = () => {
                           <Button
                             appearance="subtle"
                             size="small"
+                            style={{ minWidth: 'auto', padding: '0 4px', height: '24px' }}
                             icon={<Dismiss16Regular />}
                             onClick={() => {
                               setProductoSeleccionadoScanner(null);
                               setSerieSeleccionadaScanner(null);
                               setScannerQuery('');
+                              setUnidadSeleccionadaId('');
                             }}
                           />
                         }
                       />
                     ) : (
                       <Select
+                        appearance="outline"
                         value=""
                         onChange={(_, d) => {
                           const val = d.value;
@@ -1290,15 +1335,16 @@ export const DespachoTecnicoPage: React.FC = () => {
                           }
                         }}
                       >
-                        <option value="">
-                          Buscar en disponibles ({productosNoSeriadosStock.length} materiales, {seriesLibresAlmacen.length} series)...
-                        </option>
-                        {productosNoSeriadosStock.map((p) => (
-                          <option key={p.productoId} value={p.productoId}>
-                            {p.codigoProducto ? `${p.codigoProducto} — ` : ''}
-                            {p.nombreProducto} (Disp: {p.cantidadDisponible} {p.nombreUnidadMedida || 'UND'})
-                          </option>
-                        ))}
+                        <option value="">Seleccione material o serie...</option>
+                        {productosNoSeriadosStock.map((p) => {
+                          const restante = getStockRestanteBodega(p.productoId, p.cantidadDisponible);
+                          return (
+                            <option key={p.productoId} value={p.productoId} disabled={restante <= 0}>
+                              {p.codigoProducto ? `${p.codigoProducto} — ` : ''}
+                              {p.nombreProducto} (Disp: {restante} {p.nombreUnidadMedida || 'UND'}){restante <= 0 ? ' [Sin saldo disponible]' : ''}
+                            </option>
+                          );
+                        })}
                         {seriesLibresAlmacen.length > 0 && (
                           <optgroup label="Series individuales disponibles">
                             {seriesLibresAlmacen.map((s) => (
@@ -1312,48 +1358,51 @@ export const DespachoTecnicoPage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Campo 3: UOM */}
+                  {/* Campo 3: Disponible */}
                   <div className={classes.scannerField}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <label className={classes.scannerLabel}>UOM</label>
-                      {factorConversion > 1 && (
-                        <Text size={100} style={{ color: tokens.colorBrandForeground1, fontWeight: 600 }}>
-                          1 = {factorConversion} {productoSeleccionadoScanner?.nombreUnidadMedida || 'm'}
-                        </Text>
-                      )}
-                    </div>
+                    <label className={classes.scannerLabel}>Disponible</label>
+                    <Input
+                      readOnly
+                      appearance="outline"
+                      value={
+                        serieSeleccionadaScanner
+                          ? '1 UND'
+                          : productoSeleccionadoScanner
+                          ? `${Math.floor(stockRestanteBodegaSeleccionado / factorConversion)}`
+                          : '—'
+                      }
+                    />
+                  </div>
+
+                  {/* Campo 4: UOM */}
+                  <div className={classes.scannerField}>
+                    <label className={classes.scannerLabel}>UOM</label>
                     {serieSeleccionadaScanner ? (
-                      <Input readOnly appearance="filled-darker" value="UND" />
+                      <Input readOnly appearance="outline" value="UND" />
                     ) : unidadesDisponiblesProducto.length > 1 ? (
                       <Select
+                        appearance="outline"
                         value={unidadSeleccionadaObj?.id || ''}
                         onChange={(_, d) => setUnidadSeleccionadaId(d.value)}
                       >
                         {unidadesDisponiblesProducto.map((u) => (
                           <option key={u.id} value={u.id}>
-                            {u.nombre} {u.factorConversionTotal > 1 ? `(${u.factorConversionTotal} ${productoSeleccionadoScanner?.nombreUnidadMedida || 'm'})` : ''}
+                            {u.nombre}
                           </option>
                         ))}
                       </Select>
                     ) : (
                       <Input
                         readOnly
-                        appearance="filled-darker"
-                        value={productoSeleccionadoScanner?.nombreUnidadMedida || 'UND'}
+                        appearance="outline"
+                        value={unidadSeleccionadaObj?.nombre || productoSeleccionadoScanner?.nombreUnidadMedida || 'UND'}
                       />
                     )}
                   </div>
 
-                  {/* Campo 4: Cantidad */}
+                  {/* Campo 5: Cantidad */}
                   <div className={classes.scannerField}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <label className={classes.scannerLabel}>Cantidad</label>
-                      {factorConversion > 1 && (
-                        <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
-                          Total: {Number(scannerCantidad || 0) * factorConversion} {productoSeleccionadoScanner?.nombreUnidadMedida || 'm'}
-                        </Text>
-                      )}
-                    </div>
+                    <label className={classes.scannerLabel}>Cantidad</label>
                     <Input
                       type="number"
                       min={1}
@@ -1361,7 +1410,7 @@ export const DespachoTecnicoPage: React.FC = () => {
                         serieSeleccionadaScanner
                           ? 1
                           : productoSeleccionadoScanner
-                          ? Math.max(1, Math.floor(productoSeleccionadoScanner.cantidadDisponible / factorConversion))
+                          ? Math.floor(stockRestanteBodegaSeleccionado / factorConversion) || undefined
                           : undefined
                       }
                       disabled={Boolean(serieSeleccionadaScanner)}

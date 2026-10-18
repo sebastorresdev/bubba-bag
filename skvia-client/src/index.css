@@ -30,9 +30,9 @@ input::-ms-clear {
   display: none !important;
 }
 
-/* Los portales de Fluent UI también deben caber al abrirse desde un celular. */
+/* Los portales de Fluent UI deben estar acotados en desktop y caber en celular */
 body .fui-DialogSurface {
-  max-width: calc(100vw - 32px);
+  max-width: min(560px, calc(100vw - 32px));
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
 }

@@ -3161,7 +3161,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                           <>
                             <Text weight="medium">{c.productoNombre}</Text>
                             {c.esSerializado && (
-                              <Badge size="small" appearance="outline" color="warning" style={{ marginLeft: '6px' }}>
+                              <Badge size="small" appearance="tint" shape="rounded" color="warning" style={{ marginLeft: '6px' }}>
                                 Seriado
                               </Badge>
                             )}

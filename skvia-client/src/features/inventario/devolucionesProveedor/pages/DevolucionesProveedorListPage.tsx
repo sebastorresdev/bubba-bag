@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   TableCellLayout,
   createTableColumn,
-  Badge,
   Text,
-  Button,
+  Link,
   tokens,
   Menu,
   MenuItem,
@@ -19,13 +18,12 @@ import {
   Add16Regular,
   ArrowClockwise16Regular,
   ArrowDownload16Regular,
-  CheckmarkCircle16Filled,
-  DocumentPdf16Regular,
-  Camera16Regular,
   ChevronDown16Regular,
   Checkmark16Regular,
+  Eye16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton } from '../../../../components/common/D365CommandBar';
+import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
 import {
   D365EntityTable,
   D365TableToolbarTools,
@@ -37,18 +35,35 @@ import { DevolucionProveedorService } from '../services/devolucionProveedor.serv
 import type { DevolucionProveedorDto } from '../types/devolucionProveedor.types';
 import { exportToExcel, type ExportColumn } from '../../../../utils/exportUtils';
 
-type Vista = 'todas' | 'Completada' | 'Borrador' | 'Anulada';
-const nombresVista: Record<Vista, string> = {
-  todas: 'Todas las devoluciones a proveedor',
-  Completada: 'Devoluciones completadas',
-  Borrador: 'Devoluciones en borrador',
-  Anulada: 'Devoluciones anuladas',
+type Vista = 'todas' | 'Borrador' | 'EnRetiro' | 'Completada' | 'Anulada';
+
+const nombresVistaDefectuoso: Record<Vista, string> = {
+  todas: 'Todos los retiros de material defectuoso a OL',
+  Borrador: 'Retiros defectuosos en borrador',
+  EnRetiro: 'Retiros defectuosos en traslado a OL',
+  Completada: 'Retiros defectuosos completados por OL',
+  Anulada: 'Retiros anulados',
 };
 
-export const DevolucionesProveedorListPage: React.FC = () => {
+const nombresVistaOk: Record<Vista, string> = {
+  todas: 'Todos los retiros de material OK hacia OL',
+  Borrador: 'Retiros de material OK en borrador',
+  EnRetiro: 'Retiros de material OK en traslado a OL',
+  Completada: 'Retiros de material OK completados por OL',
+  Anulada: 'Retiros anulados',
+};
+
+export interface DevolucionesProveedorListPageProps {
+  modo?: 'defectuoso' | 'ok';
+}
+
+export const DevolucionesProveedorListPage: React.FC<DevolucionesProveedorListPageProps> = ({ modo = 'defectuoso' }) => {
   const navigate = useNavigate();
   const listStyles = useD365ListStyles();
   const tableRef = useRef<D365EntityTableRef>(null);
+
+  const baseRoute = modo === 'ok' ? '/servicio-campo/retiro-ok-proveedor' : '/servicio-campo/retiro-defectuoso-proveedor';
+  const nombresVista = modo === 'ok' ? nombresVistaOk : nombresVistaDefectuoso;
 
   const [devoluciones, setDevoluciones] = useState<DevolucionProveedorDto[]>([]);
   const [buscar, setBuscar] = useState('');
@@ -107,13 +122,31 @@ export const DevolucionesProveedorListPage: React.FC = () => {
   const handleExportarExcel = () => {
     if (devoluciones.length === 0) return;
     const fecha = new Date().toISOString().slice(0, 10);
-    exportToExcel(devoluciones, columnasExportacion, `Devoluciones_Proveedor_${fecha}`);
+    const nombreArchivo = modo === 'ok' ? `Retiro_Material_OK_${fecha}` : `Retiro_Material_Defectuoso_${fecha}`;
+    exportToExcel(filtrados, columnasExportacion, nombreArchivo);
   };
 
   const filtrados = useMemo(() => {
     const q = buscar.trim().toLowerCase();
     return devoluciones.filter((item) => {
-      if (vista !== 'todas' && item.estado !== vista) return false;
+      // Filtrar según el modo (Opción B: Separación entre Defectuoso y OK)
+      if (modo === 'ok') {
+        const tieneDefectuosos = item.lineas?.some(l => l.condicion === 'Defectuoso');
+        const esMotivoFalla = /garant[ií]a|falla|aver[ií]a|doa|inoperativo|daño|siniestro|defecto/i.test(item.motivo || '');
+        if (tieneDefectuosos || esMotivoFalla) return false;
+      } else if (modo === 'defectuoso') {
+        const esMotivoOk = /ok|rotaci[oó]n|activaci[oó]n|exceso|sobrestock|desmovilizaci[oó]n|cese/i.test(item.motivo || '');
+        const todosUtilizables = item.lineas && item.lineas.length > 0 && item.lineas.every(l => l.condicion === 'Utilizable');
+        if (esMotivoOk && todosUtilizables) return false;
+      }
+
+      if (vista !== 'todas') {
+        if (vista === 'EnRetiro') {
+          if (item.estado !== 'EnRetiro' && item.estado !== 'EnTransito') return false;
+        } else if (item.estado !== vista) {
+          return false;
+        }
+      }
       return (
         !q ||
         [
@@ -127,23 +160,24 @@ export const DevolucionesProveedorListPage: React.FC = () => {
         ].some(v => (v || '').toLowerCase().includes(q))
       );
     });
-  }, [buscar, devoluciones, vista]);
+  }, [buscar, devoluciones, vista, modo]);
 
   const columns: TableColumnDefinition<DevolucionProveedorDto>[] = useMemo(() => [
     createTableColumn<DevolucionProveedorDto>({
       columnId: 'numero',
       compare: (a, b) => a.numero.localeCompare(b.numero),
-      renderHeaderCell: () => 'N° Devolución',
+      renderHeaderCell: () => (modo === 'ok' ? 'N° Retiro OK' : 'N° Retiro Defectuoso'),
       renderCell: (item) => (
         <TableCellLayout truncate>
-          <Button
-            appearance="subtle"
-            size="small"
-            style={{ fontWeight: tokens.fontWeightSemibold, fontFamily: 'monospace', color: tokens.colorBrandForeground1 }}
-            onClick={() => navigate(`/servicio-campo/devoluciones-proveedor/${item.id}`)}
+          <Link
+            as="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`${baseRoute}/${item.id}`);
+            }}
           >
             {item.numero}
-          </Button>
+          </Link>
         </TableCellLayout>
       ),
     }),
@@ -163,7 +197,18 @@ export const DevolucionesProveedorListPage: React.FC = () => {
       renderHeaderCell: () => 'Almacén de Salida',
       renderCell: (item) => (
         <TableCellLayout truncate>
-          <Text>{item.almacenNombre}</Text>
+          {item.almacenId ? (
+            <Link
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/servicio-campo/almacenes/${item.almacenId}`);
+              }}
+            >
+              {item.almacenNombre}
+            </Link>
+          ) : (
+            <Text>{item.almacenNombre}</Text>
+          )}
         </TableCellLayout>
       ),
     }),
@@ -203,9 +248,7 @@ export const DevolucionesProveedorListPage: React.FC = () => {
       renderHeaderCell: () => 'Cant. Total',
       renderCell: (item) => (
         <TableCellLayout truncate>
-          <Badge appearance="tint" shape="rounded">
-            {item.totalCantidad}
-          </Badge>
+          <Text weight="semibold">{item.totalCantidad}</Text>
         </TableCellLayout>
       ),
     }),
@@ -215,15 +258,15 @@ export const DevolucionesProveedorListPage: React.FC = () => {
       renderCell: (item) => (
         <TableCellLayout truncate>
           {item.documentoRespaldoUrl ? (
-            <Button
-              appearance="subtle"
-              size="small"
-              icon={item.documentoRespaldoUrl.endsWith('.pdf') ? <DocumentPdf16Regular /> : <Camera16Regular />}
-              onClick={() => window.open(item.documentoRespaldoUrl!, '_blank')}
+            <Link
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(item.documentoRespaldoUrl!, '_blank');
+              }}
               title="Ver documento de respaldo firmado"
             >
               Ver Acta
-            </Button>
+            </Link>
           ) : (
             <Text size={200} style={{ color: tokens.colorNeutralForeground4 }}>
               Sin archivo
@@ -238,37 +281,42 @@ export const DevolucionesProveedorListPage: React.FC = () => {
       renderHeaderCell: () => 'Estado',
       renderCell: (item) => (
         <TableCellLayout truncate>
-          <Badge
-            appearance="filled"
-            color={item.estado === 'Completada' ? 'success' : item.estado === 'Anulada' ? 'danger' : 'warning'}
-            icon={item.estado === 'Completada' ? <CheckmarkCircle16Filled /> : undefined}
-          >
-            {item.estado}
-          </Badge>
+          <D365StatusBadge status={item.estado} />
         </TableCellLayout>
       ),
     }),
-  ], [navigate]);
+  ], [navigate, modo, baseRoute]);
 
   return (
     <div className={listStyles.root}>
       {/* 1. Command Bar */}
-      <D365CommandBar ariaLabel="Comandos de Devoluciones a Proveedor">
+      <D365CommandBar ariaLabel={modo === 'ok' ? 'Comandos de Retiro Material OK hacia OL' : 'Comandos de Retiro Material Defectuoso a OL'}>
         <div className={listStyles.toolbarLeft}>
           <D365CommandButton
             icon={<Add16Regular />}
-            onClick={() => navigate('/servicio-campo/devoluciones-proveedor/nuevo')}
+            onClick={() => navigate(`${baseRoute}/nuevo`)}
             tone="create"
           >
             Nuevo
           </D365CommandButton>
+          {selectedIds.size === 1 && (
+            <D365CommandButton
+              icon={<Eye16Regular />}
+              onClick={() => {
+                const selId = Array.from(selectedIds)[0];
+                navigate(`${baseRoute}/${selId}`);
+              }}
+            >
+              Ver Detalle
+            </D365CommandButton>
+          )}
           <D365CommandButton icon={<ArrowClockwise16Regular />} onClick={cargarDevoluciones}>
             Actualizar
           </D365CommandButton>
           <D365CommandButton
             icon={<ArrowDownload16Regular />}
             onClick={handleExportarExcel}
-            disabled={devoluciones.length === 0}
+            disabled={filtrados.length === 0}
           >
             Exportar a Excel
           </D365CommandButton>
@@ -312,15 +360,16 @@ export const DevolucionesProveedorListPage: React.FC = () => {
       {/* 3. Tabla D365EntityTable */}
       <D365EntityTable
         ref={tableRef}
-        entityName="Devoluciones a Proveedor"
-        tableId="devoluciones-proveedor-grid"
+        entityName={modo === 'ok' ? 'Retiros de Material OK hacia OL' : 'Retiros de Material Defectuoso a OL'}
+        tableId={modo === 'ok' ? 'retiros-ok-proveedor-grid' : 'retiros-defectuoso-proveedor-grid'}
         items={filtrados}
         columns={columns}
         filterFields={filterFields}
         loading={loading}
         error={error}
         onRetry={cargarDevoluciones}
-        selectionMode="single"
+        onRowDoubleClick={(item) => navigate(`${baseRoute}/${item.id}`)}
+        selectionMode="multiselect"
         selectedItems={selectedIds}
         onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
       />

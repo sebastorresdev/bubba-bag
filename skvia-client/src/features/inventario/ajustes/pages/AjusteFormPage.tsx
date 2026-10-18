@@ -6,6 +6,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   Input,
   Select,
+  Badge,
   Tab,
   TabList,
   Textarea,
@@ -539,7 +540,27 @@ export function AjusteFormPage() {
         subtitle="Ajuste de Inventario"
         avatarName={ajuste?.nombreAlmacen || 'Ajuste'}
         metadata={[
-          { label: 'Estado', value: estado === 'EnRevision' ? 'En Revisión' : estado },
+          {
+            label: 'Estado',
+            value: (
+              <Badge
+                appearance="filled"
+                shape="rounded"
+                color={
+                  estado === 'Aplicado'
+                    ? 'success'
+                    : estado === 'Anulado'
+                    ? 'danger'
+                    : estado === 'EnRevision'
+                    ? 'informative'
+                    : 'warning'
+                }
+                size="small"
+              >
+                {estado === 'EnRevision' ? 'En Revisión' : estado}
+              </Badge>
+            ) as any,
+          },
           ...(ajuste?.numeroAprobacion ? [{ label: 'N° Aprobación', value: ajuste.numeroAprobacion }] : []),
           { label: 'Tipo', value: tipo },
           { label: 'Ítems', value: String(lineas.length) },

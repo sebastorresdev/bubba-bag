@@ -70,6 +70,7 @@ export const UnidadesMedidaListPage: React.FC<UnidadesMedidaListPageProps> = ({ 
           <TableCellLayout>
             <Link
               as="button"
+              className={styles.primaryLink}
               onClick={(event) => {
                 event.stopPropagation();
                 open(g);

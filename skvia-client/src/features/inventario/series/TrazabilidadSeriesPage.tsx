@@ -178,7 +178,6 @@ export function TrazabilidadSeriesPage() {
       options: almacenes.map(a => ({ value: a.nombre, label: a.nombre })),
     },
     { id: 'nombreUbicacion', label: 'Ubicación', type: 'string' },
-    { id: 'condicion', label: 'Condición', type: 'string' },
     { id: 'numeroSmartCard', label: 'SmartCard', type: 'string' },
     { id: 'macAddress', label: 'MAC', type: 'string' },
   ], [almacenes]);
@@ -429,16 +428,6 @@ export function TrazabilidadSeriesPage() {
       renderCell: (item: ItemSeriadoStockDto) => (
         <TableCellLayout truncate>
           <Text>{item.nombreUbicacion || '—'}</Text>
-        </TableCellLayout>
-      ),
-    }),
-    createTableColumn({
-      columnId: 'condicion',
-      compare: (a, b) => (a.condicion ?? '').localeCompare(b.condicion ?? ''),
-      renderHeaderCell: () => 'Condición',
-      renderCell: (item: ItemSeriadoStockDto) => (
-        <TableCellLayout truncate>
-          <Text>{item.condicion || '—'}</Text>
         </TableCellLayout>
       ),
     }),

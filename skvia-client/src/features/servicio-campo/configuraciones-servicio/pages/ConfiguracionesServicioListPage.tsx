@@ -165,11 +165,12 @@ export function ConfiguracionesServicioListPage() {
         renderCell: (item) => (
           <TableCellLayout>
             <Link
+              as="button"
+              className={styles.primaryLink}
               onClick={(e) => {
                 e.stopPropagation();
                 navigate(`/servicio-campo/configuraciones-servicio/${item.id}`);
               }}
-              style={{ fontWeight: 600 }}
             >
               {item.nombre}
             </Link>

@@ -28,7 +28,7 @@ public class ObtenerInventarioProductosHandler
     {
         var inventario = _context.StocksAlmacen
             .AsNoTracking()
-            .Where(stock => InventarioAcceso.AlmacenesConsultables(_context, _user).Contains(stock.Ubicacion.AlmacenId) && stock.Producto.Tipo == TipoProducto.Inventario && (stock.CantidadDisponible + stock.CantidadReservada) > 0);
+            .Where(stock => InventarioAcceso.AlmacenesConsultables(_context, _user).Contains(stock.Ubicacion.AlmacenId) && stock.Producto.Tipo == TipoProducto.Inventario && stock.CantidadDisponible > 0);
 
         if (query.AlmacenId.HasValue)
             inventario = inventario.Where(stock => stock.Ubicacion.AlmacenId == query.AlmacenId.Value);
@@ -58,10 +58,10 @@ public class ObtenerInventarioProductosHandler
                     ? stock.Producto.UnidadMedidaDefecto.Nombre
                     : null,
                 stock.CantidadDisponible,
-                stock.CantidadReservada,
-                stock.CantidadDisponible + stock.CantidadReservada,
+                0m,
+                stock.CantidadDisponible,
                 stock.Producto.CostoActual,
-                (stock.CantidadDisponible + stock.CantidadReservada) * stock.Producto.CostoActual,
+                stock.CantidadDisponible * stock.Producto.CostoActual,
                 stock.UpdatedAt,
                 stock.Producto.EsSerializado, stock.UbicacionId, stock.Ubicacion.Nombre, stock.Condicion.ToString()))
             .ToListAsync(cancellationToken);

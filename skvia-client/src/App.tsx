@@ -158,13 +158,25 @@ const router = createBrowserRouter(createRoutesFromElements(
               <Route path="servicio-campo/devolucion-tecnicos/:id" element={<DevolucionTecnicoPage />} />
               <Route path="servicio-campo/declaracion-doa" element={<DeclaracionesDoaListPage />} />
               <Route path="servicio-campo/declaracion-doa/nuevo" element={<DeclaracionDoaPage />} />
+              <Route path="servicio-campo/declaracion-doa/:id" element={<DeclaracionDoaPage />} />
               <Route path="servicio-campo/recepciones-compra" element={<ComprasListPage />} />
               <Route path="servicio-campo/recepciones-compra/nuevo" element={<CompraFormPage key="nueva-compra" />} />
               <Route path="servicio-campo/recepciones-compra/:id" element={<CompraFormPage />} />
               <Route path="servicio-campo/recepciones-compra/:id/recepcion" element={<RecepcionCompraPage />} />
-              <Route path="servicio-campo/devoluciones-proveedor" element={<DevolucionesProveedorListPage />} />
-              <Route path="servicio-campo/devoluciones-proveedor/nuevo" element={<DevolucionProveedorFormPage key="nueva-devolucion" />} />
-              <Route path="servicio-campo/devoluciones-proveedor/:id" element={<DevolucionProveedorFormPage />} />
+              {/* Retiro Material Defectuoso a OL (Garantías / DOA / Averías) */}
+              <Route path="servicio-campo/retiro-defectuoso-proveedor" element={<DevolucionesProveedorListPage modo="defectuoso" />} />
+              <Route path="servicio-campo/retiro-defectuoso-proveedor/nuevo" element={<DevolucionProveedorFormPage key="nuevo-retiro-defectuoso" modo="defectuoso" />} />
+              <Route path="servicio-campo/retiro-defectuoso-proveedor/:id" element={<DevolucionProveedorFormPage modo="defectuoso" />} />
+
+              {/* Retiro Material OK hacia OL (Material Disponible >60 días / Sobrestock) */}
+              <Route path="servicio-campo/retiro-ok-proveedor" element={<DevolucionesProveedorListPage modo="ok" />} />
+              <Route path="servicio-campo/retiro-ok-proveedor/nuevo" element={<DevolucionProveedorFormPage key="nuevo-retiro-ok" modo="ok" />} />
+              <Route path="servicio-campo/retiro-ok-proveedor/:id" element={<DevolucionProveedorFormPage modo="ok" />} />
+
+              {/* Compatibilidad legacy devoluciones-proveedor */}
+              <Route path="servicio-campo/devoluciones-proveedor" element={<Navigate to="/servicio-campo/retiro-defectuoso-proveedor" replace />} />
+              <Route path="servicio-campo/devoluciones-proveedor/nuevo" element={<Navigate to="/servicio-campo/retiro-defectuoso-proveedor/nuevo" replace />} />
+              <Route path="servicio-campo/devoluciones-proveedor/:id" element={<DevolucionProveedorFormPage modo="defectuoso" />} />
               <Route path="servicio-campo/almacenes" element={<AlmacenesListPage />} />
               <Route path="servicio-campo/almacenes/nuevo" element={<AlmacenFormPage />} />
               <Route path="servicio-campo/almacenes/:id" element={<AlmacenFormPage />} />

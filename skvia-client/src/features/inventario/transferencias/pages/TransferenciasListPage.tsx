@@ -10,7 +10,6 @@ import {
   MenuTrigger,
   TableCellLayout,
   Text,
-  Tooltip,
   createTableColumn,
   tokens,
   Toast,
@@ -45,7 +44,7 @@ import { DetalleMaterialesTransferenciaDrawer } from '../components/DetalleMater
 import { TransferenciaService } from '../services/transferencia.service';
 import type { TransferenciaInventarioDto } from '../types/transferencia.types';
 
-type Vista = 'recientes' | 'todas' | 'en_transito';
+type Vista = 'recientes' | 'borrador' | 'en_transito' | 'cerrada' | 'cancelada' | 'todas';
 
 interface TransferenciasListPageProps {
   tipoFiltro?: 'Despacho' | 'Devolucion' | 'Traslado';
@@ -119,9 +118,12 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
       }
 
       if (vista === 'recientes' && new Date(item.fecha) < limite) return false;
+      if (vista === 'borrador' && item.estado !== 'Borrador') return false;
       if (vista === 'en_transito' && item.estado !== 'EnTransito' && item.estado !== 'ParcialmenteRecibida') {
         return false;
       }
+      if (vista === 'cerrada' && item.estado !== 'Cerrada') return false;
+      if (vista === 'cancelada' && item.estado !== 'Cancelada') return false;
       return (
         !q ||
         [
@@ -211,7 +213,20 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
           a.almacenOrigen.localeCompare(b.almacenOrigen),
         renderHeaderCell: () => 'Origen',
         renderCell: (x: TransferenciaInventarioDto) => (
-          <TableCellLayout>{x.almacenOrigen}</TableCellLayout>
+          <TableCellLayout truncate>
+            {x.almacenOrigenId ? (
+              <Link
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/servicio-campo/almacenes/${x.almacenOrigenId}`);
+                }}
+              >
+                {x.almacenOrigen}
+              </Link>
+            ) : (
+              <Text>{x.almacenOrigen}</Text>
+            )}
+          </TableCellLayout>
         ),
       }),
       createTableColumn({
@@ -220,7 +235,20 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
           a.almacenDestino.localeCompare(b.almacenDestino),
         renderHeaderCell: () => 'Destino',
         renderCell: (x: TransferenciaInventarioDto) => (
-          <TableCellLayout>{x.almacenDestino}</TableCellLayout>
+          <TableCellLayout truncate>
+            {x.almacenDestinoId ? (
+              <Link
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/servicio-campo/almacenes/${x.almacenDestinoId}`);
+                }}
+              >
+                {x.almacenDestino}
+              </Link>
+            ) : (
+              <Text>{x.almacenDestino}</Text>
+            )}
+          </TableCellLayout>
         ),
       }),
 
@@ -273,52 +301,6 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
           );
         },
       }),
-      createTableColumn({
-        columnId: 'acciones',
-        renderHeaderCell: () => 'Cargo Oficial',
-        renderCell: (x: TransferenciaInventarioDto) => (
-          <TableCellLayout>
-            <div style={{ display: 'flex', gap: '4px' }}>
-              <Tooltip content="Descargar Cargo PDF" relationship="label">
-                <Button
-                  size="small"
-                  appearance="subtle"
-                  icon={<ArrowDownload16Regular />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void TransferenciaService.descargarCargoPdf(x.id, x.numero);
-                  }}
-                />
-              </Tooltip>
-              <Tooltip content="Abrir / Imprimir Cargo" relationship="label">
-                <Button
-                  size="small"
-                  appearance="subtle"
-                  icon={<Print16Regular />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void TransferenciaService.abrirCargoPdf(x.id);
-                  }}
-                />
-              </Tooltip>
-              <Tooltip content="Compartir por WhatsApp" relationship="label">
-                <Button
-                  size="small"
-                  appearance="subtle"
-                  icon={<WhatsAppIcon size={16} />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void TransferenciaService.compartirCargoWhatsapp(x.id, x.numero, {
-                      tipoOperacion: x.tipoOperacion || 'Cargo Oficial',
-                      destinatario: x.almacenDestino,
-                    });
-                  }}
-                />
-              </Tooltip>
-            </div>
-          </TableCellLayout>
-        ),
-      }),
     ],
     [navigate, getRutaDetalle]
   );
@@ -332,9 +314,19 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
         : 'Traslados entre almacenes';
     switch (vista) {
       case 'recientes':
-        return `${prefijo} recientes`;
+        return `${prefijo} recientes (30 días)`;
+      case 'borrador':
+        return `${prefijo} en borrador`;
       case 'en_transito':
-        return 'Pendientes en tránsito';
+        return tipoFiltro === 'Despacho'
+          ? 'Despachos en tránsito'
+          : tipoFiltro === 'Devolucion'
+          ? 'Desabastecimientos en camino'
+          : 'Traslados en tránsito';
+      case 'cerrada':
+        return `${prefijo} completadas / recibidas`;
+      case 'cancelada':
+        return `${prefijo} anuladas`;
       case 'todas':
         return `${prefijo} (Todas)`;
     }
@@ -472,13 +464,35 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
                 icon={vista === 'recientes' ? <Checkmark16Regular /> : undefined}
                 onClick={() => setVista('recientes')}
               >
-                Transferencias recientes
+                Recientes (últimos 30 días)
+              </MenuItem>
+              <MenuItem
+                icon={vista === 'borrador' ? <Checkmark16Regular /> : undefined}
+                onClick={() => setVista('borrador')}
+              >
+                En borrador
               </MenuItem>
               <MenuItem
                 icon={vista === 'en_transito' ? <Checkmark16Regular /> : undefined}
                 onClick={() => setVista('en_transito')}
               >
-                Pendientes en tránsito
+                {tipoFiltro === 'Despacho'
+                  ? 'Despachadas en tránsito'
+                  : tipoFiltro === 'Devolucion'
+                  ? 'En devolución a bodega'
+                  : 'Pendientes en tránsito'}
+              </MenuItem>
+              <MenuItem
+                icon={vista === 'cerrada' ? <Checkmark16Regular /> : undefined}
+                onClick={() => setVista('cerrada')}
+              >
+                Completadas / Recibidas
+              </MenuItem>
+              <MenuItem
+                icon={vista === 'cancelada' ? <Checkmark16Regular /> : undefined}
+                onClick={() => setVista('cancelada')}
+              >
+                Anuladas
               </MenuItem>
               <MenuItem
                 icon={vista === 'todas' ? <Checkmark16Regular /> : undefined}

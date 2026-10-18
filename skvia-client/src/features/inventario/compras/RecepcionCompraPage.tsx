@@ -56,6 +56,8 @@ import type { ProductoDto } from '../productos/types/producto.types';
 import { AlmacenService } from '../almacenes/services/almacen.service';
 import type { UbicacionInventarioDto } from '../almacenes/types/almacen.types';
 import { DocumentoRespaldoUpload } from '../comun/DocumentoRespaldoUpload';
+import { TransferenciaEtapas } from '../transferencias/components/TransferenciaEtapas';
+
 
 const useStyles = makeStyles({
   scannerContainer: {
@@ -186,6 +188,7 @@ export function RecepcionCompraPage() {
   const [ubicaciones, setUbicaciones] = useState<UbicacionInventarioDto[]>([]);
   const [ubicacionDestinoId, setUbicacionDestinoId] = useState<string>('');
   const [documentoRespaldoUrl, setDocumentoRespaldoUrl] = useState<string | null>(null);
+  const [selectedTab, setSelectedTab] = useState<'productos' | 'adjuntos'>('productos');
   const focusValidation = useValidationFocus();
   const soloLectura = compra?.estado === 'Recibida';
   const draft = useUnsavedChanges({ seriesVerificadas,cantidadesNoSeriadas,ubicacionDestinoId,documentoRespaldoUrl }, !loading && !soloLectura);
@@ -872,74 +875,104 @@ export function RecepcionCompraPage() {
         subtitle="Recepción física y control de series"
         avatarName={compra.proveedor || 'Recepción'}
         metadata={[
-          { label: 'Estado', value: compra.estado },
+          {
+            label: 'Estado',
+            value: (
+              <Badge
+                appearance="filled"
+                shape="rounded"
+                color={
+                  compra.estado === 'Recibida'
+                    ? 'success'
+                    : (compra.estado as string) === 'Cancelada'
+                    ? 'danger'
+                    : compra.estado === 'Recibida con faltantes'
+                    ? 'warning'
+                    : compra.estado === 'Enviada'
+                    ? 'informative'
+                    : 'warning'
+                }
+                size="small"
+              >
+                {compra.estado}
+              </Badge>
+            ) as any,
+          },
           { label: 'Almacén Destino', value: compra.almacen },
           { label: 'Proveedor', value: compra.proveedor },
           { label: 'Comprobante', value: `${compra.tipoDocumento} ${compra.numeroDocumento || 'S/N'}` },
-          { label: 'Fecha Emisión', value: compra.fechaDocumento || '---' },
+          { label: 'Fecha Emisión', value: compra.fechaDocumento || '—' },
           ...(compra.creadoPor ? [{ label: 'Creado por', value: compra.creadoPor }] : []),
           ...(compra.recibidoPor ? [{ label: 'Recibido por', value: compra.recibidoPor }] : []),
           ...(compra.fechaRecepcion ? [{ label: 'Fecha recepción', value: new Date(compra.fechaRecepcion).toLocaleString('es-PE') }] : []),
         ]}
+        processFlow={
+          <TransferenciaEtapas
+            estado={compra.estado}
+            tipoOperacion="RecepcionCompra"
+            embedded
+          />
+        }
+        tabs={
+          <TabList
+            selectedValue={selectedTab}
+            onTabSelect={(_, data) => setSelectedTab(data.value as 'productos' | 'adjuntos')}
+          >
+            <Tab value="productos">Recepción de Productos y Series</Tab>
+            <Tab value="adjuntos">Documentos y Fotos {documentoRespaldoUrl ? '(1)' : ''}</Tab>
+          </TabList>
+        }
       />
 
       <D365FormContent busy={saving} className={formStyles.contentBody}>
-        {/* Selector de Ubicación de Destino en el Almacén */}
-        {ubicaciones.length > 0 && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '12px',
-              padding: '12px 16px',
-              backgroundColor: tokens.colorNeutralBackground1,
-              border: `1px solid ${tokens.colorNeutralStroke2}`,
-              borderRadius: tokens.borderRadiusMedium,
-              marginBottom: '16px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Location16Regular style={{ color: tokens.colorBrandForeground1 }} />
-              <div>
-                <Text weight="semibold" size={300} style={{ display: 'block' }}>
-                  Ubicación de destino en almacén:
-                </Text>
-                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                  El stock y las series ingresarán físicamente en esta ubicación
-                </Text>
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Select
-                id="recepcion-ubicacion-destino"
-                aria-label="Ubicación de destino"
-                value={ubicacionDestinoId}
-                disabled={soloLectura || saving}
-                onChange={(_, d) => setUbicacionDestinoId(d.value)}
-                style={{ minWidth: '240px' }}
+        {selectedTab === 'productos' && (
+          <>
+            {/* Selector de Ubicación de Destino en el Almacén */}
+            {ubicaciones.length > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  backgroundColor: tokens.colorNeutralBackground1,
+                  border: `1px solid ${tokens.colorNeutralStroke2}`,
+                  borderRadius: tokens.borderRadiusMedium,
+                  marginBottom: '16px',
+                }}
               >
-                {ubicaciones.map(u => (
-                  <option key={u.id} value={u.id}>
-                    {u.nombre} ({u.codigo}) {u.esPrincipal ? '★ [Principal]' : ''}
-                  </option>
-                ))}
-              </Select>
-            </div>
-          </div>
-        )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Location16Regular style={{ color: tokens.colorBrandForeground1 }} />
+                  <div>
+                    <Text weight="semibold" size={300} style={{ display: 'block' }}>
+                      Ubicación de destino en almacén:
+                    </Text>
+                    <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                      El stock y las series ingresarán físicamente en esta ubicación
+                    </Text>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Select
+                    id="recepcion-ubicacion-destino"
+                    aria-label="Ubicación de destino"
+                    value={ubicacionDestinoId}
+                    disabled={soloLectura || saving}
+                    onChange={(_, d) => setUbicacionDestinoId(d.value)}
+                    style={{ minWidth: '240px' }}
+                  >
+                    {ubicaciones.map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.nombre} ({u.codigo}) {u.esPrincipal ? '★ [Principal]' : ''}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+            )}
 
-        {/* Documento de Respaldo Firmado (Guía / Acta de Recepción) */}
-        <div style={{ marginBottom: '16px' }}>
-          <DocumentoRespaldoUpload
-            url={documentoRespaldoUrl}
-            onUrlChange={setDocumentoRespaldoUrl}
-            disabled={soloLectura || saving}
-            titulo="Documento de Respaldo Firmado (Guía / Acta de Entrega)"
-            descripcion="Adjunte la fotografía o documento PDF firmado de la guía de remisión o acta como respaldo formal de la recepción."
-          />
-        </div>
 
         {/* Recepción de Series con escáner y tabla integrados */}
         {tieneSerializados && (
@@ -1248,6 +1281,21 @@ export function RecepcionCompraPage() {
                 </DataGridBody>
               </D365ResponsiveDataGrid>
             </div>
+          </div>
+        )}
+          </>
+        )}
+
+        {/* Pestaña de Documentos y Fotos de Respaldo */}
+        {selectedTab === 'adjuntos' && (
+          <div>
+            <DocumentoRespaldoUpload
+              url={documentoRespaldoUrl}
+              onUrlChange={setDocumentoRespaldoUrl}
+              disabled={soloLectura || saving}
+              titulo="Documento de Respaldo Firmado (Guía / Acta de Entrega)"
+              descripcion="Adjunte la fotografía o documento PDF firmado de la guía de remisión o acta como respaldo formal de la recepción."
+            />
           </div>
         )}
       </D365FormContent>

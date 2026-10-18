@@ -39,6 +39,7 @@ public static class UbicacionesEndpoints
 
         // Declaración DOA / Reclasificación (Disponible -> Devolución con Motivo de Retiro)
         g.MapGet("/reclasificaciones-doa", ObtenerReclasificacionesDoa);
+        g.MapGet("/reclasificaciones-doa/{id}", ObtenerDetalleDoa);
         g.MapPost("/{id:guid}/reclasificar-doa", ReclasificarDoa);
         g.MapGet("/{id:guid}/series-disponibles", ObtenerSeriesDisponiblesAlmacen);
         g.MapGet("/{id:guid}/series-por-ubicacion/{ubicacionId:guid}", ObtenerSeriesPorUbicacion);
@@ -162,7 +163,7 @@ public static class UbicacionesEndpoints
         if (u == null) return Results.NotFound();
 
         if (!r.Activo && (u.EsPrincipal || u.Codigo == "DISPONIBLE" || u.Codigo == "DEVOLUCION" ||
-            await db.StocksAlmacen.AnyAsync(x => x.UbicacionId == u.Id && (x.CantidadDisponible > 0 || x.CantidadReservada > 0), ct) ||
+            await db.StocksAlmacen.AnyAsync(x => x.UbicacionId == u.Id && x.CantidadDisponible > 0, ct) ||
             await db.ItemsSeriados.AnyAsync(x => x.UbicacionActualId == u.Id, ct) ||
             await db.Transferencias.AnyAsync(x => (x.UbicacionOrigenId == u.Id || x.UbicacionDestinoId == u.Id) && (x.Estado == EstadoTransferencia.EnTransito || x.Estado == EstadoTransferencia.ParcialmenteRecibida), ct)))
         {
@@ -186,7 +187,7 @@ public static class UbicacionesEndpoints
         if (await db.UbicacionesInventario.AnyAsync(x => x.UbicacionPadreId == u.Id && x.Activa, ct))
             return Results.BadRequest("No se puede eliminar la ubicación porque tiene sububicaciones activas asignadas.");
 
-        if (await db.StocksAlmacen.AnyAsync(x => x.UbicacionId == u.Id && (x.CantidadDisponible > 0 || x.CantidadReservada > 0), ct))
+        if (await db.StocksAlmacen.AnyAsync(x => x.UbicacionId == u.Id && x.CantidadDisponible > 0, ct))
             return Results.BadRequest("No se puede eliminar la ubicación porque contiene existencias de stock activas.");
 
         if (await db.ItemsSeriados.AnyAsync(x => x.UbicacionActualId == u.Id, ct))
@@ -263,17 +264,18 @@ public static class UbicacionesEndpoints
                 return Results.BadRequest("La cantidad a reubicar debe ser mayor a 0.");
         }
 
-        // Actualizar saldo de stock
-        var stockOrigen = await db.StocksAlmacen.FirstOrDefaultAsync(s => s.UbicacionId == origen.Id && s.ProductoId == r.ProductoId, ct);
+        // Actualizar saldo de stock según la rama de la ubicación
+        var condicionRama = origen.TipoUbicacion == TipoUbicacion.Devolucion ? CondicionInventario.Defectuoso : CondicionInventario.Utilizable;
+        var stockOrigen = await db.StocksAlmacen.FirstOrDefaultAsync(s => s.UbicacionId == origen.Id && s.ProductoId == r.ProductoId && s.Condicion == condicionRama, ct);
         if (stockOrigen == null || stockOrigen.CantidadDisponible < cantidadAMover)
             return Results.BadRequest($"Stock insuficiente en {origen.Nombre}. Disponible: {stockOrigen?.CantidadDisponible ?? 0}, Solicitado: {cantidadAMover}.");
 
         stockOrigen.DisminuirStock(cantidadAMover);
 
-        var stockDestino = await db.StocksAlmacen.FirstOrDefaultAsync(s => s.UbicacionId == destino.Id && s.ProductoId == r.ProductoId, ct);
+        var stockDestino = await db.StocksAlmacen.FirstOrDefaultAsync(s => s.UbicacionId == destino.Id && s.ProductoId == r.ProductoId && s.Condicion == condicionRama, ct);
         if (stockDestino == null)
         {
-            stockDestino = StockAlmacen.Crear(destino.Id, r.ProductoId, cantidadAMover);
+            stockDestino = StockAlmacen.Crear(destino.Id, r.ProductoId, cantidadAMover, condicionRama);
             await db.StocksAlmacen.AddAsync(stockDestino, ct);
         }
         else
@@ -291,7 +293,8 @@ public static class UbicacionesEndpoints
             ubicacionOrigenId: origen.Id,
             ubicacionDestinoId: destino.Id,
             usuarioResponsableId: user.Id == Guid.Empty ? null : user.Id,
-            observaciones: r.Observaciones?.Trim() ?? $"Reubicación física interna de {origen.Nombre} a {destino.Nombre}");
+            observaciones: r.Observaciones?.Trim() ?? $"Reubicación física interna de {origen.Nombre} a {destino.Nombre}",
+            condicion: condicionRama);
 
         await db.MovimientosInventario.AddAsync(mov, ct);
         await db.SaveChangesAsync(ct);
@@ -320,11 +323,23 @@ public static class UbicacionesEndpoints
         if (destino.TipoUbicacion != TipoUbicacion.Devolucion)
             return Results.BadRequest("La ubicación de destino para declarar DOA debe pertenecer a la rama DEVOLUCIÓN.");
 
-        var motivo = await db.MotivosRetiroEquipo.FirstOrDefaultAsync(m => m.Id == r.MotivoRetiroId && m.Activo, ct);
-        if (motivo == null)
-            return Results.BadRequest("Seleccione un motivo de retiro/falla activo.");
+        var motivosActivos = await db.MotivosRetiroEquipo.Where(m => m.Activo).ToDictionaryAsync(m => m.Id, ct);
+        MotivoRetiroEquipo? motivoGlobal = null;
+        if (r.MotivoRetiroId.HasValue && motivosActivos.TryGetValue(r.MotivoRetiroId.Value, out var mg))
+        {
+            motivoGlobal = mg;
+        }
 
-        var seriesLimpias = r.Series?.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim().ToUpperInvariant()).Distinct().ToList() ?? new List<string>();
+        var itemsMap = (r.Items ?? new List<DeclararDoaItemRequest>())
+            .Where(i => !string.IsNullOrWhiteSpace(i.Serie))
+            .ToDictionary(i => i.Serie.Trim().ToUpperInvariant(), i => i);
+
+        var seriesLimpias = itemsMap.Keys.ToList();
+        if (seriesLimpias.Count == 0 && r.Series != null)
+        {
+            seriesLimpias = r.Series.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim().ToUpperInvariant()).Distinct().ToList();
+        }
+
         if (seriesLimpias.Count == 0)
             return Results.BadRequest("Debe ingresar o escanear al menos una serie para declarar DOA / Reclasificación.");
 
@@ -340,6 +355,16 @@ public static class UbicacionesEndpoints
             return Results.BadRequest($"Las siguientes series no están registradas en el sistema: {string.Join(", ", faltantes)}.");
         }
 
+        // Generar correlativo de Documento DOA (e.g. DOA-20261018-0001)
+        var batchId = Guid.NewGuid();
+        var hoyStr = DateTime.UtcNow.ToString("yyyyMMdd");
+        var countHoy = await db.MovimientosInventario
+            .Where(m => m.Tipo == TipoMovimientoInventario.ReclasificacionDOA && m.NumeroDocumento != null && m.NumeroDocumento.StartsWith($"DOA-{hoyStr}"))
+            .Select(m => m.NumeroDocumento)
+            .Distinct()
+            .CountAsync(ct);
+        var numeroDocumento = $"DOA-{hoyStr}-{(countHoy + 1):D4}";
+
         // Agrupar por producto para actualizar stock
         var grupos = items.GroupBy(x => x.ProductoId);
 
@@ -353,7 +378,21 @@ public static class UbicacionesEndpoints
                 if (item.UbicacionActualId != origen.Id)
                     return Results.BadRequest($"La serie {item.NumeroSerie} no se encuentra en la ubicación {origen.Nombre}.");
 
-                var detalle = $"DOA: {motivo.Nombre} [{motivo.TipoRetiro}]" + (!string.IsNullOrWhiteSpace(r.Observaciones) ? $" - {r.Observaciones.Trim()}" : "");
+                itemsMap.TryGetValue(item.NumeroSerie, out var itemReq);
+                MotivoRetiroEquipo? motivoItem = null;
+                if (itemReq?.MotivoRetiroId.HasValue == true && motivosActivos.TryGetValue(itemReq.MotivoRetiroId.Value, out var mi))
+                {
+                    motivoItem = mi;
+                }
+                motivoItem ??= motivoGlobal;
+
+                var motivoNombre = motivoItem?.Nombre ?? "Defecto técnico / DOA";
+                var motivoTipo = motivoItem != null ? $" [{motivoItem.TipoRetiro}]" : "";
+                var obsExtra = !string.IsNullOrWhiteSpace(itemReq?.Observaciones)
+                    ? itemReq.Observaciones.Trim()
+                    : (!string.IsNullOrWhiteSpace(r.Observaciones) ? r.Observaciones.Trim() : "");
+
+                var detalle = $"DOA: {motivoNombre}{motivoTipo}" + (!string.IsNullOrWhiteSpace(obsExtra) ? $" - {obsExtra}" : "");
                 item.ReclasificarADevolucion(destino.Id, detalle);
 
                 var mov = MovimientoInventario.Registrar(
@@ -363,6 +402,8 @@ public static class UbicacionesEndpoints
                     almacenOrigenId: id,
                     almacenDestinoId: id,
                     itemSeriadoId: item.Id,
+                    numeroDocumento: numeroDocumento,
+                    eventoId: batchId,
                     ubicacionOrigenId: origen.Id,
                     ubicacionDestinoId: destino.Id,
                     usuarioResponsableId: user.Id == Guid.Empty ? null : user.Id,
@@ -395,10 +436,13 @@ public static class UbicacionesEndpoints
 
         await db.SaveChangesAsync(ct);
 
+        var motivoTxt = motivoGlobal != null ? $" bajo el motivo '{motivoGlobal.Nombre}'" : "";
         return Results.Ok(new
         {
-            mensaje = $"Se declararon con éxito {items.Count} equipo(s) a {destino.Nombre} bajo el motivo '{motivo.Nombre}'.",
-            totalSeries = items.Count
+            mensaje = $"Se declararon con éxito {items.Count} equipo(s) a {destino.Nombre}{motivoTxt}.",
+            totalSeries = items.Count,
+            id = batchId,
+            numero = numeroDocumento
         });
     }
 
@@ -418,7 +462,7 @@ public static class UbicacionesEndpoints
 
         var list = await query
             .OrderByDescending(m => m.FechaMovimiento)
-            .Take(300)
+            .Take(500)
             .ToListAsync(ct);
 
         var ubicacionIds = list.SelectMany(m => new[] { m.UbicacionOrigenId, m.UbicacionDestinoId })
@@ -432,24 +476,118 @@ public static class UbicacionesEndpoints
             .Where(u => ubicacionIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.Nombre, ct);
 
-        var resultado = list.Select(m => new
-        {
-            m.Id,
-            Fecha = m.FechaMovimiento,
-            AlmacenId = m.AlmacenOrigenId ?? Guid.Empty,
-            AlmacenNombre = m.AlmacenOrigen?.Nombre ?? "Almacén",
-            UbicacionOrigenNombre = m.UbicacionOrigenId.HasValue && ubicacionesMap.TryGetValue(m.UbicacionOrigenId.Value, out var uOri) ? uOri : "Disponible",
-            UbicacionDestinoNombre = m.UbicacionDestinoId.HasValue && ubicacionesMap.TryGetValue(m.UbicacionDestinoId.Value, out var uDes) ? uDes : "Devolución",
-            m.ProductoId,
-            ProductoNombre = m.Producto?.Nombre ?? "—",
-            ProductoCodigo = m.Producto?.Codigo ?? "—",
-            NumeroSerie = m.ItemSeriado?.NumeroSerie ?? "—",
-            NumeroSmartCard = m.ItemSeriado?.NumeroSmartCard,
-            m.Observaciones,
-            Condicion = m.Condicion.ToString()
-        });
+        // Agrupar por documento / lote DOA
+        var grupos = list
+            .GroupBy(m => !string.IsNullOrWhiteSpace(m.NumeroDocumento)
+                ? m.NumeroDocumento
+                : (m.EventoId.HasValue ? m.EventoId.Value.ToString() : $"{m.AlmacenOrigenId}_{m.FechaMovimiento:yyyyMMddHHmmss}"))
+            .Select(g =>
+            {
+                var primerMov = g.First();
+                var docId = primerMov.EventoId.HasValue && primerMov.EventoId.Value != Guid.Empty
+                    ? primerMov.EventoId.Value
+                    : primerMov.Id;
 
-        return Results.Ok(resultado);
+                var numDoc = !string.IsNullOrWhiteSpace(primerMov.NumeroDocumento)
+                    ? primerMov.NumeroDocumento
+                    : $"DOA-{primerMov.FechaMovimiento:yyyyMMdd}-{primerMov.Id.ToString()[..4].ToUpperInvariant()}";
+
+                var uOriNombre = primerMov.UbicacionOrigenId.HasValue && ubicacionesMap.TryGetValue(primerMov.UbicacionOrigenId.Value, out var uO) ? uO : "Disponible";
+                var uDesNombre = primerMov.UbicacionDestinoId.HasValue && ubicacionesMap.TryGetValue(primerMov.UbicacionDestinoId.Value, out var uD) ? uD : "Devolución";
+
+                return new
+                {
+                    Id = docId,
+                    Numero = numDoc,
+                    Fecha = primerMov.FechaMovimiento,
+                    AlmacenId = primerMov.AlmacenOrigenId ?? Guid.Empty,
+                    AlmacenNombre = primerMov.AlmacenOrigen?.Nombre ?? "Almacén",
+                    UbicacionOrigenNombre = uOriNombre,
+                    UbicacionDestinoNombre = uDesNombre,
+                    TotalEquipos = g.Count(),
+                    Estado = "Reclasificado",
+                    UsuarioNombre = "Almacenero",
+                    Observaciones = primerMov.Observaciones,
+                    Items = g.Select(m => new
+                    {
+                        m.Id,
+                        m.ProductoId,
+                        ProductoNombre = m.Producto?.Nombre ?? "—",
+                        ProductoCodigo = m.Producto?.Codigo ?? "—",
+                        NumeroSerie = m.ItemSeriado?.NumeroSerie ?? "—",
+                        NumeroSmartCard = m.ItemSeriado?.NumeroSmartCard,
+                        m.Observaciones,
+                        Condicion = m.Condicion.ToString()
+                    }).ToList()
+                };
+            })
+            .OrderByDescending(d => d.Fecha)
+            .ToList();
+
+        return Results.Ok(grupos);
+    }
+
+    private static async Task<IResult> ObtenerDetalleDoa(string id, IServicioCampoDbContext db, CancellationToken ct)
+    {
+        Guid guidId = Guid.TryParse(id, out var g) ? g : Guid.Empty;
+
+        var list = await db.MovimientosInventario
+            .AsNoTracking()
+            .Include(m => m.Producto)
+            .Include(m => m.ItemSeriado)
+            .Include(m => m.AlmacenOrigen)
+            .Where(m => m.Tipo == TipoMovimientoInventario.ReclasificacionDOA &&
+                        (m.NumeroDocumento == id || (guidId != Guid.Empty && (m.EventoId == guidId || m.Id == guidId))))
+            .ToListAsync(ct);
+
+        if (list.Count == 0) return Results.NotFound("No se encontró el documento de declaración DOA.");
+
+        var ubicacionIds = list.SelectMany(m => new[] { m.UbicacionOrigenId, m.UbicacionDestinoId })
+            .Where(x => x.HasValue)
+            .Select(x => x!.Value)
+            .Distinct()
+            .ToList();
+
+        var ubicacionesMap = await db.UbicacionesInventario
+            .AsNoTracking()
+            .Where(u => ubicacionIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.Nombre, ct);
+
+        var primerMov = list.First();
+        var numDoc = !string.IsNullOrWhiteSpace(primerMov.NumeroDocumento)
+            ? primerMov.NumeroDocumento
+            : $"DOA-{primerMov.FechaMovimiento:yyyyMMdd}-{primerMov.Id.ToString()[..4].ToUpperInvariant()}";
+
+        var uOriNombre = primerMov.UbicacionOrigenId.HasValue && ubicacionesMap.TryGetValue(primerMov.UbicacionOrigenId.Value, out var uO) ? uO : "Disponible";
+        var uDesNombre = primerMov.UbicacionDestinoId.HasValue && ubicacionesMap.TryGetValue(primerMov.UbicacionDestinoId.Value, out var uD) ? uD : "Devolución";
+
+        var doc = new
+        {
+            Id = primerMov.EventoId.HasValue && primerMov.EventoId.Value != Guid.Empty ? primerMov.EventoId.Value : primerMov.Id,
+            Numero = numDoc,
+            Fecha = primerMov.FechaMovimiento,
+            AlmacenId = primerMov.AlmacenOrigenId ?? Guid.Empty,
+            AlmacenNombre = primerMov.AlmacenOrigen?.Nombre ?? "Almacén",
+            UbicacionOrigenNombre = uOriNombre,
+            UbicacionDestinoNombre = uDesNombre,
+            TotalEquipos = list.Count,
+            Estado = "Reclasificado",
+            UsuarioNombre = "Almacenero",
+            Observaciones = primerMov.Observaciones,
+            Items = list.Select(m => new
+            {
+                m.Id,
+                m.ProductoId,
+                ProductoNombre = m.Producto?.Nombre ?? "—",
+                ProductoCodigo = m.Producto?.Codigo ?? "—",
+                NumeroSerie = m.ItemSeriado?.NumeroSerie ?? "—",
+                NumeroSmartCard = m.ItemSeriado?.NumeroSmartCard,
+                m.Observaciones,
+                Condicion = m.Condicion.ToString()
+            }).ToList()
+        };
+
+        return Results.Ok(doc);
     }
 
     private static async Task<IResult> ObtenerSeriesDisponiblesAlmacen(Guid id, IServicioCampoDbContext db, CancellationToken ct)
@@ -476,6 +614,7 @@ public static class UbicacionesEndpoints
                 x.UbicacionActualId,
                 UbicacionNombre = x.UbicacionActual != null ? x.UbicacionActual.Nombre : string.Empty,
                 UbicacionCodigo = x.UbicacionActual != null ? x.UbicacionActual.Codigo : string.Empty,
+                Observaciones = x.Observaciones,
             })
             .ToListAsync(ct);
 
@@ -579,4 +718,5 @@ public static class UbicacionesEndpoints
 public record CrearUbicacionRequest(string Codigo, string Nombre, TipoUbicacion? TipoUbicacion = null, Guid? UbicacionPadreId = null);
 public record AutorizacionRequest(bool PuedeConsultar, bool PuedeDespachar, bool PuedeRecepcionar, bool EsSupervisor, bool Activo = true);
 public record ReubicarMaterialRequest(Guid UbicacionOrigenId, Guid UbicacionDestinoId, Guid ProductoId, decimal Cantidad, List<string>? Series = null, string? Observaciones = null);
-public record DeclararDoaRequest(Guid UbicacionOrigenId, Guid UbicacionDestinoId, Guid MotivoRetiroId, List<string> Series, string? Observaciones = null);
+public record DeclararDoaItemRequest(string Serie, Guid? MotivoRetiroId = null, string? Observaciones = null);
+public record DeclararDoaRequest(Guid UbicacionOrigenId, Guid UbicacionDestinoId, Guid? MotivoRetiroId = null, List<string>? Series = null, List<DeclararDoaItemRequest>? Items = null, string? Observaciones = null);

@@ -66,7 +66,7 @@ export function ComprasListPage() {
   }, [buscar, datos, vista]);
 
   const columns: TableColumnDefinition<CompraDto>[] = useMemo(() => [
-    createTableColumn({ columnId: 'numero', compare: (a: CompraDto, b: CompraDto) => a.numero.localeCompare(b.numero), renderHeaderCell: () => 'Código de compra', renderCell: (x: CompraDto) => <TableCellLayout truncate><Link as="button" title={x.numero} onClick={e => { e.stopPropagation(); navigate(`/servicio-campo/recepciones-compra/${x.id}`); }}>{x.numero}</Link></TableCellLayout> }),
+    createTableColumn({ columnId: 'numero', compare: (a: CompraDto, b: CompraDto) => a.numero.localeCompare(b.numero), renderHeaderCell: () => 'Código de compra', renderCell: (x: CompraDto) => <TableCellLayout truncate><Link as="button" className={styles.primaryLink} title={x.numero} onClick={e => { e.stopPropagation(); navigate(`/servicio-campo/recepciones-compra/${x.id}`); }}>{x.numero}</Link></TableCellLayout> }),
     createTableColumn({
       columnId: 'estado',
       compare: (a: CompraDto, b: CompraDto) => a.estado.localeCompare(b.estado),

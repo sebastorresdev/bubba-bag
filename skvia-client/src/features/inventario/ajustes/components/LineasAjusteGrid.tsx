@@ -276,7 +276,7 @@ export function LineasAjusteGrid({
 
     const nueva: LineaAjusteForm = {
       ...linea,
-      codigoProducto: prod?.codigo || linea.codigoProducto || '---',
+      codigoProducto: prod?.codigo || linea.codigoProducto || '',
       nombreProducto: prod?.nombre || linea.nombreProducto || 'Producto',
       unidad: prod?.nombreUnidadMedidaDefecto || linea.unidad || 'UND',
       series: prod?.esSerializado ? seriesArr.join('\n') : '',
@@ -306,7 +306,7 @@ export function LineasAjusteGrid({
           ? `${prod.codigo} · ${prod.nombre}`
           : item.codigoProducto
           ? `${item.codigoProducto} · ${item.nombreProducto}`
-          : item.nombreProducto || '---';
+          : item.nombreProducto || '';
 
         return (
           <TableCellLayout truncate>
@@ -586,7 +586,7 @@ export function LineasAjusteGrid({
                 <Input
                   id="ajuste-unidad"
                   className={styles.control}
-                  value={productoSeleccionado?.nombreUnidadMedidaDefecto || '---'}
+                  value={productoSeleccionado?.nombreUnidadMedidaDefecto || ''}
                   readOnly
                   appearance="filled-darker"
                   contentAfter={<LockClosed16Regular title="Campo de solo lectura" aria-label="Solo lectura" />}

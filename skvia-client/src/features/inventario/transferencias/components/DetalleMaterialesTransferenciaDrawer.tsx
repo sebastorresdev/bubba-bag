@@ -287,7 +287,7 @@ export const DetalleMaterialesTransferenciaDrawer: React.FC<DetalleMaterialesTra
           <ArrowRight16Regular style={{ fontSize: '12px', color: tokens.colorNeutralForeground4 }} />
           <Text weight="semibold">{transferencia.almacenDestino}</Text>
           {transferencia.numeroGuiaRemision && (
-            <Badge appearance="outline" shape="rounded" size="small" style={{ marginLeft: '6px' }}>
+            <Badge appearance="tint" shape="rounded" size="small" style={{ marginLeft: '6px' }}>
               Guía: {transferencia.numeroGuiaRemision}
             </Badge>
           )}
@@ -340,9 +340,9 @@ export const DetalleMaterialesTransferenciaDrawer: React.FC<DetalleMaterialesTra
                     <div className={styles.materialSku}>SKU: {linea.codigoProducto || '—'}</div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                    <Badge appearance="filled" shape="rounded" color="brand" size="medium">
+                    <Text weight="semibold" size={300}>
                       {linea.cantidadEnviada} {linea.unidadMedidaNombre || 'UND'}
-                    </Badge>
+                    </Text>
                     <Badge
                       appearance="tint"
                       shape="rounded"

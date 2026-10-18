@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Input,
@@ -33,6 +33,7 @@ import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
 import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365FormContent } from '../../../../components/common/D365FormContent';
+import { useAuthSession } from '../../../../services/authSession';
 
 export interface MotivoRetiroEquipoFormPageProps {
   motivoId?: string | null;
@@ -50,6 +51,15 @@ export const MotivoRetiroEquipoFormPage: React.FC<MotivoRetiroEquipoFormPageProp
   const styles = useD365FormStyles();
   const { id: routeId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { permisos } = useAuthSession();
+
+  const puedeGestionar = useMemo(() => {
+    return (
+      permisos.includes('serviciocampo.catalogos.gestionar') ||
+      permisos.includes('inventario.catalogos.gestionar') ||
+      permisos.includes('seguridad.acceso')
+    );
+  }, [permisos]);
 
   const toasterId = useId('motivo-retiro-toaster');
   const { dispatchToast } = useToastController(toasterId);
@@ -318,35 +328,39 @@ export const MotivoRetiroEquipoFormPage: React.FC<MotivoRetiroEquipoFormPageProp
           />
           <D365CommandDivider />
 
-          <D365CommandButton
-            icon={<Save16Regular />}
-            tone="save"
-            onClick={() => handleSave(false)}
-            disabled={saving || loading}
-            appearance="subtle"
-          >
-            Guardar
-          </D365CommandButton>
+          {puedeGestionar && (
+            <>
+              <D365CommandButton
+                icon={<Save16Regular />}
+                tone="save"
+                onClick={() => handleSave(false)}
+                disabled={saving || loading}
+                appearance="subtle"
+              >
+                Guardar
+              </D365CommandButton>
 
-          <D365CommandButton
-            icon={<SaveMultiple16Regular />}
-            tone="save"
-            onClick={() => handleSave(true)}
-            disabled={saving || loading}
-            appearance="subtle"
-          >
-            Guardar y cerrar
-          </D365CommandButton>
+              <D365CommandButton
+                icon={<SaveMultiple16Regular />}
+                tone="save"
+                onClick={() => handleSave(true)}
+                disabled={saving || loading}
+                appearance="subtle"
+              >
+                Guardar y cerrar
+              </D365CommandButton>
 
-          <D365CommandButton
-            icon={<Add16Regular />}
-            tone="create"
-            onClick={handleNew}
-            disabled={saving || loading}
-            appearance="subtle"
-          >
-            Nuevo
-          </D365CommandButton>
+              <D365CommandButton
+                icon={<Add16Regular />}
+                tone="create"
+                onClick={handleNew}
+                disabled={saving || loading}
+                appearance="subtle"
+              >
+                Nuevo
+              </D365CommandButton>
+            </>
+          )}
 
           <D365CommandButton
             icon={<ArrowClockwise16Regular />}
@@ -423,7 +437,7 @@ export const MotivoRetiroEquipoFormPage: React.FC<MotivoRetiroEquipoFormPageProp
                 size="medium"
                 value={formData.nombre}
                 onChange={(_, data) => handleInputChange('nombre', data.value)}
-                disabled={saving || loading}
+                disabled={saving || loading || !puedeGestionar}
                 className={styles.d365ControlFull}
               />
             </D365FormField>
@@ -442,7 +456,7 @@ export const MotivoRetiroEquipoFormPage: React.FC<MotivoRetiroEquipoFormPageProp
                 onChange={(_, data) =>
                   handleInputChange('tipoRetiro', data.value as TipoRetiroEquipo)
                 }
-                disabled={saving || loading}
+                disabled={saving || loading || !puedeGestionar}
                 className={styles.d365ControlFull}
               >
                 {Object.values(TIPOS_RETIRO_EQUIPO_INFO).map((item) => (
@@ -462,7 +476,7 @@ export const MotivoRetiroEquipoFormPage: React.FC<MotivoRetiroEquipoFormPageProp
                 id="motivo-activo"
                 checked={formData.activo}
                 onChange={(_, data) => handleInputChange('activo', data.checked)}
-                disabled={saving || loading}
+                disabled={saving || loading || !puedeGestionar}
                 label={formData.activo ? 'Activo' : 'Inactivo'}
               />
             </D365FormField>
@@ -477,7 +491,7 @@ export const MotivoRetiroEquipoFormPage: React.FC<MotivoRetiroEquipoFormPageProp
                 id="motivo-descripcion"
                 value={formData.descripcion}
                 onChange={(_, data) => handleInputChange('descripcion', data.value)}
-                disabled={saving || loading}
+                disabled={saving || loading || !puedeGestionar}
                 rows={3}
                 className={styles.d365ControlFull}
               />

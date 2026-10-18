@@ -150,7 +150,7 @@ export const CrearUnidadDrawer: React.FC<CrearUnidadDrawerProps> = ({
                 setGrupoSeleccionadoId(cambio.value);
                 setDatos((actual) => ({ ...actual, unidadMedidaBaseId: '' }));
               }}>
-              <option value="">---</option>
+              <option value="">Seleccione un grupo...</option>
               {gruposDisponibles.map((grupo) => <option key={grupo.id} value={grupo.id}>{grupo.nombre}</option>)}
             </Select>
           )}
@@ -167,7 +167,7 @@ export const CrearUnidadDrawer: React.FC<CrearUnidadDrawerProps> = ({
         <D365FormField label="Referencia" required htmlFor="nueva-unidad-referencia">
           <Select id="nueva-unidad-referencia" className={estilos.control} value={datos.unidadMedidaBaseId}
             disabled={cargando} onChange={(_, cambio) => setDatos((actual) => ({ ...actual, unidadMedidaBaseId: cambio.value }))}>
-            <option value="">---</option>
+            <option value="">Seleccione una unidad de referencia...</option>
             {referencias.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
           </Select>
         </D365FormField>

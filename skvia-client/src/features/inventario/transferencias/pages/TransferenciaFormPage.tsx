@@ -1381,6 +1381,33 @@ navigate('/servicio-campo/transferencias'); }
         subtitle="Traslado de inventario entre sedes y almacenes centrales"
         avatarName={detalle?.numero ?? numeroGuardado ?? 'Traslado'}
         metadata={[
+          {
+            label: 'Estado',
+            value: (
+              <Badge
+                appearance="filled"
+                shape="rounded"
+                color={
+                  (detalle?.estado === 'Cerrada' || detalle?.estado === 'Recibida')
+                    ? 'success'
+                    : (detalle?.estado === 'Cancelada' || detalle?.estado === 'Anulada')
+                    ? 'danger'
+                    : detalle?.estado === 'ParcialmenteRecibida'
+                    ? 'warning'
+                    : detalle?.estado === 'EnTransito'
+                    ? 'informative'
+                    : 'warning'
+                }
+                size="small"
+              >
+                {detalle?.estado === 'Cerrada'
+                  ? 'Recibida'
+                  : detalle?.estado === 'EnTransito'
+                  ? 'En Tránsito'
+                  : (detalle?.estado ?? (numeroGuardado ? 'En Tránsito' : 'Borrador'))}
+              </Badge>
+            ) as any,
+          },
           { label: 'Origen', value: detalle?.almacenOrigenNombre || almacenOrigen?.nombre || 'Sin seleccionar' },
           { label: 'Destino', value: detalle?.almacenDestinoNombre || almacenDestino?.nombre || 'Sin seleccionar' },
           ...(detalle?.numeroGuiaRemision || numeroGuiaGuardado

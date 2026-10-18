@@ -19,6 +19,7 @@ import {
   Tab,
   TabList,
   Text,
+  tokens,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -684,9 +685,9 @@ navigate('/configuracion/usuarios'); }
                               </Badge>
                             </span>
                             <span style={{ textAlign: 'right' }}>
-                              <Badge appearance="outline" shape="rounded">
+                              <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
                                 {rol.permisos.length} permisos
-                              </Badge>
+                              </Text>
                             </span>
                           </div>
                         ))

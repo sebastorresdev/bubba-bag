@@ -56,14 +56,19 @@ export const AlmacenService = {
     }),
 
   declararDoa: (id: string, dto: import('../types/almacen.types').DeclararDoaDto) =>
-    apiClient<{ mensaje: string; totalSeries: number }>(`/api/inventario/almacenes/${id}/reclasificar-doa`, {
+    apiClient<{ id?: string; numero?: string; mensaje: string; totalSeries: number }>(`/api/inventario/almacenes/${id}/reclasificar-doa`, {
       method: 'POST',
       body: JSON.stringify(dto),
     }),
 
   obtenerReclasificacionesDoa: (almacenId?: string) =>
-    apiClient<import('../types/almacen.types').ReclasificacionDoaDto[]>(
+    apiClient<import('../types/almacen.types').DocumentoDoaDto[]>(
       `/api/inventario/almacenes/reclasificaciones-doa${almacenId ? '?almacenId=' + almacenId : ''}`
+    ),
+
+  obtenerDetalleDoa: (id: string) =>
+    apiClient<import('../types/almacen.types').DocumentoDoaDto>(
+      `/api/inventario/almacenes/reclasificaciones-doa/${id}`
     ),
 
   getSeriesDisponiblesAlmacen: (id: string) =>

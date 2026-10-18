@@ -103,6 +103,7 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
           <TableCellLayout truncate>
             <Link
               as="button"
+              className={styles.primaryLink}
               onClick={(e) => {
                 e.stopPropagation();
                 if (onSelect) onSelect(item);
@@ -127,6 +128,7 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
                 padreId ? (
                   <Link
                     as="button"
+                    className={styles.primaryLink}
                     onClick={(e) => {
                       e.stopPropagation();
                       navigate(`/servicio-campo/categorias-producto/${padreId}`);

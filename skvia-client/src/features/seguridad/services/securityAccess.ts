@@ -23,8 +23,17 @@ export function canAccessPath(path: string, permisos: readonly string[]): boolea
   if (path.startsWith('/servicio-campo/clientes')) return has('crm.acceso');
   if (path.startsWith('/servicio-campo/ordenes') || path === '/dashboard') return has('serviciocampo.acceso')
     && (!path.endsWith('/nuevo') || has('serviciocampo.ordenes.crear'));
-  if (path.startsWith('/servicio-campo/tipos-orden') || path.startsWith('/servicio-campo/configuraciones-servicio') || path.startsWith('/servicio-campo/tareas')) {
-    return has('serviciocampo.acceso') || has('inventario.acceso');
+  if (
+    path.startsWith('/servicio-campo/motivos-retiro') ||
+    path.startsWith('/servicio-campo/fallas-equipo') ||
+    path.startsWith('/servicio-campo/tipos-orden') ||
+    path.startsWith('/servicio-campo/configuraciones-servicio') ||
+    path.startsWith('/servicio-campo/tareas')
+  ) {
+    if (path.endsWith('/nuevo') || path.match(/\/(motivos-retiro|fallas-equipo|tipos-orden|configuraciones-servicio|tareas)\/[a-f0-9-]+$/i)) {
+      return has('serviciocampo.catalogos.gestionar') || has('inventario.catalogos.gestionar');
+    }
+    return has('serviciocampo.catalogos.gestionar') || has('serviciocampo.acceso') || has('inventario.catalogos.gestionar');
   }
   if (path.startsWith('/servicio-campo/recepciones-compra')) {
     if (!has('inventario.acceso')) return false;
@@ -35,7 +44,7 @@ export function canAccessPath(path: string, permisos: readonly string[]): boolea
   }
   if (path.startsWith('/servicio-campo/') || path.startsWith('/grupos-unidades')) {
     if (!has('inventario.acceso')) return false;
-    if (path.endsWith('/nuevo') && !/transferencias|despacho-tecnicos|devolucion-tecnicos/.test(path)) return has('inventario.catalogos.gestionar');
+    if (path.endsWith('/nuevo') && !/transferencias|despacho-tecnicos|devolucion-tecnicos|declaracion-doa|devoluciones-proveedor|retiro-defectuoso-proveedor|retiro-ok-proveedor/.test(path)) return has('inventario.catalogos.gestionar');
     return true;
   }
   return has('seguridad.acceso');

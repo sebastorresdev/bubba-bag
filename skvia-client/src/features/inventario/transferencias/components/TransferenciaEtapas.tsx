@@ -14,22 +14,45 @@ export interface EtapaConfig {
 }
 
 const ETAPAS_DESPACHO: EtapaConfig[] = [
-  { id: 'Borrador', nombre: 'Borrador', descripcion: 'Información base y preparación de materiales', subtitulo: 'Registro inicial' },
-  { id: 'EnTransito', nombre: 'Despachada', descripcion: 'Material en tránsito o asignado', subtitulo: 'En despacho' },
-  { id: 'Cerrada', nombre: 'Recibida', descripcion: 'Custodia asumida y stock recibido por el técnico', subtitulo: 'Completado' },
+  { id: 'Borrador', nombre: 'Preparación', descripcion: 'Selección y asignación de materiales para el técnico', subtitulo: 'Registro inicial' },
+  { id: 'Cerrada', nombre: 'Entregado al Técnico', descripcion: 'Despacho aprobado y entrega inmediata al técnico en ventanilla', subtitulo: 'Aprobado al instante' },
 ];
 
 const ETAPAS_DEVOLUCION: EtapaConfig[] = [
-  { id: 'Borrador', nombre: 'Borrador', descripcion: 'Información base y preparación de materiales a devolver', subtitulo: 'Registro inicial' },
-  { id: 'EnTransito', nombre: 'En Devolución', descripcion: 'Retorno de materiales en camino a bodega', subtitulo: 'En retorno' },
-  { id: 'Cerrada', nombre: 'Recibida', descripcion: 'Material reingresado e inventariado en bodega', subtitulo: 'Completado' },
+  { id: 'Borrador', nombre: 'Verificación', descripcion: 'Recepción y validación física de materiales devueltos', subtitulo: 'Registro inicial' },
+  { id: 'Cerrada', nombre: 'Ingresado al Almacén', descripcion: 'Desabastecimiento aprobado y reingreso inmediato a stock', subtitulo: 'Aprobado al instante' },
+];
+
+const ETAPAS_DOA: EtapaConfig[] = [
+  { id: 'Borrador', nombre: 'Identificación', descripcion: 'Selección de series averiadas y asignación de motivos de retiro', subtitulo: 'Preparación' },
+  { id: 'Cerrada', nombre: 'Reclasificado a Devolución', descripcion: 'Reclasificación aprobada de Disponible a Devolución en bodega', subtitulo: 'Aprobado al instante' },
 ];
 
 const ETAPAS_TRASLADO: EtapaConfig[] = [
-  { id: 'Borrador', nombre: 'Borrador', descripcion: 'Edición y preparación de la transferencia', subtitulo: 'Registro inicial' },
+  { id: 'Borrador', nombre: 'Preparación', descripcion: 'Edición y preparación de la transferencia', subtitulo: 'Registro inicial' },
   { id: 'EnTransito', nombre: 'En Tránsito', descripcion: 'Mercadería en carretera hacia almacén de destino', subtitulo: 'En despacho' },
-  { id: 'Cerrada', nombre: 'Recibida', descripcion: 'Control físico y stock ingresado en destino', subtitulo: 'Ingreso final' },
+  { id: 'Cerrada', nombre: 'Recibida en Destino', descripcion: 'Control físico y stock ingresado en destino', subtitulo: 'Ingreso final' },
 ];
+
+const ETAPAS_RETIRO_DEFECTUOSO: EtapaConfig[] = [
+  { id: 'Borrador', nombre: 'Borrador', descripcion: 'Información base y preparación de materiales defectuosos', subtitulo: 'Registro inicial' },
+  { id: 'EnTransito', nombre: 'En Retiro a OL', descripcion: 'Guía emitida y equipos en traslado al Proveedor / OL', subtitulo: 'En traslado' },
+  { id: 'Completada', nombre: 'Recibido por OL', descripcion: 'Equipos entregados y acta o guía sellada recibida', subtitulo: 'Completado' },
+];
+
+const ETAPAS_RETIRO_OK: EtapaConfig[] = [
+  { id: 'Borrador', nombre: 'Borrador', descripcion: 'Información base y selección de material en buen estado (>60 días sin activación)', subtitulo: 'Registro inicial' },
+  { id: 'EnTransito', nombre: 'En Retiro a OL', descripcion: 'Guía emitida y equipos en traslado al Proveedor / OL', subtitulo: 'En traslado' },
+  { id: 'Completada', nombre: 'Recibido por OL', descripcion: 'Equipos entregados y acta o guía sellada recibida', subtitulo: 'Completado' },
+];
+
+const ETAPAS_RECEPCION_COMPRA: EtapaConfig[] = [
+  { id: 'Borrador', nombre: 'Borrador', descripcion: 'Orden de compra registrada y emitida', subtitulo: 'Orden emitida' },
+  { id: 'Enviada', nombre: 'En Despacho', descripcion: 'Mercadería en camino o enviada por el proveedor', subtitulo: 'En camino' },
+  { id: 'Recibida', nombre: 'Recibida', descripcion: 'Control físico y de series verificado e ingresado al stock', subtitulo: 'Completado' },
+];
+
+
 
 const useStyles = makeStyles({
   container: {
@@ -100,7 +123,7 @@ const useStyles = makeStyles({
 
 interface TransferenciaEtapasProps {
   estado?: string | null;
-  tipoOperacion?: 'Despacho' | 'Devolucion' | 'Traslado' | string;
+  tipoOperacion?: 'Despacho' | 'Devolucion' | 'Traslado' | 'RetiroDefectuoso' | 'RetiroOk' | 'RecepcionCompra' | 'DeclaracionDoa' | string;
   embedded?: boolean;
 }
 
@@ -114,21 +137,27 @@ export const TransferenciaEtapas: React.FC<TransferenciaEtapasProps> = ({
   const etapas =
     tipoOperacion === 'Devolucion'
       ? ETAPAS_DEVOLUCION
+      : tipoOperacion === 'DeclaracionDoa'
+      ? ETAPAS_DOA
       : tipoOperacion === 'Traslado'
       ? ETAPAS_TRASLADO
+      : tipoOperacion === 'RetiroDefectuoso'
+      ? ETAPAS_RETIRO_DEFECTUOSO
+      : tipoOperacion === 'RetiroOk'
+      ? ETAPAS_RETIRO_OK
+      : tipoOperacion === 'RecepcionCompra'
+      ? ETAPAS_RECEPCION_COMPRA
       : ETAPAS_DESPACHO;
 
-  const esCancelada = estado === 'Cancelada';
+  const esCancelada = estado === 'Cancelada' || estado === 'Anulada';
   const esParcial = estado === 'ParcialmenteRecibida';
-  const esCerrada = estado === 'Cerrada';
+  const esCerrada = estado === 'Cerrada' || estado === 'Completada' || estado === 'Recibida' || estado === 'Aplicado';
 
   let actual = 0;
-  if (esCerrada) {
-    actual = 2;
-  } else if (esParcial) {
-    actual = 2;
-  } else if (estado === 'EnTransito') {
-    actual = 1;
+  if (esCerrada || esParcial) {
+    actual = etapas.length - 1;
+  } else if (estado === 'EnTransito' || estado === 'EnRetiro' || estado === 'Enviada') {
+    actual = etapas.length > 2 ? 1 : 0;
   } else {
     actual = 0;
   }

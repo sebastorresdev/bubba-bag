@@ -43,15 +43,21 @@ const useStyles = makeStyles({
     flexShrink: 0,
   },
   metadata: { flexWrap: 'wrap', display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalL, flexShrink: 0 },
-  metadataItem: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalXXS },
+  metadataItem: { display: 'flex', flexDirection: 'column', gap: '2px' },
   metadataLabel: {
     fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground3,
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-    fontWeight: tokens.fontWeightSemibold,
+    fontWeight: tokens.fontWeightRegular,
+    lineHeight: tokens.lineHeightBase200,
   },
-  metadataValue: { fontSize: tokens.fontSizeBase300, fontWeight: tokens.fontWeightSemibold, color: tokens.colorNeutralForeground1 },
+  metadataValue: {
+    fontSize: tokens.fontSizeBase300,
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground1,
+    lineHeight: tokens.lineHeightBase300,
+    display: 'flex',
+    alignItems: 'center',
+  },
   metadataDivider: { height: '28px' },
   processFlow: {
     margin: '0 -24px',
@@ -142,14 +148,16 @@ export const D365EntityHeader: React.FC<D365EntityHeaderProps> = ({
               <React.Fragment key={index}>
                 {index > 0 && <Divider vertical className={styles.metadataDivider} />}
                 <div className={styles.metadataItem}>
-                  <Text className={styles.metadataLabel}>{item.label}</Text>
                   {loading ? (
                     <Skeleton animation="pulse"><SkeletonItem size={16} className={styles.metadataSkeleton} /></Skeleton>
                   ) : typeof item.label === 'string' && (item.label.toLowerCase() === 'estado' || item.label.toLowerCase() === 'status') && (typeof item.value === 'string' || typeof item.value === 'number' || typeof item.value === 'boolean') ? (
-                    <D365StatusBadge status={item.value as string} size="small" />
+                    <div><D365StatusBadge status={item.value as string} size="small" /></div>
+                  ) : React.isValidElement(item.value) ? (
+                    <div className={styles.metadataValue}>{item.value}</div>
                   ) : (
-                    <Text className={styles.metadataValue}>{item.value}</Text>
+                    <Text className={styles.metadataValue}>{item.value != null && item.value !== '' ? item.value : '—'}</Text>
                   )}
+                  <Text className={styles.metadataLabel}>{item.label}</Text>
                 </div>
               </React.Fragment>
             ))}

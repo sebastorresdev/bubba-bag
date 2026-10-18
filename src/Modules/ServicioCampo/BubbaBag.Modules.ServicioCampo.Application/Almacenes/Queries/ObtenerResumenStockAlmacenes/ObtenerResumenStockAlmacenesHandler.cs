@@ -45,7 +45,7 @@ public class ObtenerResumenStockAlmacenesHandler : IQueryHandler<ObtenerResumenS
             {
                 AlmacenId = g.Key,
                 TotalProductos = g.Select(s=>s.ProductoId).Distinct().Count(),
-                TotalUnidades = g.Sum(s => s.CantidadDisponible + s.CantidadReservada)
+                TotalUnidades = g.Sum(s => s.CantidadDisponible)
             })
             .ToDictionaryAsync(x => x.AlmacenId, cancellationToken);
 

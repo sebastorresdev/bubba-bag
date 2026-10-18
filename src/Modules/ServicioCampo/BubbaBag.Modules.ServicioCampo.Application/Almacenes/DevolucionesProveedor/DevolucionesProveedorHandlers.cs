@@ -173,7 +173,7 @@ public class DevolucionesProveedorCommandsHandler(IServicioCampoDbContext contex
 {
     public async Task<Result<Guid>> HandleAsync(CrearDevolucionProveedorCommand command, CancellationToken cancellationToken = default)
     {
-        var validacion = await ValidarSalidaAsync(command.Proveedor, command.AlmacenId, command.UbicacionId, command.NumeroDocumento, command.Motivo, command.Lineas, cancellationToken);
+        var validacion = await ValidarSalidaAsync(command.Proveedor, command.AlmacenId, command.UbicacionId, command.NumeroDocumento, command.Motivo, command.Lineas, command.EsBorrador, cancellationToken);
         if (validacion.IsFailure) return Result<Guid>.Failure(validacion.Error);
 
         var (almacen, ubicacionOrigen, lineasDto, totalCantidad, itemsSeriados, productos) = validacion.Value;
@@ -239,7 +239,7 @@ public class DevolucionesProveedorCommandsHandler(IServicioCampoDbContext contex
         if (devolucion == null) return Result.Failure("La devolución a proveedor no existe.");
         if (devolucion.Estado != "Borrador") return Result.Failure("Solo se pueden editar devoluciones en estado Borrador.");
 
-        var validacion = await ValidarSalidaAsync(command.Proveedor, command.AlmacenId, command.UbicacionId, command.NumeroDocumento, command.Motivo, command.Lineas, cancellationToken);
+        var validacion = await ValidarSalidaAsync(command.Proveedor, command.AlmacenId, command.UbicacionId, command.NumeroDocumento, command.Motivo, command.Lineas, esBorrador: true, cancellationToken);
         if (validacion.IsFailure) return Result.Failure(validacion.Error);
 
         var (_, ubicacionOrigen, lineasDto, totalCantidad, _, _) = validacion.Value;
@@ -272,7 +272,7 @@ public class DevolucionesProveedorCommandsHandler(IServicioCampoDbContext contex
         var lineas = JsonSerializer.Deserialize<List<LineaDevolucionDto>>(devolucion.LineasJson) ?? new List<LineaDevolucionDto>();
         var lineasInput = lineas.Select(l => new LineaDevolucionInput(l.ProductoId, l.Cantidad, l.Condicion, l.Series)).ToList();
 
-        var validacion = await ValidarSalidaAsync(devolucion.Proveedor, devolucion.AlmacenId, devolucion.UbicacionId, devolucion.NumeroDocumento, devolucion.Motivo, lineasInput, cancellationToken);
+        var validacion = await ValidarSalidaAsync(devolucion.Proveedor, devolucion.AlmacenId, devolucion.UbicacionId, devolucion.NumeroDocumento, devolucion.Motivo, lineasInput, esBorrador: false, cancellationToken);
         if (validacion.IsFailure) return Result.Failure(validacion.Error);
 
         var (_, ubicacionOrigen, lineasDto, _, itemsSeriados, productos) = validacion.Value;
@@ -299,15 +299,15 @@ public class DevolucionesProveedorCommandsHandler(IServicioCampoDbContext contex
     }
 
     private async Task<Result<(Almacen Almacen, UbicacionInventario UbicacionOrigen, List<LineaDevolucionDto> LineasDto, decimal TotalCantidad, Dictionary<string, ItemSeriado> ItemsSeriados, Dictionary<Guid, Producto> Productos)>>
-        ValidarSalidaAsync(string proveedor, Guid almacenId, Guid? ubicacionId, string numeroDocumento, string motivo, IReadOnlyList<LineaDevolucionInput> lineas, CancellationToken ct)
+        ValidarSalidaAsync(string proveedor, Guid almacenId, Guid? ubicacionId, string numeroDocumento, string motivo, IReadOnlyList<LineaDevolucionInput> lineas, bool esBorrador, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(proveedor))
             return Result<(Almacen, UbicacionInventario, List<LineaDevolucionDto>, decimal, Dictionary<string, ItemSeriado>, Dictionary<Guid, Producto>)>.Failure("Debe ingresar la empresa proveedora destinataria.");
-        if (string.IsNullOrWhiteSpace(numeroDocumento))
+        if (!esBorrador && string.IsNullOrWhiteSpace(numeroDocumento))
             return Result<(Almacen, UbicacionInventario, List<LineaDevolucionDto>, decimal, Dictionary<string, ItemSeriado>, Dictionary<Guid, Producto>)>.Failure("Debe ingresar el número de documento / guía / acta de devolución.");
         if (string.IsNullOrWhiteSpace(motivo))
             return Result<(Almacen, UbicacionInventario, List<LineaDevolucionDto>, decimal, Dictionary<string, ItemSeriado>, Dictionary<Guid, Producto>)>.Failure("Debe indicar el motivo de la devolución.");
-        if (lineas == null || lineas.Count == 0)
+        if (!esBorrador && (lineas == null || lineas.Count == 0))
             return Result<(Almacen, UbicacionInventario, List<LineaDevolucionDto>, decimal, Dictionary<string, ItemSeriado>, Dictionary<Guid, Producto>)>.Failure("Debe agregar al menos un material o equipo para devolver.");
 
         var almacen = await context.Almacenes.AsNoTracking().FirstOrDefaultAsync(a => a.Id == almacenId, ct);
@@ -324,6 +324,12 @@ public class DevolucionesProveedorCommandsHandler(IServicioCampoDbContext contex
         var ubicacionOrigen = await InventarioAcceso.UbicacionAsync(context, almacenId, ubicacionId, ct);
         if (ubicacionOrigen == null)
             return Result<(Almacen, UbicacionInventario, List<LineaDevolucionDto>, decimal, Dictionary<string, ItemSeriado>, Dictionary<Guid, Producto>)>.Failure("La ubicación de origen no existe o no pertenece al almacén seleccionado.");
+
+        if (lineas == null || lineas.Count == 0)
+        {
+            return Result<(Almacen, UbicacionInventario, List<LineaDevolucionDto>, decimal, Dictionary<string, ItemSeriado>, Dictionary<Guid, Producto>)>
+                .Success((almacen, ubicacionOrigen, new List<LineaDevolucionDto>(), 0m, new Dictionary<string, ItemSeriado>(), new Dictionary<Guid, Producto>()));
+        }
 
         var ubicacionesAlmacenIds = await context.UbicacionesInventario
             .Where(u => u.AlmacenId == almacenId)
@@ -406,6 +412,11 @@ public class DevolucionesProveedorCommandsHandler(IServicioCampoDbContext contex
         UbicacionInventario ubicacionOrigen,
         CancellationToken ct)
     {
+        var ahoraUtc = DateTime.UtcNow;
+        var fechaMovimientoReal = devolucion.FechaDocumento == DateOnly.FromDateTime(ahoraUtc)
+            ? ahoraUtc
+            : devolucion.FechaDocumento.ToDateTime(TimeOnly.FromDateTime(ahoraUtc), DateTimeKind.Utc);
+
         foreach (var l in lineasDto)
         {
             var p = productos[l.ProductoId];
@@ -434,7 +445,7 @@ public class DevolucionesProveedorCommandsHandler(IServicioCampoDbContext contex
                         usuarioResponsableId: user.Id,
                         ubicacionOrigenId: ubicSerieId,
                         condicion: l.Condicion,
-                        fechaReal: devolucion.FechaDocumento.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)
+                        fechaReal: fechaMovimientoReal
                     ), ct);
                 }
             }
@@ -455,7 +466,7 @@ public class DevolucionesProveedorCommandsHandler(IServicioCampoDbContext contex
                     usuarioResponsableId: user.Id,
                     ubicacionOrigenId: ubicacionOrigen.Id,
                     condicion: l.Condicion,
-                    fechaReal: devolucion.FechaDocumento.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)
+                    fechaReal: fechaMovimientoReal
                 ), ct);
             }
         }

@@ -116,11 +116,18 @@ export interface ReubicarMaterialDto {
   observaciones?: string;
 }
 
+export interface DeclararDoaItemDto {
+  serie: string;
+  motivoRetiroId?: string;
+  observaciones?: string;
+}
+
 export interface DeclararDoaDto {
   ubicacionOrigenId: string;
   ubicacionDestinoId: string;
-  motivoRetiroId: string;
+  motivoRetiroId?: string;
   series: string[];
+  items?: DeclararDoaItemDto[];
   observaciones?: string;
 }
 
@@ -135,21 +142,35 @@ export interface SerieDisponibleAlmacenDto {
   ubicacionActualId: string;
   ubicacionNombre: string;
   ubicacionCodigo: string;
+  observaciones?: string | null;
 }
 
-export interface ReclasificacionDoaDto {
+export interface ItemDoaDto {
   id: string;
-  fecha: string;
-  almacenId: string;
-  almacenNombre: string;
-  ubicacionOrigenNombre: string;
-  ubicacionDestinoNombre: string;
   productoId: string;
   productoNombre: string;
   productoCodigo: string;
   numeroSerie: string;
   numeroSmartCard?: string | null;
+  motivo?: string | null;
   observaciones?: string | null;
   condicion: string;
 }
+
+export interface DocumentoDoaDto {
+  id: string;
+  numero: string;
+  fecha: string;
+  almacenId: string;
+  almacenNombre: string;
+  ubicacionOrigenNombre: string;
+  ubicacionDestinoNombre: string;
+  totalEquipos: number;
+  estado: string;
+  usuarioNombre?: string | null;
+  observaciones?: string | null;
+  items: ItemDoaDto[];
+}
+
+export type ReclasificacionDoaDto = DocumentoDoaDto;
 

@@ -19,7 +19,7 @@ public class StockAlmacen : Entity<Guid>
     public decimal CantidadDisponible { get; private set; }
     public decimal CantidadReservada { get; private set; }
 
-    public decimal StockTotal => CantidadDisponible + CantidadReservada;
+    public decimal StockTotal => CantidadDisponible;
 
     public DateTime UpdatedAt { get; private set; } = DateTime.UtcNow;
 

@@ -653,9 +653,7 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
       { header: 'Ubicación', accessor: (x) => x.nombreUbicacion || 'Principal' },
       { header: 'Condición', accessor: (x) => x.condicion || 'Utilizable' },
       { header: 'Control', accessor: (x) => (x.esSerializado ? 'Seriado' : 'No seriado') },
-      { header: 'Disponible', accessor: (x) => x.cantidadDisponible },
-      { header: 'Reservado', accessor: (x) => x.cantidadReservada },
-      { header: 'Total', accessor: (x) => x.cantidadTotal },
+      { header: 'Cantidad', accessor: (x) => x.cantidadTotal },
       { header: 'Unidad', accessor: (x) => x.nombreUnidadMedida || 'UND' },
     ];
     const nombreAlm = (savedHeader.nombre || formData.nombre || 'Almacen').replace(/\s+/g, '_');
@@ -1156,9 +1154,7 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
                             <TableHeaderCell>Ubicación</TableHeaderCell>
                             <TableHeaderCell>Condición</TableHeaderCell>
                             <TableHeaderCell>Control</TableHeaderCell>
-                            <TableHeaderCell style={{ textAlign: 'right' }}>Disponible</TableHeaderCell>
-                            <TableHeaderCell style={{ textAlign: 'right' }}>Reservado</TableHeaderCell>
-                            <TableHeaderCell style={{ textAlign: 'right' }}>Total</TableHeaderCell>
+                            <TableHeaderCell style={{ textAlign: 'right' }}>Cantidad</TableHeaderCell>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -1200,50 +1196,13 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
                                     title="Haga clic para ver los números de serie"
                                   >
                                     <Badge appearance="tint" shape="rounded" color="brand" style={{ cursor: 'pointer' }}>
-                                      Seriado ({item.cantidadDisponible}) 🔍
+                                      Seriado ({item.cantidadTotal}) 🔍
                                     </Badge>
                                   </Button>
                                 ) : (
                                   <Badge appearance="tint" shape="rounded" color="subtle">
                                     No seriado
                                   </Badge>
-                                )}
-                              </TableCell>
-                              <TableCell style={{ textAlign: 'right' }}>
-                                {item.esSerializado ? (
-                                  <Button
-                                    appearance="subtle"
-                                    size="small"
-                                    style={{ padding: '0 4px', height: '24px', fontWeight: 600 }}
-                                    onClick={() => handleVerSeriesProducto(item)}
-                                    title="Ver números de serie disponibles"
-                                  >
-                                    <Badge
-                                      appearance="tint"
-                                      shape="rounded"
-                                      color={item.cantidadDisponible > 0 ? 'success' : 'subtle'}
-                                      style={{ cursor: 'pointer' }}
-                                    >
-                                      {item.cantidadDisponible} {item.nombreUnidadMedida || 'UND'}
-                                    </Badge>
-                                  </Button>
-                                ) : (
-                                  <Badge
-                                    appearance="tint"
-                                    shape="rounded"
-                                    color={item.cantidadDisponible > 0 ? 'success' : 'subtle'}
-                                  >
-                                    {item.cantidadDisponible} {item.nombreUnidadMedida || 'UND'}
-                                  </Badge>
-                                )}
-                              </TableCell>
-                              <TableCell style={{ textAlign: 'right' }}>
-                                {item.cantidadReservada > 0 ? (
-                                  <Badge appearance="tint" shape="rounded" color="warning">
-                                    {item.cantidadReservada} {item.nombreUnidadMedida || 'UND'}
-                                  </Badge>
-                                ) : (
-                                  `0 ${item.nombreUnidadMedida || 'UND'}`
                                 )}
                               </TableCell>
                               <TableCell style={{ textAlign: 'right', fontWeight: 600 }}>

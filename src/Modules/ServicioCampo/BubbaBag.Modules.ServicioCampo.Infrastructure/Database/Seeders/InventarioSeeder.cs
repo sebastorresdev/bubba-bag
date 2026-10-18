@@ -57,20 +57,37 @@ public static class InventarioSeeder
                     .Where(u => u.AlmacenId == alm.Id)
                     .ToListAsync();
 
-                // 1. Asegurar ubicación de Disponibles / Principal
-                var principal = ubicaciones.FirstOrDefault(u => u.EsPrincipal) ?? ubicaciones.FirstOrDefault();
-                if (principal == null)
+                // 1. Asegurar y normalizar ubicación DISPONIBLE (nombre limpio "Disponible")
+                var disponible = ubicaciones.FirstOrDefault(u => u.Codigo == "DISPONIBLE" || u.Nombre.ToLower() == "disponible")
+                                ?? ubicaciones.FirstOrDefault(u => u.EsPrincipal || u.Codigo == "PRINCIPAL" || u.Nombre.ToLower() == "principal" || u.Nombre.ToLower().Contains("stock"));
+                if (disponible == null)
                 {
-                    context.UbicacionesInventario.Add(BubbaBag.Modules.ServicioCampo.Domain.Almacenes.UbicacionInventario.Crear(alm.Id, "DISPONIBLE", "Disponible / Stock", principal: true, tipoUbicacion: BubbaBag.Modules.ServicioCampo.Domain.Almacenes.TipoUbicacion.Disponible));
+                    context.UbicacionesInventario.Add(BubbaBag.Modules.ServicioCampo.Domain.Almacenes.UbicacionInventario.Crear(alm.Id, "DISPONIBLE", "Disponible", principal: true, tipoUbicacion: BubbaBag.Modules.ServicioCampo.Domain.Almacenes.TipoUbicacion.Disponible));
                     huboCambios = true;
                 }
+                else
+                {
+                    if (disponible.Nombre != "Disponible" || disponible.Codigo != "DISPONIBLE" || !disponible.EsPrincipal)
+                    {
+                        disponible.NormalizarPredeterminada("DISPONIBLE", "Disponible", BubbaBag.Modules.ServicioCampo.Domain.Almacenes.TipoUbicacion.Disponible, true);
+                        huboCambios = true;
+                    }
+                }
 
-                // 2. Asegurar ubicación de Devoluciones / Recuperados
+                // 2. Asegurar y normalizar ubicación DEVOLUCION (nombre limpio "Devolución", sin "Recuperados")
                 var devolucion = ubicaciones.FirstOrDefault(u => u.Codigo == "DEVOLUCION" || u.Nombre.ToLower().Contains("devoluci"));
                 if (devolucion == null)
                 {
-                    context.UbicacionesInventario.Add(BubbaBag.Modules.ServicioCampo.Domain.Almacenes.UbicacionInventario.Crear(alm.Id, "DEVOLUCION", "Devolución / Recuperados", principal: false, tipoUbicacion: BubbaBag.Modules.ServicioCampo.Domain.Almacenes.TipoUbicacion.Devolucion));
+                    context.UbicacionesInventario.Add(BubbaBag.Modules.ServicioCampo.Domain.Almacenes.UbicacionInventario.Crear(alm.Id, "DEVOLUCION", "Devolución", principal: false, tipoUbicacion: BubbaBag.Modules.ServicioCampo.Domain.Almacenes.TipoUbicacion.Devolucion));
                     huboCambios = true;
+                }
+                else
+                {
+                    if (devolucion.Nombre != "Devolución" || devolucion.Codigo != "DEVOLUCION")
+                    {
+                        devolucion.NormalizarPredeterminada("DEVOLUCION", "Devolución", BubbaBag.Modules.ServicioCampo.Domain.Almacenes.TipoUbicacion.Devolucion, false);
+                        huboCambios = true;
+                    }
                 }
             }
 
