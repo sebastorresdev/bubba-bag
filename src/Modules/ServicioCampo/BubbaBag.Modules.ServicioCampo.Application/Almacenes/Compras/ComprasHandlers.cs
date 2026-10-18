@@ -12,14 +12,14 @@ public record LineaCompraDetalle(Guid ProductoId, string Producto, string? Unida
 public record CompraDto(Guid Id, string Numero, string Proveedor, string TipoDocumento, string NumeroDocumento,
     DateOnly FechaDocumento, string Moneda, Guid? AlmacenId, string Almacen, decimal Total, string? Observacion, IReadOnlyList<LineaCompraDetalle> Lineas, string Estado,
     Guid? UsuarioRecepcionId = null, string? RecibidoPor = null, string? RecibidoPorEmail = null, DateTime? FechaRecepcion = null,
-    Guid? UsuarioId = null, string? CreadoPor = null, string? CreadoPorEmail = null, DateTime? FechaRegistro = null);
+    Guid? UsuarioId = null, string? CreadoPor = null, string? CreadoPorEmail = null, DateTime? FechaRegistro = null, string? DocumentoRespaldoUrl = null);
 public record ObtenerComprasQuery(Guid? Id = null) : IQuery<Result<List<CompraDto>>>;
 public record CrearCompraCommand(string Proveedor, string TipoDocumento, string NumeroDocumento, DateOnly FechaDocumento,
     string Moneda, Guid? AlmacenId, IReadOnlyList<LineaCompra>? Lineas, string? Observacion) : ICommand<Result<Guid>>;
 public record ActualizarCompraCommand(Guid Id, CrearCompraCommand Datos) : ICommand<Result<Guid>>;
 public record ProcesarCompraCommand(Guid Id, string Accion) : ICommand<Result<Guid>>;
 public record LineaRecepcion(Guid ProductoId, decimal Cantidad, IReadOnlyList<string>? Series, Guid? UbicacionId = null);
-public record RecepcionCompraDatos(string TipoDocumento, string NumeroDocumento, DateOnly FechaDocumento, IReadOnlyList<LineaRecepcion>? Lineas = null, Guid? UbicacionId = null);
+public record RecepcionCompraDatos(string TipoDocumento, string NumeroDocumento, DateOnly FechaDocumento, IReadOnlyList<LineaRecepcion>? Lineas = null, Guid? UbicacionId = null, string? DocumentoRespaldoUrl = null);
 public record RecepcionarCompraCommand(Guid Id, RecepcionCompraDatos Datos) : ICommand<Result<Guid>>;
 public record RevertirABorradorCompraCommand(Guid Id) : ICommand<Result<Guid>>;
 
@@ -46,7 +46,7 @@ public class ObtenerComprasHandler(IServicioCampoDbContext context, ICurrentUser
             x.NumeroDocumento, x.FechaDocumento, x.Moneda, x.AlmacenId, x.Almacen?.Nombre ?? "", x.Total, x.Observacion,
             JsonSerializer.Deserialize<List<LineaCompraDetalle>>(x.LineasJson) ?? [], x.Estado,
             x.UsuarioRecepcionId, null, null, x.FechaRecepcion,
-            x.UsuarioId, null, null, x.FechaRegistro)).ToList());
+            x.UsuarioId, null, null, x.FechaRegistro, x.DocumentoRespaldoUrl)).ToList());
     }
 }
 
@@ -253,9 +253,25 @@ public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser us
         {
             var prevSeries = mapaPrevias.TryGetValue(x.ProductoId, out var prev) && prev.SeriesRecibidas != null ? prev.SeriesRecibidas : [];
             return x.Series.Except(prevSeries);
-        }).ToList();
-        if (seriesNuevasTotal.Distinct().Count() != seriesNuevasTotal.Count || await context.ItemsSeriados.AnyAsync(x => seriesNuevasTotal.Contains(x.NumeroSerie), cancellationToken))
-            return Result<Guid>.Failure("Hay series repetidas o que ya están registradas.");
+        }).Distinct().ToList();
+
+        if (seriesNuevasTotal.Count > 0)
+        {
+            var seriesEnConflicto = await context.ItemsSeriados
+                .AsNoTracking()
+                .Include(i => i.UbicacionActual).ThenInclude(u => u!.Almacen)
+                .Where(i => seriesNuevasTotal.Contains(i.NumeroSerie) &&
+                            i.Estado != EstadoItemSeriado.DevueltoAProveedor &&
+                            i.Estado != EstadoItemSeriado.InstaladoEnCliente)
+                .ToListAsync(cancellationToken);
+
+            if (seriesEnConflicto.Count > 0)
+            {
+                var primero = seriesEnConflicto[0];
+                var ubic = primero.UbicacionActual?.Almacen?.Nombre ?? "otro almacén";
+                return Result<Guid>.Failure($"La serie '{primero.NumeroSerie}' ya existe en la empresa y figura actualmente en '{ubic}' con estado {primero.Estado}. No se puede volver a ingresar.");
+            }
+        }
         var total = detalles.Sum(x => decimal.Round(x.Cantidad * x.CostoUnitario, 2, MidpointRounding.AwayFromZero));
         if (total >= 10000000000000000m) return Result<Guid>.Failure("El importe de la compra excede el límite permitido.");
         if (!recepcionar)
@@ -277,7 +293,7 @@ public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser us
                 var ubicacionesCache = new Dictionary<Guid, UbicacionInventario> { [ubicacionPredeterminada.Id] = ubicacionPredeterminada };
 
                 compra.CompletarComprobanteRecepcion(command.TipoDocumento, command.NumeroDocumento, command.FechaDocumento);
-                compra.Recepcionar(user.Id, conFaltantes, JsonSerializer.Serialize(lineasActualizadas));
+                compra.Recepcionar(user.Id, conFaltantes, JsonSerializer.Serialize(lineasActualizadas), recepcion?.DocumentoRespaldoUrl);
 
                 foreach (var linea in lineasFinales)
                 {
@@ -322,10 +338,27 @@ public class CrearCompraHandler(IServicioCampoDbContext context, ICurrentUser us
 
                     var seriesPrevias = prevDetalle?.SeriesRecibidas ?? [];
                     var seriesNuevas = linea.Series.Except(seriesPrevias).ToList();
+                    var seriesExistentesDb = await context.ItemsSeriados
+                        .Where(x => seriesNuevas.Contains(x.NumeroSerie))
+                        .ToDictionaryAsync(x => x.NumeroSerie, ct);
+
+                    var almacenDestinoObj = await context.Almacenes.FirstOrDefaultAsync(a => a.Id == command.AlmacenId!.Value, ct);
+                    var tipoAlm = almacenDestinoObj?.Tipo ?? TipoAlmacen.Bodega;
+
                     foreach (var serie in seriesNuevas)
                     {
-                        var item = ItemSeriado.Crear(linea.ProductoId, serie, idUbicacionFinal);
-                        await context.ItemsSeriados.AddAsync(item, ct);
+                        ItemSeriado item;
+                        if (seriesExistentesDb.TryGetValue(serie, out var itemExistente))
+                        {
+                            itemExistente.Ubicar(idUbicacionFinal, tipoAlm, CondicionInventario.Utilizable);
+                            item = itemExistente;
+                        }
+                        else
+                        {
+                            item = ItemSeriado.Crear(linea.ProductoId, serie, idUbicacionFinal);
+                            await context.ItemsSeriados.AddAsync(item, ct);
+                        }
+
                         await context.MovimientosInventario.AddAsync(MovimientoInventario.Registrar(TipoMovimientoInventario.IngresoProveedor, linea.ProductoId, 1,
                             almacenDestinoId: command.AlmacenId, itemSeriadoId: item.Id, numeroDocumento: compra.Numero, usuarioResponsableId: user.Id, observaciones: command.Observacion, ubicacionDestinoId: idUbicacionFinal, eventoId: compra.Id), ct);
                     }

@@ -24,6 +24,7 @@ const useStyles = makeStyles({
     flexGrow: 1,
     overflow: 'hidden',
     position: 'relative',
+    minHeight: 0,
   },
   mainContent: {
     display: 'flex',
@@ -31,6 +32,7 @@ const useStyles = makeStyles({
     flexGrow: 1,
     overflow: 'hidden',
     minWidth: 0,
+    minHeight: 0,
     backgroundColor: tokens.colorNeutralBackground3,
   },
 });

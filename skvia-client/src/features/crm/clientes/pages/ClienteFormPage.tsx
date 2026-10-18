@@ -51,7 +51,11 @@ import type {
   UbigeoDto,
 } from '../types/cliente.types';
 
-export const ClienteFormPage: React.FC = () => {
+interface ClienteFormPageProps {
+  modoInicial?: 'JURIDICA' | 'NATURAL';
+}
+
+export const ClienteFormPage: React.FC<ClienteFormPageProps> = ({ modoInicial }) => {
   const formStyles = useD365FormStyles();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -96,8 +100,8 @@ const DEPARTAMENTOS_PERU = [
 
   // Estados del Formulario
   const [codigoCliente, setCodigoCliente] = useState('');
-  const [tipoPersona, setTipoPersona] = useState<TipoPersona>('NATURAL');
-  const [tipoDocumento, setTipoDocumento] = useState<TipoDocumentoIdentidad>('DNI');
+  const [tipoPersona, setTipoPersona] = useState<TipoPersona>(modoInicial || 'NATURAL');
+  const [tipoDocumento, setTipoDocumento] = useState<TipoDocumentoIdentidad>(modoInicial === 'JURIDICA' ? 'RUC' : 'DNI');
   const [documentoIdentidad, setDocumentoIdentidad] = useState('');
   const [nombres, setNombres] = useState('');
   const [apellidos, setApellidos] = useState('');
@@ -111,13 +115,19 @@ const DEPARTAMENTOS_PERU = [
   const [ubigeoCodigo, setUbigeoCodigo] = useState('');
   const [coordenadaLat, setCoordenadaLat] = useState<string>('');
   const [coordenadaLng, setCoordenadaLng] = useState<string>('');
-  const [esClienteFacturacion, setEsClienteFacturacion] = useState(false);
+  const [esClienteFacturacion, setEsClienteFacturacion] = useState(modoInicial === 'JURIDICA');
   const [esClienteServicio, setEsClienteServicio] = useState(true);
   const [activo, setActivo] = useState(true);
 
   // El encabezado solo cambia al guardar o al cargar (no mientras se escribe)
-  const [savedTitle, setSavedTitle] = useState(esNuevo ? 'Nuevo' : '');
-  const [savedSubtitle, setSavedSubtitle] = useState(esNuevo ? 'Ficha de cuenta / cliente' : '');
+  const [savedTitle, setSavedTitle] = useState(
+    esNuevo ? (modoInicial === 'JURIDICA' ? 'Nueva Cuenta' : 'Nuevo Contacto') : ''
+  );
+  const [savedSubtitle, setSavedSubtitle] = useState(
+    esNuevo
+      ? (modoInicial === 'JURIDICA' ? 'Ficha de cuenta empresarial / proveedor' : 'Ficha de contacto / cliente residencial')
+      : ''
+  );
   const focusValidation = useValidationFocus();
   const draft = useUnsavedChanges({ tipoPersona,tipoDocumento,documentoIdentidad,nombres,apellidos,razonSocial,nombreComercial,telefonoPrincipal,telefonoSecundario,email,direccion,referenciaUbicacion,ubigeoCodigo,coordenadaLat,coordenadaLng,esClienteFacturacion,esClienteServicio }, !loading);
 

@@ -1,5 +1,6 @@
 using BubbaBag.SharedKernel.Authorization;
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,12 +17,15 @@ using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerAlmace
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerInventarioProductos;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerResumenStockAlmacenes;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerSeriesStock;
+using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerHistorialSerie;
+using BubbaBag.Modules.ServicioCampo.Application.Almacenes.DevolucionesProveedor;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerTransferenciaDetalle;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerTransferenciasInventario;
 using BubbaBag.SharedKernel.CQRS;
 using BubbaBag.SharedKernel;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes;
 using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
+using BubbaBag.Modules.ServicioCampo.Domain.Productos;
 using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Commands.ResolverDiferenciaTransferencia;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -54,6 +58,7 @@ public static class AlmacenesEndpoints
         stockGroup.MapGet("/almacenes", ObtenerResumenStockAlmacenes);
         stockGroup.MapGet("/productos", ObtenerInventarioProductos);
         stockGroup.MapGet("/series", ObtenerSeries);
+        stockGroup.MapGet("/series/{numeroSerie}/historial", ObtenerHistorialSerie);
         stockGroup.MapPost("/series/validar-existentes", ValidarSeriesExistentes).RequireAuthorization(Permissions.Inventario.Operar);
 
         var transferenciasGroup = app.MapGroup("/api/inventario/transferencias")
@@ -78,6 +83,21 @@ public static class AlmacenesEndpoints
         compras.MapPost("/{id:guid}/revertir-borrador", RevertirABorradorCompra).RequireAuthorization(Permissions.Inventario.ComprasGestionar);
         compras.MapPost("/{id:guid}/recepcionar", RecepcionarCompra).RequireAuthorization(Permissions.Inventario.Operar);
         compras.MapPost("/{id:guid}/cerrar-faltantes", CerrarFaltantesCompra).RequireAuthorization(Permissions.Inventario.ComprasGestionar);
+
+        var devolucionesProveedorGroup = app.MapGroup("/api/inventario/devoluciones-proveedor")
+            .WithTags("Servicio de Campo - Devoluciones a Proveedor")
+            .RequireAuthorization(Permissions.Inventario.Acceso);
+        devolucionesProveedorGroup.MapGet("/", ObtenerDevolucionesProveedor);
+        devolucionesProveedorGroup.MapGet("/{id:guid}", ObtenerDevolucionProveedorPorId);
+        devolucionesProveedorGroup.MapPost("/", CrearDevolucionProveedor).RequireAuthorization(Permissions.Inventario.Operar);
+        devolucionesProveedorGroup.MapPut("/{id:guid}", ActualizarDevolucionProveedor).RequireAuthorization(Permissions.Inventario.Operar);
+        devolucionesProveedorGroup.MapPost("/{id:guid}/completar", CompletarDevolucionProveedor).RequireAuthorization(Permissions.Inventario.Operar);
+        devolucionesProveedorGroup.MapDelete("/{id:guid}", EliminarDevolucionProveedor).RequireAuthorization(Permissions.Inventario.Operar);
+
+        var archivosGroup = app.MapGroup("/api/inventario/archivos")
+            .WithTags("Servicio de Campo - Archivos y Comprobantes");
+        archivosGroup.MapPost("/subir", SubirArchivoComprobante).DisableAntiforgery().RequireAuthorization(Permissions.Inventario.Operar);
+        archivosGroup.MapGet("/{nombreArchivo}", ObtenerArchivoComprobante);
     }
 
     private static async Task<IResult> ObtenerCompras(
@@ -306,6 +326,12 @@ public static class AlmacenesEndpoints
         return result.IsSuccess?Results.Ok(result.Value):Results.BadRequest(result.Error);
     }
 
+    private static async Task<IResult> ObtenerHistorialSerie(string numeroSerie, IDispatcher dispatcher)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerHistorialSerieQuery(numeroSerie));
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.NotFound(new { mensaje = result.Error });
+    }
+
     private static async Task<IResult> ResolverDiferencia(Guid id, ResolverDiferenciaRequest r, IDispatcher dispatcher)
     {
         var result=await dispatcher.SendAsync(new ResolverDiferenciaTransferenciaCommand(id,r.DetalleId,r.Cantidad,r.Resultado,r.Motivo,r.Evidencia,r.Series,r.OperacionId));
@@ -498,13 +524,24 @@ public static class AlmacenesEndpoints
 
         var existentes = await context.ItemsSeriados
             .AsNoTracking()
-            .Where(item => seriesNormalizadas.Contains(item.NumeroSerie) && (user.IsInRole(BubbaBag.SharedKernel.Authorization.Roles.SuperAdmin) || item.UbicacionActual != null && InventarioAcceso.AlmacenesConsultables(context,user).Contains(item.UbicacionActual.AlmacenId)))
+            .Include(item => item.UbicacionActual)
+                .ThenInclude(u => u!.Almacen)
+            .Include(item => item.Producto)
+            .Where(item => seriesNormalizadas.Contains(item.NumeroSerie))
             .Select(item => new SerieExistenteDetalle(
                 item.NumeroSerie,
                 item.Estado.ToString(),
                 item.UbicacionActual != null ? (Guid?)item.UbicacionActual.AlmacenId : null,
                 item.UbicacionActual != null ? item.UbicacionActual.Almacen.Nombre : null,
-                item.Producto.Nombre
+                item.Producto.Nombre,
+                item.Estado == EstadoItemSeriado.DevueltoAProveedor || item.Estado == EstadoItemSeriado.InstaladoEnCliente,
+                item.Estado == EstadoItemSeriado.DevueltoAProveedor
+                    ? "Devuelto a Proveedor (Reingreso permitido)"
+                    : item.Estado == EstadoItemSeriado.InstaladoEnCliente
+                    ? "Instalado en Cliente (Reingreso permitido)"
+                    : item.UbicacionActual != null
+                    ? $"Activo en almacén/custodia '{item.UbicacionActual.Almacen.Nombre}' con estado {item.Estado}"
+                    : $"Registrado con estado {item.Estado}"
             ))
             .ToListAsync(ct);
 
@@ -568,6 +605,118 @@ public static class AlmacenesEndpoints
         var result = await dispatcher.SendAsync(command);
         return result.IsSuccess ? Results.NoContent() : Results.BadRequest(result.Error);
     }
+
+    private static async Task<IResult> ObtenerDevolucionesProveedor(Guid? almacenId, IDispatcher dispatcher)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerDevolucionesProveedorQuery(almacenId));
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.BadRequest(result.Error);
+    }
+
+    private static async Task<IResult> ObtenerDevolucionProveedorPorId(Guid id, IDispatcher dispatcher)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerDevolucionProveedorPorIdQuery(id));
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.NotFound(new { mensaje = result.Error });
+    }
+
+    private static async Task<IResult> CrearDevolucionProveedor(CrearDevolucionProveedorCommand command, IDispatcher dispatcher)
+    {
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess ? Results.Ok(new { id = result.Value }) : Results.BadRequest(new { mensaje = result.Error });
+    }
+
+    private static async Task<IResult> ActualizarDevolucionProveedor(Guid id, ActualizarDevolucionProveedorRequest request, IDispatcher dispatcher)
+    {
+        var command = new ActualizarDevolucionProveedorCommand(
+            id,
+            request.Proveedor,
+            request.AlmacenId,
+            request.UbicacionId,
+            request.TipoDocumento,
+            request.NumeroDocumento,
+            request.FechaDocumento,
+            request.Motivo,
+            request.Observaciones,
+            request.DocumentoRespaldoUrl,
+            request.Lineas
+        );
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess ? Results.Ok() : Results.BadRequest(new { mensaje = result.Error });
+    }
+
+    private static async Task<IResult> CompletarDevolucionProveedor(Guid id, IDispatcher dispatcher)
+    {
+        var command = new CompletarDevolucionProveedorCommand(id);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess ? Results.Ok() : Results.BadRequest(new { mensaje = result.Error });
+    }
+
+    private static async Task<IResult> EliminarDevolucionProveedor(Guid id, IDispatcher dispatcher)
+    {
+        var command = new EliminarDevolucionProveedorCommand(id);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess ? Results.NoContent() : Results.BadRequest(new { mensaje = result.Error });
+    }
+
+    private static async Task<IResult> SubirArchivoComprobante(HttpRequest request)
+    {
+        if (!request.HasFormContentType || request.Form.Files.Count == 0)
+            return Results.BadRequest(new { mensaje = "No se ha enviado ningún archivo." });
+
+        var file = request.Form.Files[0];
+        if (file.Length == 0)
+            return Results.BadRequest(new { mensaje = "El archivo enviado está vacío." });
+
+        if (file.Length > 10 * 1024 * 1024)
+            return Results.BadRequest(new { mensaje = "El archivo no debe exceder los 10MB." });
+
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var permitidas = new[] { ".jpg", ".jpeg", ".png", ".webp", ".pdf" };
+        if (!permitidas.Contains(extension))
+            return Results.BadRequest(new { mensaje = "Solo se permiten imágenes (JPG, PNG, WEBP) o documentos PDF." });
+
+        var uploadDir = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "comprobantes");
+        if (!Directory.Exists(uploadDir))
+            Directory.CreateDirectory(uploadDir);
+
+        var uniqueName = $"{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}{extension}";
+        var filePath = Path.Combine(uploadDir, uniqueName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        var fileUrl = $"/api/inventario/archivos/{uniqueName}";
+        return Results.Ok(new
+        {
+            url = fileUrl,
+            nombreOriginal = file.FileName,
+            nombreGuardado = uniqueName,
+            tamano = file.Length
+        });
+    }
+
+    private static IResult ObtenerArchivoComprobante(string nombreArchivo)
+    {
+        var sanitized = Path.GetFileName(nombreArchivo);
+        var uploadDir = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "comprobantes");
+        var filePath = Path.Combine(uploadDir, sanitized);
+
+        if (!File.Exists(filePath))
+            return Results.NotFound(new { mensaje = "Archivo no encontrado." });
+
+        var extension = Path.GetExtension(sanitized).ToLowerInvariant();
+        var contentType = extension switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            ".pdf" => "application/pdf",
+            _ => "application/octet-stream"
+        };
+
+        return Results.File(filePath, contentType);
+    }
 }
 
 public record CrearAlmacenRequest(
@@ -596,7 +745,9 @@ public record SerieExistenteDetalle(
     string Estado,
     Guid? AlmacenId,
     string? AlmacenNombre,
-    string ProductoNombre
+    string ProductoNombre,
+    bool PermiteReingreso = false,
+    string? Mensaje = null
 );
 public record ValidarSeriesResponse(IReadOnlyCollection<SerieExistenteDetalle> Existentes);
 
@@ -616,3 +767,16 @@ public record RecepcionarTransferenciaRequest(
 public record RecepcionarTransferenciaLineaRequest(Guid TransferenciaDetalleId,decimal Cantidad,IReadOnlyCollection<string>? Series=null);
 
 public record ResolverDiferenciaRequest(Guid DetalleId,decimal Cantidad,TipoResolucionDiferencia Resultado,string Motivo,string Evidencia,IReadOnlyCollection<string>? Series,Guid OperacionId);
+
+public record ActualizarDevolucionProveedorRequest(
+    string Proveedor,
+    Guid AlmacenId,
+    Guid? UbicacionId,
+    string TipoDocumento,
+    string NumeroDocumento,
+    DateOnly FechaDocumento,
+    string Motivo,
+    string? Observaciones,
+    string? DocumentoRespaldoUrl,
+    IReadOnlyList<LineaDevolucionInput> Lineas
+);

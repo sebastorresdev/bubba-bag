@@ -20,6 +20,7 @@ public class CompraConfiguration : IEntityTypeConfiguration<Compra>
         builder.Property(x => x.Estado).HasMaxLength(50);
         builder.Property(x => x.UsuarioRecepcionId);
         builder.Property(x => x.FechaRecepcion);
+        builder.Property(x => x.DocumentoRespaldoUrl).HasMaxLength(500);
         builder.Property<uint>("xmin").IsRowVersion();
         builder.HasIndex(x => new { x.Proveedor, x.TipoDocumento, x.NumeroDocumento }).IsUnique().HasFilter("\"NumeroDocumento\" <> ''");
         builder.HasOne(x => x.Almacen).WithMany().HasForeignKey(x => x.AlmacenId).OnDelete(DeleteBehavior.Restrict);

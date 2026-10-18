@@ -65,7 +65,11 @@ const filterFields: D365FilterField[] = [
   },
 ];
 
-export const ClientesListPage: React.FC = () => {
+export interface ClientesListPageProps {
+  modo?: 'cuentas' | 'contactos' | 'todos';
+}
+
+export const ClientesListPage: React.FC<ClientesListPageProps> = ({ modo = 'todos' }) => {
   const styles = useD365ListStyles();
   const navigate = useNavigate();
   const tableRef = useRef<D365EntityTableRef>(null);
@@ -76,6 +80,28 @@ export const ClientesListPage: React.FC = () => {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [activeView, setActiveView] = useState<VistaClientes>('activos');
   const [selectedIds, setSelectedIds] = useState<Set<SelectionItemId>>(new Set());
+
+  const nombresVista = useMemo<Record<VistaClientes, string>>(() => {
+    if (modo === 'cuentas') {
+      return {
+        todas: 'Todas las cuentas',
+        activos: 'Cuentas activas',
+        servicio: 'Cuentas en servicio',
+        facturacion: 'Proveedores / Clientes de facturación',
+        inactivos: 'Cuentas inactivas',
+      };
+    }
+    if (modo === 'contactos') {
+      return {
+        todas: 'Todos los contactos',
+        activos: 'Contactos activos',
+        servicio: 'Abonados residenciales en servicio',
+        facturacion: 'Contactos de facturación',
+        inactivos: 'Contactos inactivos',
+      };
+    }
+    return nombresVistaClientes;
+  }, [modo]);
 
   const cargar = useCallback(async () => {
     try {
@@ -96,6 +122,12 @@ export const ClientesListPage: React.FC = () => {
 
   const filteredClientes = useMemo(() => {
     let result = [...clientes];
+
+    if (modo === 'cuentas') {
+      result = result.filter((c) => c.tipoPersona === 'JURIDICA');
+    } else if (modo === 'contactos') {
+      result = result.filter((c) => c.tipoPersona === 'NATURAL');
+    }
 
     if (activeView === 'activos') {
       result = result.filter((c) => c.activo);
@@ -122,7 +154,7 @@ export const ClientesListPage: React.FC = () => {
     }
 
     return result;
-  }, [clientes, activeView, searchKeyword]);
+  }, [clientes, modo, activeView, searchKeyword]);
 
   const handleExportarExcel = () => {
     const cols: ExportColumn<ClienteListadoItemDto>[] = [
@@ -160,20 +192,23 @@ export const ClientesListPage: React.FC = () => {
         columnId: 'codigoCliente',
         compare: (a, b) => a.codigoCliente.localeCompare(b.codigoCliente),
         renderHeaderCell: () => 'Código',
-        renderCell: (item) => (
-          <TableCellLayout truncate>
-            <Link
-              as="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/servicio-campo/clientes/${item.id}`);
-              }}
-              title={item.codigoCliente}
-            >
-              {item.codigoCliente}
-            </Link>
-          </TableCellLayout>
-        ),
+        renderCell: (item) => {
+          const basePath = modo === 'cuentas' ? '/servicio-campo/cuentas' : modo === 'contactos' ? '/servicio-campo/contactos' : '/servicio-campo/clientes';
+          return (
+            <TableCellLayout truncate>
+              <Link
+                as="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`${basePath}/${item.id}`);
+                }}
+                title={item.codigoCliente}
+              >
+                {item.codigoCliente}
+              </Link>
+            </TableCellLayout>
+          );
+        },
       }),
       createTableColumn<ClienteListadoItemDto>({
         columnId: 'nombreCompletoODenominacion',
@@ -268,7 +303,11 @@ export const ClientesListPage: React.FC = () => {
           <D365CommandButton
             icon={<Add16Regular />}
             tone="create"
-            onClick={() => navigate('/servicio-campo/clientes/nuevo')}
+            onClick={() => {
+              if (modo === 'cuentas') navigate('/servicio-campo/cuentas/nuevo');
+              else if (modo === 'contactos') navigate('/servicio-campo/contactos/nuevo');
+              else navigate('/servicio-campo/clientes/nuevo');
+            }}
           >
             Nuevo
           </D365CommandButton>
@@ -312,19 +351,19 @@ export const ClientesListPage: React.FC = () => {
         <Menu>
           <MenuTrigger disableButtonEnhancement>
             <div className={styles.viewSelectorTab} role="button" tabIndex={0}>
-              <Text>{nombresVistaClientes[activeView]}</Text>
+              <Text>{nombresVista[activeView]}</Text>
               <ChevronDown16Regular className={styles.iconChevronMargin} />
             </div>
           </MenuTrigger>
           <MenuPopover className={styles.viewMenuPopover}>
             <MenuList>
-              {(Object.keys(nombresVistaClientes) as VistaClientes[]).map((v) => (
+              {(Object.keys(nombresVista) as VistaClientes[]).map((v) => (
                 <MenuItem
                   key={v}
                   icon={activeView === v ? <Checkmark16Regular /> : undefined}
                   onClick={() => setActiveView(v)}
                 >
-                  {nombresVistaClientes[v]}
+                  {nombresVista[v]}
                 </MenuItem>
               ))}
             </MenuList>
@@ -335,7 +374,13 @@ export const ClientesListPage: React.FC = () => {
           tableRef={tableRef}
           searchValue={searchKeyword}
           onSearchChange={setSearchKeyword}
-          searchPlaceholder="Buscar cuentas o clientes..."
+          searchPlaceholder={
+            modo === 'cuentas'
+              ? 'Buscar cuentas o proveedores...'
+              : modo === 'contactos'
+              ? 'Buscar contactos o abonados...'
+              : 'Buscar cuentas o clientes...'
+          }
         />
       </div>
 

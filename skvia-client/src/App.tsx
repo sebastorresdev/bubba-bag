@@ -19,6 +19,8 @@ const ProductosListPage = lazy(() => import('./features/inventario/productos').t
 const ProductoFormPage = lazy(() => import('./features/inventario/productos').then((m) => ({ default: m.ProductoFormPage })));
 const AlmacenesListPage = lazy(() => import('./features/inventario/almacenes').then((m) => ({ default: m.AlmacenesListPage })));
 const AlmacenFormPage = lazy(() => import('./features/inventario/almacenes').then((m) => ({ default: m.AlmacenFormPage })));
+const DeclaracionesDoaListPage = lazy(() => import('./features/inventario/almacenes/pages/DeclaracionesDoaListPage').then((m) => ({ default: m.DeclaracionesDoaListPage })));
+const DeclaracionDoaPage = lazy(() => import('./features/inventario/almacenes/pages/DeclaracionDoaPage').then((m) => ({ default: m.DeclaracionDoaPage })));
 const GrupoUnidadDetallePage = lazy(() => import('./features/inventario/unidades-medida').then((m) => ({ default: m.GrupoUnidadDetallePage })));
 const UnidadesMedidaListPage = lazy(() => import('./features/inventario/unidades-medida').then((m) => ({ default: m.UnidadesMedidaListPage })));
 const CategoriasListPage = lazy(() => import('./features/inventario/categorias').then((m) => ({ default: m.CategoriasListPage })));
@@ -36,6 +38,8 @@ const ComprasListPage = lazy(() => import('./features/inventario/compras/Compras
 const CompraFormPage = lazy(() => import('./features/inventario/compras/CompraFormPage').then((m) => ({ default: m.CompraFormPage })));
 const RecepcionCompraPage = lazy(() => import('./features/inventario/compras/RecepcionCompraPage').then((m) => ({ default: m.RecepcionCompraPage })));
 const TrazabilidadSeriesPage = lazy(() => import('./features/inventario/series/TrazabilidadSeriesPage').then((m) => ({ default: m.TrazabilidadSeriesPage })));
+const DevolucionesProveedorListPage = lazy(() => import('./features/inventario/devolucionesProveedor/pages/DevolucionesProveedorListPage').then((m) => ({ default: m.DevolucionesProveedorListPage })));
+const DevolucionProveedorFormPage = lazy(() => import('./features/inventario/devolucionesProveedor/pages/DevolucionProveedorFormPage').then((m) => ({ default: m.DevolucionProveedorFormPage })));
 const AjustesListPage = lazy(() => import('./features/inventario/ajustes').then((m) => ({ default: m.AjustesListPage })));
 const AjusteFormPage = lazy(() => import('./features/inventario/ajustes').then((m) => ({ default: m.AjusteFormPage })));
 const ConfiguracionEmpresaPage = lazy(() => import('./features/configuracion-empresa/pages/ConfiguracionEmpresaPage').then((m) => ({ default: m.ConfiguracionEmpresaPage })));
@@ -63,6 +67,8 @@ const ConfiguracionesServicioListPage = lazy(() => import('./features/servicio-c
 const ConfiguracionServicioFormPage = lazy(() => import('./features/servicio-campo/configuraciones-servicio/pages/ConfiguracionServicioFormPage').then((m) => ({ default: m.ConfiguracionServicioFormPage })));
 const TareasListPage = lazy(() => import('./features/servicio-campo/tareas/pages/TareasListPage').then((m) => ({ default: m.TareasListPage })));
 const TareaFormPage = lazy(() => import('./features/servicio-campo/tareas/pages/TareaFormPage').then((m) => ({ default: m.TareaFormPage })));
+const MotivosRetiroEquipoListPage = lazy(() => import('./features/servicio-campo/motivos-retiro-equipo/pages/MotivosRetiroEquipoListPage').then((m) => ({ default: m.MotivosRetiroEquipoListPage })));
+const MotivoRetiroEquipoFormPage = lazy(() => import('./features/servicio-campo/motivos-retiro-equipo/pages/MotivoRetiroEquipoFormPage').then((m) => ({ default: m.MotivoRetiroEquipoFormPage })));
 
 const PlaceholderPage = lazy(() => import('./components/common/PlaceholderPage').then((m) => ({ default: m.PlaceholderPage })));
 
@@ -103,13 +109,19 @@ const router = createBrowserRouter(createRoutesFromElements(
               <Route path="servicio-campo/ordenes/nuevo" element={<OrdenTrabajoFormPage />} />
               <Route path="servicio-campo/ordenes/:id" element={<OrdenTrabajoFormPage />} />
 
-              {/* CRM / Clientes y Cuentas */}
-              <Route path="servicio-campo/clientes" element={<ClientesListPage />} />
+              {/* CRM / Clientes: Cuentas y Contactos */}
+              <Route path="servicio-campo/clientes" element={<Navigate to="/servicio-campo/cuentas" replace />} />
               <Route path="servicio-campo/clientes/nuevo" element={<ClienteFormPage />} />
               <Route path="servicio-campo/clientes/:id" element={<ClienteFormPage />} />
-              <Route path="crm/clientes" element={<Navigate to="/servicio-campo/clientes" replace />} />
-              <Route path="crm/clientes/nuevo" element={<Navigate to="/servicio-campo/clientes/nuevo" replace />} />
-              <Route path="crm/clientes/:id" element={<Navigate to="/servicio-campo/clientes/:id" replace />} />
+              <Route path="servicio-campo/cuentas" element={<ClientesListPage modo="cuentas" />} />
+              <Route path="servicio-campo/cuentas/nuevo" element={<ClienteFormPage modoInicial="JURIDICA" />} />
+              <Route path="servicio-campo/cuentas/:id" element={<ClienteFormPage modoInicial="JURIDICA" />} />
+              <Route path="servicio-campo/contactos" element={<ClientesListPage modo="contactos" />} />
+              <Route path="servicio-campo/contactos/nuevo" element={<ClienteFormPage modoInicial="NATURAL" />} />
+              <Route path="servicio-campo/contactos/:id" element={<ClienteFormPage modoInicial="NATURAL" />} />
+              <Route path="crm/clientes" element={<Navigate to="/servicio-campo/cuentas" replace />} />
+              <Route path="crm/clientes/nuevo" element={<Navigate to="/servicio-campo/cuentas/nuevo" replace />} />
+              <Route path="crm/clientes/:id" element={<Navigate to="/servicio-campo/cuentas/:id" replace />} />
 
               {/* 1. Catálogo General - Unidades de Medida */}
               <Route path="servicio-campo/unidades-medida" element={<UnidadesMedidaListPage />} />
@@ -144,10 +156,15 @@ const router = createBrowserRouter(createRoutesFromElements(
               <Route path="servicio-campo/devolucion-tecnicos" element={<TransferenciasListPage tipoFiltro="Devolucion" />} />
               <Route path="servicio-campo/devolucion-tecnicos/nuevo" element={<DevolucionTecnicoPage />} />
               <Route path="servicio-campo/devolucion-tecnicos/:id" element={<DevolucionTecnicoPage />} />
+              <Route path="servicio-campo/declaracion-doa" element={<DeclaracionesDoaListPage />} />
+              <Route path="servicio-campo/declaracion-doa/nuevo" element={<DeclaracionDoaPage />} />
               <Route path="servicio-campo/recepciones-compra" element={<ComprasListPage />} />
               <Route path="servicio-campo/recepciones-compra/nuevo" element={<CompraFormPage key="nueva-compra" />} />
               <Route path="servicio-campo/recepciones-compra/:id" element={<CompraFormPage />} />
               <Route path="servicio-campo/recepciones-compra/:id/recepcion" element={<RecepcionCompraPage />} />
+              <Route path="servicio-campo/devoluciones-proveedor" element={<DevolucionesProveedorListPage />} />
+              <Route path="servicio-campo/devoluciones-proveedor/nuevo" element={<DevolucionProveedorFormPage key="nueva-devolucion" />} />
+              <Route path="servicio-campo/devoluciones-proveedor/:id" element={<DevolucionProveedorFormPage />} />
               <Route path="servicio-campo/almacenes" element={<AlmacenesListPage />} />
               <Route path="servicio-campo/almacenes/nuevo" element={<AlmacenFormPage />} />
               <Route path="servicio-campo/almacenes/:id" element={<AlmacenFormPage />} />
@@ -179,7 +196,11 @@ const router = createBrowserRouter(createRoutesFromElements(
               <Route path="servicio-campo/configuraciones-servicio/:id" element={<ConfiguracionServicioFormPage />} />
               <Route path="servicio-campo/tareas" element={<TareasListPage />} />
               <Route path="servicio-campo/tareas/nuevo" element={<TareaFormPage />} />
-              <Route path="servicio-campo/tareas/:id" element={<TareaFormPage />} />
+              <Route path="servicio-campo/motivos-retiro" element={<MotivosRetiroEquipoListPage />} />
+              <Route path="servicio-campo/motivos-retiro/nuevo" element={<MotivoRetiroEquipoFormPage />} />
+              <Route path="servicio-campo/motivos-retiro/:id" element={<MotivoRetiroEquipoFormPage />} />
+              <Route path="servicio-campo/fallas-equipo" element={<Navigate to="/servicio-campo/motivos-retiro" replace />} />
+              <Route path="servicio-campo/fallas-equipo/:id" element={<Navigate to="/servicio-campo/motivos-retiro" replace />} />
               <Route path="servicio-campo/motivos-incidencia" element={<Navigate to="/servicio-campo/configuraciones-servicio" replace />} />
 
               {/* Gestión global de datos e importaciones */}

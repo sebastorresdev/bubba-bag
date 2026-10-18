@@ -10,6 +10,7 @@ import {
   Text,
   Input,
   SplitButton,
+  Button,
   Badge,
   tokens,
   type MenuButtonProps,
@@ -19,15 +20,17 @@ import {
   ArrowClockwise16Regular,
   ArrowDownload16Regular,
   Search16Regular,
+  HistoryRegular,
   ChevronDown16Regular,
   Checkmark16Regular,
   DocumentTable20Regular,
   DocumentText20Regular,
-  Warning16Regular,
-  CheckmarkCircle16Regular,
-  DismissCircle16Regular,
+  Warning16Filled,
+  CheckmarkCircle16Filled,
+  DismissCircle16Filled,
   Box16Regular,
 } from '@fluentui/react-icons';
+import { HistorialSerieDrawer } from './HistorialSerieDrawer';
 import { D365CommandBar, D365CommandButton } from '../../../components/common/D365CommandBar';
 import {
   D365EntityTable,
@@ -111,7 +114,7 @@ const columnasExportacion: ExportColumn<ItemSeriadoStockDto>[] = [
     const sla = obtenerSlaInfo(s);
     return sla.dias !== null ? String(sla.dias) : '—';
   }},
-  { header: 'SLA DirecTV (Aging)', accessor: s => obtenerSlaInfo(s).label },
+  { header: 'SLA', accessor: s => obtenerSlaInfo(s).label },
   { header: 'Ubicación', accessor: s => s.nombreUbicacion || '' },
   { header: 'Condición', accessor: s => s.condicion || '' },
   { header: 'SmartCard', accessor: s => s.numeroSmartCard || '' },
@@ -131,6 +134,13 @@ export function TrazabilidadSeriesPage() {
   const [buscar, setBuscar] = useState('');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [drawerHistorialAbierto, setDrawerHistorialAbierto] = useState(false);
+  const [serieSeleccionadaHistorial, setSerieSeleccionadaHistorial] = useState<string | null>(null);
+
+  const handleAbrirHistorial = (numeroSerie: string) => {
+    setSerieSeleccionadaHistorial(numeroSerie);
+    setDrawerHistorialAbierto(true);
+  };
 
   const filterFields = useMemo<D365FilterField[]>(() => [
     { id: 'numeroSerie', label: 'Número de Serie', type: 'string' },
@@ -146,12 +156,12 @@ export function TrazabilidadSeriesPage() {
         { value: 'EnCustodiaTecnico', label: 'Custodia Técnico' },
         { value: 'InstaladoEnCliente', label: 'Instalado en Cliente' },
         { value: 'AveriadoEnAlmacen', label: 'Averiado' },
-        { value: 'DevueltoAProveedor', label: 'Devuelto a DIRECTV' },
+        { value: 'DevueltoAProveedor', label: 'Devuelto a Proveedor' },
       ],
     },
     {
       id: 'estadoSla',
-      label: 'SLA DirecTV',
+      label: 'SLA',
       type: 'string',
       options: [
         { value: 'EnSla', label: 'En SLA (≤ 15 días)' },
@@ -253,7 +263,22 @@ export function TrazabilidadSeriesPage() {
       renderHeaderCell: () => 'Número de Serie',
       renderCell: (item: ItemSeriadoStockDto) => (
         <TableCellLayout truncate>
-          <Text weight="semibold">{item.numeroSerie}</Text>
+          <Button
+            appearance="subtle"
+            size="small"
+            icon={<HistoryRegular style={{ color: tokens.colorBrandForeground1 }} />}
+            onClick={() => handleAbrirHistorial(item.numeroSerie)}
+            style={{
+              padding: '0 6px',
+              height: '24px',
+              fontWeight: tokens.fontWeightSemibold,
+              fontFamily: 'monospace',
+              color: tokens.colorBrandForeground1,
+            }}
+            title="Ver trazabilidad completa e historial de esta serie"
+          >
+            {item.numeroSerie}
+          </Button>
         </TableCellLayout>
       ),
     }),
@@ -355,7 +380,7 @@ export function TrazabilidadSeriesPage() {
                     : tokens.colorNeutralForeground1,
               }}
             >
-              {sla.dias} d
+              {sla.dias}
             </Text>
           </TableCellLayout>
         );
@@ -364,28 +389,34 @@ export function TrazabilidadSeriesPage() {
     createTableColumn({
       columnId: 'estadoSla',
       compare: (a, b) => obtenerSlaInfo(a).label.localeCompare(obtenerSlaInfo(b).label),
-      renderHeaderCell: () => 'SLA DirecTV',
+      renderHeaderCell: () => 'SLA',
       renderCell: (item: ItemSeriadoStockDto) => {
         const sla = obtenerSlaInfo(item);
         return (
-          <TableCellLayout truncate title={`SLA de decodificador DirecTV: ${sla.label}`}>
+          <TableCellLayout truncate title={`SLA: ${sla.label} (${sla.dias ?? 0} días en almacén)`}>
             <Badge
               appearance="tint"
               shape="rounded"
               color={sla.badgeColor}
               icon={
                 sla.estadoSla === 'EnSla' ? (
-                  <CheckmarkCircle16Regular />
+                  <CheckmarkCircle16Filled />
                 ) : sla.estadoSla === 'EnRiesgo' ? (
-                  <Warning16Regular />
+                  <Warning16Filled />
                 ) : sla.estadoSla === 'Vencido' ? (
-                  <DismissCircle16Regular />
+                  <DismissCircle16Filled />
                 ) : (
                   <Box16Regular />
                 )
               }
             >
-              {sla.label}
+              {sla.estadoSla === 'EnSla'
+                ? 'En SLA'
+                : sla.estadoSla === 'EnRiesgo'
+                ? 'En Riesgo'
+                : sla.estadoSla === 'Vencido'
+                ? 'Vencido'
+                : 'Instalado'}
             </Badge>
           </TableCellLayout>
         );
@@ -429,6 +460,15 @@ export function TrazabilidadSeriesPage() {
         <div className={listStyles.toolbarLeft}>
           <D365CommandButton icon={<ArrowClockwise16Regular />} onClick={() => void cargar()}>
             Actualizar
+          </D365CommandButton>
+          <D365CommandButton
+            icon={<HistoryRegular />}
+            onClick={() => {
+              setSerieSeleccionadaHistorial(null);
+              setDrawerHistorialAbierto(true);
+            }}
+          >
+            Consultar Historial
           </D365CommandButton>
           <Menu positioning="below-end">
             <MenuTrigger disableButtonEnhancement>
@@ -530,6 +570,13 @@ export function TrazabilidadSeriesPage() {
         </div>
         <div>Página 1</div>
       </footer>
+
+      {/* Drawer de Trazabilidad e Historial 360° */}
+      <HistorialSerieDrawer
+        open={drawerHistorialAbierto}
+        onOpenChange={setDrawerHistorialAbierto}
+        serieInicial={serieSeleccionadaHistorial}
+      />
     </div>
   );
 }

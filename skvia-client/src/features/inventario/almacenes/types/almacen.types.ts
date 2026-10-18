@@ -69,6 +69,8 @@ export interface SerieExistenteDetalle {
   almacenId?: string | null;
   almacenNombre?: string | null;
   productoNombre: string;
+  permiteReingreso?: boolean;
+  mensaje?: string | null;
 }
 
 export interface ValidarSeriesResponse {
@@ -84,4 +86,70 @@ export interface ResumenStockAlmacenDto {
   totalSeries: number;
 }
 
-export interface UbicacionInventarioDto { id:string; almacenId:string; codigo:string; nombre:string; esPrincipal:boolean; activa:boolean; }
+export type TipoUbicacion = 'Disponible' | 'Devolucion';
+
+export interface UbicacionInventarioDto {
+  id: string;
+  almacenId: string;
+  codigo: string;
+  nombre: string;
+  esPrincipal: boolean;
+  tipoUbicacion: number; // 1 = Disponible, 2 = Devolucion
+  tipoUbicacionNombre: TipoUbicacion;
+  ubicacionPadreId?: string | null;
+  activa: boolean;
+}
+
+export interface CrearUbicacionDto {
+  codigo: string;
+  nombre: string;
+  tipoUbicacion?: TipoUbicacion;
+  ubicacionPadreId?: string | null;
+}
+
+export interface ReubicarMaterialDto {
+  ubicacionOrigenId: string;
+  ubicacionDestinoId: string;
+  productoId: string;
+  cantidad: number;
+  series?: string[];
+  observaciones?: string;
+}
+
+export interface DeclararDoaDto {
+  ubicacionOrigenId: string;
+  ubicacionDestinoId: string;
+  motivoRetiroId: string;
+  series: string[];
+  observaciones?: string;
+}
+
+export interface SerieDisponibleAlmacenDto {
+  id: string;
+  numeroSerie: string;
+  numeroSmartCard?: string | null;
+  macAddress?: string | null;
+  productoId: string;
+  productoNombre: string;
+  productoCodigo: string;
+  ubicacionActualId: string;
+  ubicacionNombre: string;
+  ubicacionCodigo: string;
+}
+
+export interface ReclasificacionDoaDto {
+  id: string;
+  fecha: string;
+  almacenId: string;
+  almacenNombre: string;
+  ubicacionOrigenNombre: string;
+  ubicacionDestinoNombre: string;
+  productoId: string;
+  productoNombre: string;
+  productoCodigo: string;
+  numeroSerie: string;
+  numeroSmartCard?: string | null;
+  observaciones?: string | null;
+  condicion: string;
+}
+

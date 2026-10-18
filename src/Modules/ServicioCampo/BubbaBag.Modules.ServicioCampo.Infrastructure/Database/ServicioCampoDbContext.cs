@@ -40,6 +40,7 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public DbSet<RecepcionTransferenciaDetalle> RecepcionTransferenciaDetalles => Set<RecepcionTransferenciaDetalle>();
     public DbSet<ResolucionDiferenciaTransferencia> ResolucionDiferenciaTransferencias => Set<ResolucionDiferenciaTransferencia>();
     public DbSet<Compra> Compras => Set<Compra>();
+    public DbSet<DevolucionProveedor> DevolucionesProveedor => Set<DevolucionProveedor>();
     public DbSet<AjusteInventario> AjustesInventario => Set<AjusteInventario>();
     public DbSet<StockAlmacen> StocksAlmacen => Set<StockAlmacen>();
     public DbSet<MovimientoInventario> MovimientosInventario => Set<MovimientoInventario>();
@@ -56,6 +57,7 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public DbSet<TipoOrdenTrabajo> TiposOrdenTrabajo => Set<TipoOrdenTrabajo>();
     public DbSet<CampoDefinicion> CamposDefinicion => Set<CampoDefinicion>();
     public DbSet<TipoTareaServicio> TiposTareaServicio => Set<TipoTareaServicio>();
+    public DbSet<MotivoRetiroEquipo> MotivosRetiroEquipo => Set<MotivoRetiroEquipo>();
 
     // Plantillas y Catálogos de Tareas
     public DbSet<Tarea> Tareas => Set<Tarea>();

@@ -31,16 +31,94 @@ function normalizarAlmacen(a: AlmacenDto): AlmacenDto {
 }
 
 export const AlmacenService = {
-  getUbicaciones: (id:string,origenId?:string) => apiClient<import('../types/almacen.types').UbicacionInventarioDto[]>(`/api/inventario/almacenes/${id}/ubicaciones${origenId ? '?origenId='+origenId : ''}`),
-  crearUbicacion: (id:string,codigo:string,nombre:string) => apiClient(`/api/inventario/almacenes/${id}/ubicaciones`,{method:'POST',body:JSON.stringify({codigo,nombre})}),
-  eliminarUbicacion: (id:string,ubicacionId:string) => apiClient(`/api/inventario/almacenes/${id}/ubicaciones/${ubicacionId}`,{method:'DELETE'}),
-  getDestinos: async (id:string) => {
+  getUbicaciones: (id: string, origenId?: string) =>
+    apiClient<import('../types/almacen.types').UbicacionInventarioDto[]>(
+      `/api/inventario/almacenes/${id}/ubicaciones${origenId ? '?origenId=' + origenId : ''}`
+    ),
+  crearUbicacion: (
+    id: string,
+    codigo: string,
+    nombre: string,
+    tipoUbicacion?: import('../types/almacen.types').TipoUbicacion,
+    ubicacionPadreId?: string | null
+  ) =>
+    apiClient(`/api/inventario/almacenes/${id}/ubicaciones`, {
+      method: 'POST',
+      body: JSON.stringify({ codigo, nombre, tipoUbicacion, ubicacionPadreId }),
+    }),
+  eliminarUbicacion: (id: string, ubicacionId: string) =>
+    apiClient(`/api/inventario/almacenes/${id}/ubicaciones/${ubicacionId}`, { method: 'DELETE' }),
+
+  reubicarMaterial: (id: string, dto: import('../types/almacen.types').ReubicarMaterialDto) =>
+    apiClient<{ mensaje: string; cantidad: number }>(`/api/inventario/almacenes/${id}/reubicar`, {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+
+  declararDoa: (id: string, dto: import('../types/almacen.types').DeclararDoaDto) =>
+    apiClient<{ mensaje: string; totalSeries: number }>(`/api/inventario/almacenes/${id}/reclasificar-doa`, {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    }),
+
+  obtenerReclasificacionesDoa: (almacenId?: string) =>
+    apiClient<import('../types/almacen.types').ReclasificacionDoaDto[]>(
+      `/api/inventario/almacenes/reclasificaciones-doa${almacenId ? '?almacenId=' + almacenId : ''}`
+    ),
+
+  getSeriesDisponiblesAlmacen: (id: string) =>
+    apiClient<import('../types/almacen.types').SerieDisponibleAlmacenDto[]>(
+      `/api/inventario/almacenes/${id}/series-disponibles`
+    ),
+
+  getSeriesPorUbicacion: (id: string, ubicacionId: string) =>
+    apiClient<
+      Array<{
+        id: string;
+        numeroSerie: string;
+        numeroSmartCard?: string | null;
+        macAddress?: string | null;
+        productoId: string;
+        productoNombre: string;
+        productoCodigo: string;
+        estado: string;
+      }>
+    >(`/api/inventario/almacenes/${id}/series-por-ubicacion/${ubicacionId}`),
+
+  getDestinos: async (id: string) => {
     const list = await apiClient<import('../types/almacen.types').AlmacenDto[]>(`/api/inventario/almacenes/${id}/destinos`);
     return (list || []).map(normalizarAlmacen);
   },
-  getAutorizaciones: (id:string) => apiClient<Array<{usuarioId:string;nombreCompleto?:string;email?:string;puedeConsultar:boolean;puedeDespachar:boolean;puedeRecepcionar:boolean;esSupervisor:boolean;activo:boolean}>>(`/api/inventario/almacenes/${id}/autorizaciones`),
-  guardarAutorizacion: (id:string,usuarioId:string,datos:{puedeConsultar:boolean;puedeDespachar:boolean;puedeRecepcionar:boolean;esSupervisor:boolean;activo:boolean}) => apiClient(`/api/inventario/almacenes/${id}/autorizaciones/${usuarioId}`,{method:'PUT',body:JSON.stringify(datos)}),
-  eliminarAutorizacion: (id:string,usuarioId:string) => apiClient(`/api/inventario/almacenes/${id}/autorizaciones/${usuarioId}`,{method:'DELETE'}),
+  getAutorizaciones: (id: string) =>
+    apiClient<
+      Array<{
+        usuarioId: string;
+        nombreCompleto?: string;
+        email?: string;
+        puedeConsultar: boolean;
+        puedeDespachar: boolean;
+        puedeRecepcionar: boolean;
+        esSupervisor: boolean;
+        activo: boolean;
+      }>
+    >(`/api/inventario/almacenes/${id}/autorizaciones`),
+  guardarAutorizacion: (
+    id: string,
+    usuarioId: string,
+    datos: {
+      puedeConsultar: boolean;
+      puedeDespachar: boolean;
+      puedeRecepcionar: boolean;
+      esSupervisor: boolean;
+      activo: boolean;
+    }
+  ) =>
+    apiClient(`/api/inventario/almacenes/${id}/autorizaciones/${usuarioId}`, {
+      method: 'PUT',
+      body: JSON.stringify(datos),
+    }),
+  eliminarAutorizacion: (id: string, usuarioId: string) =>
+    apiClient(`/api/inventario/almacenes/${id}/autorizaciones/${usuarioId}`, { method: 'DELETE' }),
   // 1. Obtener almacenes con filtros
   async getAlmacenes(soloActivos?: boolean): Promise<AlmacenDto[]> {
     const params = new URLSearchParams();

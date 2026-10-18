@@ -63,6 +63,12 @@ import {
   Money20Regular,
   ArrowUpload20Filled,
   ArrowUpload20Regular,
+  VehicleTruckProfile20Filled,
+  VehicleTruckProfile20Regular,
+  ArrowSync20Filled,
+  ArrowSync20Regular,
+  ArrowReply20Filled,
+  ArrowReply20Regular,
 } from '@fluentui/react-icons';
 import type { NavArea, NavItem as NavItemData } from '../../types/navigation.types';
 
@@ -88,6 +94,9 @@ const ICONS_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Clock: bundleIcon(Clock20Filled, Clock20Regular),
   Money: bundleIcon(Money20Filled, Money20Regular),
   ArrowUpload: bundleIcon(ArrowUpload20Filled, ArrowUpload20Regular),
+  VehicleTruckProfile: bundleIcon(VehicleTruckProfile20Filled, VehicleTruckProfile20Regular),
+  ArrowSync: bundleIcon(ArrowSync20Filled, ArrowSync20Regular),
+  ArrowReply: bundleIcon(ArrowReply20Filled, ArrowReply20Regular),
 };
 
 const useStyles = makeStyles({

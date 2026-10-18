@@ -20,6 +20,7 @@ public class Compra : Entity<Guid>
     public DateTime FechaRegistro { get; private set; }
     public Guid? UsuarioRecepcionId { get; private set; }
     public DateTime? FechaRecepcion { get; private set; }
+    public string? DocumentoRespaldoUrl { get; private set; }
 
     private Compra() { }
 
@@ -65,7 +66,7 @@ public class Compra : Entity<Guid>
         Estado = "Borrador";
     }
 
-    public void Recepcionar(Guid? usuarioRecepcionId = null, bool conFaltantes = false, string? lineasActualizadasJson = null)
+    public void Recepcionar(Guid? usuarioRecepcionId = null, bool conFaltantes = false, string? lineasActualizadasJson = null, string? documentoRespaldoUrl = null)
     {
         if (Estado != "Solicitada" && Estado != "Enviada" && Estado != "Recibida con faltantes") throw new InvalidOperationException("La compra debe estar solicitada, enviada o tener faltantes pendientes.");
         Estado = conFaltantes ? "Recibida con faltantes" : "Recibida";
@@ -75,6 +76,15 @@ public class Compra : Entity<Guid>
         {
             LineasJson = lineasActualizadasJson;
         }
+        if (!string.IsNullOrWhiteSpace(documentoRespaldoUrl))
+        {
+            DocumentoRespaldoUrl = documentoRespaldoUrl.Trim();
+        }
+    }
+
+    public void AdjuntarRespaldo(string url)
+    {
+        DocumentoRespaldoUrl = url.Trim();
     }
 
     public void CerrarFaltantes(Guid? usuarioId = null)

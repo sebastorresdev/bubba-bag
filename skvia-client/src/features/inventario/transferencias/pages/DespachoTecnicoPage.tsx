@@ -225,7 +225,11 @@ export const DespachoTecnicoPage: React.FC = () => {
     totalLineas?: number;
   } | null>(null);
   const focusValidation = useValidationFocus();
-  const draft = useUnsavedChanges({ almacenOrigenId,ubicacionOrigenId,almacenDestinoId,tecnicoId,numeroGuiaRemision,observaciones,lineas }, !loading);
+  const esSoloLectura = estado !== 'Borrador';
+  const draft = useUnsavedChanges(
+    { almacenOrigenId, ubicacionOrigenId, almacenDestinoId, tecnicoId, numeroGuiaRemision, observaciones, lineas },
+    !loading && !esSoloLectura
+  );
 
 
   useEffect(() => {
@@ -277,6 +281,7 @@ export const DespachoTecnicoPage: React.FC = () => {
               }))
             );
             setSelectedTab('productos');
+            draft.markSaved();
           }
         } else {
           // Preseleccionar primera bodega si existe
@@ -782,6 +787,7 @@ export const DespachoTecnicoPage: React.FC = () => {
       setNumeroTransferencia(res.numero);
       if (res.numeroGuiaRemision) setNumeroGuiaRemision(res.numeroGuiaRemision);
       setEstado(res.estado || 'Cerrada');
+      draft.markSaved();
 
       const tecnicoNombre = tecnicoObj?.nombreCompleto || custodiaTecnico?.recursoNombre || custodiaTecnico?.nombre || 'Técnico asignado';
       const cantTotal = lineas.reduce((acc, l) => acc + (Number(l.cantidad) || 0), 0);
@@ -932,7 +938,7 @@ export const DespachoTecnicoPage: React.FC = () => {
           </TableCellLayout>
         ),
       }),
-      ...(estado !== 'Cerrada'
+      ...(!esSoloLectura
         ? [
             createTableColumn<LineaDespacho>({
               columnId: 'acciones',
@@ -952,7 +958,7 @@ export const DespachoTecnicoPage: React.FC = () => {
           ]
         : []),
     ],
-    [lineas, estado, classes.seriesBadgeList]
+    [lineas, estado, esSoloLectura, classes.seriesBadgeList]
   );
 
   if (loading) {
@@ -980,9 +986,14 @@ export const DespachoTecnicoPage: React.FC = () => {
             tone="brand"
             aria-label="Volver"
             title="Volver a Despachos"
-            onClick={() => navigate('/servicio-campo/despacho-tecnicos')}
+            onClick={() => {
+              if (esSoloLectura) {
+                draft.markSaved();
+              }
+              navigate('/servicio-campo/despacho-tecnicos');
+            }}
           />
-          {estado !== 'Cerrada' && (
+          {!esSoloLectura && (
             <>
               <D365CommandDivider />
               <D365CommandButton
@@ -1112,7 +1123,7 @@ export const DespachoTecnicoPage: React.FC = () => {
                     alNavegar={(id) => navigate(`/almacenes/${id}`)}
                     icono={<Box16Regular />}
                     tituloEnlace="Ver ficha del almacén"
-                    deshabilitado={estado === 'Cerrada'}
+                    deshabilitado={esSoloLectura}
                   />
                 </D365FormField>
 
@@ -1144,7 +1155,7 @@ export const DespachoTecnicoPage: React.FC = () => {
                         ? `No se encontraron técnicos en la sede ${almacenOrigenObj.unidadOrganizativaNombre}`
                         : "No se encontraron almacenes de custodia disponibles"
                     }
-                    deshabilitado={estado === 'Cerrada' || !almacenOrigenId}
+                    deshabilitado={esSoloLectura || !almacenOrigenId}
                   />
                 </D365FormField>
 
@@ -1154,7 +1165,7 @@ export const DespachoTecnicoPage: React.FC = () => {
                     value={observaciones}
                     onChange={(_, d) => setObservaciones(d.value)}
                     maxLength={500}
-                    readOnly={estado === 'Cerrada'}
+                    readOnly={esSoloLectura}
                   />
                 </D365FormField>
               </div>
@@ -1167,7 +1178,7 @@ export const DespachoTecnicoPage: React.FC = () => {
             <div className={formStyles.cardSectionTitle}>Materiales y Equipos a Despachar</div>
 
             {/* SECCIÓN DE ENTRADA / ESCANEO ESTILO SYMBAR */}
-            {estado !== 'Cerrada' && (
+            {!esSoloLectura && (
               <div className={classes.scannerPanel}>
                 <div className={classes.scannerGrid}>
                   {/* Campo 1: SKU / SERIE */}
@@ -1439,7 +1450,10 @@ export const DespachoTecnicoPage: React.FC = () => {
               }
             : null
         }
-        onClose={() => setDespachoExitoso(null)}
+        onClose={() => {
+          draft.markSaved();
+          setDespachoExitoso(null);
+        }}
         onDescargarPdf={() => void handleDescargarCargo()}
         onImprimir={() => void handleImprimirCargo()}
         onCompartirWhatsApp={() => void handleCompartirWhatsApp()}

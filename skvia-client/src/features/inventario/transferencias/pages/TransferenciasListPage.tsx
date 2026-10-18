@@ -324,7 +324,12 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
   );
 
   const tituloVista = useMemo(() => {
-    const prefijo = tipoFiltro === 'Despacho' ? 'Despachos' : tipoFiltro === 'Devolucion' ? 'Devoluciones' : 'Transferencias';
+    const prefijo =
+      tipoFiltro === 'Despacho'
+        ? 'Despachos a técnicos'
+        : tipoFiltro === 'Devolucion'
+        ? 'Desabastecimientos de técnicos'
+        : 'Traslados entre almacenes';
     switch (vista) {
       case 'recientes':
         return `${prefijo} recientes`;

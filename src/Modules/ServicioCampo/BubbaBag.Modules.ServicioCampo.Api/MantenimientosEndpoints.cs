@@ -6,6 +6,8 @@ using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.MotivosIncidenci
 using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.MotivosIncidencia.Commands.CambiarEstadoMotivoIncidencia;
 using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.MotivosIncidencia.Queries.ObtenerMotivosIncidencia;
 using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.MotivosIncidencia.Queries.ObtenerMotivoIncidenciaPorId;
+using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.MotivosRetiroEquipo;
+using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
 
 using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.TiposOrdenTrabajo.Dtos;
 using BubbaBag.Modules.ServicioCampo.Application.Mantenimientos.TiposOrdenTrabajo.Commands.CrearTipoOrdenTrabajo;
@@ -109,6 +111,23 @@ public static class MantenimientosEndpoints
         tiposTareaGroup.MapPut("/{id:guid}", ActualizarTipoTarea)
             .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
         tiposTareaGroup.MapPatch("/{id:guid}/estado", CambiarEstadoTipoTarea)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+
+        // =====================================================================
+        // MOTIVOS DE RETIRO DE EQUIPOS (Logística Inversa)
+        // =====================================================================
+        var motivosRetiroGroup = rootGroup.MapGroup("/motivos-retiro-equipo");
+        motivosRetiroGroup.MapGet("/", ObtenerMotivosRetiroEquipo)
+            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
+        motivosRetiroGroup.MapGet("/{id:guid}", ObtenerMotivoRetiroEquipoPorId)
+            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
+        motivosRetiroGroup.MapPost("/", CrearMotivoRetiroEquipo)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        motivosRetiroGroup.MapPut("/{id:guid}", ActualizarMotivoRetiroEquipo)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        motivosRetiroGroup.MapPatch("/{id:guid}/estado", CambiarEstadoMotivoRetiroEquipo)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        motivosRetiroGroup.MapDelete("/{id:guid}", EliminarMotivoRetiroEquipo)
             .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
     }
 
@@ -268,6 +287,54 @@ public static class MantenimientosEndpoints
             ? Results.Ok(new { message = $"Tipo de tarea {(request.Activo ? "activado" : "desactivado")} correctamente." })
             : Results.BadRequest(new { message = result.Error });
     }
+
+    // Handlers - Motivos de Retiro de Equipos (Logística Inversa)
+    private static async Task<IResult> ObtenerMotivosRetiroEquipo(IDispatcher dispatcher, TipoRetiroEquipo? tipo, bool? soloActivos, string? search)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerMotivosRetiroEquipoQuery(tipo, soloActivos, search));
+        return Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> ObtenerMotivoRetiroEquipoPorId(Guid id, IDispatcher dispatcher)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerMotivoRetiroEquipoPorIdQuery(id));
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.NotFound(new { message = result.Error });
+    }
+
+    private static async Task<IResult> CrearMotivoRetiroEquipo(CrearMotivoRetiroEquipoCommand command, IDispatcher dispatcher)
+    {
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Created($"/api/serviciocampo/mantenimientos/motivos-retiro-equipo/{result.Value}", new { id = result.Value, message = "Motivo de retiro de equipo registrado con éxito." })
+            : Results.BadRequest(new { message = result.Error });
+    }
+
+    private static async Task<IResult> ActualizarMotivoRetiroEquipo(Guid id, ActualizarMotivoRetiroEquipoRequest request, IDispatcher dispatcher)
+    {
+        var command = new ActualizarMotivoRetiroEquipoCommand(id, request.Nombre, request.TipoRetiro, request.Descripcion);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Ok(new { message = "Motivo de retiro de equipo actualizado correctamente." })
+            : Results.BadRequest(new { message = result.Error });
+    }
+
+    private static async Task<IResult> CambiarEstadoMotivoRetiroEquipo(Guid id, CambiarEstadoCatalogoRequest request, IDispatcher dispatcher)
+    {
+        var command = new CambiarEstadoMotivoRetiroEquipoCommand(id, request.Activo);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Ok(new { message = $"Motivo de retiro {(request.Activo ? "activado" : "desactivado")} correctamente." })
+            : Results.BadRequest(new { message = result.Error });
+    }
+
+    private static async Task<IResult> EliminarMotivoRetiroEquipo(Guid id, IDispatcher dispatcher)
+    {
+        var command = new EliminarMotivoRetiroEquipoCommand(id);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Ok(new { message = "Motivo de retiro de equipo eliminado correctamente." })
+            : Results.BadRequest(new { message = result.Error });
+    }
 }
 
 // Request DTOs
@@ -291,3 +358,8 @@ public record ActualizarTipoTareaServicioRequest(
     string Nombre,
     Guid? ClienteFacturacionId,
     int DuracionEstimadaMinutos);
+
+public record ActualizarMotivoRetiroEquipoRequest(
+    string Nombre,
+    TipoRetiroEquipo TipoRetiro,
+    string? Descripcion = null);

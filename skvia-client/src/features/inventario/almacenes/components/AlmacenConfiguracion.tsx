@@ -43,9 +43,10 @@ import {
   Delete16Regular,
   Info16Regular,
   SaveMultiple16Regular,
+  ArrowSwap16Regular,
 } from '@fluentui/react-icons';
 import { AlmacenService } from '../services/almacen.service';
-import type { UbicacionInventarioDto } from '../types/almacen.types';
+import type { UbicacionInventarioDto, TipoUbicacion } from '../types/almacen.types';
 import { apiClient } from '../../../../services/apiClient';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
@@ -213,6 +214,7 @@ const useStyles = makeStyles({
 export interface AlmacenConfiguracionProps {
   almacenId: string;
   puedeSupervisar: boolean;
+  puedeOperar?: boolean;
   vista?: 'todas' | 'ubicaciones' | 'autorizaciones';
   tipoAlmacen?: number;
 }
@@ -220,6 +222,7 @@ export interface AlmacenConfiguracionProps {
 export function AlmacenConfiguracion({
   almacenId,
   puedeSupervisar,
+  puedeOperar = false,
   vista = 'todas',
   tipoAlmacen,
 }: AlmacenConfiguracionProps) {
@@ -230,6 +233,9 @@ export function AlmacenConfiguracion({
       ['SuperAdmin', 'ServicioCampoAdmin', 'InventarioAdmin'].includes(r)
     );
 
+  const puedeGestionarUbicaciones =
+    tipoAlmacen === 1 && (puedeSupervisar || puedeOperar || administra);
+
   const localStyles = useStyles();
   const formStyles = useD365FormStyles();
 
@@ -239,6 +245,8 @@ export function AlmacenConfiguracion({
   const [edicion, setEdicion] = useState<Permisos>(inicial);
   const [codigo, setCodigo] = useState('');
   const [nombre, setNombre] = useState('');
+  const [tipoUbicacion, setTipoUbicacion] = useState<TipoUbicacion>('Disponible');
+  const [ubicacionPadreId, setUbicacionPadreId] = useState<string>('');
   const [error, setError] = useState('');
   const [exito, setExito] = useState('');
   const [ocupado, setOcupado] = useState(false);
@@ -246,6 +254,95 @@ export function AlmacenConfiguracion({
   const [ubicacionAEliminarId, setUbicacionAEliminarId] = useState<string | null>(null);
   const [drawerUsuarioAbierto, setDrawerUsuarioAbierto] = useState(false);
   const [usuarioAEliminarId, setUsuarioAEliminarId] = useState<string | null>(null);
+
+  // Estados para reubicación interna entre estantes
+  const [drawerReubicarAbierto, setDrawerReubicarAbierto] = useState(false);
+  const [reubicarRama, setReubicarRama] = useState<TipoUbicacion>('Disponible');
+  const [reubicarOrigenId, setReubicarOrigenId] = useState<string>('');
+  const [reubicarDestinoId, setReubicarDestinoId] = useState<string>('');
+  const [reubicarSeriesDisponibles, setReubicarSeriesDisponibles] = useState<
+    Array<{
+      id: string;
+      numeroSerie: string;
+      productoId: string;
+      productoNombre: string;
+      productoCodigo: string;
+    }>
+  >([]);
+  const [reubicarSeriesSeleccionadas, setReubicarSeriesSeleccionadas] = useState<string[]>([]);
+  const [reubicarCargandoSeries, setReubicarCargandoSeries] = useState(false);
+  const [reubicarObservaciones, setReubicarObservaciones] = useState('');
+
+  const cargarSeriesDeOrigen = async (origId: string) => {
+    if (!origId) {
+      setReubicarSeriesDisponibles([]);
+      setReubicarSeriesSeleccionadas([]);
+      return;
+    }
+    setReubicarCargandoSeries(true);
+    try {
+      const data = await AlmacenService.getSeriesPorUbicacion(almacenId, origId);
+      setReubicarSeriesDisponibles(data);
+      setReubicarSeriesSeleccionadas([]);
+    } catch {
+      setReubicarSeriesDisponibles([]);
+    } finally {
+      setReubicarCargandoSeries(false);
+    }
+  };
+
+  const handleAbrirDrawerReubicar = () => {
+    setReubicarRama('Disponible');
+    const origDefault =
+      ubicaciones.find(u => (u.tipoUbicacionNombre === 'Disponible' || u.tipoUbicacion === 1) && u.esPrincipal)?.id ||
+      ubicaciones.find(u => (u.tipoUbicacionNombre === 'Disponible' || u.tipoUbicacion === 1))?.id ||
+      '';
+    setReubicarOrigenId(origDefault);
+    setReubicarDestinoId('');
+    setReubicarObservaciones('');
+    setDrawerReubicarAbierto(true);
+    if (origDefault) {
+      void cargarSeriesDeOrigen(origDefault);
+    } else {
+      setReubicarSeriesDisponibles([]);
+      setReubicarSeriesSeleccionadas([]);
+    }
+  };
+
+  const handleConfirmarReubicacion = async () => {
+    if (!reubicarOrigenId || !reubicarDestinoId) return;
+    if (reubicarSeriesSeleccionadas.length === 0) {
+      setError('Seleccione al menos una serie para reubicar.');
+      return;
+    }
+    await ejecutar(async () => {
+      const grupos = new Map<string, string[]>();
+      for (const sn of reubicarSeriesSeleccionadas) {
+        const item = reubicarSeriesDisponibles.find(x => x.numeroSerie === sn);
+        if (item) {
+          const list = grupos.get(item.productoId) || [];
+          list.push(sn);
+          grupos.set(item.productoId, list);
+        }
+      }
+
+      for (const [productoId, series] of grupos.entries()) {
+        await AlmacenService.reubicarMaterial(almacenId, {
+          ubicacionOrigenId: reubicarOrigenId,
+          ubicacionDestinoId: reubicarDestinoId,
+          productoId,
+          cantidad: series.length,
+          series,
+          observaciones: reubicarObservaciones.trim() || undefined,
+        });
+      }
+
+      setDrawerReubicarAbierto(false);
+      setReubicarSeriesSeleccionadas([]);
+      setReubicarSeriesDisponibles([]);
+      setUbicaciones(await AlmacenService.getUbicaciones(almacenId));
+    }, `Se reubicaron exitosamente ${reubicarSeriesSeleccionadas.length} serie(s) a la nueva ubicación.`);
+  };
 
   useEffect(() => {
     let vigente = true;
@@ -295,10 +392,17 @@ export function AlmacenConfiguracion({
   const handleGuardarUbicacion = async (crearOtra = false) => {
     if (!codigo.trim() || !nombre.trim()) return;
     await ejecutar(async () => {
-      await AlmacenService.crearUbicacion(almacenId, codigo.trim(), nombre.trim());
+      await AlmacenService.crearUbicacion(
+        almacenId,
+        codigo.trim(),
+        nombre.trim(),
+        tipoUbicacion,
+        ubicacionPadreId || null
+      );
       setUbicaciones(await AlmacenService.getUbicaciones(almacenId));
       setCodigo('');
       setNombre('');
+      setUbicacionPadreId('');
       if (!crearOtra) {
         setDrawerUbicacionAbierto(false);
       }
@@ -360,19 +464,38 @@ export function AlmacenConfiguracion({
           <Text className={localStyles.cardSubtitle} block>
             Zonas físicas, estanterías y puntos de almacenamiento dentro de este almacén.
           </Text>
+          {tipoAlmacen === 2 && (
+            <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Info16Regular style={{ color: tokens.colorBrandForeground1, fontSize: '14px' }} />
+              <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                Este almacén corresponde a la custodia personal móvil de un técnico y opera exclusivamente con la ubicación <strong>Principal</strong>.
+              </Text>
+            </div>
+          )}
         </div>
-        {puedeSupervisar && (
-          <Button
-            appearance="primary"
-            icon={<Add16Regular />}
-            onClick={() => {
-              setCodigo('');
-              setNombre('');
-              setDrawerUbicacionAbierto(true);
-            }}
-          >
-            Agregar ubicación
-          </Button>
+        {puedeGestionarUbicaciones && (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <Button
+              appearance="secondary"
+              icon={<ArrowSwap16Regular />}
+              onClick={handleAbrirDrawerReubicar}
+            >
+              Reubicar material
+            </Button>
+            <Button
+              appearance="primary"
+              icon={<Add16Regular />}
+              onClick={() => {
+                setCodigo('');
+                setNombre('');
+                setTipoUbicacion('Disponible');
+                setUbicacionPadreId('');
+                setDrawerUbicacionAbierto(true);
+              }}
+            >
+              Agregar ubicación
+            </Button>
+          </div>
         )}
       </div>
 
@@ -380,10 +503,12 @@ export function AlmacenConfiguracion({
         <Table aria-label="Ubicaciones del almacén">
           <TableHeader>
             <TableRow>
-              <TableHeaderCell style={{ width: '160px' }}>Código</TableHeaderCell>
+              <TableHeaderCell style={{ width: '150px' }}>Código</TableHeaderCell>
               <TableHeaderCell>Nombre de la ubicación</TableHeaderCell>
-              <TableHeaderCell style={{ width: '150px' }}>Principal / Defecto</TableHeaderCell>
-              {puedeSupervisar && (
+              <TableHeaderCell style={{ width: '130px' }}>Rama / Naturaleza</TableHeaderCell>
+              <TableHeaderCell style={{ width: '160px' }}>Sububicación de</TableHeaderCell>
+              <TableHeaderCell style={{ width: '140px' }}>Principal / Defecto</TableHeaderCell>
+              {puedeGestionarUbicaciones && (
                 <TableHeaderCell style={{ width: '90px', textAlign: 'center' }}>Acciones</TableHeaderCell>
               )}
             </TableRow>
@@ -391,7 +516,7 @@ export function AlmacenConfiguracion({
           <TableBody>
             {ubicaciones.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={puedeSupervisar ? 4 : 3}>
+                <TableCell colSpan={puedeGestionarUbicaciones ? 6 : 5}>
                   <div className={localStyles.emptyState}>
                     <Location16Regular style={{ fontSize: '24px' }} />
                     <Text size={200}>No hay ubicaciones registradas en este almacén.</Text>
@@ -399,87 +524,116 @@ export function AlmacenConfiguracion({
                 </TableCell>
               </TableRow>
             ) : (
-              ubicaciones.map(u => (
-                <TableRow key={u.id}>
-                  <TableCell>
-                    <Text className={localStyles.codeCell}>{u.codigo}</Text>
-                  </TableCell>
-                  <TableCell>
-                    <Text weight="semibold">{u.nombre}</Text>
-                  </TableCell>
-                  <TableCell>
-                    {u.esPrincipal ? (
-                      <Badge appearance="tint" shape="rounded" color="success">
-                        Sí (Principal)
-                      </Badge>
-                    ) : (
-                      <Badge appearance="tint" shape="rounded" color="subtle">
-                        Secundaria
-                      </Badge>
-                    )}
-                  </TableCell>
-                  {puedeSupervisar && (
-                    <TableCell style={{ textAlign: 'center' }}>
-                      {u.esPrincipal ? (
-                        <Tooltip content="La ubicación principal no se puede eliminar" relationship="label">
-                          <Button
-                            size="small"
-                            appearance="subtle"
-                            icon={<Delete16Regular />}
-                            disabled
-                            aria-label="Ubicación principal no eliminable"
-                          />
-                        </Tooltip>
+              ubicaciones.map(u => {
+                const esProtegida = u.esPrincipal || u.codigo === 'DISPONIBLE' || u.codigo === 'DEVOLUCION';
+                const padre = u.ubicacionPadreId ? ubicaciones.find(x => x.id === u.ubicacionPadreId) : null;
+                const esDevolucion = u.tipoUbicacionNombre === 'Devolucion' || u.tipoUbicacion === 2;
+
+                return (
+                  <TableRow key={u.id}>
+                    <TableCell>
+                      <Text className={localStyles.codeCell}>{u.codigo}</Text>
+                    </TableCell>
+                    <TableCell>
+                      <Text weight="semibold">{u.nombre}</Text>
+                    </TableCell>
+                    <TableCell>
+                      {esDevolucion ? (
+                        <Badge appearance="tint" shape="rounded" color="warning">
+                          Devolución
+                        </Badge>
                       ) : (
-                        <Popover
-                          open={ubicacionAEliminarId === u.id}
-                          onOpenChange={(_, data) => setUbicacionAEliminarId(data.open ? u.id : null)}
-                        >
-                          <PopoverTrigger disableButtonEnhancement>
-                            <Tooltip content="Eliminar ubicación" relationship="label">
-                              <Button
-                                size="small"
-                                appearance="subtle"
-                                icon={<Delete16Regular style={{ color: tokens.colorPaletteRedForeground1 }} />}
-                                disabled={ocupado}
-                                aria-label={`Eliminar ${u.nombre}`}
-                              />
-                            </Tooltip>
-                          </PopoverTrigger>
-                          <PopoverSurface style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '260px' }}>
-                            <Text weight="semibold" size={300}>¿Eliminar ubicación?</Text>
-                            <Text size={200} style={{ color: tokens.colorNeutralForeground2 }}>
-                              Se eliminará la ubicación "{u.nombre}". No debe contener stock ni series activas.
-                            </Text>
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                              <Button
-                                size="small"
-                                appearance="subtle"
-                                onClick={() => setUbicacionAEliminarId(null)}
-                              >
-                                Cancelar
-                              </Button>
-                              <Button
-                                size="small"
-                                appearance="primary"
-                                style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: tokens.colorNeutralForegroundOnBrand }}
-                                onClick={() => void handleEliminarUbicacion(u.id)}
-                              >
-                                Eliminar
-                              </Button>
-                            </div>
-                          </PopoverSurface>
-                        </Popover>
+                        <Badge appearance="tint" shape="rounded" color="success">
+                          Disponible
+                        </Badge>
                       )}
                     </TableCell>
-                  )}
-                </TableRow>
-              ))
+                    <TableCell>
+                      {padre ? (
+                        <Text size={200}>
+                          {padre.nombre} <span style={{ color: tokens.colorNeutralForeground4 }}>({padre.codigo})</span>
+                        </Text>
+                      ) : (
+                        <Text size={200} style={{ color: tokens.colorNeutralForeground4 }}>
+                          — (Raíz)
+                        </Text>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {u.esPrincipal ? (
+                        <Badge appearance="tint" shape="rounded" color="informative">
+                          Sí (Principal)
+                        </Badge>
+                      ) : (
+                        <Badge appearance="tint" shape="rounded" color="subtle">
+                          Secundaria
+                        </Badge>
+                      )}
+                    </TableCell>
+                    {puedeGestionarUbicaciones && (
+                      <TableCell style={{ textAlign: 'center' }}>
+                        {esProtegida ? (
+                          <Tooltip content="Ubicación base protegida requerida por el sistema; no se puede eliminar" relationship="label">
+                            <Button
+                              size="small"
+                              appearance="subtle"
+                              icon={<Delete16Regular />}
+                              disabled
+                              aria-label="Ubicación protegida no eliminable"
+                            />
+                          </Tooltip>
+                        ) : (
+                          <Popover
+                            open={ubicacionAEliminarId === u.id}
+                            onOpenChange={(_, data) => setUbicacionAEliminarId(data.open ? u.id : null)}
+                          >
+                            <PopoverTrigger disableButtonEnhancement>
+                              <Tooltip content="Eliminar ubicación" relationship="label">
+                                <Button
+                                  size="small"
+                                  appearance="subtle"
+                                  icon={<Delete16Regular style={{ color: tokens.colorPaletteRedForeground1 }} />}
+                                  disabled={ocupado}
+                                  aria-label={`Eliminar ${u.nombre}`}
+                                />
+                              </Tooltip>
+                            </PopoverTrigger>
+                            <PopoverSurface style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '260px' }}>
+                              <Text weight="semibold" size={300}>¿Eliminar ubicación?</Text>
+                              <Text size={200} style={{ color: tokens.colorNeutralForeground2 }}>
+                                Se eliminará la ubicación "{u.nombre}". No debe contener stock ni series activas.
+                              </Text>
+                              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                                <Button
+                                  size="small"
+                                  appearance="subtle"
+                                  onClick={() => setUbicacionAEliminarId(null)}
+                                >
+                                  Cancelar
+                                </Button>
+                                <Button
+                                  size="small"
+                                  appearance="primary"
+                                  style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: tokens.colorNeutralForegroundOnBrand }}
+                                  onClick={() => void handleEliminarUbicacion(u.id)}
+                                >
+                                  Eliminar
+                                </Button>
+                              </div>
+                            </PopoverSurface>
+                          </Popover>
+                        )}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
       </div>
 
+      {/* DRAWER AGREGAR UBICACIÓN */}
       <OverlayDrawer
         open={drawerUbicacionAbierto}
         position="end"
@@ -503,15 +657,62 @@ export function AlmacenConfiguracion({
         </DrawerHeader>
         <DrawerBody className={localStyles.drawerBody}>
           <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-            Defina el código y nombre descriptivo para registrar un nuevo espacio físico (estante, pasillo o zona de acopio) dentro de este almacén.
+            Defina el código y nombre descriptivo para registrar un nuevo espacio físico (estante, pasillo o zona) asignado a la rama de disponibilidad o devolución.
           </Text>
+
+          <div className={localStyles.fieldVertical}>
+            <Label required htmlFor="drawer-ubicacion-rama" className={localStyles.fieldLabel}>
+              Rama / Propósito operativo
+            </Label>
+            <Select
+              id="drawer-ubicacion-rama"
+              value={tipoUbicacion}
+              disabled={ocupado}
+              style={{ width: '100%' }}
+              onChange={(_, d) => {
+                const val = d.value as TipoUbicacion;
+                setTipoUbicacion(val);
+                setUbicacionPadreId('');
+              }}
+            >
+              <option value="Disponible">Disponible (Existencias aptas para despacho)</option>
+              <option value="Devolucion">Devolución (Cuarentena / Averías / Retorno)</option>
+            </Select>
+          </div>
+
+          <div className={localStyles.fieldVertical}>
+            <Label htmlFor="drawer-ubicacion-padre" className={localStyles.fieldLabel}>
+              Ubicación superior / Padre (Opcional)
+            </Label>
+            <Select
+              id="drawer-ubicacion-padre"
+              value={ubicacionPadreId}
+              disabled={ocupado}
+              style={{ width: '100%' }}
+              onChange={(_, d) => setUbicacionPadreId(d.value)}
+            >
+              <option value="">-- Sin padre (Sububicación directa de la rama) --</option>
+              {ubicaciones
+                .filter(u =>
+                  tipoUbicacion === 'Devolucion'
+                    ? u.tipoUbicacionNombre === 'Devolucion' || u.tipoUbicacion === 2
+                    : u.tipoUbicacionNombre === 'Disponible' || u.tipoUbicacion === 1
+                )
+                .map(u => (
+                  <option key={u.id} value={u.id}>
+                    {u.nombre} ({u.codigo})
+                  </option>
+                ))}
+            </Select>
+          </div>
+
           <div className={localStyles.fieldVertical}>
             <Label required htmlFor="drawer-ubicacion-codigo" className={localStyles.fieldLabel}>
               Código de ubicación
             </Label>
             <Input
               id="drawer-ubicacion-codigo"
-              placeholder=""
+              placeholder="Ej: ESTANTE-A1, RACK-02"
               value={codigo}
               maxLength={50}
               disabled={ocupado}
@@ -519,13 +720,14 @@ export function AlmacenConfiguracion({
               onChange={(_, d) => setCodigo(d.value.toUpperCase())}
             />
           </div>
+
           <div className={localStyles.fieldVertical}>
             <Label required htmlFor="drawer-ubicacion-nombre" className={localStyles.fieldLabel}>
               Nombre descriptivo
             </Label>
             <Input
               id="drawer-ubicacion-nombre"
-              placeholder=""
+              placeholder="Ej: Estantería Central A1 - Decodificadores"
               value={nombre}
               maxLength={150}
               disabled={ocupado}
@@ -570,6 +772,257 @@ export function AlmacenConfiguracion({
               </MenuList>
             </MenuPopover>
           </Menu>
+        </DrawerFooter>
+      </OverlayDrawer>
+
+      {/* DRAWER REUBICACIÓN INTERNA DE MATERIAL */}
+      <OverlayDrawer
+        open={drawerReubicarAbierto}
+        position="end"
+        size="medium"
+        className={localStyles.drawer}
+        onOpenChange={(_, { open }) => setDrawerReubicarAbierto(open)}
+      >
+        <DrawerHeader className={localStyles.drawerHeader}>
+          <DrawerHeaderTitle
+            action={
+              <Button
+                appearance="subtle"
+                aria-label="Cerrar"
+                icon={<Dismiss16Regular />}
+                onClick={() => setDrawerReubicarAbierto(false)}
+              />
+            }
+          >
+            Reubicación física interna
+          </DrawerHeaderTitle>
+        </DrawerHeader>
+        <DrawerBody className={localStyles.drawerBody}>
+          <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+            Transfiera existencias o series físicas entre estanterías de la misma rama operativa sin alterar la condición técnica del producto.
+          </Text>
+
+          <div className={localStyles.fieldVertical}>
+            <Label required className={localStyles.fieldLabel}>
+              Rama operativa
+            </Label>
+            <Select
+              value={reubicarRama}
+              disabled={ocupado}
+              style={{ width: '100%' }}
+              onChange={(_, d) => {
+                const nuevaRama = d.value as TipoUbicacion;
+                setReubicarRama(nuevaRama);
+                const primerOrigen =
+                  ubicaciones.find(u =>
+                    nuevaRama === 'Devolucion'
+                      ? u.tipoUbicacionNombre === 'Devolucion' || u.tipoUbicacion === 2
+                      : u.tipoUbicacionNombre === 'Disponible' || u.tipoUbicacion === 1
+                  )?.id || '';
+                setReubicarOrigenId(primerOrigen);
+                setReubicarDestinoId('');
+                if (primerOrigen) {
+                  void cargarSeriesDeOrigen(primerOrigen);
+                } else {
+                  setReubicarSeriesDisponibles([]);
+                  setReubicarSeriesSeleccionadas([]);
+                }
+              }}
+            >
+              <option value="Disponible">Disponible (Equipos e insumos operativos)</option>
+              <option value="Devolucion">Devolución (Equipos en cuarentena / averías)</option>
+            </Select>
+          </div>
+
+          <div className={localStyles.fieldVertical}>
+            <Label required className={localStyles.fieldLabel}>
+              Ubicación de origen
+            </Label>
+            <Select
+              value={reubicarOrigenId}
+              disabled={ocupado}
+              style={{ width: '100%' }}
+              onChange={(_, d) => {
+                const orig = d.value;
+                setReubicarOrigenId(orig);
+                if (reubicarDestinoId === orig) setReubicarDestinoId('');
+                void cargarSeriesDeOrigen(orig);
+              }}
+            >
+              <option value="">-- Seleccione ubicación origen --</option>
+              {ubicaciones
+                .filter(u =>
+                  reubicarRama === 'Devolucion'
+                    ? u.tipoUbicacionNombre === 'Devolucion' || u.tipoUbicacion === 2
+                    : u.tipoUbicacionNombre === 'Disponible' || u.tipoUbicacion === 1
+                )
+                .map(u => (
+                  <option key={u.id} value={u.id}>
+                    {u.nombre} ({u.codigo}) {u.esPrincipal ? '— Principal' : ''}
+                  </option>
+                ))}
+            </Select>
+          </div>
+
+          <div className={localStyles.fieldVertical}>
+            <Label required className={localStyles.fieldLabel}>
+              Ubicación de destino (Misma rama)
+            </Label>
+            <Select
+              value={reubicarDestinoId}
+              disabled={ocupado || !reubicarOrigenId}
+              style={{ width: '100%' }}
+              onChange={(_, d) => setReubicarDestinoId(d.value)}
+            >
+              <option value="">-- Seleccione ubicación destino --</option>
+              {ubicaciones
+                .filter(
+                  u =>
+                    u.id !== reubicarOrigenId &&
+                    (reubicarRama === 'Devolucion'
+                      ? u.tipoUbicacionNombre === 'Devolucion' || u.tipoUbicacion === 2
+                      : u.tipoUbicacionNombre === 'Disponible' || u.tipoUbicacion === 1)
+                )
+                .map(u => (
+                  <option key={u.id} value={u.id}>
+                    {u.nombre} ({u.codigo}) {u.esPrincipal ? '— Principal' : ''}
+                  </option>
+                ))}
+            </Select>
+          </div>
+
+          <div className={localStyles.fieldVertical}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Label required className={localStyles.fieldLabel}>
+                Series a reubicar ({reubicarSeriesSeleccionadas.length} seleccionadas)
+              </Label>
+              {reubicarSeriesDisponibles.length > 0 && (
+                <Button
+                  size="small"
+                  appearance="subtle"
+                  onClick={() => {
+                    if (reubicarSeriesSeleccionadas.length === reubicarSeriesDisponibles.length) {
+                      setReubicarSeriesSeleccionadas([]);
+                    } else {
+                      setReubicarSeriesSeleccionadas(reubicarSeriesDisponibles.map(s => s.numeroSerie));
+                    }
+                  }}
+                >
+                  {reubicarSeriesSeleccionadas.length === reubicarSeriesDisponibles.length
+                    ? 'Deseleccionar todas'
+                    : 'Seleccionar todas'}
+                </Button>
+              )}
+            </div>
+
+            {reubicarCargandoSeries ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '16px' }}>
+                <Spinner size="small" />
+                <Text size={200}>Cargando existencias de la ubicación...</Text>
+              </div>
+            ) : reubicarSeriesDisponibles.length === 0 ? (
+              <div
+                style={{
+                  padding: '16px',
+                  border: `1px dashed ${tokens.colorNeutralStroke2}`,
+                  borderRadius: tokens.borderRadiusMedium,
+                  textAlign: 'center',
+                }}
+              >
+                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                  {reubicarOrigenId
+                    ? 'No hay series registradas en esta ubicación.'
+                    : 'Seleccione una ubicación de origen para ver las existencias.'}
+                </Text>
+              </div>
+            ) : (
+              <div
+                style={{
+                  maxHeight: '220px',
+                  overflowY: 'auto',
+                  border: `1px solid ${tokens.colorNeutralStroke2}`,
+                  borderRadius: tokens.borderRadiusMedium,
+                  padding: '4px',
+                }}
+              >
+                {reubicarSeriesDisponibles.map(s => {
+                  const check = reubicarSeriesSeleccionadas.includes(s.numeroSerie);
+                  return (
+                    <div
+                      key={s.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 8px',
+                        borderBottom: `1px solid ${tokens.colorNeutralStroke3}`,
+                        backgroundColor: check ? tokens.colorNeutralBackground1Selected : 'transparent',
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => {
+                        if (check) {
+                          setReubicarSeriesSeleccionadas(prev => prev.filter(x => x !== s.numeroSerie));
+                        } else {
+                          setReubicarSeriesSeleccionadas(prev => [...prev, s.numeroSerie]);
+                        }
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Checkbox checked={check} />
+                        <div>
+                          <Text weight="semibold" size={200} block style={{ fontFamily: 'Consolas, monospace' }}>
+                            {s.numeroSerie}
+                          </Text>
+                          <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
+                            {s.productoNombre} ({s.productoCodigo})
+                          </Text>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className={localStyles.fieldVertical}>
+            <Label htmlFor="drawer-reubicar-obs" className={localStyles.fieldLabel}>
+              Observaciones (Opcional)
+            </Label>
+            <Input
+              id="drawer-reubicar-obs"
+              placeholder="Ej: Reacomodo de estante por clasificación"
+              value={reubicarObservaciones}
+              maxLength={250}
+              disabled={ocupado}
+              style={{ width: '100%' }}
+              onChange={(_, d) => setReubicarObservaciones(d.value)}
+            />
+          </div>
+        </DrawerBody>
+        <DrawerFooter className={localStyles.drawerFooter}>
+          <Button
+            appearance="subtle"
+            disabled={ocupado}
+            onClick={() => setDrawerReubicarAbierto(false)}
+          >
+            Cancelar
+          </Button>
+          <Button
+            appearance="primary"
+            icon={ocupado ? <Spinner size="tiny" /> : <Save16Regular />}
+            disabled={
+              ocupado ||
+              !reubicarOrigenId ||
+              !reubicarDestinoId ||
+              reubicarSeriesSeleccionadas.length === 0
+            }
+            onClick={() => void handleConfirmarReubicacion()}
+          >
+            {ocupado
+              ? 'Reubicando…'
+              : `Reubicar ${reubicarSeriesSeleccionadas.length} serie(s)`}
+          </Button>
         </DrawerFooter>
       </OverlayDrawer>
     </div>

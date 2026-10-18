@@ -21,7 +21,7 @@ public enum TipoMovimientoInventario
     DespachoATecnico = 3,
 
     /// <summary>
-    /// Devolución de materiales sobrantes o equipos no instalados por el técnico a la bodega base.
+    /// Devolución o desabastecimiento de materiales sobrantes o equipos por el técnico a la bodega base.
     /// </summary>
     DevolucionTecnico = 4,
 
@@ -46,5 +46,15 @@ public enum TipoMovimientoInventario
     DevolucionAProveedor = 8,
     SalidaATransito = 9,
     RecepcionDeTransito = 10,
-    ResolucionTransito = 11
+    ResolucionTransito = 11,
+
+    /// <summary>
+    /// Reubicación física interna entre estantes o racks dentro del mismo almacén y misma rama.
+    /// </summary>
+    ReubicacionInterna = 12,
+
+    /// <summary>
+    /// Reclasificación de equipo de Disponible a Devolución (Declaración de Falla de Fábrica DOA o daño en bodega).
+    /// </summary>
+    ReclasificacionDOA = 13
 }

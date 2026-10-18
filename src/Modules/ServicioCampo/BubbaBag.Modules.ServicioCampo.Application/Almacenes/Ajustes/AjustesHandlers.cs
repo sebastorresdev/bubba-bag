@@ -383,8 +383,14 @@ public class AjustesHandlers :
                 return Result.Failure("El stock de la ubicación no alcanza para la salida solicitada.");
             foreach (var numero in series.Select(s => s.Trim().ToUpperInvariant()))
             {
-                if (linea.Tipo == "Entrada" && items.ContainsKey(numero))
-                    return Result.Failure("Una serie de entrada ya existe. Use la devolución o restitución correspondiente; el ajuste no puede duplicarla ni reubicarla.");
+                if (linea.Tipo == "Entrada" && items.TryGetValue(numero, out var itemEntrada))
+                {
+                    if (itemEntrada.Estado is not (EstadoItemSeriado.DevueltoAProveedor or EstadoItemSeriado.InstaladoEnCliente))
+                    {
+                        var ubic = itemEntrada.UbicacionActual?.Almacen?.Nombre ?? "otro almacén";
+                        return Result.Failure($"La serie '{numero}' ya existe en la empresa y figura actualmente en '{ubic}' con estado {itemEntrada.Estado}. No se puede volver a ingresar.");
+                    }
+                }
                 if (linea.Tipo == "Salida" && (!items.TryGetValue(numero, out var item) || item.ProductoId != linea.ProductoId
                     || item.UbicacionActualId != ubicacion.Id || item.TransferenciaEnTransitoId.HasValue
                     || item.Condicion != CondicionInventario.Utilizable || item.Estado is not (EstadoItemSeriado.EnAlmacen or EstadoItemSeriado.EnCustodiaTecnico)))
@@ -410,9 +416,17 @@ public class AjustesHandlers :
                     ItemSeriado item;
                     if (entrada)
                     {
-                        item = ItemSeriado.Crear(linea.ProductoId, numero, ubicacion.Id);
-                        item.Ubicar(ubicacion.Id, ubicacion.Almacen.Tipo, CondicionInventario.Utilizable);
-                        _context.ItemsSeriados.Add(item);
+                        if (items.TryGetValue(numero, out var itemExistente))
+                        {
+                            itemExistente.Ubicar(ubicacion.Id, ubicacion.Almacen.Tipo, CondicionInventario.Utilizable);
+                            item = itemExistente;
+                        }
+                        else
+                        {
+                            item = ItemSeriado.Crear(linea.ProductoId, numero, ubicacion.Id);
+                            item.Ubicar(ubicacion.Id, ubicacion.Almacen.Tipo, CondicionInventario.Utilizable);
+                            _context.ItemsSeriados.Add(item);
+                        }
                     }
                     else
                     {

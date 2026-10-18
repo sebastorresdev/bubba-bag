@@ -96,6 +96,32 @@ public class ItemSeriado : Entity<Guid>
     }
 
     /// <summary>
+    /// Reubica físicamente la serie entre estantes o gavetas del mismo almacén dentro de la misma rama.
+    /// </summary>
+    public void ReubicarInterno(Guid nuevaUbicacionId)
+    {
+        if (nuevaUbicacionId == Guid.Empty) throw new ArgumentException("La nueva ubicación es obligatoria.");
+        UbicacionActualId = nuevaUbicacionId;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Reclasifica el equipo de Disponible a Devolución (por DOA o daño en almacén), cambiando su condición a defectuosa.
+    /// </summary>
+    public void ReclasificarADevolucion(Guid ubicacionDevolucionId, string? motivo = null)
+    {
+        if (ubicacionDevolucionId == Guid.Empty) throw new ArgumentException("La ubicación de devolución es obligatoria.");
+        UbicacionActualId = ubicacionDevolucionId;
+        Condicion = CondicionInventario.Defectuoso;
+        Estado = EstadoItemSeriado.AveriadoEnAlmacen;
+        if (!string.IsNullOrWhiteSpace(motivo))
+        {
+            Observaciones = string.IsNullOrWhiteSpace(Observaciones) ? motivo : $"{Observaciones} | {motivo}";
+        }
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
     /// Registra la instalación definitiva del equipo en el cliente al cerrar la orden de trabajo.
     /// El equipo sale de la camioneta del técnico y su custodia pasa al cliente.
     /// </summary>

@@ -216,7 +216,11 @@ export const DevolucionTecnicoPage: React.FC = () => {
     totalLineas?: number;
   } | null>(null);
   const focusValidation = useValidationFocus();
-  const draft = useUnsavedChanges({ almacenOrigenId,tecnicoId,almacenDestinoId,ubicacionDestinoId,numeroGuiaRemision,observaciones,lineas }, !loading);
+  const esSoloLectura = estado !== 'Borrador';
+  const draft = useUnsavedChanges(
+    { almacenOrigenId, tecnicoId, almacenDestinoId, ubicacionDestinoId, numeroGuiaRemision, observaciones, lineas },
+    !loading && !esSoloLectura
+  );
 
 
   useEffect(() => {
@@ -264,6 +268,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
               }))
             );
             setSelectedTab('productos');
+            draft.markSaved();
           }
         } else {
           const bodegas = alms.filter(a => a.tipo === 1);
@@ -712,6 +717,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
       setNumeroTransferencia(res.numero);
       if (res.numeroGuiaRemision) setNumeroGuiaRemision(res.numeroGuiaRemision);
       setEstado(res.estado || 'Cerrada');
+      draft.markSaved();
 
       const tecnicoObj = tecnicos.find((t) => t.id === tecnicoId);
       const almacenDestinoObj = almacenes.find((a) => a.id === almacenDestinoId);
@@ -757,7 +763,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
     try {
       const tecnico = tecnicos.find((t) => t.id === tecnicoId);
       await TransferenciaService.compartirCargoWhatsapp(idCargo, numCargo, {
-        tipoOperacion: 'Devolución de Técnico',
+        tipoOperacion: 'Desabastecimiento de Técnico',
         destinatario: tecnico?.nombreCompleto,
         telefono: tecnico?.telefono || undefined,
       });
@@ -872,7 +878,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
           </TableCellLayout>
         ),
       }),
-      ...(estado !== 'Cerrada'
+      ...(!esSoloLectura
         ? [
             createTableColumn<LineaDevolucion>({
               columnId: 'acciones',
@@ -892,7 +898,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
           ]
         : []),
     ],
-    [lineas, estado, classes.seriesBadgeList]
+    [lineas, estado, esSoloLectura, classes.seriesBadgeList]
   );
 
   const totalCantidad = lineas.reduce((acc, l) => acc + l.cantidad, 0);
@@ -922,9 +928,14 @@ export const DevolucionTecnicoPage: React.FC = () => {
             tone="brand"
             aria-label="Volver"
             title="Volver a Devoluciones"
-            onClick={() => navigate('/servicio-campo/devolucion-tecnicos')}
+            onClick={() => {
+              if (esSoloLectura) {
+                draft.markSaved();
+              }
+              navigate('/servicio-campo/devolucion-tecnicos');
+            }}
           />
-          {estado !== 'Cerrada' && (
+          {!esSoloLectura && (
             <>
               <D365CommandDivider />
               <D365CommandButton
@@ -950,7 +961,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
                 onClick={() => void handleConfirmarDevolucion()}
                 disabled={submitting || lineas.length === 0}
               >
-                {submitting ? 'Procesando...' : 'Confirmar Devolución'}
+                {submitting ? 'Procesando...' : 'Confirmar Desabastecimiento'}
               </D365CommandButton>
               {transferenciaId && estado === 'Borrador' && (
                 <D365CommandButton
@@ -991,11 +1002,11 @@ export const DevolucionTecnicoPage: React.FC = () => {
       </D365CommandBar>
 
       <D365EntityHeader
-        title={numeroTransferencia ? `${numeroTransferencia}` : 'Devolución de Material de Técnico'}
-        subtitle="Reingreso a bodega de materiales sobrantes o equipos averiados retirados en campo"
+        title={numeroTransferencia ? `${numeroTransferencia}` : 'Desabastecimiento de Técnicos'}
+        subtitle="Descargo y reingreso a bodega de materiales sobrantes o equipos retirados en campo"
         avatarIcon={<ArrowSync16Regular />}
         metadata={[
-          ...(numeroTransferencia ? [{ label: 'N° Devolución', value: numeroTransferencia }] : []),
+          ...(numeroTransferencia ? [{ label: 'N° Desabastecimiento', value: numeroTransferencia }] : []),
           ...(numeroGuiaRemision ? [{ label: 'Guía de Remisión', value: numeroGuiaRemision }] : []),
           { label: 'Estado', value: estado === 'Cerrada' ? 'Recibida' : estado },
         ]}
@@ -1045,7 +1056,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
                     icono={<Box16Regular />}
                     tituloEnlace="Ver ficha del almacén"
                     textoVacio="No se encontraron almacenes de custodia disponibles"
-                    deshabilitado={estado === 'Cerrada'}
+                    deshabilitado={esSoloLectura}
                   />
                 </D365FormField>
 
@@ -1072,7 +1083,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
                     textoVacio={tecnicoObj?.unidadOrganizativaNombre
                       ? `No hay bodegas disponibles en la sede ${tecnicoObj.unidadOrganizativaNombre}`
                       : "No se encontraron bodegas"}
-                    deshabilitado={estado === 'Cerrada' || !tecnicoId}
+                    deshabilitado={esSoloLectura || !tecnicoId}
                   />
                 </D365FormField>
 
@@ -1082,7 +1093,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
                     value={observaciones}
                     onChange={(_, d) => setObservaciones(d.value)}
                     maxLength={500}
-                    readOnly={estado === 'Cerrada'}
+                    readOnly={esSoloLectura}
                   />
                 </D365FormField>
               </div>
@@ -1095,7 +1106,7 @@ export const DevolucionTecnicoPage: React.FC = () => {
             <div className={formStyles.cardSectionTitle}>Materiales Retornados y Clasificación de Estado</div>
 
             {/* SECCIÓN DE ENTRADA / ESCANEO ESTILO SYMBAR */}
-            {estado !== 'Cerrada' && (
+            {!esSoloLectura && (
               <div className={classes.scannerPanel}>
                 <div className={classes.scannerGrid}>
                   {/* Campo 1: SKU / SERIE */}
@@ -1363,7 +1374,10 @@ export const DevolucionTecnicoPage: React.FC = () => {
               }
             : null
         }
-        onClose={() => setDevolucionExitosa(null)}
+        onClose={() => {
+          draft.markSaved();
+          setDevolucionExitosa(null);
+        }}
         onDescargarPdf={() => void handleDescargarActa()}
         onImprimir={() => void handleImprimirActa()}
         onCompartirWhatsApp={() => void handleCompartirWhatsApp()}

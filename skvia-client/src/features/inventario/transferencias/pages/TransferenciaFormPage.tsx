@@ -258,12 +258,13 @@ export function TransferenciaFormPage() {
   const [dialogEliminarBorrador, setDialogEliminarBorrador] = useState(false);
   const [eliminandoBorrador, setEliminandoBorrador] = useState(false);
   const focusValidation = useValidationFocus();
-  const draft = useUnsavedChanges({ origenId,destinoId,ubicacionOrigenId,ubicacionDestinoId,modalidad,condicion,observacion,fechaReal,lineas }, !loading);
-
-
   const isBorrador = !detalle || detalle.estado === 'Borrador';
   const esSoloLectura = Boolean(id && id !== 'nuevo' && !isBorrador);
   const bloqueado = esSoloLectura || saving || guardandoRecepcion;
+  const draft = useUnsavedChanges(
+    { origenId, destinoId, ubicacionOrigenId, ubicacionDestinoId, modalidad, condicion, observacion, fechaReal, lineas },
+    !loading && !esSoloLectura
+  );
 
   const origenPrevioRef = useRef<string>('');
   const destinoPrevioRef = useRef<string>('');
@@ -947,6 +948,7 @@ navigate('/servicio-campo/transferencias'); }
 
       setNumeroGuardado(res.numero);
       if (res.numeroGuiaRemision) setNumeroGuiaGuardado(res.numeroGuiaRemision);
+      draft.markSaved();
 
       if (cerrar) {
         navigate('/servicio-campo/transferencias', {
@@ -1259,7 +1261,12 @@ navigate('/servicio-campo/transferencias'); }
             tone="brand"
             aria-label="Volver"
             title="Volver al listado"
-            onClick={() => navigate('/servicio-campo/transferencias')}
+            onClick={() => {
+              if (esSoloLectura) {
+                draft.markSaved();
+              }
+              navigate('/servicio-campo/transferencias');
+            }}
           />
           <D365CommandDivider />
 

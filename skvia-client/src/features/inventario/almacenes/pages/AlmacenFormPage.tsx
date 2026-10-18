@@ -137,6 +137,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
     user.roles.some((r) =>
       ['SuperAdmin', 'ServicioCampoAdmin', 'InventarioAdmin'].includes(r)
     );
+  const puedeEditarAlmacen = esAdminAlmacenes || permisos.includes('inventario.catalogos.gestionar');
 
   const effectiveId =
     propAlmacenId !== undefined
@@ -156,6 +157,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
   // Catálogos reales desde la API
   const [unidades, setUnidades] = useState<UnidadOrganizativaDto[]>([]);
   const [puedeSupervisar, setPuedeSupervisar] = useState(false);
+  const [puedeOperar, setPuedeOperar] = useState(false);
   const [recursos, setRecursos] = useState<RecursoTecnicoDto[]>([]);
   const [todasBodegas, setTodasBodegas] = useState<AlmacenDto[]>([]);
 
@@ -332,6 +334,7 @@ export const AlmacenFormPage: React.FC<AlmacenFormPageProps> = ({
         if (almacenData && effectiveId) {
           setCurrentId(effectiveId);
           setPuedeSupervisar(Boolean(almacenData.esSupervisor));
+          setPuedeOperar(Boolean(almacenData.puedeDespachar || almacenData.puedeRecepcionar || almacenData.esSupervisor));
           setFormData({
             nombre: almacenData.nombre,
             descripcion: almacenData.descripcion || '',
@@ -692,39 +695,43 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
 
           <D365CommandDivider />
 
-          <D365CommandButton
-            icon={<Save16Regular />}
-            tone="save"
-            appearance="subtle"
-            onClick={() => handleSave(false)}
-            disabled={saving || loading}
-          >
-            Guardar
-          </D365CommandButton>
+          {puedeEditarAlmacen && (
+            <>
+              <D365CommandButton
+                icon={<Save16Regular />}
+                tone="save"
+                appearance="subtle"
+                onClick={() => handleSave(false)}
+                disabled={saving || loading}
+              >
+                Guardar
+              </D365CommandButton>
 
-          <D365CommandButton
-            icon={<SaveMultiple16Regular />}
-            tone="save"
-            appearance="subtle"
-            onClick={() => handleSave(true)}
-            disabled={saving || loading}
-          >
-            Guardar y cerrar
-          </D365CommandButton>
+              <D365CommandButton
+                icon={<SaveMultiple16Regular />}
+                tone="save"
+                appearance="subtle"
+                onClick={() => handleSave(true)}
+                disabled={saving || loading}
+              >
+                Guardar y cerrar
+              </D365CommandButton>
 
-          <D365CommandDivider />
+              <D365CommandDivider />
 
-          <D365CommandButton
-            icon={<Add16Regular />}
-            tone="create"
-            appearance="subtle"
-            onClick={handleNew}
-            disabled={saving}
-          >
-            Nuevo
-          </D365CommandButton>
+              <D365CommandButton
+                icon={<Add16Regular />}
+                tone="create"
+                appearance="subtle"
+                onClick={handleNew}
+                disabled={saving}
+              >
+                Nuevo
+              </D365CommandButton>
+            </>
+          )}
 
-          {isEditMode && (
+          {isEditMode && puedeEditarAlmacen && (
             <D365CommandButton
               tone={savedHeader.activo ? 'danger' : 'create'}
               icon={savedHeader.activo ? <DismissCircle16Regular /> : <Checkmark16Regular />}
@@ -736,7 +743,7 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
             </D365CommandButton>
           )}
 
-          {isEditMode && (
+          {isEditMode && puedeEditarAlmacen && (
             <D365CommandButton
               tone="danger"
               icon={<Delete16Regular />}
@@ -846,6 +853,7 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
               <AlmacenConfiguracion
                 almacenId={currentId}
                 puedeSupervisar={puedeSupervisar}
+                puedeOperar={puedeOperar}
                 vista="ubicaciones"
                 tipoAlmacen={formData.tipo}
               />
@@ -880,6 +888,8 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
                         className={styles.d365ControlFull}
                         value={formData.nombre}
                         maxLength={150}
+                        disabled={!puedeEditarAlmacen}
+                        readOnly={!puedeEditarAlmacen}
                         onChange={(_e, d) => {
                           setFormData((prev) => ({ ...prev, nombre: d.value }));
                           if (errors.nombre) {
@@ -893,7 +903,7 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
                       <Select
                         className={styles.d365ControlFull}
                         value={String(formData.tipo || 1)}
-                        disabled={isEditMode}
+                        disabled={!puedeEditarAlmacen || isEditMode}
                         onChange={(_e, d) => {
                           const nuevoTipo = Number(d.value) as TipoAlmacen;
                           setFormData((prev) => ({
@@ -918,7 +928,7 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
                         idEntrada="almacen-unidad-org"
                         etiquetaGrupo="Unidades Organizativas (Sedes)"
                         icono={<Building16Regular />}
-                        deshabilitado={isEditMode || saving}
+                        deshabilitado={!puedeEditarAlmacen || isEditMode || saving}
                         tituloEnlace="Ver detalles de la sede"
                         alNavegar={(id) => navigate(`/servicio-campo/unidades-organizativas/${id}`)}
                         opciones={sedesDisponibles.map((u) => ({
@@ -989,7 +999,7 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
                         <SelectorEntidadRelacionada
                           etiquetaGrupo="Técnicos de Campo"
                           icono={<Person16Regular />}
-                          deshabilitado={isEditMode || saving}
+                          deshabilitado={!puedeEditarAlmacen || isEditMode || saving}
                           tituloEnlace="Ver detalles del técnico"
                           alNavegar={(id) => navigate(`/servicio-campo/recursos/${id}`)}
                           opciones={recursosDisponibles.map((r) => {
@@ -1041,7 +1051,7 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
                         <Select
                           className={styles.d365ControlFull}
                           value={formData.almacenPadreId || ''}
-                          disabled={saving}
+                          disabled={!puedeEditarAlmacen || saving}
                           onChange={(_e, d) => {
                             setFormData((prev) => ({ ...prev, almacenPadreId: d.value }));
                             if (errors.almacenPadreId) {
@@ -1065,6 +1075,8 @@ navigate('/servicio-campo/almacenes', { state: { successMessage } }); }
                         rows={4}
                         maxLength={500}
                         value={formData.descripcion || ''}
+                        disabled={!puedeEditarAlmacen}
+                        readOnly={!puedeEditarAlmacen}
                         onChange={(_e, d) =>
                           setFormData((prev) => ({ ...prev, descripcion: d.value }))
                         }

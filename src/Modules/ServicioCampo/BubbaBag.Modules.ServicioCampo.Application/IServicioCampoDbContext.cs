@@ -36,6 +36,7 @@ public interface IServicioCampoDbContext
     DbSet<RecepcionTransferenciaDetalle> RecepcionTransferenciaDetalles { get; }
     DbSet<ResolucionDiferenciaTransferencia> ResolucionDiferenciaTransferencias { get; }
     DbSet<Compra> Compras { get; }
+    DbSet<DevolucionProveedor> DevolucionesProveedor { get; }
     DbSet<AjusteInventario> AjustesInventario { get; }
     DbSet<StockAlmacen> StocksAlmacen { get; }
     DbSet<MovimientoInventario> MovimientosInventario { get; }
@@ -52,6 +53,7 @@ public interface IServicioCampoDbContext
     DbSet<TipoOrdenTrabajo> TiposOrdenTrabajo { get; }
     DbSet<CampoDefinicion> CamposDefinicion { get; }
     DbSet<TipoTareaServicio> TiposTareaServicio { get; }
+    DbSet<MotivoRetiroEquipo> MotivosRetiroEquipo { get; }
 
     // Plantillas y Catálogos de Tareas
     DbSet<Tarea> Tareas { get; }

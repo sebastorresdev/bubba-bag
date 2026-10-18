@@ -119,14 +119,17 @@ export function SeriesCompraTable({
       // VALIDACIÓN INMEDIATA EN TIEMPO REAL CONTRA BASE DE DATOS
       const res = await AlmacenService.validarSeriesExistentes(nuevas);
       if (res && res.existentes && res.existentes.length > 0) {
-        const itemDuplicado = res.existentes[0];
-        const ubicacion = itemDuplicado.almacenNombre
-          ? `en ${itemDuplicado.almacenNombre}`
-          : itemDuplicado.estado;
-        setError(
-          `La serie "${itemDuplicado.numeroSerie}" ya está registrada en el sistema (${ubicacion}). No se puede volver a ingresar.`
-        );
-        return;
+        const conflictos = res.existentes.filter(x => !x.permiteReingreso);
+        if (conflictos.length > 0) {
+          const itemDuplicado = conflictos[0];
+          const ubicacion = itemDuplicado.almacenNombre
+            ? `en el almacén/custodia "${itemDuplicado.almacenNombre}"`
+            : itemDuplicado.estado;
+          setError(
+            `La serie "${itemDuplicado.numeroSerie}" ya está registrada en la empresa (${ubicacion} - Estado: ${itemDuplicado.estado}). No se puede volver a ingresar mientras esté activa.`
+          );
+          return;
+        }
       }
 
       const listaFinal = [...series, ...nuevas];

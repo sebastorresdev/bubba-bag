@@ -46,6 +46,10 @@ const useStyles = makeStyles({
     transitionProperty: 'background-color',
     transitionDuration: tokens.durationFaster,
     userSelect: 'none',
+    backgroundColor: tokens.colorNeutralBackground2,
+    position: 'sticky',
+    top: 0,
+    zIndex: 2,
     ':hover': {
       backgroundColor: tokens.colorSubtleBackgroundHover,
     },
@@ -601,7 +605,7 @@ function D365EntityTableInner<T extends { id: string }>(
             onSelectionChange={onSelectionChange}
             className={styles.table}
           >
-            <DataGridHeader>
+            <DataGridHeader style={{ position: 'sticky', top: 0, zIndex: 2, backgroundColor: tokens.colorNeutralBackground2 }}>
               <DataGridRow selectionCell={selectionMode ? {} : undefined}>
                 {({ renderHeaderCell, columnId }) => {
                   const idStr = String(columnId);

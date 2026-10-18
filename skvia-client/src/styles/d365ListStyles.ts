@@ -7,6 +7,10 @@ export const useD365ListStyles = makeStyles({
     flexDirection: 'column',
     height: '100%',
     width: '100%',
+    minHeight: 0,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: '0px',
     backgroundColor: tokens.colorNeutralBackground1,
     overflow: 'hidden',
     userSelect: 'none',
@@ -72,16 +76,56 @@ export const useD365ListStyles = makeStyles({
 
   // 3. Grid Container & Table
   gridWrapper: {
-    minHeight: 0, minWidth: 0,
+    minHeight: 0,
+    minWidth: 0,
     flexGrow: 1,
-    overflow: 'auto',
+    flexShrink: 1,
+    flexBasis: '0px',
+    overflowX: 'auto',
+    overflowY: 'auto',
     backgroundColor: tokens.colorNeutralBackground1,
+    scrollbarWidth: 'thin',
+    scrollbarColor: `${tokens.colorScrollbarOverlay} transparent`,
+    '&::-webkit-scrollbar': {
+      width: '8px',
+      height: '8px',
+    },
+    '&::-webkit-scrollbar-track': {
+      background: 'transparent',
+    },
+    '&::-webkit-scrollbar-thumb': {
+      backgroundColor: tokens.colorScrollbarOverlay,
+      borderRadius: '4px',
+    },
+    '&::-webkit-scrollbar-thumb:hover': {
+      backgroundColor: tokens.colorNeutralForeground4,
+    },
   },
   gridContainer: {
-    minHeight: 0, minWidth: 0,
+    minHeight: 0,
+    minWidth: 0,
     flexGrow: 1,
-    overflow: 'auto',
+    flexShrink: 1,
+    flexBasis: '0px',
+    overflowX: 'auto',
+    overflowY: 'auto',
     backgroundColor: tokens.colorNeutralBackground1,
+    scrollbarWidth: 'thin',
+    scrollbarColor: `${tokens.colorScrollbarOverlay} transparent`,
+    '&::-webkit-scrollbar': {
+      width: '8px',
+      height: '8px',
+    },
+    '&::-webkit-scrollbar-track': {
+      background: 'transparent',
+    },
+    '&::-webkit-scrollbar-thumb': {
+      backgroundColor: tokens.colorScrollbarOverlay,
+      borderRadius: '4px',
+    },
+    '&::-webkit-scrollbar-thumb:hover': {
+      backgroundColor: tokens.colorNeutralForeground4,
+    },
   },
   table: {
     width: '100%',

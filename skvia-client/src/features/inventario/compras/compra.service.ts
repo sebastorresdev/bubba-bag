@@ -24,6 +24,7 @@ export interface RecepcionCompraDatos {
   fechaDocumento: string;
   ubicacionId?: string;
   lineas?: LineaRecepcionDatos[];
+  documentoRespaldoUrl?: string | null;
 }
 export interface CompraDto extends CrearCompra {
   id: string;
@@ -39,6 +40,7 @@ export interface CompraDto extends CrearCompra {
   creadoPor?: string | null;
   creadoPorEmail?: string | null;
   fechaRegistro?: string | null;
+  documentoRespaldoUrl?: string | null;
   lineas: (LineaCompra & {
     producto: string;
     unidad: string | null;

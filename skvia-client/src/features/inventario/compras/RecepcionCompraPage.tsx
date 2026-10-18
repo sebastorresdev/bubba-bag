@@ -55,6 +55,7 @@ import { ProductoService } from '../productos/services/producto.service';
 import type { ProductoDto } from '../productos/types/producto.types';
 import { AlmacenService } from '../almacenes/services/almacen.service';
 import type { UbicacionInventarioDto } from '../almacenes/types/almacen.types';
+import { DocumentoRespaldoUpload } from '../comun/DocumentoRespaldoUpload';
 
 const useStyles = makeStyles({
   scannerContainer: {
@@ -184,8 +185,10 @@ export function RecepcionCompraPage() {
   const [popupRecibirTodoTopOpen, setPopupRecibirTodoTopOpen] = useState(false);
   const [ubicaciones, setUbicaciones] = useState<UbicacionInventarioDto[]>([]);
   const [ubicacionDestinoId, setUbicacionDestinoId] = useState<string>('');
+  const [documentoRespaldoUrl, setDocumentoRespaldoUrl] = useState<string | null>(null);
   const focusValidation = useValidationFocus();
-  const draft = useUnsavedChanges({ seriesVerificadas,cantidadesNoSeriadas,ubicacionDestinoId }, !loading);
+  const soloLectura = compra?.estado === 'Recibida';
+  const draft = useUnsavedChanges({ seriesVerificadas,cantidadesNoSeriadas,ubicacionDestinoId,documentoRespaldoUrl }, !loading && !soloLectura);
 
 
   // Auto-eliminar mensaje de escaneo/recepción exitoso o aviso a los 3.5 segundos
@@ -207,6 +210,9 @@ export function RecepcionCompraPage() {
       setError(null);
       const data = await CompraService.obtenerPorId(compraId);
       setCompra(data);
+      if (data.documentoRespaldoUrl) {
+        setDocumentoRespaldoUrl(data.documentoRespaldoUrl);
+      }
 
       const yaRecepcionada = data.estado === 'Recibida' || data.estado === 'Recibida con faltantes';
 
@@ -298,7 +304,6 @@ export function RecepcionCompraPage() {
     return compra ? compra.lineas.filter(l => l.series.length === 0) : [];
   }, [compra]);
 
-  const soloLectura = compra?.estado === 'Recibida';
   const totalSeries = todasLasSeries.length;
   const cantidadVerificadas = seriesVerificadas.size;
   const progresoPorcentaje = totalSeries > 0 ? Math.round((cantidadVerificadas / totalSeries) * 100) : 100;
@@ -706,6 +711,7 @@ export function RecepcionCompraPage() {
         fechaDocumento: compra.fechaDocumento,
         ubicacionId: ubicacionDestinoId || undefined,
         lineas: lineasARecepcionar,
+        documentoRespaldoUrl: documentoRespaldoUrl || undefined,
       });
       setMensaje('Recepción registrada correctamente. El inventario ha sido actualizado.');
       draft.markSaved(savedDraft);
@@ -768,7 +774,12 @@ export function RecepcionCompraPage() {
             tone="brand"
             title="Volver a la orden de compra"
             aria-label="Volver"
-            onClick={() => navigate(`/servicio-campo/recepciones-compra/${id}`)}
+            onClick={() => {
+              if (soloLectura) {
+                draft.markSaved();
+              }
+              navigate(`/servicio-campo/recepciones-compra/${id}`);
+            }}
           />
           <D365CommandDivider />
           {!soloLectura && (
@@ -918,6 +929,17 @@ export function RecepcionCompraPage() {
             </div>
           </div>
         )}
+
+        {/* Documento de Respaldo Firmado (Guía / Acta de Recepción) */}
+        <div style={{ marginBottom: '16px' }}>
+          <DocumentoRespaldoUpload
+            url={documentoRespaldoUrl}
+            onUrlChange={setDocumentoRespaldoUrl}
+            disabled={soloLectura || saving}
+            titulo="Documento de Respaldo Firmado (Guía / Acta de Entrega)"
+            descripcion="Adjunte la fotografía o documento PDF firmado de la guía de remisión o acta como respaldo formal de la recepción."
+          />
+        </div>
 
         {/* Recepción de Series con escáner y tabla integrados */}
         {tieneSerializados && (

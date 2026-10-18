@@ -51,6 +51,7 @@ public static class WebApplicationExtensions
             var logger = scope.ServiceProvider.GetRequiredService<ILogger<WebApplication>>();
             await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.UbigeoSeeder.SeedAsync(servicioCampoDbContext, logger);
             await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.MotivosIncidenciaSeeder.SeedAsync(servicioCampoDbContext, logger);
+            await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.InventarioSeeder.SeedAsync(servicioCampoDbContext, logger);
 
             // Asegurar registro inicial de configuración de empresa mediante EF Core
             if (!await servicioCampoDbContext.ConfiguracionEmpresas.AnyAsync())
@@ -59,6 +60,62 @@ public static class WebApplicationExtensions
                 await servicioCampoDbContext.ConfiguracionEmpresas.AddAsync(empresaDefault);
                 await servicioCampoDbContext.SaveChangesAsync();
             }
+
+            // 4. Asegurar tabla de Devoluciones a Proveedor y campo DocumentoRespaldoUrl en Compras
+            await servicioCampoDbContext.Database.ExecuteSqlRawAsync(@"
+                ALTER TABLE inventario.""Compras"" ADD COLUMN IF NOT EXISTS ""DocumentoRespaldoUrl"" character varying(500);
+
+                CREATE TABLE IF NOT EXISTS inventario.""DevolucionesProveedor"" (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""Numero"" character varying(40) NOT NULL,
+                    ""Proveedor"" character varying(150) NOT NULL,
+                    ""AlmacenId"" uuid NOT NULL,
+                    ""UbicacionId"" uuid NULL,
+                    ""TipoDocumento"" character varying(30) NOT NULL,
+                    ""NumeroDocumento"" character varying(100) NOT NULL,
+                    ""FechaDocumento"" date NOT NULL,
+                    ""Motivo"" character varying(200) NOT NULL,
+                    ""Observaciones"" character varying(500) NULL,
+                    ""DocumentoRespaldoUrl"" character varying(500) NULL,
+                    ""LineasJson"" text NOT NULL DEFAULT '[]',
+                    ""TotalItems"" integer NOT NULL DEFAULT 0,
+                    ""TotalCantidad"" numeric(18,5) NOT NULL DEFAULT 0,
+                    ""Estado"" character varying(50) NOT NULL DEFAULT 'Completada',
+                    ""UsuarioId"" uuid NOT NULL,
+                    ""UsuarioNombre"" character varying(150) NOT NULL,
+                    ""FechaRegistro"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    ""FechaCompletada"" timestamp with time zone NULL,
+                    xmin xid NOT NULL DEFAULT ('0'::xid),
+                    CONSTRAINT ""FK_DevolucionesProveedor_Almacenes"" FOREIGN KEY (""AlmacenId"") REFERENCES inventario.""Almacenes"" (""Id"") ON DELETE RESTRICT,
+                    CONSTRAINT ""FK_DevolucionesProveedor_Ubicaciones"" FOREIGN KEY (""UbicacionId"") REFERENCES inventario.""UbicacionesInventario"" (""Id"") ON DELETE RESTRICT
+                );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_DevolucionesProveedor_Numero"" ON inventario.""DevolucionesProveedor"" (""Numero"");
+                CREATE INDEX IF NOT EXISTS ""IX_DevolucionesProveedor_AlmacenId"" ON inventario.""DevolucionesProveedor"" (""AlmacenId"");
+                CREATE INDEX IF NOT EXISTS ""IX_DevolucionesProveedor_Estado"" ON inventario.""DevolucionesProveedor"" (""Estado"");
+                CREATE INDEX IF NOT EXISTS ""IX_DevolucionesProveedor_FechaRegistro"" ON inventario.""DevolucionesProveedor"" (""FechaRegistro"");
+
+                CREATE SCHEMA IF NOT EXISTS serviciocampo;
+                CREATE TABLE IF NOT EXISTS serviciocampo.""MotivosRetiroEquipo"" (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""Nombre"" character varying(150) NOT NULL,
+                    ""TipoRetiro"" character varying(50) NOT NULL,
+                    ""Descripcion"" character varying(400) NULL,
+                    ""Activo"" boolean NOT NULL DEFAULT true,
+                    ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    ""UpdatedAt"" timestamp with time zone NULL
+                );
+                CREATE INDEX IF NOT EXISTS ""IX_MotivosRetiroEquipo_Nombre"" ON serviciocampo.""MotivosRetiroEquipo"" (""Nombre"");
+                CREATE INDEX IF NOT EXISTS ""IX_MotivosRetiroEquipo_TipoRetiro"" ON serviciocampo.""MotivosRetiroEquipo"" (""TipoRetiro"");
+
+                -- Sububicaciones jerárquicas y naturaleza (Disponible vs Devolución)
+                ALTER TABLE inventario.""UbicacionesInventario"" ADD COLUMN IF NOT EXISTS ""TipoUbicacion"" character varying(30) NOT NULL DEFAULT 'Disponible';
+                ALTER TABLE inventario.""UbicacionesInventario"" ADD COLUMN IF NOT EXISTS ""UbicacionPadreId"" uuid NULL;
+                CREATE INDEX IF NOT EXISTS ""IX_UbicacionesInventario_TipoUbicacion"" ON inventario.""UbicacionesInventario"" (""AlmacenId"", ""TipoUbicacion"");
+                UPDATE inventario.""UbicacionesInventario""
+                SET ""TipoUbicacion"" = 'Devolucion'
+                WHERE ""Codigo"" = 'DEVOLUCION' OR LOWER(""Nombre"") LIKE '%devoluci%';
+            ");
         }
     }
 }
