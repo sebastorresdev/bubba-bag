@@ -14,32 +14,8 @@ public static class InventarioSeeder
         ILogger? logger = null,
         Dictionary<string, Guid>? sucursalesMap = null)
     {
-        await AsegurarUnidadesMedidaAsync(context, logger);
         await AsegurarUbicacionesPredeterminadasAsync(context, logger);
         await AsegurarMotivosRetiroEquipoAsync(context, logger);
-    }
-
-    public static async Task AsegurarUnidadesMedidaAsync(
-        ServicioCampoDbContext context,
-        ILogger? logger = null)
-    {
-        try
-        {
-            var existeGrupo = await context.GruposUnidadMedida
-                .AnyAsync(g => g.Nombre.ToLower() == "unidades generales");
-
-            if (!existeGrupo)
-            {
-                var (grupo, _) = GrupoUnidadMedida.Crear("Unidades Generales", "Unidades");
-                await context.GruposUnidadMedida.AddAsync(grupo);
-                await context.SaveChangesAsync();
-                logger?.LogInformation("Grupo de unidad de medida predeterminado 'Unidades Generales' con unidad base 'Unidades' creado exitosamente.");
-            }
-        }
-        catch (Exception ex)
-        {
-            logger?.LogWarning(ex, "No se pudo sembrar el grupo de unidades de medida predeterminado.");
-        }
     }
 
     public static async Task AsegurarUbicacionesPredeterminadasAsync(

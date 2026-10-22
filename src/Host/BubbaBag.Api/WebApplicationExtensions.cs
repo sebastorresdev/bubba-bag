@@ -115,8 +115,6 @@ public static class WebApplicationExtensions
         // 3. Seeders esenciales de Servicio de Campo e Inventario
         if (servicioCampoDbContext != null)
         {
-            await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.InventarioSeeder.AsegurarUnidadesMedidaAsync(servicioCampoDbContext);
-            
             var logger = scope.ServiceProvider.GetRequiredService<ILogger<WebApplication>>();
             await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.UbigeoSeeder.SeedAsync(servicioCampoDbContext, logger);
             await BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Seeders.MotivosIncidenciaSeeder.SeedAsync(servicioCampoDbContext, logger);
