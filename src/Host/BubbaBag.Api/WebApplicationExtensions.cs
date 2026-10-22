@@ -37,6 +37,75 @@ public static class WebApplicationExtensions
         var servicioCampoDbContext = scope.ServiceProvider.GetService<ServicioCampoDbContext>();
         if (servicioCampoDbContext != null)
         {
+            // Sincronizar esquema existente e historial de migraciones cuando se consolidan migraciones en InicialServicioCampo
+            await servicioCampoDbContext.Database.ExecuteSqlRawAsync(@"
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.tables 
+                        WHERE table_schema = 'inventario' AND table_name = 'Almacenes'
+                    ) AND NOT EXISTS (
+                        SELECT 1 FROM public.""__EFMigrationsHistory"" 
+                        WHERE ""MigrationId"" = '20261022040929_InicialServicioCampo'
+                    ) THEN
+                        CREATE SCHEMA IF NOT EXISTS crm;
+
+                        CREATE TABLE IF NOT EXISTS crm.contactos (
+                            ""Id"" uuid NOT NULL PRIMARY KEY,
+                            ""Nombres"" character varying(120) NOT NULL,
+                            ""Apellidos"" character varying(120) NOT NULL,
+                            ""NombreCompleto"" character varying(250) NOT NULL,
+                            ""Cargo"" character varying(120) NULL,
+                            ""CuentaId"" uuid NULL,
+                            ""Email"" character varying(150) NULL,
+                            ""TelefonoMovil"" character varying(30) NOT NULL,
+                            ""TelefonoTrabajo"" character varying(30) NULL,
+                            ""Direccion"" character varying(250) NULL,
+                            ""UbigeoCodigo"" character varying(6) NULL,
+                            ""Activo"" boolean NOT NULL DEFAULT TRUE,
+                            CONSTRAINT ""FK_contactos_clientes_CuentaId"" FOREIGN KEY (""CuentaId"") REFERENCES crm.clientes (""Id"") ON DELETE SET NULL,
+                            CONSTRAINT ""FK_contactos_ubigeos_UbigeoCodigo"" FOREIGN KEY (""UbigeoCodigo"") REFERENCES crm.ubigeos (""Codigo"") ON DELETE RESTRICT
+                        );
+
+                        CREATE INDEX IF NOT EXISTS ""IX_contactos_CuentaId"" ON crm.contactos (""CuentaId"");
+                        CREATE INDEX IF NOT EXISTS ""IX_contactos_NombreCompleto"" ON crm.contactos (""NombreCompleto"");
+                        CREATE INDEX IF NOT EXISTS ""IX_contactos_UbigeoCodigo"" ON crm.contactos (""UbigeoCodigo"");
+
+                        ALTER TABLE crm.clientes ADD COLUMN IF NOT EXISTS ""ContactoPrincipalId"" uuid NULL;
+
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.table_constraints 
+                            WHERE constraint_name = 'FK_clientes_contactos_ContactoPrincipalId'
+                        ) THEN
+                            ALTER TABLE crm.clientes
+                                ADD CONSTRAINT ""FK_clientes_contactos_ContactoPrincipalId""
+                                FOREIGN KEY (""ContactoPrincipalId"") REFERENCES crm.contactos (""Id"") ON DELETE SET NULL;
+                        END IF;
+
+                        CREATE INDEX IF NOT EXISTS ""IX_clientes_ContactoPrincipalId"" ON crm.clientes (""ContactoPrincipalId"");
+
+                        ALTER TABLE serviciocampo.""Tareas"" DROP COLUMN IF EXISTS ""Codigo"";
+
+                        DELETE FROM public.""__EFMigrationsHistory""
+                        WHERE ""MigrationId"" IN (
+                            '20261014055112_InicialServicioCampo',
+                            '20261014163836_PrecisionCantidadAjustes',
+                            '20261014200825_CicloOrdenesYObservaciones',
+                            '20261014201519_PersistirObservacionesOrden',
+                            '20261014233709_SlaConfiguracionServicio',
+                            '20261016070000_AgregarUnidadOrganizativaAOrdenTrabajo',
+                            '20261016223100_AgregarAlmacenPadreAAlmacenes',
+                            '20261017203223_AgregarDevolucionProveedorYRespaldo',
+                            '20261018015057_AgregarMotivosRetiroEquipo'
+                        );
+
+                        INSERT INTO public.""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"")
+                        VALUES ('20261022040929_InicialServicioCampo', '10.0.11')
+                        ON CONFLICT (""MigrationId"") DO NOTHING;
+                    END IF;
+                END $$;
+            ");
+
             await servicioCampoDbContext.Database.MigrateAsync();
         }
 
