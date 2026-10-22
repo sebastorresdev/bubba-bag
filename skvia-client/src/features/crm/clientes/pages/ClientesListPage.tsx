@@ -10,10 +10,8 @@ import {
   MenuPopover,
   MenuList,
   MenuItem,
-  SplitButton,
   type TableColumnDefinition,
   type SelectionItemId,
-  type MenuButtonProps,
 } from '@fluentui/react-components';
 import {
   Add16Regular,
@@ -291,17 +289,10 @@ export const ClientesListPage: React.FC<ClientesListPageProps> = () => {
           </D365CommandButton>
           <Menu positioning="below-end">
             <MenuTrigger disableButtonEnhancement>
-              {(triggerProps: MenuButtonProps) => (
-                <SplitButton
-                  appearance="subtle"
-                  size="small"
-                  icon={<ArrowDownload16Regular />}
-                  primaryActionButton={{ onClick: handleExportarExcel }}
-                  menuButton={triggerProps}
-                >
-                  Exportar a Excel
-                </SplitButton>
-              )}
+              <D365CommandButton icon={<ArrowDownload16Regular />}>
+                Exportar a Excel
+                <ChevronDown16Regular className={styles.iconChevronMargin} />
+              </D365CommandButton>
             </MenuTrigger>
             <MenuPopover>
               <MenuList>
