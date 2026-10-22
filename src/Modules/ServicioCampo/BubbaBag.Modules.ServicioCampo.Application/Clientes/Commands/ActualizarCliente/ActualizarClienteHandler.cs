@@ -20,7 +20,17 @@ public class ActualizarClienteHandler : ICommandHandler<ActualizarClienteCommand
         var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
         if (cliente == null)
         {
-            return Result.Failure("Cliente no encontrado.");
+            return Result.Failure("Cuenta no encontrada.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.DocumentoIdentidad))
+        {
+            var docNorm = request.DocumentoIdentidad.Trim();
+            if (docNorm != cliente.DocumentoIdentidad &&
+                await _context.Clientes.AnyAsync(c => c.Id != request.Id && c.DocumentoIdentidad == docNorm, cancellationToken))
+            {
+                return Result.Failure($"Ya existe otra cuenta registrada con el documento '{docNorm}'.");
+            }
         }
 
         cliente.ActualizarContactoYDireccion(
@@ -29,7 +39,12 @@ public class ActualizarClienteHandler : ICommandHandler<ActualizarClienteCommand
             ubigeoCodigo: request.UbigeoCodigo,
             referencia: request.ReferenciaUbicacion,
             lat: request.CoordenadaLat,
-            lng: request.CoordenadaLng);
+            lng: request.CoordenadaLng,
+            nombreCuenta: request.Nombres,
+            documentoIdentidad: request.DocumentoIdentidad,
+            telefonoSecundario: request.TelefonoSecundario,
+            email: request.Email,
+            contactoPrincipalId: request.ContactoPrincipalId);
 
         if (request.EsClienteFacturacion.HasValue || request.EsClienteServicio.HasValue)
         {

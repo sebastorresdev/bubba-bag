@@ -366,7 +366,7 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
     if (appId === 'admin-center') {
       return isDarkMode ? tokens.colorNeutralBackground5 : tokens.colorStrokeFocus2;
     }
-    return tokens.colorPaletteTealBorderActive;
+    return tokens.colorBrandBackgroundStatic;
   };
 
   return (

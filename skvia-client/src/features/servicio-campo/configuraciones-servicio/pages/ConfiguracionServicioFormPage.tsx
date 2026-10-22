@@ -894,7 +894,7 @@ export function ConfiguracionServicioFormPage() {
                     }}
                     disabled={isEditMode}
                   >
-                    <option value="">-- Seleccione un servicio técnico --</option>
+                    <option value=""></option>
                     {productosServicio.map((p) => (
                       <option key={p.id} value={p.id}>
                         [{p.codigo}] {p.nombre}
@@ -936,7 +936,6 @@ export function ConfiguracionServicioFormPage() {
                   <Input
                     type="number"
                     min={1}
-                    placeholder="Ej. 24, 48..."
                     value={slaHorasResolucion !== null && slaHorasResolucion !== undefined ? slaHorasResolucion.toString() : ''}
                     onChange={(_, d) => setSlaHorasResolucion(d.value ? Math.max(1, parseInt(d.value) || 0) : null)}
                   />
@@ -1358,7 +1357,6 @@ export function ConfiguracionServicioFormPage() {
                 type="number"
                 min={0.01}
                 step="any"
-                placeholder="Ej. 1"
                 value={nuevoMaterialCantidad}
                 onChange={(_, d) => setNuevoMaterialCantidad(d.value)}
                 style={{ width: '100%' }}
@@ -1372,7 +1370,7 @@ export function ConfiguracionServicioFormPage() {
                 style={{ width: '100%' }}
               >
                 {!nuevoMaterialUnidadId && (
-                  <option value="">Seleccionar U.M...</option>
+                  <option value=""></option>
                 )}
                 {unidadesDisponiblesDrawer.unidadesGrupo.length > 0 ? (
                   <>

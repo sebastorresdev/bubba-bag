@@ -6,9 +6,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Input,
   Select,
+  Switch,
   Tab,
   TabList,
   Spinner,
+  Text,
   Toast,
   Toaster,
   ToastTitle,
@@ -25,6 +27,7 @@ import {
   Person16Regular,
   People20Regular,
   Building16Regular,
+  Location16Regular,
 } from '@fluentui/react-icons';
 import { SeguridadService, type UsuarioDto } from '../../seguridad';
 import { SelectorEntidadRelacionada } from '../../../components/common/SelectorEntidadRelacionada';
@@ -61,7 +64,7 @@ const DEFAULT_RECURSO_FORM_DATA: CreateRecursoDto = {
 
 const DEFAULT_HEADER_INFO = {
   nombre: '',
-  tipoNombre: 'Técnico de Campo',
+  tipoNombre: 'Usuario',
   activo: true,
 };
 
@@ -102,10 +105,12 @@ export function RecursoFormPage() {
   const [sedes, setSedes] = useState<UnidadOrganizativaDto[]>([]);
   const [busquedaSede, setBusquedaSede] = useState('');
   const [territorios, setTerritorios] = useState<TerritorioDto[]>([]);
+  const [busquedaTerritorio, setBusquedaTerritorio] = useState('');
   const [almacenesBase, setAlmacenesBase] = useState<AlmacenDto[]>([]);
+  const [busquedaAlmacenBase, setBusquedaAlmacenBase] = useState('');
 
   // UI state
-  const [selectedTab, setSelectedTab] = useState<'general' | 'despacho' | 'detalle'>('general');
+  const [selectedTab, setSelectedTab] = useState<'general' | 'scheduling' | 'fieldService' | 'detalle'>('general');
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -200,6 +205,8 @@ export function RecursoFormPage() {
       setHeaderInfo(DEFAULT_HEADER_INFO);
       setBusquedaSede('');
       setBusquedaUsuario('');
+      setBusquedaTerritorio('');
+      setBusquedaAlmacenBase('');
       setSelectedTab('general');
       setErrors({});
       setStatusMessage(null);
@@ -213,6 +220,8 @@ export function RecursoFormPage() {
     setHeaderInfo(DEFAULT_HEADER_INFO);
     setBusquedaSede('');
     setBusquedaUsuario('');
+    setBusquedaTerritorio('');
+    setBusquedaAlmacenBase('');
     setSelectedTab('general');
     setErrors({});
     setStatusMessage(null);
@@ -223,6 +232,7 @@ export function RecursoFormPage() {
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!formData.nombreCompleto.trim()) newErrors.nombreCompleto = 'El nombre completo es obligatorio.';
+    if (!formData.usuarioId) newErrors.usuarioId = 'Debe vincular un usuario del sistema.';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -259,7 +269,7 @@ export function RecursoFormPage() {
         setHeaderInfo((p) => ({
           ...p,
           nombre: formData.nombreCompleto.trim(),
-          tipoNombre: formData.tipo === 1 ? 'Técnico de Campo' : formData.tipo === 4 ? 'Despachador' : 'Recurso',
+          tipoNombre: formData.tipo === 1 ? 'Usuario' : 'Recurso',
         }));
         draft.markSaved(savedDraft);
         notifySuccess(`Recurso "${formData.nombreCompleto.trim()}" actualizado correctamente.`);
@@ -372,22 +382,89 @@ navigate('/servicio-campo/recursos'); }
             tabs={
               <TabList
                 selectedValue={selectedTab}
-                onTabSelect={(_, d) => setSelectedTab(d.value as 'general' | 'despacho' | 'detalle')}
+                onTabSelect={(_, d) => setSelectedTab(d.value as 'general' | 'scheduling' | 'fieldService' | 'detalle')}
               >
                 <Tab value="general">General</Tab>
-                <Tab value="despacho">Parámetros de Despacho</Tab>
+                <Tab value="scheduling">Programación</Tab>
+                <Tab value="fieldService">Servicio de Campo</Tab>
                 <Tab value="detalle" disabled={!isEditMode}>Detalle / Auditoría</Tab>
               </TabList>
             }
           />
 
           <D365FormContent busy={saving} className={styles.contentBody}>
+            {/* PESTAÑA 1: GENERAL (Idéntica a Dynamics 365) */}
             {selectedTab === 'general' ? (
-              <div className={styles.grid2Cols}>
+              <div className={styles.halfCardWrapper}>
                 <div className={styles.card}>
                   <div className={styles.cardSectionTitle}>Información del Recurso</div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <D365FormField label="Tipo de Recurso" required>
+                      <Select
+                        className={styles.d365ControlFull}
+                        value={String(formData.tipo)}
+                        onChange={(_, d) => setFormData((p) => ({ ...p, tipo: Number(d.value) }))}
+                      >
+                        <option value="1">Usuario</option>
+                      </Select>
+                    </D365FormField>
+
+                    <D365FormField label="Usuario" required error={errors.usuarioId}>
+                      <SelectorEntidadRelacionada
+                        idEntrada="recurso-usuario"
+                        etiquetaGrupo="Usuarios"
+                        icono={<Person16Regular />}
+                        opciones={usuariosTecnicos.map((u) => ({
+                          id: u.id,
+                          nombre: u.nombreCompleto,
+                          detalle: u.email,
+                        }))}
+                        seleccionada={
+                          usuariosTecnicos.find((u) => u.id === formData.usuarioId)
+                            ? {
+                                id: formData.usuarioId!,
+                                nombre: usuariosTecnicos.find((u) => u.id === formData.usuarioId)!.nombreCompleto,
+                              }
+                            : null
+                        }
+                        textoBusqueda={busquedaUsuario}
+                        alCambiarBusqueda={setBusquedaUsuario}
+                        alSeleccionar={(usuarioId) => {
+                          const u = usuariosTecnicos.find((item) => item.id === usuarioId);
+                          setFormData((p) => ({
+                            ...p,
+                            usuarioId: usuarioId ?? '',
+                            nombreCompleto: p.nombreCompleto.trim() ? p.nombreCompleto : (u?.nombreCompleto || ''),
+                            email: p.email.trim() ? p.email : (u?.email || ''),
+                          }));
+                          if (errors.usuarioId && usuarioId) {
+                            setErrors((p) => ({ ...p, usuarioId: '' }));
+                          }
+                          if (errors.nombreCompleto && (formData.nombreCompleto || u?.nombreCompleto)) {
+                            setErrors((p) => ({ ...p, nombreCompleto: '' }));
+                          }
+                        }}
+                        alNavegar={(usuarioId) => navigate('/configuracion/usuarios/' + usuarioId)}
+                        deshabilitado={saving}
+                      />
+                    </D365FormField>
+
+                    <D365FormField label="Nombre" required error={errors.nombreCompleto}>
+                      <Input
+                        className={styles.d365ControlFull}
+                        value={formData.nombreCompleto}
+                        maxLength={150}
+                        onChange={(_, d) => setFormData((p) => ({ ...p, nombreCompleto: d.value }))}
+                      />
+                    </D365FormField>
+
+                    <D365FormField label="Zona Horaria">
+                      <Select className={styles.d365ControlFull} value="America/Lima" disabled>
+                        <option value="America/Lima">(GMT-05:00) Bogotá, Lima, Quito, Rio Branco</option>
+                      </Select>
+                    </D365FormField>
+
                     {isEditMode && formData.codigo && (
                       <D365FormField label="Código de Recurso">
                         <Input
@@ -398,33 +475,20 @@ navigate('/servicio-campo/recursos'); }
                         />
                       </D365FormField>
                     )}
+                  </div>
+                </div>
+              </div>
+            ) : selectedTab === 'scheduling' ? (
+              /* PESTAÑA 2: PROGRAMACIÓN / SCHEDULING (Idéntica a Dynamics 365) */
+              <div className={styles.grid2Cols}>
+                <div className={styles.card}>
+                  <div className={styles.cardSectionTitle}>Ubicación y Base Operativa</div>
 
-                    <D365FormField label="Nombre Completo" required error={errors.nombreCompleto}>
-                      <Input
-                        className={styles.d365ControlFull}
-                        value={formData.nombreCompleto}
-                        maxLength={150}
-                        onChange={(_, d) => setFormData((p) => ({ ...p, nombreCompleto: d.value }))}
-                      />
-                    </D365FormField>
-
-                    <D365FormField label="Rol / Tipo de Recurso" required>
-                      <Select
-                        className={styles.d365ControlFull}
-                        value={String(formData.tipo)}
-                        onChange={(_, d) => setFormData((p) => ({ ...p, tipo: Number(d.value) }))}
-                      >
-                        <option value="1">Técnico de Campo (Individual)</option>
-                        <option value="4">Despachador / Coordinador de Servicios</option>
-                        <option value="2">Cuadrilla / Equipo Técnico</option>
-                        <option value="6">Vehículo / Equipamiento Especial</option>
-                      </Select>
-                    </D365FormField>
-
-                    <D365FormField label="Unidad Organizativa (Sede)" error={errors.unidadOrganizativaId}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <D365FormField label="Unidad Organizativa" error={errors.unidadOrganizativaId}>
                       <SelectorEntidadRelacionada
                         idEntrada="recurso-unidad-org"
-                        etiquetaGrupo="Unidades Organizativas (Sedes)"
+                        etiquetaGrupo="Unidades Organizativas"
                         icono={<Building16Regular />}
                         deshabilitado={saving}
                         tituloEnlace="Ver detalles de la sede"
@@ -458,34 +522,110 @@ navigate('/servicio-campo/recursos'); }
                     </D365FormField>
 
                     <D365FormField label="Territorio Habitual de Operación">
-                      <Select
-                        className={styles.d365ControlFull}
-                        value={formData.zonaOperativaId || ''}
-                        onChange={(_, d) => setFormData((p) => ({ ...p, zonaOperativaId: d.value }))}
-                      >
-                        <option value="">Seleccione territorio / zona...</option>
-                        {territorios
+                      <SelectorEntidadRelacionada
+                        etiquetaGrupo="Territorios"
+                        icono={<Location16Regular />}
+                        deshabilitado={saving}
+                        opciones={territorios
                           .filter(
                             (t) =>
                               !formData.unidadOrganizativaId ||
                               t.unidadOrganizativaId === formData.unidadOrganizativaId
                           )
-                          .map((t) => (
-                            <option key={t.id} value={t.id}>
-                              {t.nombre} ({t.codigo})
-                            </option>
-                          ))}
-                      </Select>
+                          .map((t) => ({
+                            id: t.id,
+                            nombre: `${t.nombre} (${t.codigo})`,
+                          }))}
+                        seleccionada={
+                          formData.zonaOperativaId
+                            ? (() => {
+                                const t = territorios.find((item) => item.id === formData.zonaOperativaId);
+                                return t ? { id: t.id, nombre: `${t.nombre} (${t.codigo})` } : null;
+                              })()
+                            : null
+                        }
+                        textoBusqueda={busquedaTerritorio}
+                        alCambiarBusqueda={setBusquedaTerritorio}
+                        alSeleccionar={(territorioId) => {
+                          setFormData((p) => ({ ...p, zonaOperativaId: territorioId || '' }));
+                        }}
+                      />
                     </D365FormField>
 
-                    <D365FormField label="Bodega Base (Abastecimiento)">
-                      <Select
+                    <D365FormField label="Ubicación de Inicio y Fin de Jornada">
+                      <Select className={styles.d365ControlFull} value="org" disabled>
+                        <option value="org">Dirección de la Unidad Organizativa</option>
+                        <option value="resource">Dirección del Recurso</option>
+                        <option value="agnostic">Ubicación independiente</option>
+                      </Select>
+                    </D365FormField>
+                  </div>
+                </div>
+
+                <div className={styles.card}>
+                  <div className={styles.cardSectionTitle}>Parámetros de Programación</div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
+                      <div>
+                        <Text weight="semibold" size={200} block>Mostrar en Tablero de Programación</Text>
+                        <Text size={100} style={{ color: 'var(--colorNeutralForeground3)' }}>Habilita al recurso en el tablero de programación</Text>
+                      </div>
+                      <Switch checked={true} disabled />
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
+                      <div>
+                        <Text weight="semibold" size={200} block>Habilitar para Búsqueda de Disponibilidad</Text>
+                        <Text size={100} style={{ color: 'var(--colorNeutralForeground3)' }}>Aparece en el asistente de programación automática</Text>
+                      </div>
+                      <Switch checked={true} disabled />
+                    </div>
+
+                    <D365FormField label="Capacidad máxima de órdenes por día">
+                      <Input
                         className={styles.d365ControlFull}
-                        value={formData.almacenBaseId || ''}
-                        onChange={(_, d) => setFormData((p) => ({ ...p, almacenBaseId: d.value }))}
-                      >
-                        <option value="">Seleccione bodega base...</option>
-                        {almacenesBase
+                        type="number"
+                        min={1}
+                        max={30}
+                        value={String(formData.capacidadMaximaOrdenesPorDia || 6)}
+                        onChange={(_, d) =>
+                          setFormData((p) => ({ ...p, capacidadMaximaOrdenesPorDia: Number(d.value) }))
+                        }
+                      />
+                    </D365FormField>
+
+                    <D365FormField label="Color identificador en Tablero Gantt">
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <input
+                          type="color"
+                          value={formData.colorHex || '#0078d4'}
+                          onChange={(e) => setFormData((p) => ({ ...p, colorHex: e.target.value }))}
+                          style={{ width: '40px', height: '32px', border: 'none', cursor: 'pointer' }}
+                        />
+                        <Input
+                          value={formData.colorHex || '#0078d4'}
+                          onChange={(_, d) => setFormData((p) => ({ ...p, colorHex: d.value }))}
+                          style={{ width: '120px' }}
+                        />
+                      </div>
+                    </D365FormField>
+                  </div>
+                </div>
+              </div>
+            ) : selectedTab === 'fieldService' ? (
+              /* PESTAÑA 3: FIELD SERVICE (Idéntica a Dynamics 365) */
+              <div className={styles.halfCardWrapper}>
+                <div className={styles.card}>
+                  <div className={styles.cardSectionTitle}>Configuración de Servicio de Campo</div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <D365FormField label="Almacén">
+                      <SelectorEntidadRelacionada
+                        etiquetaGrupo="Almacenes"
+                        icono={<Building16Regular />}
+                        deshabilitado={saving}
+                        opciones={almacenesBase
                           .filter(
                             (a) =>
                               !formData.unidadOrganizativaId ||
@@ -493,97 +633,53 @@ navigate('/servicio-campo/recursos'); }
                               a.unidadOrganizativaId === formData.unidadOrganizativaId ||
                               a.id === formData.almacenBaseId
                           )
-                          .map((a) => (
-                            <option key={a.id} value={a.id}>
-                              {a.nombre}
-                            </option>
-                          ))}
-                      </Select>
-                    </D365FormField>
-                  </div>
-                </div>
-
-                <div className={styles.card}>
-                  <div className={styles.cardSectionTitle}>Datos de Contacto y Acceso</div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <D365FormField label="Usuario de acceso vinculado" error={errors.usuarioId}>
-                      <SelectorEntidadRelacionada
-                        etiquetaGrupo="Técnicos"
-                        icono={<Person16Regular />}
-                        opciones={usuariosTecnicos.map(u => ({ id: u.id, nombre: u.nombreCompleto, detalle: u.email }))}
-                        seleccionada={usuariosTecnicos.find(u => u.id === formData.usuarioId) ? { id: formData.usuarioId!, nombre: usuariosTecnicos.find(u => u.id === formData.usuarioId)!.nombreCompleto } : null}
-                        textoBusqueda={busquedaUsuario} alCambiarBusqueda={setBusquedaUsuario}
-                        alSeleccionar={usuarioId => setFormData(p => ({ ...p, usuarioId: usuarioId ?? '' }))}
-                        alNavegar={usuarioId => navigate('/configuracion/usuarios/' + usuarioId)} deshabilitado={saving} />
-                    </D365FormField>
-
-                    <D365FormField label="DNI / Documento de Identidad">
-                      <Input
-                        className={styles.d365ControlFull}
-                        value={formData.documentoIdentidad || ''}
-                        maxLength={20}
-                        onChange={(_, d) => setFormData((p) => ({ ...p, documentoIdentidad: d.value }))}
+                          .map((a) => ({
+                            id: a.id,
+                            nombre: a.nombre,
+                            detalle: a.codigo || undefined,
+                          }))}
+                        seleccionada={
+                          formData.almacenBaseId
+                            ? (() => {
+                                const a = almacenesBase.find((item) => item.id === formData.almacenBaseId);
+                                return a ? { id: a.id, nombre: a.nombre } : null;
+                              })()
+                            : null
+                        }
+                        textoBusqueda={busquedaAlmacenBase}
+                        alCambiarBusqueda={setBusquedaAlmacenBase}
+                        alSeleccionar={(almacenId) => {
+                          setFormData((p) => ({ ...p, almacenBaseId: almacenId || '' }));
+                        }}
                       />
                     </D365FormField>
 
-                    <D365FormField label="Teléfono de Contacto">
-                      <Input
-                        className={styles.d365ControlFull}
-                        value={formData.telefono || ''}
-                        maxLength={30}
-                        onChange={(_, d) => setFormData((p) => ({ ...p, telefono: d.value }))}
-                      />
-                    </D365FormField>
-
-                    <D365FormField label="Correo Electrónico">
-                      <Input
-                        className={styles.d365ControlFull}
-                        type="email"
-                        value={formData.email || ''}
-                        maxLength={100}
-                        onChange={(_, d) => setFormData((p) => ({ ...p, email: d.value }))}
-                      />
-                    </D365FormField>
-                  </div>
-                </div>
-              </div>
-            ) : selectedTab === 'despacho' ? (
-              <div className={styles.card}>
-                <div className={styles.grid2Cols}>
-                  <D365FormField label="Capacidad máxima de órdenes por día">
-                    <Input
-                      className={styles.d365ControlFull}
-                      type="number"
-                      min={1}
-                      max={30}
-                      value={String(formData.capacidadMaximaOrdenesPorDia || 6)}
-                      onChange={(_, d) =>
-                        setFormData((p) => ({ ...p, capacidadMaximaOrdenesPorDia: Number(d.value) }))
-                      }
-                    />
-                  </D365FormField>
-
-                  <D365FormField label="Color identificador en Tablero Gantt">
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <input
-                        type="color"
-                        value={formData.colorHex || '#0078d4'}
-                        onChange={(e) => setFormData((p) => ({ ...p, colorHex: e.target.value }))}
-                        style={{ width: '40px', height: '32px', border: 'none', cursor: 'pointer' }}
-                      />
-                      <Input
-                        value={formData.colorHex || '#0078d4'}
-                        onChange={(_, d) => setFormData((p) => ({ ...p, colorHex: d.value }))}
-                        style={{ width: '120px' }}
-                      />
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
+                      <div>
+                        <Text weight="semibold" size={200} block>Habilitado para Field Service Mobile</Text>
+                        <Text size={100} style={{ color: 'var(--colorNeutralForeground3)' }}>Permite al técnico sincronizar y liquidar desde la app móvil</Text>
+                      </div>
+                      <Switch checked={true} disabled />
                     </div>
-                  </D365FormField>
+
+                    <D365FormField label="Tarifa por Hora">
+                      <Input
+                        className={styles.d365ControlFull}
+                        type="number"
+                        min={0}
+                        step={0.5}
+                        defaultValue="0.00"
+                        contentBefore={<Text size={200}>S/</Text>}
+                      />
+                    </D365FormField>
+                  </div>
                 </div>
               </div>
             ) : (
-              <div className={styles.card}>
-                <div className={styles.grid2Cols}>
+              /* PESTAÑA 4: DETALLE / AUDITORÍA */
+              <div className={styles.halfCardWrapper}>
+                <div className={styles.card}>
+                  <div className={styles.cardSectionTitle}>Información de Auditoría y Estado</div>
                   <D365FormField label="Estado Operativo">
                     <Input
                       className={styles.d365ControlFull}
@@ -595,8 +691,7 @@ navigate('/servicio-campo/recursos'); }
                   </D365FormField>
                 </div>
               </div>
-            )}
-          </D365FormContent>
+            )}</D365FormContent>
         </>
       )}
     </div>

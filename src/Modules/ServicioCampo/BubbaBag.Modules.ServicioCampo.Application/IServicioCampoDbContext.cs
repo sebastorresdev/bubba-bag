@@ -42,6 +42,7 @@ public interface IServicioCampoDbContext
     DbSet<MovimientoInventario> MovimientosInventario { get; }
     DbSet<MotivoIncidencia> MotivosIncidencia { get; }
     DbSet<Cliente> Clientes { get; }
+    DbSet<Contacto> Contactos { get; }
     DbSet<Ubigeo> Ubigeos { get; }
     DbSet<Producto> Productos { get; }
     DbSet<UnidadMedida> UnidadesMedida { get; }

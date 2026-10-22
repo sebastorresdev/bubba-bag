@@ -40,8 +40,9 @@ import {
   Dismiss16Regular,
   Warning16Filled,
   Print16Regular,
+  ArrowDownload16Regular,
 } from '@fluentui/react-icons';
-import { WhatsAppIcon } from '../../../../components/common/WhatsAppIcon';
+import { D365CompartirButton } from '../../../../components/common/D365CompartirButton';
 import { AlmacenService } from '../services/almacen.service';
 import type {
   AlmacenDto,
@@ -94,7 +95,8 @@ const useStyles = makeStyles({
   tableWrapper: {
     border: `1px solid ${tokens.colorNeutralStroke2}`,
     borderRadius: tokens.borderRadiusMedium,
-    overflow: 'hidden',
+    overflowX: 'auto',
+    overflowY: 'hidden',
     marginTop: '8px',
     backgroundColor: tokens.colorNeutralBackground1,
   },
@@ -204,6 +206,23 @@ export const DeclaracionDoaPage: React.FC = () => {
   const [saving, setSaving] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Encabezado estático D365 (solo cambia al guardar o al presionar 'Actualizar Series', NUNCA mientras se edita el formulario)
+  const [savedHeader, setSavedHeader] = useState<{
+    estado: string;
+    numeroDocumento: string;
+    almacenNombre: string;
+    fecha: string;
+    disponibles: string;
+    aReclasificar: string;
+  }>({
+    estado: 'Borrador',
+    numeroDocumento: '—',
+    almacenNombre: '—',
+    fecha: '—',
+    disponibles: '—',
+    aReclasificar: '0 equipos',
+  });
+
   // Filtrar exclusivamente naturalezas aplicables a DOA y averías técnicas en almacén
   const motivosDoa = useMemo(() => {
     return motivosRetiro.filter((m) => TIPOS_RETIRO_DOA.includes(m.tipoRetiro));
@@ -247,6 +266,20 @@ export const DeclaracionDoaPage: React.FC = () => {
         });
         setDraftItems(mapped);
       }
+
+      setSavedHeader({
+        estado: 'Reclasificado',
+        numeroDocumento: doc.numero || '—',
+        almacenNombre: doc.almacenNombre || '—',
+        fecha: doc.fecha
+          ? new Date(doc.fecha).toLocaleString('es-PE', {
+              dateStyle: 'short',
+              timeStyle: 'short',
+            })
+          : '—',
+        disponibles: '—',
+        aReclasificar: `${doc.totalEquipos ?? doc.items?.length ?? 0} equipos`,
+      });
     } catch (err: any) {
       console.error('Error al cargar detalle DOA:', err);
       setStatusMessage({
@@ -270,9 +303,6 @@ export const DeclaracionDoaPage: React.FC = () => {
       .then((alms) => {
         const bodegas = alms.filter((a) => a.tipo === 1);
         setAlmacenes(bodegas);
-        if (!esDetalle && bodegas.length > 0) {
-          setAlmacenId(bodegas[0].id);
-        }
       })
       .catch((err) => console.error('Error al cargar almacenes:', err));
 
@@ -336,6 +366,39 @@ export const DeclaracionDoaPage: React.FC = () => {
       void cargarDatosAlmacen(almacenId);
     }
   }, [almacenId, esDetalle, cargarDatosAlmacen]);
+
+  // Actualizar series desde el servidor y refrescar metadatos del encabezado estático
+  const handleActualizarSeries = async () => {
+    if (!almacenId) return;
+    try {
+      setLoadingSeries(true);
+      setStatusMessage(null);
+      const [ubics, sers] = await Promise.all([
+        AlmacenService.getUbicaciones(almacenId),
+        AlmacenService.getSeriesDisponiblesAlmacen(almacenId),
+      ]);
+      setUbicaciones(ubics || []);
+      setSeriesDisponibles(sers || []);
+
+      const alm = almacenes.find((a) => a.id === almacenId);
+      setSavedHeader((prev) => ({
+        ...prev,
+        almacenNombre: alm?.nombre || '—',
+        disponibles: `${(sers || []).length} series`,
+        aReclasificar: `${draftItems.length} equipos`,
+      }));
+
+      notifySuccess('Series y datos del almacén actualizados.');
+    } catch (err: any) {
+      console.error('Error al actualizar series:', err);
+      setStatusMessage({
+        type: 'error',
+        text: err?.message || 'Error al conectar con el inventario del almacén.',
+      });
+    } finally {
+      setLoadingSeries(false);
+    }
+  };
 
   // Ubicaciones de destino en la rama DEVOLUCIÓN
   const ubicacionesDevolucion = useMemo(() => {
@@ -590,7 +653,19 @@ export const DeclaracionDoaPage: React.FC = () => {
         observaciones: observacionesGenerales.trim() || undefined,
       });
 
+      const alm = almacenes.find((a) => a.id === almacenId);
+      const totalReclasificados = draftItems.length;
+
       notifySuccess(res.mensaje || 'Equipos reclasificados a Devolución exitosamente.');
+      setSavedHeader({
+        estado: 'Reclasificado',
+        numeroDocumento: res.numero || '—',
+        almacenNombre: alm?.nombre || '—',
+        fecha: new Date().toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' }),
+        disponibles: '—',
+        aReclasificar: `${totalReclasificados} equipos`,
+      });
+
       setObservacionesGenerales('');
       setDraftItems([]);
 
@@ -695,13 +770,13 @@ export const DeclaracionDoaPage: React.FC = () => {
             );
           }
           return (
-            <TableCellLayout style={{ width: '100%' }}>
+            <TableCellLayout style={{ width: '100%', minWidth: 0, overflow: 'hidden' }}>
               <Select
                 size="small"
                 appearance="outline"
                 value={item.motivoRetiroId}
                 onChange={(_, data) => handleCambiarMotivoFila(item.idTemp || item.serieId, data.value)}
-                style={{ width: '100%', minWidth: '180px' }}
+                style={{ width: '100%', maxWidth: '100%', minWidth: 0 }}
                 aria-label={`Motivo de retiro para serie ${item.numeroSerie}`}
               >
                 <option value="">Seleccione motivo...</option>
@@ -732,14 +807,14 @@ export const DeclaracionDoaPage: React.FC = () => {
             );
           }
           return (
-            <TableCellLayout style={{ width: '100%' }}>
+            <TableCellLayout style={{ width: '100%', minWidth: 0, overflow: 'hidden' }}>
               <Input
                 size="small"
                 appearance="outline"
                 placeholder="Detalle técnico de la falla..."
                 value={item.observaciones}
                 onChange={(_, data) => handleCambiarObservacionFila(item.idTemp || item.serieId, data.value)}
-                style={{ width: '100%', minWidth: '160px' }}
+                style={{ width: '100%', maxWidth: '100%', minWidth: 0 }}
               />
             </TableCellLayout>
           );
@@ -791,6 +866,45 @@ export const DeclaracionDoaPage: React.FC = () => {
         ariaLabel="Comandos de declaración DOA"
         busy={saving || loadingSeries || loadingDetalle}
         busyLabel={saving ? 'Procesando declaración DOA...' : 'Cargando...'}
+        trailing={
+          esDetalle ? (
+            <D365CompartirButton
+              onCompartirWhatsApp={() => {
+                const num = docDetalle?.numero || id || 'DOA';
+                const alm = docDetalle?.almacenNombre || savedHeader.almacenNombre;
+                const total = docDetalle?.totalEquipos || draftItems.length || 0;
+                const lineasTexto = [
+                  `*DECLARACIÓN DOA / RECLASIFICACIÓN*`,
+                  `*N° Documento:* ${num}`,
+                  `*Almacén:* ${alm}`,
+                  `*Total Equipos:* ${total}`,
+                  `*Fecha:* ${docDetalle?.fecha ? new Date(docDetalle.fecha).toLocaleDateString('es-PE') : new Date().toLocaleDateString('es-PE')}`,
+                ];
+                const mensaje = encodeURIComponent(lineasTexto.join('\n'));
+                window.open(`https://api.whatsapp.com/send?text=${mensaje}`, '_blank');
+              }}
+              onCompartirCorreo={() => {
+                const num = docDetalle?.numero || id || 'DOA';
+                const alm = docDetalle?.almacenNombre || savedHeader.almacenNombre;
+                const total = docDetalle?.totalEquipos || draftItems.length || 0;
+                const asunto = `Declaración DOA / Reclasificación - ${num}`;
+                const cuerpo = [
+                  'Estimado(a),',
+                  '',
+                  'Se remite la constancia oficial de reclasificación técnica de equipos DOA:',
+                  `• N° Documento: ${num}`,
+                  `• Almacén: ${alm}`,
+                  `• Total Equipos Reclasificados: ${total}`,
+                  `• Fecha: ${new Date().toLocaleDateString('es-PE')}`,
+                  '',
+                  'Saludos cordiales,',
+                  'Control de Calidad / Logística Inversa - SKVIA',
+                ].join('\n');
+                window.location.href = `mailto:?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+              }}
+            />
+          ) : undefined
+        }
       >
         <div className={formStyles.toolbarLeft}>
           <D365CommandButton
@@ -817,7 +931,7 @@ export const DeclaracionDoaPage: React.FC = () => {
           {!esDetalle ? (
             <D365CommandButton
               icon={<ArrowClockwise16Regular />}
-              onClick={() => void cargarDatosAlmacen(almacenId)}
+              onClick={() => void handleActualizarSeries()}
               disabled={saving || loadingSeries || !almacenId}
               appearance="subtle"
             >
@@ -838,26 +952,16 @@ export const DeclaracionDoaPage: React.FC = () => {
               </D365CommandButton>
               <D365CommandDivider />
               <D365CommandButton
+                icon={<ArrowDownload16Regular />}
+                onClick={() => window.print()}
+              >
+                Cargo PDF
+              </D365CommandButton>
+              <D365CommandButton
                 icon={<Print16Regular />}
                 onClick={() => window.print()}
               >
                 Imprimir
-              </D365CommandButton>
-              <D365CommandButton
-                icon={<WhatsAppIcon size={16} />}
-                onClick={() => {
-                  const lineasTexto = [
-                    `*DECLARACIÓN DOA / RECLASIFICACIÓN*`,
-                    `*N° Documento:* ${docDetalle?.numero || id}`,
-                    `*Almacén:* ${docDetalle?.almacenNombre || 'Almacén'}`,
-                    `*Total Equipos:* ${docDetalle?.totalEquipos || 0}`,
-                    `*Fecha:* ${docDetalle?.fecha ? new Date(docDetalle.fecha).toLocaleDateString('es-PE') : new Date().toLocaleDateString('es-PE')}`,
-                  ];
-                  const mensaje = encodeURIComponent(lineasTexto.join('\n'));
-                  window.open(`https://api.whatsapp.com/send?text=${mensaje}`, '_blank');
-                }}
-              >
-                WhatsApp
               </D365CommandButton>
             </>
           )}
@@ -890,29 +994,24 @@ export const DeclaracionDoaPage: React.FC = () => {
             ? [
                 {
                   label: 'Estado',
-                  value: <D365StatusBadge status="Reclasificado" />,
+                  value: <D365StatusBadge status={savedHeader.estado || 'Reclasificado'} />,
                 },
-                { label: 'N° Documento', value: docDetalle?.numero || '—' },
-                { label: 'Almacén Base', value: docDetalle?.almacenNombre || almacenActual?.nombre || '—' },
+                { label: 'N° Documento', value: savedHeader.numeroDocumento || docDetalle?.numero || '—' },
+                { label: 'Almacén Base', value: savedHeader.almacenNombre || docDetalle?.almacenNombre || '—' },
                 {
                   label: 'Fecha',
-                  value: docDetalle?.fecha
-                    ? new Date(docDetalle.fecha).toLocaleString('es-PE', {
-                        dateStyle: 'short',
-                        timeStyle: 'short',
-                      })
-                    : '—',
+                  value: savedHeader.fecha || '—',
                 },
-                { label: 'Equipos Reclasificados', value: `${docDetalle?.totalEquipos ?? draftItems.length} equipos` },
+                { label: 'Equipos Reclasificados', value: savedHeader.aReclasificar || `${docDetalle?.totalEquipos ?? 0} equipos` },
               ]
             : [
                 {
                   label: 'Estado',
-                  value: <D365StatusBadge status="Borrador" />,
+                  value: <D365StatusBadge status={savedHeader.estado} />,
                 },
-                { label: 'Almacén Base', value: almacenActual?.nombre || '—' },
-                { label: 'Disponibles en Bodega', value: `${seriesDisponibles.length} series` },
-                { label: 'A Reclasificar', value: `${draftItems.length} equipos` },
+                { label: 'Almacén Base', value: savedHeader.almacenNombre },
+                { label: 'Disponibles en Bodega', value: savedHeader.disponibles },
+                { label: 'A Reclasificar', value: savedHeader.aReclasificar },
               ]
         }
         tabs={
@@ -1296,20 +1395,41 @@ export const DeclaracionDoaPage: React.FC = () => {
                       columns={columnasDoa}
                       getRowId={(item) => item.idTemp || item.serieId}
                       size="medium"
-                      style={{ width: '100%' }}
+                      style={{ width: '100%', minWidth: '820px' }}
                     >
                       <DataGridHeader>
-                        <DataGridRow>
+                        <DataGridRow
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: !esDetalle
+                              ? 'minmax(150px, 1.2fr) minmax(180px, 1.4fr) 110px minmax(260px, 1.8fr) minmax(220px, 1.6fr) 60px'
+                              : 'minmax(160px, 1.2fr) minmax(200px, 1.6fr) minmax(260px, 1.8fr) minmax(220px, 1.6fr)',
+                            alignItems: 'center',
+                          }}
+                        >
                           {({ renderHeaderCell }) => (
-                            <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
+                            <DataGridHeaderCell style={{ minWidth: 0, overflow: 'hidden' }}>
+                              {renderHeaderCell()}
+                            </DataGridHeaderCell>
                           )}
                         </DataGridRow>
                       </DataGridHeader>
                       <DataGridBody<DoaItemDraft>>
                         {({ item, rowId }) => (
-                          <DataGridRow<DoaItemDraft> key={rowId}>
+                          <DataGridRow<DoaItemDraft>
+                            key={rowId}
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: !esDetalle
+                                ? 'minmax(150px, 1.2fr) minmax(180px, 1.4fr) 110px minmax(260px, 1.8fr) minmax(220px, 1.6fr) 60px'
+                                : 'minmax(160px, 1.2fr) minmax(200px, 1.6fr) minmax(260px, 1.8fr) minmax(220px, 1.6fr)',
+                              alignItems: 'center',
+                            }}
+                          >
                             {({ renderCell }) => (
-                              <DataGridCell>{renderCell(item)}</DataGridCell>
+                              <DataGridCell style={{ minWidth: 0, overflow: 'hidden' }}>
+                                {renderCell(item)}
+                              </DataGridCell>
                             )}
                           </DataGridRow>
                         )}
@@ -1321,21 +1441,14 @@ export const DeclaracionDoaPage: React.FC = () => {
                 {/* BARRA INFERIOR DE TOTALES */}
                 {draftItems.length > 0 && (
                   <div className={classes.totalsBar}>
+                    <Text size={200} style={{ color: tokens.colorNeutralForeground2 }}>
+                      Total de líneas registradas: <strong>{draftItems.length}</strong>
+                    </Text>
                     <Text weight="semibold" size={300}>
                       {esDetalle
                         ? `Total de equipos reclasificados: ${draftItems.length}`
                         : `Total de equipos a reclasificar como DOA: ${draftItems.length}`}
                     </Text>
-                    {!esDetalle && (
-                      <Button
-                        appearance="primary"
-                        icon={<Save16Regular />}
-                        onClick={handleConfirmarDoa}
-                        disabled={saving || loadingSeries}
-                      >
-                        Confirmar Reclasificación ({draftItems.length})
-                      </Button>
-                    )}
                   </div>
                 )}
               </>

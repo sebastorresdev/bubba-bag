@@ -68,6 +68,11 @@ public class ClienteConfiguration : IEntityTypeConfiguration<Cliente>
             .HasForeignKey(c => c.UbigeoCodigo)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(c => c.ContactoPrincipal)
+            .WithMany()
+            .HasForeignKey(c => c.ContactoPrincipalId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.Property(c => c.ReferenciaUbicacion)
             .HasMaxLength(250);
 

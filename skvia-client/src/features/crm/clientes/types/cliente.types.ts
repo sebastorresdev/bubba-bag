@@ -21,6 +21,8 @@ export interface ClienteListadoItemDto {
   esClienteFacturacion: boolean;
   esClienteServicio: boolean;
   activo: boolean;
+  contactoPrincipalId?: string | null;
+  contactoPrincipalNombre?: string | null;
 }
 
 export interface ClienteDetalleDto {
@@ -47,6 +49,8 @@ export interface ClienteDetalleDto {
   esClienteFacturacion: boolean;
   esClienteServicio: boolean;
   activo: boolean;
+  contactoPrincipalId?: string | null;
+  contactoPrincipalNombre?: string | null;
 }
 
 export interface CrearClienteDto {
@@ -66,10 +70,15 @@ export interface CrearClienteDto {
   referenciaUbicacion?: string;
   coordenadaLat?: number;
   coordenadaLng?: number;
+  contactoPrincipalId?: string | null;
 }
 
 export interface ActualizarClienteDto {
+  nombreCuenta?: string;
+  documentoIdentidad?: string;
   telefonoPrincipal: string;
+  telefonoSecundario?: string;
+  email?: string;
   direccion: string;
   ubigeoCodigo: string;
   referenciaUbicacion?: string;
@@ -77,6 +86,50 @@ export interface ActualizarClienteDto {
   coordenadaLng?: number;
   esClienteFacturacion: boolean;
   esClienteServicio: boolean;
+  contactoPrincipalId?: string | null;
+}
+
+export interface ContactoDto {
+  id: string;
+  nombres: string;
+  apellidos: string;
+  nombreCompleto: string;
+  cargo?: string | null;
+  cuentaId?: string | null;
+  cuentaNombre?: string | null;
+  email?: string | null;
+  telefonoMovil: string;
+  telefonoTrabajo?: string | null;
+  direccion?: string | null;
+  ubigeoCodigo?: string | null;
+  distrito?: string | null;
+  provincia?: string | null;
+  departamento?: string | null;
+  activo: boolean;
+}
+
+export interface CrearContactoDto {
+  nombres: string;
+  apellidos: string;
+  telefonoMovil: string;
+  cargo?: string;
+  cuentaId?: string | null;
+  email?: string;
+  telefonoTrabajo?: string;
+  direccion?: string;
+  ubigeoCodigo?: string;
+}
+
+export interface ActualizarContactoDto {
+  nombres: string;
+  apellidos: string;
+  telefonoMovil: string;
+  cargo?: string;
+  cuentaId?: string | null;
+  email?: string;
+  telefonoTrabajo?: string;
+  direccion?: string;
+  ubigeoCodigo?: string;
 }
 
 export interface UbigeoDto {

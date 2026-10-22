@@ -1,5 +1,5 @@
 import React, { type ReactNode } from 'react';
-import { Avatar, Divider, makeStyles, Skeleton, SkeletonItem, Text, tokens } from '@fluentui/react-components';
+import { Avatar, Divider, makeStyles, Skeleton, SkeletonItem, Tab, TabList, Text, tokens } from '@fluentui/react-components';
 import { semanticTokens } from '../../styles/semanticTokens';
 import { D365StatusBadge } from './D365StatusBadge';
 
@@ -165,7 +165,13 @@ export const D365EntityHeader: React.FC<D365EntityHeaderProps> = ({
         )}
       </div>
       {processFlow && <div className={styles.processFlow}>{processFlow}</div>}
-      {tabs && <div className={styles.tabs}>{tabs}</div>}
+      <div className={styles.tabs}>
+        {tabs ?? (
+          <TabList selectedValue="general">
+            <Tab value="general">General</Tab>
+          </TabList>
+        )}
+      </div>
     </header>
   );
 };

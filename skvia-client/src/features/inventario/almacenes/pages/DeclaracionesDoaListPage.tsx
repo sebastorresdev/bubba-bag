@@ -22,7 +22,8 @@ import {
   Checkmark16Regular,
   Eye16Regular,
 } from '@fluentui/react-icons';
-import { D365CommandBar, D365CommandButton } from '../../../../components/common/D365CommandBar';
+import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
+import { D365CompartirButton } from '../../../../components/common/D365CompartirButton';
 import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
 import {
   D365EntityTable,
@@ -214,7 +215,47 @@ export const DeclaracionesDoaListPage: React.FC = () => {
   return (
     <div className={listStyles.root}>
       {/* 1. Command Bar */}
-      <D365CommandBar ariaLabel="Comandos de Declaración DOA">
+      <D365CommandBar
+        ariaLabel="Comandos de Declaración DOA"
+        trailing={
+          selectedIds.size === 1 ? (() => {
+            const selId = Array.from(selectedIds)[0] as string;
+            const item = itemsFiltrados.find((i) => i.id === selId);
+            if (!item) return undefined;
+            return (
+              <D365CompartirButton
+                onCompartirWhatsApp={() => {
+                  const lineasTexto = [
+                    `*DECLARACIÓN DOA / RECLASIFICACIÓN*`,
+                    `*N° Documento:* ${item.numero || selId}`,
+                    `*Almacén:* ${item.almacenNombre || 'Almacén'}`,
+                    `*Total Equipos:* ${item.totalEquipos || 0}`,
+                    `*Fecha:* ${item.fecha ? new Date(item.fecha).toLocaleDateString('es-PE') : new Date().toLocaleDateString('es-PE')}`,
+                  ];
+                  const mensaje = encodeURIComponent(lineasTexto.join('\n'));
+                  window.open(`https://api.whatsapp.com/send?text=${mensaje}`, '_blank');
+                }}
+                onCompartirCorreo={() => {
+                  const asunto = `Declaración DOA / Reclasificación - ${item.numero || selId}`;
+                  const cuerpo = [
+                    'Estimado(a),',
+                    '',
+                    'Se remite la constancia oficial de reclasificación técnica de equipos DOA:',
+                    `• N° Documento: ${item.numero || selId}`,
+                    `• Almacén: ${item.almacenNombre || 'Almacén'}`,
+                    `• Total Equipos Reclasificados: ${item.totalEquipos || 0}`,
+                    `• Fecha: ${item.fecha ? new Date(item.fecha).toLocaleDateString('es-PE') : new Date().toLocaleDateString('es-PE')}`,
+                    '',
+                    'Saludos cordiales,',
+                    'Control de Calidad / Logística Inversa - SKVIA',
+                  ].join('\n');
+                  window.location.href = `mailto:?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+                }}
+              />
+            );
+          })() : undefined
+        }
+      >
         <div className={listStyles.toolbarLeft}>
           <D365CommandButton
             icon={<Add16Regular />}
@@ -225,15 +266,27 @@ export const DeclaracionesDoaListPage: React.FC = () => {
           </D365CommandButton>
 
           {selectedIds.size === 1 && (
-            <D365CommandButton
-              icon={<Eye16Regular />}
-              onClick={() => {
-                const selId = Array.from(selectedIds)[0];
-                navigate(`/servicio-campo/declaracion-doa/${selId}`);
-              }}
-            >
-              Ver Detalle
-            </D365CommandButton>
+            <>
+              <D365CommandButton
+                icon={<Eye16Regular />}
+                onClick={() => {
+                  const selId = Array.from(selectedIds)[0];
+                  navigate(`/servicio-campo/declaracion-doa/${selId}`);
+                }}
+              >
+                Ver Detalle
+              </D365CommandButton>
+              <D365CommandButton
+                icon={<ArrowDownload16Regular />}
+                onClick={() => {
+                  const selId = Array.from(selectedIds)[0];
+                  navigate(`/servicio-campo/declaracion-doa/${selId}`);
+                }}
+              >
+                Cargo PDF
+              </D365CommandButton>
+              <D365CommandDivider />
+            </>
           )}
 
           <D365CommandButton icon={<ArrowClockwise16Regular />} onClick={() => void cargarDatos()}>

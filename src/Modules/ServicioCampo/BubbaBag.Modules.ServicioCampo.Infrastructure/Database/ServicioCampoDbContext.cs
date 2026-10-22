@@ -46,6 +46,7 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public DbSet<MovimientoInventario> MovimientosInventario => Set<MovimientoInventario>();
     public DbSet<MotivoIncidencia> MotivosIncidencia => Set<MotivoIncidencia>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
+    public DbSet<Contacto> Contactos => Set<Contacto>();
     public DbSet<Ubigeo> Ubigeos => Set<Ubigeo>();
     public DbSet<Producto> Productos => Set<Producto>();
     public DbSet<UnidadMedida> UnidadesMedida => Set<UnidadMedida>();

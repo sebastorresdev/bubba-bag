@@ -4,6 +4,9 @@ import type {
   ClienteDetalleDto,
   CrearClienteDto,
   ActualizarClienteDto,
+  ContactoDto,
+  CrearContactoDto,
+  ActualizarContactoDto,
   UbigeoDto,
 } from '../types/cliente.types';
 
@@ -44,6 +47,45 @@ export const ClienteService = {
 
   async cambiarEstadoCliente(id: string, activo: boolean): Promise<void> {
     await apiClient(`/api/crm/clientes/${id}/estado`, {
+      method: 'PATCH',
+      body: JSON.stringify({ activo }),
+    });
+  },
+
+  async obtenerContactos(params?: {
+    search?: string;
+    cuentaId?: string;
+    soloActivos?: boolean;
+  }): Promise<ContactoDto[]> {
+    const query = new URLSearchParams();
+    if (params?.search) query.append('search', params.search);
+    if (params?.cuentaId) query.append('cuentaId', params.cuentaId);
+    if (params?.soloActivos !== undefined) query.append('soloActivos', String(params.soloActivos));
+
+    const qs = query.toString();
+    return await apiClient<ContactoDto[]>(`/api/crm/contactos${qs ? `?${qs}` : ''}`);
+  },
+
+  async obtenerContactoPorId(id: string): Promise<ContactoDto> {
+    return await apiClient<ContactoDto>(`/api/crm/contactos/${id}`);
+  },
+
+  async crearContacto(dto: CrearContactoDto): Promise<{ id: string; message: string }> {
+    return await apiClient<{ id: string; message: string }>('/api/crm/contactos', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+  },
+
+  async actualizarContacto(id: string, dto: ActualizarContactoDto): Promise<void> {
+    await apiClient(`/api/crm/contactos/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(dto),
+    });
+  },
+
+  async cambiarEstadoContacto(id: string, activo: boolean): Promise<void> {
+    await apiClient(`/api/crm/contactos/${id}/estado`, {
       method: 'PATCH',
       body: JSON.stringify({ activo }),
     });

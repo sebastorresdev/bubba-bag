@@ -224,27 +224,42 @@ export const ProductoFormPage: React.FC<ProductoFormPageProps> = ({
     [unidadesList, formData.unidadMedidaDefectoId],
   );
 
-  useEffect(() => {
-    if (effectiveId || categoriasList.length === 0 || gruposUnidadList.length === 0 || unidadesList.length === 0) return;
-
-    const categoriaDefault = categoriasList.find((categoria) => categoria.nombre.toLowerCase() === 'default');
-    const grupoDefault = gruposUnidadList.find((grupo) => grupo.nombre.toLowerCase() === 'unidades generales');
-    const unidadDefault = grupoDefault
-      ? unidadesList.find((unidad) => unidad.grupoUnidadMedidaId === grupoDefault.id && (unidad.esUnidadBase || unidad.nombre.toLowerCase() === 'unidades' || unidad.nombre.toLowerCase() === 'unidad'))
-      : undefined;
-
-    setFormData((actual) => ({
-      ...actual,
-      categoriaProductoId: actual.categoriaProductoId ?? categoriaDefault?.id ?? null,
-      grupoUnidadMedidaId: actual.grupoUnidadMedidaId ?? grupoDefault?.id ?? null,
-      unidadMedidaDefectoId: actual.unidadMedidaDefectoId ?? unidadDefault?.id ?? null,
-    }));
-  }, [categoriasList, effectiveId, gruposUnidadList, unidadesList]);
 
   // Estado y lógica para TagPicker de Lista de Precios Predeterminada (Estilo Dynamics 365)
   const [listaPreciosQuery, setListaPreciosQuery] = useState('');
   const focusValidation = useValidationFocus();
-  const draft = useUnsavedChanges({ formData,precioBaseStr,costoActualStr,costoEstandarStr }, !loading);
+
+  // Si es un producto nuevo y el usuario aún no ha ingresado datos reales, no debe bloquear la salida
+  const esFormularioNuevoVacio = useMemo(() => {
+    if (isEditMode) return false;
+    return (
+      !formData.codigo.trim() &&
+      !formData.nombre.trim() &&
+      !formData.descripcion?.trim() &&
+      !formData.codigoBarras?.trim() &&
+      !formData.notas?.trim() &&
+      (precioBaseStr === '0' || precioBaseStr === '') &&
+      (costoActualStr === '0' || costoActualStr === '') &&
+      (costoEstandarStr === '0' || costoEstandarStr === '') &&
+      !formData.esSerializado
+    );
+  }, [
+    isEditMode,
+    formData.codigo,
+    formData.nombre,
+    formData.descripcion,
+    formData.codigoBarras,
+    formData.notas,
+    formData.esSerializado,
+    precioBaseStr,
+    costoActualStr,
+    costoEstandarStr,
+  ]);
+
+  const draft = useUnsavedChanges(
+    { formData, precioBaseStr, costoActualStr, costoEstandarStr },
+    !loading && !esFormularioNuevoVacio
+  );
 
 
   const listaPreciosSeleccionadaObj = useMemo(

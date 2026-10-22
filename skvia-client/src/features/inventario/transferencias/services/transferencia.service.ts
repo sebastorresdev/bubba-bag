@@ -65,6 +65,8 @@ export const TransferenciaService = {
       telefono?: string;
       destinatario?: string;
       tipoOperacion?: string;
+      origen?: string;
+      destino?: string;
     }
   ) => {
     const token = await import('../../../../services/apiClient').then((m) => m.getValidAuthToken());
@@ -132,5 +134,37 @@ export const TransferenciaService = {
     const mensajeWhatsApp = `${mensajeTexto}\n\n_(El archivo "${fileName}" se ha descargado en tu equipo para adjuntarlo en esta conversación)._`;
     const waUrl = `https://api.whatsapp.com/send?${phoneParam}text=${encodeURIComponent(mensajeWhatsApp)}`;
     window.open(waUrl, '_blank');
+  },
+
+  compartirCargoCorreo: (
+    id: string,
+    numero?: string,
+    opciones?: {
+      destinatario?: string;
+      email?: string;
+      tipoOperacion?: string;
+      origen?: string;
+      destino?: string;
+    }
+  ) => {
+    const tipo = opciones?.tipoOperacion || 'Cargo Oficial';
+    const num = numero || id;
+    const asunto = `${tipo} - ${num}`;
+    const cuerpo = [
+      `Estimado(a)${opciones?.destinatario ? ` ${opciones.destinatario}` : ''},`,
+      '',
+      `Se remite la constancia oficial correspondiente a la operación:`,
+      `• Tipo: ${tipo}`,
+      `• N° Documento: ${num}`,
+      opciones?.origen ? `• Origen: ${opciones.origen}` : '',
+      opciones?.destino ? `• Destino: ${opciones.destino}` : '',
+      `• Fecha: ${new Date().toLocaleDateString('es-PE')}`,
+      '',
+      'Saludos cordiales,',
+      'Equipo de Operaciones - SKVIA',
+    ].filter(Boolean).join('\n');
+
+    const mailto = `mailto:${opciones?.email || ''}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+    window.location.href = mailto;
   },
 };

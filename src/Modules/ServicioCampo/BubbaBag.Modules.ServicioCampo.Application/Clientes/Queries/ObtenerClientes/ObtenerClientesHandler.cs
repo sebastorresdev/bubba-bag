@@ -71,7 +71,9 @@ public class ObtenerClientesHandler : IQueryHandler<ObtenerClientesQuery, Result
                 c.Ubigeo != null ? c.Ubigeo.Departamento : string.Empty,
                 c.EsClienteFacturacion,
                 c.EsClienteServicio,
-                c.Activo
+                c.Activo,
+                c.ContactoPrincipalId,
+                c.ContactoPrincipal != null ? (c.ContactoPrincipal.Nombres + " " + c.ContactoPrincipal.Apellidos).Trim() : null
             ))
             .ToListAsync(cancellationToken);
 

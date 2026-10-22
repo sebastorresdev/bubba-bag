@@ -46,13 +46,36 @@ public class ObtenerClientePorIdHandler : IQueryHandler<ObtenerClientePorIdQuery
                 c.CoordenadaLng,
                 c.EsClienteFacturacion,
                 c.EsClienteServicio,
-                c.Activo
+                c.Activo,
+                c.ContactoPrincipalId,
+                c.ContactoPrincipal != null ? (c.ContactoPrincipal.Nombres + " " + c.ContactoPrincipal.Apellidos).Trim() : null,
+                c.Contactos
+                    .OrderBy(ct => ct.Nombres)
+                    .Select(ct => new ContactoDto(
+                        ct.Id,
+                        ct.Nombres,
+                        ct.Apellidos,
+                        (ct.Nombres + " " + ct.Apellidos).Trim(),
+                        ct.Cargo,
+                        ct.CuentaId,
+                        c.Nombres,
+                        ct.Email,
+                        ct.TelefonoMovil,
+                        ct.TelefonoTrabajo,
+                        ct.Direccion,
+                        ct.UbigeoCodigo,
+                        ct.Ubigeo != null ? ct.Ubigeo.Distrito : null,
+                        ct.Ubigeo != null ? ct.Ubigeo.Provincia : null,
+                        ct.Ubigeo != null ? ct.Ubigeo.Departamento : null,
+                        ct.Activo,
+                        ct.CreatedAt
+                    )).ToList()
             ))
             .FirstOrDefaultAsync(cancellationToken);
 
         if (cliente == null)
         {
-            return Result<ClienteDetalleDto>.Failure("Cliente no encontrado.");
+            return Result<ClienteDetalleDto>.Failure("Cuenta no encontrada.");
         }
 
         return Result<ClienteDetalleDto>.Success(cliente);

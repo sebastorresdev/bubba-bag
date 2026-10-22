@@ -44,7 +44,7 @@ import {
   ArrowDownload16Regular,
   Print16Regular,
 } from '@fluentui/react-icons';
-import { WhatsAppIcon } from '../../../../components/common/WhatsAppIcon';
+import { D365CompartirButton } from '../../../../components/common/D365CompartirButton';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
 import { D365FormContent } from '../../../../components/common/D365FormContent';
@@ -930,7 +930,27 @@ export const DevolucionProveedorFormPage: React.FC<DevolucionProveedorFormPagePr
   return (
     <div className={formStyles.root}>
       {/* 1. Command Bar */}
-      <D365CommandBar ariaLabel={modo === 'ok' ? 'Comandos de Retiro Material OK hacia OL' : 'Comandos de Retiro Material Defectuoso a OL'}>
+      <D365CommandBar
+        ariaLabel={modo === 'ok' ? 'Comandos de Retiro Material OK hacia OL' : 'Comandos de Retiro Material Defectuoso a OL'}
+        trailing={
+          devolucionId ? (
+            <D365CompartirButton
+              onCompartirWhatsApp={() =>
+                void DevolucionProveedorService.compartirCargoWhatsapp(devolucionId, numero, {
+                  destinatario: proveedor,
+                  tipoOperacion: modo === 'ok' ? 'Retiro Material OK hacia OL' : 'Retiro Material Defectuoso a OL',
+                })
+              }
+              onCompartirCorreo={() =>
+                DevolucionProveedorService.compartirCargoCorreo(devolucionId, numero, {
+                  destinatario: proveedor,
+                  tipoOperacion: modo === 'ok' ? 'Retiro Material OK hacia OL' : 'Retiro Material Defectuoso a OL',
+                })
+              }
+            />
+          ) : undefined
+        }
+      >
         <div className={formStyles.toolbarLeft}>
           <D365CommandButton
             icon={<ArrowLeft16Regular />}
@@ -999,15 +1019,6 @@ export const DevolucionProveedorFormPage: React.FC<DevolucionProveedorFormPagePr
                 onClick={() => void DevolucionProveedorService.abrirCargoPdf(devolucionId)}
               >
                 Imprimir
-              </D365CommandButton>
-              <D365CommandButton
-                icon={<WhatsAppIcon size={16} />}
-                onClick={() => void DevolucionProveedorService.compartirCargoWhatsapp(devolucionId, numero, {
-                  destinatario: proveedor,
-                  tipoOperacion: modo === 'ok' ? 'Retiro Material OK hacia OL' : 'Retiro Material Defectuoso a OL',
-                })}
-              >
-                WhatsApp
               </D365CommandButton>
               <D365CommandDivider />
             </>

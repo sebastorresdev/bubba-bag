@@ -1223,7 +1223,6 @@ export const ListaPreciosFormPage: React.FC = () => {
           });
           setTimeout(() => setBanner(null), 4000);
         }}
-        allowUpsert={true}
       />
     </div>
   );

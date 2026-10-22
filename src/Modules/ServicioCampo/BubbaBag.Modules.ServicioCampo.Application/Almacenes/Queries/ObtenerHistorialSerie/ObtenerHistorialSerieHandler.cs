@@ -224,6 +224,8 @@ public class ObtenerHistorialSerieHandler(IServicioCampoDbContext context)
         TipoMovimientoInventario.SalidaATransito => "Salida a Tránsito interprovincial",
         TipoMovimientoInventario.RecepcionDeTransito => "Recepción de Tránsito interprovincial",
         TipoMovimientoInventario.ResolucionTransito => "Resolución de Diferencia en Tránsito",
+        TipoMovimientoInventario.ReubicacionInterna => "Reubicación Interna",
+        TipoMovimientoInventario.ReclasificacionDOA => "Declaración / Reclasificación DOA",
         _ => tipo.ToString()
     };
 }

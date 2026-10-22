@@ -39,37 +39,29 @@ import { exportToExcel, exportToCSV, type ExportColumn } from '../../../../utils
 
 type VistaClientes = 'todas' | 'activos' | 'servicio' | 'facturacion' | 'inactivos';
 
-const nombresVistaClientes: Record<VistaClientes, string> = {
+const nombresVistaCuentas: Record<VistaClientes, string> = {
   todas: 'Todas las cuentas',
   activos: 'Cuentas activas',
-  servicio: 'Abonados en servicio',
-  facturacion: 'Clientes de facturación',
+  servicio: 'Cuentas de servicio',
+  facturacion: 'Cuentas de facturación',
   inactivos: 'Cuentas inactivas',
 };
 
 const filterFields: D365FilterField[] = [
   { id: 'codigoCliente', label: 'Código de cuenta', type: 'string' },
-  { id: 'nombreCompletoODenominacion', label: 'Nombre o Razón Social', type: 'string' },
-  { id: 'documentoIdentidad', label: 'N° Documento', type: 'string' },
-  { id: 'telefonoPrincipal', label: 'Teléfono', type: 'string' },
+  { id: 'nombreCompletoODenominacion', label: 'Nombre de la Cuenta', type: 'string' },
+  { id: 'documentoIdentidad', label: 'N° de Documento', type: 'string' },
+  { id: 'telefonoPrincipal', label: 'Teléfono Principal', type: 'string' },
+  { id: 'contactoPrincipalNombre', label: 'Contacto Principal', type: 'string' },
   { id: 'departamento', label: 'Departamento', type: 'string' },
   { id: 'distrito', label: 'Distrito', type: 'string' },
-  {
-    id: 'tipoPersona',
-    label: 'Tipo de persona',
-    type: 'string',
-    options: [
-      { value: 'NATURAL', label: 'Persona Natural' },
-      { value: 'JURIDICA', label: 'Persona Jurídica' },
-    ],
-  },
 ];
 
 export interface ClientesListPageProps {
   modo?: 'cuentas' | 'contactos' | 'todos';
 }
 
-export const ClientesListPage: React.FC<ClientesListPageProps> = ({ modo = 'todos' }) => {
+export const ClientesListPage: React.FC<ClientesListPageProps> = () => {
   const styles = useD365ListStyles();
   const navigate = useNavigate();
   const tableRef = useRef<D365EntityTableRef>(null);
@@ -81,28 +73,6 @@ export const ClientesListPage: React.FC<ClientesListPageProps> = ({ modo = 'todo
   const [activeView, setActiveView] = useState<VistaClientes>('activos');
   const [selectedIds, setSelectedIds] = useState<Set<SelectionItemId>>(new Set());
 
-  const nombresVista = useMemo<Record<VistaClientes, string>>(() => {
-    if (modo === 'cuentas') {
-      return {
-        todas: 'Todas las cuentas',
-        activos: 'Cuentas activas',
-        servicio: 'Cuentas en servicio',
-        facturacion: 'Proveedores / Clientes de facturación',
-        inactivos: 'Cuentas inactivas',
-      };
-    }
-    if (modo === 'contactos') {
-      return {
-        todas: 'Todos los contactos',
-        activos: 'Contactos activos',
-        servicio: 'Abonados residenciales en servicio',
-        facturacion: 'Contactos de facturación',
-        inactivos: 'Contactos inactivos',
-      };
-    }
-    return nombresVistaClientes;
-  }, [modo]);
-
   const cargar = useCallback(async () => {
     try {
       setLoading(true);
@@ -110,7 +80,7 @@ export const ClientesListPage: React.FC<ClientesListPageProps> = ({ modo = 'todo
       const data = await ClienteService.obtenerClientes();
       setClientes(data);
     } catch (err: any) {
-      setError(err.message || 'Error al cargar las cuentas de clientes.');
+      setError(err.message || 'Error al cargar las cuentas.');
     } finally {
       setLoading(false);
     }
@@ -122,12 +92,6 @@ export const ClientesListPage: React.FC<ClientesListPageProps> = ({ modo = 'todo
 
   const filteredClientes = useMemo(() => {
     let result = [...clientes];
-
-    if (modo === 'cuentas') {
-      result = result.filter((c) => c.tipoPersona === 'JURIDICA');
-    } else if (modo === 'contactos') {
-      result = result.filter((c) => c.tipoPersona === 'NATURAL');
-    }
 
     if (activeView === 'activos') {
       result = result.filter((c) => c.activo);
@@ -149,41 +113,42 @@ export const ClientesListPage: React.FC<ClientesListPageProps> = ({ modo = 'todo
           c.telefonoPrincipal.toLowerCase().includes(q) ||
           c.distrito.toLowerCase().includes(q) ||
           c.departamento.toLowerCase().includes(q) ||
+          (c.contactoPrincipalNombre && c.contactoPrincipalNombre.toLowerCase().includes(q)) ||
           (c.email && c.email.toLowerCase().includes(q))
       );
     }
 
     return result;
-  }, [clientes, modo, activeView, searchKeyword]);
+  }, [clientes, activeView, searchKeyword]);
 
   const handleExportarExcel = () => {
     const cols: ExportColumn<ClienteListadoItemDto>[] = [
       { header: 'Código', accessor: (c) => c.codigoCliente },
-      { header: 'Nombre / Razón Social', accessor: (c) => c.nombreCompletoODenominacion },
-      { header: 'Tipo Persona', accessor: (c) => c.tipoPersona },
-      { header: 'Tipo Doc.', accessor: (c) => c.tipoDocumento },
+      { header: 'Nombre de la Cuenta', accessor: (c) => c.nombreCompletoODenominacion },
       { header: 'N° Documento', accessor: (c) => c.documentoIdentidad },
-      { header: 'Teléfono', accessor: (c) => c.telefonoPrincipal },
+      { header: 'Teléfono Principal', accessor: (c) => c.telefonoPrincipal },
+      { header: 'Contacto Principal', accessor: (c) => c.contactoPrincipalNombre || '' },
       { header: 'Email', accessor: (c) => c.email || '' },
       { header: 'Dirección', accessor: (c) => c.direccion },
       { header: 'Distrito', accessor: (c) => c.distrito },
       { header: 'Departamento', accessor: (c) => c.departamento },
       { header: 'Estado', accessor: (c) => (c.activo ? 'Activo' : 'Inactivo') },
     ];
-    exportToExcel(filteredClientes, cols, 'Cuentas_Clientes');
+    exportToExcel(filteredClientes, cols, 'Cuentas');
   };
 
   const handleExportarCSV = () => {
     const cols: ExportColumn<ClienteListadoItemDto>[] = [
       { header: 'Código', accessor: (c) => c.codigoCliente },
-      { header: 'Nombre', accessor: (c) => c.nombreCompletoODenominacion },
-      { header: 'Documento', accessor: (c) => c.documentoIdentidad },
-      { header: 'Teléfono', accessor: (c) => c.telefonoPrincipal },
+      { header: 'Nombre de la Cuenta', accessor: (c) => c.nombreCompletoODenominacion },
+      { header: 'N° Documento', accessor: (c) => c.documentoIdentidad },
+      { header: 'Teléfono Principal', accessor: (c) => c.telefonoPrincipal },
+      { header: 'Contacto Principal', accessor: (c) => c.contactoPrincipalNombre || '' },
       { header: 'Dirección', accessor: (c) => c.direccion },
       { header: 'Distrito', accessor: (c) => c.distrito },
       { header: 'Departamento', accessor: (c) => c.departamento },
     ];
-    exportToCSV(filteredClientes, cols, 'Cuentas_Clientes');
+    exportToCSV(filteredClientes, cols, 'Cuentas');
   };
 
   const columns: TableColumnDefinition<ClienteListadoItemDto>[] = useMemo(
@@ -192,29 +157,26 @@ export const ClientesListPage: React.FC<ClientesListPageProps> = ({ modo = 'todo
         columnId: 'codigoCliente',
         compare: (a, b) => a.codigoCliente.localeCompare(b.codigoCliente),
         renderHeaderCell: () => 'Código',
-        renderCell: (item) => {
-          const basePath = modo === 'cuentas' ? '/servicio-campo/cuentas' : modo === 'contactos' ? '/servicio-campo/contactos' : '/servicio-campo/clientes';
-          return (
-            <TableCellLayout truncate>
-              <Link
-                as="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`${basePath}/${item.id}`);
-                }}
-                title={item.codigoCliente}
-              >
-                {item.codigoCliente}
-              </Link>
-            </TableCellLayout>
-          );
-        },
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Link
+              as="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/servicio-campo/cuentas/${item.id}`);
+              }}
+              title={item.codigoCliente}
+            >
+              {item.codigoCliente}
+            </Link>
+          </TableCellLayout>
+        ),
       }),
       createTableColumn<ClienteListadoItemDto>({
         columnId: 'nombreCompletoODenominacion',
         compare: (a, b) =>
           a.nombreCompletoODenominacion.localeCompare(b.nombreCompletoODenominacion),
-        renderHeaderCell: () => 'Nombre / Razón Social',
+        renderHeaderCell: () => 'Nombre de la Cuenta',
         renderCell: (item) => (
           <TableCellLayout truncate>
             <Text weight="semibold">{item.nombreCompletoODenominacion}</Text>
@@ -224,30 +186,43 @@ export const ClientesListPage: React.FC<ClientesListPageProps> = ({ modo = 'todo
       createTableColumn<ClienteListadoItemDto>({
         columnId: 'documentoIdentidad',
         compare: (a, b) => a.documentoIdentidad.localeCompare(b.documentoIdentidad),
-        renderHeaderCell: () => 'Documento',
+        renderHeaderCell: () => 'N° de Documento',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <Text>{item.tipoDocumento}: {item.documentoIdentidad}</Text>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<ClienteListadoItemDto>({
-        columnId: 'tipoPersona',
-        compare: (a, b) => a.tipoPersona.localeCompare(b.tipoPersona),
-        renderHeaderCell: () => 'Tipo',
-        renderCell: (item) => (
-          <TableCellLayout truncate>
-            <Text>{item.tipoPersona === 'JURIDICA' ? 'Persona Jurídica' : 'Persona Natural'}</Text>
+            <Text>{item.documentoIdentidad}</Text>
           </TableCellLayout>
         ),
       }),
       createTableColumn<ClienteListadoItemDto>({
         columnId: 'telefonoPrincipal',
         compare: (a, b) => a.telefonoPrincipal.localeCompare(b.telefonoPrincipal),
-        renderHeaderCell: () => 'Teléfono',
+        renderHeaderCell: () => 'Teléfono Principal',
         renderCell: (item) => (
           <TableCellLayout truncate>
             <Text>{item.telefonoPrincipal || '—'}</Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ClienteListadoItemDto>({
+        columnId: 'contactoPrincipal',
+        compare: (a, b) =>
+          (a.contactoPrincipalNombre || '').localeCompare(b.contactoPrincipalNombre || ''),
+        renderHeaderCell: () => 'Contacto Principal',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            {item.contactoPrincipalId && item.contactoPrincipalNombre ? (
+              <Link
+                as="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/servicio-campo/contactos/${item.contactoPrincipalId}`);
+                }}
+              >
+                {item.contactoPrincipalNombre}
+              </Link>
+            ) : (
+              <Text>—</Text>
+            )}
           </TableCellLayout>
         ),
       }),
@@ -298,16 +273,12 @@ export const ClientesListPage: React.FC<ClientesListPageProps> = ({ modo = 'todo
   return (
     <div className={styles.root}>
       {/* 1. TOP COMMAND BAR */}
-      <D365CommandBar ariaLabel="Comandos de cuentas y clientes">
+      <D365CommandBar ariaLabel="Comandos de cuentas">
         <div className={styles.toolbarLeft}>
           <D365CommandButton
             icon={<Add16Regular />}
             tone="create"
-            onClick={() => {
-              if (modo === 'cuentas') navigate('/servicio-campo/cuentas/nuevo');
-              else if (modo === 'contactos') navigate('/servicio-campo/contactos/nuevo');
-              else navigate('/servicio-campo/clientes/nuevo');
-            }}
+            onClick={() => navigate('/servicio-campo/cuentas/nuevo')}
           >
             Nuevo
           </D365CommandButton>
@@ -346,24 +317,26 @@ export const ClientesListPage: React.FC<ClientesListPageProps> = ({ modo = 'todo
         </div>
       </D365CommandBar>
 
-      {/* 2. VIEW HEADER ROW (Selector + Tools) */}
+      {/* 2. VIEW HEADER ROW */}
       <div className={styles.viewHeader}>
         <Menu>
           <MenuTrigger disableButtonEnhancement>
             <div className={styles.viewSelectorTab} role="button" tabIndex={0}>
-              <Text>{nombresVista[activeView]}</Text>
+              <Text weight="semibold" size={400}>
+                {nombresVistaCuentas[activeView]}
+              </Text>
               <ChevronDown16Regular className={styles.iconChevronMargin} />
             </div>
           </MenuTrigger>
           <MenuPopover className={styles.viewMenuPopover}>
             <MenuList>
-              {(Object.keys(nombresVista) as VistaClientes[]).map((v) => (
+              {(Object.keys(nombresVistaCuentas) as VistaClientes[]).map((v) => (
                 <MenuItem
                   key={v}
                   icon={activeView === v ? <Checkmark16Regular /> : undefined}
                   onClick={() => setActiveView(v)}
                 >
-                  {nombresVista[v]}
+                  {nombresVistaCuentas[v]}
                 </MenuItem>
               ))}
             </MenuList>
@@ -374,13 +347,7 @@ export const ClientesListPage: React.FC<ClientesListPageProps> = ({ modo = 'todo
           tableRef={tableRef}
           searchValue={searchKeyword}
           onSearchChange={setSearchKeyword}
-          searchPlaceholder={
-            modo === 'cuentas'
-              ? 'Buscar cuentas o proveedores...'
-              : modo === 'contactos'
-              ? 'Buscar contactos o abonados...'
-              : 'Buscar cuentas o clientes...'
-          }
+          searchPlaceholder="Buscar cuentas..."
         />
       </div>
 
@@ -395,10 +362,10 @@ export const ClientesListPage: React.FC<ClientesListPageProps> = ({ modo = 'todo
         selectionMode="multiselect"
         selectedItems={selectedIds}
         onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
-        onRowDoubleClick={(item) => navigate(`/servicio-campo/clientes/${item.id}`)}
+        onRowDoubleClick={(item) => navigate(`/servicio-campo/cuentas/${item.id}`)}
         filterFields={filterFields}
-        entityName="clientes"
-        tableId="clientes-grid"
+        entityName="cuentas"
+        tableId="cuentas-grid"
       />
 
       {/* 4. FOOTER */}

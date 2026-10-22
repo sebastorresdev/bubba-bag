@@ -10,7 +10,6 @@ import {
   ToastTitle,
   useToastController,
   useId,
-  Checkbox,
   tokens,
 } from '@fluentui/react-components';
 import {
@@ -56,7 +55,6 @@ export function TareaFormPage() {
 
   const isEditMode = Boolean(id && id !== 'nuevo');
 
-  const [codigo, setCodigo] = useState('');
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [duracionEstimadaMinutos, setDuracionEstimadaMinutos] = useState(30);
@@ -71,7 +69,7 @@ export function TareaFormPage() {
 
   const focusValidation = useValidationFocus();
   const draft = useUnsavedChanges(
-    { codigo, nombre, descripcion, duracionEstimadaMinutos, requiereEvidenciaFotografica, activo },
+    { nombre, descripcion, duracionEstimadaMinutos, requiereEvidenciaFotografica, activo },
     !loading
   );
 
@@ -81,7 +79,6 @@ export function TareaFormPage() {
       setLoading(true);
       setStatusMessage(null);
       const data = await TareaService.getTareaById(id);
-      setCodigo(data.codigo || '');
       setNombre(data.nombre || '');
       setDescripcion(data.descripcion || '');
       setDuracionEstimadaMinutos(data.duracionEstimadaMinutos || 30);
@@ -126,7 +123,6 @@ export function TareaFormPage() {
       setStatusMessage(null);
 
       const payload: GuardarTareaDto = {
-        codigo: codigo.trim() || undefined,
         nombre: nombre.trim(),
         descripcion: descripcion.trim() || undefined,
         duracionEstimadaMinutos,
@@ -196,12 +192,8 @@ export function TareaFormPage() {
         label: 'Duración Est.',
         value: `${duracionEstimadaMinutos} min`,
       },
-      {
-        label: 'Evidencia Fotográfica',
-        value: requiereEvidenciaFotografica ? 'Exigida' : 'Opcional',
-      },
     ],
-    [activo, duracionEstimadaMinutos, requiereEvidenciaFotografica]
+    [activo, duracionEstimadaMinutos]
   );
 
   if (loading) {
@@ -230,9 +222,8 @@ export function TareaFormPage() {
         <D365CommandButton
           icon={<ArrowLeft16Regular />}
           onClick={() => void draft.discardAndRun(() => navigate('/servicio-campo/tareas'))}
-        >
-          Volver a Tareas
-        </D365CommandButton>
+          title="Volver"
+        />
         <D365CommandDivider />
         <D365CommandButton
           icon={<Save16Regular />}
@@ -299,15 +290,7 @@ export function TareaFormPage() {
 
       {/* 4. Form Content */}
       <D365FormContent busy={saving} className={styles.contentBody}>
-        <div
-          className={styles.halfCardWrapper}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
-            gap: 20,
-          }}
-        >
-          {/* Columna Izquierda: Información General */}
+        <div className={styles.halfCardWrapper}>
           <div className={styles.card}>
             <Text
               size={400}
@@ -323,17 +306,6 @@ export function TareaFormPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 12 }}>
               <D365FormField
-                label="Código Técnico"
-                info="Código alfanumérico o identificador técnico de la tarea (opcional)"
-              >
-                <Input
-                  value={codigo}
-                  placeholder="Ej: TAR-001, INST-ODU, REP-CBL"
-                  onChange={(_, d) => setCodigo(d.value)}
-                />
-              </D365FormField>
-
-              <D365FormField
                 label="Nombre de la Tarea"
                 required
                 error={errors.nombre}
@@ -341,7 +313,6 @@ export function TareaFormPage() {
               >
                 <Input
                   value={nombre}
-                  placeholder="Ej: Instalación de Antena ODU, Cableado Coaxial RG6"
                   onChange={(_, d) => {
                     setNombre(d.value);
                     if (errors.nombre) {
@@ -380,65 +351,14 @@ export function TareaFormPage() {
                 />
               </D365FormField>
 
-              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <Checkbox
-                  checked={requiereEvidenciaFotografica}
-                  onChange={(_, d) => setRequiereEvidenciaFotografica(Boolean(d.checked))}
-                  label="Exigir evidencia fotográfica obligatoria en la App Móvil"
-                />
-
-                <Checkbox
-                  checked={activo}
-                  onChange={(_, d) => setActivo(Boolean(d.checked))}
-                  label="Tarea activa (disponible para plantillas y órdenes de trabajo)"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Columna Derecha: Descripción y Alcance */}
-          <div className={styles.card}>
-            <Text
-              size={400}
-              weight="semibold"
-              style={{
-                borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-                paddingBottom: 8,
-                display: 'block',
-              }}
-            >
-              Descripción y Alcance Técnico
-            </Text>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 12 }}>
-              <D365FormField
-                label="Alcance / Procedimiento Operativo"
-                info="Instrucciones técnicas para el técnico en campo, criterios de aceptación o detalles del procedimiento."
-              >
+              <D365FormField label="Observación">
                 <Textarea
                   value={descripcion}
-                  rows={8}
+                  rows={5}
                   style={{ resize: 'vertical' }}
-                  placeholder="Detalle el procedimiento estándar, herramientas necesarias o validaciones que debe cumplir el técnico antes de dar por completada la tarea..."
                   onChange={(_, d) => setDescripcion(d.value)}
                 />
               </D365FormField>
-
-              <div
-                style={{
-                  marginTop: 8,
-                  padding: 12,
-                  backgroundColor: tokens.colorNeutralBackground2,
-                  borderRadius: 4,
-                  fontSize: 12,
-                  color: tokens.colorNeutralForeground3,
-                  lineHeight: '1.4',
-                }}
-              >
-                <strong>Nota operativa:</strong> Esta tarea podrá ser agregada a múltiples
-                Configuraciones de Servicio (Plantillas). Al asociarla a una orden de trabajo, el
-                sistema generará las líneas de trabajo con la duración y requisitos definidos aquí.
-              </div>
             </div>
           </div>
         </div>

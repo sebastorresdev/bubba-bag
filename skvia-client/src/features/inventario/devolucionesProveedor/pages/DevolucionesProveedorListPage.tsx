@@ -21,8 +21,10 @@ import {
   ChevronDown16Regular,
   Checkmark16Regular,
   Eye16Regular,
+  Print16Regular,
 } from '@fluentui/react-icons';
-import { D365CommandBar, D365CommandButton } from '../../../../components/common/D365CommandBar';
+import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
+import { D365CompartirButton } from '../../../../components/common/D365CompartirButton';
 import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
 import {
   D365EntityTable,
@@ -290,7 +292,32 @@ export const DevolucionesProveedorListPage: React.FC<DevolucionesProveedorListPa
   return (
     <div className={listStyles.root}>
       {/* 1. Command Bar */}
-      <D365CommandBar ariaLabel={modo === 'ok' ? 'Comandos de Retiro Material OK hacia OL' : 'Comandos de Retiro Material Defectuoso a OL'}>
+      <D365CommandBar
+        ariaLabel={modo === 'ok' ? 'Comandos de Retiro Material OK hacia OL' : 'Comandos de Retiro Material Defectuoso a OL'}
+        trailing={
+          selectedIds.size === 1 ? (() => {
+            const selId = Array.from(selectedIds)[0] as string;
+            const item = filtrados.find((i) => i.id === selId);
+            if (!item) return undefined;
+            return (
+              <D365CompartirButton
+                onCompartirWhatsApp={() => {
+                  void DevolucionProveedorService.compartirCargoWhatsapp(selId, item.numero, {
+                    destinatario: item.proveedor,
+                    tipoOperacion: modo === 'ok' ? 'Retiro Material OK hacia OL' : 'Retiro Material Defectuoso a OL',
+                  });
+                }}
+                onCompartirCorreo={() => {
+                  DevolucionProveedorService.compartirCargoCorreo(selId, item.numero, {
+                    destinatario: item.proveedor,
+                    tipoOperacion: modo === 'ok' ? 'Retiro Material OK hacia OL' : 'Retiro Material Defectuoso a OL',
+                  });
+                }}
+              />
+            );
+          })() : undefined
+        }
+      >
         <div className={listStyles.toolbarLeft}>
           <D365CommandButton
             icon={<Add16Regular />}
@@ -300,15 +327,37 @@ export const DevolucionesProveedorListPage: React.FC<DevolucionesProveedorListPa
             Nuevo
           </D365CommandButton>
           {selectedIds.size === 1 && (
-            <D365CommandButton
-              icon={<Eye16Regular />}
-              onClick={() => {
-                const selId = Array.from(selectedIds)[0];
-                navigate(`${baseRoute}/${selId}`);
-              }}
-            >
-              Ver Detalle
-            </D365CommandButton>
+            <>
+              <D365CommandButton
+                icon={<Eye16Regular />}
+                onClick={() => {
+                  const selId = Array.from(selectedIds)[0];
+                  navigate(`${baseRoute}/${selId}`);
+                }}
+              >
+                Ver Detalle
+              </D365CommandButton>
+              <D365CommandButton
+                icon={<ArrowDownload16Regular />}
+                onClick={() => {
+                  const selId = Array.from(selectedIds)[0] as string;
+                  const item = filtrados.find((i) => i.id === selId);
+                  void DevolucionProveedorService.descargarCargoPdf(selId, item?.numero);
+                }}
+              >
+                Cargo PDF
+              </D365CommandButton>
+              <D365CommandButton
+                icon={<Print16Regular />}
+                onClick={() => {
+                  const selId = Array.from(selectedIds)[0] as string;
+                  void DevolucionProveedorService.abrirCargoPdf(selId);
+                }}
+              >
+                Imprimir
+              </D365CommandButton>
+              <D365CommandDivider />
+            </>
           )}
           <D365CommandButton icon={<ArrowClockwise16Regular />} onClick={cargarDevoluciones}>
             Actualizar

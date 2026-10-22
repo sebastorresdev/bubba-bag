@@ -380,7 +380,7 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
       {
         id: 'security',
         name: 'Seguridad',
-        shortCode: 'SEG',
+        shortCode: 'S',
         iconName: 'Shield',
         color: tokens.colorPaletteDarkOrangeBorderActive,
         defaultPath: '/configuracion/usuarios',
@@ -410,7 +410,7 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
       {
         id: 'system',
         name: 'Sistema',
-        shortCode: 'SYS',
+        shortCode: 'S',
         iconName: 'Settings',
         color: tokens.colorPaletteNavyBorderActive,
         defaultPath: '/configuracion/auditoria',
@@ -440,7 +440,7 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
       {
         id: 'data-management',
         name: 'Gestión de datos',
-        shortCode: 'GD',
+        shortCode: 'G',
         iconName: 'ArrowUpload',
         color: tokens.colorPaletteNavyBorderActive,
         defaultPath: '/gestion-datos/importaciones',

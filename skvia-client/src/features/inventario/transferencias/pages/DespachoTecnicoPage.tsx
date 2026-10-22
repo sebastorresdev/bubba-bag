@@ -56,7 +56,7 @@ import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { SelectorEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
 import { TableEmptyState } from '../../../../components/common/TableEmptyState';
-import { WhatsAppIcon } from '../../../../components/common/WhatsAppIcon';
+import { D365CompartirButton } from '../../../../components/common/D365CompartirButton';
 import { D365OperacionExitosaDialog } from '../../../../components/common/D365OperacionExitosaDialog';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { AlmacenService } from '../../almacenes/services/almacen.service';
@@ -869,6 +869,18 @@ export const DespachoTecnicoPage: React.FC = () => {
     }
   };
 
+  const handleCompartirCorreo = () => {
+    const idCargo = despachoExitoso?.id || transferenciaId;
+    const numCargo = despachoExitoso?.numero || numeroTransferencia;
+    if (!idCargo) return;
+    const tecnico = tecnicos.find((t) => t.id === tecnicoId);
+    TransferenciaService.compartirCargoCorreo(idCargo, numCargo, {
+      tipoOperacion: 'Despacho a Técnico',
+      destinatario: tecnico?.nombreCompleto,
+      email: tecnico?.email || undefined,
+    });
+  };
+
   const resetFormulario = () => {
     setLineas([]);
     setObservaciones('');
@@ -995,7 +1007,17 @@ export const DespachoTecnicoPage: React.FC = () => {
         </D365MessageBar>
       )}
 
-      <D365CommandBar ariaLabel="Comandos de despacho a técnicos">
+      <D365CommandBar
+        ariaLabel="Comandos de despacho a técnicos"
+        trailing={
+          (transferenciaId || despachoExitoso) ? (
+            <D365CompartirButton
+              onCompartirWhatsApp={() => void handleCompartirWhatsApp()}
+              onCompartirCorreo={handleCompartirCorreo}
+            />
+          ) : undefined
+        }
+      >
         <div className={formStyles.toolbarLeft}>
           <D365CommandButton
             icon={<ArrowLeft16Regular />}
@@ -1063,12 +1085,6 @@ export const DespachoTecnicoPage: React.FC = () => {
                 onClick={() => void TransferenciaService.abrirCargoPdf(transferenciaId)}
               >
                 Imprimir
-              </D365CommandButton>
-              <D365CommandButton
-                icon={<WhatsAppIcon size={16} />}
-                onClick={() => void handleCompartirWhatsApp()}
-              >
-                WhatsApp
               </D365CommandButton>
             </>
           )}

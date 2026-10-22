@@ -75,7 +75,6 @@ export function TareasListPage() {
     if (!q) return datos;
     return datos.filter(
       (t) =>
-        (t.codigo && t.codigo.toLowerCase().includes(q)) ||
         t.nombre.toLowerCase().includes(q) ||
         (t.descripcion && t.descripcion.toLowerCase().includes(q))
     );
@@ -138,20 +137,10 @@ export function TareasListPage() {
           </TableCellLayout>
         ),
       }),
-      createTableColumn<TareaDto>({
-        columnId: 'codigo',
-        compare: (a, b) => (a.codigo || '').localeCompare(b.codigo || ''),
-        renderHeaderCell: () => 'Código',
-        renderCell: (item) => (
-          <TableCellLayout>
-            <Text weight="medium">{item.codigo || '—'}</Text>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<TareaDto>({
+            createTableColumn<TareaDto>({
         columnId: 'descripcion',
         compare: (a, b) => (a.descripcion || '').localeCompare(b.descripcion || ''),
-        renderHeaderCell: () => 'Descripción / Alcance',
+        renderHeaderCell: () => 'Observación',
         renderCell: (item) => (
           <TableCellLayout truncate>
             <Text>{item.descripcion || '—'}</Text>

@@ -1,27 +1,32 @@
+using System;
+using System.Collections.Generic;
 using BubbaBag.Modules.ServicioCampo.Domain.Ubigeos;
 using BubbaBag.SharedKernel;
 
 namespace BubbaBag.Modules.ServicioCampo.Domain.Clientes;
 
 /// <summary>
-/// Maestro de Clientes (Directorio Central para Facturación, Servicio y CRM).
+/// Maestro de Cuentas / Clientes (Abonado o Suscriptor de Servicio y Facturación).
 /// </summary>
 public class Cliente : Entity<Guid>
 {
     public string CodigoCliente { get; private set; } = default!;
-    public string TipoPersona { get; private set; } = "NATURAL"; // 'NATURAL', 'JURIDICA'
+    public string TipoPersona { get; private set; } = "NATURAL"; // Inferido automáticamente o heredado
     
-    // Identificación
-    public string TipoDocumento { get; private set; } = "DNI";    // 'DNI', 'RUC', 'CE', 'PASAPORTE'
+    // Identificación unificada (RUC / DNI / CE)
+    public string TipoDocumento { get; private set; } = "DNI";
     public string DocumentoIdentidad { get; private set; } = default!;
     public string Nombres { get; private set; } = default!;
     public string? Apellidos { get; private set; }
     public string? RazonSocial { get; private set; }
 
-    // Contacto
+    // Contacto directo y Contacto Principal vinculado
     public string TelefonoPrincipal { get; private set; } = default!;
     public string? TelefonoSecundario { get; private set; }
     public string? Email { get; private set; }
+    public Guid? ContactoPrincipalId { get; private set; }
+    public Contacto? ContactoPrincipal { get; private set; }
+    public ICollection<Contacto> Contactos { get; private set; } = new List<Contacto>();
 
     // Ubicación física y Ubigeo
     public string Direccion { get; private set; } = default!;
@@ -32,8 +37,8 @@ public class Cliente : Entity<Guid>
     public decimal? CoordenadaLng { get; private set; }
 
     // Clasificación de Rol y Segmentación
-    public bool EsClienteFacturacion { get; private set; } // TRUE para Empresas que pagan o contratan
-    public bool EsClienteServicio { get; private set; }    // TRUE para el abonado o domicilio que recibe la visita
+    public bool EsClienteFacturacion { get; private set; }
+    public bool EsClienteServicio { get; private set; }
     public bool Activo { get; private set; }
 
     public string NombreCompletoODenominacion => 
@@ -51,35 +56,50 @@ public class Cliente : Entity<Guid>
         string ubigeoCodigo,
         bool esClienteFacturacion = false,
         bool esClienteServicio = true,
-        string tipoDocumento = "DNI",
-        string tipoPersona = "NATURAL",
+        string? tipoDocumento = null,
+        string? tipoPersona = null,
         string? razonSocial = null,
         string? telefonoSecundario = null,
         string? email = null,
         string? referencia = null,
         decimal? lat = null,
-        decimal? lng = null)
+        decimal? lng = null,
+        Guid? contactoPrincipalId = null)
     {
+        var docTrim = documentoIdentidad.Trim();
+        var esRuc = docTrim.Length == 11 && (docTrim.StartsWith("20") || docTrim.StartsWith("10"));
+        var tipoDocInferido = !string.IsNullOrWhiteSpace(tipoDocumento)
+            ? tipoDocumento.Trim().ToUpperInvariant()
+            : (esRuc ? "RUC" : (docTrim.Length == 8 ? "DNI" : "CE"));
+        var tipoPersInferida = !string.IsNullOrWhiteSpace(tipoPersona)
+            ? tipoPersona.Trim().ToUpperInvariant()
+            : (docTrim.Length == 11 && docTrim.StartsWith("20") ? "JURIDICA" : "NATURAL");
+
+        var nombreUnificado = !string.IsNullOrWhiteSpace(nombres)
+            ? nombres.Trim()
+            : (razonSocial?.Trim() ?? string.Empty);
+
         return new Cliente
         {
             Id = Guid.NewGuid(),
             CodigoCliente = codigoCliente.Trim().ToUpperInvariant(),
-            DocumentoIdentidad = documentoIdentidad.Trim(),
-            Nombres = nombres.Trim(),
-            Apellidos = apellidos?.Trim(),
+            DocumentoIdentidad = docTrim,
+            Nombres = nombreUnificado,
+            Apellidos = string.IsNullOrWhiteSpace(apellidos) ? null : apellidos.Trim(),
             TelefonoPrincipal = telefonoPrincipal.Trim(),
             Direccion = direccion.Trim(),
             UbigeoCodigo = ubigeoCodigo.Trim(),
             EsClienteFacturacion = esClienteFacturacion,
             EsClienteServicio = esClienteServicio,
-            TipoDocumento = tipoDocumento.Trim().ToUpperInvariant(),
-            TipoPersona = tipoPersona.Trim().ToUpperInvariant(),
-            RazonSocial = razonSocial?.Trim(),
-            TelefonoSecundario = telefonoSecundario?.Trim(),
-            Email = email?.Trim().ToLowerInvariant(),
-            ReferenciaUbicacion = referencia?.Trim(),
+            TipoDocumento = tipoDocInferido,
+            TipoPersona = tipoPersInferida,
+            RazonSocial = string.IsNullOrWhiteSpace(razonSocial) ? nombreUnificado : razonSocial.Trim(),
+            TelefonoSecundario = string.IsNullOrWhiteSpace(telefonoSecundario) ? null : telefonoSecundario.Trim(),
+            Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim().ToLowerInvariant(),
+            ReferenciaUbicacion = string.IsNullOrWhiteSpace(referencia) ? null : referencia.Trim(),
             CoordenadaLat = lat,
             CoordenadaLng = lng,
+            ContactoPrincipalId = contactoPrincipalId,
             Activo = true
         };
     }
@@ -90,12 +110,33 @@ public class Cliente : Entity<Guid>
         string ubigeoCodigo,
         string? referencia = null,
         decimal? lat = null,
-        decimal? lng = null)
+        decimal? lng = null,
+        string? nombreCuenta = null,
+        string? documentoIdentidad = null,
+        string? telefonoSecundario = null,
+        string? email = null,
+        Guid? contactoPrincipalId = null)
     {
+        if (!string.IsNullOrWhiteSpace(nombreCuenta))
+        {
+            Nombres = nombreCuenta.Trim();
+            RazonSocial = nombreCuenta.Trim();
+            Apellidos = null;
+        }
+        if (!string.IsNullOrWhiteSpace(documentoIdentidad))
+        {
+            var docTrim = documentoIdentidad.Trim();
+            DocumentoIdentidad = docTrim;
+            TipoDocumento = docTrim.Length == 11 ? "RUC" : (docTrim.Length == 8 ? "DNI" : "CE");
+            TipoPersona = docTrim.Length == 11 && docTrim.StartsWith("20") ? "JURIDICA" : "NATURAL";
+        }
         TelefonoPrincipal = telefono.Trim();
+        TelefonoSecundario = string.IsNullOrWhiteSpace(telefonoSecundario) ? null : telefonoSecundario.Trim();
+        Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim().ToLowerInvariant();
+        ContactoPrincipalId = contactoPrincipalId;
         Direccion = direccion.Trim();
         UbigeoCodigo = ubigeoCodigo.Trim();
-        ReferenciaUbicacion = referencia?.Trim();
+        ReferenciaUbicacion = string.IsNullOrWhiteSpace(referencia) ? null : referencia.Trim();
         CoordenadaLat = lat;
         CoordenadaLng = lng;
     }
@@ -120,7 +161,7 @@ public class Cliente : Entity<Guid>
         UbigeoCodigo = ubigeoCodigo.Trim();
         TipoDocumento = tipoDocumento.Trim().ToUpperInvariant();
         TipoPersona = tipoPersona.Trim().ToUpperInvariant();
-        RazonSocial = razonSocial?.Trim();
+        RazonSocial = razonSocial?.Trim() ?? nombres.Trim();
         TelefonoSecundario = telefonoSecundario?.Trim();
         Email = email?.Trim().ToLowerInvariant();
         ReferenciaUbicacion = referencia?.Trim();

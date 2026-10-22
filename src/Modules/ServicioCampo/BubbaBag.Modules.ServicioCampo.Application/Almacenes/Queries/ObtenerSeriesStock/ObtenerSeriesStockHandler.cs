@@ -69,8 +69,10 @@ public class ObtenerSeriesStockHandler(IServicioCampoDbContext context, ICurrent
 
         var ahora = DateTime.UtcNow;
 
-        var rawItems = await items
-            .OrderByDescending(x => x.CreatedAt)
+        var queryable = items.OrderByDescending(x => x.CreatedAt);
+        var limitedQuery = query.AlmacenId.HasValue ? queryable : queryable.Take(1000);
+
+        var rawItems = await limitedQuery
             .Select(x => new
             {
                 x.Id,
@@ -94,9 +96,39 @@ public class ObtenerSeriesStockHandler(IServicioCampoDbContext context, ICurrent
             })
             .ToListAsync(cancellationToken);
 
+        var serieIds = rawItems.Select(x => x.Id).ToList();
+
+        // Obtener la fecha de llegada real a su almacén actual (último movimiento donde ingresó a este almacén desde fuera o recepción)
+        var dictFechasLlegada = new Dictionary<(Guid ItemId, Guid AlmacenId), DateTime>();
+        if (serieIds.Count > 0)
+        {
+            var movimientosLlegada = await context.MovimientosInventario
+                .AsNoTracking()
+                .Where(m => m.ItemSeriadoId.HasValue && serieIds.Contains(m.ItemSeriadoId.Value) && m.AlmacenDestinoId.HasValue)
+                .Where(m => m.AlmacenOrigenId == null || m.AlmacenOrigenId != m.AlmacenDestinoId)
+                .GroupBy(m => new { ItemId = m.ItemSeriadoId!.Value, AlmacenId = m.AlmacenDestinoId!.Value })
+                .Select(g => new
+                {
+                    g.Key.ItemId,
+                    g.Key.AlmacenId,
+                    FechaLlegada = g.Max(m => m.FechaMovimiento)
+                })
+                .ToListAsync(cancellationToken);
+
+            foreach (var mov in movimientosLlegada)
+            {
+                dictFechasLlegada[(mov.ItemId, mov.AlmacenId)] = mov.FechaLlegada;
+            }
+        }
+
         var resultado = rawItems.Select(x =>
         {
-            var fechaLlegada = x.UpdatedAt ?? x.CreatedAt;
+            DateTime fechaLlegada = x.CreatedAt;
+            if (x.AlmacenId.HasValue && dictFechasLlegada.TryGetValue((x.Id, x.AlmacenId.Value), out var fl))
+            {
+                fechaLlegada = fl;
+            }
+
             int? diasEnAlmacen = null;
             string estadoSla = "EnSla";
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace BubbaBag.Modules.ServicioCampo.Application.Clientes.Dtos;
 
@@ -21,7 +22,9 @@ public record ClienteListadoItemDto(
     string Departamento,
     bool EsClienteFacturacion,
     bool EsClienteServicio,
-    bool Activo
+    bool Activo,
+    Guid? ContactoPrincipalId = null,
+    string? ContactoPrincipalNombre = null
 );
 
 public record ClienteDetalleDto(
@@ -47,5 +50,52 @@ public record ClienteDetalleDto(
     decimal? CoordenadaLng,
     bool EsClienteFacturacion,
     bool EsClienteServicio,
-    bool Activo
+    bool Activo,
+    Guid? ContactoPrincipalId = null,
+    string? ContactoPrincipalNombre = null,
+    IReadOnlyList<ContactoDto>? Contactos = null
+);
+
+public record ContactoDto(
+    Guid Id,
+    string Nombres,
+    string Apellidos,
+    string NombreCompleto,
+    string? Cargo,
+    Guid? CuentaId,
+    string? CuentaNombre,
+    string? Email,
+    string TelefonoMovil,
+    string? TelefonoTrabajo,
+    string? Direccion,
+    string? UbigeoCodigo,
+    string? Distrito,
+    string? Provincia,
+    string? Departamento,
+    bool Activo,
+    DateTime CreatedAt
+);
+
+public record CrearContactoRequest(
+    string Nombres,
+    string Apellidos,
+    string TelefonoMovil,
+    string? Cargo = null,
+    Guid? CuentaId = null,
+    string? Email = null,
+    string? TelefonoTrabajo = null,
+    string? Direccion = null,
+    string? UbigeoCodigo = null
+);
+
+public record ActualizarContactoRequest(
+    string Nombres,
+    string Apellidos,
+    string TelefonoMovil,
+    string? Cargo = null,
+    Guid? CuentaId = null,
+    string? Email = null,
+    string? TelefonoTrabajo = null,
+    string? Direccion = null,
+    string? UbigeoCodigo = null
 );

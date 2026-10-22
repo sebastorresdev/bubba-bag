@@ -24,10 +24,9 @@ public class CrearClienteHandler : ICommandHandler<CrearClienteCommand, Result<G
         var docNormalizado = request.DocumentoIdentidad.Trim();
         var ubigeoNormalizado = request.UbigeoCodigo.Trim();
 
-        // Validación de duplicidad de documento
         if (await _context.Clientes.AnyAsync(c => c.DocumentoIdentidad == docNormalizado, cancellationToken))
         {
-            return Result<Guid>.Failure($"Ya existe un cliente registrado con el documento '{docNormalizado}'.");
+            return Result<Guid>.Failure($"Ya existe una cuenta registrada con el documento '{docNormalizado}'.");
         }
 
         var codigoCliente = await _codigoSecuencialService.SiguienteCodigoAsync(
@@ -37,31 +36,32 @@ public class CrearClienteHandler : ICommandHandler<CrearClienteCommand, Result<G
             longitud: 6,
             cancellationToken: cancellationToken);
 
-        var nombres = !string.IsNullOrWhiteSpace(request.Nombres)
-            ? request.Nombres
-            : request.RazonSocial ?? string.Empty;
+        var nombreCuenta = !string.IsNullOrWhiteSpace(request.Nombres)
+            ? request.Nombres.Trim()
+            : request.RazonSocial?.Trim() ?? string.Empty;
 
         var esFacturacion = request.EsClienteFacturacion ||
-                            string.Equals(request.TipoPersona, "JURIDICA", StringComparison.OrdinalIgnoreCase);
+                            (docNormalizado.Length == 11 && docNormalizado.StartsWith("20"));
 
         var cliente = Cliente.Crear(
             codigoCliente: codigoCliente,
             documentoIdentidad: docNormalizado,
-            nombres: nombres,
+            nombres: nombreCuenta,
             apellidos: request.Apellidos,
             telefonoPrincipal: request.TelefonoPrincipal,
             direccion: request.Direccion,
             ubigeoCodigo: ubigeoNormalizado,
             esClienteFacturacion: esFacturacion,
             esClienteServicio: request.EsClienteServicio,
-            tipoDocumento: request.TipoDocumento ?? "DNI",
-            tipoPersona: request.TipoPersona ?? "NATURAL",
-            razonSocial: request.RazonSocial,
+            tipoDocumento: request.TipoDocumento,
+            tipoPersona: request.TipoPersona,
+            razonSocial: request.RazonSocial ?? nombreCuenta,
             telefonoSecundario: request.TelefonoSecundario,
             email: request.Email,
             referencia: request.ReferenciaUbicacion,
             lat: request.CoordenadaLat,
-            lng: request.CoordenadaLng);
+            lng: request.CoordenadaLng,
+            contactoPrincipalId: request.ContactoPrincipalId);
 
         _context.Clientes.Add(cliente);
         await _context.SaveChangesAsync(cancellationToken);

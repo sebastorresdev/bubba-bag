@@ -20,7 +20,6 @@ import {
   Checkmark16Regular,
   ChevronDown12Regular,
   ChevronDown16Regular,
-  Share16Regular,
 } from '@fluentui/react-icons';
 import { ProductoService } from '../services/producto.service';
 import type { ProductoDto } from '../types/producto.types';
@@ -29,6 +28,7 @@ import { D365EntityTable, D365TableToolbarTools, type D365EntityTableRef } from 
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
+import { D365CompartirButton } from '../../../../components/common/D365CompartirButton';
 
 export interface ProductosListPageProps {
   onNewProduct?: () => void;
@@ -221,10 +221,19 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
       <D365CommandBar
         ariaLabel="Comandos de productos"
         trailing={
-          <D365CommandButton appearance="primary" icon={<Share16Regular />}>
-            Compartir
-            <ChevronDown12Regular className={styles.iconChevronMargin} />
-          </D365CommandButton>
+          <D365CompartirButton
+            onCompartirWhatsApp={() => {
+              const url = window.location.href;
+              const msg = encodeURIComponent(`Hola, te comparto el catálogo de Productos: ${url}`);
+              window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank');
+            }}
+            onCompartirCorreo={() => {
+              const url = window.location.href;
+              const asunto = 'Catálogo de Productos - SKVIA';
+              const cuerpo = `Hola,\n\nTe comparto el enlace al catálogo de Productos:\n${url}\n\nSaludos cordiales.`;
+              window.location.href = `mailto:?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+            }}
+          />
         }
       >
         <div className={styles.toolbarLeft}>

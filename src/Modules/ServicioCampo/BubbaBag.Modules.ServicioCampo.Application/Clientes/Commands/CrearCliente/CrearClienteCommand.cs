@@ -13,12 +13,13 @@ public record CrearClienteCommand(
     string UbigeoCodigo,
     bool EsClienteFacturacion = false,
     bool EsClienteServicio = true,
-    string TipoDocumento = "DNI",
-    string TipoPersona = "NATURAL",
+    string? TipoDocumento = null,
+    string? TipoPersona = null,
     string? RazonSocial = null,
     string? TelefonoSecundario = null,
     string? Email = null,
     string? ReferenciaUbicacion = null,
     decimal? CoordenadaLat = null,
-    decimal? CoordenadaLng = null
+    decimal? CoordenadaLng = null,
+    Guid? ContactoPrincipalId = null
 ) : ICommand<Result<Guid>>;

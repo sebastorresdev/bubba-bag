@@ -346,6 +346,18 @@ export const HistorialSerieDrawer: React.FC<HistorialSerieDrawerProps> = ({
           </div>
         )}
 
+        {!historial && !loading && !error && (
+          <div style={{ textAlign: 'center', padding: '50px 20px', color: tokens.colorNeutralForeground4 }}>
+            <HistoryRegular style={{ fontSize: '48px', color: tokens.colorBrandForeground1, marginBottom: '12px' }} />
+            <Text size={300} weight="semibold" style={{ display: 'block', color: tokens.colorNeutralForeground1 }}>
+              Búsqueda de Trazabilidad 360°
+            </Text>
+            <Text size={200} style={{ display: 'block', marginTop: '6px', maxWidth: '380px', margin: '6px auto 0' }}>
+              Pistolee con el lector de código de barras o ingrese el N° de Serie, SmartCard o MAC para auditar el ciclo de vida y todos los movimientos del equipo.
+            </Text>
+          </div>
+        )}
+
         {historial && !loading && (
           <>
             {/* Tarjeta Resumen Principal */}

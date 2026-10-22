@@ -34,6 +34,7 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     Descripcion = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     Tipo = table.Column<int>(type: "integer", nullable: false),
                     UnidadOrganizativaId = table.Column<Guid>(type: "uuid", nullable: true),
+                    AlmacenPadreId = table.Column<Guid>(type: "uuid", nullable: true),
                     RecursoId = table.Column<Guid>(type: "uuid", nullable: true),
                     Activo = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
                     CreadoPorId = table.Column<Guid>(type: "uuid", nullable: true),
@@ -45,6 +46,13 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Almacenes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Almacenes_Almacenes_AlmacenPadreId",
+                        column: x => x.AlmacenPadreId,
+                        principalSchema: "inventario",
+                        principalTable: "Almacenes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -141,6 +149,24 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_MotivosIncidencia", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MotivosRetiroEquipo",
+                schema: "serviciocampo",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Nombre = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    TipoRetiro = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Descripcion = table.Column<string>(type: "character varying(400)", maxLength: 400, nullable: true),
+                    Activo = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MotivosRetiroEquipo", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -261,6 +287,7 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     FechaRegistro = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UsuarioRecepcionId = table.Column<Guid>(type: "uuid", nullable: true),
                     FechaRecepcion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DocumentoRespaldoUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false)
                 },
                 constraints: table =>
@@ -285,7 +312,9 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     Codigo = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Nombre = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
                     EsPrincipal = table.Column<bool>(type: "boolean", nullable: false),
-                    Activa = table.Column<bool>(type: "boolean", nullable: false)
+                    Activa = table.Column<bool>(type: "boolean", nullable: false),
+                    TipoUbicacion = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    UbicacionPadreId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -295,6 +324,13 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         column: x => x.AlmacenId,
                         principalSchema: "inventario",
                         principalTable: "Almacenes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_UbicacionesInventario_UbicacionesInventario_UbicacionPadreId",
+                        column: x => x.UbicacionPadreId,
+                        principalSchema: "inventario",
+                        principalTable: "UbicacionesInventario",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -388,43 +424,6 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "clientes",
-                schema: "crm",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    CodigoCliente = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
-                    TipoPersona = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false, defaultValue: "NATURAL"),
-                    TipoDocumento = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false, defaultValue: "DNI"),
-                    DocumentoIdentidad = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
-                    Nombres = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
-                    Apellidos = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: true),
-                    RazonSocial = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    TelefonoPrincipal = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
-                    TelefonoSecundario = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true),
-                    Email = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
-                    Direccion = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: false),
-                    UbigeoCodigo = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
-                    ReferenciaUbicacion = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
-                    CoordenadaLat = table.Column<decimal>(type: "numeric(10,7)", precision: 10, scale: 7, nullable: true),
-                    CoordenadaLng = table.Column<decimal>(type: "numeric(10,7)", precision: 10, scale: 7, nullable: true),
-                    EsClienteFacturacion = table.Column<bool>(type: "boolean", nullable: false),
-                    EsClienteServicio = table.Column<bool>(type: "boolean", nullable: false),
-                    Activo = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_clientes", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_clientes_ubigeos_UbigeoCodigo",
-                        column: x => x.UbigeoCodigo,
-                        principalSchema: "crm",
-                        principalTable: "ubigeos",
-                        principalColumn: "Codigo",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Recursos",
                 schema: "serviciocampo",
                 columns: table => new
@@ -475,7 +474,7 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     Observaciones = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
                     Estado = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     TotalItems = table.Column<int>(type: "integer", nullable: false),
-                    TotalCantidad = table.Column<decimal>(type: "numeric(18,4)", precision: 18, scale: 4, nullable: false),
+                    TotalCantidad = table.Column<decimal>(type: "numeric(19,5)", precision: 19, scale: 5, nullable: false),
                     ValorTotal = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                     LineasJson = table.Column<string>(type: "text", nullable: false),
                     UsuarioId = table.Column<Guid>(type: "uuid", nullable: false),
@@ -496,6 +495,51 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_AjustesInventario_UbicacionesInventario_UbicacionId",
+                        column: x => x.UbicacionId,
+                        principalSchema: "inventario",
+                        principalTable: "UbicacionesInventario",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DevolucionesProveedor",
+                schema: "inventario",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Numero = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
+                    Proveedor = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    AlmacenId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UbicacionId = table.Column<Guid>(type: "uuid", nullable: true),
+                    TipoDocumento = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    NumeroDocumento = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    FechaDocumento = table.Column<DateOnly>(type: "date", nullable: false),
+                    Motivo = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Observaciones = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    DocumentoRespaldoUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    LineasJson = table.Column<string>(type: "text", nullable: false),
+                    TotalItems = table.Column<int>(type: "integer", nullable: false),
+                    TotalCantidad = table.Column<decimal>(type: "numeric(18,5)", precision: 18, scale: 5, nullable: false),
+                    Estado = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    UsuarioId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UsuarioNombre = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    FechaRegistro = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    FechaCompletada = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DevolucionesProveedor", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DevolucionesProveedor_Almacenes_AlmacenId",
+                        column: x => x.AlmacenId,
+                        principalSchema: "inventario",
+                        principalTable: "Almacenes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_DevolucionesProveedor_UbicacionesInventario_UbicacionId",
                         column: x => x.UbicacionId,
                         principalSchema: "inventario",
                         principalTable: "UbicacionesInventario",
@@ -651,103 +695,6 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "OrdenesTrabajo",
-                schema: "serviciocampo",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    CodigoWo = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
-                    ListaPreciosId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Moneda = table.Column<string>(type: "text", nullable: false),
-                    TipoOrdenId = table.Column<Guid>(type: "uuid", nullable: false),
-                    CreadoPorId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ZonaOperativaId = table.Column<Guid>(type: "uuid", nullable: true),
-                    ClienteFacturacionId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ClienteServicioId = table.Column<Guid>(type: "uuid", nullable: false),
-                    NumeroOrden = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    ReferenciaExterna = table.Column<string>(type: "text", nullable: true),
-                    CodigoContrato = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    NumeroPedido = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    Estado = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
-                    EstadoSistema = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
-                    EstadoOrigen = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    MotivoCierreId = table.Column<Guid>(type: "uuid", nullable: true),
-                    ObservacionesCierre = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    NoConsumioMateriales = table.Column<bool>(type: "boolean", nullable: false),
-                    DescargaMaterialesOmitida = table.Column<bool>(type: "boolean", nullable: false),
-                    MotivoOmisionMateriales = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
-                    DescargaMaterialesObligatoria = table.Column<bool>(type: "boolean", nullable: false),
-                    DescargaMaterialesConfirmada = table.Column<bool>(type: "boolean", nullable: false),
-                    FechaDescargaMateriales = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ContadorOmisionDescarga = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_OrdenesTrabajo", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_OrdenesTrabajo_MotivosIncidencia_MotivoCierreId",
-                        column: x => x.MotivoCierreId,
-                        principalSchema: "serviciocampo",
-                        principalTable: "MotivosIncidencia",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_OrdenesTrabajo_TiposOrdenTrabajo_TipoOrdenId",
-                        column: x => x.TipoOrdenId,
-                        principalSchema: "serviciocampo",
-                        principalTable: "TiposOrdenTrabajo",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_OrdenesTrabajo_ZonasOperativas_ZonaOperativaId",
-                        column: x => x.ZonaOperativaId,
-                        principalSchema: "serviciocampo",
-                        principalTable: "ZonasOperativas",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_OrdenesTrabajo_clientes_ClienteFacturacionId",
-                        column: x => x.ClienteFacturacionId,
-                        principalSchema: "crm",
-                        principalTable: "clientes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_OrdenesTrabajo_clientes_ClienteServicioId",
-                        column: x => x.ClienteServicioId,
-                        principalSchema: "crm",
-                        principalTable: "clientes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "TiposTareaServicio",
-                schema: "serviciocampo",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    CodigoTarea = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    Nombre = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
-                    ClienteFacturacionId = table.Column<Guid>(type: "uuid", nullable: true),
-                    DuracionEstimadaMinutos = table.Column<int>(type: "integer", nullable: false),
-                    Activo = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_TiposTareaServicio", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_TiposTareaServicio_clientes_ClienteFacturacionId",
-                        column: x => x.ClienteFacturacionId,
-                        principalSchema: "crm",
-                        principalTable: "clientes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "RecepcionesTransferencia",
                 schema: "inventario",
                 columns: table => new
@@ -898,6 +845,7 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                     Descripcion = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
                     ServicioId = table.Column<Guid>(type: "uuid", nullable: false),
                     DuracionEstimadaMinutos = table.Column<int>(type: "integer", nullable: false, defaultValue: 60),
+                    SlaHorasResolucion = table.Column<int>(type: "integer", nullable: true),
                     EsPredeterminada = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     Activo = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
@@ -943,146 +891,6 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         column: x => x.UbicacionId,
                         principalSchema: "inventario",
                         principalTable: "UbicacionesInventario",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "LiquidacionesMaterial",
-                schema: "serviciocampo",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    OrdenTrabajoId = table.Column<Guid>(type: "uuid", nullable: false),
-                    NumeroLiquidacion = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    AlmacenId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ResponsableId = table.Column<Guid>(type: "uuid", nullable: false),
-                    FechaLiquidacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    Estado = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false, defaultValue: "Borrador"),
-                    Observaciones = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_LiquidacionesMaterial", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_LiquidacionesMaterial_Almacenes_AlmacenId",
-                        column: x => x.AlmacenId,
-                        principalSchema: "inventario",
-                        principalTable: "Almacenes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_LiquidacionesMaterial_OrdenesTrabajo_OrdenTrabajoId",
-                        column: x => x.OrdenTrabajoId,
-                        principalSchema: "serviciocampo",
-                        principalTable: "OrdenesTrabajo",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "OrdenTrabajoVisitas",
-                schema: "serviciocampo",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    OrdenTrabajoId = table.Column<Guid>(type: "uuid", nullable: false),
-                    CodigoVisita = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
-                    NumeroVisita = table.Column<int>(type: "integer", nullable: false),
-                    NumeroVisitaOrigen = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    NumeroCita = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    RecursoId = table.Column<Guid>(type: "uuid", nullable: false),
-                    FechaProgramada = table.Column<DateOnly>(type: "date", nullable: false),
-                    BloqueHorario = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    InicioAgendado = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    FinAgendado = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    Estado = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
-                    FechaSalidaEnCamino = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    FechaInicioReal = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    FechaFinReal = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    FechaSincronizacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    FirmaClienteUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    FirmadoPor = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    NombreFirmante = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
-                    DniFirmante = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true),
-                    EvidenciasConfirmadas = table.Column<bool>(type: "boolean", nullable: false),
-                    MotivoCancelacionId = table.Column<Guid>(type: "uuid", nullable: true),
-                    ObservacionesCancelacion = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    ObservacionesTecnico = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_OrdenTrabajoVisitas", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_OrdenTrabajoVisitas_MotivosIncidencia_MotivoCancelacionId",
-                        column: x => x.MotivoCancelacionId,
-                        principalSchema: "serviciocampo",
-                        principalTable: "MotivosIncidencia",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_OrdenTrabajoVisitas_OrdenesTrabajo_OrdenTrabajoId",
-                        column: x => x.OrdenTrabajoId,
-                        principalSchema: "serviciocampo",
-                        principalTable: "OrdenesTrabajo",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_OrdenTrabajoVisitas_Recursos_RecursoId",
-                        column: x => x.RecursoId,
-                        principalSchema: "serviciocampo",
-                        principalTable: "Recursos",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "OrdenTrabajoTareas",
-                schema: "serviciocampo",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    OrdenTrabajoId = table.Column<Guid>(type: "uuid", nullable: false),
-                    CodigoTarea = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
-                    TipoTareaId = table.Column<Guid>(type: "uuid", nullable: false),
-                    NumeroWoIbs = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    ItemNumero = table.Column<int>(type: "integer", nullable: false, defaultValue: 1),
-                    EstadoTarea = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
-                    TarifaBaseCongelada = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false),
-                    EsElegibleBonoIndicador = table.Column<bool>(type: "boolean", nullable: false),
-                    NombreReglaAplicada = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
-                    MontoBonoFinal = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false, defaultValue: 0.00m),
-                    MontoPenalizacion = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false, defaultValue: 0.00m),
-                    Descripcion = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    ObservacionesCierre = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    MotivoRechazoId = table.Column<Guid>(type: "uuid", nullable: true),
-                    ObservacionesRechazo = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_OrdenTrabajoTareas", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_OrdenTrabajoTareas_MotivosIncidencia_MotivoRechazoId",
-                        column: x => x.MotivoRechazoId,
-                        principalSchema: "serviciocampo",
-                        principalTable: "MotivosIncidencia",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_OrdenTrabajoTareas_OrdenesTrabajo_OrdenTrabajoId",
-                        column: x => x.OrdenTrabajoId,
-                        principalSchema: "serviciocampo",
-                        principalTable: "OrdenesTrabajo",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_OrdenTrabajoTareas_TiposTareaServicio_TipoTareaId",
-                        column: x => x.TipoTareaId,
-                        principalSchema: "serviciocampo",
-                        principalTable: "TiposTareaServicio",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -1241,6 +1049,320 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "TransferenciaDetalleSeries",
+                schema: "inventario",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    TransferenciaDetalleId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ItemSeriadoId = table.Column<Guid>(type: "uuid", nullable: false),
+                    NumeroSerie = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    RecepcionDetalleId = table.Column<Guid>(type: "uuid", nullable: true),
+                    ResolucionId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Recibida = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    TieneIncidencia = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    MotivoIncidencia = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TransferenciaDetalleSeries", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TransferenciaDetalleSeries_RecepcionTransferenciaDetalles_R~",
+                        column: x => x.RecepcionDetalleId,
+                        principalSchema: "inventario",
+                        principalTable: "RecepcionTransferenciaDetalles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_TransferenciaDetalleSeries_ResolucionDiferenciaTransferenci~",
+                        column: x => x.ResolucionId,
+                        principalSchema: "inventario",
+                        principalTable: "ResolucionDiferenciaTransferencias",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_TransferenciaDetalleSeries_TransferenciaDetalles_Transferen~",
+                        column: x => x.TransferenciaDetalleId,
+                        principalSchema: "inventario",
+                        principalTable: "TransferenciaDetalles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "clientes",
+                schema: "crm",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    CodigoCliente = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    TipoPersona = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false, defaultValue: "NATURAL"),
+                    TipoDocumento = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false, defaultValue: "DNI"),
+                    DocumentoIdentidad = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    Nombres = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
+                    Apellidos = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: true),
+                    RazonSocial = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    TelefonoPrincipal = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    TelefonoSecundario = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true),
+                    Email = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
+                    ContactoPrincipalId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Direccion = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: false),
+                    UbigeoCodigo = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    ReferenciaUbicacion = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
+                    CoordenadaLat = table.Column<decimal>(type: "numeric(10,7)", precision: 10, scale: 7, nullable: true),
+                    CoordenadaLng = table.Column<decimal>(type: "numeric(10,7)", precision: 10, scale: 7, nullable: true),
+                    EsClienteFacturacion = table.Column<bool>(type: "boolean", nullable: false),
+                    EsClienteServicio = table.Column<bool>(type: "boolean", nullable: false),
+                    Activo = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_clientes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_clientes_ubigeos_UbigeoCodigo",
+                        column: x => x.UbigeoCodigo,
+                        principalSchema: "crm",
+                        principalTable: "ubigeos",
+                        principalColumn: "Codigo",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "contactos",
+                schema: "crm",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Nombres = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
+                    Apellidos = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
+                    Cargo = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: true),
+                    CuentaId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Email = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
+                    TelefonoMovil = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    TelefonoTrabajo = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true),
+                    Direccion = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
+                    UbigeoCodigo = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    Activo = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_contactos", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_contactos_clientes_CuentaId",
+                        column: x => x.CuentaId,
+                        principalSchema: "crm",
+                        principalTable: "clientes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_contactos_ubigeos_UbigeoCodigo",
+                        column: x => x.UbigeoCodigo,
+                        principalSchema: "crm",
+                        principalTable: "ubigeos",
+                        principalColumn: "Codigo",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OrdenesTrabajo",
+                schema: "serviciocampo",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    CodigoWo = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    ListaPreciosId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Moneda = table.Column<string>(type: "text", nullable: false),
+                    TipoOrdenId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreadoPorId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UnidadOrganizativaId = table.Column<Guid>(type: "uuid", nullable: true),
+                    ZonaOperativaId = table.Column<Guid>(type: "uuid", nullable: true),
+                    ClienteFacturacionId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ClienteServicioId = table.Column<Guid>(type: "uuid", nullable: false),
+                    NumeroOrden = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    ReferenciaExterna = table.Column<string>(type: "text", nullable: true),
+                    CodigoContrato = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    NumeroPedido = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Estado = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    EstadoSistema = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    EstadoOrigen = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    MotivoCierreId = table.Column<Guid>(type: "uuid", nullable: true),
+                    ObservacionesCierre = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    NoConsumioMateriales = table.Column<bool>(type: "boolean", nullable: false),
+                    DescargaMaterialesOmitida = table.Column<bool>(type: "boolean", nullable: false),
+                    MotivoOmisionMateriales = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
+                    DescargaMaterialesObligatoria = table.Column<bool>(type: "boolean", nullable: false),
+                    DescargaMaterialesConfirmada = table.Column<bool>(type: "boolean", nullable: false),
+                    FechaDescargaMateriales = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ContadorOmisionDescarga = table.Column<int>(type: "integer", nullable: false),
+                    ObservacionesGenerales = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OrdenesTrabajo", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_OrdenesTrabajo_MotivosIncidencia_MotivoCierreId",
+                        column: x => x.MotivoCierreId,
+                        principalSchema: "serviciocampo",
+                        principalTable: "MotivosIncidencia",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OrdenesTrabajo_TiposOrdenTrabajo_TipoOrdenId",
+                        column: x => x.TipoOrdenId,
+                        principalSchema: "serviciocampo",
+                        principalTable: "TiposOrdenTrabajo",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OrdenesTrabajo_UnidadesOrganizativas_UnidadOrganizativaId",
+                        column: x => x.UnidadOrganizativaId,
+                        principalSchema: "serviciocampo",
+                        principalTable: "UnidadesOrganizativas",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OrdenesTrabajo_ZonasOperativas_ZonaOperativaId",
+                        column: x => x.ZonaOperativaId,
+                        principalSchema: "serviciocampo",
+                        principalTable: "ZonasOperativas",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OrdenesTrabajo_clientes_ClienteFacturacionId",
+                        column: x => x.ClienteFacturacionId,
+                        principalSchema: "crm",
+                        principalTable: "clientes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OrdenesTrabajo_clientes_ClienteServicioId",
+                        column: x => x.ClienteServicioId,
+                        principalSchema: "crm",
+                        principalTable: "clientes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TiposTareaServicio",
+                schema: "serviciocampo",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    CodigoTarea = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Nombre = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    ClienteFacturacionId = table.Column<Guid>(type: "uuid", nullable: true),
+                    DuracionEstimadaMinutos = table.Column<int>(type: "integer", nullable: false),
+                    Activo = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TiposTareaServicio", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_TiposTareaServicio_clientes_ClienteFacturacionId",
+                        column: x => x.ClienteFacturacionId,
+                        principalSchema: "crm",
+                        principalTable: "clientes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "LiquidacionesMaterial",
+                schema: "serviciocampo",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    OrdenTrabajoId = table.Column<Guid>(type: "uuid", nullable: false),
+                    NumeroLiquidacion = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    AlmacenId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ResponsableId = table.Column<Guid>(type: "uuid", nullable: false),
+                    FechaLiquidacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Estado = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false, defaultValue: "Borrador"),
+                    Observaciones = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_LiquidacionesMaterial", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_LiquidacionesMaterial_Almacenes_AlmacenId",
+                        column: x => x.AlmacenId,
+                        principalSchema: "inventario",
+                        principalTable: "Almacenes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_LiquidacionesMaterial_OrdenesTrabajo_OrdenTrabajoId",
+                        column: x => x.OrdenTrabajoId,
+                        principalSchema: "serviciocampo",
+                        principalTable: "OrdenesTrabajo",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OrdenTrabajoVisitas",
+                schema: "serviciocampo",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    OrdenTrabajoId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CodigoVisita = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    NumeroVisita = table.Column<int>(type: "integer", nullable: false),
+                    NumeroVisitaOrigen = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    NumeroCita = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    RecursoId = table.Column<Guid>(type: "uuid", nullable: false),
+                    FechaProgramada = table.Column<DateOnly>(type: "date", nullable: false),
+                    BloqueHorario = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    InicioAgendado = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    FinAgendado = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Estado = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    FechaSalidaEnCamino = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    FechaInicioReal = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    FechaFinReal = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    FechaSincronizacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    FirmaClienteUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    FirmadoPor = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    NombreFirmante = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
+                    DniFirmante = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true),
+                    EvidenciasConfirmadas = table.Column<bool>(type: "boolean", nullable: false),
+                    MotivoCancelacionId = table.Column<Guid>(type: "uuid", nullable: true),
+                    ObservacionesCancelacion = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    ObservacionesTecnico = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OrdenTrabajoVisitas", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_OrdenTrabajoVisitas_MotivosIncidencia_MotivoCancelacionId",
+                        column: x => x.MotivoCancelacionId,
+                        principalSchema: "serviciocampo",
+                        principalTable: "MotivosIncidencia",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OrdenTrabajoVisitas_OrdenesTrabajo_OrdenTrabajoId",
+                        column: x => x.OrdenTrabajoId,
+                        principalSchema: "serviciocampo",
+                        principalTable: "OrdenesTrabajo",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_OrdenTrabajoVisitas_Recursos_RecursoId",
+                        column: x => x.RecursoId,
+                        principalSchema: "serviciocampo",
+                        principalTable: "Recursos",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Trabajos",
                 schema: "serviciocampo",
                 columns: table => new
@@ -1283,6 +1405,55 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         column: x => x.ServicioId,
                         principalSchema: "inventario",
                         principalTable: "Productos",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OrdenTrabajoTareas",
+                schema: "serviciocampo",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    OrdenTrabajoId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CodigoTarea = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    TipoTareaId = table.Column<Guid>(type: "uuid", nullable: false),
+                    NumeroWoIbs = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    ItemNumero = table.Column<int>(type: "integer", nullable: false, defaultValue: 1),
+                    EstadoTarea = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    TarifaBaseCongelada = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false),
+                    EsElegibleBonoIndicador = table.Column<bool>(type: "boolean", nullable: false),
+                    NombreReglaAplicada = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
+                    MontoBonoFinal = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false, defaultValue: 0.00m),
+                    MontoPenalizacion = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false, defaultValue: 0.00m),
+                    Descripcion = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    ObservacionesCierre = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    MotivoRechazoId = table.Column<Guid>(type: "uuid", nullable: true),
+                    ObservacionesRechazo = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OrdenTrabajoTareas", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_OrdenTrabajoTareas_MotivosIncidencia_MotivoRechazoId",
+                        column: x => x.MotivoRechazoId,
+                        principalSchema: "serviciocampo",
+                        principalTable: "MotivosIncidencia",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_OrdenTrabajoTareas_OrdenesTrabajo_OrdenTrabajoId",
+                        column: x => x.OrdenTrabajoId,
+                        principalSchema: "serviciocampo",
+                        principalTable: "OrdenesTrabajo",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_OrdenTrabajoTareas_TiposTareaServicio_TipoTareaId",
+                        column: x => x.TipoTareaId,
+                        principalSchema: "serviciocampo",
+                        principalTable: "TiposTareaServicio",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -1380,47 +1551,6 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                         column: x => x.OrdenTrabajoVisitaId,
                         principalSchema: "serviciocampo",
                         principalTable: "OrdenTrabajoVisitas",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "TransferenciaDetalleSeries",
-                schema: "inventario",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    TransferenciaDetalleId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ItemSeriadoId = table.Column<Guid>(type: "uuid", nullable: false),
-                    NumeroSerie = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    RecepcionDetalleId = table.Column<Guid>(type: "uuid", nullable: true),
-                    ResolucionId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Recibida = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
-                    TieneIncidencia = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
-                    MotivoIncidencia = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_TransferenciaDetalleSeries", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_TransferenciaDetalleSeries_RecepcionTransferenciaDetalles_R~",
-                        column: x => x.RecepcionDetalleId,
-                        principalSchema: "inventario",
-                        principalTable: "RecepcionTransferenciaDetalles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_TransferenciaDetalleSeries_ResolucionDiferenciaTransferenci~",
-                        column: x => x.ResolucionId,
-                        principalSchema: "inventario",
-                        principalTable: "ResolucionDiferenciaTransferencias",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_TransferenciaDetalleSeries_TransferenciaDetalles_Transferen~",
-                        column: x => x.TransferenciaDetalleId,
-                        principalSchema: "inventario",
-                        principalTable: "TransferenciaDetalles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -1531,6 +1661,12 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                 column: "ActualizadoPorId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Almacenes_AlmacenPadreId",
+                schema: "inventario",
+                table: "Almacenes",
+                column: "AlmacenPadreId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Almacenes_Codigo",
                 schema: "inventario",
                 table: "Almacenes",
@@ -1583,6 +1719,12 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_clientes_ContactoPrincipalId",
+                schema: "crm",
+                table: "clientes",
+                column: "ContactoPrincipalId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_clientes_DocumentoIdentidad",
                 schema: "crm",
                 table: "clientes",
@@ -1607,6 +1749,49 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                 columns: new[] { "Proveedor", "TipoDocumento", "NumeroDocumento" },
                 unique: true,
                 filter: "\"NumeroDocumento\" <> ''");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_contactos_CuentaId",
+                schema: "crm",
+                table: "contactos",
+                column: "CuentaId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_contactos_UbigeoCodigo",
+                schema: "crm",
+                table: "contactos",
+                column: "UbigeoCodigo");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DevolucionesProveedor_AlmacenId",
+                schema: "inventario",
+                table: "DevolucionesProveedor",
+                column: "AlmacenId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DevolucionesProveedor_Estado",
+                schema: "inventario",
+                table: "DevolucionesProveedor",
+                column: "Estado");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DevolucionesProveedor_FechaRegistro",
+                schema: "inventario",
+                table: "DevolucionesProveedor",
+                column: "FechaRegistro");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DevolucionesProveedor_Numero",
+                schema: "inventario",
+                table: "DevolucionesProveedor",
+                column: "Numero",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DevolucionesProveedor_UbicacionId",
+                schema: "inventario",
+                table: "DevolucionesProveedor",
+                column: "UbicacionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ElementosListaPrecios_ListaPreciosId_ProductoId_UnidadMedid~",
@@ -1758,6 +1943,18 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_MotivosRetiroEquipo_Nombre",
+                schema: "serviciocampo",
+                table: "MotivosRetiroEquipo",
+                column: "Nombre");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MotivosRetiroEquipo_TipoRetiro",
+                schema: "serviciocampo",
+                table: "MotivosRetiroEquipo",
+                column: "TipoRetiro");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_MovimientosInventario_AlmacenDestinoId",
                 schema: "inventario",
                 table: "MovimientosInventario",
@@ -1865,6 +2062,12 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                 schema: "serviciocampo",
                 table: "OrdenesTrabajo",
                 column: "TipoOrdenId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrdenesTrabajo_UnidadOrganizativaId",
+                schema: "serviciocampo",
+                table: "OrdenesTrabajo",
+                column: "UnidadOrganizativaId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OrdenesTrabajo_ZonaOperativaId",
@@ -2343,6 +2546,18 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_UbicacionesInventario_AlmacenId_TipoUbicacion",
+                schema: "inventario",
+                table: "UbicacionesInventario",
+                columns: new[] { "AlmacenId", "TipoUbicacion" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UbicacionesInventario_UbicacionPadreId",
+                schema: "inventario",
+                table: "UbicacionesInventario",
+                column: "UbicacionPadreId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ubigeos_Departamento",
                 schema: "crm",
                 table: "ubigeos",
@@ -2419,11 +2634,26 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                 schema: "serviciocampo",
                 table: "ZonasOperativas",
                 column: "SucursalId");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_clientes_contactos_ContactoPrincipalId",
+                schema: "crm",
+                table: "clientes",
+                column: "ContactoPrincipalId",
+                principalSchema: "crm",
+                principalTable: "contactos",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.SetNull);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropForeignKey(
+                name: "FK_clientes_contactos_ContactoPrincipalId",
+                schema: "crm",
+                table: "clientes");
+
             migrationBuilder.DropTable(
                 name: "AjustesInventario",
                 schema: "inventario");
@@ -2441,6 +2671,10 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                 schema: "public");
 
             migrationBuilder.DropTable(
+                name: "DevolucionesProveedor",
+                schema: "inventario");
+
+            migrationBuilder.DropTable(
                 name: "ElementosListaPrecios",
                 schema: "inventario");
 
@@ -2450,6 +2684,10 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
 
             migrationBuilder.DropTable(
                 name: "MaterialesTrabajo",
+                schema: "serviciocampo");
+
+            migrationBuilder.DropTable(
+                name: "MotivosRetiroEquipo",
                 schema: "serviciocampo");
 
             migrationBuilder.DropTable(
@@ -2487,10 +2725,6 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
             migrationBuilder.DropTable(
                 name: "TransferenciaDetalleSeries",
                 schema: "inventario");
-
-            migrationBuilder.DropTable(
-                name: "UnidadesOrganizativas",
-                schema: "serviciocampo");
 
             migrationBuilder.DropTable(
                 name: "UsuarioAlmacenAutorizaciones",
@@ -2557,12 +2791,12 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
                 schema: "serviciocampo");
 
             migrationBuilder.DropTable(
-                name: "ZonasOperativas",
+                name: "UnidadesOrganizativas",
                 schema: "serviciocampo");
 
             migrationBuilder.DropTable(
-                name: "clientes",
-                schema: "crm");
+                name: "ZonasOperativas",
+                schema: "serviciocampo");
 
             migrationBuilder.DropTable(
                 name: "Productos",
@@ -2571,10 +2805,6 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
             migrationBuilder.DropTable(
                 name: "Transferencias",
                 schema: "inventario");
-
-            migrationBuilder.DropTable(
-                name: "ubigeos",
-                schema: "crm");
 
             migrationBuilder.DropTable(
                 name: "CategoriasProducto",
@@ -2599,6 +2829,18 @@ namespace BubbaBag.Modules.ServicioCampo.Infrastructure.Database.Migrations
             migrationBuilder.DropTable(
                 name: "Almacenes",
                 schema: "inventario");
+
+            migrationBuilder.DropTable(
+                name: "contactos",
+                schema: "crm");
+
+            migrationBuilder.DropTable(
+                name: "clientes",
+                schema: "crm");
+
+            migrationBuilder.DropTable(
+                name: "ubigeos",
+                schema: "crm");
         }
     }
 }

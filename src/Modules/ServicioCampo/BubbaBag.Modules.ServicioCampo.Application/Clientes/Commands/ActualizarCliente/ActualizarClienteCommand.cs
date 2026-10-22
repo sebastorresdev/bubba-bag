@@ -13,5 +13,10 @@ public record ActualizarClienteCommand(
     decimal? CoordenadaLat = null,
     decimal? CoordenadaLng = null,
     bool? EsClienteFacturacion = null,
-    bool? EsClienteServicio = null
+    bool? EsClienteServicio = null,
+    string? Nombres = null,
+    string? DocumentoIdentidad = null,
+    string? TelefonoSecundario = null,
+    string? Email = null,
+    Guid? ContactoPrincipalId = null
 ) : ICommand<Result>;

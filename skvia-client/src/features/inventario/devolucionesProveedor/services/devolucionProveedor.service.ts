@@ -127,4 +127,32 @@ export const DevolucionProveedorService = {
     const urlWhatsapp = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensajeTexto)}`;
     window.open(urlWhatsapp, '_blank');
   },
+
+  compartirCargoCorreo: (
+    id: string,
+    numero?: string,
+    opciones?: {
+      destinatario?: string;
+      email?: string;
+      tipoOperacion?: string;
+    }
+  ) => {
+    const tipo = opciones?.tipoOperacion || 'Acta Oficial de Retiro / Devolución';
+    const num = numero || id;
+    const asunto = `${tipo} - ${num}`;
+    const cuerpo = [
+      `Estimado(a)${opciones?.destinatario ? ` ${opciones.destinatario}` : ''},`,
+      '',
+      `Se remite la constancia oficial correspondiente a la operación de retiro:`,
+      `• Tipo: ${tipo}`,
+      `• N° Documento: ${num}`,
+      `• Fecha: ${new Date().toLocaleDateString('es-PE')}`,
+      '',
+      'Saludos cordiales,',
+      'Equipo de Logística Inversa - SKVIA',
+    ].filter(Boolean).join('\n');
+
+    const mailto = `mailto:${opciones?.email || ''}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+    window.location.href = mailto;
+  },
 };

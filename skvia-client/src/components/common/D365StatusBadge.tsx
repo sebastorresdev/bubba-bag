@@ -239,7 +239,7 @@ export const D365StatusBadge: React.FC<D365StatusBadgeProps> = ({
       color={badgeColor}
       size={size}
       className={`${styles.badgeBase} ${resolved.hasBorder ? styles.badgeSubtleBorder : ''} ${className ?? ''}`}
-      style={style}
+      style={{ whiteSpace: 'nowrap', ...style }}
     >
       {resolved.isPulsing && <span className={styles.pulseDot} aria-hidden="true" />}
       {resolved.hasCheckmark && <Checkmark12Regular className={styles.checkmarkIcon} aria-hidden="true" />}

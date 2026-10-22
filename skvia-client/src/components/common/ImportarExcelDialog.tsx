@@ -16,16 +16,12 @@ import {
   TableHeaderCell,
   TableBody,
   TableCell,
-  Switch,
 } from '@fluentui/react-components';
 import { D365MessageBar } from './D365MessageBar';
 import { useD365ImportStyles } from '../../styles/d365ImportStyles';
 import {
   ArrowDownload16Regular,
-  ArrowUpload24Regular,
   DismissRegular,
-  DocumentCheckmark24Regular,
-  Delete16Regular,
 } from '@fluentui/react-icons';
 import type { ImportarExcelResultadoDto } from '../../types/excelImport.types';
 
@@ -54,49 +50,10 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground2,
   },
   messageBarSpacing: { marginBottom: tokens.spacingVerticalM },
-  stepContainer: {
+  formRow: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '16px',
-    marginTop: '12px',
-  },
-  stepCard: {
-    border: `1px solid ${tokens.colorNeutralStroke2}`,
-    borderRadius: tokens.borderRadiusMedium,
-    padding: '16px',
-    backgroundColor: tokens.colorNeutralBackground2,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-  },
-  dropZone: {
-    border: `2px dashed ${tokens.colorBrandStroke1}`,
-    borderRadius: tokens.borderRadiusMedium,
-    padding: '24px 16px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    backgroundColor: tokens.colorNeutralBackground1,
-    cursor: 'pointer',
-    transition: 'background-color 0.2s ease',
-    ':hover': {
-      backgroundColor: tokens.colorNeutralBackground1Hover,
-    },
-  },
-  dropZoneActive: {
-    backgroundColor: tokens.colorBrandBackground2,
-    border: `2px dashed ${tokens.colorBrandStroke2}`,
-  },
-  fileSelectedInfo: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '10px 14px',
-    backgroundColor: tokens.colorNeutralBackground1,
-    borderRadius: tokens.borderRadiusMedium,
-    border: `1px solid ${tokens.colorNeutralStroke1}`,
+    gap: '6px',
   },
   errorTableContainer: {
     maxHeight: '220px',
@@ -132,7 +89,6 @@ export interface ImportarExcelDialogProps {
   onDownloadTemplate: () => Promise<void>;
   onUploadFile: (file: File, actualizarExistentes: boolean) => Promise<ImportarExcelResultadoDto>;
   onSuccess: () => void;
-  allowUpsert?: boolean;
 }
 
 export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
@@ -142,23 +98,19 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
   onDownloadTemplate,
   onUploadFile,
   onSuccess,
-  allowUpsert = false,
 }) => {
   const styles = useStyles();
   const importStyles = useD365ImportStyles();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [actualizarExistentes, setActualizarExistentes] = useState<boolean>(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState<boolean>(false);
   const [uploading, setUploading] = useState<boolean>(false);
   const [result, setResult] = useState<ImportarExcelResultadoDto | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
 
   const handleReset = () => {
     setSelectedFile(null);
-    setActualizarExistentes(false);
     setResult(null);
     setErrorMessage(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -194,30 +146,6 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
-      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
-        setSelectedFile(file);
-        setErrorMessage(null);
-        setResult(null);
-      } else {
-        setErrorMessage('Por favor seleccione un archivo con formato Excel (.xlsx).');
-      }
-    }
-  };
-
   const handleImport = async () => {
     if (!selectedFile) return;
 
@@ -225,7 +153,7 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
       setUploading(true);
       setErrorMessage(null);
       setResult(null);
-      const res = await onUploadFile(selectedFile, actualizarExistentes);
+      const res = await onUploadFile(selectedFile, true);
       setResult(res);
       if (res.creados > 0 || res.actualizados > 0) {
         onSuccess();
@@ -348,97 +276,36 @@ export const ImportarExcelDialog: React.FC<ImportarExcelDialogProps> = ({
             )}
 
             {!result && (
-              <div className={styles.stepContainer}>
-                {/* Paso 1: Descargar Plantilla */}
-                <div className={styles.stepCard}>
-                  <Text weight="semibold" size={300}>
-                    Descargar plantilla
-                  </Text>
-                  <div>
-                    <Button
-                      appearance="outline"
-                      size="medium"
-                      icon={<ArrowDownload16Regular />}
-                      onClick={handleDownload}
-                      disabled={downloadingTemplate || uploading}
-                    >
-                      {downloadingTemplate ? 'Generando plantilla...' : 'Descargar plantilla Excel (.xlsx)'}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Paso 2: Subir Archivo */}
-                <div className={styles.stepCard}>
-                  <Text weight="semibold" size={300}>
-                    Archivo y opciones
-                  </Text>
-
-                  {allowUpsert && (
-                    <div className={importStyles.upsertContainer}>
-                      <div className={importStyles.upsertCopy}>
-                        <Text weight="semibold" size={200}>
-                          Actualizar registros si el código ya existe
-                        </Text>
-                        <Text size={100} className={importStyles.muted}>
-                          {actualizarExistentes
-                            ? 'Los productos existentes serán actualizados con la información del Excel.'
-                            : 'Modo seguro: si un código ya existe se omitirá sin sobrescribir datos existentes.'}
-                        </Text>
-                      </div>
-                      <Switch
-                        checked={actualizarExistentes}
-                        onChange={(_, data) => setActualizarExistentes(data.checked)}
-                        disabled={uploading}
-                      />
-                    </div>
-                  )}
-
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className={styles.formRow}>
+                  <label htmlFor="archivo-importacion-excel" style={{ fontSize: '13px', fontWeight: 600 }}>
+                    Archivo
+                  </label>
                   <input
+                    id="archivo-importacion-excel"
                     ref={fileInputRef}
                     type="file"
                     accept=".xlsx,.xls"
-                    className={importStyles.hiddenInput}
                     onChange={handleFileChange}
+                    disabled={uploading}
                   />
-
-                  {!selectedFile ? (
-                    <div
-                      className={`${styles.dropZone} ${isDragging ? styles.dropZoneActive : ''}`}
-                      onClick={() => fileInputRef.current?.click()}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
-                    >
-                      <ArrowUpload24Regular className={importStyles.brandIcon} />
-                      <Text weight="semibold" size={300}>
-                        Haz clic aquí o arrastra tu archivo Excel
-                      </Text>
-                      <Text size={200} className={importStyles.mutedSubtle}>
-                        Archivos compatibles: .xlsx o .xls
-                      </Text>
-                    </div>
-                  ) : (
-                    <div className={styles.fileSelectedInfo}>
-                      <div className={importStyles.filenameRow}>
-                        <DocumentCheckmark24Regular className={importStyles.successIcon} />
-                        <div>
-                          <Text weight="semibold" size={300} block>
-                            {selectedFile.name}
-                          </Text>
-                          <Text size={100} className={importStyles.mutedSubtle}>
-                            {(selectedFile.size / 1024).toFixed(1)} KB
-                          </Text>
-                        </div>
-                      </div>
-                      <Button
-                        appearance="subtle"
-                        size="small"
-                        icon={<Delete16Regular />}
-                        onClick={handleReset}
-                        title="Quitar archivo"
-                      />
-                    </div>
+                  {selectedFile && (
+                    <small style={{ color: tokens.colorNeutralForeground3, marginTop: '2px' }}>
+                      {selectedFile.name} · {(selectedFile.size / 1024).toFixed(1)} KB
+                    </small>
                   )}
+                </div>
+
+                <div style={{ paddingTop: '8px', borderTop: `1px solid ${tokens.colorNeutralStroke2}` }}>
+                  <Button
+                    appearance="subtle"
+                    size="small"
+                    icon={<ArrowDownload16Regular />}
+                    onClick={handleDownload}
+                    disabled={downloadingTemplate || uploading}
+                  >
+                    {downloadingTemplate ? 'Generando plantilla...' : 'Descargar plantilla Excel (.xlsx)'}
+                  </Button>
                 </div>
               </div>
             )}

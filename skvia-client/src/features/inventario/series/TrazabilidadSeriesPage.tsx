@@ -1,571 +1,650 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
-  TableCellLayout,
-  createTableColumn,
-  Menu,
-  MenuTrigger,
-  MenuPopover,
-  MenuList,
-  MenuItem,
-  Text,
-  Input,
-  SplitButton,
-  Button,
-  Badge,
+  makeStyles,
   tokens,
-  type MenuButtonProps,
+  typographyStyles,
+  Input,
+  Button,
+  Spinner,
+  Text,
+  Tooltip,
 } from '@fluentui/react-components';
-import type { TableColumnDefinition, SelectionItemId } from '@fluentui/react-components';
 import {
-  ArrowClockwise16Regular,
-  ArrowDownload16Regular,
   Search16Regular,
-  HistoryRegular,
-  ChevronDown16Regular,
+  Tag16Regular,
+  ArrowClockwise16Regular,
+  Dismiss16Regular,
+  Copy16Regular,
   Checkmark16Regular,
-  DocumentTable20Regular,
-  DocumentText20Regular,
   Warning16Filled,
-  CheckmarkCircle16Filled,
   DismissCircle16Filled,
   Box16Regular,
+  Person16Regular,
+  VehicleTruckProfile16Regular,
+  Building16Regular,
+  DocumentText16Regular,
+  ArrowSync16Regular,
+  ArrowEnter16Regular,
+  ArrowExit16Regular,
+  ArrowRepeatAll16Regular,
 } from '@fluentui/react-icons';
-import { HistorialSerieDrawer } from './HistorialSerieDrawer';
 import { D365CommandBar, D365CommandButton } from '../../../components/common/D365CommandBar';
-import {
-  D365EntityTable,
-  D365TableToolbarTools,
-  type D365EntityTableRef,
-  type D365FilterField,
-} from '../../../components/common/D365EntityTable';
 import { D365StatusBadge } from '../../../components/common/D365StatusBadge';
-import { useD365ListStyles } from '../../../styles/d365ListStyles';
-import { AlmacenService } from '../almacenes/services/almacen.service';
-import type { AlmacenDto } from '../almacenes/types/almacen.types';
-import { InventarioProductoService } from '../inventario-productos/services/inventario-producto.service';
-import type { ItemSeriadoStockDto } from '../inventario-productos/types/inventario-producto.types';
-import { exportToExcel, exportToCSV, type ExportColumn } from '../../../utils/exportUtils';
+import { apiClient } from '../../../services/apiClient';
 
-export interface SlaInfo {
-  dias: number | null;
-  estadoSla: 'EnSla' | 'EnRiesgo' | 'Vencido' | 'Instalado';
-  label: string;
-  badgeColor: 'success' | 'warning' | 'danger' | 'informative';
-  fechaLlegada: string;
+export interface MovimientoHistorialItemDto {
+  id: string;
+  fecha: string;
+  tipo: string;
+  tipoCodigo: number;
+  origen: string | null;
+  destino: string | null;
+  documento: string | null;
+  responsable: string | null;
+  condicion: string;
+  observaciones: string | null;
 }
 
-export function obtenerSlaInfo(item: ItemSeriadoStockDto): SlaInfo {
-  const fechaRefStr = item.fechaLlegadaAlmacen || item.createdAt;
-  const fechaRef = new Date(fechaRefStr);
-  const ahora = new Date();
-
-  if (item.estado === 'InstaladoEnCliente') {
-    return {
-      dias: item.diasEnAlmacen ?? null,
-      estadoSla: 'Instalado',
-      label: 'Instalado',
-      badgeColor: 'informative',
-      fechaLlegada: fechaRefStr,
-    };
-  }
-
-  const dias =
-    typeof item.diasEnAlmacen === 'number'
-      ? item.diasEnAlmacen
-      : Math.max(0, Math.floor((ahora.getTime() - fechaRef.getTime()) / (1000 * 60 * 60 * 24)));
-
-  if (dias <= 15) {
-    return {
-      dias,
-      estadoSla: 'EnSla',
-      label: 'En SLA (≤ 15d)',
-      badgeColor: 'success',
-      fechaLlegada: fechaRefStr,
-    };
-  }
-
-  if (dias <= 30) {
-    return {
-      dias,
-      estadoSla: 'EnRiesgo',
-      label: 'En Riesgo (16-30d)',
-      badgeColor: 'warning',
-      fechaLlegada: fechaRefStr,
-    };
-  }
-
-  return {
-    dias,
-    estadoSla: 'Vencido',
-    label: `Vencido (${dias}d > 30d)`,
-    badgeColor: 'danger',
-    fechaLlegada: fechaRefStr,
-  };
+export interface HistorialSerieDto {
+  id: string;
+  numeroSerie: string;
+  numeroSmartCard: string | null;
+  macAddress: string | null;
+  productoId: string;
+  productoCodigo: string;
+  productoNombre: string;
+  categoriaNombre: string | null;
+  estado: string;
+  condicion: string;
+  ubicacionActual: string;
+  almacenActualId: string | null;
+  almacenActualNombre: string | null;
+  ubicacionActualId: string | null;
+  ubicacionActualNombre: string | null;
+  clienteActualNombre: string | null;
+  fechaIngreso: string;
+  diasEnEmpresa: number;
+  fechaUltimoMovimiento: string | null;
+  movimientos: MovimientoHistorialItemDto[];
 }
 
-const columnasExportacion: ExportColumn<ItemSeriadoStockDto>[] = [
-  { header: 'Número de Serie', accessor: s => s.numeroSerie },
-  { header: 'Código de Producto', accessor: s => s.codigoProducto },
-  { header: 'Producto', accessor: s => s.nombreProducto },
-  { header: 'Estado de Custodia', accessor: s => s.estado },
-  { header: 'Almacén / Custodio', accessor: s => (s.nombreAlmacen || '').replace(/^[\p{Emoji}\s]+/u, '').trim() },
-  { header: 'Fecha Llegada / Ingreso', accessor: s => new Date(s.fechaLlegadaAlmacen || s.createdAt).toLocaleDateString('es-PE') },
-  { header: 'Días en Almacén', accessor: s => {
-    const sla = obtenerSlaInfo(s);
-    return sla.dias !== null ? String(sla.dias) : '—';
-  }},
-  { header: 'SLA', accessor: s => obtenerSlaInfo(s).label },
-  { header: 'Ubicación', accessor: s => s.nombreUbicacion || '' },
-  { header: 'Condición', accessor: s => s.condicion || '' },
-  { header: 'SmartCard', accessor: s => s.numeroSmartCard || '' },
-  { header: 'MAC Address', accessor: s => s.macAddress || '' },
-];
+const useStyles = makeStyles({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    width: '100%',
+    backgroundColor: tokens.colorNeutralBackground2,
+    overflowY: 'auto',
+  },
+  content: {
+    padding: '20px 24px 40px 24px',
+    maxWidth: '1280px',
+    width: '100%',
+    boxSizing: 'border-box',
+    margin: '0 auto',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalL,
+  },
+  searchCard: {
+    backgroundColor: tokens.colorNeutralBackground1,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    borderRadius: tokens.borderRadiusMedium,
+    padding: '20px 24px',
+    boxShadow: tokens.shadow2,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalS,
+  },
+  searchRow: {
+    display: 'flex',
+    gap: tokens.spacingHorizontalM,
+    alignItems: 'center',
+    '@media (max-width: 600px)': {
+      flexDirection: 'column',
+      alignItems: 'stretch',
+    },
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: 'monospace',
+    fontWeight: tokens.fontWeightSemibold,
+    letterSpacing: '0.5px',
+  },
+  searchHint: {
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground3,
+  },
+  infoCard: {
+    backgroundColor: tokens.colorNeutralBackground1,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    borderRadius: tokens.borderRadiusMedium,
+    padding: '20px 24px',
+    boxShadow: tokens.shadow4,
+  },
+  infoHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    gap: tokens.spacingHorizontalM,
+    paddingBottom: tokens.spacingVerticalM,
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+  },
+  serieTitleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalM,
+  },
+  serieCode: {
+    fontFamily: 'monospace',
+    fontSize: tokens.fontSizeBase600,
+    fontWeight: tokens.fontWeightBold,
+    color: tokens.colorBrandForeground1,
+    letterSpacing: '0.8px',
+  },
+  badgesRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalS,
+    flexWrap: 'wrap',
+  },
+  gridInfo: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+    gap: tokens.spacingHorizontalL,
+    paddingTop: tokens.spacingVerticalL,
+  },
+  infoBlock: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+  },
+  infoLabel: {
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground3,
+    fontWeight: tokens.fontWeightRegular,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  infoValue: {
+    fontSize: tokens.fontSizeBase300,
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground1,
+    wordBreak: 'break-word',
+  },
+  infoSubtext: {
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground3,
+  },
+  sectionCard: {
+    backgroundColor: tokens.colorNeutralBackground1,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    borderRadius: tokens.borderRadiusMedium,
+    padding: '20px 24px',
+    boxShadow: tokens.shadow2,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalM,
+  },
+  sectionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionTitle: {
+    ...typographyStyles.subtitle2,
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground1,
+  },
+  tableWrapper: {
+    overflowX: 'auto',
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    borderRadius: tokens.borderRadiusSmall,
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    textAlign: 'left',
+    fontSize: tokens.fontSizeBase200,
+  },
+  th: {
+    backgroundColor: tokens.colorNeutralBackground3,
+    color: tokens.colorNeutralForeground2,
+    fontWeight: tokens.fontWeightSemibold,
+    padding: '10px 14px',
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    whiteSpace: 'nowrap',
+  },
+  td: {
+    padding: '12px 14px',
+    borderBottom: `1px solid ${tokens.colorNeutralStroke3}`,
+    color: tokens.colorNeutralForeground1,
+    verticalAlign: 'middle',
+  },
+  rowEven: {
+    backgroundColor: tokens.colorNeutralBackground1,
+  },
+  rowOdd: {
+    backgroundColor: tokens.colorNeutralBackground2,
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: '60px 20px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: tokens.spacingVerticalM,
+    color: tokens.colorNeutralForeground3,
+  },
+  errorBanner: {
+    backgroundColor: tokens.colorPaletteRedBackground1,
+    border: `1px solid ${tokens.colorPaletteRedBorderActive}`,
+    borderRadius: tokens.borderRadiusMedium,
+    padding: '16px 20px',
+    color: tokens.colorPaletteRedForeground1,
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalM,
+  },
+  documentTag: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    fontFamily: 'monospace',
+    fontSize: tokens.fontSizeBase200,
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorBrandForeground1,
+    backgroundColor: tokens.colorBrandBackground2,
+    border: `1px solid ${tokens.colorBrandStroke2}`,
+    padding: '2px 8px',
+    borderRadius: tokens.borderRadiusSmall,
+    whiteSpace: 'nowrap',
+  },
+  documentTagIcon: {
+    fontSize: '13px',
+    color: tokens.colorBrandForeground1,
+  },
+});
 
 export function TrazabilidadSeriesPage() {
-  const listStyles = useD365ListStyles();
-  const tableRef = useRef<D365EntityTableRef>(null);
-  const [series, setSeries] = useState<ItemSeriadoStockDto[]>([]);
-  const [almacenes, setAlmacenes] = useState<AlmacenDto[]>([]);
-  const [almacenId] = useState('');
-  const [estadoFiltro, setEstadoFiltro] = useState('TODOS');
-  const [slaFiltro, setSlaFiltro] = useState<'TODOS' | 'EnSla' | 'EnRiesgo' | 'Vencido' | 'Instalado'>('TODOS');
-  const [vistaActual, setVistaActual] = useState<string>('todas');
-  const [selectedIds, setSelectedIds] = useState<Set<SelectionItemId>>(new Set());
-  const [buscar, setBuscar] = useState('');
-  const [cargando, setCargando] = useState(true);
+  const styles = useStyles();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialSerie = searchParams.get('serie') || '';
+
+  const [serieInput, setSerieInput] = useState(initialSerie);
+  const [serieConsultada, setSerieConsultada] = useState(initialSerie);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [drawerHistorialAbierto, setDrawerHistorialAbierto] = useState(false);
-  const [serieSeleccionadaHistorial, setSerieSeleccionadaHistorial] = useState<string | null>(null);
+  const [historial, setHistorial] = useState<HistorialSerieDto | null>(null);
+  const [copiado, setCopiado] = useState(false);
 
-  const handleAbrirHistorial = (numeroSerie: string) => {
-    setSerieSeleccionadaHistorial(numeroSerie);
-    setDrawerHistorialAbierto(true);
-  };
+  const consultarSerie = useCallback(async (target?: string) => {
+    const raw = (target !== undefined ? target : serieInput).trim().toUpperCase();
+    if (!raw) return;
 
-  const filterFields = useMemo<D365FilterField[]>(() => [
-    { id: 'numeroSerie', label: 'Número de Serie', type: 'string' },
-    { id: 'codigoProducto', label: 'Código', type: 'string' },
-    { id: 'nombreProducto', label: 'Producto', type: 'string' },
-    {
-      id: 'estado',
-      label: 'Estado de Custodia',
-      type: 'string',
-      options: [
-        { value: 'EnAlmacen', label: 'En Almacén' },
-        { value: 'EnTransito', label: 'En Tránsito' },
-        { value: 'EnCustodiaTecnico', label: 'Custodia Técnico' },
-        { value: 'InstaladoEnCliente', label: 'Instalado en Cliente' },
-        { value: 'AveriadoEnAlmacen', label: 'Averiado' },
-        { value: 'DevueltoAProveedor', label: 'Devuelto a Proveedor' },
-      ],
-    },
-    {
-      id: 'estadoSla',
-      label: 'SLA',
-      type: 'string',
-      options: [
-        { value: 'EnSla', label: 'En SLA (≤ 15 días)' },
-        { value: 'EnRiesgo', label: 'En Riesgo (16 - 30 días)' },
-        { value: 'Vencido', label: 'SLA Vencido (> 30 días)' },
-        { value: 'Instalado', label: 'Instalado en Cliente' },
-      ],
-    },
-    { id: 'diasEnAlmacen', label: 'Días en Almacén', type: 'number' },
-    {
-      id: 'nombreAlmacen',
-      label: 'Almacén / Custodio',
-      type: 'string',
-      options: almacenes.map(a => ({ value: a.nombre, label: a.nombre })),
-    },
-    { id: 'nombreUbicacion', label: 'Ubicación', type: 'string' },
-    { id: 'numeroSmartCard', label: 'SmartCard', type: 'string' },
-    { id: 'macAddress', label: 'MAC', type: 'string' },
-  ], [almacenes]);
-
-  const vistas = useMemo(() => [
-    { id: 'todas', nombre: 'Todas las Series', estado: 'TODOS', sla: 'TODOS' as const },
-    { id: 'almacen', nombre: 'Series en Almacén', estado: 'EnAlmacen', sla: 'TODOS' as const },
-    { id: 'sla-vencido', nombre: '🚨 SLA Vencido (> 30 días)', estado: 'TODOS', sla: 'Vencido' as const },
-    { id: 'sla-riesgo', nombre: '⚠️ SLA en Riesgo (16 - 30 días)', estado: 'TODOS', sla: 'EnRiesgo' as const },
-    { id: 'sla-ok', nombre: '✅ Dentro de SLA (≤ 15 días)', estado: 'TODOS', sla: 'EnSla' as const },
-    { id: 'tecnico', nombre: 'Series en Custodia Técnico', estado: 'EnCustodiaTecnico', sla: 'TODOS' as const },
-    { id: 'transito', nombre: 'Series en Tránsito', estado: 'EnTransito', sla: 'TODOS' as const },
-    { id: 'cliente', nombre: 'Series en Cliente Abonado', estado: 'InstaladoEnCliente', sla: 'TODOS' as const },
-    { id: 'averiado', nombre: 'Series Averiadas / Retiradas', estado: 'AveriadoEnAlmacen', sla: 'TODOS' as const },
-  ], []);
-
-  const cargar = useCallback(async () => {
     try {
-      setCargando(true);
+      setLoading(true);
       setError(null);
-      const [dataSeries, dataAlmacenes] = await Promise.all([
-        InventarioProductoService.obtenerSeries(almacenId || undefined, undefined, undefined, undefined, true),
-        AlmacenService.getAlmacenes(true),
-      ]);
-      setSeries(dataSeries);
-      setAlmacenes(dataAlmacenes);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudieron cargar las series.');
+      setSerieConsultada(raw);
+      setSearchParams({ serie: raw }, { replace: true });
+
+      const res = await apiClient<HistorialSerieDto>(
+        `/api/inventario/stock/series/${encodeURIComponent(raw)}/historial`
+      );
+      setHistorial(res);
+    } catch (err: any) {
+      setHistorial(null);
+      setError(err.message || `No se encontró la serie '${raw}' en el sistema.`);
     } finally {
-      setCargando(false);
+      setLoading(false);
     }
-  }, [almacenId]);
+  }, [serieInput, setSearchParams]);
 
   useEffect(() => {
-    void cargar();
-  }, [cargar]);
+    if (initialSerie) {
+      void consultarSerie(initialSerie);
+    }
+  }, [initialSerie, consultarSerie]);
 
-  // Filtrado en memoria
-  const seriesFiltradas = useMemo(() => {
-    const termino = buscar.trim().toUpperCase();
-    return series.filter(item => {
-      const slaInfo = obtenerSlaInfo(item);
-      // Filtro de SLA
-      if (slaFiltro !== 'TODOS' && slaInfo.estadoSla !== slaFiltro) {
-        return false;
-      }
-      // Filtro de estado
-      if (estadoFiltro !== 'TODOS' && item.estado !== estadoFiltro) {
-        return false;
-      }
-      // Filtro de búsqueda
-      if (!termino) return true;
-      return (
-        item.numeroSerie.includes(termino) ||
-        item.nombreProducto.toUpperCase().includes(termino) ||
-        item.codigoProducto.toUpperCase().includes(termino) ||
-        (item.nombreAlmacen && item.nombreAlmacen.toUpperCase().includes(termino)) ||
-        (item.numeroSmartCard && item.numeroSmartCard.includes(termino)) ||
-        (item.macAddress && item.macAddress.includes(termino)) ||
-        slaInfo.label.toUpperCase().includes(termino)
-      );
-    });
-  }, [series, estadoFiltro, slaFiltro, buscar]);
-
-  // Exportar a Excel (.xlsx) y CSV (.csv)
-  const exportarExcel = () => {
-    if (seriesFiltradas.length === 0) return;
-    const fecha = new Date().toISOString().slice(0, 10);
-    exportToExcel(seriesFiltradas, columnasExportacion, `Trazabilidad_Series_${fecha}`);
+  const handleCopiarSerie = () => {
+    if (!historial?.numeroSerie) return;
+    navigator.clipboard.writeText(historial.numeroSerie).catch(() => {});
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
   };
 
-  const exportarCSV = () => {
-    if (seriesFiltradas.length === 0) return;
-    const fecha = new Date().toISOString().slice(0, 10);
-    exportToCSV(seriesFiltradas, columnasExportacion, `Trazabilidad_Series_${fecha}`);
+  const handleLimpiar = () => {
+    setSerieInput('');
+    setSerieConsultada('');
+    setHistorial(null);
+    setError(null);
+    setSearchParams({}, { replace: true });
   };
 
-  const columns: TableColumnDefinition<ItemSeriadoStockDto>[] = useMemo(() => [
-    createTableColumn({
-      columnId: 'serie',
-      compare: (a, b) => a.numeroSerie.localeCompare(b.numeroSerie),
-      renderHeaderCell: () => 'Número de Serie',
-      renderCell: (item: ItemSeriadoStockDto) => (
-        <TableCellLayout truncate>
-          <Button
-            appearance="subtle"
-            size="small"
-            icon={<HistoryRegular style={{ color: tokens.colorBrandForeground1 }} />}
-            onClick={() => handleAbrirHistorial(item.numeroSerie)}
-            style={{
-              padding: '0 6px',
-              height: '24px',
-              fontWeight: tokens.fontWeightSemibold,
-              fontFamily: 'monospace',
-              color: tokens.colorBrandForeground1,
-            }}
-            title="Ver trazabilidad completa e historial de esta serie"
-          >
-            {item.numeroSerie}
-          </Button>
-        </TableCellLayout>
-      ),
-    }),
-    createTableColumn({
-      columnId: 'codigo',
-      compare: (a, b) => a.codigoProducto.localeCompare(b.codigoProducto),
-      renderHeaderCell: () => 'Código',
-      renderCell: (item: ItemSeriadoStockDto) => (
-        <TableCellLayout truncate>
-          <Text>{item.codigoProducto}</Text>
-        </TableCellLayout>
-      ),
-    }),
-    createTableColumn({
-      columnId: 'producto',
-      compare: (a, b) => a.nombreProducto.localeCompare(b.nombreProducto),
-      renderHeaderCell: () => 'Producto',
-      renderCell: (item: ItemSeriadoStockDto) => (
-        <TableCellLayout truncate>
-          <Text>{item.nombreProducto}</Text>
-        </TableCellLayout>
-      ),
-    }),
-    createTableColumn({
-      columnId: 'estado',
-      compare: (a, b) => a.estado.localeCompare(b.estado),
-      renderHeaderCell: () => 'Estado Custodia',
-      renderCell: (item: ItemSeriadoStockDto) => {
-        const estadoTexto =
-          item.estado === 'EnAlmacen'
-            ? 'En Almacén'
-            : item.estado === 'EnTransito'
-            ? 'En Tránsito'
-            : item.estado === 'EnCustodiaTecnico'
-            ? 'Custodia Técnico'
-            : item.estado === 'InstaladoEnCliente'
-            ? 'Instalado en Cliente'
-            : item.estado === 'AveriadoEnAlmacen' || item.estado === 'RetiradoPorAveria'
-            ? 'Averiado'
-            : item.estado;
-        return (
-          <TableCellLayout truncate>
-            <D365StatusBadge status={estadoTexto} />
-          </TableCellLayout>
-        );
-      },
-    }),
-    createTableColumn({
-      columnId: 'almacen',
-      compare: (a, b) => (a.nombreAlmacen ?? '').localeCompare(b.nombreAlmacen ?? ''),
-      renderHeaderCell: () => 'Almacén / Custodio',
-      renderCell: (item: ItemSeriadoStockDto) => {
-        const nombreLimpio = item.nombreAlmacen
-          ? item.nombreAlmacen.replace(/^[\p{Emoji}\s]+/u, '').trim()
-          : '—';
-        return (
-          <TableCellLayout truncate>
-            <Text>{item.estado === 'EnTransito' ? `En tránsito · ${item.transferenciaNumero ?? ''}` : nombreLimpio}</Text>
-          </TableCellLayout>
-        );
-      },
-    }),
-    createTableColumn({
-      columnId: 'fecha',
-      compare: (a, b) => new Date(a.fechaLlegadaAlmacen || a.createdAt).getTime() - new Date(b.fechaLlegadaAlmacen || b.createdAt).getTime(),
-      renderHeaderCell: () => 'Fecha Llegada',
-      renderCell: (item: ItemSeriadoStockDto) => {
-        const fecha = new Date(item.fechaLlegadaAlmacen || item.createdAt);
-        return (
-          <TableCellLayout truncate title={`Fecha llegada: ${fecha.toLocaleDateString('es-PE')} ${fecha.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}`}>
-            <Text>{fecha.toLocaleDateString('es-PE')}</Text>
-          </TableCellLayout>
-        );
-      },
-    }),
-    createTableColumn({
-      columnId: 'diasEnAlmacen',
-      compare: (a, b) => (obtenerSlaInfo(a).dias ?? -1) - (obtenerSlaInfo(b).dias ?? -1),
-      renderHeaderCell: () => 'Días Almacén',
-      renderCell: (item: ItemSeriadoStockDto) => {
-        const sla = obtenerSlaInfo(item);
-        if (sla.dias === null) {
-          return (
-            <TableCellLayout truncate>
-              <Text style={{ color: tokens.colorNeutralForeground4 }}>—</Text>
-            </TableCellLayout>
-          );
-        }
-        return (
-          <TableCellLayout truncate title={`${sla.dias} días transcurridos desde su llegada al almacén`}>
-            <Text
-              weight="semibold"
-              style={{
-                color:
-                  sla.estadoSla === 'Vencido'
-                    ? tokens.colorStatusDangerForeground1
-                    : sla.estadoSla === 'EnRiesgo'
-                    ? tokens.colorPaletteDarkOrangeForeground1
-                    : tokens.colorNeutralForeground1,
-              }}
-            >
-              {sla.dias}
-            </Text>
-          </TableCellLayout>
-        );
-      },
-    }),
-    createTableColumn({
-      columnId: 'estadoSla',
-      compare: (a, b) => obtenerSlaInfo(a).label.localeCompare(obtenerSlaInfo(b).label),
-      renderHeaderCell: () => 'SLA',
-      renderCell: (item: ItemSeriadoStockDto) => {
-        const sla = obtenerSlaInfo(item);
-        return (
-          <TableCellLayout truncate title={`SLA: ${sla.label} (${sla.dias ?? 0} días en almacén)`}>
-            <Badge
-              appearance="tint"
-              shape="rounded"
-              color={sla.badgeColor}
-              icon={
-                sla.estadoSla === 'EnSla' ? (
-                  <CheckmarkCircle16Filled />
-                ) : sla.estadoSla === 'EnRiesgo' ? (
-                  <Warning16Filled />
-                ) : sla.estadoSla === 'Vencido' ? (
-                  <DismissCircle16Filled />
-                ) : (
-                  <Box16Regular />
-                )
-              }
-            >
-              {sla.estadoSla === 'EnSla'
-                ? 'En SLA'
-                : sla.estadoSla === 'EnRiesgo'
-                ? 'En Riesgo'
-                : sla.estadoSla === 'Vencido'
-                ? 'Vencido'
-                : 'Instalado'}
-            </Badge>
-          </TableCellLayout>
-        );
-      },
-    }),
-    createTableColumn({
-      columnId: 'ubicacion',
-      compare: (a, b) => (a.nombreUbicacion ?? '').localeCompare(b.nombreUbicacion ?? ''),
-      renderHeaderCell: () => 'Ubicación',
-      renderCell: (item: ItemSeriadoStockDto) => (
-        <TableCellLayout truncate>
-          <Text>{item.nombreUbicacion || '—'}</Text>
-        </TableCellLayout>
-      ),
-    }),
-    createTableColumn({
-      columnId: 'smartcard',
-      renderHeaderCell: () => 'SmartCard / MAC',
-      renderCell: (item: ItemSeriadoStockDto) => (
-        <TableCellLayout truncate>
-          <Text>{item.numeroSmartCard || item.macAddress || '—'}</Text>
-        </TableCellLayout>
-      ),
-    }),
-  ], []);
+  const renderBadgeEstado = (estado: string) => {
+    switch (estado) {
+      case 'EnAlmacen':
+      case 'AveriadoEnAlmacen':
+        return <D365StatusBadge color="brand" text="En Almacén" />;
+      case 'EnCustodiaTecnico':
+      case 'RetiradoPorAveria':
+        return <D365StatusBadge color="informative" text="Custodia Técnico" />;
+      case 'InstaladoEnCliente':
+        return <D365StatusBadge color="success" text="Instalado en Cliente" />;
+      case 'EnTransito':
+        return <D365StatusBadge color="warning" text="En Tránsito" />;
+      case 'DevueltoAProveedor':
+        return <D365StatusBadge color="subtle" text="Devuelto a OL" />;
+      case 'BajaPorPerdida':
+        return <D365StatusBadge color="danger" text="Baja por Pérdida" />;
+      default:
+        return <D365StatusBadge color="subtle" text={estado} />;
+    }
+  };
+
+  const renderBadgeCondicion = (condicion: string) => {
+    const normalizada = condicion.toLowerCase();
+    if (normalizada.includes('utilizable') || normalizada.includes('bueno') || normalizada === 'operativo') {
+      return <D365StatusBadge color="success" text="Operativo" style={{ whiteSpace: 'nowrap' }} />;
+    }
+    return <D365StatusBadge color="danger" text="Defectuoso" style={{ whiteSpace: 'nowrap' }} />;
+  };
+
+  const formatearTipoMovimiento = (tipo: string, tipoCodigo: number) => {
+    if (tipoCodigo === 13 || tipo === 'ReclasificacionDOA') return 'Reclasificación DOA';
+    if (tipoCodigo === 12 || tipo === 'ReubicacionInterna') return 'Reubicación Interna';
+    if (tipoCodigo === 1 || tipo === 'IngresoProveedor') return 'Ingreso por Recepción';
+    if (tipoCodigo === 2 || tipo === 'TransferenciaAlmacenes') return 'Transferencia entre Almacenes';
+    if (tipoCodigo === 3 || tipo === 'DespachoATecnico') return 'Despacho a Técnico';
+    if (tipoCodigo === 4 || tipo === 'DevolucionTecnico') return 'Devolución de Técnico';
+    if (tipoCodigo === 5 || tipo === 'ConsumoEnOrdenTrabajo') return 'Instalación en Cliente (OT)';
+    if (tipoCodigo === 6 || tipo === 'RetiroEnOrdenTrabajo') return 'Retiro por Avería (OT)';
+    if (tipoCodigo === 8 || tipo === 'DevolucionAProveedor') return 'Devolución a Proveedor (OL)';
+    return tipo;
+  };
+
+  const renderIconoMovimiento = (tipoCodigo: number) => {
+    switch (tipoCodigo) {
+      case 1: // IngresoProveedor
+        return <ArrowEnter16Regular style={{ color: tokens.colorPaletteGreenForeground1 }} />;
+      case 2: // TransferenciaAlmacenes
+      case 12: // ReubicacionInterna
+        return <ArrowSync16Regular style={{ color: tokens.colorBrandForeground1 }} />;
+      case 3: // DespachoATecnico
+        return <VehicleTruckProfile16Regular style={{ color: tokens.colorPaletteBlueForeground2 }} />;
+      case 4: // DevolucionTecnico
+        return <ArrowRepeatAll16Regular style={{ color: tokens.colorPaletteDarkOrangeForeground1 }} />;
+      case 5: // ConsumoEnOrdenTrabajo (Instalación)
+        return <Person16Regular style={{ color: tokens.colorPaletteGreenForeground1 }} />;
+      case 6: // RetiroEnOrdenTrabajo (Avería en cliente)
+      case 13: // ReclasificacionDOA
+        return <Warning16Filled style={{ color: tokens.colorStatusDangerForeground1 }} />;
+      case 8: // DevolucionAProveedor
+        return <ArrowExit16Regular style={{ color: tokens.colorPaletteMarigoldForeground1 }} />;
+      default:
+        return <Box16Regular style={{ color: tokens.colorNeutralForeground2 }} />;
+    }
+  };
 
   return (
-    <div className={listStyles.root}>
-      {/* 1. Barra de comandos */}
-      <D365CommandBar ariaLabel="Comandos de trazabilidad de series">
-        <div className={listStyles.toolbarLeft}>
-          <D365CommandButton icon={<ArrowClockwise16Regular />} onClick={() => void cargar()}>
-            Actualizar
-          </D365CommandButton>
-          <D365CommandButton
-            icon={<HistoryRegular />}
-            onClick={() => {
-              setSerieSeleccionadaHistorial(null);
-              setDrawerHistorialAbierto(true);
-            }}
-          >
-            Consultar Historial
-          </D365CommandButton>
-          <Menu positioning="below-end">
-            <MenuTrigger disableButtonEnhancement>
-              {(triggerProps: MenuButtonProps) => (
-                <SplitButton
-                  menuButton={triggerProps}
-                  primaryActionButton={{
-                    onClick: exportarExcel,
-                    title: 'Exportar a Excel (*.xlsx)',
-                  }}
-                  icon={<ArrowDownload16Regular />}
-                  appearance="subtle"
-                  size="medium"
-                  disabled={seriesFiltradas.length === 0}
-                >
-                  Exportar a Excel
-                </SplitButton>
-              )}
-            </MenuTrigger>
-            <MenuPopover>
-              <MenuList>
-                <MenuItem icon={<DocumentTable20Regular />} onClick={exportarExcel}>
-                  Libro de Excel estático (*.xlsx)
-                </MenuItem>
-                <MenuItem icon={<DocumentText20Regular />} onClick={exportarCSV}>
-                  Valores separados por comas (*.csv)
-                </MenuItem>
-              </MenuList>
-            </MenuPopover>
-          </Menu>
-        </div>
+    <div className={styles.root}>
+      {/* 1. Barra de comandos superior */}
+      <D365CommandBar ariaLabel="Comandos de Trazabilidad de Series">
+        <D365CommandButton
+          icon={<ArrowClockwise16Regular />}
+          onClick={() => void consultarSerie(serieConsultada || serieInput)}
+          disabled={!serieConsultada && !serieInput}
+        >
+          Actualizar
+        </D365CommandButton>
+        <D365CommandButton
+          icon={<Dismiss16Regular />}
+          onClick={handleLimpiar}
+          disabled={!serieInput && !historial && !error}
+        >
+          Nueva Consulta
+        </D365CommandButton>
       </D365CommandBar>
 
-      {/* 2. VIEW HEADER ROW (Selector de Vista + Filtros + Búsqueda) */}
-      <div className={listStyles.viewHeader}>
-        <Menu>
-          <MenuTrigger disableButtonEnhancement>
-            <div className={listStyles.viewSelectorTab} title="Seleccionar vista">
-              <Text weight="semibold" size={400}>
-                {vistas.find(v => v.id === vistaActual)?.nombre || 'Todas las Series'}
+      <div className={styles.content}>
+        {/* 2. Buscador Directo */}
+        <div className={styles.searchCard}>
+          <div className={styles.searchRow}>
+            <Input
+              className={styles.searchInput}
+              size="large"
+              value={serieInput}
+              onChange={(_, data) => setSerieInput(data.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  void consultarSerie();
+                }
+              }}
+              autoFocus
+            />
+            <Button
+              appearance="primary"
+              size="large"
+              icon={<Search16Regular />}
+              onClick={() => void consultarSerie()}
+              disabled={!serieInput.trim() || loading}
+            >
+              Consultar
+            </Button>
+          </div>
+        </div>
+
+        {/* 3. Estados de Carga / Error */}
+        {loading && (
+          <div className={styles.emptyState}>
+            <Spinner size="large" label="Consultando..." />
+          </div>
+        )}
+
+        {error && !loading && (
+          <div className={styles.errorBanner}>
+            <DismissCircle16Filled style={{ fontSize: 24, flexShrink: 0 }} />
+            <div>
+              <Text weight="semibold" block>
+                {error}
               </Text>
-              <ChevronDown16Regular />
             </div>
-          </MenuTrigger>
-          <MenuPopover>
-            <MenuList className={listStyles.viewMenuPopover}>
-              {vistas.map(v => (
-                <MenuItem
-                  key={v.id}
-                  icon={vistaActual === v.id ? <Checkmark16Regular /> : undefined}
-                  onClick={() => {
-                    setVistaActual(v.id);
-                    setEstadoFiltro(v.estado);
-                    setSlaFiltro(v.sla);
-                  }}
-                >
-                  {v.nombre}
-                </MenuItem>
-              ))}
-            </MenuList>
-          </MenuPopover>
-        </Menu>
+          </div>
+        )}
 
-        <div className={listStyles.viewToolsRight}>
-          <D365TableToolbarTools tableRef={tableRef} />
-          <Input
-            className={listStyles.searchBox}
-            size="medium"
-            contentBefore={<Search16Regular />}
-            placeholder="Buscar por serie, producto, smartcard o SLA..."
-            aria-label="Buscar en esta vista"
-            value={buscar}
-            onChange={(_, d) => setBuscar(d.value)}
-          />
-        </div>
+        {/* 4. Resultados de la Serie Encontrada */}
+        {historial && !loading && (
+          <>
+            {/* Ficha Resumen de la Serie */}
+            <div className={styles.infoCard}>
+              <div className={styles.infoHeader}>
+                <div className={styles.serieTitleRow}>
+                  <Tag16Regular style={{ fontSize: 24, color: tokens.colorBrandForeground1 }} />
+                  <span className={styles.serieCode}>{historial.numeroSerie}</span>
+                  <Tooltip content={copiado ? '¡Copiado!' : 'Copiar número de serie'} relationship="label">
+                    <Button
+                      appearance="subtle"
+                      size="small"
+                      icon={copiado ? <Checkmark16Regular style={{ color: tokens.colorPaletteGreenForeground1 }} /> : <Copy16Regular />}
+                      onClick={handleCopiarSerie}
+                    />
+                  </Tooltip>
+                </div>
+                <div className={styles.badgesRow}>
+                  {renderBadgeEstado(historial.estado)}
+                  {renderBadgeCondicion(historial.condicion)}
+                </div>
+              </div>
+
+              <div className={styles.gridInfo}>
+                {/* Bloque 1: Producto */}
+                <div className={styles.infoBlock}>
+                  <span className={styles.infoLabel}>Producto / Modelo</span>
+                  <span className={styles.infoValue}>{historial.productoNombre}</span>
+                  <span className={styles.infoSubtext}>
+                    Código: <strong>{historial.productoCodigo}</strong>
+                    {historial.categoriaNombre ? ` · ${historial.categoriaNombre}` : ''}
+                  </span>
+                </div>
+
+                {/* Bloque 2: Hardware / Red */}
+                <div className={styles.infoBlock}>
+                  <span className={styles.infoLabel}>SmartCard / MAC</span>
+                  <span className={styles.infoValue}>
+                    {historial.numeroSmartCard || historial.macAddress ? (
+                      <>
+                        {historial.numeroSmartCard && <div>SC: {historial.numeroSmartCard}</div>}
+                        {historial.macAddress && <div>MAC: {historial.macAddress}</div>}
+                      </>
+                    ) : (
+                      '— No registrado'
+                    )}
+                  </span>
+                </div>
+
+                {/* Bloque 3: Custodio / Ubicación Actual */}
+                <div className={styles.infoBlock}>
+                  <span className={styles.infoLabel}>Ubicación / Custodio Actual</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {historial.estado === 'EnCustodiaTecnico' ? (
+                      <VehicleTruckProfile16Regular style={{ color: tokens.colorBrandForeground1 }} />
+                    ) : historial.estado === 'InstaladoEnCliente' ? (
+                      <Person16Regular style={{ color: tokens.colorPaletteGreenForeground1 }} />
+                    ) : (
+                      <Building16Regular style={{ color: tokens.colorBrandForeground1 }} />
+                    )}
+                    <span className={styles.infoValue}>{historial.ubicacionActual}</span>
+                  </div>
+                  {historial.clienteActualNombre && (
+                    <span className={styles.infoSubtext}>Abonado: {historial.clienteActualNombre}</span>
+                  )}
+                </div>
+
+                {/* Bloque 4: Origen y Antigüedad */}
+                <div className={styles.infoBlock}>
+                  <span className={styles.infoLabel}>Origen y Antigüedad</span>
+                  <span className={styles.infoValue}>
+                    {new Date(historial.fechaIngreso).toLocaleDateString('es-PE')}
+                    <span style={{ fontWeight: 'normal', color: tokens.colorNeutralForeground3 }}>
+                      {' '}({historial.diasEnEmpresa} días en la empresa)
+                    </span>
+                  </span>
+                  <span className={styles.infoSubtext}>
+                    Último mov.: {historial.fechaUltimoMovimiento ? new Date(historial.fechaUltimoMovimiento).toLocaleDateString('es-PE') : '—'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Historial Cronológico de Movimientos */}
+            <div className={styles.sectionCard}>
+              <div className={styles.sectionHeader}>
+                <h3 className={styles.sectionTitle}>
+                  Historial de Movimientos ({historial.movimientos.length})
+                </h3>
+              </div>
+
+              {historial.movimientos.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: tokens.colorNeutralForeground3 }}>
+                  No se registran movimientos para esta serie.
+                </div>
+              ) : (
+                <div className={styles.tableWrapper}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th className={styles.th}>#</th>
+                        <th className={styles.th}>Fecha y Hora</th>
+                        <th className={styles.th}>Tipo de Movimiento</th>
+                        <th className={styles.th}>Origen</th>
+                        <th className={styles.th}>Destino</th>
+                        <th className={styles.th}>Documento / Ref.</th>
+                        <th className={styles.th}>Condición</th>
+                        <th className={styles.th}>Responsable</th>
+                        <th className={styles.th}>Observaciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {historial.movimientos.map((m, idx) => {
+                        const fecha = new Date(m.fecha);
+                        const isEven = idx % 2 === 0;
+                        return (
+                          <tr key={m.id || idx} className={isEven ? styles.rowEven : styles.rowOdd}>
+                            <td className={styles.td} style={{ color: tokens.colorNeutralForeground3, fontWeight: 'bold' }}>
+                              {idx + 1}
+                            </td>
+                            <td className={styles.td} style={{ whiteSpace: 'nowrap' }}>
+                              <Text weight="semibold">
+                                {fecha.toLocaleDateString('es-PE')}
+                              </Text>
+                              <div style={{ fontSize: tokens.fontSizeBase100, color: tokens.colorNeutralForeground3 }}>
+                                {fecha.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            </td>
+                            <td className={styles.td}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                {renderIconoMovimiento(m.tipoCodigo)}
+                                <Text weight="semibold">{formatearTipoMovimiento(m.tipo, m.tipoCodigo)}</Text>
+                              </div>
+                            </td>
+                            <td className={styles.td}>
+                              {m.origen ? (
+                                <Text>{m.origen}</Text>
+                              ) : (
+                                <span style={{ color: tokens.colorNeutralForeground4 }}>—</span>
+                              )}
+                            </td>
+                            <td className={styles.td}>
+                              {m.destino ? (
+                                <Text weight="medium">{m.destino}</Text>
+                              ) : (
+                                <span style={{ color: tokens.colorNeutralForeground4 }}>—</span>
+                              )}
+                            </td>
+                            <td className={styles.td}>
+                              {m.documento ? (
+                                <span className={styles.documentTag}>
+                                  <DocumentText16Regular className={styles.documentTagIcon} />
+                                  {m.documento}
+                                </span>
+                              ) : (
+                                <span style={{ color: tokens.colorNeutralForeground4 }}>—</span>
+                              )}
+                            </td>
+                            <td className={styles.td} style={{ whiteSpace: 'nowrap' }}>
+                              {renderBadgeCondicion(m.condicion)}
+                            </td>
+                            <td className={styles.td}>
+                              {m.responsable ? (
+                                <Text size={200}>{m.responsable}</Text>
+                              ) : (
+                                <span style={{ color: tokens.colorNeutralForeground4 }}>—</span>
+                              )}
+                            </td>
+                            <td className={styles.td} style={{ maxWidth: '280px' }}>
+                              {m.observaciones ? (
+                                <Text size={200} style={{ fontStyle: 'italic', color: tokens.colorNeutralForeground2 }}>
+                                  {m.observaciones}
+                                </Text>
+                              ) : (
+                                <span style={{ color: tokens.colorNeutralForeground4 }}>—</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
-
-      {/* 4. Grid de Series con Redimensionamiento, Ordenamiento y Filtros Dynamics 365 */}
-      <D365EntityTable
-        ref={tableRef}
-        entityName="Series de Inventario"
-        tableId="series-inventario"
-        items={seriesFiltradas}
-        columns={columns}
-        filterFields={filterFields}
-        loading={cargando}
-        error={error}
-        onRetry={() => void cargar()}
-        selectionMode="multiselect"
-        selectedItems={selectedIds}
-        onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
-      />
-
-      {/* 5. Footer Estándar D365 */}
-      <footer className={listStyles.footer}>
-        <div>
-          1-{seriesFiltradas.length} de {seriesFiltradas.length}
-          {selectedIds.size > 0 && ` (${selectedIds.size} seleccionados)`}
-        </div>
-        <div>Página 1</div>
-      </footer>
-
-      {/* Drawer de Trazabilidad e Historial 360° */}
-      <HistorialSerieDrawer
-        open={drawerHistorialAbierto}
-        onOpenChange={setDrawerHistorialAbierto}
-        serieInicial={serieSeleccionadaHistorial}
-      />
     </div>
   );
 }

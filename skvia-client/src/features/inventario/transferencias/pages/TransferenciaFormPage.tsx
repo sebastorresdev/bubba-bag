@@ -61,7 +61,7 @@ import { D365FormField } from '../../../../components/common/D365FormField';
 import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { SelectorEntidadRelacionada, type OpcionEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
 import { TableEmptyState } from '../../../../components/common/TableEmptyState';
-import { WhatsAppIcon } from '../../../../components/common/WhatsAppIcon';
+import { D365CompartirButton } from '../../../../components/common/D365CompartirButton';
 import { useD365FormStyles } from '../../../../styles/d365FormStyles';
 import { AlmacenService } from '../../almacenes/services/almacen.service';
 import type { AlmacenDto } from '../../almacenes/types/almacen.types';
@@ -1254,6 +1254,26 @@ navigate('/servicio-campo/transferencias'); }
         ariaLabel="Comandos de transferencia"
         busy={saving || guardandoRecepcion}
         busyLabel="Procesando transferencia..."
+        trailing={
+          detalle ? (
+            <D365CompartirButton
+              onCompartirWhatsApp={() =>
+                void TransferenciaService.compartirCargoWhatsapp(detalle.id, detalle.numero, {
+                  tipoOperacion: operacionModalidad?.titulo || 'Transferencia de Inventario',
+                  destinatario: detalle.almacenDestinoNombre,
+                })
+              }
+              onCompartirCorreo={() =>
+                TransferenciaService.compartirCargoCorreo(detalle.id, detalle.numero, {
+                  tipoOperacion: operacionModalidad?.titulo || 'Transferencia de Inventario',
+                  destinatario: detalle.almacenDestinoNombre,
+                  origen: detalle.almacenOrigenNombre,
+                  destino: detalle.almacenDestinoNombre,
+                })
+              }
+            />
+          ) : undefined
+        }
       >
         <div className={formStyles.toolbarLeft}>
           <D365CommandButton
@@ -1346,17 +1366,6 @@ navigate('/servicio-campo/transferencias'); }
                 onClick={() => void TransferenciaService.abrirCargoPdf(detalle.id)}
               >
                 Imprimir
-              </D365CommandButton>
-              <D365CommandButton
-                icon={<WhatsAppIcon size={16} />}
-                onClick={() =>
-                  void TransferenciaService.compartirCargoWhatsapp(detalle.id, detalle.numero, {
-                    tipoOperacion: operacionModalidad?.titulo || 'Transferencia de Inventario',
-                    destinatario: detalle.almacenDestinoNombre,
-                  })
-                }
-              >
-                WhatsApp
               </D365CommandButton>
               <D365CommandDivider />
             </>

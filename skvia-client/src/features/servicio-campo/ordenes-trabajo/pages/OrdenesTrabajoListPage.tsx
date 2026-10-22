@@ -342,7 +342,9 @@ export const OrdenesTrabajoListPage: React.FC = () => {
         <Menu>
           <MenuTrigger disableButtonEnhancement>
             <div className={styles.viewSelectorTab} role="button" tabIndex={0}>
-              <Text>{nombresVistaOrdenes[activeView]}</Text>
+              <Text weight="semibold" size={400}>
+                {nombresVistaOrdenes[activeView]}
+              </Text>
               <ChevronDown16Regular className={styles.iconChevronMargin} />
             </div>
           </MenuTrigger>

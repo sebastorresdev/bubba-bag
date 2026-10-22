@@ -120,14 +120,35 @@ export const SelectorEntidadRelacionada: React.FC<SelectorEntidadRelacionadaProp
   const iconoFinal =
     icono ?? (etiquetaGrupo.toLowerCase().includes('usuario') ? <Person16Regular /> : undefined);
 
+  const normalizar = (texto: string) =>
+    texto
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase('es')
+      .trim();
+
   const opcionesFiltradas = useMemo(() => {
-    const consulta = textoBusqueda.trim().toLocaleLowerCase('es');
-    return opciones.filter((opcion) => {
+    const consulta = normalizar(textoBusqueda);
+    const filtradas = opciones.filter((opcion) => {
       if (opcion.id === seleccionada?.id) return false;
       if (!consulta) return true;
-      return opcion.nombre.toLocaleLowerCase('es').includes(consulta)
-        || opcion.detalle?.toLocaleLowerCase('es').includes(consulta);
+      const nom = normalizar(opcion.nombre);
+      const det = opcion.detalle ? normalizar(opcion.detalle) : '';
+      return nom.includes(consulta) || det.includes(consulta);
     });
+
+    if (consulta) {
+      filtradas.sort((a, b) => {
+        const nomA = normalizar(a.nombre);
+        const nomB = normalizar(b.nombre);
+        const rangoA = nomA === consulta ? 0 : nomA.startsWith(consulta) ? 1 : nomA.includes(consulta) ? 2 : 3;
+        const rangoB = nomB === consulta ? 0 : nomB.startsWith(consulta) ? 1 : nomB.includes(consulta) ? 2 : 3;
+        if (rangoA !== rangoB) return rangoA - rangoB;
+        return nomA.localeCompare(nomB, 'es');
+      });
+    }
+
+    return filtradas.slice(0, 60);
   }, [opciones, seleccionada?.id, textoBusqueda]);
 
   const alElegir: TagPickerProps['onOptionSelect'] = (_evento, datos) => {

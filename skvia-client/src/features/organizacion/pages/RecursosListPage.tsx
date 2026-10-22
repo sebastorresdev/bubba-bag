@@ -32,13 +32,12 @@ import { useD365ListStyles } from '../../../styles/d365ListStyles';
 import { OrganizacionService } from '../services/organizacion.service';
 import type { RecursoDto } from '../types/organizacion.types';
 
-type VistaRecursos = 'activos' | 'todos' | 'tecnicos' | 'despachadores' | 'sinUsuario' | 'inactivos';
+type VistaRecursos = 'activos' | 'todos' | 'tecnicos' | 'sinUsuario' | 'inactivos';
 
 const nombresVistaRecursos: Record<VistaRecursos, string> = {
   activos: 'Recursos activos',
   todos: 'Todos los recursos',
   tecnicos: 'Técnicos de campo',
-  despachadores: 'Despachadores',
   sinUsuario: 'Sin usuario de acceso',
   inactivos: 'Recursos inactivos',
 };
@@ -78,14 +77,12 @@ export function RecursosListPage() {
       if (vista === 'activos' && !r.activo) return false;
       if (vista === 'inactivos' && r.activo) return false;
       if (vista === 'tecnicos' && r.tipo !== 1) return false;
-      if (vista === 'despachadores' && r.tipo !== 4) return false;
       if (vista === 'sinUsuario' && r.usuarioId) return false;
       if (!q) return true;
       return (
         r.nombreCompleto.toLowerCase().includes(q) ||
         r.codigo.toLowerCase().includes(q) ||
         (r.unidadOrganizativaNombre && r.unidadOrganizativaNombre.toLowerCase().includes(q)) ||
-        (r.documentoIdentidad && r.documentoIdentidad.toLowerCase().includes(q)) ||
         (r.usuarioNombre && r.usuarioNombre.toLowerCase().includes(q)) ||
         (r.usuarioEmail && r.usuarioEmail.toLowerCase().includes(q))
       );
@@ -186,18 +183,13 @@ export function RecursosListPage() {
         ),
       }),
       createTableColumn({
-        columnId: 'dni',
-        renderHeaderCell: () => 'DNI / Doc',
-        renderCell: (x) => <TableCellLayout truncate><Text>{x.documentoIdentidad || '—'}</Text></TableCellLayout>,
-      }),
-      createTableColumn({
         columnId: 'telefono',
         renderHeaderCell: () => 'Teléfono',
         renderCell: (x) => <TableCellLayout truncate><Text>{x.telefono || '—'}</Text></TableCellLayout>,
       }),
       createTableColumn({
         columnId: 'almacenBase',
-        renderHeaderCell: () => 'Bodega Base Asignada',
+        renderHeaderCell: () => 'Almacén de Abastecimiento',
         renderCell: (x) => <TableCellLayout truncate><Text>{x.almacenBaseNombre || '—'}</Text></TableCellLayout>,
       }),
       createTableColumn({

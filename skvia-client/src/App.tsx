@@ -52,9 +52,11 @@ const TerritorioFormPage = lazy(() => import('./features/organizacion').then((m)
 const RecursosListPage = lazy(() => import('./features/organizacion').then((m) => ({ default: m.RecursosListPage })));
 const RecursoFormPage = lazy(() => import('./features/organizacion').then((m) => ({ default: m.RecursoFormPage })));
 
-// CRM y Clientes / Cuentas
+// CRM y Clientes / Cuentas y Contactos
 const ClientesListPage = lazy(() => import('./features/crm/clientes/pages/ClientesListPage').then((m) => ({ default: m.ClientesListPage })));
 const ClienteFormPage = lazy(() => import('./features/crm/clientes/pages/ClienteFormPage').then((m) => ({ default: m.ClienteFormPage })));
+const ContactosListPage = lazy(() => import('./features/crm/clientes/pages/ContactosListPage').then((m) => ({ default: m.ContactosListPage })));
+const ContactoFormPage = lazy(() => import('./features/crm/clientes/pages/ContactoFormPage').then((m) => ({ default: m.ContactoFormPage })));
 
 // Servicio de Campo - Órdenes de Trabajo (Field Service Work Orders)
 const OrdenesTrabajoListPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/OrdenesTrabajoListPage').then((m) => ({ default: m.OrdenesTrabajoListPage })));
@@ -113,12 +115,12 @@ const router = createBrowserRouter(createRoutesFromElements(
               <Route path="servicio-campo/clientes" element={<Navigate to="/servicio-campo/cuentas" replace />} />
               <Route path="servicio-campo/clientes/nuevo" element={<ClienteFormPage />} />
               <Route path="servicio-campo/clientes/:id" element={<ClienteFormPage />} />
-              <Route path="servicio-campo/cuentas" element={<ClientesListPage modo="cuentas" />} />
-              <Route path="servicio-campo/cuentas/nuevo" element={<ClienteFormPage modoInicial="JURIDICA" />} />
-              <Route path="servicio-campo/cuentas/:id" element={<ClienteFormPage modoInicial="JURIDICA" />} />
-              <Route path="servicio-campo/contactos" element={<ClientesListPage modo="contactos" />} />
-              <Route path="servicio-campo/contactos/nuevo" element={<ClienteFormPage modoInicial="NATURAL" />} />
-              <Route path="servicio-campo/contactos/:id" element={<ClienteFormPage modoInicial="NATURAL" />} />
+              <Route path="servicio-campo/cuentas" element={<ClientesListPage />} />
+              <Route path="servicio-campo/cuentas/nuevo" element={<ClienteFormPage />} />
+              <Route path="servicio-campo/cuentas/:id" element={<ClienteFormPage />} />
+              <Route path="servicio-campo/contactos" element={<ContactosListPage />} />
+              <Route path="servicio-campo/contactos/nuevo" element={<ContactoFormPage />} />
+              <Route path="servicio-campo/contactos/:id" element={<ContactoFormPage />} />
               <Route path="crm/clientes" element={<Navigate to="/servicio-campo/cuentas" replace />} />
               <Route path="crm/clientes/nuevo" element={<Navigate to="/servicio-campo/cuentas/nuevo" replace />} />
               <Route path="crm/clientes/:id" element={<Navigate to="/servicio-campo/cuentas/:id" replace />} />
