@@ -4,7 +4,7 @@ import { useUnsavedChanges } from '../../../../hooks/useUnsavedChanges';
 import { confirmAction } from '../../../../services/uiFeedback';
 import { useAuthSession } from '../../../../services/authSession';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Input,
   Text,
@@ -47,6 +47,7 @@ import {
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
+  Location16Regular,
   Save16Regular,
   SaveMultiple16Regular,
   Add16Regular,
@@ -86,7 +87,7 @@ import type {
   ConfiguracionTareaItemDto,
   ConfiguracionMaterialItemDto,
 } from '../../configuraciones-servicio/types/configuracionServicio.types';
-import type { ClienteListadoItemDto } from '../../../crm/clientes/types/cliente.types';
+import type { ClienteListadoItemDto, UbigeoDto, CrearClienteDto } from '../../../crm/clientes/types/cliente.types';
 import { ListaPreciosService } from '../../../inventario/listas-precios/services/listaPrecios.service';
 import type { DetalleListaPreciosDto } from '../../../inventario/listas-precios/types/listaPrecios.types';
 import { OrganizacionService } from '../../../organizacion/services/organizacion.service';
@@ -152,6 +153,7 @@ export interface LiquidacionRetiroDraft {
 }
 
 export const OrdenTrabajoFormPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const { permisos } = useAuthSession();
   const puedeGestionar = permisos.includes('serviciocampo.ordenes.crear');
   const puedeAsignar = permisos.includes('serviciocampo.ordenes.asignar');
@@ -217,8 +219,35 @@ export const OrdenTrabajoFormPage: React.FC = () => {
   const [listaPreciosId, setListaPreciosId] = useState('');
   const [listasPrecios, setListasPrecios] = useState<{id: string; nombre: string}[]>([]);
   useEffect(() => { ListaPreciosService.getListasPrecios(undefined, true).then(setListasPrecios).catch(e => setMensaje({tipo: 'error', texto: e.message})); }, []);
-  const [clienteFacturacionId, setClienteFacturacionId] = useState('');
-  const [clienteServicioId, setClienteServicioId] = useState('');
+  const [clienteFacturacionId, setClienteFacturacionId] = useState(
+    esNuevo ? searchParams.get('clienteFacturacionId') || searchParams.get('clienteServicioId') || '' : ''
+  );
+  const [clienteServicioId, setClienteServicioId] = useState(
+    esNuevo ? searchParams.get('clienteServicioId') || '' : ''
+  );
+  const [catalogoUbigeos, setCatalogoUbigeos] = useState<UbigeoDto[]>([]);
+  const [drawerNuevoClienteOpen, setDrawerNuevoClienteOpen] = useState(false);
+  const [drawerClienteRol, setDrawerClienteRol] = useState<'servicio' | 'facturacion'>('servicio');
+  const [qcNombre, setQcNombre] = useState('');
+  const [qcDocumento, setQcDocumento] = useState('');
+  const [qcCodigoExterno, setQcCodigoExterno] = useState('');
+  const [qcTelefono, setQcTelefono] = useState('');
+  const [qcEmail, setQcEmail] = useState('');
+  const [qcEntradaGps, setQcEntradaGps] = useState('');
+  const [qcLat, setQcLat] = useState('');
+  const [qcLng, setQcLng] = useState('');
+  const [qcGeocodificando, setQcGeocodificando] = useState(false);
+  const [qcDireccion, setQcDireccion] = useState('');
+  const [qcReferencia, setQcReferencia] = useState('');
+  const [qcUbigeoCodigo, setQcUbigeoCodigo] = useState('');
+  const [qcDistritoNombre, setQcDistritoNombre] = useState('');
+  const [qcProvincia, setQcProvincia] = useState('');
+  const [qcDepartamento, setQcDepartamento] = useState('');
+  const [qcBusquedaDistrito, setQcBusquedaDistrito] = useState('');
+  const [qcBusquedaProvincia, setQcBusquedaProvincia] = useState('');
+  const [qcBusquedaDepartamento, setQcBusquedaDepartamento] = useState('');
+  const [qcError, setQcError] = useState<string | null>(null);
+  const [qcSubmitting, setQcSubmitting] = useState(false);
   const [unidadOrganizativaId, setUnidadOrganizativaId] = useState('');
   const [unidadOrganizativaNombre, setUnidadOrganizativaNombre] = useState('');
   const [unidadesOrganizativas, setUnidadesOrganizativas] = useState<UnidadOrganizativaDto[]>([]);
@@ -402,6 +431,238 @@ export const OrdenTrabajoFormPage: React.FC = () => {
 
     void cargarCatalogos();
   }, [esNuevo]);
+
+  useEffect(() => {
+    ClienteService.obtenerUbigeos().then((u) => setCatalogoUbigeos(u || [])).catch(() => {});
+  }, []);
+
+  const qcOpcionesDepartamento = useMemo(() => {
+    const deps = Array.from(new Set(catalogoUbigeos.map((u) => u.departamento))).sort((a, b) =>
+      a.localeCompare(b, 'es')
+    );
+    return deps.map((d) => ({ id: d, nombre: d }));
+  }, [catalogoUbigeos]);
+
+  const qcDepartamentoSeleccionado = useMemo(
+    () => (qcDepartamento ? { id: qcDepartamento, nombre: qcDepartamento } : null),
+    [qcDepartamento]
+  );
+
+  const qcOpcionesProvincia = useMemo(() => {
+    const map = new Map<string, { id: string; nombre: string; detalle: string }>();
+    for (const u of catalogoUbigeos) {
+      if (qcDepartamento && u.departamento !== qcDepartamento) continue;
+      const key = `${u.departamento}|${u.provincia}`;
+      if (!map.has(key)) {
+        map.set(key, { id: key, nombre: u.provincia, detalle: u.departamento });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  }, [catalogoUbigeos, qcDepartamento]);
+
+  const qcProvinciaSeleccionada = useMemo(() => {
+    if (!qcProvincia) return null;
+    const key = qcDepartamento ? `${qcDepartamento}|${qcProvincia}` : qcProvincia;
+    return { id: key, nombre: qcProvincia, detalle: qcDepartamento || undefined };
+  }, [qcProvincia, qcDepartamento]);
+
+  const qcOpcionesUbigeo = useMemo(
+    () =>
+      catalogoUbigeos
+        .filter((u) => {
+          if (qcDepartamento && u.departamento !== qcDepartamento) return false;
+          if (qcProvincia && u.provincia !== qcProvincia) return false;
+          return true;
+        })
+        .map((u) => ({
+          id: u.codigo,
+          nombre: u.distrito,
+          detalle: `${u.provincia}, ${u.departamento}`,
+        })),
+    [catalogoUbigeos, qcDepartamento, qcProvincia]
+  );
+
+  const qcUbigeoSeleccionado = useMemo(() => {
+    if (!qcUbigeoCodigo) return null;
+    const u = catalogoUbigeos.find((item) => item.codigo === qcUbigeoCodigo);
+    if (u) {
+      return { id: u.codigo, nombre: u.distrito, detalle: `${u.provincia}, ${u.departamento}` };
+    }
+    return qcDistritoNombre ? { id: qcUbigeoCodigo, nombre: qcDistritoNombre } : null;
+  }, [qcUbigeoCodigo, catalogoUbigeos, qcDistritoNombre]);
+
+  const handleAbrirDrawerNuevoCliente = (rol: 'servicio' | 'facturacion') => {
+    setDrawerClienteRol(rol);
+    setQcNombre(rol === 'servicio' ? busquedaClienteServ : busquedaClienteFact);
+    setQcDocumento('');
+    setQcCodigoExterno('');
+    setQcTelefono('');
+    setQcEmail('');
+    setQcEntradaGps('');
+    setQcLat('');
+    setQcLng('');
+    setQcDireccion('');
+    setQcReferencia('');
+    setQcUbigeoCodigo('');
+    setQcDistritoNombre('');
+    setQcProvincia('');
+    setQcDepartamento('');
+    setQcBusquedaDistrito('');
+    setQcBusquedaProvincia('');
+    setQcBusquedaDepartamento('');
+    setQcError(null);
+    setDrawerNuevoClienteOpen(true);
+  };
+
+  const handleCambioQcGps = async (valor: string) => {
+    setQcEntradaGps(valor);
+    if (!valor.trim()) {
+      setQcLat('');
+      setQcLng('');
+      return;
+    }
+    const limpio = decodeURIComponent(valor.trim());
+    let coords: { lat: number; lng: number } | null = null;
+    const m3d = limpio.match(/!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/i);
+    if (m3d) {
+      coords = { lat: parseFloat(m3d[1]), lng: parseFloat(m3d[2]) };
+    } else {
+      const mPar = limpio.match(/(-?\d{1,2}\.\d{3,})\s*[,;\s]\s*(-?\d{1,3}\.\d{3,})/);
+      if (mPar) coords = { lat: parseFloat(mPar[1]), lng: parseFloat(mPar[2]) };
+    }
+    if (!coords || coords.lat < -90 || coords.lat > 90 || coords.lng < -180 || coords.lng > 180) return;
+
+    const latStr = coords.lat.toFixed(6);
+    const lngStr = coords.lng.toFixed(6);
+    setQcLat(latStr);
+    setQcLng(lngStr);
+    setQcEntradaGps(`${latStr}, ${lngStr}`);
+
+    try {
+      setQcGeocodificando(true);
+      const resp = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${coords.lat}&lon=${coords.lng}&accept-language=es`,
+        { headers: { Accept: 'application/json' } }
+      );
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const addr = data?.address || {};
+      const via = addr.road || addr.pedestrian || addr.residential || addr.suburb || '';
+      const numero = addr.house_number ? ` ${addr.house_number}` : '';
+      const dirSugerida = `${via}${numero}`.trim();
+      setQcDireccion((prev) => (prev.trim() ? prev : dirSugerida));
+
+      const norm = (s: string) =>
+        s
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toUpperCase()
+          .replace(/[^A-Z0-9\s]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+      const candidatosDistrito = [
+        addr.city_district,
+        addr.suburb,
+        addr.municipality,
+        addr.town,
+        addr.city,
+        addr.village,
+        addr.county,
+      ]
+        .filter(Boolean)
+        .map((c: string) => norm(c).replace(/^DISTRITO DE\s+/, ''));
+
+      if (catalogoUbigeos.length > 0 && candidatosDistrito.length > 0) {
+        let match: UbigeoDto | undefined;
+        for (const cand of candidatosDistrito) {
+          match = catalogoUbigeos.find((u) => norm(u.distrito) === cand);
+          if (match) break;
+        }
+        if (!match) {
+          for (const cand of candidatosDistrito) {
+            if (cand.length < 3) continue;
+            match = catalogoUbigeos.find(
+              (u) => norm(u.distrito).includes(cand) || cand.includes(norm(u.distrito))
+            );
+            if (match) break;
+          }
+        }
+        if (match) {
+          setQcUbigeoCodigo(match.codigo);
+          setQcDistritoNombre(match.distrito);
+          setQcProvincia(match.provincia);
+          setQcDepartamento(match.departamento);
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      setQcGeocodificando(false);
+    }
+  };
+
+  const handleGuardarNuevoClienteInline = async () => {
+    if (!qcNombre.trim()) {
+      setQcError('Ingrese el nombre del cliente o razón social.');
+      return;
+    }
+    if (!qcDocumento.trim()) {
+      setQcError('Ingrese el N° de Documento (DNI, RUC o CE).');
+      return;
+    }
+    if (!qcTelefono.trim()) {
+      setQcError('Ingrese el teléfono principal del cliente.');
+      return;
+    }
+    if (!qcDireccion.trim()) {
+      setQcError('Ingrese la dirección de servicio.');
+      return;
+    }
+    if (!qcUbigeoCodigo.trim()) {
+      setQcError('Seleccione el distrito.');
+      return;
+    }
+
+    try {
+      setQcSubmitting(true);
+      setQcError(null);
+      const latNum = qcLat.trim() ? parseFloat(qcLat) : undefined;
+      const lngNum = qcLng.trim() ? parseFloat(qcLng) : undefined;
+      const dto: CrearClienteDto = {
+        documentoIdentidad: qcDocumento.trim(),
+        nombres: qcNombre.trim(),
+        razonSocial: qcNombre.trim(),
+        telefonoPrincipal: qcTelefono.trim(),
+        email: qcEmail.trim() || undefined,
+        direccion: qcDireccion.trim(),
+        ubigeoCodigo: qcUbigeoCodigo.trim(),
+        referenciaUbicacion: qcReferencia.trim() || undefined,
+        coordenadaLat: !isNaN(latNum as number) ? latNum : undefined,
+        coordenadaLng: !isNaN(lngNum as number) ? lngNum : undefined,
+        esClienteFacturacion: true,
+        esClienteServicio: true,
+        codigoExterno: qcCodigoExterno.trim() || undefined,
+      };
+      const res = await ClienteService.crearCliente(dto);
+      const todos = await ClienteService.obtenerClientes({ soloActivos: true });
+      setClientesServicio(todos);
+      setClientesFacturacion(todos);
+      setClienteServicioId(res.id);
+      if (!clienteFacturacionId || drawerClienteRol === 'facturacion') {
+        setClienteFacturacionId(res.id);
+      }
+      if (qcCodigoExterno.trim() && !codigoContrato.trim()) {
+        setCodigoContrato(qcCodigoExterno.trim());
+      }
+      setDrawerNuevoClienteOpen(false);
+      notifySuccess('Cliente registrado y seleccionado en la orden.');
+    } catch (err: any) {
+      setQcError(err.message || 'Error al registrar el cliente.');
+    } finally {
+      setQcSubmitting(false);
+    }
+  };
 
   // Cargar Orden Existente
   const cargarOrden = useCallback(async () => {
@@ -1401,7 +1662,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
       return;
     }
     if (!clienteServicioId) {
-      setSelectedTab('resumen'); focusValidation("Cliente Receptor (Abonado)");
+      setSelectedTab('resumen'); focusValidation("Cliente Receptor");
       setMensaje({ tipo: 'error', texto: 'Seleccione el cliente abonado para la atención.' });
       return;
     }
@@ -1851,13 +2112,13 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                     <Input
                       id="wo-codigo"
                       className={formStyles.d365ControlFull}
-                      value={codigoWo || 'Se generará automáticamente al guardar'}
+                      value={codigoWo || ''}
                       readOnly
                       appearance="filled-darker"
                     />
                   </D365FormField>
 
-                  <D365FormField label="Estado del Sistema (Status)" htmlFor="wo-estado-sistema">
+                  <D365FormField label="Estado del Sistema" htmlFor="wo-estado-sistema">
                     <D365StatusField
                       id="wo-estado-sistema"
                       value={estadoSistema}
@@ -1871,7 +2132,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                     />
                   </D365FormField>
 
-                  <D365FormField label="Cliente Receptor (Abonado)" required info="Service Account: cuenta receptora del servicio en campo">
+                  <D365FormField label="Cliente Receptor" required info="Service Account: cuenta receptora del servicio en campo">
                     <SelectorEntidadRelacionada
                       deshabilitado={!esEditable}
                       etiquetaGrupo="Abonados / Clientes de Servicio"
@@ -1879,9 +2140,19 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                       seleccionada={clienteServicioSeleccionadoObj}
                       textoBusqueda={busquedaClienteServ}
                       alCambiarBusqueda={setBusquedaClienteServ}
-                      alSeleccionar={(nuevoId) => setClienteServicioId(nuevoId || '')}
-                      alCrearNuevo={() => navigate('/crm/clientes/nuevo')}
-                      alNavegar={(nuevoId) => navigate(`/crm/clientes/${nuevoId}`)}
+                      alSeleccionar={(nuevoId) => {
+                        const val = nuevoId || '';
+                        setClienteServicioId(val);
+                        if (val && !clienteFacturacionId) {
+                          setClienteFacturacionId(val);
+                        }
+                        const cli = clientesServicio.find((c) => c.id === val);
+                        if (cli?.codigoExterno && !codigoContrato.trim()) {
+                          setCodigoContrato(cli.codigoExterno);
+                        }
+                      }}
+                      alCrearNuevo={() => handleAbrirDrawerNuevoCliente('servicio')}
+                      alNavegar={(nuevoId) => navigate(`/servicio-campo/cuentas/${nuevoId}`)}
                       icono={<Person16Regular />}
                       tituloEnlace="Ver ficha del abonado"
                       textoVacio="No hay clientes de servicio registrados"
@@ -1897,8 +2168,8 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                       textoBusqueda={busquedaClienteFact}
                       alCambiarBusqueda={setBusquedaClienteFact}
                       alSeleccionar={(nuevoId) => setClienteFacturacionId(nuevoId || '')}
-                      alCrearNuevo={() => navigate('/crm/clientes/nuevo')}
-                      alNavegar={(nuevoId) => navigate(`/crm/clientes/${nuevoId}`)}
+                      alCrearNuevo={() => handleAbrirDrawerNuevoCliente('servicio')}
+                      alNavegar={(nuevoId) => navigate(`/servicio-campo/cuentas/${nuevoId}`)}
                       icono={<Person16Regular />}
                       tituloEnlace="Ver ficha del cliente"
                       textoVacio="No hay clientes de facturación registrados"
@@ -1934,7 +2205,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                       disabled={!esNuevo || !esEditable}
                       onChange={(_, data) => setListaPreciosId(data.value)}
                     >
-                      <option value="">Seleccione una lista de precios</option>
+                      <option value=""></option>
                       {listasPrecios.map((l) => (
                         <option key={l.id} value={l.id}>
                           {l.nombre}
@@ -1987,7 +2258,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                         }
                       }}
                     >
-                      <option value="">Seleccione la sede operativa...</option>
+                      <option value=""></option>
                       {unidadesOrganizativas.map((u) => (
                         <option key={u.id} value={u.id}>
                           {u.codigo ? `${u.codigo} — ` : ''}{u.nombre} {u.ciudad ? `(${u.ciudad})` : ''}
@@ -2018,7 +2289,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                         }
                       }}
                     >
-                      <option value="">(Sin delimitar / Cobertura general)</option>
+                      <option value=""></option>
                       {zonasOperativasFiltradas.map((z) => (
                         <option key={z.id} value={z.id}>
                           {z.codigo ? `${z.codigo} — ` : ''}{z.nombre}
@@ -2040,7 +2311,6 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                       value={observaciones}
                       disabled={!esEditable}
                       onChange={(e) => setObservaciones(e.target.value)}
-                      placeholder=""
                     />
                   </D365FormField>
                 </div>
@@ -2048,7 +2318,21 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                 {/* TARJETA 2 (DERECHA): DETALLE DEL CLIENTE Y REFERENCIAS (EXACTO A DYNAMICS 365) */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div className={formStyles.card}>
-                    <div className={formStyles.cardSectionTitle}>Detalle del Cliente (Customer Detail)</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <div className={formStyles.cardSectionTitle} style={{ marginBottom: 0 }}>
+                        Detalle del Cliente y Ubicación
+                      </div>
+                      {esEditable && (
+                        <Button
+                          size="small"
+                          appearance="outline"
+                          icon={<Add16Regular />}
+                          onClick={() => handleAbrirDrawerNuevoCliente('servicio')}
+                        >
+                          Registrar Cliente
+                        </Button>
+                      )}
+                    </div>
 
                     {clienteServicioSeleccionado ? (
                       <>
@@ -2064,7 +2348,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                         <D365FormField label="Teléfono de Contacto">
                           <Input
                             className={formStyles.d365ControlFull}
-                            value={clienteServicioSeleccionado.telefonoPrincipal || 'Sin teléfono'}
+                            value={clienteServicioSeleccionado.telefonoPrincipal || ''}
                             readOnly
                             appearance="filled-darker"
                           />
@@ -2073,7 +2357,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                         <D365FormField label="Correo Electrónico">
                           <Input
                             className={formStyles.d365ControlFull}
-                            value={clienteServicioSeleccionado.email || 'Sin correo registrado'}
+                            value={clienteServicioSeleccionado.email || ''}
                             readOnly
                             appearance="filled-darker"
                           />
@@ -2082,7 +2366,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                     ) : (
                       <div style={{ padding: '24px 12px', textAlign: 'center', background: tokens.colorNeutralBackground2, borderRadius: '4px' }}>
                         <Text style={{ fontSize: '13px', color: tokens.colorNeutralForeground4 }}>
-                          Seleccione un Cliente Receptor (Abonado) en la tarjeta General para visualizar su contacto directo.
+                          Seleccione un Cliente Receptor en la tarjeta General o regístrelo aquí mismo sin salir de la orden.
                         </Text>
                       </div>
                     )}
@@ -2144,7 +2428,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                     <Input
                       id="dir-calle"
                       className={formStyles.d365ControlFull}
-                      value={orden?.direccionServicio || clienteServicioSeleccionado?.direccion || 'Sin dirección registrada'}
+                      value={orden?.direccionServicio || clienteServicioSeleccionado?.direccion || ''}
                       readOnly
                       appearance="filled-darker"
                     />
@@ -2157,7 +2441,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                       value={
                         clienteServicioSeleccionado?.distrito
                           ? `${clienteServicioSeleccionado.distrito} (${clienteServicioSeleccionado.ubigeoCodigo || orden?.ubigeoTexto || ''})`
-                          : orden?.ubigeoTexto || '150101'
+                          : orden?.ubigeoTexto || ''
                       }
                       readOnly
                       appearance="filled-darker"
@@ -2170,8 +2454,8 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                       className={formStyles.d365ControlFull}
                       value={
                         clienteServicioSeleccionado
-                          ? `${clienteServicioSeleccionado.provincia || '-'} / ${clienteServicioSeleccionado.departamento || '-'}`
-                          : '-'
+                          ? `${clienteServicioSeleccionado.provincia || ''} / ${clienteServicioSeleccionado.departamento || ''}`
+                          : ''
                       }
                       readOnly
                       appearance="filled-darker"
@@ -2185,7 +2469,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                       value={
                         orden?.referenciaUbicacion ||
                         (clienteServicioSeleccionado as any)?.referenciaUbicacion ||
-                        'Sin referencia registrada'
+                        ''
                       }
                       readOnly
                       appearance="filled-darker"
@@ -2199,7 +2483,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                   <D365FormField label="Contacto Responsable en Sitio">
                     <Input
                       className={formStyles.d365ControlFull}
-                      value={clienteServicioSeleccionado?.nombreCompletoODenominacion || 'Pendiente de asignar'}
+                      value={clienteServicioSeleccionado?.nombreCompletoODenominacion || ''}
                       readOnly
                       appearance="filled-darker"
                     />
@@ -2208,7 +2492,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                   <D365FormField label="Teléfono de Coordinación">
                     <Input
                       className={formStyles.d365ControlFull}
-                      value={clienteServicioSeleccionado?.telefonoPrincipal || 'Sin teléfono'}
+                      value={clienteServicioSeleccionado?.telefonoPrincipal || ''}
                       readOnly
                       appearance="filled-darker"
                     />
@@ -2285,7 +2569,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                     </D365MessageBar>
                   )}
 
-                  <D365FormField label="Técnico de Campo (Recurso)" htmlFor="wo-recurso">
+                  <D365FormField label="Técnico de Campo" htmlFor="wo-recurso">
                     <Select
                       id="wo-recurso"
                       className={formStyles.d365ControlFull}
@@ -2297,13 +2581,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                         setRecursoTecnicoNombre(tec?.nombreCompleto || '');
                       }}
                     >
-                      <option value="">
-                        {!unidadOrganizativaId
-                          ? '(Seleccione primero una sede operativa en Resumen)'
-                          : recursosTecnicosFiltrados.length === 0
-                          ? '(No hay técnicos registrados en esta sede)'
-                          : 'Seleccione un técnico o cuadrilla responsable...'}
-                      </option>
+                      <option value=""></option>
                       {recursosTecnicosFiltrados.map((r) => (
                         <option key={r.id} value={r.id}>
                           {r.codigo ? `${r.codigo} — ` : ''}{r.nombreCompleto} {r.unidadOrganizativaNombre ? `[${r.unidadOrganizativaNombre}]` : ''}
@@ -2325,7 +2603,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                       value={fechaProgramada ? new Date(fechaProgramada + 'T00:00:00') : undefined}
                       formatDate={(d) => d?.toLocaleDateString('es-PE') ?? ''}
                       onSelectDate={(d) => setFechaProgramada(d ? d.toISOString().split('T')[0] : '')}
-                      placeholder="Seleccionar fecha de atención..."
+                      placeholder=""
                     />
                   </D365FormField>
 
@@ -2464,7 +2742,6 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             <Input
               className={formStyles.d365ControlFull}
               value={drawerCodigoExterno}
-              placeholder="Ej: SIEBEL-109482, CLARO-84920"
               onChange={(_, d) => setDrawerCodigoExterno(d.value)}
             />
           </D365FormField>
@@ -2478,7 +2755,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
               disabled={!!trabajos[trabajoEnEdicionIndex ?? -1]?.id}
               onChange={(_, data) => void handleSeleccionarServicio(data.value)}
             >
-              <option value="">Seleccione un servicio</option>
+              <option value=""></option>
               {productosServicios.filter((p) => p.tipo === 'Servicio' || p.tipo === 3).map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.codigo} — {p.nombre}
@@ -2487,7 +2764,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             </Select>
           </D365FormField>
           <Text size={200}>{drawerPlantillaId ? 'Pasos y materiales según la configuración del servicio aplicada.' : 'Sin configuración activa: este trabajo se creará sin pasos ni materiales previstos.'}</Text>
-          <D365FormField label="Equipo o ubicación"><Input value={drawerReferenciaEquipo} placeholder="" onChange={(_, d) => setDrawerReferenciaEquipo(d.value)} /></D365FormField>
+          <D365FormField label="Equipo o ubicación"><Input value={drawerReferenciaEquipo} onChange={(_, d) => setDrawerReferenciaEquipo(d.value)} /></D365FormField>
           <D365FormField label="Precio del servicio"><Text>{listaPreciosActiva?.moneda || orden?.moneda || ''} {drawerTarifaBase.toFixed(2)} · {resolverTarifa(drawerProductoId).origen}</Text></D365FormField>
 
           {/* Campo 2: Descripción Breve */}
@@ -2701,7 +2978,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
               value={reprogramarFecha ? new Date(reprogramarFecha + 'T00:00:00') : undefined}
               formatDate={(d) => d?.toLocaleDateString('es-PE') ?? ''}
               onSelectDate={(d) => setReprogramarFecha(d ? d.toISOString().split('T')[0] : '')}
-              placeholder="Seleccionar nueva fecha..."
+              placeholder=""
             />
           </D365FormField>
 
@@ -2738,7 +3015,6 @@ export const OrdenTrabajoFormPage: React.FC = () => {
               rows={3}
               value={reprogramarObservaciones}
               onChange={(e) => setReprogramarObservaciones(e.target.value)}
-              placeholder="Detalle la justificación del cambio de cita..."
             />
           </D365FormField>
         </DrawerBody>
@@ -2811,7 +3087,6 @@ export const OrdenTrabajoFormPage: React.FC = () => {
               rows={3}
               value={cancelarObservaciones}
               onChange={(e) => setCancelarObservaciones(e.target.value)}
-              placeholder="Explique las circunstancias de la cancelación..."
             />
           </D365FormField>
         </DrawerBody>
@@ -2895,7 +3170,6 @@ export const OrdenTrabajoFormPage: React.FC = () => {
               rows={4}
               value={obsCancelarOrden}
               onChange={(e) => setObsCancelarOrden(e.target.value)}
-              placeholder="Describa el motivo o justificación de la cancelación..."
             />
           </D365FormField>
         </DrawerBody>
@@ -3006,7 +3280,6 @@ export const OrdenTrabajoFormPage: React.FC = () => {
               rows={4}
               value={obsEstadoTrabajo}
               onChange={(e) => setObsEstadoTrabajo(e.target.value)}
-              placeholder="Explique las razones o circunstancias..."
             />
           </D365FormField>
         </DrawerBody>
@@ -3180,7 +3453,6 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <Input
-                          placeholder={c.esSerializado ? 'Serie obligatoria' : 'Opcional'}
                           style={{ width: '100%' }}
                           value={c.numeroSerie}
                           onChange={(e) => handleActualizarConsumo(idx, 'numeroSerie', e.target.value)}
@@ -3250,7 +3522,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                           value={r.productoId}
                           onChange={(_, d) => handleActualizarRetiro(idx, 'productoId', d.value)}
                         >
-                          <option value="">Seleccione equipo</option>
+                          <option value=""></option>
                           {productosServicios.filter((p) => p.tipo !== 'Servicio' && p.tipo !== 3).map((p) => (
                             <option key={p.id} value={p.id}>
                               {p.codigo} — {p.nombre}
@@ -3260,7 +3532,6 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <Input
-                          placeholder="Serie retirada (obligatoria)"
                           style={{ width: '100%' }}
                           value={r.numeroSerie}
                           onChange={(e) => handleActualizarRetiro(idx, 'numeroSerie', e.target.value)}
@@ -3268,7 +3539,6 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <Input
-                          placeholder="Motivo de avería / retiro"
                           style={{ width: '100%' }}
                           value={r.motivo}
                           onChange={(e) => handleActualizarRetiro(idx, 'motivo', e.target.value)}
@@ -3295,7 +3565,6 @@ export const OrdenTrabajoFormPage: React.FC = () => {
               <Textarea
                 className={formStyles.d365ControlFull}
                 rows={3}
-                placeholder="Observaciones generales sobre la liquidación de materiales e inventario..."
                 value={obsLiquidacion}
                 onChange={(e) => setObsLiquidacion(e.target.value)}
               />
@@ -3321,6 +3590,241 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             onClick={handleConfirmarLiquidacion}
           >
             Confirmar Liquidación y Descargar Stock
+          </Button>
+        </DrawerFooter>
+      </OverlayDrawer>
+
+      {/* 10. DRAWER DE REGISTRO RÁPIDO DE CLIENTE EN LÍNEA */}
+      <OverlayDrawer
+        open={drawerNuevoClienteOpen}
+        position="end"
+        size="medium"
+        onOpenChange={(_, { open }) => setDrawerNuevoClienteOpen(open)}
+      >
+        <DrawerHeader style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}` }}>
+          <DrawerHeaderTitle
+            action={
+              <Button
+                appearance="subtle"
+                aria-label="Cerrar"
+                icon={<Dismiss24Regular />}
+                onClick={() => setDrawerNuevoClienteOpen(false)}
+              />
+            }
+          >
+            <div>
+              <Text weight="semibold" style={{ fontSize: '16px' }}>
+                Registrar Cliente / Abonado
+              </Text>
+              <Text block style={{ fontSize: '12px', color: tokens.colorNeutralForeground3, marginTop: '2px' }}>
+                Ingrese los datos del cliente y su ubicación para asignarlo de inmediato a esta Orden de Trabajo.
+              </Text>
+            </div>
+          </DrawerHeaderTitle>
+        </DrawerHeader>
+
+        <DrawerBody style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '24px 20px' }}>
+          {qcError && (
+            <D365MessageBar intent="error" onDismiss={() => setQcError(null)}>
+              {qcError}
+            </D365MessageBar>
+          )}
+
+          <D365FormField label="Nombre del Cliente / Cuenta" required>
+            <Input
+              style={{ width: '100%' }}
+              value={qcNombre}
+              onChange={(_, d) => setQcNombre(d.value)}
+              maxLength={200}
+            />
+          </D365FormField>
+
+          <div className={formStyles.grid2Cols}>
+            <D365FormField label="N° de Documento" required info="DNI, RUC o Carnet de Extranjería">
+              <Input
+                style={{ width: '100%' }}
+                value={qcDocumento}
+                onChange={(_, d) => setQcDocumento(d.value)}
+                maxLength={20}
+              />
+            </D365FormField>
+
+            <D365FormField label="Código Externo" info="Código de abonado en DIRECTV, Claro u operador">
+              <Input
+                style={{ width: '100%' }}
+                value={qcCodigoExterno}
+                onChange={(_, d) => setQcCodigoExterno(d.value)}
+                maxLength={60}
+              />
+            </D365FormField>
+          </div>
+
+          <div className={formStyles.grid2Cols}>
+            <D365FormField label="Teléfono Principal" required>
+              <Input
+                style={{ width: '100%' }}
+                value={qcTelefono}
+                onChange={(_, d) => setQcTelefono(d.value)}
+                maxLength={30}
+              />
+            </D365FormField>
+
+            <D365FormField label="Correo Electrónico">
+              <Input
+                style={{ width: '100%' }}
+                type="email"
+                value={qcEmail}
+                onChange={(_, d) => setQcEmail(d.value)}
+                maxLength={150}
+              />
+            </D365FormField>
+          </div>
+
+          <div style={{ borderTop: `1px solid ${tokens.colorNeutralStroke2}`, paddingTop: '12px', marginTop: '4px' }}>
+            <Text weight="semibold" style={{ fontSize: '13px', display: 'block', marginBottom: '12px' }}>
+              Ubicación de Atención en Campo
+            </Text>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <D365FormField
+                label="Ubicación GPS"
+                info="Pegue el enlace de ubicación de WhatsApp / Google Maps o las coordenadas (-12.xxxx, -77.xxxx) para autocompletar dirección y distrito"
+              >
+                <Input
+                  style={{ width: '100%' }}
+                  value={qcEntradaGps}
+                  onChange={(_, d) => void handleCambioQcGps(d.value)}
+                  contentBefore={<Location16Regular style={{ color: tokens.colorBrandForeground1 }} />}
+                  contentAfter={qcGeocodificando ? <Spinner size="extra-tiny" /> : undefined}
+                />
+              </D365FormField>
+
+              <D365FormField label="Dirección" required>
+                <Input
+                  style={{ width: '100%' }}
+                  value={qcDireccion}
+                  onChange={(_, d) => setQcDireccion(d.value)}
+                  maxLength={250}
+                />
+              </D365FormField>
+
+              <D365FormField label="Referencia de Ubicación">
+                <Input
+                  style={{ width: '100%' }}
+                  value={qcReferencia}
+                  onChange={(_, d) => setQcReferencia(d.value)}
+                  maxLength={250}
+                />
+              </D365FormField>
+
+              <D365FormField label="Distrito" required>
+                <SelectorEntidadRelacionada
+                  etiquetaGrupo="Distritos"
+                  icono={<Location16Regular />}
+                  opciones={qcOpcionesUbigeo}
+                  seleccionada={qcUbigeoSeleccionado}
+                  textoBusqueda={qcBusquedaDistrito}
+                  alCambiarBusqueda={setQcBusquedaDistrito}
+                  alSeleccionar={(codigo) => {
+                    if (!codigo) {
+                      setQcUbigeoCodigo('');
+                      setQcDistritoNombre('');
+                      return;
+                    }
+                    const found = catalogoUbigeos.find((u) => u.codigo === codigo);
+                    if (found) {
+                      setQcUbigeoCodigo(found.codigo);
+                      setQcDistritoNombre(found.distrito);
+                      setQcProvincia(found.provincia);
+                      setQcDepartamento(found.departamento);
+                    }
+                  }}
+                  deshabilitado={qcSubmitting}
+                />
+              </D365FormField>
+
+              <D365FormField label="Provincia">
+                <SelectorEntidadRelacionada
+                  etiquetaGrupo="Provincias"
+                  icono={<Location16Regular />}
+                  opciones={qcOpcionesProvincia}
+                  seleccionada={qcProvinciaSeleccionada}
+                  textoBusqueda={qcBusquedaProvincia}
+                  alCambiarBusqueda={setQcBusquedaProvincia}
+                  alSeleccionar={(provKey) => {
+                    if (!provKey) {
+                      setQcProvincia('');
+                      setQcUbigeoCodigo('');
+                      setQcDistritoNombre('');
+                      return;
+                    }
+                    const [depName, provName] = provKey.includes('|')
+                      ? provKey.split('|')
+                      : [qcDepartamento, provKey];
+                    setQcDepartamento(depName || '');
+                    setQcProvincia(provName || '');
+                    const currentUbigeo = catalogoUbigeos.find((u) => u.codigo === qcUbigeoCodigo);
+                    if (
+                      currentUbigeo &&
+                      (currentUbigeo.provincia !== provName || currentUbigeo.departamento !== depName)
+                    ) {
+                      setQcUbigeoCodigo('');
+                      setQcDistritoNombre('');
+                    }
+                  }}
+                  deshabilitado={qcSubmitting}
+                />
+              </D365FormField>
+
+              <D365FormField label="Departamento">
+                <SelectorEntidadRelacionada
+                  etiquetaGrupo="Departamentos"
+                  icono={<Location16Regular />}
+                  opciones={qcOpcionesDepartamento}
+                  seleccionada={qcDepartamentoSeleccionado}
+                  textoBusqueda={qcBusquedaDepartamento}
+                  alCambiarBusqueda={setQcBusquedaDepartamento}
+                  alSeleccionar={(depName) => {
+                    if (!depName) {
+                      setQcDepartamento('');
+                      setQcProvincia('');
+                      setQcUbigeoCodigo('');
+                      setQcDistritoNombre('');
+                      return;
+                    }
+                    setQcDepartamento(depName);
+                    const currentUbigeo = catalogoUbigeos.find((u) => u.codigo === qcUbigeoCodigo);
+                    if (currentUbigeo && currentUbigeo.departamento !== depName) {
+                      setQcUbigeoCodigo('');
+                      setQcDistritoNombre('');
+                      setQcProvincia('');
+                    }
+                  }}
+                  deshabilitado={qcSubmitting}
+                />
+              </D365FormField>
+            </div>
+          </div>
+        </DrawerBody>
+
+        <DrawerFooter
+          style={{
+            borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+            padding: '16px 20px',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 8,
+          }}
+        >
+          <Button appearance="secondary" onClick={() => setDrawerNuevoClienteOpen(false)}>
+            Cancelar
+          </Button>
+          <Button
+            appearance="primary"
+            disabled={qcSubmitting}
+            onClick={() => void handleGuardarNuevoClienteInline()}
+          >
+            Guardar y Asignar a la Orden
           </Button>
         </DrawerFooter>
       </OverlayDrawer>

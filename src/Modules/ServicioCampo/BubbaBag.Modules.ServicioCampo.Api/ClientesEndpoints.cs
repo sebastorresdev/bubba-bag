@@ -106,11 +106,12 @@ public static class ClientesEndpoints
             CoordenadaLng: request.CoordenadaLng,
             EsClienteFacturacion: request.EsClienteFacturacion,
             EsClienteServicio: request.EsClienteServicio,
-            Nombres: request.Nombres,
+            Nombres: request.Nombres ?? request.NombreCuenta,
             DocumentoIdentidad: request.DocumentoIdentidad,
             TelefonoSecundario: request.TelefonoSecundario,
             Email: request.Email,
-            ContactoPrincipalId: request.ContactoPrincipalId
+            ContactoPrincipalId: request.ContactoPrincipalId,
+            CodigoExterno: request.CodigoExterno
         );
 
         var result = await dispatcher.SendAsync(command);
@@ -190,9 +191,11 @@ public record ActualizarClienteRequest(
     bool? EsClienteFacturacion = null,
     bool? EsClienteServicio = null,
     string? Nombres = null,
+    string? NombreCuenta = null,
     string? DocumentoIdentidad = null,
     string? TelefonoSecundario = null,
     string? Email = null,
-    Guid? ContactoPrincipalId = null);
+    Guid? ContactoPrincipalId = null,
+    string? CodigoExterno = null);
 
 public record CambiarEstadoClienteRequest(bool Activo);

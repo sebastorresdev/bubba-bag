@@ -19,6 +19,11 @@ public class ClienteConfiguration : IEntityTypeConfiguration<Cliente>
         builder.HasIndex(c => c.CodigoCliente)
             .IsUnique();
 
+        builder.Property(c => c.CodigoExterno)
+            .HasMaxLength(60);
+
+        builder.HasIndex(c => c.CodigoExterno);
+
         builder.Property(c => c.TipoPersona)
             .IsRequired()
             .HasMaxLength(20)

@@ -43,6 +43,7 @@ public class ObtenerClientesHandler : IQueryHandler<ObtenerClientesQuery, Result
             var term = request.Search.Trim().ToUpper();
             query = query.Where(c =>
                 c.CodigoCliente.Contains(term) ||
+                (c.CodigoExterno != null && c.CodigoExterno.ToUpper().Contains(term)) ||
                 c.DocumentoIdentidad.Contains(term) ||
                 c.Nombres.ToUpper().Contains(term) ||
                 (c.Apellidos != null && c.Apellidos.ToUpper().Contains(term)) ||
@@ -73,7 +74,8 @@ public class ObtenerClientesHandler : IQueryHandler<ObtenerClientesQuery, Result
                 c.EsClienteServicio,
                 c.Activo,
                 c.ContactoPrincipalId,
-                c.ContactoPrincipal != null ? (c.ContactoPrincipal.Nombres + " " + c.ContactoPrincipal.Apellidos).Trim() : null
+                c.ContactoPrincipal != null ? (c.ContactoPrincipal.Nombres + " " + c.ContactoPrincipal.Apellidos).Trim() : null,
+                c.CodigoExterno
             ))
             .ToListAsync(cancellationToken);
 

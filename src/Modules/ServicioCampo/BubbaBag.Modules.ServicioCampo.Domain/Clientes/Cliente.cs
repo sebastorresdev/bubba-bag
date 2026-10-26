@@ -11,6 +11,7 @@ namespace BubbaBag.Modules.ServicioCampo.Domain.Clientes;
 public class Cliente : Entity<Guid>
 {
     public string CodigoCliente { get; private set; } = default!;
+    public string? CodigoExterno { get; private set; }
     public string TipoPersona { get; private set; } = "NATURAL"; // Inferido automáticamente o heredado
     
     // Identificación unificada (RUC / DNI / CE)
@@ -64,7 +65,8 @@ public class Cliente : Entity<Guid>
         string? referencia = null,
         decimal? lat = null,
         decimal? lng = null,
-        Guid? contactoPrincipalId = null)
+        Guid? contactoPrincipalId = null,
+        string? codigoExterno = null)
     {
         var docTrim = documentoIdentidad.Trim();
         var esRuc = docTrim.Length == 11 && (docTrim.StartsWith("20") || docTrim.StartsWith("10"));
@@ -83,6 +85,7 @@ public class Cliente : Entity<Guid>
         {
             Id = Guid.NewGuid(),
             CodigoCliente = codigoCliente.Trim().ToUpperInvariant(),
+            CodigoExterno = string.IsNullOrWhiteSpace(codigoExterno) ? null : codigoExterno.Trim().ToUpperInvariant(),
             DocumentoIdentidad = docTrim,
             Nombres = nombreUnificado,
             Apellidos = string.IsNullOrWhiteSpace(apellidos) ? null : apellidos.Trim(),
@@ -115,7 +118,8 @@ public class Cliente : Entity<Guid>
         string? documentoIdentidad = null,
         string? telefonoSecundario = null,
         string? email = null,
-        Guid? contactoPrincipalId = null)
+        Guid? contactoPrincipalId = null,
+        string? codigoExterno = null)
     {
         if (!string.IsNullOrWhiteSpace(nombreCuenta))
         {
@@ -130,6 +134,7 @@ public class Cliente : Entity<Guid>
             TipoDocumento = docTrim.Length == 11 ? "RUC" : (docTrim.Length == 8 ? "DNI" : "CE");
             TipoPersona = docTrim.Length == 11 && docTrim.StartsWith("20") ? "JURIDICA" : "NATURAL";
         }
+        CodigoExterno = string.IsNullOrWhiteSpace(codigoExterno) ? null : codigoExterno.Trim().ToUpperInvariant();
         TelefonoPrincipal = telefono.Trim();
         TelefonoSecundario = string.IsNullOrWhiteSpace(telefonoSecundario) ? null : telefonoSecundario.Trim();
         Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim().ToLowerInvariant();

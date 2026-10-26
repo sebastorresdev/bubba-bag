@@ -44,7 +44,27 @@ public class ActualizarClienteHandler : ICommandHandler<ActualizarClienteCommand
             documentoIdentidad: request.DocumentoIdentidad,
             telefonoSecundario: request.TelefonoSecundario,
             email: request.Email,
-            contactoPrincipalId: request.ContactoPrincipalId);
+            contactoPrincipalId: request.ContactoPrincipalId,
+            codigoExterno: request.CodigoExterno);
+
+        if (request.ContactoPrincipalId.HasValue)
+        {
+            var contacto = await _context.Contactos
+                .FirstOrDefaultAsync(c => c.Id == request.ContactoPrincipalId.Value, cancellationToken);
+            if (contacto != null && contacto.CuentaId == null)
+            {
+                contacto.Actualizar(
+                    nombres: contacto.Nombres,
+                    apellidos: contacto.Apellidos,
+                    cargo: contacto.Cargo,
+                    cuentaId: cliente.Id,
+                    email: contacto.Email,
+                    telefonoMovil: contacto.TelefonoMovil,
+                    telefonoTrabajo: contacto.TelefonoTrabajo,
+                    direccion: contacto.Direccion,
+                    ubigeoCodigo: contacto.UbigeoCodigo);
+            }
+        }
 
         if (request.EsClienteFacturacion.HasValue || request.EsClienteServicio.HasValue)
         {

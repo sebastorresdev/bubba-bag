@@ -54,6 +54,14 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
             title: 'Clientes',
             items: [
               {
+                id: 'solicitud-atencion',
+                title: 'Solicitud de Atención',
+                path: '/servicio-campo/solicitud-atencion',
+                iconName: 'ClipboardTask',
+                badge: 'Ventas',
+                description: 'Creación comercial rápida de orden de atención desde un prospecto, contacto o cliente.',
+              },
+              {
                 id: 'cuentas',
                 title: 'Cuentas',
                 path: '/servicio-campo/cuentas',

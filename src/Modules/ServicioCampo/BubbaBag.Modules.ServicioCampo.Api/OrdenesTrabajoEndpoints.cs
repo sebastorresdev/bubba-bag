@@ -601,11 +601,92 @@ public static class OrdenesTrabajoEndpoints
     private static async Task<IResult> CrearOrdenTrabajo(
         CrearOrdenTrabajoRequest request,
         IServicioCampoDbContext db, ICurrentUser currentUser,
+        ICodigoSecuencialService codigoService,
         CancellationToken ct)
     {
         if (!currentUser.IsAuthenticated || currentUser.Id == Guid.Empty) return Results.Unauthorized();
         if (request.RecursoTecnicoId.HasValue && !currentUser.HasPermission(Permissions.ServicioCampo.OrdenesAsignar)) return Results.Forbid();
         Guid creadoPorId = currentUser.Id;
+
+        // Soporte de integración directa con CRM externo: buscar o crear Cliente en línea si no se envía ClienteServicioId
+        var clienteServicioId = request.ClienteServicioId;
+        var clienteFacturacionId = request.ClienteFacturacionId;
+
+        if (clienteServicioId == Guid.Empty && request.DatosCliente is not null)
+        {
+            var dc = request.DatosCliente;
+            if (string.IsNullOrWhiteSpace(dc.NombreCuenta))
+                return Results.BadRequest(new { message = "Debe especificar el nombre del cliente en DatosCliente.NombreCuenta." });
+
+            BubbaBag.Modules.ServicioCampo.Domain.Clientes.Cliente? clienteExistente = null;
+            if (!string.IsNullOrWhiteSpace(dc.CodigoExterno))
+            {
+                var codExt = dc.CodigoExterno.Trim();
+                clienteExistente = await db.Clientes.FirstOrDefaultAsync(c => c.CodigoExterno == codExt, ct);
+            }
+            if (clienteExistente == null && !string.IsNullOrWhiteSpace(dc.DocumentoIdentidad))
+            {
+                var docId = dc.DocumentoIdentidad.Trim();
+                clienteExistente = await db.Clientes.FirstOrDefaultAsync(c => c.DocumentoIdentidad == docId, ct);
+            }
+
+            if (clienteExistente != null)
+            {
+                clienteExistente.ActualizarContactoYDireccion(
+                    telefono: dc.TelefonoPrincipal ?? clienteExistente.TelefonoPrincipal,
+                    direccion: dc.Direccion ?? clienteExistente.Direccion,
+                    ubigeoCodigo: dc.UbigeoCodigo ?? clienteExistente.UbigeoCodigo,
+                    referencia: dc.ReferenciaUbicacion ?? clienteExistente.ReferenciaUbicacion,
+                    lat: dc.CoordenadaLat ?? clienteExistente.CoordenadaLat,
+                    lng: dc.CoordenadaLng ?? clienteExistente.CoordenadaLng,
+                    nombreCuenta: dc.NombreCuenta.Trim(),
+                    documentoIdentidad: dc.DocumentoIdentidad ?? clienteExistente.DocumentoIdentidad,
+                    telefonoSecundario: clienteExistente.TelefonoSecundario,
+                    email: dc.Email ?? clienteExistente.Email,
+                    contactoPrincipalId: clienteExistente.ContactoPrincipalId,
+                    codigoExterno: dc.CodigoExterno ?? clienteExistente.CodigoExterno
+                );
+                clienteServicioId = clienteExistente.Id;
+            }
+            else
+            {
+                var codigoCli = await codigoService.SiguienteCodigoAsync(
+                    prefijo: "CLI",
+                    nombreSecuencia: "seq_clientes",
+                    esquema: "crm",
+                    longitud: 6,
+                    cancellationToken: ct);
+
+                var docNorm = (dc.DocumentoIdentidad ?? string.Empty).Trim();
+                var esFacturacion = docNorm.Length == 11 && docNorm.StartsWith("20");
+
+                var nuevoCliente = BubbaBag.Modules.ServicioCampo.Domain.Clientes.Cliente.Crear(
+                    codigoCliente: codigoCli,
+                    documentoIdentidad: string.IsNullOrWhiteSpace(docNorm) ? codigoCli : docNorm,
+                    nombres: dc.NombreCuenta.Trim(),
+                    apellidos: null,
+                    telefonoPrincipal: dc.TelefonoPrincipal ?? string.Empty,
+                    direccion: dc.Direccion ?? string.Empty,
+                    ubigeoCodigo: string.IsNullOrWhiteSpace(dc.UbigeoCodigo) ? "150101" : dc.UbigeoCodigo.Trim(),
+                    esClienteFacturacion: esFacturacion,
+                    esClienteServicio: true,
+                    razonSocial: dc.NombreCuenta.Trim(),
+                    email: dc.Email,
+                    referencia: dc.ReferenciaUbicacion,
+                    lat: dc.CoordenadaLat,
+                    lng: dc.CoordenadaLng,
+                    codigoExterno: dc.CodigoExterno
+                );
+                db.Clientes.Add(nuevoCliente);
+                clienteServicioId = nuevoCliente.Id;
+            }
+        }
+
+        if (clienteServicioId == Guid.Empty)
+            return Results.BadRequest(new { message = "Debe seleccionar un Cliente Receptor (Abonado) o enviar DatosCliente." });
+
+        if (clienteFacturacionId == Guid.Empty)
+            clienteFacturacionId = clienteServicioId;
 
         // Generar CodigoWo si no se envió
         var anioActual = DateTime.UtcNow.Year;
@@ -638,15 +719,19 @@ public static class OrdenesTrabajoEndpoints
             }
         }
 
+        var codigoContrato = !string.IsNullOrWhiteSpace(request.CodigoContrato)
+            ? request.CodigoContrato
+            : request.DatosCliente?.CodigoExterno;
+
         var orden = OrdenTrabajo.Crear(
             codigoWo: codigoWo,
             tipoOrdenId: request.TipoOrdenId,
             creadoPorId: creadoPorId,
-            clienteFacturacionId: request.ClienteFacturacionId,
-            clienteServicioId: request.ClienteServicioId,
+            clienteFacturacionId: clienteFacturacionId,
+            clienteServicioId: clienteServicioId,
             zonaOperativaId: request.ZonaOperativaId,
             numeroOrden: request.NumeroOrden,
-            codigoContrato: request.CodigoContrato,
+            codigoContrato: codigoContrato,
             numeroPedido: request.NumeroPedido,
             estadoOrigen: request.EstadoOrigen,
             referenciaExterna: request.ReferenciaExterna, listaPreciosId: lista.Id, moneda: lista.Moneda,
@@ -1428,6 +1513,19 @@ public record CrearOrdenTrabajoItemRequest(
     string? ReferenciaEquipo = null
 );
 
+public record DatosClienteOrdenRequest(
+    string NombreCuenta,
+    string? DocumentoIdentidad = null,
+    string? CodigoExterno = null,
+    string? TelefonoPrincipal = null,
+    string? Email = null,
+    string? Direccion = null,
+    string? UbigeoCodigo = null,
+    string? ReferenciaUbicacion = null,
+    decimal? CoordenadaLat = null,
+    decimal? CoordenadaLng = null
+);
+
 public record CrearOrdenTrabajoRequest(
     string? CodigoWo,
     Guid TipoOrdenId,
@@ -1445,7 +1543,8 @@ public record CrearOrdenTrabajoRequest(
     string? Observaciones,
     List<CrearOrdenTrabajoItemRequest>? Trabajos,
     Guid? ListaPreciosId = null,
-    Guid? UnidadOrganizativaId = null
+    Guid? UnidadOrganizativaId = null,
+    DatosClienteOrdenRequest? DatosCliente = null
 );
 
 public record ActualizarOrdenTrabajoRequest(

@@ -61,6 +61,7 @@ const ContactoFormPage = lazy(() => import('./features/crm/clientes/pages/Contac
 // Servicio de Campo - Órdenes de Trabajo (Field Service Work Orders)
 const OrdenesTrabajoListPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/OrdenesTrabajoListPage').then((m) => ({ default: m.OrdenesTrabajoListPage })));
 const OrdenTrabajoFormPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/OrdenTrabajoFormPage').then((m) => ({ default: m.OrdenTrabajoFormPage })));
+const SolicitudAtencionFormPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/SolicitudAtencionFormPage').then((m) => ({ default: m.SolicitudAtencionFormPage })));
 
 // Configuración Operativa (Tipos de Orden y Configuraciones de servicio)
 const TiposOrdenListPage = lazy(() => import('./features/servicio-campo/tipos-orden/pages/TiposOrdenListPage').then((m) => ({ default: m.TiposOrdenListPage })));
@@ -110,6 +111,7 @@ const router = createBrowserRouter(createRoutesFromElements(
               <Route path="servicio-campo/ordenes" element={<OrdenesTrabajoListPage />} />
               <Route path="servicio-campo/ordenes/nuevo" element={<OrdenTrabajoFormPage />} />
               <Route path="servicio-campo/ordenes/:id" element={<OrdenTrabajoFormPage />} />
+              <Route path="servicio-campo/solicitud-atencion" element={<SolicitudAtencionFormPage />} />
 
               {/* CRM / Clientes: Cuentas y Contactos */}
               <Route path="servicio-campo/clientes" element={<Navigate to="/servicio-campo/cuentas" replace />} />

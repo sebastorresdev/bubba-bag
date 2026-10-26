@@ -23,6 +23,7 @@ import {
   DismissCircle16Regular,
   CheckmarkCircle16Regular,
   Building16Regular,
+  ClipboardTask16Regular,
   Location16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
@@ -261,25 +262,28 @@ export const ContactoFormPage: React.FC = () => {
     void cargarDetalle();
   }, [id, esNuevo, resetForm]);
 
-  const handleGuardar = async (cerrar: boolean) => {
+  const handleGuardar = async (
+    cerrar: boolean,
+    accionPosterior?: 'cuenta' | 'orden'
+  ): Promise<boolean> => {
     const savedDraft = draft.capture();
 
     if (!nombres.trim()) {
       focusValidation('Nombres');
       setMensaje({ tipo: 'error', texto: 'Ingrese los nombres del contacto.' });
-      return;
+      return false;
     }
 
     if (!apellidos.trim()) {
       focusValidation('Apellidos');
       setMensaje({ tipo: 'error', texto: 'Ingrese los apellidos del contacto.' });
-      return;
+      return false;
     }
 
     if (!telefonoMovil.trim()) {
       focusValidation('Teléfono Móvil');
       setMensaje({ tipo: 'error', texto: 'Ingrese el teléfono móvil del contacto.' });
-      return;
+      return false;
     }
 
     try {
@@ -308,11 +312,16 @@ export const ContactoFormPage: React.FC = () => {
 
         draft.markSaved(savedDraft);
         notifySuccess('Contacto registrado exitosamente.');
-        if (cerrar) {
+        if (accionPosterior === 'cuenta') {
+          navigate(`/servicio-campo/cuentas/nuevo?contactoId=${res.id}`);
+        } else if (accionPosterior === 'orden') {
+          navigate(`/servicio-campo/solicitud-atencion?contactoId=${res.id}`);
+        } else if (cerrar) {
           navigate('/servicio-campo/contactos');
         } else {
           navigate(`/servicio-campo/contactos/${res.id}`, { replace: true });
         }
+        return true;
       } else {
         const dto: ActualizarContactoDto = {
           nombres: nombres.trim(),
@@ -333,12 +342,18 @@ export const ContactoFormPage: React.FC = () => {
 
         draft.markSaved(savedDraft);
         notifySuccess('Contacto actualizado exitosamente.');
-        if (cerrar) {
+        if (accionPosterior === 'cuenta') {
+          navigate(`/servicio-campo/cuentas/nuevo?contactoId=${id}`);
+        } else if (accionPosterior === 'orden') {
+          navigate(`/servicio-campo/solicitud-atencion?contactoId=${id}`);
+        } else if (cerrar) {
           navigate('/servicio-campo/contactos');
         }
+        return true;
       }
     } catch (err: any) {
       setMensaje({ tipo: 'error', texto: err.message || 'Error al guardar el contacto.' });
+      return false;
     } finally {
       setSubmitting(false);
     }
@@ -397,6 +412,20 @@ export const ContactoFormPage: React.FC = () => {
           >
             Guardar y cerrar
           </D365CommandButton>
+          <D365CommandButton
+            icon={<ClipboardTask16Regular />}
+            tone="create"
+            onClick={async () => {
+              if (esNuevo || draft.dirty) {
+                await handleGuardar(false, 'orden');
+              } else {
+                navigate(`/servicio-campo/solicitud-atencion?contactoId=${id}`);
+              }
+            }}
+            disabled={submitting}
+          >
+            Generar Orden de Atención
+          </D365CommandButton>
           {!esNuevo && (
             <>
               <D365CommandButton
@@ -410,6 +439,20 @@ export const ContactoFormPage: React.FC = () => {
                 }
               >
                 Nuevo
+              </D365CommandButton>
+              <D365CommandButton
+                icon={<Building16Regular />}
+                tone="brand"
+                onClick={async () => {
+                  if (draft.dirty) {
+                    await handleGuardar(false, 'cuenta');
+                  } else {
+                    navigate(`/servicio-campo/cuentas/nuevo?contactoId=${id}`);
+                  }
+                }}
+                disabled={submitting}
+              >
+                Crear Cuenta
               </D365CommandButton>
               <D365CommandButton
                 icon={activo ? <DismissCircle16Regular /> : <CheckmarkCircle16Regular />}

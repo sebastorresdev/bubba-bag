@@ -69,7 +69,8 @@ public class ObtenerClientePorIdHandler : IQueryHandler<ObtenerClientePorIdQuery
                         ct.Ubigeo != null ? ct.Ubigeo.Departamento : null,
                         ct.Activo,
                         ct.CreatedAt
-                    )).ToList()
+                    )).ToList(),
+                c.CodigoExterno
             ))
             .FirstOrDefaultAsync(cancellationToken);
 

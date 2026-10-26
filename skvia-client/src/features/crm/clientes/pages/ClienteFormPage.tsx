@@ -2,7 +2,7 @@ import { D365FormContent } from '../../../../components/common/D365FormContent';
 import { useValidationFocus } from '../../../../hooks/useValidationFocus';
 import { useUnsavedChanges } from '../../../../hooks/useUnsavedChanges';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Input,
   TabList,
@@ -31,6 +31,7 @@ import {
   Person16Regular,
   Location16Regular,
   Open16Regular,
+  ClipboardTask16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
@@ -92,8 +93,10 @@ export interface ClienteFormPageProps {
 export const ClienteFormPage: React.FC<ClienteFormPageProps> = () => {
   const formStyles = useD365FormStyles();
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const esNuevo = !id || id === 'nuevo';
+  const contactoOrigenId = esNuevo ? searchParams.get('contactoId') : null;
 
   const toasterId = useId('cliente-toaster');
   const { dispatchToast } = useToastController(toasterId);
@@ -118,6 +121,7 @@ export const ClienteFormPage: React.FC<ClienteFormPageProps> = () => {
 
   // Estados unificados de la Cuenta
   const [codigoCliente, setCodigoCliente] = useState('');
+  const [codigoExterno, setCodigoExterno] = useState('');
   const [nombreCuenta, setNombreCuenta] = useState('');
   const [documentoIdentidad, setDocumentoIdentidad] = useState('');
   const [telefonoPrincipal, setTelefonoPrincipal] = useState('');
@@ -141,6 +145,7 @@ export const ClienteFormPage: React.FC<ClienteFormPageProps> = () => {
   const focusValidation = useValidationFocus();
   const draft = useUnsavedChanges(
     {
+      codigoExterno,
       nombreCuenta,
       documentoIdentidad,
       telefonoPrincipal,
@@ -372,8 +377,54 @@ export const ClienteFormPage: React.FC<ClienteFormPageProps> = () => {
     return c ? { id: c.id, nombre: c.nombreCompleto, detalle: c.telefonoMovil } : null;
   }, [contactoPrincipalId, catalogoContactos]);
 
+  const handleSeleccionarContactoPrincipal = useCallback(
+    (cid: string | undefined) => {
+      const nuevoId = cid || '';
+      setContactoPrincipalId(nuevoId);
+      if (!nuevoId) return;
+      const ct = catalogoContactos.find((item) => item.id === nuevoId);
+      if (!ct) return;
+
+      // Por defecto, si la cuenta aún no tiene datos, heredar del contacto seleccionado
+      if (esNuevo && !nombreCuenta.trim()) {
+        setNombreCuenta(ct.nombreCompleto || `${ct.nombres} ${ct.apellidos}`.trim());
+      }
+      if (!telefonoPrincipal.trim() && ct.telefonoMovil) {
+        setTelefonoPrincipal(ct.telefonoMovil);
+      }
+      if (!telefonoSecundario.trim() && ct.telefonoTrabajo) {
+        setTelefonoSecundario(ct.telefonoTrabajo);
+      }
+      if (!email.trim() && ct.email) {
+        setEmail(ct.email);
+      }
+      if (!direccion.trim() && ct.direccion) {
+        setDireccion(ct.direccion);
+      }
+      if (!ubigeoCodigo.trim() && ct.ubigeoCodigo) {
+        setUbigeoCodigo(ct.ubigeoCodigo);
+        const foundUbigeo = catalogoUbigeos.find((u) => u.codigo === ct.ubigeoCodigo);
+        setDistritoNombre(foundUbigeo?.distrito || ct.distrito || '');
+        setProvincia(foundUbigeo?.provincia || ct.provincia || '');
+        setDepartamento(foundUbigeo?.departamento || ct.departamento || '');
+      }
+    },
+    [
+      catalogoContactos,
+      catalogoUbigeos,
+      esNuevo,
+      nombreCuenta,
+      telefonoPrincipal,
+      telefonoSecundario,
+      email,
+      direccion,
+      ubigeoCodigo,
+    ]
+  );
+
   const resetForm = useCallback(() => {
     setCodigoCliente('');
+    setCodigoExterno('');
     setNombreCuenta('');
     setDocumentoIdentidad('');
     setTelefonoPrincipal('');
@@ -403,10 +454,50 @@ export const ClienteFormPage: React.FC<ClienteFormPageProps> = () => {
     setLoading(false);
   }, []);
 
-  // Cargar Cuenta existente
+  // Cargar Cuenta existente o prellenar desde Contacto
   useEffect(() => {
     if (esNuevo) {
       resetForm();
+      if (contactoOrigenId) {
+        setLoading(true);
+        ClienteService.obtenerContactoPorId(contactoOrigenId)
+          .then((ct) => {
+            const nombreCompleto = ct.nombreCompleto || `${ct.nombres} ${ct.apellidos}`.trim();
+            setNombreCuenta(nombreCompleto);
+            setTelefonoPrincipal(ct.telefonoMovil || '');
+            setTelefonoSecundario(ct.telefonoTrabajo || '');
+            setEmail(ct.email || '');
+            setContactoPrincipalId(ct.id);
+            setDireccion(ct.direccion || '');
+            setUbigeoCodigo(ct.ubigeoCodigo || '');
+            setDistritoNombre(ct.distrito || '');
+            setProvincia(ct.provincia || '');
+            setDepartamento(ct.departamento || '');
+            setSavedTitle(nombreCompleto || 'Nueva Cuenta');
+            setSavedSubtitle('Conversión desde Contacto');
+            draft.markSaved(
+              JSON.stringify({
+                codigoExterno: '',
+                nombreCuenta: nombreCompleto,
+                documentoIdentidad: '',
+                telefonoPrincipal: ct.telefonoMovil || '',
+                telefonoSecundario: ct.telefonoTrabajo || '',
+                email: ct.email || '',
+                contactoPrincipalId: ct.id,
+                direccion: ct.direccion || '',
+                referenciaUbicacion: '',
+                ubigeoCodigo: ct.ubigeoCodigo || '',
+                coordenadaLat: '',
+                coordenadaLng: '',
+                esClienteFacturacion: true,
+                esClienteServicio: true,
+              })
+            );
+          })
+          .catch(() => {})
+          .finally(() => setLoading(false));
+        return;
+      }
       draft.markSaved();
       return;
     }
@@ -418,6 +509,7 @@ export const ClienteFormPage: React.FC<ClienteFormPageProps> = () => {
           ClienteService.obtenerContactos({ cuentaId: id }),
         ]);
         setCodigoCliente(cli.codigoCliente);
+        setCodigoExterno(cli.codigoExterno || '');
         const nombreUnificado =
           cli.nombreCompletoODenominacion ||
           cli.razonSocial ||
@@ -455,9 +547,9 @@ export const ClienteFormPage: React.FC<ClienteFormPageProps> = () => {
       }
     };
     void cargarDetalle();
-  }, [id, esNuevo, resetForm]);
+  }, [id, esNuevo, contactoOrigenId, resetForm]);
 
-  const handleGuardar = async (cerrar: boolean) => {
+  const handleGuardar = async (cerrar: boolean, navegarACrearOrden = false) => {
     const savedDraft = draft.capture();
 
     if (!nombreCuenta.trim()) {
@@ -518,6 +610,7 @@ export const ClienteFormPage: React.FC<ClienteFormPageProps> = () => {
           coordenadaLng: !isNaN(lngNum as number) ? lngNum : undefined,
           esClienteFacturacion,
           esClienteServicio,
+          codigoExterno: codigoExterno.trim() || undefined,
         };
 
         const res = await ClienteService.crearCliente(dto);
@@ -527,7 +620,9 @@ export const ClienteFormPage: React.FC<ClienteFormPageProps> = () => {
 
         draft.markSaved(savedDraft);
         notifySuccess('Cuenta registrada exitosamente.');
-        if (cerrar) {
+        if (navegarACrearOrden) {
+          navigate(`/servicio-campo/solicitud-atencion?clienteId=${res.id}`);
+        } else if (cerrar) {
           navigate('/servicio-campo/cuentas');
         } else {
           navigate(`/servicio-campo/cuentas/${res.id}`, { replace: true });
@@ -547,6 +642,7 @@ export const ClienteFormPage: React.FC<ClienteFormPageProps> = () => {
           coordenadaLng: !isNaN(lngNum as number) ? lngNum : undefined,
           esClienteFacturacion,
           esClienteServicio,
+          codigoExterno: codigoExterno.trim() || undefined,
         };
 
         await ClienteService.actualizarCliente(id!, dto);
@@ -556,7 +652,9 @@ export const ClienteFormPage: React.FC<ClienteFormPageProps> = () => {
 
         draft.markSaved(savedDraft);
         notifySuccess('Cuenta actualizada exitosamente.');
-        if (cerrar) {
+        if (navegarACrearOrden) {
+          navigate(`/servicio-campo/solicitud-atencion?clienteId=${id}`);
+        } else if (cerrar) {
           navigate('/servicio-campo/cuentas');
         }
       }
@@ -620,6 +718,20 @@ export const ClienteFormPage: React.FC<ClienteFormPageProps> = () => {
           >
             Guardar y cerrar
           </D365CommandButton>
+          <D365CommandButton
+            icon={<ClipboardTask16Regular />}
+            tone="create"
+            onClick={async () => {
+              if (esNuevo || draft.dirty) {
+                await handleGuardar(false, true);
+              } else {
+                navigate(`/servicio-campo/solicitud-atencion?clienteId=${id}`);
+              }
+            }}
+            disabled={submitting}
+          >
+            Generar Orden de Atención
+          </D365CommandButton>
           {!esNuevo && (
             <>
               <D365CommandButton
@@ -653,7 +765,8 @@ export const ClienteFormPage: React.FC<ClienteFormPageProps> = () => {
         subtitle={savedSubtitle || 'Ficha de Cuenta'}
         avatarIcon={<Building24Regular />}
         metadata={[
-          ...(codigoCliente ? [{ label: 'Código', value: codigoCliente }] : []),
+          { label: 'Código de Cliente', value: codigoCliente || 'Autogenerado' },
+          ...(codigoExterno ? [{ label: 'Código Externo', value: codigoExterno }] : []),
           { label: 'Estado', value: activo ? 'Activo' : 'Inactivo' },
         ]}
         tabs={
@@ -686,6 +799,32 @@ export const ClienteFormPage: React.FC<ClienteFormPageProps> = () => {
                 <div className={formStyles.cardSectionTitle}>Información de la Cuenta</div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div className={formStyles.grid2Cols}>
+                    <D365FormField
+                      label="Código de Cliente"
+                      info="Código interno correlativo asignado automáticamente por el sistema al crear la cuenta"
+                    >
+                      <Input
+                        style={{ width: '100%' }}
+                        value={esNuevo ? 'Autogenerado al guardar' : codigoCliente}
+                        readOnly
+                        disabled
+                      />
+                    </D365FormField>
+
+                    <D365FormField
+                      label="Código Externo"
+                      info="Código de abonado, suscriptor o cliente en el sistema del operador externo (ej. DIRECTV, Claro, Movistar)"
+                    >
+                      <Input
+                        style={{ width: '100%' }}
+                        value={codigoExterno}
+                        onChange={(_, d) => setCodigoExterno(d.value)}
+                        maxLength={60}
+                      />
+                    </D365FormField>
+                  </div>
+
                   <D365FormField
                     label="Nombre de la Cuenta"
                     required
@@ -755,7 +894,7 @@ export const ClienteFormPage: React.FC<ClienteFormPageProps> = () => {
                       seleccionada={contactoSeleccionado}
                       textoBusqueda={busquedaContacto}
                       alCambiarBusqueda={setBusquedaContacto}
-                      alSeleccionar={(cid) => setContactoPrincipalId(cid || '')}
+                      alSeleccionar={handleSeleccionarContactoPrincipal}
                       alNavegar={(cid) => navigate(`/servicio-campo/contactos/${cid}`)}
                       deshabilitado={submitting}
                     />

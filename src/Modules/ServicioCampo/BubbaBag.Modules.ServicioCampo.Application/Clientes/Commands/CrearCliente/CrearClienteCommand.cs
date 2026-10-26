@@ -21,5 +21,6 @@ public record CrearClienteCommand(
     string? ReferenciaUbicacion = null,
     decimal? CoordenadaLat = null,
     decimal? CoordenadaLng = null,
-    Guid? ContactoPrincipalId = null
+    Guid? ContactoPrincipalId = null,
+    string? CodigoExterno = null
 ) : ICommand<Result<Guid>>;

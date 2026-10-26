@@ -61,9 +61,31 @@ public class CrearClienteHandler : ICommandHandler<CrearClienteCommand, Result<G
             referencia: request.ReferenciaUbicacion,
             lat: request.CoordenadaLat,
             lng: request.CoordenadaLng,
-            contactoPrincipalId: request.ContactoPrincipalId);
+            contactoPrincipalId: request.ContactoPrincipalId,
+            codigoExterno: request.CodigoExterno);
 
         _context.Clientes.Add(cliente);
+
+        if (request.ContactoPrincipalId.HasValue)
+        {
+            var contacto = await _context.Contactos.FirstOrDefaultAsync(
+                ct => ct.Id == request.ContactoPrincipalId.Value,
+                cancellationToken);
+            if (contacto != null && contacto.CuentaId == null)
+            {
+                contacto.Actualizar(
+                    contacto.Nombres,
+                    contacto.Apellidos,
+                    contacto.TelefonoMovil,
+                    contacto.Cargo,
+                    cliente.Id,
+                    contacto.Email,
+                    contacto.TelefonoTrabajo,
+                    contacto.Direccion,
+                    contacto.UbigeoCodigo);
+            }
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
 
         return Result<Guid>.Success(cliente.Id);

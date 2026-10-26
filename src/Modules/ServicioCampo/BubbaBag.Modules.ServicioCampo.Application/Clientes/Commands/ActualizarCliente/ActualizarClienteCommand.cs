@@ -18,5 +18,6 @@ public record ActualizarClienteCommand(
     string? DocumentoIdentidad = null,
     string? TelefonoSecundario = null,
     string? Email = null,
-    Guid? ContactoPrincipalId = null
+    Guid? ContactoPrincipalId = null,
+    string? CodigoExterno = null
 ) : ICommand<Result>;

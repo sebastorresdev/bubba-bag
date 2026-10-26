@@ -4,6 +4,7 @@ export type TipoDocumentoIdentidad = 'DNI' | 'RUC' | 'CE' | 'PASAPORTE';
 export interface ClienteListadoItemDto {
   id: string;
   codigoCliente: string;
+  codigoExterno?: string | null;
   tipoPersona: TipoPersona;
   tipoDocumento: TipoDocumentoIdentidad;
   documentoIdentidad: string;
@@ -28,6 +29,7 @@ export interface ClienteListadoItemDto {
 export interface ClienteDetalleDto {
   id: string;
   codigoCliente: string;
+  codigoExterno?: string | null;
   tipoPersona: TipoPersona;
   tipoDocumento: TipoDocumentoIdentidad;
   documentoIdentidad: string;
@@ -71,6 +73,7 @@ export interface CrearClienteDto {
   coordenadaLat?: number;
   coordenadaLng?: number;
   contactoPrincipalId?: string | null;
+  codigoExterno?: string;
 }
 
 export interface ActualizarClienteDto {
@@ -87,6 +90,7 @@ export interface ActualizarClienteDto {
   esClienteFacturacion: boolean;
   esClienteServicio: boolean;
   contactoPrincipalId?: string | null;
+  codigoExterno?: string;
 }
 
 export interface ContactoDto {

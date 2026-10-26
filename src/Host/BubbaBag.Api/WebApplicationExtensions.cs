@@ -72,6 +72,8 @@ public static class WebApplicationExtensions
                         CREATE INDEX IF NOT EXISTS ""IX_contactos_UbigeoCodigo"" ON crm.contactos (""UbigeoCodigo"");
 
                         ALTER TABLE crm.clientes ADD COLUMN IF NOT EXISTS ""ContactoPrincipalId"" uuid NULL;
+                        ALTER TABLE crm.clientes ADD COLUMN IF NOT EXISTS ""CodigoExterno"" character varying(60) NULL;
+                        CREATE INDEX IF NOT EXISTS ""IX_clientes_CodigoExterno"" ON crm.clientes (""CodigoExterno"");
 
                         IF NOT EXISTS (
                             SELECT 1 FROM information_schema.table_constraints 

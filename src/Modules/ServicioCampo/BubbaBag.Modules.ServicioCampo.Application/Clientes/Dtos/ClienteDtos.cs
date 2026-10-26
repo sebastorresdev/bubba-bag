@@ -24,7 +24,8 @@ public record ClienteListadoItemDto(
     bool EsClienteServicio,
     bool Activo,
     Guid? ContactoPrincipalId = null,
-    string? ContactoPrincipalNombre = null
+    string? ContactoPrincipalNombre = null,
+    string? CodigoExterno = null
 );
 
 public record ClienteDetalleDto(
@@ -53,7 +54,8 @@ public record ClienteDetalleDto(
     bool Activo,
     Guid? ContactoPrincipalId = null,
     string? ContactoPrincipalNombre = null,
-    IReadOnlyList<ContactoDto>? Contactos = null
+    IReadOnlyList<ContactoDto>? Contactos = null,
+    string? CodigoExterno = null
 );
 
 public record ContactoDto(

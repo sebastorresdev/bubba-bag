@@ -46,7 +46,8 @@ const nombresVistaCuentas: Record<VistaClientes, string> = {
 };
 
 const filterFields: D365FilterField[] = [
-  { id: 'codigoCliente', label: 'Código de cuenta', type: 'string' },
+  { id: 'codigoCliente', label: 'Código de cliente', type: 'string' },
+  { id: 'codigoExterno', label: 'Código externo', type: 'string' },
   { id: 'nombreCompletoODenominacion', label: 'Nombre de la Cuenta', type: 'string' },
   { id: 'documentoIdentidad', label: 'N° de Documento', type: 'string' },
   { id: 'telefonoPrincipal', label: 'Teléfono Principal', type: 'string' },
@@ -106,6 +107,7 @@ export const ClientesListPage: React.FC<ClientesListPageProps> = () => {
       result = result.filter(
         (c) =>
           c.codigoCliente.toLowerCase().includes(q) ||
+          (c.codigoExterno && c.codigoExterno.toLowerCase().includes(q)) ||
           c.nombreCompletoODenominacion.toLowerCase().includes(q) ||
           c.documentoIdentidad.toLowerCase().includes(q) ||
           c.telefonoPrincipal.toLowerCase().includes(q) ||
@@ -122,6 +124,7 @@ export const ClientesListPage: React.FC<ClientesListPageProps> = () => {
   const handleExportarExcel = () => {
     const cols: ExportColumn<ClienteListadoItemDto>[] = [
       { header: 'Código', accessor: (c) => c.codigoCliente },
+      { header: 'Código Externo', accessor: (c) => c.codigoExterno || '' },
       { header: 'Nombre de la Cuenta', accessor: (c) => c.nombreCompletoODenominacion },
       { header: 'N° Documento', accessor: (c) => c.documentoIdentidad },
       { header: 'Teléfono Principal', accessor: (c) => c.telefonoPrincipal },
@@ -138,6 +141,7 @@ export const ClientesListPage: React.FC<ClientesListPageProps> = () => {
   const handleExportarCSV = () => {
     const cols: ExportColumn<ClienteListadoItemDto>[] = [
       { header: 'Código', accessor: (c) => c.codigoCliente },
+      { header: 'Código Externo', accessor: (c) => c.codigoExterno || '' },
       { header: 'Nombre de la Cuenta', accessor: (c) => c.nombreCompletoODenominacion },
       { header: 'N° Documento', accessor: (c) => c.documentoIdentidad },
       { header: 'Teléfono Principal', accessor: (c) => c.telefonoPrincipal },
@@ -167,6 +171,16 @@ export const ClientesListPage: React.FC<ClientesListPageProps> = () => {
             >
               {item.codigoCliente}
             </Link>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ClienteListadoItemDto>({
+        columnId: 'codigoExterno',
+        compare: (a, b) => (a.codigoExterno || '').localeCompare(b.codigoExterno || ''),
+        renderHeaderCell: () => 'Código Externo',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Text>{item.codigoExterno || '—'}</Text>
           </TableCellLayout>
         ),
       }),
