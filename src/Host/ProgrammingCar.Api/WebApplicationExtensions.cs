@@ -88,6 +88,11 @@ public static class WebApplicationExtensions
                     ALTER TABLE serviciocampo.""PlantillasTrabajo"" ADD COLUMN IF NOT EXISTS ""Puntos"" numeric(5,2) NOT NULL DEFAULT 1.0;
                     ALTER TABLE serviciocampo.""Trabajos"" ADD COLUMN IF NOT EXISTS ""Puntos"" numeric(5,2) NOT NULL DEFAULT 1.0;
 
+                    -- Limpiar puntos en los códigos externos de trabajos de IBS (ej. 10.593.321 -> 10593321)
+                    UPDATE serviciocampo.""Trabajos""
+                    SET ""CodigoExterno"" = REPLACE(""CodigoExterno"", '.', '')
+                    WHERE ""CodigoExterno"" IS NOT NULL AND ""CodigoExterno"" LIKE '%.%';
+
                     CREATE TABLE IF NOT EXISTS serviciocampo.""PlantillasTrabajoServicios"" (
                         ""Id"" uuid NOT NULL PRIMARY KEY,
                         ""ConfiguracionServicioId"" uuid NOT NULL,

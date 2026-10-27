@@ -98,33 +98,116 @@ public class SiebelImportadorService
             }
         }
 
-        // Mapeo inteligente con soporte de acrónimos y subcadenas
-        void AsegurarColumna(string claveDestino, params string[] subcadenas)
+        // Mapeo inteligente con detección precisa de columnas Siebel / IBS
+        for (int i = 0; i < headerCols.Count; i++)
         {
-            if (colMap.ContainsKey(claveDestino)) return;
-            for (int i = 0; i < headerCols.Count; i++)
+            var hn = NormalizarNombreColumna(headerCols[i]);
+            if (string.IsNullOrEmpty(hn)) continue;
+
+            // 1. Número de Orden de Trabajo (externo Siebel, ej. "1-87461854669")
+            if (!colMap.ContainsKey("numerodeordendetrabajo") &&
+                (hn.Contains("ordendetrabajo") || hn.Contains("orden")) &&
+                !hn.Contains("fecha") && !hn.Contains("estado") && !hn.Contains("ibs"))
             {
-                var hNorm = NormalizarNombreColumna(headerCols[i]);
-                if (subcadenas.All(sub => hNorm.Contains(sub, StringComparison.OrdinalIgnoreCase)))
-                {
-                    colMap[claveDestino] = i;
-                    break;
-                }
+                colMap["numerodeordendetrabajo"] = i;
+            }
+
+            // 2. N° de WO de IBS (del trabajo individual, ej. "10.556.972")
+            if (!colMap.ContainsKey("nodewodeibs") &&
+                hn.Contains("ibs") && (hn.Contains("wo") || hn.Contains("item")) && !hn.Contains("descripcion"))
+            {
+                colMap["nodewodeibs"] = i;
+            }
+
+            // 3. Descripción de IBS
+            if (!colMap.ContainsKey("descripciondeibs") &&
+                hn.Contains("ibs") && (hn.Contains("descripcion") || hn.Contains("desc")))
+            {
+                colMap["descripciondeibs"] = i;
+            }
+
+            // 4. Código de SL (ej. "IC07", "IA01")
+            if (!colMap.ContainsKey("codigodesl") &&
+                hn.Contains("sl") && !hn.Contains("traslado"))
+            {
+                colMap["codigodesl"] = i;
+            }
+
+            // 5. Servicio (ej. "IC07 - Cambio IRD a HD Only")
+            if (!colMap.ContainsKey("servicio") &&
+                (hn == "servicio" || hn.Contains("nombreservicio")) &&
+                !hn.Contains("region") && !hn.Contains("reiteracion"))
+            {
+                colMap["servicio"] = i;
+            }
+
+            // 6. Proveedor (Sede / Unidad Organizativa, ej. "PE-I280030-PROGRAMMING SAC PIURA")
+            if (!colMap.ContainsKey("proveedor") && hn.Contains("proveedor"))
+            {
+                colMap["proveedor"] = i;
+            }
+
+            // 7. N° de Cliente
+            if (!colMap.ContainsKey("nodecliente") &&
+                hn.Contains("cliente") &&
+                (hn.Contains("numero") || hn.Contains("nro") || hn.Contains("ndecliente") || hn.Contains("nodecliente") || hn.Contains("cuenta")) &&
+                !hn.Contains("clase") && !hn.Contains("tipo"))
+            {
+                colMap["nodecliente"] = i;
+            }
+
+            // 8. Nombre del Cliente
+            if (!colMap.ContainsKey("nombre") &&
+                (hn == "nombre" || hn == "nombres") && !hn.Contains("cuadrilla") && !hn.Contains("tecnico"))
+            {
+                colMap["nombre"] = i;
+            }
+
+            // 9. Apellidos del Cliente
+            if (!colMap.ContainsKey("apellidos") &&
+                hn.Contains("apellido") && !hn.Contains("cuadrilla") && !hn.Contains("tecnico"))
+            {
+                colMap["apellidos"] = i;
+            }
+
+            // 10. Técnico asignado
+            if (!colMap.ContainsKey("nombrecuadrillatecnico") &&
+                (hn.Contains("cuadrilla") || hn.Contains("tecnico")) && hn.Contains("nombre"))
+            {
+                colMap["nombrecuadrillatecnico"] = i;
+            }
+
+            if (!colMap.ContainsKey("apellidocuadrillatecnico") &&
+                (hn.Contains("cuadrilla") || hn.Contains("tecnico")) && hn.Contains("apellido"))
+            {
+                colMap["apellidocuadrillatecnico"] = i;
+            }
+
+            if (!colMap.ContainsKey("cuadrillatecnicoresponsable") && hn.Contains("responsable"))
+            {
+                colMap["cuadrillatecnicoresponsable"] = i;
+            }
+
+            if (!colMap.ContainsKey("codigopostal") && hn.Contains("postal"))
+            {
+                colMap["codigopostal"] = i;
+            }
+
+            if (!colMap.ContainsKey("nodetelefonoprincipal") && hn.Contains("telefono"))
+            {
+                colMap["nodetelefonoprincipal"] = i;
+            }
+
+            if (!colMap.ContainsKey("domicilio") && hn.Contains("domicilio"))
+            {
+                colMap["domicilio"] = i;
+            }
+
+            if (!colMap.ContainsKey("fechadecreacion") && hn.Contains("creacion"))
+            {
+                colMap["fechadecreacion"] = i;
             }
         }
-
-        AsegurarColumna("numerodeordendetrabajo", "orden", "trabajo");
-        AsegurarColumna("nodewodeibs", "ibs");
-        AsegurarColumna("proveedor", "proveedor");
-        AsegurarColumna("nodecliente", "cliente");
-        AsegurarColumna("codigodesl", "sl");
-        AsegurarColumna("codigopostal", "postal");
-        AsegurarColumna("nodetelefonoprincipal", "telefono");
-        AsegurarColumna("domicilio", "domicilio");
-        AsegurarColumna("nombrecuadrillatecnico", "nombre", "tecnico");
-        AsegurarColumna("apellidocuadrillatecnico", "apellido", "tecnico");
-        AsegurarColumna("cuadrillatecnicoresponsable", "responsable");
-        AsegurarColumna("fechadecreacion", "creacion");
 
         // 3. Leer todas las filas de datos preservando el número de fila original
         var lineasConFila = new List<(int Fila, List<string> Row)>();
@@ -162,7 +245,7 @@ public class SiebelImportadorService
         var ordenesAgrupadas = new Dictionary<string, List<(int Fila, List<string> Row)>>(StringComparer.OrdinalIgnoreCase);
         foreach (var item in lineasConFila)
         {
-            var nroWo = GetVal(item.Row, "numerodeordendetrabajo", "ordendetrabajo", "nrodeordendetrabajo", "nowo");
+            var nroWo = GetVal(item.Row, "numerodeordendetrabajo", "ordendetrabajo", "nrodeordendetrabajo");
             if (string.IsNullOrWhiteSpace(nroWo))
             {
                 detalles.Add(new FilaDetalleImportacionSiebel(
@@ -327,8 +410,9 @@ public class SiebelImportadorService
             if (string.IsNullOrWhiteSpace(nroCliente))
                 nroCliente = $"EXT-{nroWo}";
 
-            // N° de WO de IBS (Columna clave requerida como código externo de trabajo)
-            var nroWoIbs = GetVal(primeraFila, "nodewodeibs", "nowodeibs", "wodeibs", "nowo", "nrodewodeibs");
+            // N° de WO de IBS (del trabajo individual, sin puntos)
+            var nroWoIbs = GetVal(primeraFila, "nodewodeibs", "nowodeibs", "wodeibs", "nrodewodeibs");
+            var nroWoIbsLimpio = !string.IsNullOrWhiteSpace(nroWoIbs) ? nroWoIbs.Replace(".", "").Trim() : null;
 
             var nombreCli = GetVal(primeraFila, "nombre");
             var apellidosCli = GetVal(primeraFila, "apellidos", "apellido");
@@ -350,14 +434,19 @@ public class SiebelImportadorService
                 ordenExistente.AsignarClienteFacturacion(clienteDirectv.Id);
                 ordenExistente.AsignarUnidadOrganizativa(unidadOrg.Id);
                 ordenExistente.AsignarZonaOperativa(null); // Sin zonas operativas
-                ordenExistente.ActualizarReferencias(nroWo, !string.IsNullOrWhiteSpace(nroWoIbs) ? nroWoIbs : nroWo, nroCliente);
+                ordenExistente.ActualizarReferencias(nroWo, nroWo, nroCliente);
 
+                int tIdx = 0;
                 foreach (var t in ordenExistente.Trabajos)
                 {
-                    if (!string.IsNullOrWhiteSpace(nroWoIbs))
+                    var filaTrabajo = tIdx < filasWo.Count ? filasWo[tIdx].Row : primeraFila;
+                    var rawIbs = GetVal(filaTrabajo, "nodewodeibs", "nowodeibs", "wodeibs", "nrodewodeibs");
+                    var ibsLimpio = !string.IsNullOrWhiteSpace(rawIbs) ? rawIbs.Replace(".", "").Trim() : nroWoIbsLimpio;
+                    if (!string.IsNullOrWhiteSpace(ibsLimpio))
                     {
-                        t.ActualizarDatos(t.ReferenciaEquipo, t.Observaciones, nroWoIbs);
+                        t.ActualizarDatos(t.ReferenciaEquipo, t.Observaciones, ibsLimpio);
                     }
+                    tIdx++;
                 }
 
                 ordenesActualizadas++;
@@ -368,7 +457,7 @@ public class SiebelImportadorService
                     Servicio: slServiciosResumen,
                     Tecnico: string.IsNullOrWhiteSpace(nombreCompletoTec) ? "Sin Asignar" : nombreCompletoTec,
                     Estado: "Actualizada",
-                    Detalle: $"Orden actualizada con Facturación DIRECTV, Sede {unidadOrg.Nombre} y Cód. Externo {nroWoIbs ?? nroWo}."
+                    Detalle: $"Orden actualizada con Facturación DIRECTV, Sede {unidadOrg.Nombre} y Orden Externa {nroWo}."
                 ));
                 continue;
             }
@@ -469,7 +558,7 @@ public class SiebelImportadorService
                     numeroPedido: GetVal(primeraFila, "iddelencabezadodelpedido"),
                     estadoOrigen: estadoSiebel,
                     descargaMaterialesObligatoria: true,
-                    referenciaExterna: !string.IsNullOrWhiteSpace(nroWoIbs) ? nroWoIbs : nroWo, // 10.556.972 (N° WO de IBS)
+                    referenciaExterna: nroWo, // Número de orden de trabajo Siebel
                     listaPreciosId: listaPrecios.Id,
                     moneda: "PEN",
                     unidadOrganizativaId: unidadOrg.Id      // Asignada según Proveedor (Piura, Trujillo, etc.)
@@ -533,8 +622,11 @@ public class SiebelImportadorService
                         configsExistentes.Add(configServicio);
                     }
 
-                    // Cód. Externo del Trabajo = N° de WO de IBS (ej. 10.556.972)
-                    var woItemIbs = GetVal(filaItem, "nodewodeibs", "nowodeibs", "wodeibs", "nowo", "nrodewodeibs");
+                    // Cód. Externo del Trabajo = N° de WO de IBS sin puntos (ej. 10.593.321 -> 10593321)
+                    var woItemIbs = GetVal(filaItem, "nodewodeibs", "nowodeibs", "wodeibs", "nrodewodeibs");
+                    var woItemIbsLimpio = !string.IsNullOrWhiteSpace(woItemIbs)
+                        ? woItemIbs.Replace(".", "").Trim()
+                        : nroWoIbsLimpio;
                     var codigoTrabajo = $"{orden.CodigoWo}-T{itemIdx:D2}";
                     var puntosTrabajo = configServicio.Puntos;
 
@@ -545,7 +637,7 @@ public class SiebelImportadorService
                         configuracionServicioId: configServicio.Id,
                         tarifaBase: 0m,
                         observaciones: GetVal(filaItem, "descripciondeibs"),
-                        codigoExterno: !string.IsNullOrWhiteSpace(woItemIbs) ? woItemIbs : (string.IsNullOrWhiteSpace(nroWoIbs) ? null : nroWoIbs),
+                        codigoExterno: woItemIbsLimpio,
                         puntos: puntosTrabajo
                     );
 

@@ -191,7 +191,7 @@ export function ConfiguracionesServicioListPage() {
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <Text weight="semibold">{servicios.length} servicios asociados</Text>
                   <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
-                    {servicios.map((s) => (s.codigo ? `[${s.codigo}]` : s.nombre)).join(', ')}
+                    {servicios.map((s) => (s.codigo ? `${s.codigo} - ${s.nombre}` : s.nombre)).join(', ')}
                   </Text>
                 </div>
               </TableCellLayout>

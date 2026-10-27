@@ -113,7 +113,19 @@ export interface DrawerServicioItem {
   esPredeterminada: boolean;
 }
 
+export const formatoServicio = (codigo?: string, nombre?: string): string => {
+  if (!nombre && !codigo) return 'Servicio';
+  if (!codigo) return nombre || 'Servicio';
+  if (!nombre) return codigo;
+  if (nombre.toUpperCase().startsWith(codigo.toUpperCase())) {
+    const sinCodigo = nombre.substring(codigo.length).replace(/^[\s\-–—:]+/, '').trim();
+    return sinCodigo ? `${codigo} - ${sinCodigo}` : codigo;
+  }
+  return `${codigo} - ${nombre}`;
+};
+
 export interface TrabajoFormItem {
+  productoCodigo?: string;
   referenciaEquipo?: string;
   productoNombre?: string;
   idTemp: string;
@@ -703,6 +715,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             id: t.id,
             codigoTrabajo: t.codigoTrabajo,
             productoNombre: t.productoNombre,
+            productoCodigo: t.productoCodigo,
             referenciaEquipo: t.referenciaEquipo || '',
             codigoExterno: t.codigoExterno || '',
             productoId: t.productoId,
@@ -969,6 +982,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
           observaciones: drawerObservaciones.trim(),
           referenciaEquipo: drawerReferenciaEquipo.trim(),
           productoNombre: productosServicios.find(p => p.id === prodId)?.nombre,
+        productoCodigo: productosServicios.find(p => p.id === prodId)?.codigo,
           totalTareas: tareasEstimadas > 0 ? tareasEstimadas : copia[trabajoEnEdicionIndex].totalTareas,
           totalMateriales: materialesEstimados > 0 ? materialesEstimados : copia[trabajoEnEdicionIndex].totalMateriales,
           servicios: drawerServicios,
@@ -2833,7 +2847,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             <div>
               <Text weight="semibold" style={{ fontSize: '16px' }}>
                 {trabajoSeleccionadoParaDetalle?.codigoTrabajo ? `${trabajoSeleccionadoParaDetalle.codigoTrabajo} · ` : ''}
-                {trabajoSeleccionadoParaDetalle?.productoNombre || 'Servicio Técnico'}
+                {formatoServicio(trabajoSeleccionadoParaDetalle?.productoCodigo, trabajoSeleccionadoParaDetalle?.productoNombre)}
               </Text>
               <Text block style={{ fontSize: '12px', color: tokens.colorNeutralForeground3, fontWeight: 400, marginTop: '2px' }}>
                 {trabajoSeleccionadoParaDetalle?.referenciaEquipo ? `Equipo/Ubicación: ${trabajoSeleccionadoParaDetalle.referenciaEquipo} · ` : ''}
