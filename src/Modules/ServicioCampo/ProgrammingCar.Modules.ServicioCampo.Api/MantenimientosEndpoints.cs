@@ -1,0 +1,363 @@
+using System;
+using System.Threading.Tasks;
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.MotivosIncidencia.Dtos;
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.MotivosIncidencia.Commands.CrearMotivoIncidencia;
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.MotivosIncidencia.Commands.ActualizarMotivoIncidencia;
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.MotivosIncidencia.Commands.CambiarEstadoMotivoIncidencia;
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.MotivosIncidencia.Queries.ObtenerMotivosIncidencia;
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.MotivosIncidencia.Queries.ObtenerMotivoIncidenciaPorId;
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.MotivosRetiroEquipo;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Mantenimientos;
+
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.TiposOrdenTrabajo.Dtos;
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.TiposOrdenTrabajo.Commands.CrearTipoOrdenTrabajo;
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.TiposOrdenTrabajo.Commands.ActualizarTipoOrdenTrabajo;
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.TiposOrdenTrabajo.Commands.CambiarEstadoTipoOrdenTrabajo;
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.TiposOrdenTrabajo.Commands.EliminarTipoOrdenTrabajo;
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.TiposOrdenTrabajo.Queries.ObtenerTiposOrdenTrabajo;
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.TiposOrdenTrabajo.Queries.ObtenerTipoOrdenTrabajoPorId;
+
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.TiposTareaServicio.Dtos;
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.TiposTareaServicio.Commands.CrearTipoTareaServicio;
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.TiposTareaServicio.Commands.ActualizarTipoTareaServicio;
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.TiposTareaServicio.Commands.CambiarEstadoTipoTareaServicio;
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.TiposTareaServicio.Queries.ObtenerTiposTareaServicio;
+using ProgrammingCar.Modules.ServicioCampo.Application.Mantenimientos.TiposTareaServicio.Queries.ObtenerTipoTareaServicioPorId;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Enums;
+using ProgrammingCar.SharedKernel.Authorization;
+using ProgrammingCar.SharedKernel.CQRS;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+
+namespace ProgrammingCar.Modules.ServicioCampo.Api;
+
+public static class MantenimientosEndpoints
+{
+    public static void MapMantenimientosEndpoints(this IEndpointRouteBuilder app)
+    {
+        // Mapear tanto /mantenimientos como /catalogos para compatibilidad total con el frontend
+        var mantenimientosGroup = app.MapGroup("/api/serviciocampo/mantenimientos")
+            .WithTags("Servicio de Campo - Mantenimientos")
+            .RequireAuthorization();
+
+        var catalogosGroup = app.MapGroup("/api/serviciocampo/catalogos")
+            .WithTags("Servicio de Campo - Mantenimientos (Compatibilidad)")
+            .RequireAuthorization();
+
+        ConfigurarRutasMantenimiento(mantenimientosGroup);
+        ConfigurarRutasMantenimiento(catalogosGroup);
+    }
+
+    private static void ConfigurarRutasMantenimiento(RouteGroupBuilder rootGroup)
+    {
+        // =====================================================================
+        // MOTIVOS DE INCIDENCIA
+        // =====================================================================
+        var motivosGroup = rootGroup.MapGroup("/motivos-incidencia");
+        motivosGroup.MapGet("/", ObtenerMotivosIncidencia)
+            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
+        motivosGroup.MapGet("/{id:guid}", ObtenerMotivoIncidenciaPorId)
+            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
+        motivosGroup.MapPost("/", CrearMotivoIncidencia)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        motivosGroup.MapPut("/{id:guid}", ActualizarMotivoIncidencia)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        motivosGroup.MapPatch("/{id:guid}/estado", CambiarEstadoMotivoIncidencia)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+
+        // =====================================================================
+        // TIPOS DE ORDEN DE TRABAJO (Modalidad Operativa)
+        // =====================================================================
+        var tiposOrdenGroup = rootGroup.MapGroup("/tipos-orden");
+        tiposOrdenGroup.MapGet("/", ObtenerTiposOrden)
+            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
+        tiposOrdenGroup.MapGet("/{id:guid}", ObtenerTipoOrdenPorId)
+            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
+        tiposOrdenGroup.MapPost("/", CrearTipoOrden)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        tiposOrdenGroup.MapPut("/{id:guid}", ActualizarTipoOrden)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        tiposOrdenGroup.MapPatch("/{id:guid}/estado", CambiarEstadoTipoOrden)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        tiposOrdenGroup.MapDelete("/{id:guid}", EliminarTipoOrden)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+
+        // Alias /tipos-orden-trabajo para compatibilidad total
+        var tiposOrdenAliasGroup = rootGroup.MapGroup("/tipos-orden-trabajo");
+        tiposOrdenAliasGroup.MapGet("/", ObtenerTiposOrden)
+            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
+        tiposOrdenAliasGroup.MapGet("/{id:guid}", ObtenerTipoOrdenPorId)
+            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
+        tiposOrdenAliasGroup.MapPost("/", CrearTipoOrden)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        tiposOrdenAliasGroup.MapPut("/{id:guid}", ActualizarTipoOrden)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        tiposOrdenAliasGroup.MapPatch("/{id:guid}/estado", CambiarEstadoTipoOrden)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        tiposOrdenAliasGroup.MapDelete("/{id:guid}", EliminarTipoOrden)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+
+        // =====================================================================
+        // TIPOS DE TAREA DE SERVICIO (Catálogo de Prestaciones por Cliente)
+        // =====================================================================
+        var tiposTareaGroup = rootGroup.MapGroup("/tipos-tarea");
+        tiposTareaGroup.MapGet("/", ObtenerTiposTarea)
+            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
+        tiposTareaGroup.MapGet("/{id:guid}", ObtenerTipoTareaPorId)
+            .RequireAuthorization(Permissions.ServicioCampo.Acceso);
+        tiposTareaGroup.MapPost("/", CrearTipoTarea)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        tiposTareaGroup.MapPut("/{id:guid}", ActualizarTipoTarea)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        tiposTareaGroup.MapPatch("/{id:guid}/estado", CambiarEstadoTipoTarea)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+
+        // =====================================================================
+        // MOTIVOS DE RETIRO DE EQUIPOS (Logística Inversa)
+        // =====================================================================
+        var motivosRetiroGroup = rootGroup.MapGroup("/motivos-retiro-equipo");
+        motivosRetiroGroup.MapGet("/", ObtenerMotivosRetiroEquipo);
+        motivosRetiroGroup.MapGet("/{id:guid}", ObtenerMotivoRetiroEquipoPorId);
+        motivosRetiroGroup.MapPost("/", CrearMotivoRetiroEquipo)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        motivosRetiroGroup.MapPut("/{id:guid}", ActualizarMotivoRetiroEquipo)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        motivosRetiroGroup.MapPatch("/{id:guid}/estado", CambiarEstadoMotivoRetiroEquipo)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+        motivosRetiroGroup.MapDelete("/{id:guid}", EliminarMotivoRetiroEquipo)
+            .RequireAuthorization(Permissions.ServicioCampo.CatalogosGestionar);
+    }
+
+    // Handlers - Motivos de Incidencia
+    private static async Task<IResult> ObtenerMotivosIncidencia(
+        IDispatcher dispatcher,
+        AmbitoMotivo? ambito,
+        bool? soloActivos,
+        string? search)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerMotivosIncidenciaQuery(ambito, soloActivos, search));
+        return Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> ObtenerMotivoIncidenciaPorId(Guid id, IDispatcher dispatcher)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerMotivoIncidenciaPorIdQuery(id));
+        return result.IsSuccess
+            ? Results.Ok(result.Value)
+            : Results.NotFound(new { message = result.Error });
+    }
+
+    private static async Task<IResult> CrearMotivoIncidencia(CrearMotivoIncidenciaCommand command, IDispatcher dispatcher)
+    {
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Created($"/api/serviciocampo/mantenimientos/motivos-incidencia/{result.Value}", new { id = result.Value, message = "Motivo de incidencia registrado con éxito." })
+            : Results.BadRequest(new { message = result.Error });
+    }
+
+    private static async Task<IResult> ActualizarMotivoIncidencia(Guid id, ActualizarMotivoIncidenciaRequest request, IDispatcher dispatcher)
+    {
+        var command = new ActualizarMotivoIncidenciaCommand(id, request.Nombre, request.Ambito, request.Descripcion);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Ok(new { message = "Motivo de incidencia actualizado correctamente." })
+            : Results.BadRequest(new { message = result.Error });
+    }
+
+    private static async Task<IResult> CambiarEstadoMotivoIncidencia(Guid id, CambiarEstadoCatalogoRequest request, IDispatcher dispatcher)
+    {
+        var command = new CambiarEstadoMotivoIncidenciaCommand(id, request.Activo);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Ok(new { message = $"Motivo de incidencia {(request.Activo ? "activado" : "desactivado")} correctamente." })
+            : Results.BadRequest(new { message = result.Error });
+    }
+
+    // Handlers - Tipos de Orden
+    private static async Task<IResult> ObtenerTiposOrden(
+        IDispatcher dispatcher,
+        bool? soloActivos,
+        string? search)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerTiposOrdenTrabajoQuery(soloActivos, search));
+        return Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> ObtenerTipoOrdenPorId(Guid id, IDispatcher dispatcher)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerTipoOrdenTrabajoPorIdQuery(id));
+        return result.IsSuccess
+            ? Results.Ok(result.Value)
+            : Results.NotFound(new { message = result.Error });
+    }
+
+    private static async Task<IResult> CrearTipoOrden(CrearTipoOrdenTrabajoCommand command, IDispatcher dispatcher)
+    {
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Created($"/api/serviciocampo/mantenimientos/tipos-orden/{result.Value}", new { id = result.Value, message = "Tipo de orden de trabajo registrado con éxito." })
+            : Results.BadRequest(new { message = result.Error });
+    }
+
+    private static async Task<IResult> ActualizarTipoOrden(Guid id, ActualizarTipoOrdenTrabajoRequest request, IDispatcher dispatcher)
+    {
+        var command = new ActualizarTipoOrdenTrabajoCommand(
+            id,
+            request.Nombre,
+            request.RequiereVisitaCampo,
+            request.ExigeFirmaCliente,
+            request.ExigeEvidenciasFotograficas,
+            request.Descripcion,
+            request.ColorHex,
+            request.ListaPreciosId);
+
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Ok(new { message = "Tipo de orden de trabajo actualizado correctamente." })
+            : Results.BadRequest(new { message = result.Error });
+    }
+
+    private static async Task<IResult> CambiarEstadoTipoOrden(Guid id, CambiarEstadoCatalogoRequest request, IDispatcher dispatcher)
+    {
+        var command = new CambiarEstadoTipoOrdenTrabajoCommand(id, request.Activo);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Ok(new { message = $"Tipo de orden {(request.Activo ? "activado" : "desactivado")} correctamente." })
+            : Results.BadRequest(new { message = result.Error });
+    }
+
+    private static async Task<IResult> EliminarTipoOrden(Guid id, IDispatcher dispatcher)
+    {
+        var command = new EliminarTipoOrdenTrabajoCommand(id);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Ok(new { message = "Tipo de orden eliminado correctamente." })
+            : Results.BadRequest(new { message = result.Error });
+    }
+
+    // Handlers - Tipos de Tarea
+    private static async Task<IResult> ObtenerTiposTarea(
+        IDispatcher dispatcher,
+        Guid? clienteFacturacionId,
+        bool? soloActivos,
+        string? search)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerTiposTareaServicioQuery(clienteFacturacionId, soloActivos, search));
+        return Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> ObtenerTipoTareaPorId(Guid id, IDispatcher dispatcher)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerTipoTareaServicioPorIdQuery(id));
+        return result.IsSuccess
+            ? Results.Ok(result.Value)
+            : Results.NotFound(new { message = result.Error });
+    }
+
+    private static async Task<IResult> CrearTipoTarea(CrearTipoTareaServicioCommand command, IDispatcher dispatcher)
+    {
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Created($"/api/serviciocampo/mantenimientos/tipos-tarea/{result.Value}", new { id = result.Value, message = "Tipo de tarea de servicio registrado con éxito." })
+            : Results.BadRequest(new { message = result.Error });
+    }
+
+    private static async Task<IResult> ActualizarTipoTarea(Guid id, ActualizarTipoTareaServicioRequest request, IDispatcher dispatcher)
+    {
+        var command = new ActualizarTipoTareaServicioCommand(
+            id,
+            request.Nombre,
+            request.ClienteFacturacionId,
+            request.DuracionEstimadaMinutos);
+
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Ok(new { message = "Tipo de tarea de servicio actualizado correctamente." })
+            : Results.BadRequest(new { message = result.Error });
+    }
+
+    private static async Task<IResult> CambiarEstadoTipoTarea(Guid id, CambiarEstadoCatalogoRequest request, IDispatcher dispatcher)
+    {
+        var command = new CambiarEstadoTipoTareaServicioCommand(id, request.Activo);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Ok(new { message = $"Tipo de tarea {(request.Activo ? "activado" : "desactivado")} correctamente." })
+            : Results.BadRequest(new { message = result.Error });
+    }
+
+    // Handlers - Motivos de Retiro de Equipos (Logística Inversa)
+    private static async Task<IResult> ObtenerMotivosRetiroEquipo(IDispatcher dispatcher, TipoRetiroEquipo? tipo, bool? soloActivos, string? search)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerMotivosRetiroEquipoQuery(tipo, soloActivos, search));
+        return Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> ObtenerMotivoRetiroEquipoPorId(Guid id, IDispatcher dispatcher)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerMotivoRetiroEquipoPorIdQuery(id));
+        return result.IsSuccess ? Results.Ok(result.Value) : Results.NotFound(new { message = result.Error });
+    }
+
+    private static async Task<IResult> CrearMotivoRetiroEquipo(CrearMotivoRetiroEquipoCommand command, IDispatcher dispatcher)
+    {
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Created($"/api/serviciocampo/mantenimientos/motivos-retiro-equipo/{result.Value}", new { id = result.Value, message = "Motivo de retiro de equipo registrado con éxito." })
+            : Results.BadRequest(new { message = result.Error });
+    }
+
+    private static async Task<IResult> ActualizarMotivoRetiroEquipo(Guid id, ActualizarMotivoRetiroEquipoRequest request, IDispatcher dispatcher)
+    {
+        var command = new ActualizarMotivoRetiroEquipoCommand(id, request.Nombre, request.TipoRetiro, request.Descripcion);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Ok(new { message = "Motivo de retiro de equipo actualizado correctamente." })
+            : Results.BadRequest(new { message = result.Error });
+    }
+
+    private static async Task<IResult> CambiarEstadoMotivoRetiroEquipo(Guid id, CambiarEstadoCatalogoRequest request, IDispatcher dispatcher)
+    {
+        var command = new CambiarEstadoMotivoRetiroEquipoCommand(id, request.Activo);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Ok(new { message = $"Motivo de retiro {(request.Activo ? "activado" : "desactivado")} correctamente." })
+            : Results.BadRequest(new { message = result.Error });
+    }
+
+    private static async Task<IResult> EliminarMotivoRetiroEquipo(Guid id, IDispatcher dispatcher)
+    {
+        var command = new EliminarMotivoRetiroEquipoCommand(id);
+        var result = await dispatcher.SendAsync(command);
+        return result.IsSuccess
+            ? Results.Ok(new { message = "Motivo de retiro de equipo eliminado correctamente." })
+            : Results.BadRequest(new { message = result.Error });
+    }
+}
+
+// Request DTOs
+public record CambiarEstadoCatalogoRequest(bool Activo);
+
+public record ActualizarMotivoIncidenciaRequest(
+    string Nombre,
+    AmbitoMotivo Ambito,
+    string? Descripcion = null);
+
+public record ActualizarTipoOrdenTrabajoRequest(
+    string Nombre,
+    bool RequiereVisitaCampo,
+    bool ExigeFirmaCliente,
+    bool ExigeEvidenciasFotograficas,
+    string? Descripcion = null,
+    string ColorHex = "#0f6cbd",
+    Guid? ListaPreciosId = null);
+
+public record ActualizarTipoTareaServicioRequest(
+    string Nombre,
+    Guid? ClienteFacturacionId,
+    int DuracionEstimadaMinutos);
+
+public record ActualizarMotivoRetiroEquipoRequest(
+    string Nombre,
+    TipoRetiroEquipo TipoRetiro,
+    string? Descripcion = null);

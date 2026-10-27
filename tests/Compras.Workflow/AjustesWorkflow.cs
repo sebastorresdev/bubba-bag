@@ -1,9 +1,9 @@
-using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Ajustes;
-using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
-using BubbaBag.Modules.ServicioCampo.Domain.Productos;
-using BubbaBag.Modules.ServicioCampo.Domain.Organizacion;
-using BubbaBag.Modules.ServicioCampo.Infrastructure.Database;
-using BubbaBag.SharedKernel;
+using ProgrammingCar.Modules.ServicioCampo.Application.Almacenes.Ajustes;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Almacenes;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Productos;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Organizacion;
+using ProgrammingCar.Modules.ServicioCampo.Infrastructure.Database;
+using ProgrammingCar.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 
 internal static class AjustesWorkflow

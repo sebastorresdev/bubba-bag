@@ -1,6 +1,6 @@
 # Patrón de Endpoints de API (Minimal APIs con Named Static Handlers)
 
-Este documento define el estándar oficial de arquitectura para la exposición de endpoints HTTP en el backend de BubbaBag (.NET / Minimal APIs).
+Este documento define el estándar oficial de arquitectura para la exposición de endpoints HTTP en el backend de ProgrammingCar (.NET / Minimal APIs).
 
 ---
 
@@ -14,7 +14,7 @@ Toda ruta debe mapearse a un **método estático con nombre descriptivo**. La fu
 
 ## 2. Estructura Estándar
 
-Cada módulo define sus endpoints en su capa `Api` (ej. `BubbaBag.Modules.<Modulo>.Api`).
+Cada módulo define sus endpoints en su capa `Api` (ej. `ProgrammingCar.Modules.<Modulo>.Api`).
 
 ### Reglas de Organización
 1. **Método de extensión:** Se expone un método de extensión sobre `IEndpointRouteBuilder` (`Map<Modulo>Endpoints` o `Map<Entidad>Endpoints`).
@@ -31,13 +31,13 @@ Cada módulo define sus endpoints en su capa `Api` (ej. `BubbaBag.Modules.<Modul
 ## 3. Plantilla de Ejemplo
 
 ```csharp
-using BubbaBag.Modules.RecursosHumanos.Application.Empleados.Features;
-using BubbaBag.SharedKernel.CQRS;
+using ProgrammingCar.Modules.RecursosHumanos.Application.Empleados.Features;
+using ProgrammingCar.SharedKernel.CQRS;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 
-namespace BubbaBag.Modules.RecursosHumanos.Api;
+namespace ProgrammingCar.Modules.RecursosHumanos.Api;
 
 public static class EmpleadoEndpoints
 {

@@ -125,7 +125,7 @@ El dominio conserva los resultados previos de pérdida y daño. La API los recon
 
 ## Migración
 
-El SQL está en src/Modules/ServicioCampo/BubbaBag.Modules.ServicioCampo.Infrastructure/Database/Migrations/Sql/inventario-ubicaciones.sql. MigracionUbicacionesInventario lo ejecuta dentro de una transacción al arrancar, antes de los sembradores. Después asegura Principal para los almacenes creados por los sembradores.
+El SQL está en src/Modules/ServicioCampo/ProgrammingCar.Modules.ServicioCampo.Infrastructure/Database/Migrations/Sql/inventario-ubicaciones.sql. MigracionUbicacionesInventario lo ejecuta dentro de una transacción al arrancar, antes de los sembradores. Después asegura Principal para los almacenes creados por los sembradores.
 
 La versión registrada evita repetir las transformaciones. Se comprueban custodias activas duplicadas, cantidades frente a series, tránsitos identificables, pendientes contradictorios y coincidencia de saldos seriados sin reservas pendientes de conciliar. Las inconsistencias detienen la migración con un mensaje específico.
 

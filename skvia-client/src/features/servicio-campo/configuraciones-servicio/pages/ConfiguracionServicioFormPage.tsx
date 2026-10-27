@@ -109,6 +109,7 @@ export function ConfiguracionServicioFormPage() {
   const [nombre, setNombre] = useState('');
   const [productoId, setProductoId] = useState('');
   const [duracionEstimadaMinutos, setDuracionEstimadaMinutos] = useState<number>(60);
+  const [puntos, setPuntos] = useState<number>(1);
   const [slaHorasResolucion, setSlaHorasResolucion] = useState<number | null>(null);
   const [descripcion, setDescripcion] = useState('');
   const [activo, setActivo] = useState(true);
@@ -157,7 +158,7 @@ export function ConfiguracionServicioFormPage() {
   const [nuevoMaterialObligatorio, setNuevoMaterialObligatorio] = useState(false);
   const [nuevoMaterialObservaciones, setNuevoMaterialObservaciones] = useState('');
   const focusValidation = useValidationFocus();
-  const draft = useUnsavedChanges({ nombre,productoId,duracionEstimadaMinutos,slaHorasResolucion,descripcion,tareas,materiales }, !loading);
+  const draft = useUnsavedChanges({ nombre,productoId,duracionEstimadaMinutos,slaHorasResolucion,puntos,descripcion,tareas,materiales }, !loading);
 
 
   // Carga inicial
@@ -182,6 +183,7 @@ export function ConfiguracionServicioFormPage() {
         setSavedCantidadTareas(plantilla.tareas.length);
         setSavedCantidadMateriales(plantilla.materiales.length);
         setDuracionEstimadaMinutos(plantilla.duracionEstimadaMinutos);
+        setPuntos(plantilla.puntos ?? 1);
         setSlaHorasResolucion(plantilla.slaHorasResolucion ?? null);
         setDescripcion(plantilla.descripcion || '');
         setActivo(plantilla.activo);
@@ -912,6 +914,20 @@ export function ConfiguracionServicioFormPage() {
                   <Input
                     value={nombre}
                     onChange={(_, d) => setNombre(d.value)}
+                  />
+                </D365FormField>
+
+                <D365FormField
+                  label="Puntos de trabajo"
+                  required
+                  info="Valor en puntos que acumula el técnico al realizar este tipo de servicio."
+                >
+                  <Input
+                    type="number"
+                    min={0.1}
+                    step={0.1}
+                    value={puntos.toString()}
+                    onChange={(_, d) => setPuntos(parseFloat(d.value) || 1)}
                   />
                 </D365FormField>
 

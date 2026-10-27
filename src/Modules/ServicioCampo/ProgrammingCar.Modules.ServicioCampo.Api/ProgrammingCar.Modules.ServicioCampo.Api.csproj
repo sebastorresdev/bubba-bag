@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Seguridad\ProgrammingCar.Modules.Seguridad.Application\ProgrammingCar.Modules.Seguridad.Application.csproj" />
+    <ProjectReference Include="..\ProgrammingCar.Modules.ServicioCampo.Application\ProgrammingCar.Modules.ServicioCampo.Application.csproj" />
+    <ProjectReference Include="..\ProgrammingCar.Modules.ServicioCampo.Infrastructure\ProgrammingCar.Modules.ServicioCampo.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\Shared\ProgrammingCar.SharedKernel\ProgrammingCar.SharedKernel.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

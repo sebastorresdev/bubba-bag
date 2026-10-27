@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  Badge,
   Link,
   Menu,
   MenuTrigger,
@@ -191,6 +192,30 @@ export function RecursosListPage() {
         columnId: 'almacenBase',
         renderHeaderCell: () => 'Almacén de Abastecimiento',
         renderCell: (x) => <TableCellLayout truncate><Text>{x.almacenBaseNombre || '—'}</Text></TableCellLayout>,
+      }),
+      createTableColumn({
+        columnId: 'puntosMes',
+        compare: (a, b) => (a.puntosMesActual || 0) - (b.puntosMesActual || 0),
+        renderHeaderCell: () => 'Pts (Mes)',
+        renderCell: (x) => (
+          <TableCellLayout truncate>
+            <Badge appearance="tint" color="brand">
+              {x.puntosMesActual ?? 0} pts
+            </Badge>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn({
+        columnId: 'puntosTotales',
+        compare: (a, b) => (a.puntosTotales || 0) - (b.puntosTotales || 0),
+        renderHeaderCell: () => 'Pts (Total)',
+        renderCell: (x) => (
+          <TableCellLayout truncate>
+            <Badge appearance="tint" color="informative">
+              {x.puntosTotales ?? 0} pts
+            </Badge>
+          </TableCellLayout>
+        ),
       }),
       createTableColumn({
         columnId: 'estado',

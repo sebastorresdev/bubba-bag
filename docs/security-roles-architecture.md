@@ -1,15 +1,15 @@
 # Arquitectura de Seguridad: Roles Fijos y Modelo Multi-Rol
 
-Este documento define la estructura de roles del sistema BubbaBag ERP, su jerarquía/escala de acceso y el soporte multi-rol para usuarios con responsabilidades transversales.
+Este documento define la estructura de roles del sistema ProgrammingCar ERP, su jerarquía/escala de acceso y el soporte multi-rol para usuarios con responsabilidades transversales.
 
 ---
 
 ## 1. Catálogo de Roles Fijos del Sistema
 
-El sistema establece una escala corporativa modular con roles organizados por departamento (definidos en [Roles.cs](file:///c:/DEV_HOME/PROYECTOS/BUBBA_BAG/src/Shared/BubbaBag.SharedKernel/Authorization/Roles.cs)):
+El sistema establece una escala corporativa modular con roles organizados por departamento (definidos en [Roles.cs](file:///c:/DEV_HOME/PROYECTOS/BUBBA_BAG/src/Shared/ProgrammingCar.SharedKernel/Authorization/Roles.cs)):
 
 ```csharp
-namespace BubbaBag.SharedKernel.Authorization;
+namespace ProgrammingCar.SharedKernel.Authorization;
 
 public static class Roles
 {

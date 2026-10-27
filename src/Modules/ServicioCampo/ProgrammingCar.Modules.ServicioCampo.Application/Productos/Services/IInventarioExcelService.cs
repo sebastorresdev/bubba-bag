@@ -1,0 +1,22 @@
+using System;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using ProgrammingCar.Modules.ServicioCampo.Application.Productos.Dtos;
+
+namespace ProgrammingCar.Modules.ServicioCampo.Application.Productos.Services;
+
+public interface IInventarioExcelService
+{
+    Task<byte[]> GenerarPlantillaProductosAsync(CancellationToken cancellationToken = default);
+    Task<ImportarExcelResultadoDto> ImportarProductosAsync(Stream stream, bool actualizarExistentes = false, CancellationToken cancellationToken = default);
+
+    Task<byte[]> GenerarPlantillaCategoriasAsync(CancellationToken cancellationToken = default);
+    Task<ImportarExcelResultadoDto> ImportarCategoriasAsync(Stream stream, CancellationToken cancellationToken = default);
+
+    Task<byte[]> GenerarPlantillaUnidadesMedidaAsync(CancellationToken cancellationToken = default);
+    Task<ImportarExcelResultadoDto> ImportarUnidadesMedidaAsync(Stream stream, CancellationToken cancellationToken = default);
+
+    Task<byte[]> GenerarPlantillaListaPreciosAsync(CancellationToken cancellationToken = default);
+    Task<ImportarExcelResultadoDto> ImportarElementosListaPreciosAsync(Guid listaPreciosId, Stream stream, CancellationToken cancellationToken = default);
+}

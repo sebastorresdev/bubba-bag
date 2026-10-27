@@ -80,7 +80,7 @@ export const TransferenciaService = {
 
     const tipo = opciones?.tipoOperacion || 'Despacho / Cargo Oficial';
     const lines = [
-      `*CARGO OFICIAL - SKVIA*`,
+      `*CARGO OFICIAL - PROGRAMMING CAR*`,
       `*Operación:* ${tipo}`,
       `*N° Documento:* ${numero || id}`,
     ];
@@ -161,7 +161,7 @@ export const TransferenciaService = {
       `• Fecha: ${new Date().toLocaleDateString('es-PE')}`,
       '',
       'Saludos cordiales,',
-      'Equipo de Operaciones - SKVIA',
+      'Equipo de Operaciones - PROGRAMMING CAR',
     ].filter(Boolean).join('\n');
 
     const mailto = `mailto:${opciones?.email || ''}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;

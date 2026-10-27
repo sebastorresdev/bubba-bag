@@ -1,0 +1,95 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using ProgrammingCar.Modules.ServicioCampo.Application.Productos.Dtos;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Productos;
+using ProgrammingCar.SharedKernel;
+using ProgrammingCar.SharedKernel.CQRS;
+using Microsoft.EntityFrameworkCore;
+
+namespace ProgrammingCar.Modules.ServicioCampo.Application.Productos.Queries.ObtenerProductos;
+
+public record ObtenerProductosQuery(
+    string? Search = null,
+    string? Categoria = null,
+    TipoProducto? Tipo = null,
+    bool? SoloActivos = true,
+    int? Limite = null
+) : IQuery<Result<List<ProductoDto>>>;
+
+public class ObtenerProductosHandler : IQueryHandler<ObtenerProductosQuery, Result<List<ProductoDto>>>
+{
+    private readonly IServicioCampoDbContext _context;
+
+    public ObtenerProductosHandler(IServicioCampoDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<Result<List<ProductoDto>>> HandleAsync(ObtenerProductosQuery query, CancellationToken cancellationToken = default)
+    {
+        var dbQuery = _context.Productos
+            .Include(p => p.GrupoUnidadMedida)
+            .Include(p => p.CategoriaProducto)
+            .Include(p => p.UnidadMedidaDefecto)
+            .Include(p => p.ListaPreciosPredeterminada)
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (query.SoloActivos.HasValue)
+            dbQuery = dbQuery.Where(p => p.Activo == query.SoloActivos.Value);
+
+        if (query.Tipo.HasValue)
+            dbQuery = dbQuery.Where(p => p.Tipo == query.Tipo.Value);
+
+        if (!string.IsNullOrWhiteSpace(query.Categoria))
+            dbQuery = dbQuery.Where(p => p.CategoriaProducto != null && p.CategoriaProducto.Nombre == query.Categoria.Trim());
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = query.Search.Trim().ToLower();
+            dbQuery = dbQuery.Where(p =>
+                p.Codigo.ToLower().Contains(search) ||
+                p.Nombre.ToLower().Contains(search) ||
+                (query.Limite == null && p.Descripcion != null && p.Descripcion.ToLower().Contains(search)));
+        }
+
+        dbQuery = dbQuery
+            .OrderBy(p => p.Tipo)
+            .ThenBy(p => p.CategoriaProducto != null ? p.CategoriaProducto.Nombre : null)
+            .ThenBy(p => p.Nombre)
+            .ThenBy(p => p.Id);
+        if (query.Limite.HasValue) dbQuery = dbQuery.Take(Math.Clamp(query.Limite.Value, 1, 50));
+        var lista = await dbQuery.ToListAsync(cancellationToken);
+
+        var dtos = lista.Select(p => new ProductoDto(
+            p.Id,
+            p.Codigo,
+            p.Nombre,
+            p.Descripcion,
+            p.Tipo,
+            p.PrecioBase,
+            p.CategoriaProductoId,
+            p.CategoriaProducto != null ? p.CategoriaProducto.Nombre : null,
+            p.GrupoUnidadMedidaId,
+            p.GrupoUnidadMedida?.Nombre,
+            p.UnidadMedidaDefectoId,
+            p.UnidadMedidaDefecto?.Nombre,
+            p.EsSerializado,
+            p.Activo,
+            p.CodigoBarras,
+            p.Notas,
+            p.CostoActual,
+            p.CostoEstandar,
+            p.AfectoImpuesto,
+            p.ProveedorDefecto,
+            p.ListaPreciosPredeterminadaId,
+            p.ListaPreciosPredeterminada?.Nombre,
+            p.DecimalesCantidad
+        )).ToList();
+
+        return Result<List<ProductoDto>>.Success(dtos);
+    }
+}

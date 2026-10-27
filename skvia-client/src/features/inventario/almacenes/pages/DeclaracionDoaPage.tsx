@@ -898,7 +898,7 @@ export const DeclaracionDoaPage: React.FC = () => {
                   `• Fecha: ${new Date().toLocaleDateString('es-PE')}`,
                   '',
                   'Saludos cordiales,',
-                  'Control de Calidad / Logística Inversa - SKVIA',
+                  'Control de Calidad / Logística Inversa - PROGRAMMING CAR',
                 ].join('\n');
                 window.location.href = `mailto:?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
               }}

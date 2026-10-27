@@ -74,6 +74,8 @@ export interface RecursoDto {
   usuarioNombre?: string | null;
   usuarioEmail?: string | null;
   capacidadMaximaOrdenesPorDia: number;
+  puntosTotales?: number;
+  puntosMesActual?: number;
   colorHex?: string | null;
   activo: boolean;
 }

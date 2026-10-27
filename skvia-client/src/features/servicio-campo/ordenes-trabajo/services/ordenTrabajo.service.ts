@@ -1,4 +1,4 @@
-import { apiClient, apiClientDownload, getValidAuthToken } from '../../../../services/apiClient';
+import { apiClient, apiClientDownload, apiClientUpload, getValidAuthToken } from '../../../../services/apiClient';
 import type {
   OrdenTrabajoListadoItemDto,
   OrdenTrabajoDetalleDto,
@@ -11,6 +11,7 @@ import type {
   ReprogramarVisitaDto,
   CancelarVisitaDto,
   MotivoIncidenciaDto,
+  ResultadoImportacionSiebel,
 } from '../types/ordenTrabajo.types';
 const base = '/api/serviciocampo/ordenes';
 const write = (method: string, data?: unknown): RequestInit => ({ method, ...(data !== undefined ? { body: JSON.stringify(data) } : {}) });
@@ -71,6 +72,14 @@ export const OrdenTrabajoService = {
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
     window.open(url, '_blank');
+  },
+  importarSiebel(file?: File, rutaArchivo?: string): Promise<ResultadoImportacionSiebel> {
+    if (file) {
+      const formData = new FormData();
+      formData.append('file', file);
+      return apiClientUpload<ResultadoImportacionSiebel>('/api/serviciocampo/ordenes/importar-siebel', formData);
+    }
+    return apiClient<ResultadoImportacionSiebel>('/api/serviciocampo/ordenes/importar-siebel', write('POST', { rutaArchivo }));
   },
 };
 

@@ -43,6 +43,7 @@ export interface OrdenTrabajoListadoItemDto {
   direccionServicio?: string | null;
   ubigeoTexto?: string | null;
   fechaCreacion: string;
+  totalPuntos?: number;
 }
 
 export interface OrdenTrabajoMaterialDto {
@@ -97,6 +98,7 @@ export interface OrdenTrabajoItemDto {
   itemNumero: number;
   estado: string;
   tarifaBaseCongelada: number;
+  puntos?: number;
   tarifaBase?: number;
   observaciones?: string | null;
   totalTareas: number;
@@ -113,6 +115,7 @@ export interface CrearOrdenTrabajoItemDto {
   configuracionServicioId?: string;
   tarifaBase?: number;
   observaciones?: string;
+  puntos?: number;
 }
 
 export interface OrdenTrabajoDetalleDto {
@@ -158,6 +161,7 @@ export interface OrdenTrabajoDetalleDto {
   materiales: OrdenTrabajoMaterialDto[];
   tareas: OrdenTrabajoTareaDto[];
   visitas: OrdenTrabajoVisitaDto[];
+  totalPuntos?: number;
 }
 
 export interface CrearOrdenTrabajoDto {
@@ -187,6 +191,7 @@ export interface ActualizarOrdenTrabajoDto {
   fechaProgramada?: string;
   bloqueHorario?: string;
   observaciones?: string;
+  puntos?: number;
 }
 
 export interface CambiarEstadoSistemaDto {
@@ -196,6 +201,7 @@ export interface CambiarEstadoSistemaDto {
   bloqueHorario?: string;
   motivoId?: string;
   observaciones?: string;
+  puntos?: number;
 }
 
 export interface TipoOrdenTrabajoOpcion {
@@ -248,4 +254,16 @@ export interface MotivoIncidenciaDto {
   descripcion?: string | null;
   ambito: 'Visita' | 'OrdenTrabajo' | 'Tarea';
   activo: boolean;
+}
+
+export interface ResultadoImportacionSiebel {
+  totalFilas: number;
+  totalOrdenesDetectadas: number;
+  ordenesCreadas: number;
+  ordenesOmitidas: number;
+  clientesCreados: number;
+  serviciosCreados: number;
+  zonasCreadas: number;
+  tecnicosCreados: number;
+  errores: string[];
 }

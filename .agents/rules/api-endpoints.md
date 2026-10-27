@@ -1,6 +1,6 @@
 # Regla de Arquitectura: Patrón de Endpoints en Minimal APIs
 
-Al crear, modificar o refactorizar endpoints en el backend de BubbaBag (.NET / C#), **SIEMPRE** se debe cumplir con las siguientes reglas:
+Al crear, modificar o refactorizar endpoints en el backend de ProgrammingCar (.NET / C#), **SIEMPRE** se debe cumplir con las siguientes reglas:
 
 1. **NO usar lambdas anónimas / delegados inline** en los mapeos de rutas (`group.MapGet("/", async (...) => { ... })` está prohibido).
 2. **Usar Route Groups con Named Static Handlers**:

@@ -4,6 +4,7 @@ import { useUnsavedChanges } from '../../../hooks/useUnsavedChanges';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
+  Badge,
   Input,
   Select,
   Switch,
@@ -66,6 +67,8 @@ const DEFAULT_HEADER_INFO = {
   nombre: '',
   tipoNombre: 'Usuario',
   activo: true,
+  puntosTotales: 0,
+  puntosMesActual: 0,
 };
 
 export function RecursoFormPage() {
@@ -97,6 +100,8 @@ export function RecursoFormPage() {
     nombre: string;
     tipoNombre: string;
     activo: boolean;
+    puntosTotales?: number;
+    puntosMesActual?: number;
   }>(DEFAULT_HEADER_INFO);
 
   // Catálogos
@@ -189,6 +194,8 @@ export function RecursoFormPage() {
         nombre: rec.nombreCompleto,
         tipoNombre: rec.tipoNombre,
         activo: rec.activo,
+        puntosTotales: rec.puntosTotales ?? 0,
+        puntosMesActual: rec.puntosMesActual ?? 0,
       });
     } catch (err: any) {
       setStatusMessage({ type: 'error', text: err?.message || 'Error al obtener datos del recurso.' });
@@ -378,6 +385,10 @@ navigate('/servicio-campo/recursos'); }
             metadata={[
               { label: 'Rol', value: headerInfo.tipoNombre },
               { label: 'Estado', value: headerInfo.activo ? 'Activo' : 'Inactivo' },
+              ...(isEditMode ? [
+                { label: 'Pts Mes', value: <Badge appearance="tint" color="brand">{headerInfo.puntosMesActual ?? 0} pts</Badge> },
+                { label: 'Pts Total', value: <Badge appearance="tint" color="informative">{headerInfo.puntosTotales ?? 0} pts</Badge> },
+              ] : []),
             ]}
             tabs={
               <TabList

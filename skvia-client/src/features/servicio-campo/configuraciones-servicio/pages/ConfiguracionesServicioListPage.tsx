@@ -2,6 +2,7 @@ import { confirmAction } from '../../../../services/uiFeedback';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  Badge,
   Link,
   TableCellLayout,
   Text,
@@ -204,6 +205,18 @@ export function ConfiguracionesServicioListPage() {
         renderCell: (item) => (
           <TableCellLayout>
             <Text>{item.slaHorasResolucion ? `${item.slaHorasResolucion} h` : '—'}</Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ConfiguracionServicioListadoDto>({
+        columnId: 'puntos',
+        compare: (a, b) => (a.puntos || 0) - (b.puntos || 0),
+        renderHeaderCell: () => 'Puntos',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Badge appearance="tint" color="brand">
+              {item.puntos ?? 1} pts
+            </Badge>
           </TableCellLayout>
         ),
       }),

@@ -3,22 +3,22 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using BubbaBag.Modules.GestionDatos.Domain;
-using BubbaBag.Modules.GestionDatos.Infrastructure.Database;
-using BubbaBag.Modules.RecursosHumanos.Domain.Empleados;
-using BubbaBag.Modules.RecursosHumanos.Domain.Organizacion;
-using BubbaBag.Modules.RecursosHumanos.Infrastructure.Database;
-using BubbaBag.Modules.Seguridad.Application.Auth;
-using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Ajustes;
-using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
-using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
-using BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
-using BubbaBag.Modules.ServicioCampo.Domain.Organizacion;
-using BubbaBag.Modules.ServicioCampo.Domain.Productos;
-using BubbaBag.Modules.ServicioCampo.Domain.Recursos;
-using BubbaBag.Modules.ServicioCampo.Infrastructure.Database;
-using BubbaBag.SharedKernel.Authorization;
-using BubbaBag.SharedKernel;
+using ProgrammingCar.Modules.GestionDatos.Domain;
+using ProgrammingCar.Modules.GestionDatos.Infrastructure.Database;
+using ProgrammingCar.Modules.RecursosHumanos.Domain.Empleados;
+using ProgrammingCar.Modules.RecursosHumanos.Domain.Organizacion;
+using ProgrammingCar.Modules.RecursosHumanos.Infrastructure.Database;
+using ProgrammingCar.Modules.Seguridad.Application.Auth;
+using ProgrammingCar.Modules.ServicioCampo.Application.Almacenes.Ajustes;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Almacenes;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Mantenimientos;
+using ProgrammingCar.Modules.ServicioCampo.Domain.OrdenesTrabajo;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Organizacion;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Productos;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Recursos;
+using ProgrammingCar.Modules.ServicioCampo.Infrastructure.Database;
+using ProgrammingCar.SharedKernel.Authorization;
+using ProgrammingCar.SharedKernel;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -99,7 +99,7 @@ internal static class AltaPrioridadWorkflow
             var ra = Recurso.Crear("ALTA-RA", "Técnico A", usuarioId: ids["TecnicoA"]);
             var rb = Recurso.Crear("ALTA-RB", "Técnico B", usuarioId: ids["TecnicoB"]);
             var tipo = TipoOrdenTrabajo.Crear("Prueba de alcance", exigeFirmaCliente: false, exigeEvidenciasFotograficas: false);
-            var cliente = BubbaBag.Modules.ServicioCampo.Domain.Clientes.Cliente.Crear("ALTA-CLI", "87654321", "Cliente", "Pruebas", "123456", "Dirección", "150101", esClienteFacturacion: true); db.Add(cliente);
+            var cliente = ProgrammingCar.Modules.ServicioCampo.Domain.Clientes.Cliente.Crear("ALTA-CLI", "87654321", "Cliente", "Pruebas", "123456", "Dirección", "150101", esClienteFacturacion: true); db.Add(cliente);
             var oa = OrdenTrabajo.Crear("ALTA-OA", tipo.Id, ids[Roles.SuperAdmin], cliente.Id, cliente.Id);
             var ob = OrdenTrabajo.Crear("ALTA-OB", tipo.Id, ids[Roles.SuperAdmin], cliente.Id, cliente.Id);
             oa.ProgramarVisita("ALTA-OA-V1", ra.Id, new DateOnly(2026, 10, 14), null);
@@ -209,7 +209,7 @@ internal static class AltaPrioridadWorkflow
         await using (var postgresDesign = new ServicioCampoDbContext(new DbContextOptionsBuilder<ServicioCampoDbContext>()
             .UseNpgsql("Host=localhost;Database=design_only;Username=design_only;Password=design_only").Options))
         {
-            var sql = BubbaBag.Modules.ServicioCampo.Application.OrdenesTrabajo.OrdenesAcceso.Consultables(postgresDesign, new TecnicoPrueba(ids["TecnicoB"])).ToQueryString();
+            var sql = ProgrammingCar.Modules.ServicioCampo.Application.OrdenesTrabajo.OrdenesAcceso.Consultables(postgresDesign, new TecnicoPrueba(ids["TecnicoB"])).ToQueryString();
             Check(sql.Contains("max(", StringComparison.OrdinalIgnoreCase) && sql.Contains("UsuarioId"), "Filtro real de asignación se traduce a SQL PostgreSQL sin consultar una base");
         }
         await Login("Cerrador");

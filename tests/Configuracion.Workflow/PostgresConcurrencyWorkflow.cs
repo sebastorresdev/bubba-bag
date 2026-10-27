@@ -3,28 +3,28 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using BubbaBag.Api;
-using BubbaBag.Api.Middlewares;
-using BubbaBag.Modules.GestionDatos.Api;
-using BubbaBag.Modules.GestionDatos.Infrastructure.Database;
-using BubbaBag.Modules.RecursosHumanos.Api;
-using BubbaBag.Modules.RecursosHumanos.Infrastructure.Database;
-using BubbaBag.Modules.Seguridad.Api;
-using BubbaBag.Modules.Seguridad.Application.Auth;
-using BubbaBag.Modules.Seguridad.Infrastructure.Persistence;
-using BubbaBag.Modules.Seguridad.Infrastructure.Persistence.Seeders;
-using BubbaBag.Modules.ServicioCampo.Api;
-using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Ajustes;
-using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
-using BubbaBag.Modules.ServicioCampo.Domain.Clientes;
-using BubbaBag.Modules.ServicioCampo.Domain.Enums;
-using BubbaBag.Modules.ServicioCampo.Domain.Mantenimientos;
-using BubbaBag.Modules.ServicioCampo.Domain.OrdenesTrabajo;
-using BubbaBag.Modules.ServicioCampo.Domain.Organizacion;
-using BubbaBag.Modules.ServicioCampo.Domain.Productos;
-using BubbaBag.Modules.ServicioCampo.Domain.Recursos;
-using BubbaBag.Modules.ServicioCampo.Infrastructure.Database;
-using BubbaBag.SharedKernel.Authorization;
+using ProgrammingCar.Api;
+using ProgrammingCar.Api.Middlewares;
+using ProgrammingCar.Modules.GestionDatos.Api;
+using ProgrammingCar.Modules.GestionDatos.Infrastructure.Database;
+using ProgrammingCar.Modules.RecursosHumanos.Api;
+using ProgrammingCar.Modules.RecursosHumanos.Infrastructure.Database;
+using ProgrammingCar.Modules.Seguridad.Api;
+using ProgrammingCar.Modules.Seguridad.Application.Auth;
+using ProgrammingCar.Modules.Seguridad.Infrastructure.Persistence;
+using ProgrammingCar.Modules.Seguridad.Infrastructure.Persistence.Seeders;
+using ProgrammingCar.Modules.ServicioCampo.Api;
+using ProgrammingCar.Modules.ServicioCampo.Application.Almacenes.Ajustes;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Almacenes;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Clientes;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Enums;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Mantenimientos;
+using ProgrammingCar.Modules.ServicioCampo.Domain.OrdenesTrabajo;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Organizacion;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Productos;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Recursos;
+using ProgrammingCar.Modules.ServicioCampo.Infrastructure.Database;
+using ProgrammingCar.SharedKernel.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
@@ -59,7 +59,7 @@ internal static class PostgresConcurrencyWorkflow
             builder.Services.AddDbContext<SeguridadDbContext>(o => o.UseNpgsql(connection));
             builder.Services.AddDbContext<RecursosHumanosDbContext>(o => o.UseNpgsql(connection));
             builder.Services.AddDbContext<GestionDatosDbContext>(o => o.UseNpgsql(connection));
-            builder.Services.AddBubbaBagServices(builder.Configuration);
+            builder.Services.AddProgrammingCarServices(builder.Configuration);
             builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(Directory.GetCurrentDirectory(), ".artifacts", "concurrencia-keys"))).UseEphemeralDataProtectionProvider();
             builder.Services.AddServicioCampoModule(); builder.Services.AddRecursosHumanosModule(); builder.Services.AddGestionDatosModule();
             builder.Services.AddExceptionHandler<GlobalExceptionHandler>(); builder.Services.AddProblemDetails();
@@ -84,7 +84,7 @@ internal static class PostgresConcurrencyWorkflow
                 var p = Producto.Crear("CONC-P", "Normal", grupoUnidadMedidaId: grupo.Id, unidadMedidaDefectoId: unidad.Id);
                 var s = Producto.Crear("CONC-S", "Seriado", grupoUnidadMedidaId: grupo.Id, unidadMedidaDefectoId: unidad.Id, esSerializado: true);
                 var cliente = Cliente.Crear("CONC-CLI", "12345678", "Cliente", "Pruebas", "123", "Dirección", "150101", esClienteFacturacion: true);
-                db.Ubigeos.Add(BubbaBag.Modules.ServicioCampo.Domain.Ubigeos.Ubigeo.Crear("150101", "Lima", "Lima", "Lima"));
+                db.Ubigeos.Add(ProgrammingCar.Modules.ServicioCampo.Domain.Ubigeos.Ubigeo.Crear("150101", "Lima", "Lima", "Lima"));
                 var recurso = Recurso.Crear("CONC-R", "Técnico", usuarioId: userId);
                 var tipo = TipoOrdenTrabajo.Crear("Concurrencia", exigeFirmaCliente: false, exigeEvidenciasFotograficas: false);
                 OrdenTrabajo Orden(string codigo) { var o = OrdenTrabajo.Crear(codigo, tipo.Id, userId, cliente.Id, cliente.Id); o.ProgramarVisita(codigo + "-V1", recurso.Id, DateOnly.FromDateTime(DateTime.UtcNow), null); return o; }
@@ -101,7 +101,7 @@ internal static class PostgresConcurrencyWorkflow
             var codigos = await Task.WhenAll(Enumerable.Range(0, 8).Select(async _ =>
             {
                 await using var scope = app.Services.CreateAsyncScope();
-                return await scope.ServiceProvider.GetRequiredService<BubbaBag.SharedKernel.ICodigoSecuencialService>()
+                return await scope.ServiceProvider.GetRequiredService<ProgrammingCar.SharedKernel.ICodigoSecuencialService>()
                     .SiguienteCodigoAsync("PRU", "primera_secuencia", "prueba_secuencia_nueva");
             }));
             Check(codigos.Distinct().Count() == 8, "Creación simultánea de esquema y secuencia genera ocho códigos únicos");

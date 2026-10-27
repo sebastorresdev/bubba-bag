@@ -149,7 +149,7 @@ export const DevolucionProveedorService = {
       `• Fecha: ${new Date().toLocaleDateString('es-PE')}`,
       '',
       'Saludos cordiales,',
-      'Equipo de Logística Inversa - SKVIA',
+      'Equipo de Logística Inversa - PROGRAMMING CAR',
     ].filter(Boolean).join('\n');
 
     const mailto = `mailto:${opciones?.email || ''}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;

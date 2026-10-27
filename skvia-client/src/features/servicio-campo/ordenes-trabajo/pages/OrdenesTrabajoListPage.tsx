@@ -2,6 +2,7 @@ import { useAuthSession } from '../../../../services/authSession';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  Badge,
   Link,
   TableCellLayout,
   Text,
@@ -19,6 +20,7 @@ import {
   Add16Regular,
   ArrowClockwise16Regular,
   ArrowDownload16Regular,
+  ArrowUpload16Regular,
   ChevronDown16Regular,
   Checkmark16Regular,
   DocumentTable20Regular,
@@ -37,6 +39,7 @@ import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 import { OrdenTrabajoService } from '../services/ordenTrabajo.service';
 import type { OrdenTrabajoListadoItemDto } from '../types/ordenTrabajo.types';
 import { exportToExcel, exportToCSV, type ExportColumn } from '../../../../utils/exportUtils';
+import { ImportarSiebelDrawer } from '../components/ImportarSiebelDrawer';
 
 type VistaOrdenes =
   | 'todas'
@@ -86,6 +89,7 @@ export const OrdenesTrabajoListPage: React.FC = () => {
 
   const [ordenes, setOrdenes] = useState<OrdenTrabajoListadoItemDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [importarSiebelOpen, setImportarSiebelOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [activeView, setActiveView] = useState<VistaOrdenes>('todas');
@@ -258,6 +262,18 @@ export const OrdenesTrabajoListPage: React.FC = () => {
         ),
       }),
       createTableColumn<OrdenTrabajoListadoItemDto>({
+        columnId: 'totalPuntos',
+        compare: (a, b) => (a.totalPuntos || 0) - (b.totalPuntos || 0),
+        renderHeaderCell: () => 'Puntos',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Badge appearance="tint" color="brand">
+              {item.totalPuntos ?? 0} pts
+            </Badge>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<OrdenTrabajoListadoItemDto>({
         columnId: 'fechaProgramada',
         compare: (a, b) => (a.fechaProgramada || '').localeCompare(b.fechaProgramada || ''),
         renderHeaderCell: () => 'Fecha Cita',
@@ -307,6 +323,13 @@ export const OrdenesTrabajoListPage: React.FC = () => {
             onClick={() => navigate('/servicio-campo/ordenes/nuevo')}
           >
             Nuevo
+          </D365CommandButton>
+
+          <D365CommandButton
+            icon={<ArrowUpload16Regular />}
+            onClick={() => setImportarSiebelOpen(true)}
+          >
+            Importar Siebel
           </D365CommandButton>
 
           <D365CommandButton
@@ -386,6 +409,12 @@ export const OrdenesTrabajoListPage: React.FC = () => {
         filterFields={filterFields}
         entityName="ordenes"
         tableId="ordenes-grid"
+      />
+
+      <ImportarSiebelDrawer
+        open={importarSiebelOpen}
+        onOpenChange={setImportarSiebelOpen}
+        onSuccess={() => void cargar()}
       />
 
       {/* 4. FOOTER */}

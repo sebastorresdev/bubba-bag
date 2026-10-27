@@ -229,7 +229,7 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
             }}
             onCompartirCorreo={() => {
               const url = window.location.href;
-              const asunto = 'Catálogo de Productos - SKVIA';
+              const asunto = 'Catálogo de Productos - PROGRAMMING CAR';
               const cuerpo = `Hola,\n\nTe comparto el enlace al catálogo de Productos:\n${url}\n\nSaludos cordiales.`;
               window.location.href = `mailto:?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
             }}

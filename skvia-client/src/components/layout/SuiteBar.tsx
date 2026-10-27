@@ -396,8 +396,8 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
             icon={<Apps20Regular />}
           />
 
-          {/* SKVIA Brand Text only */}
-          <span className={styles.brandText}>SKVIA</span>
+          {/* PROGRAMMING CAR Brand Text */}
+          <span className={styles.brandText}>PROGRAMMING CAR</span>
 
           {/* Separator Pipe | */}
           <Divider vertical className={styles.divider} />
@@ -494,7 +494,7 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
                     Centro de Ayuda
                   </Text>
                   <Text size={100} style={{ opacity: 0.7 }} block>
-                    BubbaBag / SKVIA ERP v1.0.0
+                    PROGRAMMING CAR ERP v1.0.0
                   </Text>
                 </div>
                 <Divider style={{ margin: '6px 0' }} />

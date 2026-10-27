@@ -1,16 +1,16 @@
-using BubbaBag.Modules.ServicioCampo.Application;
-using BubbaBag.Modules.ServicioCampo.Application.Almacenes;
-using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Commands.CrearTransferenciaInventario;
-using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Commands.RecepcionarTransferencia;
-using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Commands.ResolverDiferenciaTransferencia;
-using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerInventarioProductos;
-using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerSeriesStock;
-using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerTransferenciaDetalle;
-using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
-using BubbaBag.Modules.ServicioCampo.Domain.Organizacion;
-using BubbaBag.Modules.ServicioCampo.Domain.Productos;
-using BubbaBag.Modules.ServicioCampo.Infrastructure.Database;
-using BubbaBag.SharedKernel;
+using ProgrammingCar.Modules.ServicioCampo.Application;
+using ProgrammingCar.Modules.ServicioCampo.Application.Almacenes;
+using ProgrammingCar.Modules.ServicioCampo.Application.Almacenes.Commands.CrearTransferenciaInventario;
+using ProgrammingCar.Modules.ServicioCampo.Application.Almacenes.Commands.RecepcionarTransferencia;
+using ProgrammingCar.Modules.ServicioCampo.Application.Almacenes.Commands.ResolverDiferenciaTransferencia;
+using ProgrammingCar.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerInventarioProductos;
+using ProgrammingCar.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerSeriesStock;
+using ProgrammingCar.Modules.ServicioCampo.Application.Almacenes.Queries.ObtenerTransferenciaDetalle;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Almacenes;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Organizacion;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Productos;
+using ProgrammingCar.Modules.ServicioCampo.Infrastructure.Database;
+using ProgrammingCar.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 
 internal static class InventarioWorkflow
@@ -28,7 +28,7 @@ internal static class InventarioWorkflow
         var a = Almacen.CrearBodega("TRU", "Bodega Trujillo", tru.Id);
         var b = Almacen.CrearBodega("CHI", "Bodega Chiclayo", chi.Id);
         // Custody resource FK requires an actual resource in relational tests.
-        var recurso = BubbaBag.Modules.ServicioCampo.Domain.Recursos.Recurso.Crear("ANA", "Ana");
+        var recurso = ProgrammingCar.Modules.ServicioCampo.Domain.Recursos.Recurso.Crear("ANA", "Ana");
         var personal = Almacen.CrearCustodiaPersonal("CUS", "Custodia Ana", tru.Id, recurso.Id);
         recurso.AsignarUnidadOrganizativa(tru.Id);
         var ua = UbicacionInventario.Crear(a.Id,"PRINCIPAL","Principal",true);

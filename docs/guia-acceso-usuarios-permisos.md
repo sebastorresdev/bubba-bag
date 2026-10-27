@@ -14,7 +14,7 @@ La cabecera de Usuarios conserva el nombre, correo e iniciales del registro guar
 
 ## Arranque sin datos de ejemplo
 
-La clave JWT se configura fuera del repositorio. En desarrollo, la API carga .NET User Secrets del proyecto `src/Host/BubbaBag.Api`; en otros entornos, se puede usar `JwtSettings__Secret`. Debe tener al menos 32 bytes. El archivo `appsettings.json` no contiene una clave de respaldo. Cambiar la clave requiere reiniciar la API y volver a iniciar sesión.
+La clave JWT se configura fuera del repositorio. En desarrollo, la API carga .NET User Secrets del proyecto `src/Host/ProgrammingCar.Api`; en otros entornos, se puede usar `JwtSettings__Secret`. Debe tener al menos 32 bytes. El archivo `appsettings.json` no contiene una clave de respaldo. Cambiar la clave requiere reiniciar la API y volver a iniciar sesión.
 
 La conexión de PostgreSQL con credenciales tampoco se versiona. Al ejecutar la API directamente, se configura `ConnectionStrings:sqldb` en User Secrets o `ConnectionStrings__sqldb` como variable de entorno. Aspire proporciona la conexión de su base administrada al iniciar el proyecto completo.
 

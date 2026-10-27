@@ -1,4 +1,4 @@
-# BubbaBag / SKVIA ERP
+# ProgrammingCar / SKVIA ERP
 
 Sistema ERP y Servicio de Campo (Field Service) a medida.
 
@@ -7,15 +7,15 @@ Sistema ERP y Servicio de Campo (Field Service) a medida.
 - **Backend:** Monolito Modular con .NET 10 y C# 13.
 - **Frontend:** React 19 con TypeScript, Microsoft Fluent UI v9 y Vite (`skvia-client`).
 - **Base de Datos:** PostgreSQL (EF Core 10).
-- **Orquestación:** .NET Aspire 13 (`BubbaBag.AppHost`).
+- **Orquestación:** .NET Aspire 13 (`ProgrammingCar.AppHost`).
 - **Patrones:** Clean Architecture, CQRS (implementación interna sin dependencias pesadas).
 
 ## Estructura de Proyectos (Backend)
 
-- `src/Host/BubbaBag.Api`: Proyecto principal que expone los endpoints Minimal API, configura inyección de dependencias, base de datos y seguridad.
-- `src/Host/BubbaBag.AppHost`: Orquestador de desarrollo local con .NET Aspire (PostgreSQL, API y Frontend Vite).
-- `src/Host/BubbaBag.ServiceDefaults`: Telemetría (OpenTelemetry), health checks y resiliencia.
-- `src/Shared/BubbaBag.SharedKernel`: Clases base, interfaces, Result pattern, y motor CQRS.
+- `src/Host/ProgrammingCar.Api`: Proyecto principal que expone los endpoints Minimal API, configura inyección de dependencias, base de datos y seguridad.
+- `src/Host/ProgrammingCar.AppHost`: Orquestador de desarrollo local con .NET Aspire (PostgreSQL, API y Frontend Vite).
+- `src/Host/ProgrammingCar.ServiceDefaults`: Telemetría (OpenTelemetry), health checks y resiliencia.
+- `src/Shared/ProgrammingCar.SharedKernel`: Clases base, interfaces, Result pattern, y motor CQRS.
 - `src/Modules/`: Módulos de negocio aislados:
   - `ServicioCampo`: Órdenes de trabajo, inventario, almacenes, compras, transferencias, listas de precios, catálogo de productos y mantenimiento operativo.
   - `RecursosHumanos`: Colaboradores, cargos, departamentos, sucursales y asistencia.
@@ -33,7 +33,7 @@ Ubicado en la carpeta `skvia-client`:
 
 ## Documentación Técnica
 
-- Para ejecutar la API, configurar `JwtSettings:Secret` mediante .NET User Secrets del proyecto `src/Host/BubbaBag.Api` o la variable de entorno `JwtSettings__Secret` (mínimo 32 bytes). La clave no se almacena en el repositorio.
+- Para ejecutar la API, configurar `JwtSettings:Secret` mediante .NET User Secrets del proyecto `src/Host/ProgrammingCar.Api` o la variable de entorno `JwtSettings__Secret` (mínimo 32 bytes). La clave no se almacena en el repositorio.
 - [Convenciones de interfaz: cabeceras y regreso al listado](docs/convenciones-interfaz.md)
 - [Convención de Nombres (Spanglish)](file:///c:/DEV_HOME/PROYECTOS/BUBBA_BAG/docs/naming-conventions.md)
 - [Patrón de Endpoints de API (Minimal APIs)](file:///c:/DEV_HOME/PROYECTOS/BUBBA_BAG/docs/api-endpoints-pattern.md)

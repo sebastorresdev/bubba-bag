@@ -189,7 +189,7 @@ export const CategoriasListPage: React.FC<CategoriasListPageProps> = ({
             }}
             onCompartirCorreo={() => {
               const url = window.location.href;
-              const asunto = 'Catálogo de Categorías - SKVIA';
+              const asunto = 'Catálogo de Categorías - PROGRAMMING CAR';
               const cuerpo = `Hola,\n\nTe comparto el enlace al catálogo de Categorías:\n${url}\n\nSaludos cordiales.`;
               window.location.href = `mailto:?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
             }}

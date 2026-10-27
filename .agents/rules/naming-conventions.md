@@ -1,6 +1,6 @@
 # Regla: Convención de Nombres (Spanglish)
 
-Al nombrar clases, archivos, carpetas, métodos y propiedades en BubbaBag:
+Al nombrar clases, archivos, carpetas, métodos y propiedades en ProgrammingCar:
 
 1. **Arquitectura Técnica en Inglés**:
    - `Command`, `Query`, `Handler`, `Dto`, `Repository`, `Entity`, `ValueObject`, `Validator`, `Domain`, `Application`, `Infrastructure`, `Api`, `Result`.

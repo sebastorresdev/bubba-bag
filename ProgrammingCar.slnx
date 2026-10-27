@@ -1,0 +1,36 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Host/">
+    <Project Path="src/Host/ProgrammingCar.Api/ProgrammingCar.Api.csproj" />
+    <Project Path="src/Host/ProgrammingCar.AppHost/ProgrammingCar.AppHost.csproj" />
+    <Project Path="src/Host/ProgrammingCar.ServiceDefaults/ProgrammingCar.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/RecursosHumanos/">
+    <Project Path="src/Modules/RecursosHumanos/ProgrammingCar.Modules.RecursosHumanos.Api/ProgrammingCar.Modules.RecursosHumanos.Api.csproj" />
+    <Project Path="src/Modules/RecursosHumanos/ProgrammingCar.Modules.RecursosHumanos.Application/ProgrammingCar.Modules.RecursosHumanos.Application.csproj" />
+    <Project Path="src/Modules/RecursosHumanos/ProgrammingCar.Modules.RecursosHumanos.Domain/ProgrammingCar.Modules.RecursosHumanos.Domain.csproj" />
+    <Project Path="src/Modules/RecursosHumanos/ProgrammingCar.Modules.RecursosHumanos.Infrastructure/ProgrammingCar.Modules.RecursosHumanos.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Seguridad/">
+    <Project Path="src/Modules/Seguridad/ProgrammingCar.Modules.Seguridad.Api/ProgrammingCar.Modules.Seguridad.Api.csproj" />
+    <Project Path="src/Modules/Seguridad/ProgrammingCar.Modules.Seguridad.Application/ProgrammingCar.Modules.Seguridad.Application.csproj" />
+    <Project Path="src/Modules/Seguridad/ProgrammingCar.Modules.Seguridad.Domain/ProgrammingCar.Modules.Seguridad.Domain.csproj" />
+    <Project Path="src/Modules/Seguridad/ProgrammingCar.Modules.Seguridad.Infrastructure/ProgrammingCar.Modules.Seguridad.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/GestionDatos/">
+    <Project Path="src/Modules/GestionDatos/ProgrammingCar.Modules.GestionDatos.Domain/ProgrammingCar.Modules.GestionDatos.Domain.csproj" />
+    <Project Path="src/Modules/GestionDatos/ProgrammingCar.Modules.GestionDatos.Application/ProgrammingCar.Modules.GestionDatos.Application.csproj" />
+    <Project Path="src/Modules/GestionDatos/ProgrammingCar.Modules.GestionDatos.Infrastructure/ProgrammingCar.Modules.GestionDatos.Infrastructure.csproj" />
+    <Project Path="src/Modules/GestionDatos/ProgrammingCar.Modules.GestionDatos.Api/ProgrammingCar.Modules.GestionDatos.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/ServicioCampo/">
+    <Project Path="src/Modules/ServicioCampo/ProgrammingCar.Modules.ServicioCampo.Domain/ProgrammingCar.Modules.ServicioCampo.Domain.csproj" />
+    <Project Path="src/Modules/ServicioCampo/ProgrammingCar.Modules.ServicioCampo.Application/ProgrammingCar.Modules.ServicioCampo.Application.csproj" />
+    <Project Path="src/Modules/ServicioCampo/ProgrammingCar.Modules.ServicioCampo.Infrastructure/ProgrammingCar.Modules.ServicioCampo.Infrastructure.csproj" />
+    <Project Path="src/Modules/ServicioCampo/ProgrammingCar.Modules.ServicioCampo.Api/ProgrammingCar.Modules.ServicioCampo.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Shared/">
+    <Project Path="src/Shared/ProgrammingCar.SharedKernel/ProgrammingCar.SharedKernel.csproj" />
+  </Folder>
+</Solution>

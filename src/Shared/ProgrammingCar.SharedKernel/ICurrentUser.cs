@@ -1,0 +1,16 @@
+using System;
+using System.Collections.Generic;
+
+namespace ProgrammingCar.SharedKernel;
+
+public interface ICurrentUser
+{
+    Guid Id { get; }
+    string Nombre { get; }
+    string Email { get; }
+    IReadOnlyList<string> Roles { get; }
+    bool IsAuthenticated { get; }
+    bool IsInRole(string role);
+    bool HasAnyRole(params string[] roles);
+    bool HasPermission(string permission);
+}

@@ -125,6 +125,7 @@ export interface TrabajoFormItem {
   configuracionServicioCodigo?: string;
   configuracionServicioNombre?: string;
   tarifaBase: number;
+  puntos?: number;
   observaciones: string;
   totalTareas?: number;
   totalMateriales?: number;
@@ -707,6 +708,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             productoId: t.productoId,
             configuracionServicioId: t.configuracionServicioId || '',
             tarifaBase: t.tarifaBaseCongelada ?? 0,
+            puntos: t.puntos ?? 1,
             observaciones: t.observaciones || '',
             totalTareas: t.totalTareas,
             totalMateriales: t.totalMateriales,
@@ -963,6 +965,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
           configuracionServicioCodigo: pl?.codigo || copia[trabajoEnEdicionIndex].configuracionServicioCodigo,
           configuracionServicioNombre: pl?.nombre || copia[trabajoEnEdicionIndex].configuracionServicioNombre,
           tarifaBase: drawerTarifaBase,
+        puntos: pl?.puntos ?? 1,
           observaciones: drawerObservaciones.trim(),
           referenciaEquipo: drawerReferenciaEquipo.trim(),
           productoNombre: productosServicios.find(p => p.id === prodId)?.nombre,
@@ -984,6 +987,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
         configuracionServicioCodigo: pl?.codigo,
         configuracionServicioNombre: pl?.nombre,
         tarifaBase: drawerTarifaBase,
+        puntos: pl?.puntos ?? 1,
         observaciones: drawerObservaciones.trim(),
           referenciaEquipo: drawerReferenciaEquipo.trim(),
           productoNombre: productosServicios.find(p => p.id === prodId)?.nombre,
@@ -1176,6 +1180,15 @@ export const OrdenTrabajoFormPage: React.FC = () => {
             </div>
           );
         },
+      }),
+      createTableColumn<TrabajoFormItem>({
+        columnId: 'puntos',
+        renderHeaderCell: () => 'Puntos',
+        renderCell: (item) => (
+          <Badge appearance="tint" color="brand">
+            {item.puntos ?? 1} pts
+          </Badge>
+        ),
       }),
       createTableColumn<TrabajoFormItem>({
         columnId: 'estado',
@@ -1772,6 +1785,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                 productoId: t.productoId,
                 configuracionServicioId: t.configuracionServicioId || '',
                 tarifaBase: t.tarifaBaseCongelada ?? 0,
+            puntos: t.puntos ?? 1,
                 observaciones: t.observaciones || '',
                 totalTareas: t.totalTareas,
                 totalMateriales: t.totalMateriales,
@@ -2009,6 +2023,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
           { label: 'Estado Operativo', value: <D365StatusBadge status={estadoOperativo} size="small" /> },
           { label: 'Técnico', value: recursoTecnicoNombre || 'Sin Asignar' },
           { label: 'Fecha Cita', value: fechaProgramada ? `${fechaProgramada}${bloqueHorario ? ` (${bloqueHorario})` : ''}` : 'Sin Programar' },
+          { label: 'Puntos', value: <Badge appearance="tint" color="brand">{orden?.totalPuntos ?? trabajos.reduce((acc, t) => acc + (t.puntos ?? 1), 0)} pts</Badge> },
         ]}
         processFlow={
           <WorkOrderEtapas

@@ -1,0 +1,26 @@
+using System;
+using ProgrammingCar.SharedKernel;
+using ProgrammingCar.SharedKernel.CQRS;
+
+namespace ProgrammingCar.Modules.ServicioCampo.Application.Clientes.Commands.CrearCliente;
+
+public record CrearClienteCommand(
+    string DocumentoIdentidad,
+    string Nombres,
+    string? Apellidos,
+    string TelefonoPrincipal,
+    string Direccion,
+    string UbigeoCodigo,
+    bool EsClienteFacturacion = false,
+    bool EsClienteServicio = true,
+    string? TipoDocumento = null,
+    string? TipoPersona = null,
+    string? RazonSocial = null,
+    string? TelefonoSecundario = null,
+    string? Email = null,
+    string? ReferenciaUbicacion = null,
+    decimal? CoordenadaLat = null,
+    decimal? CoordenadaLng = null,
+    Guid? ContactoPrincipalId = null,
+    string? CodigoExterno = null
+) : ICommand<Result<Guid>>;

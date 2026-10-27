@@ -1,10 +1,10 @@
-using BubbaBag.Modules.ServicioCampo.Application;
-using BubbaBag.Modules.ServicioCampo.Application.Almacenes.Compras;
-using BubbaBag.Modules.ServicioCampo.Application.Productos.Queries.ObtenerProductos;
-using BubbaBag.Modules.ServicioCampo.Domain.Almacenes;
-using BubbaBag.Modules.ServicioCampo.Domain.Productos;
-using BubbaBag.Modules.ServicioCampo.Infrastructure.Database;
-using BubbaBag.SharedKernel;
+using ProgrammingCar.Modules.ServicioCampo.Application;
+using ProgrammingCar.Modules.ServicioCampo.Application.Almacenes.Compras;
+using ProgrammingCar.Modules.ServicioCampo.Application.Productos.Queries.ObtenerProductos;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Almacenes;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Productos;
+using ProgrammingCar.Modules.ServicioCampo.Infrastructure.Database;
+using ProgrammingCar.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 
 await using var db = new TestContext(new DbContextOptionsBuilder<ServicioCampoDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);

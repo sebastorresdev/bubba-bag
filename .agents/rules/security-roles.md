@@ -7,7 +7,7 @@
    - `Roles.RrhhAsistente`: Operador de Recursos Humanos (gestión de personas, pero SIN acceso a datos de salarios ni cuentas bancarias).
 
 2. **Convención**:
-   - Usar siempre las constantes de `BubbaBag.SharedKernel.Authorization.Roles` en lugar de cadenas mágicas.
+   - Usar siempre las constantes de `ProgrammingCar.SharedKernel.Authorization.Roles` en lugar de cadenas mágicas.
    - Grupos de conveniencia: `Roles.AccesoRrhhConfidencial` y `Roles.AccesoRrhhModulo`.
 
 3. **Multi-Rol**:

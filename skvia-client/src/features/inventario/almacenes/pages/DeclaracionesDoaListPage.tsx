@@ -247,7 +247,7 @@ export const DeclaracionesDoaListPage: React.FC = () => {
                     `• Fecha: ${item.fecha ? new Date(item.fecha).toLocaleDateString('es-PE') : new Date().toLocaleDateString('es-PE')}`,
                     '',
                     'Saludos cordiales,',
-                    'Control de Calidad / Logística Inversa - SKVIA',
+                    'Control de Calidad / Logística Inversa - PROGRAMMING CAR',
                   ].join('\n');
                   window.location.href = `mailto:?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
                 }}

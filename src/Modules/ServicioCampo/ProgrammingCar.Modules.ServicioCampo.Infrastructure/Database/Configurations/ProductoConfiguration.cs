@@ -1,0 +1,110 @@
+using ProgrammingCar.Modules.ServicioCampo.Domain.Productos;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace ProgrammingCar.Modules.ServicioCampo.Infrastructure.Database.Configurations;
+
+public class ProductoConfiguration : IEntityTypeConfiguration<Producto>
+{
+    public void Configure(EntityTypeBuilder<Producto> builder)
+    {
+        builder.ToTable("Productos", "inventario", table =>
+            table.HasCheckConstraint("CK_Productos_DecimalesCantidad", "\"DecimalesCantidad\" BETWEEN 0 AND 5"));
+
+        builder.HasKey(p => p.Id);
+        builder.Property(p => p.Id)
+            .ValueGeneratedNever();
+
+        builder.Property(p => p.Codigo)
+            .IsRequired()
+            .HasMaxLength(50);
+
+        builder.HasIndex(p => p.Codigo)
+            .IsUnique();
+
+        builder.Property(p => p.Nombre)
+            .IsRequired()
+            .HasMaxLength(150);
+
+        builder.Property(p => p.Tipo)
+            .IsRequired()
+            .HasConversion<int>();
+
+        builder.Property(p => p.PrecioBase)
+            .IsRequired()
+            .HasPrecision(12, 2)
+            .HasDefaultValue(0m);
+
+        builder.Property(p => p.ListaPreciosPredeterminadaId)
+            .IsRequired(false);
+
+        builder.HasOne(p => p.ListaPreciosPredeterminada)
+            .WithMany()
+            .HasForeignKey(p => p.ListaPreciosPredeterminadaId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.Property(p => p.CategoriaProductoId)
+            .IsRequired(false);
+
+        builder.HasOne(p => p.CategoriaProducto)
+            .WithMany()
+            .HasForeignKey(p => p.CategoriaProductoId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // FK → GrupoUnidadMedida (familia permitida para el producto)
+        builder.Property(p => p.GrupoUnidadMedidaId)
+            .IsRequired(false);
+
+        builder.HasOne(p => p.GrupoUnidadMedida)
+            .WithMany()
+            .HasForeignKey(p => p.GrupoUnidadMedidaId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // FK → UnidadMedidaDefecto (debe pertenecer al grupo anterior)
+        builder.Property(p => p.UnidadMedidaDefectoId)
+            .IsRequired(false);
+
+        builder.HasOne(p => p.UnidadMedidaDefecto)
+            .WithMany()
+            .HasForeignKey(p => p.UnidadMedidaDefectoId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Property(p => p.DecimalesCantidad)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(p => p.Descripcion)
+            .HasMaxLength(300);
+
+        builder.Property(p => p.EsSerializado)
+            .IsRequired();
+
+        builder.Property(p => p.CodigoBarras)
+            .HasMaxLength(50);
+
+        builder.Property(p => p.Notas)
+            .HasMaxLength(1000);
+
+        builder.Property(p => p.CostoActual)
+            .IsRequired()
+            .HasPrecision(12, 2)
+            .HasDefaultValue(0m);
+
+        builder.Property(p => p.CostoEstandar)
+            .IsRequired()
+            .HasPrecision(12, 2)
+            .HasDefaultValue(0m);
+
+        builder.Property(p => p.AfectoImpuesto)
+            .IsRequired()
+            .HasDefaultValue(true);
+
+        builder.Property(p => p.ProveedorDefecto)
+            .HasMaxLength(150);
+
+        builder.Property(p => p.Activo)
+            .IsRequired();
+    }
+}

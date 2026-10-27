@@ -247,7 +247,7 @@ export function LoginPage() {
             <Cube16Regular style={{ fontSize: '22px' }} />
           </div>
           <div className={styles.brandTexts}>
-            <span className={styles.brandTitle}>SKVIA</span>
+            <span className={styles.brandTitle}>PROGRAMMING CAR</span>
             <span className={styles.brandSubtitle}>Field Operations & Logistics</span>
           </div>
         </div>
@@ -411,7 +411,7 @@ export function LoginPage() {
       </div>
 
       <div className={styles.footerText}>
-        SKVIA Operations System • © 2026 Todos los derechos reservados
+        PROGRAMMING CAR • © 2026 Todos los derechos reservados
       </div>
     </main>
   );

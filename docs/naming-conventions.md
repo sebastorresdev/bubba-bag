@@ -34,7 +34,7 @@ Regla del proyecto: **la arquitectura técnica se nombra en inglés, pero el dom
 
 ## NO aplica a (queda en inglés)
 
-- `BubbaBag.SharedKernel`, librerías transversales, middleware — son infraestructura
+- `ProgrammingCar.SharedKernel`, librerías transversales, middleware — son infraestructura
   técnica transversal, no dominio de negocio de un módulo específico.
 - Componentes técnicos de ingestión / ETL: `GestionDatos` utiliza términos técnicos estándar de pipeline de datos (`DataImportJob`, `DataImportEngineService`, `EntityImportDescriptorDto`, `preview`, `mappings`) al tratarse de herramientas genéricas de infraestructura de datos.
 - Sufijos/patrones de arquitectura: `Command`, `Query`, `Handler`, `Dto`, `Repository`, `Entity`,

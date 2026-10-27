@@ -47,7 +47,7 @@ Este documento registra la arquitectura y el plan de desarrollo para el **Módul
 
 ## 3. Backend: Componentes a Desarrollar
 
-### A. Capa de Aplicación (`BubbaBag.Modules.Inventario.Application`)
+### A. Capa de Aplicación (`ProgrammingCar.Modules.Inventario.Application`)
 
 #### 1. Productos y Carga Masiva
 - `ActualizarProductoCommand`: Actualización de datos de producto.
@@ -75,7 +75,7 @@ Este documento registra la arquitectura y el plan de desarrollo para el **Módul
   - Valida disponibilidad en origen, descuenta origen, incrementa destino, traslada custodia de las series (`DespacharATecnico` o `RecepcionarEnAlmacen`) y registra `MovimientoInventario`.
 - `ObtenerMovimientosInventarioQuery`: Kardex con filtros por fecha, almacén origen/destino, producto, serie y tipo de movimiento.
 
-### B. Capa API (`BubbaBag.Modules.Inventario.Api`)
+### B. Capa API (`ProgrammingCar.Modules.Inventario.Api`)
 - `ProductosEndpoints.cs`:
   - `PUT /api/inventario/productos/{id}`
   - `POST /api/inventario/productos/importar-masivo` (multipart/form-data Excel o payload lote)

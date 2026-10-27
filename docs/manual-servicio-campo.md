@@ -1,6 +1,6 @@
 # Manual Operativo del Módulo: Servicio de Campo (Field Service)
 
-Este manual documenta el funcionamiento integral del módulo de **Servicio de Campo** de BubbaBag ERP, diseñado para empresas de telecomunicaciones, instalaciones técnicas, mantenimiento y servicios de cuadrillas en terreno. Sirve como guía de capacitación y referencia para clientes y empresas que adquieren el sistema.
+Este manual documenta el funcionamiento integral del módulo de **Servicio de Campo** de ProgrammingCar ERP, diseñado para empresas de telecomunicaciones, instalaciones técnicas, mantenimiento y servicios de cuadrillas en terreno. Sirve como guía de capacitación y referencia para clientes y empresas que adquieren el sistema.
 
 ---
 
