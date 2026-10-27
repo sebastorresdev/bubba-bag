@@ -44,6 +44,9 @@ export interface OrdenTrabajoListadoItemDto {
   ubigeoTexto?: string | null;
   fechaCreacion: string;
   totalPuntos?: number;
+  clienteServicioCodigo?: string | null;
+  clienteServicioCodigoExterno?: string | null;
+  codigoExternoTrabajo?: string | null;
 }
 
 export interface OrdenTrabajoMaterialDto {

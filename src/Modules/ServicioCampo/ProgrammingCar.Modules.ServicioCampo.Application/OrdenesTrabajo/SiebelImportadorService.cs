@@ -26,7 +26,7 @@ public record FilaDetalleImportacionSiebel(
     string Cliente,
     string Servicio,
     string Tecnico,
-    string Estado, // "Creada", "Omitida", "Error", "Invalida"
+    string Estado, // "Creada", "Actualizada", "Omitida", "Error", "Invalida"
     string Detalle
 );
 
@@ -98,7 +98,7 @@ public class SiebelImportadorService
             }
         }
 
-        // Asegurar mapeos inteligentes de columnas si hay variaciones de nombres
+        // Mapeo inteligente con soporte de acrónimos y subcadenas
         void AsegurarColumna(string claveDestino, params string[] subcadenas)
         {
             if (colMap.ContainsKey(claveDestino)) return;
@@ -114,9 +114,10 @@ public class SiebelImportadorService
         }
 
         AsegurarColumna("numerodeordendetrabajo", "orden", "trabajo");
+        AsegurarColumna("nodewodeibs", "ibs");
+        AsegurarColumna("proveedor", "proveedor");
         AsegurarColumna("nodecliente", "cliente");
         AsegurarColumna("codigodesl", "sl");
-        AsegurarColumna("regiondeservicio", "region");
         AsegurarColumna("codigopostal", "postal");
         AsegurarColumna("nodetelefonoprincipal", "telefono");
         AsegurarColumna("domicilio", "domicilio");
@@ -143,7 +144,7 @@ public class SiebelImportadorService
             return new ResultadoImportacionSiebel(0, 0, 0, 0, 0, 0, 0, 0, errores, detalles);
         }
 
-        // Helpers para extraer valores de fila
+        // Helper para extraer valores de fila
         string GetVal(List<string> row, params string[] normColNames)
         {
             foreach (var name in normColNames)
@@ -161,7 +162,7 @@ public class SiebelImportadorService
         var ordenesAgrupadas = new Dictionary<string, List<(int Fila, List<string> Row)>>(StringComparer.OrdinalIgnoreCase);
         foreach (var item in lineasConFila)
         {
-            var nroWo = GetVal(item.Row, "numerodeordendetrabajo", "ordendetrabajo", "nrodeordendetrabajo", "nowodeibs", "nowo");
+            var nroWo = GetVal(item.Row, "numerodeordendetrabajo", "ordendetrabajo", "nrodeordendetrabajo", "nowo");
             if (string.IsNullOrWhiteSpace(nroWo))
             {
                 detalles.Add(new FilaDetalleImportacionSiebel(
@@ -191,12 +192,60 @@ public class SiebelImportadorService
             return new ResultadoImportacionSiebel(lineasConFila.Count, 0, 0, 0, 0, 0, 0, 0, errores, detalles, repBase64);
         }
 
-        // 5. Cargar catálogos y preparar entidades base
-        var sedePrincipal = await _db.UnidadesOrganizativas.FirstOrDefaultAsync(u => u.Activo, ct);
-        if (sedePrincipal == null)
+        // 5. Cargar catálogo de Sedes / Unidades Organizativas (Piura, Trujillo, Chimbote, Chiclayo, Lima)
+        var sedes = await _db.UnidadesOrganizativas.Where(u => u.Activo).ToListAsync(ct);
+        if (sedes.Count == 0)
         {
-            sedePrincipal = UnidadOrganizativa.Crear("SEDE-TRU", "Sede Principal Trujillo", "Trujillo", esSedePrincipal: true);
-            _db.UnidadesOrganizativas.Add(sedePrincipal);
+            var sedeDefault = UnidadOrganizativa.Crear("I280000", "PE-I280000-PROGRAMMING SAC TRUJILLO", "Trujillo", esSedePrincipal: true);
+            _db.UnidadesOrganizativas.Add(sedeDefault);
+            await _db.SaveChangesAsync(ct);
+            sedes.Add(sedeDefault);
+        }
+
+        UnidadOrganizativa ResolverUnidad(string proveedorTexto)
+        {
+            if (string.IsNullOrWhiteSpace(proveedorTexto)) return sedes.First();
+            var pUpper = proveedorTexto.ToUpperInvariant();
+
+            // 1. Por código (I280000, I280010, I280020, I280030, I280070)
+            var matchCodigo = sedes.FirstOrDefault(s => pUpper.Contains(s.Codigo.ToUpperInvariant()));
+            if (matchCodigo != null) return matchCodigo;
+
+            // 2. Por ciudad (Piura, Chiclayo, Chimbote, Trujillo, Lima)
+            var matchCiudad = sedes.FirstOrDefault(s => !string.IsNullOrEmpty(s.Ciudad) && pUpper.Contains(s.Ciudad.ToUpperInvariant()));
+            if (matchCiudad != null) return matchCiudad;
+
+            // 3. Por coincidencia de nombre
+            var matchNombre = sedes.FirstOrDefault(s => pUpper.Contains(s.Nombre.ToUpperInvariant()) || s.Nombre.ToUpperInvariant().Contains(pUpper));
+            if (matchNombre != null) return matchNombre;
+
+            return sedes.First();
+        }
+
+        // Cliente de Facturación: SIEMPRE DIRECTV
+        var clienteDirectv = await _db.Clientes.FirstOrDefaultAsync(
+            c => c.EsClienteFacturacion && (c.Nombres.ToUpper().Contains("DIRECTV") || (c.RazonSocial != null && c.RazonSocial.ToUpper().Contains("DIRECTV"))),
+            ct);
+
+        var totalClientesCount = await _db.Clientes.CountAsync(ct);
+        if (clienteDirectv == null)
+        {
+            totalClientesCount++;
+            clienteDirectv = Cliente.Crear(
+                codigoCliente: $"CLI-{totalClientesCount:D5}",
+                documentoIdentidad: "20509653199",
+                nombres: "DIRECTV",
+                apellidos: "PERU S.R.L.",
+                telefonoPrincipal: "999999999",
+                direccion: "Av. República de Colombia 791",
+                ubigeoCodigo: "150131",
+                esClienteFacturacion: true,
+                esClienteServicio: false,
+                tipoDocumento: "RUC",
+                tipoPersona: "JURIDICA",
+                codigoExterno: "DIRECTV"
+            );
+            _db.Clientes.Add(clienteDirectv);
             await _db.SaveChangesAsync(ct);
         }
 
@@ -227,10 +276,6 @@ public class SiebelImportadorService
         var clientesPorDoc = await _db.Clientes
             .ToDictionaryAsync(c => c.DocumentoIdentidad, c => c, StringComparer.OrdinalIgnoreCase, ct);
 
-        // Zonas existentes
-        var zonasPorCodigo = await _db.ZonasOperativas
-            .ToDictionaryAsync(z => z.Codigo, z => z, StringComparer.OrdinalIgnoreCase, ct);
-
         // Recursos existentes
         var recursosPorNombre = await _db.Recursos
             .ToDictionaryAsync(r => r.NombreCompleto.ToUpperInvariant(), r => r, StringComparer.OrdinalIgnoreCase, ct);
@@ -241,31 +286,32 @@ public class SiebelImportadorService
             .ToDictionaryAsync(p => p.Codigo, p => p, StringComparer.OrdinalIgnoreCase, ct);
 
         // Plantillas / Configuraciones existentes
-        var configsPorProductoId = await _db.ConfiguracionesServicio
+        var configsExistentes = await _db.ConfiguracionesServicio
             .Where(c => c.Activo)
-            .ToDictionaryAsync(c => c.ProductoId, c => c, ct);
+            .ToListAsync(ct);
 
         // Elementos de lista de precios existentes
         var preciosPorProductoId = await _db.ElementosListaPrecios
             .Where(e => e.ListaPreciosId == listaPrecios.Id)
             .ToDictionaryAsync(e => e.ProductoId, e => e, ct);
 
-        // Órdenes existentes
-        var ordenesExistentes = await _db.OrdenesTrabajo
+        // Órdenes existentes indexadas para upsert inteligente
+        var ordenesExistentesDb = await _db.OrdenesTrabajo
+            .Include(o => o.Trabajos)
             .Where(o => o.NumeroOrden != null || o.ReferenciaExterna != null)
-            .Select(o => o.NumeroOrden ?? o.ReferenciaExterna!)
-            .ToHashSetAsync(StringComparer.OrdinalIgnoreCase, ct);
+            .ToListAsync(ct);
 
-        // Conteo actual para secuencias
-        var totalClientesCount = await _db.Clientes.CountAsync(ct);
+        var ordenesPorNumero = ordenesExistentesDb
+            .Where(o => !string.IsNullOrWhiteSpace(o.NumeroOrden))
+            .ToDictionary(o => o.NumeroOrden!, o => o, StringComparer.OrdinalIgnoreCase);
+
         var totalOrdenesCount = await _db.OrdenesTrabajo.CountAsync(ct);
 
         int clientesCreados = 0;
         int serviciosCreados = 0;
-        int zonasCreadas = 0;
         int tecnicosCreados = 0;
         int ordenesCreadas = 0;
-        int ordenesOmitidas = 0;
+        int ordenesActualizadas = 0;
 
         // 6. Procesar cada grupo de Orden de Trabajo
         foreach (var kvp in ordenesAgrupadas)
@@ -280,6 +326,9 @@ public class SiebelImportadorService
             if (string.IsNullOrWhiteSpace(nroCliente))
                 nroCliente = $"EXT-{nroWo}";
 
+            // N° de WO de IBS (Columna clave requerida como código externo de trabajo)
+            var nroWoIbs = GetVal(primeraFila, "nodewodeibs", "nowodeibs", "wodeibs", "nowo", "nrodewodeibs");
+
             var nombreCli = GetVal(primeraFila, "nombre");
             var apellidosCli = GetVal(primeraFila, "apellidos", "apellido");
             var clienteNombreCompleto = $"{nombreCli} {apellidosCli}".Trim();
@@ -290,28 +339,46 @@ public class SiebelImportadorService
             var tecApellido = GetVal(primeraFila, "apellidocuadrillatecnico");
             var nombreCompletoTec = $"{tecNombre} {tecApellido}".Trim();
 
-            if (ordenesExistentes.Contains(nroWo))
+            // Resolver sede según columna 'Proveedor' (ej. PE-I280030-PROGRAMMING SAC PIURA -> Piura)
+            var proveedorTexto = GetVal(primeraFila, "proveedor");
+            var unidadOrg = ResolverUnidad(proveedorTexto);
+
+            // Si la orden ya existe en la BD, la actualizamos para corregir cliente de facturación, sede y código externo IBS
+            if (ordenesPorNumero.TryGetValue(nroWo, out var ordenExistente))
             {
-                ordenesOmitidas++;
+                ordenExistente.AsignarClienteFacturacion(clienteDirectv.Id);
+                ordenExistente.AsignarUnidadOrganizativa(unidadOrg.Id);
+                ordenExistente.AsignarZonaOperativa(null); // Sin zonas operativas
+                ordenExistente.ActualizarReferencias(nroWo, !string.IsNullOrWhiteSpace(nroWoIbs) ? nroWoIbs : nroWo, nroCliente);
+
+                foreach (var t in ordenExistente.Trabajos)
+                {
+                    if (!string.IsNullOrWhiteSpace(nroWoIbs))
+                    {
+                        t.ActualizarDatos(t.ReferenciaEquipo, t.Observaciones, nroWoIbs);
+                    }
+                }
+
+                ordenesActualizadas++;
                 detalles.Add(new FilaDetalleImportacionSiebel(
                     Fila: filaOrigen,
                     NumeroOrden: nroWo,
                     Cliente: clienteNombreCompleto,
                     Servicio: slServiciosResumen,
                     Tecnico: string.IsNullOrWhiteSpace(nombreCompletoTec) ? "Sin Asignar" : nombreCompletoTec,
-                    Estado: "Omitida",
-                    Detalle: "La orden de trabajo ya existía en la base de datos."
+                    Estado: "Actualizada",
+                    Detalle: $"Orden actualizada con Facturación DIRECTV, Sede {unidadOrg.Nombre} y Cód. Externo {nroWoIbs ?? nroWo}."
                 ));
                 continue;
             }
 
             try
             {
-                // A) Resolver o crear Cliente
-                Cliente? cliente = null;
-                if (!clientesPorCodigoExterno.TryGetValue(nroCliente, out cliente))
+                // A) Resolver o crear Cliente Abonado (Servicio)
+                Cliente? clienteAbonado = null;
+                if (!clientesPorCodigoExterno.TryGetValue(nroCliente, out clienteAbonado))
                 {
-                    if (!clientesPorDoc.TryGetValue(nroCliente, out cliente))
+                    if (!clientesPorDoc.TryGetValue(nroCliente, out clienteAbonado))
                     {
                         totalClientesCount++;
                         var codigoCliente = $"CLI-{totalClientesCount:D5}";
@@ -329,7 +396,7 @@ public class SiebelImportadorService
                         decimal? rawY = ParseCoordenada(GetVal(primeraFila, "y"));
                         var (lat, lng) = CorregirCoordenadas(rawX, rawY);
 
-                        cliente = Cliente.Crear(
+                        clienteAbonado = Cliente.Crear(
                             codigoCliente: codigoCliente,
                             documentoIdentidad: nroCliente,
                             nombres: string.IsNullOrWhiteSpace(nombreCli) ? "Cliente" : nombreCli,
@@ -337,7 +404,7 @@ public class SiebelImportadorService
                             telefonoPrincipal: tel,
                             direccion: direccion,
                             ubigeoCodigo: ubigeo,
-                            esClienteFacturacion: true,
+                            esClienteFacturacion: false,
                             esClienteServicio: true,
                             tipoDocumento: nroCliente.Length == 8 ? "DNI" : "OTRO",
                             tipoPersona: "NATURAL",
@@ -347,33 +414,14 @@ public class SiebelImportadorService
                             codigoExterno: nroCliente
                         );
 
-                        _db.Clientes.Add(cliente);
-                        clientesPorCodigoExterno[nroCliente] = cliente;
-                        clientesPorDoc[nroCliente] = cliente;
+                        _db.Clientes.Add(clienteAbonado);
+                        clientesPorCodigoExterno[nroCliente] = clienteAbonado;
+                        clientesPorDoc[nroCliente] = clienteAbonado;
                         clientesCreados++;
                     }
                 }
 
-                // B) Resolver o crear Zona Operativa
-                var regionServicio = GetVal(primeraFila, "regiondeservicio", "zona");
-                ZonaOperativa? zona = null;
-                if (!string.IsNullOrWhiteSpace(regionServicio))
-                {
-                    if (!zonasPorCodigo.TryGetValue(regionServicio, out zona))
-                    {
-                        var nombreZona = regionServicio.Replace("WZ_", "").Replace("_", " ").Trim();
-                        zona = ZonaOperativa.Crear(
-                            codigo: regionServicio,
-                            nombre: string.IsNullOrWhiteSpace(nombreZona) ? regionServicio : nombreZona,
-                            sucursalId: sedePrincipal.Id
-                        );
-                        _db.ZonasOperativas.Add(zona);
-                        zonasPorCodigo[regionServicio] = zona;
-                        zonasCreadas++;
-                    }
-                }
-
-                // C) Resolver o crear Recurso Técnico (si está asignado a alguien real)
+                // B) Resolver o crear Recurso Técnico (si está asignado a alguien real)
                 var tecResponsable = GetVal(primeraFila, "cuadrillatecnicoresponsable", "tecnico");
                 Recurso? recurso = null;
                 if (!string.IsNullOrWhiteSpace(nombreCompletoTec) &&
@@ -391,7 +439,7 @@ public class SiebelImportadorService
                             codigo: codTec,
                             nombreCompleto: nombreCompletoTec,
                             tipo: TipoRecurso.Tecnico,
-                            zonaOperativaId: zona?.Id,
+                            zonaOperativaId: null, // Sin zona operativa
                             email: tecResponsable.Contains('@') ? tecResponsable : null
                         );
                         _db.Recursos.Add(recurso);
@@ -400,7 +448,7 @@ public class SiebelImportadorService
                     }
                 }
 
-                // D) Crear Orden de Trabajo
+                // C) Crear Orden de Trabajo
                 totalOrdenesCount++;
                 var codigoWo = $"WO-{totalOrdenesCount:D6}";
                 var estadoSiebel = GetVal(primeraFila, "estadodeordendetrabajo", "estado");
@@ -412,18 +460,18 @@ public class SiebelImportadorService
                     codigoWo: codigoWo,
                     tipoOrdenId: tipoOrden.Id,
                     creadoPorId: usuarioEjecutorId,
-                    clienteFacturacionId: cliente.Id,
-                    clienteServicioId: cliente.Id,
-                    zonaOperativaId: zona?.Id,
-                    numeroOrden: nroWo,
-                    codigoContrato: nroCliente,
+                    clienteFacturacionId: clienteDirectv.Id, // DIRECTV SRL
+                    clienteServicioId: clienteAbonado.Id,    // Abonado/Cliente de servicio
+                    zonaOperativaId: null,                  // Sin zonas operativas
+                    numeroOrden: nroWo,                     // 1-87461854669 (Número de orden Siebel)
+                    codigoContrato: nroCliente,             // 31156902 (N° de cliente)
                     numeroPedido: GetVal(primeraFila, "iddelencabezadodelpedido"),
                     estadoOrigen: estadoSiebel,
                     descargaMaterialesObligatoria: true,
-                    referenciaExterna: nroWo,
+                    referenciaExterna: !string.IsNullOrWhiteSpace(nroWoIbs) ? nroWoIbs : nroWo, // 10.556.972 (N° WO de IBS)
                     listaPreciosId: listaPrecios.Id,
                     moneda: "PEN",
-                    unidadOrganizativaId: sedePrincipal.Id
+                    unidadOrganizativaId: unidadOrg.Id      // Asignada según Proveedor (Piura, Trujillo, etc.)
                 );
 
                 if (!string.IsNullOrWhiteSpace(obsGenerales))
@@ -431,7 +479,7 @@ public class SiebelImportadorService
                     orden.ActualizarObservaciones(obsGenerales);
                 }
 
-                // E) Procesar cada línea de trabajo (Servicio / SL)
+                // D) Procesar cada línea de trabajo (Servicio / SL)
                 int itemIdx = 1;
                 foreach (var filaItemTuple in filasWo)
                 {
@@ -466,8 +514,11 @@ public class SiebelImportadorService
                         preciosPorProductoId[prodServicio.Id] = elem;
                     }
 
-                    // Resolver Configuración de Servicio (Work Template) con Puntos = 1.0m por defecto
-                    if (!configsPorProductoId.TryGetValue(prodServicio.Id, out var configServicio))
+                    // Resolver Configuración de Servicio (Plantilla) tomando los puntos configurados
+                    var configServicio = configsExistentes.FirstOrDefault(c => c.ProductoId == prodServicio.Id && c.EsPredeterminada)
+                        ?? configsExistentes.FirstOrDefault(c => c.ProductoId == prodServicio.Id);
+
+                    if (configServicio == null)
                     {
                         configServicio = ConfiguracionServicio.Crear(
                             nombre: $"Plantilla {prodServicio.Nombre}",
@@ -478,12 +529,13 @@ public class SiebelImportadorService
                             puntos: 1.0m
                         );
                         _db.ConfiguracionesServicio.Add(configServicio);
-                        configsPorProductoId[prodServicio.Id] = configServicio;
+                        configsExistentes.Add(configServicio);
                     }
 
-                    var nroItem = GetVal(filaItem, "nodeitem");
+                    // Cód. Externo del Trabajo = N° de WO de IBS (ej. 10.556.972)
+                    var woItemIbs = GetVal(filaItem, "nodewodeibs", "nowodeibs", "wodeibs", "nowo", "nrodewodeibs");
                     var codigoTrabajo = $"{orden.CodigoWo}-T{itemIdx:D2}";
-                    var puntosTrabajo = configServicio.Puntos > 0 ? configServicio.Puntos : 1.0m;
+                    var puntosTrabajo = configServicio.Puntos;
 
                     var trabajo = orden.AgregarTrabajo(
                         codigoTrabajo: codigoTrabajo,
@@ -492,7 +544,7 @@ public class SiebelImportadorService
                         configuracionServicioId: configServicio.Id,
                         tarifaBase: 0m,
                         observaciones: GetVal(filaItem, "descripciondeibs"),
-                        codigoExterno: string.IsNullOrWhiteSpace(nroItem) ? null : nroItem,
+                        codigoExterno: !string.IsNullOrWhiteSpace(woItemIbs) ? woItemIbs : (string.IsNullOrWhiteSpace(nroWoIbs) ? null : nroWoIbs),
                         puntos: puntosTrabajo
                     );
 
@@ -500,7 +552,7 @@ public class SiebelImportadorService
                     itemIdx++;
                 }
 
-                // F) Programar visita si tiene técnico asignado
+                // E) Programar visita si tiene técnico asignado
                 if (recurso != null)
                 {
                     var nroVisita = GetVal(primeraFila, "nodevisita");
@@ -527,7 +579,7 @@ public class SiebelImportadorService
                 }
 
                 _db.OrdenesTrabajo.Add(orden);
-                ordenesExistentes.Add(nroWo);
+                ordenesPorNumero[nroWo] = orden;
                 ordenesCreadas++;
 
                 detalles.Add(new FilaDetalleImportacionSiebel(
@@ -537,7 +589,7 @@ public class SiebelImportadorService
                     Servicio: slServiciosResumen,
                     Tecnico: recurso != null ? nombreCompletoTec : "Sin Asignar",
                     Estado: "Creada",
-                    Detalle: $"Orden creada con {filasWo.Count} trabajo(s). Código generado: {codigoWo}"
+                    Detalle: $"Orden creada con {filasWo.Count} trabajo(s). Factura: DIRECTV. Sede: {unidadOrg.Nombre}. Cód. IBS: {nroWoIbs ?? "-"}"
                 ));
             }
             catch (Exception ex)
@@ -559,19 +611,19 @@ public class SiebelImportadorService
         // Guardar todos los cambios acumulados
         await _db.SaveChangesAsync(ct);
 
-        _logger.LogInformation("Importación Siebel finalizada: {Creadas} creadas, {Omitidas} omitidas, {Clientes} clientes.",
-            ordenesCreadas, ordenesOmitidas, clientesCreados);
+        _logger.LogInformation("Importación Siebel finalizada: {Creadas} creadas, {Actualizadas} actualizadas, {Clientes} clientes.",
+            ordenesCreadas, ordenesActualizadas, clientesCreados);
 
         var reporteCsvBase64 = GenerarReporteBase64(detalles, errores);
 
         return new ResultadoImportacionSiebel(
             TotalFilas: lineasConFila.Count,
             TotalOrdenesDetectadas: ordenesAgrupadas.Count,
-            OrdenesCreadas: ordenesCreadas,
-            OrdenesOmitidas: ordenesOmitidas,
+            OrdenesCreadas: ordenesCreadas + ordenesActualizadas,
+            OrdenesOmitidas: 0,
             ClientesCreados: clientesCreados,
             ServiciosCreados: serviciosCreados,
-            ZonasCreadas: zonasCreadas,
+            ZonasCreadas: 0,
             TecnicosCreados: tecnicosCreados,
             Errores: errores,
             Detalles: detalles,

@@ -280,6 +280,22 @@ public class OrdenTrabajo : Entity<Guid>
         UpdatedAt = DateTime.UtcNow;
     }
 
+    public void AsignarClienteFacturacion(Guid clienteFacturacionId)
+    {
+        ValidarEditable();
+        ClienteFacturacionId = clienteFacturacionId;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ActualizarReferencias(string? numeroOrden, string? referenciaExterna, string? codigoContrato)
+    {
+        ValidarEditable();
+        if (!string.IsNullOrWhiteSpace(numeroOrden)) NumeroOrden = numeroOrden.Trim();
+        if (!string.IsNullOrWhiteSpace(referenciaExterna)) ReferenciaExterna = referenciaExterna.Trim();
+        if (!string.IsNullOrWhiteSpace(codigoContrato)) CodigoContrato = codigoContrato.Trim();
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     /// <summary>
     /// Programa o reprograma una cita de visita con técnico y bloque horario.
     /// </summary>

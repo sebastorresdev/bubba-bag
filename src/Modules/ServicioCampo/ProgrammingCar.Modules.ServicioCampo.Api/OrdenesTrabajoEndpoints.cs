@@ -335,14 +335,24 @@ public static class OrdenesTrabajoEndpoints
                 o.CodigoWo.ToLower().Contains(term) ||
                 (o.NumeroOrden != null && o.NumeroOrden.ToLower().Contains(term)) ||
                 (o.ReferenciaExterna != null && o.ReferenciaExterna.ToLower().Contains(term)) ||
+                (o.CodigoContrato != null && o.CodigoContrato.ToLower().Contains(term)) ||
+                (o.NumeroPedido != null && o.NumeroPedido.ToLower().Contains(term)) ||
                 (o.ClienteFacturacion != null && (
-                    o.ClienteFacturacion.RazonSocial!.ToLower().Contains(term) ||
-                    o.ClienteFacturacion.Nombres.ToLower().Contains(term)
+                    (o.ClienteFacturacion.RazonSocial != null && o.ClienteFacturacion.RazonSocial.ToLower().Contains(term)) ||
+                    o.ClienteFacturacion.Nombres.ToLower().Contains(term) ||
+                    o.ClienteFacturacion.CodigoCliente.ToLower().Contains(term) ||
+                    (o.ClienteFacturacion.CodigoExterno != null && o.ClienteFacturacion.CodigoExterno.ToLower().Contains(term)) ||
+                    (o.ClienteFacturacion.DocumentoIdentidad != null && o.ClienteFacturacion.DocumentoIdentidad.ToLower().Contains(term))
                 )) ||
                 (o.ClienteServicio != null && (
-                    o.ClienteServicio.RazonSocial!.ToLower().Contains(term) ||
-                    o.ClienteServicio.Nombres.ToLower().Contains(term)
-                ))
+                    (o.ClienteServicio.RazonSocial != null && o.ClienteServicio.RazonSocial.ToLower().Contains(term)) ||
+                    o.ClienteServicio.Nombres.ToLower().Contains(term) ||
+                    o.ClienteServicio.CodigoCliente.ToLower().Contains(term) ||
+                    (o.ClienteServicio.CodigoExterno != null && o.ClienteServicio.CodigoExterno.ToLower().Contains(term)) ||
+                    (o.ClienteServicio.DocumentoIdentidad != null && o.ClienteServicio.DocumentoIdentidad.ToLower().Contains(term)) ||
+                    (o.ClienteServicio.TelefonoPrincipal != null && o.ClienteServicio.TelefonoPrincipal.ToLower().Contains(term))
+                )) ||
+                o.Trabajos.Any(t => t.CodigoExterno != null && t.CodigoExterno.ToLower().Contains(term))
             );
         }
 
@@ -377,6 +387,8 @@ public static class OrdenesTrabajoEndpoints
             var cliFactNombre = o.ClienteFacturacion?.RazonSocial ?? $"{o.ClienteFacturacion?.Nombres} {o.ClienteFacturacion?.Apellidos}".Trim();
             var cliServNombre = o.ClienteServicio?.RazonSocial ?? $"{o.ClienteServicio?.Nombres} {o.ClienteServicio?.Apellidos}".Trim();
 
+            var primerTrabajoCodExt = o.Trabajos.FirstOrDefault(t => !string.IsNullOrWhiteSpace(t.CodigoExterno))?.CodigoExterno;
+
             return new OrdenTrabajoListadoItemDto(
                 Id: o.Id,
                 CodigoWo: o.CodigoWo,
@@ -404,7 +416,10 @@ public static class OrdenesTrabajoEndpoints
                 FechaCreacion: o.CreatedAt,
                 UnidadOrganizativaId: o.UnidadOrganizativaId ?? o.ZonaOperativa?.SucursalId,
                 UnidadOrganizativaNombre: o.UnidadOrganizativa?.Nombre,
-                TotalPuntos: o.TotalPuntos
+                TotalPuntos: o.TotalPuntos,
+                ClienteServicioCodigo: o.ClienteServicio?.CodigoCliente,
+                ClienteServicioCodigoExterno: o.ClienteServicio?.CodigoExterno ?? o.CodigoContrato,
+                CodigoExternoTrabajo: primerTrabajoCodExt ?? o.ReferenciaExterna
             );
         }).ToList();
 
@@ -1463,7 +1478,10 @@ public record OrdenTrabajoListadoItemDto(
     DateTime FechaCreacion,
     Guid? UnidadOrganizativaId = null,
     string? UnidadOrganizativaNombre = null,
-    decimal TotalPuntos = 0m
+    decimal TotalPuntos = 0m,
+    string? ClienteServicioCodigo = null,
+    string? ClienteServicioCodigoExterno = null,
+    string? CodigoExternoTrabajo = null
 );
 
 public record OrdenTrabajoItemDto(

@@ -60,6 +60,9 @@ const nombresVistaOrdenes: Record<VistaOrdenes, string> = {
 
 const filterFields: D365FilterField[] = [
   { id: 'codigoWo', label: 'Código WO', type: 'string' },
+  { id: 'numeroOrden', label: 'N° Orden Siebel / Ext.', type: 'string' },
+  { id: 'codigoExternoTrabajo', label: 'N° WO IBS', type: 'string' },
+  { id: 'codigoContrato', label: 'Cód. Cliente Abonado', type: 'string' },
   { id: 'clienteFacturacionNombre', label: 'Cliente Facturación', type: 'string' },
   { id: 'clienteServicioNombre', label: 'Abonado / Contacto', type: 'string' },
   { id: 'tipoOrdenNombre', label: 'Tipo de Orden', type: 'string' },
@@ -143,9 +146,16 @@ export const OrdenesTrabajoListPage: React.FC = () => {
       result = result.filter(
         (o) =>
           o.codigoWo.toLowerCase().includes(q) ||
+          (o.numeroOrden && o.numeroOrden.toLowerCase().includes(q)) ||
+          (o.referenciaExterna && o.referenciaExterna.toLowerCase().includes(q)) ||
+          (o.codigoContrato && o.codigoContrato.toLowerCase().includes(q)) ||
+          (o.codigoExternoTrabajo && o.codigoExternoTrabajo.toLowerCase().includes(q)) ||
+          (o.clienteServicioCodigo && o.clienteServicioCodigo.toLowerCase().includes(q)) ||
+          (o.clienteServicioCodigoExterno && o.clienteServicioCodigoExterno.toLowerCase().includes(q)) ||
           o.clienteFacturacionNombre.toLowerCase().includes(q) ||
           o.clienteServicioNombre.toLowerCase().includes(q) ||
           o.tipoOrdenNombre.toLowerCase().includes(q) ||
+          (o.unidadOrganizativaNombre && o.unidadOrganizativaNombre.toLowerCase().includes(q)) ||
           (o.zonaOperativaNombre && o.zonaOperativaNombre.toLowerCase().includes(q)) ||
           (o.recursoTecnicoNombre && o.recursoTecnicoNombre.toLowerCase().includes(q))
       );
@@ -157,6 +167,9 @@ export const OrdenesTrabajoListPage: React.FC = () => {
   const handleExportarExcel = () => {
     const cols: ExportColumn<OrdenTrabajoListadoItemDto>[] = [
       { header: 'Código WO', accessor: (o) => o.codigoWo },
+      { header: 'N° Orden Ext.', accessor: (o) => o.numeroOrden || o.referenciaExterna || '-' },
+      { header: 'N° WO IBS', accessor: (o) => o.codigoExternoTrabajo || '-' },
+      { header: 'Cód. Abonado', accessor: (o) => o.clienteServicioCodigoExterno || o.codigoContrato || '-' },
       { header: 'Tipo de Servicio', accessor: (o) => o.tipoOrdenNombre },
       { header: 'Cliente Facturación', accessor: (o) => o.clienteFacturacionNombre },
       { header: 'Abonado / Contacto', accessor: (o) => o.clienteServicioNombre },
@@ -173,6 +186,9 @@ export const OrdenesTrabajoListPage: React.FC = () => {
   const handleExportarCSV = () => {
     const cols: ExportColumn<OrdenTrabajoListadoItemDto>[] = [
       { header: 'Código WO', accessor: (o) => o.codigoWo },
+      { header: 'N° Orden Ext.', accessor: (o) => o.numeroOrden || o.referenciaExterna || '-' },
+      { header: 'N° WO IBS', accessor: (o) => o.codigoExternoTrabajo || '-' },
+      { header: 'Cód. Abonado', accessor: (o) => o.clienteServicioCodigoExterno || o.codigoContrato || '-' },
       { header: 'Tipo Servicio', accessor: (o) => o.tipoOrdenNombre },
       { header: 'Cliente Facturación', accessor: (o) => o.clienteFacturacionNombre },
       { header: 'Abonado', accessor: (o) => o.clienteServicioNombre },
@@ -206,6 +222,29 @@ export const OrdenesTrabajoListPage: React.FC = () => {
         ),
       }),
       createTableColumn<OrdenTrabajoListadoItemDto>({
+        columnId: 'ordenExterna',
+        compare: (a, b) => (a.numeroOrden || a.referenciaExterna || '').localeCompare(b.numeroOrden || b.referenciaExterna || ''),
+        renderHeaderCell: () => 'N° Orden Ext.',
+        renderCell: (item) => {
+          const nroExt = item.numeroOrden || item.referenciaExterna || '-';
+          const ibs = item.codigoExternoTrabajo || (item.referenciaExterna !== item.numeroOrden ? item.referenciaExterna : null);
+          return (
+            <TableCellLayout>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <Text weight="semibold" style={{ fontSize: tokens.fontSizeBase200 }}>
+                  {nroExt}
+                </Text>
+                {ibs && ibs !== nroExt && (
+                  <Text style={{ fontSize: tokens.fontSizeBase100, color: tokens.colorNeutralForeground3 }}>
+                    IBS: {ibs}
+                  </Text>
+                )}
+              </div>
+            </TableCellLayout>
+          );
+        },
+      }),
+      createTableColumn<OrdenTrabajoListadoItemDto>({
         columnId: 'tipoOrden',
         compare: (a, b) => a.tipoOrdenNombre.localeCompare(b.tipoOrdenNombre),
         renderHeaderCell: () => 'Tipo de Servicio',
@@ -229,11 +268,21 @@ export const OrdenesTrabajoListPage: React.FC = () => {
         columnId: 'clienteServicio',
         compare: (a, b) => a.clienteServicioNombre.localeCompare(b.clienteServicioNombre),
         renderHeaderCell: () => 'Abonado / Contacto',
-        renderCell: (item) => (
-          <TableCellLayout>
-            <Text style={{ fontSize: tokens.fontSizeBase200 }}>{item.clienteServicioNombre}</Text>
-          </TableCellLayout>
-        ),
+        renderCell: (item) => {
+          const codAbonado = item.clienteServicioCodigoExterno || item.codigoContrato;
+          return (
+            <TableCellLayout>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <Text style={{ fontSize: tokens.fontSizeBase200 }}>{item.clienteServicioNombre}</Text>
+                {codAbonado && (
+                  <Text style={{ fontSize: tokens.fontSizeBase100, color: tokens.colorNeutralForeground3 }}>
+                    Cód: {codAbonado}
+                  </Text>
+                )}
+              </div>
+            </TableCellLayout>
+          );
+        },
       }),
       createTableColumn<OrdenTrabajoListadoItemDto>({
         columnId: 'zonaOperativa',
