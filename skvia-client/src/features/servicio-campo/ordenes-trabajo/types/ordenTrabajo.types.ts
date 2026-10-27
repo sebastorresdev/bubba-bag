@@ -256,6 +256,16 @@ export interface MotivoIncidenciaDto {
   activo: boolean;
 }
 
+export interface FilaDetalleImportacionSiebel {
+  fila: number;
+  numeroOrden: string;
+  cliente: string;
+  servicio: string;
+  tecnico: string;
+  estado: string;
+  detalle: string;
+}
+
 export interface ResultadoImportacionSiebel {
   totalFilas: number;
   totalOrdenesDetectadas: number;
@@ -266,4 +276,6 @@ export interface ResultadoImportacionSiebel {
   zonasCreadas: number;
   tecnicosCreados: number;
   errores: string[];
+  detalles?: FilaDetalleImportacionSiebel[];
+  reporteCsvBase64?: string | null;
 }

@@ -20,6 +20,16 @@ using ProgrammingCar.Modules.ServicioCampo.Domain.Recursos;
 
 namespace ProgrammingCar.Modules.ServicioCampo.Application.OrdenesTrabajo;
 
+public record FilaDetalleImportacionSiebel(
+    int Fila,
+    string NumeroOrden,
+    string Cliente,
+    string Servicio,
+    string Tecnico,
+    string Estado, // "Creada", "Omitida", "Error", "Invalida"
+    string Detalle
+);
+
 public record ResultadoImportacionSiebel(
     int TotalFilas,
     int TotalOrdenesDetectadas,
@@ -29,7 +39,9 @@ public record ResultadoImportacionSiebel(
     int ServiciosCreados,
     int ZonasCreadas,
     int TecnicosCreados,
-    List<string> Errores
+    List<string> Errores,
+    List<FilaDetalleImportacionSiebel> Detalles,
+    string? ReporteCsvBase64 = null
 );
 
 public class SiebelImportadorService
@@ -49,8 +61,9 @@ public class SiebelImportadorService
         CancellationToken ct = default)
     {
         var errores = new List<string>();
+        var detalles = new List<FilaDetalleImportacionSiebel>();
 
-        // 1. Leer buffer para detectar codificación
+        // 1. Leer buffer completo para determinar codificación
         using var memoryStream = new MemoryStream();
         await stream.CopyToAsync(memoryStream, ct);
         var bytes = memoryStream.ToArray();
@@ -58,7 +71,7 @@ public class SiebelImportadorService
         if (bytes.Length == 0)
         {
             errores.Add("El archivo proporcionado está vacío.");
-            return new ResultadoImportacionSiebel(0, 0, 0, 0, 0, 0, 0, 0, errores);
+            return new ResultadoImportacionSiebel(0, 0, 0, 0, 0, 0, 0, 0, errores, detalles);
         }
 
         var encoding = DetectarEncoding(bytes);
@@ -69,7 +82,7 @@ public class SiebelImportadorService
         if (string.IsNullOrWhiteSpace(headerLine))
         {
             errores.Add("El archivo no contiene encabezado con columnas válidas.");
-            return new ResultadoImportacionSiebel(0, 0, 0, 0, 0, 0, 0, 0, errores);
+            return new ResultadoImportacionSiebel(0, 0, 0, 0, 0, 0, 0, 0, errores, detalles);
         }
 
         var delimiter = headerLine.Contains('\t') ? '\t' : (headerLine.Contains(';') ? ';' : ',');
@@ -79,26 +92,55 @@ public class SiebelImportadorService
         for (int i = 0; i < headerCols.Count; i++)
         {
             var norm = NormalizarNombreColumna(headerCols[i]);
-            if (!colMap.ContainsKey(norm))
+            if (!string.IsNullOrEmpty(norm) && !colMap.ContainsKey(norm))
             {
                 colMap[norm] = i;
             }
         }
 
-        // 3. Leer todas las filas de datos
-        var lineas = new List<List<string>>();
-        string? line;
-        while ((line = await reader.ReadLineAsync(ct)) != null)
+        // Asegurar mapeos inteligentes de columnas si hay variaciones de nombres
+        void AsegurarColumna(string claveDestino, params string[] subcadenas)
         {
-            if (string.IsNullOrWhiteSpace(line)) continue;
-            var parts = ParseCsvLine(line, delimiter);
-            lineas.Add(parts);
+            if (colMap.ContainsKey(claveDestino)) return;
+            for (int i = 0; i < headerCols.Count; i++)
+            {
+                var hNorm = NormalizarNombreColumna(headerCols[i]);
+                if (subcadenas.All(sub => hNorm.Contains(sub, StringComparison.OrdinalIgnoreCase)))
+                {
+                    colMap[claveDestino] = i;
+                    break;
+                }
+            }
         }
 
-        if (lineas.Count == 0)
+        AsegurarColumna("numerodeordendetrabajo", "orden", "trabajo");
+        AsegurarColumna("nodecliente", "cliente");
+        AsegurarColumna("codigodesl", "sl");
+        AsegurarColumna("regiondeservicio", "region");
+        AsegurarColumna("codigopostal", "postal");
+        AsegurarColumna("nodetelefonoprincipal", "telefono");
+        AsegurarColumna("domicilio", "domicilio");
+        AsegurarColumna("nombrecuadrillatecnico", "nombre", "tecnico");
+        AsegurarColumna("apellidocuadrillatecnico", "apellido", "tecnico");
+        AsegurarColumna("cuadrillatecnicoresponsable", "responsable");
+        AsegurarColumna("fechadecreacion", "creacion");
+
+        // 3. Leer todas las filas de datos preservando el número de fila original
+        var lineasConFila = new List<(int Fila, List<string> Row)>();
+        string? line;
+        int filaContador = 1; // Línea 1 fue encabezado
+        while ((line = await reader.ReadLineAsync(ct)) != null)
+        {
+            filaContador++;
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            var parts = ParseCsvLine(line, delimiter);
+            lineasConFila.Add((filaContador, parts));
+        }
+
+        if (lineasConFila.Count == 0)
         {
             errores.Add("El archivo no contiene filas de datos.");
-            return new ResultadoImportacionSiebel(0, 0, 0, 0, 0, 0, 0, 0, errores);
+            return new ResultadoImportacionSiebel(0, 0, 0, 0, 0, 0, 0, 0, errores, detalles);
         }
 
         // Helpers para extraer valores de fila
@@ -116,23 +158,37 @@ public class SiebelImportadorService
         }
 
         // 4. Agrupar filas por Número de Orden de Trabajo
-        var ordenesAgrupadas = new Dictionary<string, List<List<string>>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var row in lineas)
+        var ordenesAgrupadas = new Dictionary<string, List<(int Fila, List<string> Row)>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in lineasConFila)
         {
-            var nroWo = GetVal(row, "numerodeordendetrabajo", "ordendetrabajo", "nowodeibs");
-            if (string.IsNullOrWhiteSpace(nroWo)) continue;
+            var nroWo = GetVal(item.Row, "numerodeordendetrabajo", "ordendetrabajo", "nrodeordendetrabajo", "nowodeibs", "nowo");
+            if (string.IsNullOrWhiteSpace(nroWo))
+            {
+                detalles.Add(new FilaDetalleImportacionSiebel(
+                    Fila: item.Fila,
+                    NumeroOrden: "SIN_NUMERO",
+                    Cliente: GetVal(item.Row, "nombre", "nodecliente"),
+                    Servicio: GetVal(item.Row, "codigodesl", "servicio"),
+                    Tecnico: GetVal(item.Row, "nombrecuadrillatecnico"),
+                    Estado: "Invalida",
+                    Detalle: "No se encontró un número de orden de trabajo válido en esta fila."
+                ));
+                continue;
+            }
+
             if (!ordenesAgrupadas.TryGetValue(nroWo, out var list))
             {
-                list = new List<List<string>>();
+                list = new List<(int Fila, List<string> Row)>();
                 ordenesAgrupadas[nroWo] = list;
             }
-            list.Add(row);
+            list.Add(item);
         }
 
         if (ordenesAgrupadas.Count == 0)
         {
-            errores.Add("No se encontraron números de orden de trabajo válidos en el archivo.");
-            return new ResultadoImportacionSiebel(lineas.Count, 0, 0, 0, 0, 0, 0, 0, errores);
+            errores.Add($"No se encontraron números de orden de trabajo válidos en el archivo. Encabezados detectados ({headerCols.Count}): {string.Join(", ", headerCols.Take(10))}...");
+            var repBase64 = GenerarReporteBase64(detalles, errores);
+            return new ResultadoImportacionSiebel(lineasConFila.Count, 0, 0, 0, 0, 0, 0, 0, errores, detalles, repBase64);
         }
 
         // 5. Cargar catálogos y preparar entidades base
@@ -216,21 +272,42 @@ public class SiebelImportadorService
         {
             var nroWo = kvp.Key;
             var filasWo = kvp.Value;
-            var primeraFila = filasWo[0];
+            var primeraFilaInfo = filasWo[0];
+            var primeraFila = primeraFilaInfo.Row;
+            var filaOrigen = primeraFilaInfo.Fila;
+
+            var nroCliente = GetVal(primeraFila, "nodecliente", "cliente", "numerodecliente");
+            if (string.IsNullOrWhiteSpace(nroCliente))
+                nroCliente = $"EXT-{nroWo}";
+
+            var nombreCli = GetVal(primeraFila, "nombre");
+            var apellidosCli = GetVal(primeraFila, "apellidos", "apellido");
+            var clienteNombreCompleto = $"{nombreCli} {apellidosCli}".Trim();
+            if (string.IsNullOrWhiteSpace(clienteNombreCompleto)) clienteNombreCompleto = "Cliente DirecTV";
+
+            var slServiciosResumen = string.Join(", ", filasWo.Select(f => GetVal(f.Row, "codigodesl", "servicio")).Where(s => !string.IsNullOrEmpty(s)).Distinct());
+            var tecNombre = GetVal(primeraFila, "nombrecuadrillatecnico");
+            var tecApellido = GetVal(primeraFila, "apellidocuadrillatecnico");
+            var nombreCompletoTec = $"{tecNombre} {tecApellido}".Trim();
 
             if (ordenesExistentes.Contains(nroWo))
             {
                 ordenesOmitidas++;
+                detalles.Add(new FilaDetalleImportacionSiebel(
+                    Fila: filaOrigen,
+                    NumeroOrden: nroWo,
+                    Cliente: clienteNombreCompleto,
+                    Servicio: slServiciosResumen,
+                    Tecnico: string.IsNullOrWhiteSpace(nombreCompletoTec) ? "Sin Asignar" : nombreCompletoTec,
+                    Estado: "Omitida",
+                    Detalle: "La orden de trabajo ya existía en la base de datos."
+                ));
                 continue;
             }
 
             try
             {
                 // A) Resolver o crear Cliente
-                var nroCliente = GetVal(primeraFila, "nodecliente", "cliente", "numerodecliente");
-                if (string.IsNullOrWhiteSpace(nroCliente))
-                    nroCliente = $"EXT-{nroWo}";
-
                 Cliente? cliente = null;
                 if (!clientesPorCodigoExterno.TryGetValue(nroCliente, out cliente))
                 {
@@ -238,9 +315,6 @@ public class SiebelImportadorService
                     {
                         totalClientesCount++;
                         var codigoCliente = $"CLI-{totalClientesCount:D5}";
-                        var nombre = GetVal(primeraFila, "nombre");
-                        if (string.IsNullOrWhiteSpace(nombre)) nombre = "Cliente";
-                        var apellidos = GetVal(primeraFila, "apellidos", "apellido");
                         var tel = LimpiarTelefono(GetVal(primeraFila, "nodetelefonoprincipal", "telefono"));
                         var direccion = GetVal(primeraFila, "domicilio", "direccion");
                         if (string.IsNullOrWhiteSpace(direccion)) direccion = "Sin dirección";
@@ -251,14 +325,15 @@ public class SiebelImportadorService
                             ubigeo = "130101"; // Default Trujillo
                         }
 
-                        decimal? lat = ParseCoordenada(GetVal(primeraFila, "x"));
-                        decimal? lng = ParseCoordenada(GetVal(primeraFila, "y"));
+                        decimal? rawX = ParseCoordenada(GetVal(primeraFila, "x"));
+                        decimal? rawY = ParseCoordenada(GetVal(primeraFila, "y"));
+                        var (lat, lng) = CorregirCoordenadas(rawX, rawY);
 
                         cliente = Cliente.Crear(
                             codigoCliente: codigoCliente,
                             documentoIdentidad: nroCliente,
-                            nombres: nombre,
-                            apellidos: string.IsNullOrWhiteSpace(apellidos) ? null : apellidos,
+                            nombres: string.IsNullOrWhiteSpace(nombreCli) ? "Cliente" : nombreCli,
+                            apellidos: string.IsNullOrWhiteSpace(apellidosCli) ? null : apellidosCli,
                             telefonoPrincipal: tel,
                             direccion: direccion,
                             ubigeoCodigo: ubigeo,
@@ -300,10 +375,6 @@ public class SiebelImportadorService
 
                 // C) Resolver o crear Recurso Técnico (si está asignado a alguien real)
                 var tecResponsable = GetVal(primeraFila, "cuadrillatecnicoresponsable", "tecnico");
-                var tecNombre = GetVal(primeraFila, "nombrecuadrillatecnico");
-                var tecApellido = GetVal(primeraFila, "apellidocuadrillatecnico");
-                var nombreCompletoTec = $"{tecNombre} {tecApellido}".Trim();
-
                 Recurso? recurso = null;
                 if (!string.IsNullOrWhiteSpace(nombreCompletoTec) &&
                     !nombreCompletoTec.Contains("Siebel", StringComparison.OrdinalIgnoreCase) &&
@@ -362,8 +433,9 @@ public class SiebelImportadorService
 
                 // E) Procesar cada línea de trabajo (Servicio / SL)
                 int itemIdx = 1;
-                foreach (var filaItem in filasWo)
+                foreach (var filaItemTuple in filasWo)
                 {
+                    var filaItem = filaItemTuple.Row;
                     var slCode = GetVal(filaItem, "codigodesl", "sl");
                     var slNombre = GetVal(filaItem, "servicio");
                     if (string.IsNullOrWhiteSpace(slCode)) slCode = "GEN01";
@@ -457,11 +529,30 @@ public class SiebelImportadorService
                 _db.OrdenesTrabajo.Add(orden);
                 ordenesExistentes.Add(nroWo);
                 ordenesCreadas++;
+
+                detalles.Add(new FilaDetalleImportacionSiebel(
+                    Fila: filaOrigen,
+                    NumeroOrden: nroWo,
+                    Cliente: clienteNombreCompleto,
+                    Servicio: slServiciosResumen,
+                    Tecnico: recurso != null ? nombreCompletoTec : "Sin Asignar",
+                    Estado: "Creada",
+                    Detalle: $"Orden creada con {filasWo.Count} trabajo(s). Código generado: {codigoWo}"
+                ));
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Error procesando orden Siebel {NumeroOrden}", nroWo);
-                errores.Add($"Orden {nroWo}: {ex.Message}");
+                errores.Add($"Fila {filaOrigen} (Orden {nroWo}): {ex.Message}");
+                detalles.Add(new FilaDetalleImportacionSiebel(
+                    Fila: filaOrigen,
+                    NumeroOrden: nroWo,
+                    Cliente: clienteNombreCompleto,
+                    Servicio: slServiciosResumen,
+                    Tecnico: nombreCompletoTec,
+                    Estado: "Error",
+                    Detalle: ex.Message
+                ));
             }
         }
 
@@ -471,8 +562,10 @@ public class SiebelImportadorService
         _logger.LogInformation("Importación Siebel finalizada: {Creadas} creadas, {Omitidas} omitidas, {Clientes} clientes.",
             ordenesCreadas, ordenesOmitidas, clientesCreados);
 
+        var reporteCsvBase64 = GenerarReporteBase64(detalles, errores);
+
         return new ResultadoImportacionSiebel(
-            TotalFilas: lineas.Count,
+            TotalFilas: lineasConFila.Count,
             TotalOrdenesDetectadas: ordenesAgrupadas.Count,
             OrdenesCreadas: ordenesCreadas,
             OrdenesOmitidas: ordenesOmitidas,
@@ -480,8 +573,43 @@ public class SiebelImportadorService
             ServiciosCreados: serviciosCreados,
             ZonasCreadas: zonasCreadas,
             TecnicosCreados: tecnicosCreados,
-            Errores: errores
+            Errores: errores,
+            Detalles: detalles,
+            ReporteCsvBase64: reporteCsvBase64
         );
+    }
+
+    private static string GenerarReporteBase64(List<FilaDetalleImportacionSiebel> detalles, List<string> errores)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Fila;Numero_Orden;Cliente;Servicio;Tecnico;Estado;Detalle");
+
+        foreach (var d in detalles)
+        {
+            sb.AppendLine($"{d.Fila};\"{EscaparCsv(d.NumeroOrden)}\";\"{EscaparCsv(d.Cliente)}\";\"{EscaparCsv(d.Servicio)}\";\"{EscaparCsv(d.Tecnico)}\";\"{EscaparCsv(d.Estado)}\";\"{EscaparCsv(d.Detalle)}\"");
+        }
+
+        if (detalles.Count == 0 && errores.Count > 0)
+        {
+            foreach (var err in errores)
+            {
+                sb.AppendLine($"0;\"GENERAL\";\"-\";\"-\";\"-\";\"Error General\";\"{EscaparCsv(err)}\"");
+            }
+        }
+
+        var preamble = Encoding.UTF8.GetPreamble();
+        var contentBytes = Encoding.UTF8.GetBytes(sb.ToString());
+        var fullBytes = new byte[preamble.Length + contentBytes.Length];
+        Buffer.BlockCopy(preamble, 0, fullBytes, 0, preamble.Length);
+        Buffer.BlockCopy(contentBytes, 0, fullBytes, preamble.Length, contentBytes.Length);
+
+        return Convert.ToBase64String(fullBytes);
+    }
+
+    private static string EscaparCsv(string? val)
+    {
+        if (string.IsNullOrEmpty(val)) return string.Empty;
+        return val.Replace("\"", "\"\"").Replace("\r", " ").Replace("\n", " ");
     }
 
     private static Encoding DetectarEncoding(byte[] bytes)
@@ -506,10 +634,31 @@ public class SiebelImportadorService
         return Encoding.UTF8;
     }
 
+    private static string QuitarDiacriticos(string texto)
+    {
+        if (string.IsNullOrWhiteSpace(texto)) return string.Empty;
+        var normalizedString = texto.Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder(normalizedString.Length);
+
+        foreach (var c in normalizedString)
+        {
+            var uc = CharUnicodeInfo.GetUnicodeCategory(c);
+            if (uc != UnicodeCategory.NonSpacingMark)
+            {
+                sb.Append(c);
+            }
+        }
+
+        return sb.ToString().Normalize(NormalizationForm.FormC);
+    }
+
     private static string NormalizarNombreColumna(string col)
     {
         if (string.IsNullOrWhiteSpace(col)) return string.Empty;
-        var lower = col.Trim().ToLowerInvariant();
+        var sinDiacriticos = QuitarDiacriticos(col)
+            .Replace("°", "o")
+            .Replace("º", "o");
+        var lower = sinDiacriticos.Trim().ToLowerInvariant();
         return Regex.Replace(lower, @"[^a-z0-9]", "");
     }
 
@@ -567,5 +716,24 @@ public class SiebelImportadorService
         if (decimal.TryParse(normalized, NumberStyles.Any, CultureInfo.InvariantCulture, out var val))
             return val;
         return null;
+    }
+
+    private static (decimal? Lat, decimal? Lng) CorregirCoordenadas(decimal? coord1, decimal? coord2)
+    {
+        if (!coord1.HasValue || !coord2.HasValue) return (coord1, coord2);
+        var c1 = coord1.Value;
+        var c2 = coord2.Value;
+
+        // En Perú: Latitud negativa entre 0 y -19. Longitud negativa entre -68 y -82.
+        if (c1 < -60m && c2 > -20m)
+        {
+            return (c2, c1);
+        }
+        if (c2 < -60m && c1 > -20m)
+        {
+            return (c1, c2);
+        }
+
+        return (c1, c2);
     }
 }
