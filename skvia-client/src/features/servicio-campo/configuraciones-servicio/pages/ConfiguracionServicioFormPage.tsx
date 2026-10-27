@@ -47,6 +47,7 @@ import {
 } from '@fluentui/react-icons';
 import { ConfiguracionServicioService } from '../services/configuracionServicio.service';
 import type {
+  ConfiguracionServicioListadoDto,
   GuardarConfiguracionServicioDto,
   TareaDto,
 } from '../types/configuracionServicio.types';
@@ -129,6 +130,7 @@ export function ConfiguracionServicioFormPage() {
   // Catálogos
   const [catalogoProductos, setCatalogoProductos] = useState<ProductoDto[]>([]);
   const [catalogoTareas, setCatalogoTareas] = useState<TareaDto[]>([]);
+  const [configuracionesExistentes, setConfiguracionesExistentes] = useState<ConfiguracionServicioListadoDto[]>([]);
 
   // UI state
   const [selectedTab, setSelectedTab] = useState<'general' | 'tareas' | 'materiales'>('general');
@@ -165,15 +167,17 @@ export function ConfiguracionServicioFormPage() {
   const cargarCatalogosYDatos = useCallback(async () => {
     try {
       setLoading(true);
-      const [prods, tars, ums, plantilla] = await Promise.all([
+      const [prods, tars, ums, plantilla, configs] = await Promise.all([
         ProductoService.getProductos(undefined, undefined, true),
         ConfiguracionServicioService.getTareas({ soloActivas: true }),
         UnidadMedidaService.getUnidadesMedida(undefined, true),
         isEditMode && id ? ConfiguracionServicioService.getPlantillaById(id) : Promise.resolve(null),
+        ConfiguracionServicioService.getPlantillas({ soloActivos: true }),
       ]);
       setCatalogoProductos(prods);
       setCatalogoTareas(tars);
       setCatalogoUnidades(ums);
+      setConfiguracionesExistentes(configs || []);
 
       if (plantilla) {
         setNombre(plantilla.nombre);
@@ -235,11 +239,16 @@ export function ConfiguracionServicioFormPage() {
     void cargarCatalogosYDatos();
   }, [cargarCatalogosYDatos]);
 
-  // Lista de servicios de catálogo (tipo === 'Servicio' o todos)
+  // Lista de servicios de catálogo que NO tienen configuración activa
   const productosServicio = useMemo(() => {
     const srvs = catalogoProductos.filter((p) => p.tipo === 'Servicio' || p.tipo === 3);
-    return srvs;
-  }, [catalogoProductos]);
+    const idsConConfig = new Set(
+      configuracionesExistentes
+        .filter((c) => c.activo && (!isEditMode || c.id !== id))
+        .map((c) => c.productoId)
+    );
+    return srvs.filter((p) => !idsConConfig.has(p.id) || (isEditMode && p.id === productoId));
+  }, [catalogoProductos, configuracionesExistentes, isEditMode, id, productoId]);
 
   // Lista de materiales inventariables
   const productosMateriales = useMemo(() => {
@@ -887,7 +896,7 @@ export function ConfiguracionServicioFormPage() {
                   label="Servicio Técnico"
                   required
                   error={errors.productoId}
-                  info="Servicio del catálogo al que pertenece esta configuración técnica de tareas y materiales."
+                  info="Servicio del catálogo al que pertenece esta configuración técnica de tareas y materiales. Solo se listan servicios sin configuración activa previa."
                 >
                   <Select
                     value={productoId}
