@@ -61,6 +61,7 @@ public interface IServicioCampoDbContext
     DbSet<ConfiguracionServicio> ConfiguracionesServicio { get; }
     DbSet<ConfiguracionTarea> ConfiguracionesTareas { get; }
     DbSet<ConfiguracionMaterial> ConfiguracionesMateriales { get; }
+    DbSet<ConfiguracionServicioProducto> ConfiguracionesServicioProductos { get; }
 
     // Ejecución de Trabajos y Liquidación de Materiales
     DbSet<Trabajo> Trabajos { get; }

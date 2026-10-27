@@ -17,6 +17,7 @@ import {
   MenuPopover,
   MenuList,
   MenuItem,
+  tokens,
 } from '@fluentui/react-components';
 import type { SelectionItemId, TableColumnDefinition } from '@fluentui/react-components';
 import {
@@ -181,12 +182,27 @@ export function ConfiguracionesServicioListPage() {
       createTableColumn<ConfiguracionServicioListadoDto>({
         columnId: 'servicio',
         compare: (a, b) => a.productoNombre.localeCompare(b.productoNombre),
-        renderHeaderCell: () => 'Servicio / Producto',
-        renderCell: (item) => (
-          <TableCellLayout>
-            <Text>{item.productoNombre || '—'}</Text>
-          </TableCellLayout>
-        ),
+        renderHeaderCell: () => 'Servicios Aplicables',
+        renderCell: (item) => {
+          const servicios = item.servicios && item.servicios.length > 0 ? item.servicios : null;
+          if (servicios && servicios.length > 1) {
+            return (
+              <TableCellLayout>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <Text weight="semibold">{servicios.length} servicios asociados</Text>
+                  <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
+                    {servicios.map((s) => (s.codigo ? `[${s.codigo}]` : s.nombre)).join(', ')}
+                  </Text>
+                </div>
+              </TableCellLayout>
+            );
+          }
+          return (
+            <TableCellLayout>
+              <Text>{item.productoNombre || '—'}</Text>
+            </TableCellLayout>
+          );
+        },
       }),
       createTableColumn<ConfiguracionServicioListadoDto>({
         columnId: 'duracion',

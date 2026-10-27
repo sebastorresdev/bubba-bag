@@ -42,6 +42,7 @@ import {
   ArrowUp16Regular,
   ArrowDown16Regular,
   Checkmark16Regular,
+  Dismiss16Regular,
   Dismiss24Regular,
   Search16Regular,
 } from '@fluentui/react-icons';
@@ -109,6 +110,7 @@ export function ConfiguracionServicioFormPage() {
   // Estado del formulario principal
   const [nombre, setNombre] = useState('');
   const [productoId, setProductoId] = useState('');
+  const [selectedProductoIds, setSelectedProductoIds] = useState<string[]>([]);
   const [duracionEstimadaMinutos, setDuracionEstimadaMinutos] = useState<number>(60);
   const [puntos, setPuntos] = useState<string>('1');
   const [slaHorasResolucion, setSlaHorasResolucion] = useState<number | null>(null);
@@ -160,7 +162,7 @@ export function ConfiguracionServicioFormPage() {
   const [nuevoMaterialObligatorio, setNuevoMaterialObligatorio] = useState(false);
   const [nuevoMaterialObservaciones, setNuevoMaterialObservaciones] = useState('');
   const focusValidation = useValidationFocus();
-  const draft = useUnsavedChanges({ nombre,productoId,duracionEstimadaMinutos,slaHorasResolucion,puntos,descripcion,tareas,materiales }, !loading);
+  const draft = useUnsavedChanges({ nombre,productoId,selectedProductoIds,duracionEstimadaMinutos,slaHorasResolucion,puntos,descripcion,tareas,materiales }, !loading);
 
 
   // Carga inicial
@@ -193,8 +195,15 @@ export function ConfiguracionServicioFormPage() {
         setActivo(plantilla.activo);
 
         setProductoId(plantilla.productoId || '');
-        const prodMatch = prods.find((p) => p.id === plantilla.productoId);
-        setSavedServicioNombre(prodMatch?.nombre || plantilla.productoNombre || '');
+        if (plantilla.servicios && plantilla.servicios.length > 0) {
+          setSelectedProductoIds(plantilla.servicios.map((s) => s.productoId));
+          const nombres = plantilla.servicios.map((s) => s.codigo ? `[${s.codigo}] ${s.nombre}` : s.nombre).join(', ');
+          setSavedServicioNombre(nombres);
+        } else {
+          setSelectedProductoIds(plantilla.productoId ? [plantilla.productoId] : []);
+          const prodMatch = prods.find((p) => p.id === plantilla.productoId);
+          setSavedServicioNombre(prodMatch?.nombre || plantilla.productoNombre || '');
+        }
 
         setTareas(
           plantilla.tareas.map((t) => ({
@@ -239,16 +248,34 @@ export function ConfiguracionServicioFormPage() {
     void cargarCatalogosYDatos();
   }, [cargarCatalogosYDatos]);
 
-  // Lista de servicios de catálogo que NO tienen configuración activa
-  const productosServicio = useMemo(() => {
+  // Lista de servicios de catálogo que NO tienen configuración activa en otra plantilla y no están ya agregados
+  const productosServicioDisponibles = useMemo(() => {
     const srvs = catalogoProductos.filter((p) => p.tipo === 'Servicio' || p.tipo === 3);
-    const idsConConfig = new Set(
+    const idsConConfigEnOtras = new Set(
       configuracionesExistentes
         .filter((c) => c.activo && (!isEditMode || c.id !== id))
-        .map((c) => c.productoId)
+        .flatMap((c) => (c.servicios && c.servicios.length > 0 ? c.servicios.map((s) => s.productoId) : [c.productoId]))
     );
-    return srvs.filter((p) => !idsConConfig.has(p.id) || (isEditMode && p.id === productoId));
-  }, [catalogoProductos, configuracionesExistentes, isEditMode, id, productoId]);
+    const yaSeleccionados = new Set(selectedProductoIds);
+    return srvs.filter((p) => !idsConConfigEnOtras.has(p.id) && !yaSeleccionados.has(p.id));
+  }, [catalogoProductos, configuracionesExistentes, isEditMode, id, selectedProductoIds]);
+
+  const agregarServicio = (pId: string) => {
+    if (!pId) return;
+    setSelectedProductoIds((prev) => {
+      if (prev.includes(pId)) return prev;
+      return [...prev, pId];
+    });
+    setErrors((prev) => ({ ...prev, productoId: undefined }));
+    const prod = catalogoProductos.find((p) => p.id === pId);
+    if (prod && !nombre) {
+      setNombre(`Configuración — ${prod.nombre}`);
+    }
+  };
+
+  const removerServicio = (pId: string) => {
+    setSelectedProductoIds((prev) => prev.filter((x) => x !== pId));
+  };
 
   // Lista de materiales inventariables
   const productosMateriales = useMemo(() => {
@@ -276,7 +303,7 @@ export function ConfiguracionServicioFormPage() {
 
   const validar = (): boolean => {
     const errs: Record<string, string> = {};
-    if (!productoId) errs.productoId = 'Debe seleccionar un servicio técnico del catálogo.';
+    if (selectedProductoIds.length === 0) errs.productoId = 'Debe seleccionar al menos un servicio técnico del catálogo.';
     if (!nombre.trim()) errs.nombre = 'El nombre de la configuración es obligatorio.';
     if (duracionEstimadaMinutos < 1) errs.duracion = 'La duración estimada debe ser al menos 1 minuto.';
     const ptsNum = parseFloat(puntos.replace(',', '.'));
@@ -301,7 +328,8 @@ export function ConfiguracionServicioFormPage() {
       const ptsNum = parseFloat(puntos.replace(',', '.'));
       const dto: GuardarConfiguracionServicioDto = {
         nombre: nombre.trim(),
-        productoId,
+        productoId: selectedProductoIds[0] || productoId,
+        productoIds: selectedProductoIds,
         duracionEstimadaMinutos,
         slaHorasResolucion: slaHorasResolucion ? Number(slaHorasResolucion) : null,
         puntos: !isNaN(ptsNum) && ptsNum > 0 ? ptsNum : 1.0,
@@ -893,29 +921,79 @@ export function ConfiguracionServicioFormPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
                 <D365FormField
-                  label="Servicio Técnico"
+                  label="Servicios Técnicos Aplicables"
                   required
                   error={errors.productoId}
-                  info="Servicio del catálogo al que pertenece esta configuración técnica de tareas y materiales. Solo se listan servicios sin configuración activa previa."
+                  info="Servicios del catálogo que comparten esta misma receta técnica (puntos, duración, tareas y materiales previstos)."
                 >
-                  <Select
-                    value={productoId}
-                    onChange={(_, d) => {
-                      setProductoId(d.value);
-                      const prod = catalogoProductos.find((p) => p.id === d.value);
-                      if (prod && !nombre) {
-                        setNombre(`Configuración — ${prod.nombre}`);
-                      }
-                    }}
-                    disabled={isEditMode}
-                  >
-                    <option value=""></option>
-                    {productosServicio.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        [{p.codigo}] {p.nombre}
-                      </option>
-                    ))}
-                  </Select>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <Select
+                      value=""
+                      onChange={(_, d) => {
+                        if (d.value) agregarServicio(d.value);
+                      }}
+                    >
+                      <option value=""></option>
+                      {productosServicioDisponibles.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          [{p.codigo}] {p.nombre}
+                        </option>
+                      ))}
+                    </Select>
+
+                    {selectedProductoIds.length === 0 && (
+                      <Text size={200} style={{ color: tokens.colorNeutralForeground4 }}>
+                        Seleccione uno o varios servicios en el desplegable superior.
+                      </Text>
+                    )}
+
+                    {selectedProductoIds.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                        {selectedProductoIds.map((pId) => {
+                          const prod = catalogoProductos.find((p) => p.id === pId);
+                          const codigo = prod?.codigo || '';
+                          const prodNombre = prod?.nombre || 'Servicio';
+                          return (
+                            <div
+                              key={pId}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '6px 12px',
+                                backgroundColor: tokens.colorNeutralBackground2,
+                                borderRadius: tokens.borderRadiusMedium,
+                                border: `1px solid ${tokens.colorNeutralStroke2}`,
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                {codigo && (
+                                  <Badge appearance="tint" color="brand">
+                                    {codigo}
+                                  </Badge>
+                                )}
+                                <Text weight="semibold" style={{ fontSize: tokens.fontSizeBase200 }}>
+                                  {prodNombre}
+                                </Text>
+                              </div>
+                              <Button
+                                appearance="subtle"
+                                icon={<Dismiss16Regular />}
+                                size="small"
+                                aria-label="Quitar servicio"
+                                onClick={() => removerServicio(pId)}
+                              />
+                            </div>
+                          );
+                        })}
+                        {selectedProductoIds.length > 1 && (
+                          <Text size={200} style={{ color: tokens.colorPaletteGreenForeground1, marginTop: 2 }}>
+                            {selectedProductoIds.length} servicios compartirán automáticamente esta misma configuración técnica.
+                          </Text>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </D365FormField>
 
                 <D365FormField

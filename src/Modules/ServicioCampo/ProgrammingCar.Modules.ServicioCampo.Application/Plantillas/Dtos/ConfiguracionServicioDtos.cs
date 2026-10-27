@@ -3,6 +3,11 @@ using System.Collections.Generic;
 
 namespace ProgrammingCar.Modules.ServicioCampo.Application.Plantillas.Dtos;
 
+public record ConfiguracionServicioProductoItemDto(
+    Guid ProductoId,
+    string Codigo,
+    string Nombre);
+
 public record ConfiguracionServicioListadoDto(
     Guid Id,
     string Nombre,
@@ -17,7 +22,8 @@ public record ConfiguracionServicioListadoDto(
     bool Activo,
     int CantidadTareas,
     int CantidadMateriales,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    List<ConfiguracionServicioProductoItemDto>? Servicios = null);
 
 public record ConfiguracionServicioDetalleDto(
     Guid Id,
@@ -33,7 +39,8 @@ public record ConfiguracionServicioDetalleDto(
     bool Activo,
     DateTime CreatedAt,
     List<ConfiguracionTareaItemDto> Tareas,
-    List<ConfiguracionMaterialItemDto> Materiales);
+    List<ConfiguracionMaterialItemDto> Materiales,
+    List<ConfiguracionServicioProductoItemDto>? Servicios = null);
 
 public record ConfiguracionTareaItemDto(
     Guid Id,
@@ -88,7 +95,8 @@ public record CrearConfiguracionServicioRequest(
     List<GuardarConfiguracionTareaDto>? Tareas,
     List<GuardarConfiguracionMaterialDto>? Materiales,
     int? SlaHorasResolucion = null,
-    decimal? Puntos = 1.0m);
+    decimal? Puntos = 1.0m,
+    List<Guid>? ProductoIds = null);
 
 public record ActualizarConfiguracionServicioRequest(
     string Nombre,
@@ -99,7 +107,8 @@ public record ActualizarConfiguracionServicioRequest(
     List<GuardarConfiguracionTareaDto>? Tareas,
     List<GuardarConfiguracionMaterialDto>? Materiales,
     int? SlaHorasResolucion = null,
-    decimal? Puntos = 1.0m);
+    decimal? Puntos = null,
+    List<Guid>? ProductoIds = null);
 
 public record CrearTareaRequest(
     string Nombre,

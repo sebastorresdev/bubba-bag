@@ -65,6 +65,7 @@ public class ServicioCampoDbContext : DbContext, IServicioCampoDbContext
     public DbSet<ConfiguracionServicio> ConfiguracionesServicio => Set<ConfiguracionServicio>();
     public DbSet<ConfiguracionTarea> ConfiguracionesTareas => Set<ConfiguracionTarea>();
     public DbSet<ConfiguracionMaterial> ConfiguracionesMateriales => Set<ConfiguracionMaterial>();
+    public DbSet<ConfiguracionServicioProducto> ConfiguracionesServicioProductos => Set<ConfiguracionServicioProducto>();
 
     public async Task EjecutarEnTransaccionAsync(
         Func<CancellationToken, Task> operacion,

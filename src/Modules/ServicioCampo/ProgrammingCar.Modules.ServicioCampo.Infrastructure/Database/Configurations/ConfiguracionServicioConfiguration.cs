@@ -12,7 +12,7 @@ public class ConfiguracionServicioConfiguration : IEntityTypeConfiguration<Confi
 
         builder.HasKey(p => p.Id);
 
-        builder.HasIndex(p => p.ProductoId).IsUnique().HasFilter("\"Activo\" = TRUE");
+        builder.HasIndex(p => p.ProductoId);
 
         builder.Property(p => p.Nombre)
             .IsRequired()
@@ -61,6 +61,12 @@ public class ConfiguracionServicioConfiguration : IEntityTypeConfiguration<Confi
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(p => p.Tareas).UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.HasMany(p => p.Servicios)
+            .WithOne(s => s.ConfiguracionServicio)
+            .HasForeignKey(s => s.ConfiguracionServicioId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.Navigation(p => p.Materiales).UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Navigation(p => p.Servicios).UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

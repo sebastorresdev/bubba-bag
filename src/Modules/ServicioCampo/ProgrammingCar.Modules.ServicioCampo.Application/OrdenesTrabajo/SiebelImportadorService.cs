@@ -287,6 +287,7 @@ public class SiebelImportadorService
 
         // Plantillas / Configuraciones existentes
         var configsExistentes = await _db.ConfiguracionesServicio
+            .Include(c => c.Servicios)
             .Where(c => c.Activo)
             .ToListAsync(ct);
 
@@ -515,8 +516,8 @@ public class SiebelImportadorService
                     }
 
                     // Resolver Configuración de Servicio (Plantilla) tomando los puntos configurados
-                    var configServicio = configsExistentes.FirstOrDefault(c => c.ProductoId == prodServicio.Id && c.EsPredeterminada)
-                        ?? configsExistentes.FirstOrDefault(c => c.ProductoId == prodServicio.Id);
+                    var configServicio = configsExistentes.FirstOrDefault(c => (c.ProductoId == prodServicio.Id || c.Servicios.Any(s => s.ProductoId == prodServicio.Id)) && c.EsPredeterminada)
+                        ?? configsExistentes.FirstOrDefault(c => c.ProductoId == prodServicio.Id || c.Servicios.Any(s => s.ProductoId == prodServicio.Id));
 
                     if (configServicio == null)
                     {

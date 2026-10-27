@@ -72,15 +72,16 @@ public static class OrdenesTrabajoEndpoints
         if (item.TarifaBase.HasValue && item.TarifaBase.Value != precio.Monto)
             throw new BadHttpRequestException("El precio cambió o no coincide con la lista de la orden. Actualice antes de guardar.");
         var configuraciones = db.ConfiguracionesServicio.AsNoTracking()
+            .Include(p => p.Servicios)
             .Include(p => p.Tareas).ThenInclude(t => t.Tarea)
             .Include(p => p.Materiales).ThenInclude(m => m.Producto).ThenInclude(p => p.UnidadMedidaDefecto)
             .Include(p => p.Materiales).ThenInclude(m => m.UnidadMedida);
         var configuracion = item.ConfiguracionServicioId.HasValue
             ? await configuraciones.FirstOrDefaultAsync(p => p.Id == item.ConfiguracionServicioId, ct)
-            : await configuraciones.SingleOrDefaultAsync(p => p.ProductoId == servicio.Id && p.Activo, ct);
+            : await configuraciones.FirstOrDefaultAsync(p => (p.ProductoId == servicio.Id || p.Servicios.Any(s => s.ProductoId == servicio.Id)) && p.Activo, ct);
         if (item.ConfiguracionServicioId.HasValue && configuracion == null)
             throw new BadHttpRequestException("La configuración del servicio no existe.");
-        if (configuracion != null && (!configuracion.Activo || configuracion.ProductoId != servicio.Id))
+        if (configuracion != null && (!configuracion.Activo || (configuracion.ProductoId != servicio.Id && !configuracion.Servicios.Any(s => s.ProductoId == servicio.Id))))
             throw new BadHttpRequestException("La configuración debe estar activa y pertenecer al servicio seleccionado.");
 
         var codigo = string.IsNullOrWhiteSpace(item.CodigoTrabajo)

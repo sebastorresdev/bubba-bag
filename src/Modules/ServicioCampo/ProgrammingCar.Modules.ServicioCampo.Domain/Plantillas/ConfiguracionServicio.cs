@@ -54,11 +54,15 @@ public class ConfiguracionServicio : Entity<Guid>
     private readonly List<ConfiguracionMaterial> _materiales = new();
     public IReadOnlyCollection<ConfiguracionMaterial> Materiales => _materiales.AsReadOnly();
 
+    // Colección de servicios/productos asociados a esta configuración
+    private readonly List<ConfiguracionServicioProducto> _servicios = new();
+    public IReadOnlyCollection<ConfiguracionServicioProducto> Servicios => _servicios.AsReadOnly();
+
     private ConfiguracionServicio() { }
 
     public static ConfiguracionServicio Crear(
         string nombre,
-        Guid productoId,
+        IEnumerable<Guid> productoIds,
         int duracionEstimadaMinutos = 60,
         string? descripcion = null,
         bool esPredeterminada = false,
@@ -68,11 +72,10 @@ public class ConfiguracionServicio : Entity<Guid>
         if (string.IsNullOrWhiteSpace(nombre))
             throw new ArgumentException("El nombre de la plantilla es obligatorio.", nameof(nombre));
 
-        return new ConfiguracionServicio
+        var conf = new ConfiguracionServicio
         {
             Id = Guid.NewGuid(),
             Nombre = nombre.Trim(),
-            ProductoId = productoId,
             DuracionEstimadaMinutos = Math.Max(1, duracionEstimadaMinutos),
             SlaHorasResolucion = slaHorasResolucion is > 0 ? slaHorasResolucion.Value : null,
             Puntos = puntos > 0 ? puntos : 1.0m,
@@ -81,6 +84,34 @@ public class ConfiguracionServicio : Entity<Guid>
             Activo = true,
             CreatedAt = DateTime.UtcNow
         };
+        conf.AsignarServicios(productoIds);
+        return conf;
+    }
+
+    public static ConfiguracionServicio Crear(
+        string nombre,
+        Guid productoId,
+        int duracionEstimadaMinutos = 60,
+        string? descripcion = null,
+        bool esPredeterminada = false,
+        int? slaHorasResolucion = null,
+        decimal puntos = 1.0m) => Crear(nombre, new[] { productoId }, duracionEstimadaMinutos, descripcion, esPredeterminada, slaHorasResolucion, puntos);
+
+    public void AsignarServicios(IEnumerable<Guid> productoIds)
+    {
+        var ids = productoIds.Distinct().Where(id => id != Guid.Empty).ToList();
+        if (ids.Count == 0)
+            throw new ArgumentException("Debe asociar al menos un servicio técnico a la configuración.", nameof(productoIds));
+
+        ProductoId = ids[0];
+        _servicios.RemoveAll(s => !ids.Contains(s.ProductoId));
+        foreach (var pId in ids)
+        {
+            if (!_servicios.Any(s => s.ProductoId == pId))
+            {
+                _servicios.Add(ConfiguracionServicioProducto.Crear(Id, pId));
+            }
+        }
     }
 
     public void Actualizar(
@@ -88,7 +119,7 @@ public class ConfiguracionServicio : Entity<Guid>
         int duracionEstimadaMinutos,
         string? descripcion,
         bool esPredeterminada,
-        Guid? productoId = null,
+        IEnumerable<Guid>? productoIds = null,
         int? slaHorasResolucion = null,
         decimal? puntos = null)
     {
@@ -102,9 +133,21 @@ public class ConfiguracionServicio : Entity<Guid>
             Puntos = puntos.Value;
         Descripcion = descripcion?.Trim();
         EsPredeterminada = esPredeterminada;
-        if (productoId.HasValue && productoId.Value != Guid.Empty)
-            ProductoId = productoId.Value;
+
+        if (productoIds != null && productoIds.Any())
+        {
+            AsignarServicios(productoIds);
+        }
     }
+
+    public void Actualizar(
+        string nombre,
+        int duracionEstimadaMinutos,
+        string? descripcion,
+        bool esPredeterminada,
+        Guid? productoId,
+        int? slaHorasResolucion = null,
+        decimal? puntos = null) => Actualizar(nombre, duracionEstimadaMinutos, descripcion, esPredeterminada, productoId.HasValue ? new[] { productoId.Value } : null, slaHorasResolucion, puntos);
 
     public void AgregarTarea(Guid tareaId, int ordenSecuencia, bool esObligatoria = true, bool requiereEvidencia = false, string? instrucciones = null)
     {

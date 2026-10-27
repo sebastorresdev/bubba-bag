@@ -1,3 +1,9 @@
+export interface ConfiguracionServicioProductoItemDto {
+  productoId: string;
+  codigo: string;
+  nombre: string;
+}
+
 export interface ConfiguracionServicioListadoDto {
   id: string;
   codigo?: string;
@@ -14,6 +20,7 @@ export interface ConfiguracionServicioListadoDto {
   cantidadTareas: number;
   cantidadMateriales: number;
   createdAt: string;
+  servicios?: ConfiguracionServicioProductoItemDto[];
 }
 
 export interface ConfiguracionServicioDetalleDto {
@@ -32,6 +39,7 @@ export interface ConfiguracionServicioDetalleDto {
   createdAt: string;
   tareas: ConfiguracionTareaItemDto[];
   materiales: ConfiguracionMaterialItemDto[];
+  servicios?: ConfiguracionServicioProductoItemDto[];
 }
 
 export interface ConfiguracionTareaItemDto {
@@ -63,6 +71,7 @@ export interface GuardarConfiguracionServicioDto {
   codigo?: string;
   nombre: string;
   productoId: string;
+  productoIds?: string[];
   duracionEstimadaMinutos: number;
   slaHorasResolucion?: number | null;
   puntos?: number;

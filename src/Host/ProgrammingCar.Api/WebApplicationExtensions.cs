@@ -91,6 +91,28 @@ public static class WebApplicationExtensions
                         ALTER TABLE serviciocampo.""PlantillasTrabajo"" ADD COLUMN IF NOT EXISTS ""Puntos"" numeric(5,2) NOT NULL DEFAULT 1.0;
                         ALTER TABLE serviciocampo.""Trabajos"" ADD COLUMN IF NOT EXISTS ""Puntos"" numeric(5,2) NOT NULL DEFAULT 1.0;
 
+                        CREATE TABLE IF NOT EXISTS serviciocampo.""PlantillasTrabajoServicios"" (
+                            ""Id"" uuid NOT NULL PRIMARY KEY,
+                            ""ConfiguracionServicioId"" uuid NOT NULL,
+                            ""ProductoId"" uuid NOT NULL,
+                            ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT NOW()
+                        );
+
+                        CREATE INDEX IF NOT EXISTS ""IX_PlantillasTrabajoServicios_ConfiguracionServicioId"" ON serviciocampo.""PlantillasTrabajoServicios"" (""ConfiguracionServicioId"");
+                        CREATE INDEX IF NOT EXISTS ""IX_PlantillasTrabajoServicios_ProductoId"" ON serviciocampo.""PlantillasTrabajoServicios"" (""ProductoId"");
+
+                        DROP INDEX IF EXISTS serviciocampo.""IX_PlantillasTrabajo_ServicioId"";
+
+                        INSERT INTO serviciocampo.""PlantillasTrabajoServicios"" (""Id"", ""ConfiguracionServicioId"", ""ProductoId"")
+                        SELECT gen_random_uuid(), ""Id"", ""ServicioId""
+                        FROM serviciocampo.""PlantillasTrabajo""
+                        WHERE ""ServicioId"" IS NOT NULL
+                          AND NOT EXISTS (
+                              SELECT 1 FROM serviciocampo.""PlantillasTrabajoServicios"" pts 
+                              WHERE pts.""ConfiguracionServicioId"" = serviciocampo.""PlantillasTrabajo"".""Id"" 
+                                AND pts.""ProductoId"" = serviciocampo.""PlantillasTrabajo"".""ServicioId""
+                          );
+
                         DELETE FROM public.""__EFMigrationsHistory""
                         WHERE ""MigrationId"" IN (
                             '20261014055112_InicialServicioCampo',

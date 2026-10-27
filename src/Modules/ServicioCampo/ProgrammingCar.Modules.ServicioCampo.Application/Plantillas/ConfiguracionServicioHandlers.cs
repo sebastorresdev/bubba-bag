@@ -48,15 +48,35 @@ public class ConfiguracionServicioHandlers :
         _context = context;
     }
 
-    private async Task<string?> ValidarConfiguracion(Guid productoId,
+    private async Task<string?> ValidarConfiguracion(List<Guid> productoIds,
         List<GuardarConfiguracionTareaDto>? tareas, List<GuardarConfiguracionMaterialDto>? materiales, Guid? id, bool activa, CancellationToken ct)
     {
-        if (!await _context.Productos.AnyAsync(p => p.Id == productoId && p.Tipo == TipoProducto.Servicio && p.Activo, ct))
-            return "Seleccione un producto activo de tipo Servicio.";
-        if (activa && await _context.ConfiguracionesServicio.AnyAsync(x => x.ProductoId == productoId && x.Activo && x.Id != id, ct))
-            return "Ya existe una configuración activa para este servicio. Edítela o desactívela antes de crear otra.";
+        if (productoIds == null || productoIds.Count == 0)
+            return "Debe seleccionar al menos un servicio técnico activo del catálogo.";
+
+        var serviciosValidos = await _context.Productos
+            .Where(p => productoIds.Contains(p.Id) && p.Tipo == TipoProducto.Servicio && p.Activo)
+            .ToListAsync(ct);
+
+        if (serviciosValidos.Count != productoIds.Count)
+            return "Uno o más servicios seleccionados no son válidos o no están activos.";
+
+        if (activa)
+        {
+            var colision = await _context.ConfiguracionesServicio
+                .AsNoTracking()
+                .Include(x => x.Servicios)
+                .Where(x => x.Activo && x.Id != id && (productoIds.Contains(x.ProductoId) || x.Servicios.Any(s => productoIds.Contains(s.ProductoId))))
+                .Select(x => x.Nombre)
+                .FirstOrDefaultAsync(ct);
+
+            if (colision != null)
+                return $"Uno de los servicios seleccionados ya cuenta con una configuración activa ('{colision}'). Remuévalo antes de guardar.";
+        }
+
         foreach (var tarea in tareas ?? [])
             if (!await _context.Tareas.AnyAsync(t => t.Id == tarea.TareaId && t.Activo, ct)) return "Seleccione tareas activas del catálogo.";
+
         foreach (var material in materiales ?? [])
         {
             var producto = await _context.Productos.FirstOrDefaultAsync(p => p.Id == material.ProductoId, ct);
@@ -74,12 +94,16 @@ public class ConfiguracionServicioHandlers :
         if (string.IsNullOrWhiteSpace(req.Nombre))
             return Result<Guid>.Failure("El nombre de la plantilla es obligatorio.");
 
-        var error = await ValidarConfiguracion(req.ProductoId, req.Tareas, req.Materiales, null, true, ct);
+        var pIds = req.ProductoIds != null && req.ProductoIds.Any()
+            ? req.ProductoIds.Distinct().Where(x => x != Guid.Empty).ToList()
+            : (req.ProductoId != Guid.Empty ? new List<Guid> { req.ProductoId } : new List<Guid>());
+
+        var error = await ValidarConfiguracion(pIds, req.Tareas, req.Materiales, null, true, ct);
         if (error != null) return Result<Guid>.Failure(error);
 
         var plantilla = ConfiguracionServicio.Crear(
             req.Nombre,
-            req.ProductoId,
+            pIds,
             req.DuracionEstimadaMinutos,
             req.Descripcion,
             req.EsPredeterminada,
@@ -123,6 +147,7 @@ public class ConfiguracionServicioHandlers :
             return Result.Failure("El nombre de la plantilla es obligatorio.");
 
         var plantilla = await _context.ConfiguracionesServicio
+            .Include(p => p.Servicios)
             .Include(p => p.Tareas)
             .Include(p => p.Materiales)
             .FirstOrDefaultAsync(p => p.Id == command.Id, ct);
@@ -130,12 +155,14 @@ public class ConfiguracionServicioHandlers :
         if (plantilla == null)
             return Result.Failure("Configuración del servicio no encontrada.");
 
-        if (plantilla.ProductoId != req.ProductoId)
-            return Result.Failure("El servicio de una configuración existente no puede cambiar. Cree otra configuración.");
-        var error = await ValidarConfiguracion(req.ProductoId, req.Tareas, req.Materiales, command.Id, plantilla.Activo, ct);
+        var pIds = req.ProductoIds != null && req.ProductoIds.Any()
+            ? req.ProductoIds.Distinct().Where(x => x != Guid.Empty).ToList()
+            : (req.ProductoId != Guid.Empty ? new List<Guid> { req.ProductoId } : new List<Guid>());
+
+        var error = await ValidarConfiguracion(pIds, req.Tareas, req.Materiales, command.Id, plantilla.Activo, ct);
         if (error != null) return Result.Failure(error);
 
-        plantilla.Actualizar(req.Nombre, req.DuracionEstimadaMinutos, req.Descripcion, req.EsPredeterminada, req.ProductoId, req.SlaHorasResolucion, req.Puntos);
+        plantilla.Actualizar(req.Nombre, req.DuracionEstimadaMinutos, req.Descripcion, req.EsPredeterminada, pIds, req.SlaHorasResolucion, req.Puntos);
 
         if (plantilla.Tareas.Any())
         {
@@ -274,12 +301,13 @@ public class ConfiguracionServicioHandlers :
         var q = _context.ConfiguracionesServicio
             .AsNoTracking()
             .Include(p => p.Producto)
+            .Include(p => p.Servicios).ThenInclude(s => s.Producto)
             .Include(p => p.Tareas)
             .Include(p => p.Materiales)
             .AsQueryable();
 
         if (query.ProductoId.HasValue && query.ProductoId.Value != Guid.Empty)
-            q = q.Where(p => p.ProductoId == query.ProductoId.Value);
+            q = q.Where(p => p.ProductoId == query.ProductoId.Value || p.Servicios.Any(s => s.ProductoId == query.ProductoId.Value));
 
         if (query.SoloActivos == true)
             q = q.Where(p => p.Activo);
@@ -293,22 +321,41 @@ public class ConfiguracionServicioHandlers :
 
         var items = await q.OrderBy(p => p.Nombre).ToListAsync(ct);
 
-        var dtos = items.Select(p => new ConfiguracionServicioListadoDto(
-            p.Id,
-            p.Nombre,
-            p.Descripcion,
-            p.ProductoId,
-            p.Producto != null ? p.Producto.Codigo : string.Empty,
-            p.Producto != null ? p.Producto.Nombre : string.Empty,
-            p.DuracionEstimadaMinutos,
-            p.SlaHorasResolucion,
-            p.Puntos,
-            p.EsPredeterminada,
-            p.Activo,
-            p.Tareas.Count,
-            p.Materiales.Count,
-            p.CreatedAt
-        )).ToList();
+        var dtos = items.Select(p =>
+        {
+            var serviciosList = p.Servicios.Select(s => new ConfiguracionServicioProductoItemDto(
+                s.ProductoId,
+                s.Producto != null ? s.Producto.Codigo : string.Empty,
+                s.Producto != null ? s.Producto.Nombre : string.Empty
+            )).ToList();
+
+            if (serviciosList.Count == 0 && p.Producto != null)
+            {
+                serviciosList.Add(new ConfiguracionServicioProductoItemDto(
+                    p.ProductoId,
+                    p.Producto.Codigo,
+                    p.Producto.Nombre
+                ));
+            }
+
+            return new ConfiguracionServicioListadoDto(
+                p.Id,
+                p.Nombre,
+                p.Descripcion,
+                p.ProductoId,
+                p.Producto != null ? p.Producto.Codigo : (serviciosList.FirstOrDefault()?.Codigo ?? string.Empty),
+                p.Producto != null ? p.Producto.Nombre : (serviciosList.FirstOrDefault()?.Nombre ?? string.Empty),
+                p.DuracionEstimadaMinutos,
+                p.SlaHorasResolucion,
+                p.Puntos,
+                p.EsPredeterminada,
+                p.Activo,
+                p.Tareas.Count,
+                p.Materiales.Count,
+                p.CreatedAt,
+                serviciosList
+            );
+        }).ToList();
 
         return Result<List<ConfiguracionServicioListadoDto>>.Success(dtos);
     }
@@ -318,6 +365,7 @@ public class ConfiguracionServicioHandlers :
         var p = await _context.ConfiguracionesServicio
             .AsNoTracking()
             .Include(x => x.Producto)
+            .Include(x => x.Servicios).ThenInclude(s => s.Producto)
             .Include(x => x.Tareas)
                 .ThenInclude(t => t.Tarea)
             .Include(x => x.Materiales)
@@ -356,13 +404,28 @@ public class ConfiguracionServicioHandlers :
             m.UnidadMedidaId ?? m.Producto?.UnidadMedidaDefectoId
         )).ToList();
 
+        var serviciosList = p.Servicios.Select(s => new ConfiguracionServicioProductoItemDto(
+            s.ProductoId,
+            s.Producto != null ? s.Producto.Codigo : string.Empty,
+            s.Producto != null ? s.Producto.Nombre : string.Empty
+        )).ToList();
+
+        if (serviciosList.Count == 0 && p.Producto != null)
+        {
+            serviciosList.Add(new ConfiguracionServicioProductoItemDto(
+                p.ProductoId,
+                p.Producto.Codigo,
+                p.Producto.Nombre
+            ));
+        }
+
         var dto = new ConfiguracionServicioDetalleDto(
             p.Id,
             p.Nombre,
             p.Descripcion,
             p.ProductoId,
-            p.Producto != null ? p.Producto.Codigo : string.Empty,
-            p.Producto != null ? p.Producto.Nombre : string.Empty,
+            p.Producto != null ? p.Producto.Codigo : (serviciosList.FirstOrDefault()?.Codigo ?? string.Empty),
+            p.Producto != null ? p.Producto.Nombre : (serviciosList.FirstOrDefault()?.Nombre ?? string.Empty),
             p.DuracionEstimadaMinutos,
             p.SlaHorasResolucion,
             p.Puntos,
@@ -370,7 +433,8 @@ public class ConfiguracionServicioHandlers :
             p.Activo,
             p.CreatedAt,
             tareasDto,
-            materialesDto
+            materialesDto,
+            serviciosList
         );
 
         return Result<ConfiguracionServicioDetalleDto>.Success(dto);
