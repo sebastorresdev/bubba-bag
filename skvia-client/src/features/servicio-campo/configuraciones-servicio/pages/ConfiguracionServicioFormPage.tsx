@@ -109,7 +109,7 @@ export function ConfiguracionServicioFormPage() {
   const [nombre, setNombre] = useState('');
   const [productoId, setProductoId] = useState('');
   const [duracionEstimadaMinutos, setDuracionEstimadaMinutos] = useState<number>(60);
-  const [puntos, setPuntos] = useState<number>(1);
+  const [puntos, setPuntos] = useState<string>('1');
   const [slaHorasResolucion, setSlaHorasResolucion] = useState<number | null>(null);
   const [descripcion, setDescripcion] = useState('');
   const [activo, setActivo] = useState(true);
@@ -183,7 +183,7 @@ export function ConfiguracionServicioFormPage() {
         setSavedCantidadTareas(plantilla.tareas.length);
         setSavedCantidadMateriales(plantilla.materiales.length);
         setDuracionEstimadaMinutos(plantilla.duracionEstimadaMinutos);
-        setPuntos(plantilla.puntos ?? 1);
+        setPuntos((plantilla.puntos ?? 1).toString());
         setSlaHorasResolucion(plantilla.slaHorasResolucion ?? null);
         setDescripcion(plantilla.descripcion || '');
         setActivo(plantilla.activo);
@@ -270,6 +270,8 @@ export function ConfiguracionServicioFormPage() {
     if (!productoId) errs.productoId = 'Debe seleccionar un servicio técnico del catálogo.';
     if (!nombre.trim()) errs.nombre = 'El nombre de la configuración es obligatorio.';
     if (duracionEstimadaMinutos < 1) errs.duracion = 'La duración estimada debe ser al menos 1 minuto.';
+    const ptsNum = parseFloat(puntos.replace(',', '.'));
+    if (isNaN(ptsNum) || ptsNum <= 0) errs.puntos = 'Los puntos deben ser un número mayor a 0 (ej. 0.5 o 1).';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -287,11 +289,13 @@ export function ConfiguracionServicioFormPage() {
       setSaving(true);
       setStatusMessage(null);
 
+      const ptsNum = parseFloat(puntos.replace(',', '.'));
       const dto: GuardarConfiguracionServicioDto = {
         nombre: nombre.trim(),
         productoId,
         duracionEstimadaMinutos,
         slaHorasResolucion: slaHorasResolucion ? Number(slaHorasResolucion) : null,
+        puntos: !isNaN(ptsNum) && ptsNum > 0 ? ptsNum : 1.0,
         descripcion: descripcion.trim() || undefined,
         esPredeterminada: false,
         tareas: tareas.map((t, idx) => ({
@@ -920,14 +924,23 @@ export function ConfiguracionServicioFormPage() {
                 <D365FormField
                   label="Puntos de trabajo"
                   required
-                  info="Valor en puntos que acumula el técnico al realizar este tipo de servicio."
+                  error={errors.puntos}
+                  info="Valor en puntos que acumula el técnico al realizar este tipo de servicio (ejemplo: 0.5, 1, 1.5)."
                 >
                   <Input
                     type="number"
-                    min={0.1}
-                    step={0.1}
-                    value={puntos.toString()}
-                    onChange={(_, d) => setPuntos(parseFloat(d.value) || 1)}
+                    min={0.01}
+                    step={0.01}
+                    value={puntos}
+                    onChange={(_, d) => setPuntos(d.value)}
+                    onBlur={() => {
+                      const val = parseFloat(puntos.replace(',', '.'));
+                      if (isNaN(val) || val <= 0) {
+                        setPuntos('1');
+                      } else {
+                        setPuntos(val.toString());
+                      }
+                    }}
                   />
                 </D365FormField>
 
