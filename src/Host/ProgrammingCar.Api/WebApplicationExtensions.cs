@@ -41,95 +41,91 @@ public static class WebApplicationExtensions
             await servicioCampoDbContext.Database.ExecuteSqlRawAsync(@"
                 DO $$
                 BEGIN
-                    IF EXISTS (
-                        SELECT 1 FROM information_schema.tables 
-                        WHERE table_schema = 'inventario' AND table_name = 'Almacenes'
+                    CREATE SCHEMA IF NOT EXISTS crm;
+
+                    CREATE TABLE IF NOT EXISTS crm.contactos (
+                        ""Id"" uuid NOT NULL PRIMARY KEY,
+                        ""Nombres"" character varying(120) NOT NULL,
+                        ""Apellidos"" character varying(120) NOT NULL,
+                        ""Cargo"" character varying(120) NULL,
+                        ""CuentaId"" uuid NULL,
+                        ""Email"" character varying(150) NULL,
+                        ""TelefonoMovil"" character varying(30) NOT NULL,
+                        ""TelefonoTrabajo"" character varying(30) NULL,
+                        ""Direccion"" character varying(250) NULL,
+                        ""UbigeoCodigo"" character varying(10) NULL,
+                        ""Activo"" boolean NOT NULL DEFAULT TRUE,
+                        ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        CONSTRAINT ""FK_contactos_clientes_CuentaId"" FOREIGN KEY (""CuentaId"") REFERENCES crm.clientes (""Id"") ON DELETE SET NULL,
+                        CONSTRAINT ""FK_contactos_ubigeos_UbigeoCodigo"" FOREIGN KEY (""UbigeoCodigo"") REFERENCES crm.ubigeos (""Codigo"") ON DELETE RESTRICT
+                    );
+
+                    ALTER TABLE crm.contactos ADD COLUMN IF NOT EXISTS ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP;
+                    ALTER TABLE crm.contactos ALTER COLUMN ""UbigeoCodigo"" TYPE character varying(10);
+                    ALTER TABLE crm.contactos DROP COLUMN IF EXISTS ""NombreCompleto"";
+
+                    CREATE INDEX IF NOT EXISTS ""IX_contactos_CuentaId"" ON crm.contactos (""CuentaId"");
+                    CREATE INDEX IF NOT EXISTS ""IX_contactos_UbigeoCodigo"" ON crm.contactos (""UbigeoCodigo"");
+
+                    ALTER TABLE crm.clientes ADD COLUMN IF NOT EXISTS ""ContactoPrincipalId"" uuid NULL;
+                    ALTER TABLE crm.clientes ADD COLUMN IF NOT EXISTS ""CodigoExterno"" character varying(60) NULL;
+                    CREATE INDEX IF NOT EXISTS ""IX_clientes_CodigoExterno"" ON crm.clientes (""CodigoExterno"");
+
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.table_constraints 
+                        WHERE constraint_name = 'FK_clientes_contactos_ContactoPrincipalId'
                     ) THEN
-                        CREATE SCHEMA IF NOT EXISTS crm;
-
-                        CREATE TABLE IF NOT EXISTS crm.contactos (
-                            ""Id"" uuid NOT NULL PRIMARY KEY,
-                            ""Nombres"" character varying(120) NOT NULL,
-                            ""Apellidos"" character varying(120) NOT NULL,
-                            ""Cargo"" character varying(120) NULL,
-                            ""CuentaId"" uuid NULL,
-                            ""Email"" character varying(150) NULL,
-                            ""TelefonoMovil"" character varying(30) NOT NULL,
-                            ""TelefonoTrabajo"" character varying(30) NULL,
-                            ""Direccion"" character varying(250) NULL,
-                            ""UbigeoCodigo"" character varying(10) NULL,
-                            ""Activo"" boolean NOT NULL DEFAULT TRUE,
-                            ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                            CONSTRAINT ""FK_contactos_clientes_CuentaId"" FOREIGN KEY (""CuentaId"") REFERENCES crm.clientes (""Id"") ON DELETE SET NULL,
-                            CONSTRAINT ""FK_contactos_ubigeos_UbigeoCodigo"" FOREIGN KEY (""UbigeoCodigo"") REFERENCES crm.ubigeos (""Codigo"") ON DELETE RESTRICT
-                        );
-
-                        ALTER TABLE crm.contactos ADD COLUMN IF NOT EXISTS ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP;
-                        ALTER TABLE crm.contactos ALTER COLUMN ""UbigeoCodigo"" TYPE character varying(10);
-                        ALTER TABLE crm.contactos DROP COLUMN IF EXISTS ""NombreCompleto"";
-
-                        CREATE INDEX IF NOT EXISTS ""IX_contactos_CuentaId"" ON crm.contactos (""CuentaId"");
-                        CREATE INDEX IF NOT EXISTS ""IX_contactos_UbigeoCodigo"" ON crm.contactos (""UbigeoCodigo"");
-
-                        ALTER TABLE crm.clientes ADD COLUMN IF NOT EXISTS ""ContactoPrincipalId"" uuid NULL;
-                        ALTER TABLE crm.clientes ADD COLUMN IF NOT EXISTS ""CodigoExterno"" character varying(60) NULL;
-                        CREATE INDEX IF NOT EXISTS ""IX_clientes_CodigoExterno"" ON crm.clientes (""CodigoExterno"");
-
-                        IF NOT EXISTS (
-                            SELECT 1 FROM information_schema.table_constraints 
-                            WHERE constraint_name = 'FK_clientes_contactos_ContactoPrincipalId'
-                        ) THEN
-                            ALTER TABLE crm.clientes
-                                ADD CONSTRAINT ""FK_clientes_contactos_ContactoPrincipalId""
-                                FOREIGN KEY (""ContactoPrincipalId"") REFERENCES crm.contactos (""Id"") ON DELETE SET NULL;
-                        END IF;
-
-                        CREATE INDEX IF NOT EXISTS ""IX_clientes_ContactoPrincipalId"" ON crm.clientes (""ContactoPrincipalId"");
-
-                        ALTER TABLE serviciocampo.""Tareas"" DROP COLUMN IF EXISTS ""Codigo"";
-
-                        ALTER TABLE serviciocampo.""PlantillasTrabajo"" ADD COLUMN IF NOT EXISTS ""Puntos"" numeric(5,2) NOT NULL DEFAULT 1.0;
-                        ALTER TABLE serviciocampo.""Trabajos"" ADD COLUMN IF NOT EXISTS ""Puntos"" numeric(5,2) NOT NULL DEFAULT 1.0;
-
-                        CREATE TABLE IF NOT EXISTS serviciocampo.""PlantillasTrabajoServicios"" (
-                            ""Id"" uuid NOT NULL PRIMARY KEY,
-                            ""ConfiguracionServicioId"" uuid NOT NULL,
-                            ""ProductoId"" uuid NOT NULL,
-                            ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT NOW()
-                        );
-
-                        CREATE INDEX IF NOT EXISTS ""IX_PlantillasTrabajoServicios_ConfiguracionServicioId"" ON serviciocampo.""PlantillasTrabajoServicios"" (""ConfiguracionServicioId"");
-                        CREATE INDEX IF NOT EXISTS ""IX_PlantillasTrabajoServicios_ProductoId"" ON serviciocampo.""PlantillasTrabajoServicios"" (""ProductoId"");
-
-                        DROP INDEX IF EXISTS serviciocampo.""IX_PlantillasTrabajo_ServicioId"";
-
-                        INSERT INTO serviciocampo.""PlantillasTrabajoServicios"" (""Id"", ""ConfiguracionServicioId"", ""ProductoId"")
-                        SELECT gen_random_uuid(), ""Id"", ""ServicioId""
-                        FROM serviciocampo.""PlantillasTrabajo""
-                        WHERE ""ServicioId"" IS NOT NULL
-                          AND NOT EXISTS (
-                              SELECT 1 FROM serviciocampo.""PlantillasTrabajoServicios"" pts 
-                              WHERE pts.""ConfiguracionServicioId"" = serviciocampo.""PlantillasTrabajo"".""Id"" 
-                                AND pts.""ProductoId"" = serviciocampo.""PlantillasTrabajo"".""ServicioId""
-                          );
-
-                        DELETE FROM public.""__EFMigrationsHistory""
-                        WHERE ""MigrationId"" IN (
-                            '20261014055112_InicialServicioCampo',
-                            '20261014163836_PrecisionCantidadAjustes',
-                            '20261014200825_CicloOrdenesYObservaciones',
-                            '20261014201519_PersistirObservacionesOrden',
-                            '20261014233709_SlaConfiguracionServicio',
-                            '20261016070000_AgregarUnidadOrganizativaAOrdenTrabajo',
-                            '20261016223100_AgregarAlmacenPadreAAlmacenes',
-                            '20261017203223_AgregarDevolucionProveedorYRespaldo',
-                            '20261018015057_AgregarMotivosRetiroEquipo'
-                        );
-
-                        INSERT INTO public.""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"")
-                        VALUES ('20261022040929_InicialServicioCampo', '10.0.11')
-                        ON CONFLICT (""MigrationId"") DO NOTHING;
+                        ALTER TABLE crm.clientes
+                            ADD CONSTRAINT ""FK_clientes_contactos_ContactoPrincipalId""
+                            FOREIGN KEY (""ContactoPrincipalId"") REFERENCES crm.contactos (""Id"") ON DELETE SET NULL;
                     END IF;
+
+                    CREATE INDEX IF NOT EXISTS ""IX_clientes_ContactoPrincipalId"" ON crm.clientes (""ContactoPrincipalId"");
+
+                    ALTER TABLE serviciocampo.""Tareas"" DROP COLUMN IF EXISTS ""Codigo"";
+
+                    -- Agregar columnas Puntos a PlantillasTrabajo y Trabajos
+                    ALTER TABLE serviciocampo.""PlantillasTrabajo"" ADD COLUMN IF NOT EXISTS ""Puntos"" numeric(5,2) NOT NULL DEFAULT 1.0;
+                    ALTER TABLE serviciocampo.""Trabajos"" ADD COLUMN IF NOT EXISTS ""Puntos"" numeric(5,2) NOT NULL DEFAULT 1.0;
+
+                    CREATE TABLE IF NOT EXISTS serviciocampo.""PlantillasTrabajoServicios"" (
+                        ""Id"" uuid NOT NULL PRIMARY KEY,
+                        ""ConfiguracionServicioId"" uuid NOT NULL,
+                        ""ProductoId"" uuid NOT NULL,
+                        ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT NOW()
+                    );
+
+                    CREATE INDEX IF NOT EXISTS ""IX_PlantillasTrabajoServicios_ConfiguracionServicioId"" ON serviciocampo.""PlantillasTrabajoServicios"" (""ConfiguracionServicioId"");
+                    CREATE INDEX IF NOT EXISTS ""IX_PlantillasTrabajoServicios_ProductoId"" ON serviciocampo.""PlantillasTrabajoServicios"" (""ProductoId"");
+
+                    DROP INDEX IF EXISTS serviciocampo.""IX_PlantillasTrabajo_ServicioId"";
+
+                    INSERT INTO serviciocampo.""PlantillasTrabajoServicios"" (""Id"", ""ConfiguracionServicioId"", ""ProductoId"")
+                    SELECT gen_random_uuid(), ""Id"", ""ServicioId""
+                    FROM serviciocampo.""PlantillasTrabajo""
+                    WHERE ""ServicioId"" IS NOT NULL
+                      AND NOT EXISTS (
+                          SELECT 1 FROM serviciocampo.""PlantillasTrabajoServicios"" pts 
+                          WHERE pts.""ConfiguracionServicioId"" = serviciocampo.""PlantillasTrabajo"".""Id"" 
+                            AND pts.""ProductoId"" = serviciocampo.""PlantillasTrabajo"".""ServicioId""
+                      );
+
+                    DELETE FROM public.""__EFMigrationsHistory""
+                    WHERE ""MigrationId"" IN (
+                        '20261014055112_InicialServicioCampo',
+                        '20261014163836_PrecisionCantidadAjustes',
+                        '20261014200825_CicloOrdenesYObservaciones',
+                        '20261014201519_PersistirObservacionesOrden',
+                        '20261014233709_SlaConfiguracionServicio',
+                        '20261016070000_AgregarUnidadOrganizativaAOrdenTrabajo',
+                        '20261016223100_AgregarAlmacenPadreAAlmacenes',
+                        '20261017203223_AgregarDevolucionProveedorYRespaldo',
+                        '20261018015057_AgregarMotivosRetiroEquipo'
+                    );
+
+                    INSERT INTO public.""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"")
+                    VALUES ('20261022040929_InicialServicioCampo', '10.0.11')
+                    ON CONFLICT (""MigrationId"") DO NOTHING;
                 END $$;
             ");
 
