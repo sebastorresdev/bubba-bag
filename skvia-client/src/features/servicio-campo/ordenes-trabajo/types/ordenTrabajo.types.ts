@@ -49,6 +49,49 @@ export interface OrdenTrabajoListadoItemDto {
   codigoExternoTrabajo?: string | null;
 }
 
+export type EstadoTrabajo =
+  | 'Pendiente'
+  | 'Asignado'
+  | 'EnProgreso'
+  | 'Completado'
+  | 'Cancelado'
+  | 'Rechazado';
+
+export interface TrabajoListadoItemDto {
+  id: string;
+  ordenTrabajoId: string;
+  codigoTrabajo: string;
+  codigoExterno?: string | null;
+  codigoWo: string;
+  numeroOrden?: string | null;
+  codigoContrato?: string | null;
+  productoId: string;
+  productoCodigo: string;
+  productoNombre: string;
+  estado: EstadoTrabajo | string;
+  estadoSistemaOrden: EstadoSistema | string;
+  tipoOrdenNombre: string;
+  tipoOrdenColor: string;
+  clienteFacturacionNombre: string;
+  clienteServicioNombre: string;
+  clienteServicioCodigo?: string | null;
+  clienteServicioDireccion?: string | null;
+  recursoTecnicoId?: string | null;
+  recursoTecnicoNombre?: string | null;
+  fechaProgramada?: string | null;
+  bloqueHorario?: string | null;
+  puntos: number;
+  tarifaBase: number;
+  fechaInicio?: string | null;
+  fechaFin?: string | null;
+  unidadOrganizativaNombre?: string | null;
+  zonaOperativaNombre?: string | null;
+  cantidadTareas: number;
+  cantidadTareasCompletadas: number;
+  cantidadMateriales: number;
+  fechaCreacion: string;
+}
+
 export interface OrdenTrabajoMaterialDto {
   cantidadPrevista?: number;
   cantidadUtilizada?: number;

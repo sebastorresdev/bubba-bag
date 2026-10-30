@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -27,6 +27,9 @@ namespace ProgrammingCar.Modules.GestionDatos.Infrastructure.Database.Migrations
                     ModoDuplicados = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     PermitirDuplicados = table.Column<bool>(type: "boolean", nullable: false),
                     CreadoPor = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    CreadoPorId = table.Column<Guid>(type: "uuid", nullable: true),
+                    HuellaSolicitud = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    EliminadoHistorial = table.Column<bool>(type: "boolean", nullable: false),
                     FechaCreacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     FechaFinalizacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     TotalProcesados = table.Column<int>(type: "integer", nullable: false),
@@ -71,6 +74,12 @@ namespace ProgrammingCar.Modules.GestionDatos.Infrastructure.Database.Migrations
                 schema: "gestiondatos",
                 table: "DataImportJobErrors",
                 column: "DataImportJobId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DataImportJobs_CreadoPorId_TipoRegistro",
+                schema: "gestiondatos",
+                table: "DataImportJobs",
+                columns: new[] { "CreadoPorId", "TipoRegistro" });
         }
 
         /// <inheritdoc />

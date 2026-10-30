@@ -60,6 +60,7 @@ const ContactoFormPage = lazy(() => import('./features/crm/clientes/pages/Contac
 
 // Servicio de Campo - Órdenes de Trabajo (Field Service Work Orders)
 const OrdenesTrabajoListPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/OrdenesTrabajoListPage').then((m) => ({ default: m.OrdenesTrabajoListPage })));
+const TrabajosListPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/TrabajosListPage').then((m) => ({ default: m.TrabajosListPage })));
 const OrdenTrabajoFormPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/OrdenTrabajoFormPage').then((m) => ({ default: m.OrdenTrabajoFormPage })));
 const SolicitudAtencionFormPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/SolicitudAtencionFormPage').then((m) => ({ default: m.SolicitudAtencionFormPage })));
 
@@ -109,6 +110,7 @@ const router = createBrowserRouter(createRoutesFromElements(
 
               {/* Servicio de Campo - Órdenes de Trabajo (Work Orders) */}
               <Route path="servicio-campo/ordenes" element={<OrdenesTrabajoListPage />} />
+              <Route path="servicio-campo/trabajos" element={<TrabajosListPage />} />
               <Route path="servicio-campo/ordenes/nuevo" element={<OrdenTrabajoFormPage />} />
               <Route path="servicio-campo/ordenes/:id" element={<OrdenTrabajoFormPage />} />
               <Route path="servicio-campo/solicitud-atencion" element={<SolicitudAtencionFormPage />} />

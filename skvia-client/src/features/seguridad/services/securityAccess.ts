@@ -22,7 +22,7 @@ export function canAccessPath(path: string, permisos: readonly string[]): boolea
   if (path.startsWith('/crm')) return has('crm.acceso');
   if (path.startsWith('/servicio-campo/clientes')) return has('crm.acceso');
   if (path.startsWith('/servicio-campo/solicitud-atencion')) return has('serviciocampo.acceso') || has('crm.acceso');
-  if (path.startsWith('/servicio-campo/ordenes') || path === '/dashboard') return has('serviciocampo.acceso')
+  if (path.startsWith('/servicio-campo/ordenes') || path.startsWith('/servicio-campo/trabajos') || path === '/dashboard') return has('serviciocampo.acceso')
     && (!path.endsWith('/nuevo') || has('serviciocampo.ordenes.crear'));
   if (
     path.startsWith('/servicio-campo/motivos-retiro') ||

@@ -47,6 +47,13 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
                 badge: 'Principal',
                 description: 'Gestión completa de órdenes de servicio en campo, asignaciones y estados.',
               },
+              {
+                id: 'trabajos',
+                title: 'Trabajos',
+                path: '/servicio-campo/trabajos',
+                iconName: 'Wrench',
+                description: 'Vista detallada a nivel de trabajos individuales, códigos externos IBS y servicios.',
+              },
             ],
           },
           {

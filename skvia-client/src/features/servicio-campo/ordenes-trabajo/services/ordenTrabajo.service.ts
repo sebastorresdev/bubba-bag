@@ -1,6 +1,7 @@
 import { apiClient, apiClientDownload, apiClientUpload, getValidAuthToken } from '../../../../services/apiClient';
 import type {
   OrdenTrabajoListadoItemDto,
+  TrabajoListadoItemDto,
   OrdenTrabajoDetalleDto,
   CrearOrdenTrabajoDto,
   ActualizarOrdenTrabajoDto,
@@ -30,7 +31,12 @@ async function modificar<T>(id: string, path: string, method: string, data?: unk
   return result;
 }
 export const OrdenTrabajoService = {
-  obtenerOrdenes(params?: { search?: string; estadoSistema?: string; clienteId?: string; zonaOperativaId?: string; unidadOrganizativaId?: string }): Promise<OrdenTrabajoListadoItemDto[]> {
+  obtenerTrabajos(params?: { search?: string; vista?: string; estado?: string; estadoSistemaOrden?: string; clienteId?: string; recursoId?: string; productoId?: string; zonaOperativaId?: string; unidadOrganizativaId?: string }): Promise<TrabajoListadoItemDto[]> {
+    const query = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => { if (value) query.set(key, value); });
+    return apiClient(`${base}/trabajos?${query}`);
+  },
+  obtenerOrdenes(params?: { search?: string; vista?: string; estadoSistema?: string; clienteId?: string; zonaOperativaId?: string; unidadOrganizativaId?: string }): Promise<OrdenTrabajoListadoItemDto[]> {
     const query = new URLSearchParams();
     Object.entries(params || {}).forEach(([key, value]) => { if (value) query.set(key, value); });
     return apiClient(`${base}?${query}`);

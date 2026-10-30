@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -846,6 +846,7 @@ namespace ProgrammingCar.Modules.ServicioCampo.Infrastructure.Database.Migration
                     ServicioId = table.Column<Guid>(type: "uuid", nullable: false),
                     DuracionEstimadaMinutos = table.Column<int>(type: "integer", nullable: false, defaultValue: 60),
                     SlaHorasResolucion = table.Column<int>(type: "integer", nullable: true),
+                    Puntos = table.Column<decimal>(type: "numeric(5,2)", precision: 5, scale: 2, nullable: false, defaultValue: 1.0m),
                     EsPredeterminada = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     Activo = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
@@ -1049,6 +1050,35 @@ namespace ProgrammingCar.Modules.ServicioCampo.Infrastructure.Database.Migration
                 });
 
             migrationBuilder.CreateTable(
+                name: "PlantillasTrabajoServicios",
+                schema: "serviciocampo",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ConfiguracionServicioId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProductoId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PlantillasTrabajoServicios", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PlantillasTrabajoServicios_PlantillasTrabajo_ConfiguracionS~",
+                        column: x => x.ConfiguracionServicioId,
+                        principalSchema: "serviciocampo",
+                        principalTable: "PlantillasTrabajo",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PlantillasTrabajoServicios_Productos_ProductoId",
+                        column: x => x.ProductoId,
+                        principalSchema: "inventario",
+                        principalTable: "Productos",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "TransferenciaDetalleSeries",
                 schema: "inventario",
                 columns: table => new
@@ -1096,6 +1126,7 @@ namespace ProgrammingCar.Modules.ServicioCampo.Infrastructure.Database.Migration
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     CodigoCliente = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    CodigoExterno = table.Column<string>(type: "character varying(60)", maxLength: 60, nullable: true),
                     TipoPersona = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false, defaultValue: "NATURAL"),
                     TipoDocumento = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false, defaultValue: "DNI"),
                     DocumentoIdentidad = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
@@ -1376,6 +1407,7 @@ namespace ProgrammingCar.Modules.ServicioCampo.Infrastructure.Database.Migration
                     ItemNumero = table.Column<int>(type: "integer", nullable: false, defaultValue: 1),
                     Estado = table.Column<int>(type: "integer", nullable: false),
                     TarifaBaseCongelada = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: false, defaultValue: 0m),
+                    Puntos = table.Column<decimal>(type: "numeric(5,2)", precision: 5, scale: 2, nullable: false, defaultValue: 1.0m),
                     FechaInicio = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     FechaFin = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     ReferenciaEquipo = table.Column<string>(type: "text", nullable: true),
@@ -1717,6 +1749,12 @@ namespace ProgrammingCar.Modules.ServicioCampo.Infrastructure.Database.Migration
                 table: "clientes",
                 column: "CodigoCliente",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_clientes_CodigoExterno",
+                schema: "crm",
+                table: "clientes",
+                column: "CodigoExterno");
 
             migrationBuilder.CreateIndex(
                 name: "IX_clientes_ContactoPrincipalId",
@@ -2232,9 +2270,19 @@ namespace ProgrammingCar.Modules.ServicioCampo.Infrastructure.Database.Migration
                 name: "IX_PlantillasTrabajo_ServicioId",
                 schema: "serviciocampo",
                 table: "PlantillasTrabajo",
-                column: "ServicioId",
-                unique: true,
-                filter: "\"Activo\" = TRUE");
+                column: "ServicioId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PlantillasTrabajoServicios_ConfiguracionServicioId",
+                schema: "serviciocampo",
+                table: "PlantillasTrabajoServicios",
+                column: "ConfiguracionServicioId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PlantillasTrabajoServicios_ProductoId",
+                schema: "serviciocampo",
+                table: "PlantillasTrabajoServicios",
+                column: "ProductoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Productos_CategoriaProductoId",
@@ -2712,6 +2760,10 @@ namespace ProgrammingCar.Modules.ServicioCampo.Infrastructure.Database.Migration
 
             migrationBuilder.DropTable(
                 name: "PlantillasTareas",
+                schema: "serviciocampo");
+
+            migrationBuilder.DropTable(
+                name: "PlantillasTrabajoServicios",
                 schema: "serviciocampo");
 
             migrationBuilder.DropTable(
