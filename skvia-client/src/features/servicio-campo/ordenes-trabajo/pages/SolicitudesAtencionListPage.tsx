@@ -315,7 +315,7 @@ export const SolicitudesAtencionListPage: React.FC = () => {
             tone="create"
             onClick={() => navigate('/servicio-campo/solicitud-atencion/nuevo')}
           >
-            Nueva Solicitud
+            Nuevo
           </D365CommandButton>
 
           {selectedItem && (
