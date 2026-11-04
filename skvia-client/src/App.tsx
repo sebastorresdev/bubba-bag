@@ -62,6 +62,7 @@ const ContactoFormPage = lazy(() => import('./features/crm/clientes/pages/Contac
 const OrdenesTrabajoListPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/OrdenesTrabajoListPage').then((m) => ({ default: m.OrdenesTrabajoListPage })));
 const TrabajosListPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/TrabajosListPage').then((m) => ({ default: m.TrabajosListPage })));
 const OrdenTrabajoFormPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/OrdenTrabajoFormPage').then((m) => ({ default: m.OrdenTrabajoFormPage })));
+const SolicitudesAtencionListPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/SolicitudesAtencionListPage').then((m) => ({ default: m.SolicitudesAtencionListPage })));
 const SolicitudAtencionFormPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/SolicitudAtencionFormPage').then((m) => ({ default: m.SolicitudAtencionFormPage })));
 
 // Configuración Operativa (Tipos de Orden y Configuraciones de servicio)
@@ -113,7 +114,10 @@ const router = createBrowserRouter(createRoutesFromElements(
               <Route path="servicio-campo/trabajos" element={<TrabajosListPage />} />
               <Route path="servicio-campo/ordenes/nuevo" element={<OrdenTrabajoFormPage />} />
               <Route path="servicio-campo/ordenes/:id" element={<OrdenTrabajoFormPage />} />
-              <Route path="servicio-campo/solicitud-atencion" element={<SolicitudAtencionFormPage />} />
+              <Route path="servicio-campo/solicitud-atencion" element={<SolicitudesAtencionListPage />} />
+              <Route path="servicio-campo/solicitud-atencion/nuevo" element={<SolicitudAtencionFormPage />} />
+              <Route path="servicio-campo/solicitudes-atencion" element={<SolicitudesAtencionListPage />} />
+              <Route path="servicio-campo/solicitudes-atencion/nuevo" element={<SolicitudAtencionFormPage />} />
 
               {/* CRM / Clientes: Cuentas y Contactos */}
               <Route path="servicio-campo/clientes" element={<Navigate to="/servicio-campo/cuentas" replace />} />

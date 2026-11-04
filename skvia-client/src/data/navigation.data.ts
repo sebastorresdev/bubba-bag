@@ -62,7 +62,7 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
             items: [
               {
                 id: 'solicitud-atencion',
-                title: 'Solicitud de Atención',
+                title: 'Solicitudes de Atención',
                 path: '/servicio-campo/solicitud-atencion',
                 iconName: 'ClipboardTask',
                 badge: 'Ventas',
@@ -478,3 +478,4 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
     ],
   },
 ];
+
