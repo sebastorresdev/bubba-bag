@@ -1,4 +1,5 @@
 import { apiClient } from '../../../services/apiClient';
+import type { D365ColumnConfig, D365FilterCondition } from '../../../components/common/D365EntityTable';
 
 export interface VistaUsuarioDto {
   id: string;
@@ -26,15 +27,11 @@ export interface EstablecerPredeterminadaRequest {
 }
 
 export interface ConfiguracionVistaGrid {
-  columnas?: { id: string; label: string; visible: boolean }[];
+  columnas?: D365ColumnConfig[];
   anchos?: Record<string, number>;
   filtros?: {
-    conditions: Array<{
-      field: string;
-      operator: string;
-      value: string;
-    }>;
-    logicalOperator: 'and' | 'or';
+    conditions: D365FilterCondition[];
+    logicalOperator?: 'and' | 'or';
   };
   orden?: {
     columna: string;
@@ -50,10 +47,11 @@ export const VistasUsuarioService = {
   },
 
   async guardarVista(req: GuardarVistaRequest): Promise<VistaUsuarioDto> {
-    return await apiClient<VistaUsuarioDto>('/api/seguridad/vistas', {
+    const res = await apiClient<VistaUsuarioDto>('/api/seguridad/vistas', {
       method: 'POST',
       body: JSON.stringify(req),
     });
+    return res;
   },
 
   async establecerPredeterminada(req: EstablecerPredeterminadaRequest): Promise<void> {

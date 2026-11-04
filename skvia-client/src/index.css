@@ -37,6 +37,43 @@ body .fui-DialogSurface {
   overflow-y: auto;
 }
 
+/* Modales estilo Dynamics 365: Botones horizontales, compactos y elegantes */
+body .fui-DialogActions {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 8px !important;
+  grid-template-columns: none !important;
+  grid-auto-flow: row !important;
+  margin-top: 16px !important;
+  padding: 0 !important;
+}
+
+body .fui-DialogActions .fui-Button {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  width: auto !important;
+  min-width: 80px !important;
+  padding: 0 16px !important;
+  white-space: nowrap !important;
+  font-size: 13px !important;
+  line-height: normal !important;
+  border-radius: 4px !important;
+  flex: 0 0 auto !important;
+}
+
+body .fui-DialogActions .fui-Button .fui-Button__icon {
+  margin-right: 6px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
 @media (max-width: 900px) {
   .d365-form-field.fui-Field {
     grid-template-columns: minmax(0, 1fr) !important;

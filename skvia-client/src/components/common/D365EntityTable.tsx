@@ -38,7 +38,7 @@ import {
   type D365ColumnConfig,
 } from './D365EditarColumnasDrawer';
 
-export { type D365FilterField };
+export { type D365FilterField, type D365FilterCondition, type D365ColumnConfig };
 
 const useStyles = makeStyles({
   headerCell: {
@@ -239,10 +239,34 @@ export interface D365EntityTableProps<T extends { id: string }> {
   showToolbarTools?: boolean;
 }
 
+export interface D365TableConfiguration {
+  columnas?: D365ColumnConfig[];
+  anchos?: Record<string, number>;
+  filtros?:
+    | {
+        conditions: D365FilterCondition[];
+        logicalOperator?: 'and' | 'or';
+      }
+    | D365FilterCondition[];
+}
+
 export interface D365EntityTableRef {
   openFilters: () => void;
   openColumns: () => void;
   getActiveFilterCount: () => number;
+  getCurrentConfiguration: () => {
+    columnas: D365ColumnConfig[];
+    anchos: Record<string, number>;
+    filtros: { conditions: D365FilterCondition[]; logicalOperator: 'and' | 'or' };
+  };
+  applyViewConfiguration: (config: D365TableConfiguration) => void;
+  resetFilters: () => void;
+  resetToDefault: () => void;
+  subscribeConfigChange: (callback: (config: {
+    columnas: D365ColumnConfig[];
+    anchos: Record<string, number>;
+    filtros: { conditions: D365FilterCondition[]; logicalOperator: 'and' | 'or' };
+  }) => void) => () => void;
 }
 
 export interface D365TableToolbarToolsProps {
@@ -382,9 +406,36 @@ function D365EntityTableInner<T extends { id: string }>(
 
   const [drawerColumnasOpen, setDrawerColumnasOpen] = useState(false);
 
+  const configListenersRef = useRef<Set<(config: {
+    columnas: D365ColumnConfig[];
+    anchos: Record<string, number>;
+    filtros: { conditions: D365FilterCondition[]; logicalOperator: 'and' | 'or' };
+  }) => void>>(new Set());
+
+  const notifyConfigChange = (
+    cols = columnsConfig,
+    widths = columnWidths,
+    conds = advancedConditions,
+    op = advancedLogicalOp
+  ) => {
+    const payload = {
+      columnas: cols,
+      anchos: widths,
+      filtros: { conditions: conds, logicalOperator: op },
+    };
+    configListenersRef.current.forEach((fn) => {
+      try {
+        fn(payload);
+      } catch (e) {
+        console.error('Error in config listener', e);
+      }
+    });
+  };
+
   const handleApplyColumns = (updated: D365ColumnConfig[]) => {
     setColumnsConfig(updated);
     localStorage.setItem(`d365_grid_cols_${storageId}`, JSON.stringify(updated));
+    notifyConfigChange(updated, columnWidths, advancedConditions, advancedLogicalOp);
   };
 
   // 2. Ancho de Columnas (Resizing)
@@ -430,6 +481,7 @@ function D365EntityTableInner<T extends { id: string }>(
       if (resizingRef.current) {
         setColumnWidths((latest) => {
           localStorage.setItem(`d365_grid_widths_${storageId}`, JSON.stringify(latest));
+          notifyConfigChange(columnsConfig, latest, advancedConditions, advancedLogicalOp);
           return latest;
         });
         resizingRef.current = null;
@@ -498,12 +550,14 @@ function D365EntityTableInner<T extends { id: string }>(
       `d365_grid_filters_${storageId}`,
       JSON.stringify({ conditions, logicalOperator })
     );
+    notifyConfigChange(columnsConfig, columnWidths, conditions, logicalOperator);
   };
 
   const handleResetAdvancedFilters = () => {
     setAdvancedConditions([]);
     setAdvancedLogicalOp('and');
     localStorage.removeItem(`d365_grid_filters_${storageId}`);
+    notifyConfigChange(columnsConfig, columnWidths, [], 'and');
   };
 
   // Campos para Filtros Avanzados
@@ -570,6 +624,70 @@ function D365EntityTableInner<T extends { id: string }>(
     openFilters: () => setDrawerFiltrosOpen(true),
     openColumns: () => setDrawerColumnasOpen(true),
     getActiveFilterCount: () => advancedConditions.length,
+    getCurrentConfiguration: () => ({
+      columnas: columnsConfig,
+      anchos: columnWidths,
+      filtros: {
+        conditions: advancedConditions,
+        logicalOperator: advancedLogicalOp,
+      },
+    }),
+    applyViewConfiguration: (config: D365TableConfiguration) => {
+      if (config.columnas && Array.isArray(config.columnas)) {
+        setColumnsConfig(config.columnas);
+        localStorage.setItem(`d365_grid_cols_${storageId}`, JSON.stringify(config.columnas));
+      }
+      if (config.anchos) {
+        setColumnWidths(config.anchos);
+        localStorage.setItem(`d365_grid_widths_${storageId}`, JSON.stringify(config.anchos));
+      }
+      let nextConds: D365FilterCondition[] = [];
+      let nextOp: 'and' | 'or' = 'and';
+      if (config.filtros) {
+        if (Array.isArray(config.filtros)) {
+          nextConds = config.filtros;
+        } else if (config.filtros.conditions) {
+          nextConds = config.filtros.conditions;
+          nextOp = config.filtros.logicalOperator || 'and';
+        }
+        setAdvancedConditions(nextConds);
+        setAdvancedLogicalOp(nextOp);
+        localStorage.setItem(
+          `d365_grid_filters_${storageId}`,
+          JSON.stringify({ conditions: nextConds, logicalOperator: nextOp })
+        );
+      } else {
+        setAdvancedConditions([]);
+        setAdvancedLogicalOp('and');
+        localStorage.removeItem(`d365_grid_filters_${storageId}`);
+      }
+    },
+    resetFilters: () => {
+      setAdvancedConditions([]);
+      setAdvancedLogicalOp('and');
+      localStorage.removeItem(`d365_grid_filters_${storageId}`);
+      notifyConfigChange(columnsConfig, columnWidths, [], 'and');
+    },
+    resetToDefault: () => {
+      setColumnsConfig(defaultColumnsConfig);
+      setColumnWidths({});
+      setAdvancedConditions([]);
+      setAdvancedLogicalOp('and');
+      localStorage.removeItem(`d365_grid_cols_${storageId}`);
+      localStorage.removeItem(`d365_grid_widths_${storageId}`);
+      localStorage.removeItem(`d365_grid_filters_${storageId}`);
+      notifyConfigChange(defaultColumnsConfig, {}, [], 'and');
+    },
+    subscribeConfigChange: (cb: (config: {
+      columnas: D365ColumnConfig[];
+      anchos: Record<string, number>;
+      filtros: { conditions: D365FilterCondition[]; logicalOperator: 'and' | 'or' };
+    }) => void) => {
+      configListenersRef.current.add(cb);
+      return () => {
+        configListenersRef.current.delete(cb);
+      };
+    },
   }));
 
   return (
