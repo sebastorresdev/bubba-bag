@@ -36,9 +36,13 @@ export const OrdenTrabajoService = {
     Object.entries(params || {}).forEach(([key, value]) => { if (value) query.set(key, value); });
     return apiClient(`${base}/trabajos?${query}`);
   },
-  obtenerOrdenes(params?: { search?: string; vista?: string; estadoSistema?: string; clienteId?: string; zonaOperativaId?: string; unidadOrganizativaId?: string }): Promise<OrdenTrabajoListadoItemDto[]> {
+  obtenerOrdenes(params?: { search?: string; vista?: string; estadoSistema?: string; clienteId?: string; zonaOperativaId?: string; unidadOrganizativaId?: string; esSolicitudAtencion?: boolean; soloMisSolicitudes?: boolean }): Promise<OrdenTrabajoListadoItemDto[]> {
     const query = new URLSearchParams();
-    Object.entries(params || {}).forEach(([key, value]) => { if (value) query.set(key, value); });
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        query.set(key, String(value));
+      }
+    });
     return apiClient(`${base}?${query}`);
   },
   obtenerOrdenPorId(id: string): Promise<OrdenTrabajoDetalleDto> { return detalle(id); },

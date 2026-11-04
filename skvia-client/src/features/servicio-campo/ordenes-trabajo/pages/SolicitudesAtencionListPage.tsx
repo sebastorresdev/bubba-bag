@@ -36,6 +36,7 @@ import type { OrdenTrabajoListadoItemDto } from '../types/ordenTrabajo.types';
 import { exportToExcel, exportToCSV, type ExportColumn } from '../../../../utils/exportUtils';
 
 type VistaSolicitudes =
+  | 'mis_solicitudes'
   | 'todas'
   | 'borrador'
   | 'por_programar'
@@ -43,7 +44,8 @@ type VistaSolicitudes =
   | 'finalizadas';
 
 const vistasSistemaSolicitudes = [
-  { key: 'todas', label: 'Todas las solicitudes activas' },
+  { key: 'mis_solicitudes', label: 'Mis Solicitudes activas' },
+  { key: 'todas', label: 'Todas las solicitudes comerciales' },
   { key: 'borrador', label: 'Borradores / Por coordinar' },
   { key: 'por_programar', label: 'Enviadas a Despacho (Pendientes programar)' },
   { key: 'en_curso', label: 'En atención técnica / En curso' },
@@ -59,7 +61,7 @@ export const SolicitudesAtencionListPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [activeView, setActiveView] = useState<VistaSolicitudes>('todas');
+  const [activeView, setActiveView] = useState<VistaSolicitudes>('mis_solicitudes');
   const [selectedIds, setSelectedIds] = useState<Set<SelectionItemId>>(new Set());
 
   const cargar = useCallback(async () => {
@@ -77,6 +79,8 @@ export const SolicitudesAtencionListPage: React.FC = () => {
       const data = await OrdenTrabajoService.obtenerOrdenes({
         search: searchKeyword.trim() || undefined,
         vista: vistaBackend,
+        esSolicitudAtencion: true,
+        soloMisSolicitudes: activeView === 'mis_solicitudes',
       });
       setOrdenes(data);
     } catch (e) {
