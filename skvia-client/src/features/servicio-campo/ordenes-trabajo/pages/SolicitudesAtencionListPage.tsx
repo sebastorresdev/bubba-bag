@@ -9,7 +9,6 @@ import {
   MenuPopover,
   MenuList,
   MenuItem,
-  MenuDivider,
   tokens,
   type TableColumnDefinition,
   type SelectionItemId,
@@ -18,8 +17,6 @@ import {
   Add16Regular,
   ArrowClockwise16Regular,
   ArrowDownload16Regular,
-  ChevronDown16Regular,
-  Checkmark16Regular,
   DocumentTable20Regular,
   DocumentText20Regular,
   Open16Regular,
@@ -32,6 +29,7 @@ import {
   type D365FilterField,
 } from '../../../../components/common/D365EntityTable';
 import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
+import { D365ViewSelector } from '../../../../components/common/D365ViewSelector';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
 import { OrdenTrabajoService } from '../services/ordenTrabajo.service';
 import type { OrdenTrabajoListadoItemDto } from '../types/ordenTrabajo.types';
@@ -44,13 +42,13 @@ type VistaSolicitudes =
   | 'en_curso'
   | 'finalizadas';
 
-const nombresVistaSolicitudes: Record<VistaSolicitudes, string> = {
-  todas: 'Todas las solicitudes activas',
-  borrador: 'Borradores / Por coordinar',
-  por_programar: 'Enviadas a Despacho (Pendientes programar)',
-  en_curso: 'En atención técnica / En curso',
-  finalizadas: 'Solicitudes atendidas / Completadas',
-};
+const vistasSistemaSolicitudes = [
+  { key: 'todas', label: 'Todas las solicitudes activas' },
+  { key: 'borrador', label: 'Borradores / Por coordinar' },
+  { key: 'por_programar', label: 'Enviadas a Despacho (Pendientes programar)' },
+  { key: 'en_curso', label: 'En atención técnica / En curso' },
+  { key: 'finalizadas', label: 'Solicitudes atendidas / Completadas' },
+];
 
 export const SolicitudesAtencionListPage: React.FC = () => {
   const styles = useD365ListStyles();
@@ -357,39 +355,14 @@ export const SolicitudesAtencionListPage: React.FC = () => {
 
       {/* 2. Selector de Vistas y Herramientas */}
       <div className={styles.viewHeader}>
-        <Menu>
-          <MenuTrigger disableButtonEnhancement>
-            <div className={styles.viewSelectorTab} role="button" tabIndex={0}>
-              <Text weight="semibold" size={400}>
-                {nombresVistaSolicitudes[activeView]}
-              </Text>
-              <ChevronDown16Regular className={styles.iconChevronMargin} />
-            </div>
-          </MenuTrigger>
-          <MenuPopover className={styles.viewMenuPopover}>
-            <MenuList>
-              {(['todas', 'borrador', 'por_programar', 'en_curso'] as VistaSolicitudes[]).map((v) => (
-                <MenuItem
-                  key={v}
-                  icon={activeView === v ? <Checkmark16Regular /> : undefined}
-                  onClick={() => setActiveView(v)}
-                >
-                  {nombresVistaSolicitudes[v]}
-                </MenuItem>
-              ))}
-              <MenuDivider />
-              {(['finalizadas'] as VistaSolicitudes[]).map((v) => (
-                <MenuItem
-                  key={v}
-                  icon={activeView === v ? <Checkmark16Regular /> : undefined}
-                  onClick={() => setActiveView(v)}
-                >
-                  {nombresVistaSolicitudes[v]}
-                </MenuItem>
-              ))}
-            </MenuList>
-          </MenuPopover>
-        </Menu>
+        <D365ViewSelector
+          entityName="solicitudes"
+          vistasSistema={vistasSistemaSolicitudes}
+          activeViewKey={activeView}
+          onSelectSystemView={(key) => setActiveView(key as VistaSolicitudes)}
+          tableRef={tableRef}
+          onRefreshData={cargar}
+        />
 
         <D365TableToolbarTools
           tableRef={tableRef}
