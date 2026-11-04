@@ -161,14 +161,16 @@ export const D365ViewSelector: React.FC<D365ViewSelectorProps> = ({
     [activeViewKey, onApplyPersonalView, onRefreshData, onSelectSystemView, tableRef]
   );
 
-  // Seleccionar vista del sistema (limpia filtros previos para no arrastrarlos)
+  // Seleccionar vista del sistema (restaura columnas del sistema y limpia filtros)
   const handleSelectSystemView = (key: string) => {
     setActivePersonalViewId(null);
     baselineConfigRef.current = null;
     setIsModified(false);
 
-    // Limpiar filtros temporales de la tabla
-    if (tableRef?.current?.resetFilters) {
+    // Restaurar columnas originales por defecto del sistema y limpiar filtros temporales
+    if (tableRef?.current?.resetToDefault) {
+      tableRef.current.resetToDefault();
+    } else if (tableRef?.current?.resetFilters) {
       tableRef.current.resetFilters();
     }
 
@@ -209,8 +211,24 @@ export const D365ViewSelector: React.FC<D365ViewSelectorProps> = ({
       const currentFilters = currentConfig.filtros?.conditions || [];
 
       if (!activePersonalViewId) {
-        // Vista del sistema: si hay filtros aplicados, se marca como modificada (*)
-        setIsModified(currentFilters.length > 0);
+        // Vista del sistema: si hay filtros aplicados O las columnas cambiaron respecto al default del sistema
+        const hasFilters = currentFilters.length > 0;
+        const currentCols = currentConfig.columnas || [];
+        const defaultCols = currentConfig.defaultColumnas || [];
+        let colsChanged = false;
+        if (defaultCols.length > 0) {
+          colsChanged =
+            currentCols.length !== defaultCols.length ||
+            currentCols.some(
+              (c, idx) =>
+                !defaultCols[idx] ||
+                c.id !== defaultCols[idx].id ||
+                Boolean(c.visible) !== Boolean(defaultCols[idx].visible)
+            );
+        } else {
+          colsChanged = currentCols.some((c) => !c.visible);
+        }
+        setIsModified(hasFilters || colsChanged);
       } else {
         // Vista personal: comparar con la línea base guardada
         const baseline = baselineConfigRef.current;
@@ -315,8 +333,10 @@ export const D365ViewSelector: React.FC<D365ViewSelectorProps> = ({
       }
       setIsModified(false);
     } else {
-      // Vista del sistema: limpiar filtros aplicados
-      if (tableRef?.current?.resetFilters) {
+      // Vista del sistema: restaurar columnas por defecto del sistema y limpiar filtros aplicados
+      if (tableRef?.current?.resetToDefault) {
+        tableRef.current.resetToDefault();
+      } else if (tableRef?.current?.resetFilters) {
         tableRef.current.resetFilters();
       }
       setIsModified(false);

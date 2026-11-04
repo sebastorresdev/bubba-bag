@@ -258,6 +258,7 @@ export interface D365EntityTableRef {
     columnas: D365ColumnConfig[];
     anchos: Record<string, number>;
     filtros: { conditions: D365FilterCondition[]; logicalOperator: 'and' | 'or' };
+    defaultColumnas: D365ColumnConfig[];
   };
   applyViewConfiguration: (config: D365TableConfiguration) => void;
   resetFilters: () => void;
@@ -266,6 +267,7 @@ export interface D365EntityTableRef {
     columnas: D365ColumnConfig[];
     anchos: Record<string, number>;
     filtros: { conditions: D365FilterCondition[]; logicalOperator: 'and' | 'or' };
+    defaultColumnas: D365ColumnConfig[];
   }) => void) => () => void;
 }
 
@@ -410,6 +412,7 @@ function D365EntityTableInner<T extends { id: string }>(
     columnas: D365ColumnConfig[];
     anchos: Record<string, number>;
     filtros: { conditions: D365FilterCondition[]; logicalOperator: 'and' | 'or' };
+    defaultColumnas: D365ColumnConfig[];
   }) => void>>(new Set());
 
   const notifyConfigChange = (
@@ -422,6 +425,7 @@ function D365EntityTableInner<T extends { id: string }>(
       columnas: cols,
       anchos: widths,
       filtros: { conditions: conds, logicalOperator: op },
+      defaultColumnas: defaultColumnsConfig,
     };
     configListenersRef.current.forEach((fn) => {
       try {
@@ -631,6 +635,7 @@ function D365EntityTableInner<T extends { id: string }>(
         conditions: advancedConditions,
         logicalOperator: advancedLogicalOp,
       },
+      defaultColumnas: defaultColumnsConfig,
     }),
     applyViewConfiguration: (config: D365TableConfiguration) => {
       if (config.columnas && Array.isArray(config.columnas)) {
@@ -682,6 +687,7 @@ function D365EntityTableInner<T extends { id: string }>(
       columnas: D365ColumnConfig[];
       anchos: Record<string, number>;
       filtros: { conditions: D365FilterCondition[]; logicalOperator: 'and' | 'or' };
+      defaultColumnas: D365ColumnConfig[];
     }) => void) => {
       configListenersRef.current.add(cb);
       return () => {
