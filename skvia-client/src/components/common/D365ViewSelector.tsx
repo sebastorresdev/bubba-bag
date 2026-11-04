@@ -175,6 +175,11 @@ export const D365ViewSelector: React.FC<D365ViewSelectorProps> = ({
     }
 
     onSelectSystemView(key);
+
+    // Forzar actualización de datos y sincronización de la vista del sistema
+    if (onRefreshData) {
+      onRefreshData();
+    }
   };
 
   // Cargar vistas personales del usuario

@@ -1,6 +1,6 @@
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { D365MobileRecords } from './D365MobileRecords';
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   DataGrid,
   DataGridHeader,
@@ -293,6 +293,22 @@ export function D365TableToolbarTools({
   searchAriaLabel,
 }: D365TableToolbarToolsProps) {
   const isMobile = useIsMobile(768);
+  const [filterCount, setFilterCount] = useState<number>(() => {
+    return tableRef?.current ? tableRef.current.getActiveFilterCount() : activeFilterCount;
+  });
+
+  useEffect(() => {
+    setFilterCount(tableRef?.current ? tableRef.current.getActiveFilterCount() : activeFilterCount);
+  }, [activeFilterCount, tableRef]);
+
+  useEffect(() => {
+    if (!tableRef?.current?.subscribeConfigChange) return;
+    const unsub = tableRef.current.subscribeConfigChange((cfg) => {
+      setFilterCount(cfg.filtros?.conditions?.length || 0);
+    });
+    return () => unsub();
+  }, [tableRef]);
+
   const handleFilters = () => {
     if (tableRef?.current) tableRef.current.openFilters();
     else if (onOpenFilters) onOpenFilters();
@@ -303,7 +319,7 @@ export function D365TableToolbarTools({
     else if (onOpenColumns) onOpenColumns();
   };
 
-  const count = tableRef?.current ? tableRef.current.getActiveFilterCount() : activeFilterCount;
+  const count = filterCount;
 
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', minWidth: 0, maxWidth: '100%' }}>
