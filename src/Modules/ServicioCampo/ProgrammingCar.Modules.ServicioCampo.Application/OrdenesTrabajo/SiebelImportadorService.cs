@@ -332,7 +332,9 @@ public class SiebelImportadorService
             await _db.SaveChangesAsync(ct);
         }
 
-        var tipoOrden = await _db.TiposOrdenTrabajo.FirstOrDefaultAsync(t => t.Activo, ct);
+        var tipoOrden = await _db.TiposOrdenTrabajo.FirstOrDefaultAsync(t => t.Activo && (t.Nombre.Contains("Instalaciones") || t.Nombre.Contains("Averias") || t.Nombre.Contains("Averías")), ct)
+            ?? await _db.TiposOrdenTrabajo.FirstOrDefaultAsync(t => t.Activo && !t.Nombre.Contains("Recupero") && !t.Nombre.Contains("Desconexiones"), ct)
+            ?? await _db.TiposOrdenTrabajo.FirstOrDefaultAsync(t => t.Activo, ct);
         if (tipoOrden == null)
         {
             tipoOrden = TipoOrdenTrabajo.Crear("Servicio Siebel DirecTV", true, true, true, "Órdenes de servicio importadas de Siebel", "#0078D4");

@@ -112,7 +112,9 @@ public class Trabajo : Entity<Guid>
     {
         ArgumentNullException.ThrowIfNull(plantilla);
 
-        if (plantilla.ProductoId != ProductoId || !plantilla.Activo)
+        bool perteneceAlServicio = plantilla.ProductoId == ProductoId || (plantilla.Servicios != null && plantilla.Servicios.Any(s => s.ProductoId == ProductoId));
+
+        if (!perteneceAlServicio || !plantilla.Activo)
             throw new InvalidOperationException("La configuración debe estar activa y pertenecer al servicio del trabajo.");
         if (_tareas.Count > 0 || _materiales.Count > 0 || Estado != EstadoTrabajo.Pendiente)
             throw new InvalidOperationException("El trabajo ya tiene una configuración o ejecución; sus datos no pueden reemplazarse.");

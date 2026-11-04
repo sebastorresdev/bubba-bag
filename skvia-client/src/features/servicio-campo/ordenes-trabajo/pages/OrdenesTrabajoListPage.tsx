@@ -206,69 +206,72 @@ export const OrdenesTrabajoListPage: React.FC = () => {
           </TableCellLayout>
         ),
       }),
-      createTableColumn<OrdenTrabajoListadoItemDto>({
-        columnId: 'ordenExterna',
-        compare: (a, b) => (a.numeroOrden || a.referenciaExterna || '').localeCompare(b.numeroOrden || b.referenciaExterna || ''),
-        renderHeaderCell: () => 'N° Orden Ext.',
-        renderCell: (item) => {
-          const nroExt = item.numeroOrden || item.referenciaExterna || '-';
-          const ibs = item.codigoExternoTrabajo || (item.referenciaExterna !== item.numeroOrden ? item.referenciaExterna : null);
-          return (
-            <TableCellLayout>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <Text weight="semibold" style={{ fontSize: tokens.fontSizeBase200 }}>
-                  {nroExt}
-                </Text>
-                {ibs && ibs !== nroExt && (
-                  <Text style={{ fontSize: tokens.fontSizeBase100, color: tokens.colorNeutralForeground3 }}>
-                    IBS: {ibs}
-                  </Text>
-                )}
-              </div>
-            </TableCellLayout>
-          );
-        },
-      }),
-      createTableColumn<OrdenTrabajoListadoItemDto>({
-        columnId: 'tipoOrden',
-        compare: (a, b) => a.tipoOrdenNombre.localeCompare(b.tipoOrdenNombre),
-        renderHeaderCell: () => 'Tipo de Servicio',
-        renderCell: (item) => (
-          <TableCellLayout>
-            <Text style={{ fontSize: tokens.fontSizeBase200 }}>{item.tipoOrdenNombre}</Text>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<OrdenTrabajoListadoItemDto>({
-        columnId: 'clienteFacturacion',
-        compare: (a, b) => a.clienteFacturacionNombre.localeCompare(b.clienteFacturacionNombre),
-        renderHeaderCell: () => 'Cliente Facturación',
-        renderCell: (item) => (
-          <TableCellLayout>
-            <Text style={{ fontSize: tokens.fontSizeBase200 }}>{item.clienteFacturacionNombre}</Text>
-          </TableCellLayout>
-        ),
-      }),
-      createTableColumn<OrdenTrabajoListadoItemDto>({
-        columnId: 'clienteServicio',
-        compare: (a, b) => a.clienteServicioNombre.localeCompare(b.clienteServicioNombre),
-        renderHeaderCell: () => 'Abonado / Contacto',
-        renderCell: (item) => {
-          const codAbonado = item.clienteServicioCodigoExterno || item.codigoContrato;
-          return (
-            <TableCellLayout>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <Text style={{ fontSize: tokens.fontSizeBase200 }}>{item.clienteServicioNombre}</Text>
-                {codAbonado && (
-                  <Text style={{ fontSize: tokens.fontSizeBase100, color: tokens.colorNeutralForeground3 }}>
-                    Cód: {codAbonado}
-                  </Text>
-                )}
-              </div>
-            </TableCellLayout>
-          );
-        },
-      }),
+      createTableColumn<OrdenTrabajoListadoItemDto>({
+        columnId: 'ordenExterna',
+        compare: (a, b) => (a.numeroOrden || a.referenciaExterna || '').localeCompare(b.numeroOrden || b.referenciaExterna || ''),
+        renderHeaderCell: () => 'N° Orden Ext.',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Text weight="semibold" style={{ fontSize: tokens.fontSizeBase200 }}>
+              {item.numeroOrden || item.referenciaExterna || '-'}
+            </Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<OrdenTrabajoListadoItemDto>({
+        columnId: 'codigoIbs',
+        compare: (a, b) => (a.codigoExternoTrabajo || '').localeCompare(b.codigoExternoTrabajo || ''),
+        renderHeaderCell: () => 'N° WO IBS',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Text style={{ fontSize: tokens.fontSizeBase200, color: item.codigoExternoTrabajo ? tokens.colorNeutralForeground1 : tokens.colorNeutralForeground4 }}>
+              {item.codigoExternoTrabajo || '-'}
+            </Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<OrdenTrabajoListadoItemDto>({
+        columnId: 'codigoAbonado',
+        compare: (a, b) => (a.clienteServicioCodigoExterno || a.codigoContrato || '').localeCompare(b.clienteServicioCodigoExterno || b.codigoContrato || ''),
+        renderHeaderCell: () => 'Cód. Abonado',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Text style={{ fontSize: tokens.fontSizeBase200, color: (item.clienteServicioCodigoExterno || item.codigoContrato) ? tokens.colorNeutralForeground1 : tokens.colorNeutralForeground4 }}>
+              {item.clienteServicioCodigoExterno || item.codigoContrato || '-'}
+            </Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<OrdenTrabajoListadoItemDto>({
+        columnId: 'tipoOrden',
+        compare: (a, b) => a.tipoOrdenNombre.localeCompare(b.tipoOrdenNombre),
+        renderHeaderCell: () => 'Tipo de Servicio',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Text style={{ fontSize: tokens.fontSizeBase200 }}>{item.tipoOrdenNombre}</Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<OrdenTrabajoListadoItemDto>({
+        columnId: 'clienteFacturacion',
+        compare: (a, b) => a.clienteFacturacionNombre.localeCompare(b.clienteFacturacionNombre),
+        renderHeaderCell: () => 'Cliente Facturación',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Text style={{ fontSize: tokens.fontSizeBase200 }}>{item.clienteFacturacionNombre}</Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<OrdenTrabajoListadoItemDto>({
+        columnId: 'clienteServicio',
+        compare: (a, b) => a.clienteServicioNombre.localeCompare(b.clienteServicioNombre),
+        renderHeaderCell: () => 'Abonado / Contacto',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Text style={{ fontSize: tokens.fontSizeBase200 }}>{item.clienteServicioNombre}</Text>
+          </TableCellLayout>
+        ),
+      }),
       createTableColumn<OrdenTrabajoListadoItemDto>({
         columnId: 'zonaOperativa',
         compare: (a, b) => ((a.unidadOrganizativaNombre || '') + (a.zonaOperativaNombre || '')).localeCompare((b.unidadOrganizativaNombre || '') + (b.zonaOperativaNombre || '')),
