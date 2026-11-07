@@ -18,6 +18,8 @@ import {
   Button,
   TableCellLayout,
   createTableColumn,
+  Tab,
+  TabList,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -94,6 +96,7 @@ export function TipoOrdenFormPage() {
   const [busquedaLista, setBusquedaLista] = useState<string>('');
 
   const [activo, setActivo] = useState(true);
+  const [selectedTab, setSelectedTab] = useState<'general' | 'servicios'>('general');
   const [plantillasAsociadas, setPlantillasAsociadas] = useState<ConfiguracionServicioListadoDto[]>([]);
   const [loadingPlantillas, setLoadingPlantillas] = useState(false);
 
@@ -461,12 +464,26 @@ export function TipoOrdenFormPage() {
             value: activo ? 'Activo' : 'Inactivo',
           },
         ]}
+        tabs={
+          <TabList
+            selectedValue={selectedTab}
+            onTabSelect={(_, d) => setSelectedTab(d.value as 'general' | 'servicios')}
+          >
+            <Tab value="general">General</Tab>
+            {isEditMode && (
+              <Tab value="servicios">
+                Servicios Permitidos ({plantillasAsociadas.length})
+              </Tab>
+            )}
+          </TabList>
+        }
       />
 
       {/* Formulario */}
       <D365FormContent busy={saving} className={styles.contentBody}>
-        <div className={styles.halfCardWrapper} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {/* Tarjeta 1: General */}
+        {selectedTab === 'general' && (
+          <div className={styles.halfCardWrapper} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Tarjeta 1: General */}
           <div className={styles.card}>
             <Text size={400} weight="semibold" style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, paddingBottom: 8, display: 'block' }}>
               General
@@ -563,37 +580,44 @@ export function TipoOrdenFormPage() {
               </D365FormField>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Tarjeta 3: Servicios y Configuraciones Asociadas */}
-          {isEditMode && (
-            <div className={styles.card}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, paddingBottom: 8 }}>
-                <Text size={400} weight="semibold">
+      {selectedTab === 'servicios' && isEditMode && (
+        <div className={styles.halfCardWrapper} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div className={styles.card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, paddingBottom: 8 }}>
+              <div>
+                <Text size={400} weight="semibold" block>
                   Servicios y Configuraciones Permitidas ({plantillasAsociadas.length})
                 </Text>
-                <Button
-                  size="small"
-                  appearance="subtle"
-                  icon={<Add16Regular />}
-                  onClick={() => navigate('/servicio-campo/configuraciones-servicio/nuevo')}
-                >
-                  Nueva Configuración
-                </Button>
+                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                  Configuraciones y recetas de servicio autorizadas para órdenes de trabajo de este tipo.
+                </Text>
               </div>
-
-              <div style={{ marginTop: 12 }}>
-                <D365SubGrid
-                  items={plantillasAsociadas}
-                  columns={columnasPlantillas}
-                  isLoading={loadingPlantillas}
-                  emptyMessage="No hay configuraciones de servicio vinculadas a este tipo de orden."
-                  onRowClick={(item) => navigate(`/servicio-campo/configuraciones-servicio/${item.id}`)}
-                />
-              </div>
+              <Button
+                size="small"
+                appearance="primary"
+                icon={<Add16Regular />}
+                onClick={() => navigate('/servicio-campo/configuraciones-servicio/nuevo')}
+              >
+                Nueva Configuración
+              </Button>
             </div>
-          )}
+
+            <div style={{ marginTop: 12 }}>
+              <D365SubGrid
+                items={plantillasAsociadas}
+                columns={columnasPlantillas}
+                isLoading={loadingPlantillas}
+                emptyMessage="No hay configuraciones de servicio vinculadas a este tipo de orden."
+                onRowClick={(item) => navigate(`/servicio-campo/configuraciones-servicio/${item.id}`)}
+              />
+            </div>
+          </div>
         </div>
-      </D365FormContent>
+      )}
+    </D365FormContent>
     </div>
   );
 }
