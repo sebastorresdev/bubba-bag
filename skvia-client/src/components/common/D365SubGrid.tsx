@@ -61,6 +61,7 @@ const useStyles = makeStyles({
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
+    flexShrink: 0,
   },
   gridWrapper: {
     width: '100%',
@@ -197,6 +198,7 @@ export function D365SubGrid<T>({
                 appearance="primary"
                 onClick={onAdd}
                 disabled={addDisabled}
+                style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
               >
                 {addLabel}
               </Button>

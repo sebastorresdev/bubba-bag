@@ -15,7 +15,6 @@ import {
   useToastController,
   useId,
   tokens,
-  Button,
   TableCellLayout,
   createTableColumn,
   Tab,
@@ -584,37 +583,18 @@ export function TipoOrdenFormPage() {
       )}
 
       {selectedTab === 'servicios' && isEditMode && (
-        <div className={styles.halfCardWrapper} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div className={styles.card}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, paddingBottom: 8 }}>
-              <div>
-                <Text size={400} weight="semibold" block>
-                  Servicios y Configuraciones Permitidas ({plantillasAsociadas.length})
-                </Text>
-                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                  Configuraciones y recetas de servicio autorizadas para órdenes de trabajo de este tipo.
-                </Text>
-              </div>
-              <Button
-                size="small"
-                appearance="primary"
-                icon={<Add16Regular />}
-                onClick={() => navigate('/servicio-campo/configuraciones-servicio/nuevo')}
-              >
-                Nueva Configuración
-              </Button>
-            </div>
-
-            <div style={{ marginTop: 12 }}>
-              <D365SubGrid
-                items={plantillasAsociadas}
-                columns={columnasPlantillas}
-                isLoading={loadingPlantillas}
-                emptyMessage="No hay configuraciones de servicio vinculadas a este tipo de orden."
-                onRowClick={(item) => navigate(`/servicio-campo/configuraciones-servicio/${item.id}`)}
-              />
-            </div>
-          </div>
+        <div style={{ width: '100%', boxSizing: 'border-box' }}>
+          <D365SubGrid
+            title="Servicios y Configuraciones Permitidas"
+            count={plantillasAsociadas.length}
+            items={plantillasAsociadas}
+            columns={columnasPlantillas}
+            isLoading={loadingPlantillas}
+            onAdd={() => navigate('/servicio-campo/configuraciones-servicio/nuevo')}
+            addLabel="Nueva Configuración"
+            emptyMessage="No hay configuraciones de servicio vinculadas a este tipo de orden."
+            onRowClick={(item) => navigate(`/servicio-campo/configuraciones-servicio/${item.id}`)}
+          />
         </div>
       )}
     </D365FormContent>
