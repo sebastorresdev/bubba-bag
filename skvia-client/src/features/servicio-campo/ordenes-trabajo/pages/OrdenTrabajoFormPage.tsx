@@ -181,6 +181,8 @@ export const OrdenTrabajoFormPage: React.FC = () => {
   const { dispatchToast } = useToastController(toasterId);
 
   const [loading, setLoading] = useState(!esNuevo);
+  const [loadingCatalogos, setLoadingCatalogos] = useState(true);
+  const isCargandoDatos = loading || loadingCatalogos;
   const [submitting, setSubmitting] = useState(false);
   const [mensaje, setMensaje] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
   const [selectedTab, setSelectedTab] = useState<'resumen' | 'trabajos' | 'direcciones' | 'programacion' | 'materiales'>('resumen');
@@ -416,6 +418,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
   useEffect(() => {
     const cargarCatalogos = async () => {
       try {
+        setLoadingCatalogos(true);
         const [tipos, clientesFact, clientesServ, todosClientes, prods, plants, motivos, territorios, recursos, sedes] = await Promise.all([
           OrdenTrabajoService.obtenerTiposOrden(),
           ClienteService.obtenerClientes({ soloFacturacion: true }),
@@ -441,6 +444,8 @@ export const OrdenTrabajoFormPage: React.FC = () => {
         setUnidadesOrganizativas(sedes || []);
       } catch (err) {
         console.error('Error cargando catálogos:', err);
+      } finally {
+        setLoadingCatalogos(false);
       }
     };
 
@@ -2061,9 +2066,9 @@ export const OrdenTrabajoFormPage: React.FC = () => {
         metadata={[
           { label: 'System Status', value: <D365StatusBadge status={estadoSistema} size="small" /> },
           { label: 'Estado Operativo', value: <D365StatusBadge status={estadoOperativo} size="small" /> },
-          { label: 'Técnico', value: recursoTecnicoNombre || 'Sin Asignar' },
-          { label: 'Fecha Cita', value: fechaProgramada ? `${fechaProgramada}${bloqueHorario ? ` (${bloqueHorario})` : ''}` : 'Sin Programar' },
-          { label: 'Puntos', value: <Badge appearance="tint" color="brand">{orden?.totalPuntos ?? trabajos.reduce((acc, t) => acc + (t.puntos ?? 1), 0)} pts</Badge> },
+          { label: 'Técnico', value: recursoTecnicoNombre || '---' },
+          { label: 'Fecha Cita', value: fechaProgramada ? `${fechaProgramada}${bloqueHorario ? ` (${bloqueHorario})` : ''}` : '—' },
+          { label: 'Puntos', value: <Badge appearance="ghost" shape="rounded" color="brand">{orden?.totalPuntos ?? trabajos.reduce((acc, t) => acc + (t.puntos ?? 1), 0)} pts</Badge> },
         ]}
         processFlow={
           <WorkOrderEtapas
@@ -2127,12 +2132,16 @@ export const OrdenTrabajoFormPage: React.FC = () => {
 
       {/* 4. CONTENIDO DE PESTAÑAS */}
       <D365FormContent busy={submitting} className={formStyles.contentBody}>
-        {loading ? (
+        {isCargandoDatos ? (
           <div className={formStyles.grid2Cols}>
             <Card className={formStyles.card}>
               <Skeleton animation="pulse">
                 <SkeletonItem size={16} className={formStyles.skeletonHeader} />
                 <div className={formStyles.fieldColumnFlex}>
+                  <SkeletonItem size={32} className={formStyles.skeletonFull} />
+                  <SkeletonItem size={32} className={formStyles.skeletonFull} />
+                  <SkeletonItem size={32} className={formStyles.skeletonFull} />
+                  <SkeletonItem size={32} className={formStyles.skeletonFull} />
                   <SkeletonItem size={32} className={formStyles.skeletonFull} />
                   <SkeletonItem size={32} className={formStyles.skeletonFull} />
                   <SkeletonItem size={32} className={formStyles.skeletonFull} />
