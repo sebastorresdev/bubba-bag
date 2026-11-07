@@ -95,6 +95,7 @@ export const SolicitudAtencionFormPage: React.FC = () => {
   // Sección 1: Qué servicio se va a atender
   const [tipoOrdenId, setTipoOrdenId] = useState('');
   const [busquedaTipoOrden, setBusquedaTipoOrden] = useState('');
+  const [busquedaSede, setBusquedaSede] = useState('');
   const [sedeId, setSedeId] = useState('');
   const [serviciosSolicitados, setServiciosSolicitados] = useState<ServicioSolicitadoItem[]>([
     { idTemp: 'item-1', productoId: '', referenciaEquipo: '', observaciones: '' },
@@ -424,6 +425,20 @@ export const SolicitudAtencionFormPage: React.FC = () => {
   }, [contactoIdParam, clienteIdParam]);
 
   // Opciones para selectores
+  const opcionesSedes: OpcionEntidadRelacionada[] = useMemo(
+    () =>
+      sedes.map((s) => ({
+        id: s.id,
+        nombre: s.codigo ? `${s.codigo} — ${s.nombre}` : s.nombre,
+        detalle: s.ciudad ? `Ciudad: ${s.ciudad}` : (s.direccion ? `Dir: ${s.direccion}` : undefined),
+      })),
+    [sedes]
+  );
+  const sedeSeleccionadaObj = useMemo(
+    () => opcionesSedes.find((s) => s.id === sedeId) || null,
+    [opcionesSedes, sedeId]
+  );
+
   const opcionesTiposOrden: OpcionEntidadRelacionada[] = useMemo(
     () =>
       tiposOrden.map((t) => ({
@@ -934,21 +949,19 @@ export const SolicitudAtencionFormPage: React.FC = () => {
                 </div>
 
                 {sedes.length > 1 && (
-                  <D365FormField label="Sede Operativa" required>
-                    <Select
-                      aria-label="Sede Operativa"
-                      className={formStyles.d365ControlFull}
-                      value={sedeId}
-                      onChange={(_, d) => setSedeId(d.value)}
-                    >
-                      <option value=""></option>
-                      {sedes.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.codigo ? `${s.codigo} — ` : ''}
-                          {s.nombre}
-                        </option>
-                      ))}
-                    </Select>
+                  <D365FormField label="Sede Operativa" required info="Sede o base operativa asignada para atender la solicitud">
+                    <SelectorEntidadRelacionada
+                      etiquetaGrupo="Sedes Operativas"
+                      opciones={opcionesSedes}
+                      seleccionada={sedeSeleccionadaObj}
+                      textoBusqueda={busquedaSede}
+                      alCambiarBusqueda={setBusquedaSede}
+                      alSeleccionar={(idSel) => setSedeId(idSel || '')}
+                      alNavegar={(idSel) => navigate(`/servicio-campo/unidades-organizativas/${idSel}`)}
+                      icono={<Building16Regular />}
+                      tituloEnlace="Ver ficha de la sede"
+                      textoVacio="No hay sedes disponibles"
+                    />
                   </D365FormField>
                 )}
 

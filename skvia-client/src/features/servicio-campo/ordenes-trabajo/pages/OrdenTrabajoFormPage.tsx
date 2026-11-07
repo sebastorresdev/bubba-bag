@@ -58,6 +58,7 @@ import {
   Delete16Regular,
   Play16Regular,
   Person16Regular,
+  Building16Regular,
   Edit16Regular,
   Dismiss24Regular,
   Print16Regular,
@@ -195,6 +196,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
   const [busquedaTipoOrden, setBusquedaTipoOrden] = useState('');
   const [busquedaClienteFact, setBusquedaClienteFact] = useState('');
   const [busquedaClienteServ, setBusquedaClienteServ] = useState('');
+  const [busquedaSede, setBusquedaSede] = useState('');
 
   // Trabajos / Trabajos de la orden
   const [trabajos, setTrabajos] = useState<TrabajoFormItem[]>([]);
@@ -809,6 +811,30 @@ export const OrdenTrabajoFormPage: React.FC = () => {
     () => opcionesClientesServicio.find((c) => c.id === clienteServicioId) || null,
     [opcionesClientesServicio, clienteServicioId]
   );
+
+  const opcionesSedes: OpcionEntidadRelacionada[] = useMemo(
+    () =>
+      unidadesOrganizativas.map((u) => ({
+        id: u.id,
+        nombre: u.codigo ? `${u.codigo} — ${u.nombre}` : u.nombre,
+        detalle: u.ciudad ? `Ciudad: ${u.ciudad}` : (u.direccion ? `Dir: ${u.direccion}` : undefined),
+      })),
+    [unidadesOrganizativas]
+  );
+
+  const sedeSeleccionadaObj = useMemo(() => {
+    if (!unidadOrganizativaId) return null;
+    const found = opcionesSedes.find((s) => s.id === unidadOrganizativaId);
+    if (found) return found;
+    if (unidadOrganizativaNombre) {
+      return {
+        id: unidadOrganizativaId,
+        nombre: unidadOrganizativaNombre,
+        detalle: 'Sede guardada en la orden',
+      };
+    }
+    return null;
+  }, [opcionesSedes, unidadOrganizativaId, unidadOrganizativaNombre]);
 
     
   const resolverTarifa = useCallback((prodId: string): {tarifa: number; origen: string} => {
@@ -2248,14 +2274,16 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                     </Select>
                   </D365FormField>
 
-                  <D365FormField label="Sede / Base Operativa" htmlFor="wo-sede" required>
-                    <Select
-                      id="wo-sede"
-                      className={formStyles.d365ControlFull}
-                      disabled={!esEditable}
-                      value={unidadOrganizativaId}
-                      onChange={(_, d) => {
-                        const newSedeId = d.value;
+                  <D365FormField label="Sede / Base Operativa" required info="Unidad organizativa o base operativa de atención">
+                    <SelectorEntidadRelacionada
+                      deshabilitado={!esEditable}
+                      etiquetaGrupo="Sedes / Bases Operativas"
+                      opciones={opcionesSedes}
+                      seleccionada={sedeSeleccionadaObj}
+                      textoBusqueda={busquedaSede}
+                      alCambiarBusqueda={setBusquedaSede}
+                      alSeleccionar={(nuevoId) => {
+                        const newSedeId = nuevoId || '';
                         setUnidadOrganizativaId(newSedeId);
                         const sede = unidadesOrganizativas.find((u) => u.id === newSedeId);
                         setUnidadOrganizativaNombre(sede?.nombre || '');
@@ -2286,19 +2314,12 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                           }
                         }
                       }}
-                    >
-                      <option value=""></option>
-                      {unidadesOrganizativas.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.codigo ? `${u.codigo} — ` : ''}{u.nombre} {u.ciudad ? `(${u.ciudad})` : ''}
-                        </option>
-                      ))}
-                      {unidadOrganizativaId && !unidadesOrganizativas.some((u) => u.id === unidadOrganizativaId) && (
-                        <option value={unidadOrganizativaId}>
-                          {unidadOrganizativaNombre || 'Sede registrada en la orden'}
-                        </option>
-                      )}
-                    </Select>
+                      alCrearNuevo={() => navigate('/servicio-campo/unidades-organizativas/nuevo')}
+                      alNavegar={(nuevoId) => navigate(`/servicio-campo/unidades-organizativas/${nuevoId}`)}
+                      icono={<Building16Regular />}
+                      tituloEnlace="Ver ficha de la sede"
+                      textoVacio="No hay sedes operativas registradas"
+                    />
                   </D365FormField>
 
                   <D365FormField label="Zona Operativa / Territorio" htmlFor="wo-zona">
