@@ -94,6 +94,7 @@ export const SolicitudAtencionFormPage: React.FC = () => {
 
   // Sección 1: Qué servicio se va a atender
   const [tipoOrdenId, setTipoOrdenId] = useState('');
+  const [listaPreciosId, setListaPreciosId] = useState('');
   const [busquedaTipoOrden, setBusquedaTipoOrden] = useState('');
   const [busquedaSede, setBusquedaSede] = useState('');
   const [sedeId, setSedeId] = useState('');
@@ -407,6 +408,7 @@ export const SolicitudAtencionFormPage: React.FC = () => {
         // Preseleccionar primer tipo de orden si solo hay uno
         if (tipos && tipos.length === 1) {
           setTipoOrdenId(tipos[0].id);
+          setListaPreciosId(tipos[0].listaPreciosId || '');
         }
 
         if (contactoIdParam) {
@@ -707,10 +709,10 @@ export const SolicitudAtencionFormPage: React.FC = () => {
         }
       }
 
-      // 2. Resolver Lista de Precios automáticamente desde el Tipo de Orden o la primera lista activa
+      // 2. Resolver Lista de Precios automáticamente desde el estado o el Tipo de Orden
       const tipoObj = tiposOrden.find((t) => t.id === tipoOrdenId);
       const listaPreciosAutoId =
-        tipoObj?.listaPreciosId || listasPrecios[0]?.id || undefined;
+        listaPreciosId || tipoObj?.listaPreciosId || undefined;
 
       // 3. Resolver Sede Operativa automáticamente si no se eligió otra
       const sedeFinalId = sedeId || sedes[0]?.id || undefined;
@@ -880,6 +882,8 @@ export const SolicitudAtencionFormPage: React.FC = () => {
                     alSeleccionar={(nuevoId) => {
                       const newId = nuevoId || '';
                       setTipoOrdenId(newId);
+                      const tipoElegido = tiposOrden.find((t) => t.id === newId);
+                      setListaPreciosId(tipoElegido?.listaPreciosId || '');
                       if (newId) {
                         const configsDelNuevo = configuracionesServicio.filter(
                           (c) => c.activo && c.tipoOrdenId === newId
@@ -907,6 +911,28 @@ export const SolicitudAtencionFormPage: React.FC = () => {
                     icono={<ClipboardTask24Regular />}
                     textoVacio="No hay tipos de orden activos"
                   />
+                </D365FormField>
+
+                <D365FormField
+                  label="Lista de Precios"
+                  info="Tarifario asignado automáticamente al Tipo de Orden seleccionado para costear los servicios."
+                >
+                  <Select
+                    aria-label="Lista de Precios"
+                    className={formStyles.d365ControlFull}
+                    value={listaPreciosId}
+                    disabled={!tipoOrdenId}
+                    onChange={(_, d) => setListaPreciosId(d.value)}
+                  >
+                    <option value="">
+                      {tipoOrdenId ? '— Seleccione una lista de precios —' : '— Seleccione primero el Tipo de Orden —'}
+                    </option>
+                    {listasPrecios.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.nombre}
+                      </option>
+                    ))}
+                  </Select>
                 </D365FormField>
 
                 {/* Líneas de Servicio directas sin abrir otro drawer */}
