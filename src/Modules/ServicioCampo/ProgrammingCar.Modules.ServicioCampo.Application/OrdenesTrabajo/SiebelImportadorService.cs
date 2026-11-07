@@ -332,14 +332,19 @@ public class SiebelImportadorService
             await _db.SaveChangesAsync(ct);
         }
 
-        var tipoOrden = await _db.TiposOrdenTrabajo.FirstOrDefaultAsync(t => t.Activo && (t.Nombre.Contains("Instalaciones") || t.Nombre.Contains("Averias") || t.Nombre.Contains("Averías")), ct)
-            ?? await _db.TiposOrdenTrabajo.FirstOrDefaultAsync(t => t.Activo && !t.Nombre.Contains("Recupero") && !t.Nombre.Contains("Desconexiones"), ct)
-            ?? await _db.TiposOrdenTrabajo.FirstOrDefaultAsync(t => t.Activo, ct);
+        var todosTiposOrden = await _db.TiposOrdenTrabajo.Where(t => t.Activo).ToListAsync(ct);
+        var tiposOrdenPorId = todosTiposOrden.ToDictionary(t => t.Id);
+
+        var tipoOrden = todosTiposOrden.FirstOrDefault(t => t.Nombre.Contains("Instalaciones") || t.Nombre.Contains("Averias") || t.Nombre.Contains("Averías"))
+            ?? todosTiposOrden.FirstOrDefault(t => !t.Nombre.Contains("Recupero") && !t.Nombre.Contains("Desconexiones"))
+            ?? todosTiposOrden.FirstOrDefault();
         if (tipoOrden == null)
         {
             tipoOrden = TipoOrdenTrabajo.Crear("Servicio Siebel DirecTV", true, true, true, "Órdenes de servicio importadas de Siebel", "#0078D4");
             _db.TiposOrdenTrabajo.Add(tipoOrden);
             await _db.SaveChangesAsync(ct);
+            todosTiposOrden.Add(tipoOrden);
+            tiposOrdenPorId[tipoOrden.Id] = tipoOrden;
         }
 
         var listaPrecios = await _db.ListasPrecios.FirstOrDefaultAsync(l => l.Activo, ct);
@@ -372,7 +377,8 @@ public class SiebelImportadorService
 
         // Plantillas / Configuraciones existentes
         var configsExistentes = await _db.ConfiguracionesServicio
-            .Include(c => c.Servicios)
+            .Include(c => c.Producto)
+            .Include(c => c.Servicios).ThenInclude(s => s.Producto)
             .Where(c => c.Activo)
             .ToListAsync(ct);
 
@@ -540,6 +546,26 @@ public class SiebelImportadorService
                     }
                 }
 
+                // Determinar el Tipo de Orden correspondiente según los servicios de la orden
+                TipoOrdenTrabajo tipoOrdenParaEstaWo = tipoOrden;
+                foreach (var filaItemTuple in filasWo)
+                {
+                    var slCode = GetVal(filaItemTuple.Row, "codigodesl", "sl");
+                    if (!string.IsNullOrWhiteSpace(slCode))
+                    {
+                        var cfgMatch = configsExistentes.FirstOrDefault(c =>
+                            c.TipoOrdenId.HasValue &&
+                            ((c.Producto != null && c.Producto.Codigo.Equals(slCode, StringComparison.OrdinalIgnoreCase)) ||
+                             c.Servicios.Any(s => s.Producto != null && s.Producto.Codigo.Equals(slCode, StringComparison.OrdinalIgnoreCase))));
+
+                        if (cfgMatch?.TipoOrdenId != null && tiposOrdenPorId.TryGetValue(cfgMatch.TipoOrdenId.Value, out var tipoEncontrado))
+                        {
+                            tipoOrdenParaEstaWo = tipoEncontrado;
+                            break;
+                        }
+                    }
+                }
+
                 // C) Crear Orden de Trabajo
                 totalOrdenesCount++;
                 var codigoWo = $"WO-{totalOrdenesCount:D6}";
@@ -550,7 +576,7 @@ public class SiebelImportadorService
 
                 var orden = OrdenTrabajo.Crear(
                     codigoWo: codigoWo,
-                    tipoOrdenId: tipoOrden.Id,
+                    tipoOrdenId: tipoOrdenParaEstaWo.Id,
                     creadoPorId: usuarioEjecutorId,
                     clienteFacturacionId: clienteDirectv.Id, // DIRECTV SRL
                     clienteServicioId: clienteAbonado.Id,    // Abonado/Cliente de servicio
@@ -618,7 +644,8 @@ public class SiebelImportadorService
                             duracionEstimadaMinutos: 60,
                             descripcion: "Configuración generada automáticamente para atención de servicio.",
                             esPredeterminada: true,
-                            puntos: 1.0m
+                            puntos: 1.0m,
+                            tipoOrdenId: tipoOrdenParaEstaWo.Id
                         );
                         _db.ConfiguracionesServicio.Add(configServicio);
                         configsExistentes.Add(configServicio);

@@ -61,9 +61,10 @@ public static class ConfiguracionesServicioEndpoints
         IDispatcher dispatcher,
         Guid? productoId,
         bool? soloActivos,
-        string? search)
+        string? search,
+        Guid? tipoOrdenId)
     {
-        var result = await dispatcher.QueryAsync(new ObtenerConfiguracionesServicioQuery(productoId, soloActivos, search));
+        var result = await dispatcher.QueryAsync(new ObtenerConfiguracionesServicioQuery(productoId, soloActivos, search, tipoOrdenId));
         return Results.Ok(result.Value);
     }
 
@@ -95,7 +96,7 @@ public static class ConfiguracionesServicioEndpoints
     {
         var result = await dispatcher.SendAsync(new CambiarEstadoConfiguracionServicioCommand(id, request.Activo));
         return result.IsSuccess
-            ? Results.Ok(new { message = $"Plantilla {(request.Activo ? "activada" : "desactivada")} correctamente." })
+            ? Results.Ok(new { message = $"Configuración del servicio {(request.Activo ? "activada" : "desactivada")} correctamente." })
             : Results.BadRequest(new { message = result.Error });
     }
 
@@ -103,15 +104,12 @@ public static class ConfiguracionesServicioEndpoints
     {
         var result = await dispatcher.SendAsync(new EliminarConfiguracionServicioCommand(id));
         return result.IsSuccess
-            ? Results.Ok(new { message = "Configuración del servicio eliminada correctamente." })
+            ? Results.Ok(new { message = "Configuración del servicio eliminada con éxito." })
             : Results.BadRequest(new { message = result.Error });
     }
 
-    // Handlers - Tareas
-    private static async Task<IResult> ObtenerTareas(
-        IDispatcher dispatcher,
-        bool? soloActivas,
-        string? search)
+    // Tareas
+    private static async Task<IResult> ObtenerTareas(IDispatcher dispatcher, bool? soloActivas, string? search)
     {
         var result = await dispatcher.QueryAsync(new ObtenerTareasQuery(soloActivas, search));
         return Results.Ok(result.Value);
@@ -129,7 +127,7 @@ public static class ConfiguracionesServicioEndpoints
     {
         var result = await dispatcher.SendAsync(new CrearTareaCommand(request));
         return result.IsSuccess
-            ? Results.Created($"/api/serviciocampo/tareas/{result.Value}", new { id = result.Value, message = "Tarea registrada con éxito." })
+            ? Results.Created($"/api/serviciocampo/tareas/{result.Value}", new { id = result.Value, message = "Tarea creada correctamente." })
             : Results.BadRequest(new { message = result.Error });
     }
 

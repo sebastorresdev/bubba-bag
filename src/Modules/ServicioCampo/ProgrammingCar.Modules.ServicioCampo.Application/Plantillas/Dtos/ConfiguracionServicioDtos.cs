@@ -23,7 +23,9 @@ public record ConfiguracionServicioListadoDto(
     int CantidadTareas,
     int CantidadMateriales,
     DateTime CreatedAt,
-    List<ConfiguracionServicioProductoItemDto>? Servicios = null);
+    List<ConfiguracionServicioProductoItemDto>? Servicios = null,
+    Guid? TipoOrdenId = null,
+    string? TipoOrdenNombre = null);
 
 public record ConfiguracionServicioDetalleDto(
     Guid Id,
@@ -40,7 +42,9 @@ public record ConfiguracionServicioDetalleDto(
     DateTime CreatedAt,
     List<ConfiguracionTareaItemDto> Tareas,
     List<ConfiguracionMaterialItemDto> Materiales,
-    List<ConfiguracionServicioProductoItemDto>? Servicios = null);
+    List<ConfiguracionServicioProductoItemDto>? Servicios = null,
+    Guid? TipoOrdenId = null,
+    string? TipoOrdenNombre = null);
 
 public record ConfiguracionTareaItemDto(
     Guid Id,
@@ -96,7 +100,8 @@ public record CrearConfiguracionServicioRequest(
     List<GuardarConfiguracionMaterialDto>? Materiales,
     int? SlaHorasResolucion = null,
     decimal? Puntos = 1.0m,
-    List<Guid>? ProductoIds = null);
+    List<Guid>? ProductoIds = null,
+    Guid? TipoOrdenId = null);
 
 public record ActualizarConfiguracionServicioRequest(
     string Nombre,
@@ -108,7 +113,8 @@ public record ActualizarConfiguracionServicioRequest(
     List<GuardarConfiguracionMaterialDto>? Materiales,
     int? SlaHorasResolucion = null,
     decimal? Puntos = null,
-    List<Guid>? ProductoIds = null);
+    List<Guid>? ProductoIds = null,
+    Guid? TipoOrdenId = null);
 
 public record CrearTareaRequest(
     string Nombre,

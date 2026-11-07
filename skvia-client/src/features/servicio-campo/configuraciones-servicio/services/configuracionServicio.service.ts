@@ -12,11 +12,13 @@ export const ConfiguracionServicioService = {
     productoId?: string;
     soloActivos?: boolean;
     search?: string;
+    tipoOrdenId?: string;
   }): Promise<ConfiguracionServicioListadoDto[]> {
     const searchParams = new URLSearchParams();
     if (params?.productoId) searchParams.append('productoId', params.productoId);
     if (params?.soloActivos !== undefined) searchParams.append('soloActivos', String(params.soloActivos));
     if (params?.search) searchParams.append('search', params.search);
+    if (params?.tipoOrdenId) searchParams.append('tipoOrdenId', params.tipoOrdenId);
     const qs = searchParams.toString();
     return apiClient<ConfiguracionServicioListadoDto[]>(
       `/api/serviciocampo/configuraciones-servicio${qs ? `?${qs}` : ''}`

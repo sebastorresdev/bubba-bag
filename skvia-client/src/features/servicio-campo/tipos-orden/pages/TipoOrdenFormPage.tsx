@@ -15,6 +15,9 @@ import {
   useToastController,
   useId,
   tokens,
+  Button,
+  TableCellLayout,
+  createTableColumn,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -38,6 +41,12 @@ import { D365MessageBar } from '../../../../components/common/D365MessageBar';
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
 import { SelectorEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
 import { SeguridadService, type UsuarioDto } from '../../../seguridad';
+import type { TableColumnDefinition } from '@fluentui/react-components';
+import { D365SubGrid } from '../../../../components/common/D365SubGrid';
+import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
+import { ConfiguracionServicioService } from '../../configuraciones-servicio/services/configuracionServicio.service';
+import type { ConfiguracionServicioListadoDto } from '../../configuraciones-servicio/types/configuracionServicio.types';
+
 
 
 export function TipoOrdenFormPage() {
@@ -85,12 +94,81 @@ export function TipoOrdenFormPage() {
   const [busquedaLista, setBusquedaLista] = useState<string>('');
 
   const [activo, setActivo] = useState(true);
+  const [plantillasAsociadas, setPlantillasAsociadas] = useState<ConfiguracionServicioListadoDto[]>([]);
+  const [loadingPlantillas, setLoadingPlantillas] = useState(false);
+
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const focusValidation = useValidationFocus();
   const draft = useUnsavedChanges({ formData,propietarioId,listaPrecioId }, !loading);
+  useEffect(() => {
+    if (isEditMode && id) {
+      setLoadingPlantillas(true);
+      ConfiguracionServicioService.getPlantillas({ tipoOrdenId: id })
+        .then((res) => setPlantillasAsociadas(res))
+        .catch(() => {})
+        .finally(() => setLoadingPlantillas(false));
+    }
+  }, [isEditMode, id]);
+
+  const columnasPlantillas: TableColumnDefinition<ConfiguracionServicioListadoDto>[] = useMemo(
+    () => [
+      createTableColumn<ConfiguracionServicioListadoDto>({
+        columnId: 'nombre',
+        renderHeaderCell: () => 'Nombre de la Configuración',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Text weight="semibold" style={{ cursor: 'pointer', color: tokens.colorBrandForeground1 }}>
+              {item.nombre}
+            </Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ConfiguracionServicioListadoDto>({
+        columnId: 'servicio',
+        renderHeaderCell: () => 'Servicio Técnico',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Text>{item.productoCodigo ? `[${item.productoCodigo}] ${item.productoNombre}` : item.productoNombre}</Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ConfiguracionServicioListadoDto>({
+        columnId: 'duracion',
+        renderHeaderCell: () => 'Duración',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Text>{item.duracionEstimadaMinutos} min</Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ConfiguracionServicioListadoDto>({
+        columnId: 'puntos',
+        renderHeaderCell: () => 'Puntos',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <Text weight="semibold">{item.puntos} pts</Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<ConfiguracionServicioListadoDto>({
+        columnId: 'estado',
+        renderHeaderCell: () => 'Estado',
+        renderCell: (item) => (
+          <TableCellLayout>
+            <D365StatusBadge
+              status={item.activo ? 'Activo' : 'Inactivo'}
+              color={item.activo ? 'success' : 'subtle'}
+            />
+          </TableCellLayout>
+        ),
+      }),
+    ],
+    []
+  );
+
 
 
   useEffect(() => {
@@ -485,6 +563,35 @@ export function TipoOrdenFormPage() {
               </D365FormField>
             </div>
           </div>
+
+          {/* Tarjeta 3: Servicios y Configuraciones Asociadas */}
+          {isEditMode && (
+            <div className={styles.card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, paddingBottom: 8 }}>
+                <Text size={400} weight="semibold">
+                  Servicios y Configuraciones Permitidas ({plantillasAsociadas.length})
+                </Text>
+                <Button
+                  size="small"
+                  appearance="subtle"
+                  icon={<Add16Regular />}
+                  onClick={() => navigate('/servicio-campo/configuraciones-servicio/nuevo')}
+                >
+                  Nueva Configuración
+                </Button>
+              </div>
+
+              <div style={{ marginTop: 12 }}>
+                <D365SubGrid
+                  items={plantillasAsociadas}
+                  columns={columnasPlantillas}
+                  isLoading={loadingPlantillas}
+                  emptyMessage="No hay configuraciones de servicio vinculadas a este tipo de orden."
+                  onRowClick={(item) => navigate(`/servicio-campo/configuraciones-servicio/${item.id}`)}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </D365FormContent>
     </div>

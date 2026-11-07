@@ -21,6 +21,8 @@ export interface ConfiguracionServicioListadoDto {
   cantidadMateriales: number;
   createdAt: string;
   servicios?: ConfiguracionServicioProductoItemDto[];
+  tipoOrdenId?: string | null;
+  tipoOrdenNombre?: string | null;
 }
 
 export interface ConfiguracionServicioDetalleDto {
@@ -40,6 +42,8 @@ export interface ConfiguracionServicioDetalleDto {
   tareas: ConfiguracionTareaItemDto[];
   materiales: ConfiguracionMaterialItemDto[];
   servicios?: ConfiguracionServicioProductoItemDto[];
+  tipoOrdenId?: string | null;
+  tipoOrdenNombre?: string | null;
 }
 
 export interface ConfiguracionTareaItemDto {
@@ -77,6 +81,7 @@ export interface GuardarConfiguracionServicioDto {
   puntos?: number;
   descripcion?: string;
   esPredeterminada: boolean;
+  tipoOrdenId?: string | null;
   tareas: {
     tareaId: string;
     ordenSecuencia: number;

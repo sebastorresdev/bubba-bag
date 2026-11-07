@@ -126,6 +126,11 @@ import { D365SubGrid } from '../../../../components/common/D365SubGrid';
 
 import { D365EntityHeader } from '../../../../components/common/D365EntityHeader';
 
+
+import { TipoOrdenService } from '../../tipos-orden/services/tipoOrden.service';
+import type { TipoOrdenTrabajoDto } from '../../tipos-orden/types/tipoOrden.types';
+import { SelectorEntidadRelacionada, type OpcionEntidadRelacionada } from '../../../../components/common/SelectorEntidadRelacionada';
+
 interface TareaLocalItem {
 
   id: string; // temp id
@@ -247,6 +252,11 @@ export function ConfiguracionServicioFormPage() {
 
   const [configuracionesExistentes, setConfiguracionesExistentes] = useState<ConfiguracionServicioListadoDto[]>([]);
 
+  const [tipoOrdenId, setTipoOrdenId] = useState<string>('');
+  const [busquedaTipoOrden, setBusquedaTipoOrden] = useState<string>('');
+  const [catalogoTiposOrden, setCatalogoTiposOrden] = useState<TipoOrdenTrabajoDto[]>([]);
+
+
   // UI state
 
   const [selectedTab, setSelectedTab] = useState<'general' | 'servicios' | 'tareas' | 'materiales'>('general');
@@ -309,7 +319,7 @@ export function ConfiguracionServicioFormPage() {
 
   const focusValidation = useValidationFocus();
 
-  const draft = useUnsavedChanges({ nombre,productoId,selectedProductoIds,duracionEstimadaMinutos,slaHorasResolucion,puntos,descripcion,tareas,materiales }, !loading);
+  const draft = useUnsavedChanges({ nombre, tipoOrdenId, productoId,selectedProductoIds,duracionEstimadaMinutos,slaHorasResolucion,puntos,descripcion,tareas,materiales }, !loading);
 
   // Carga inicial
 
@@ -319,19 +329,15 @@ export function ConfiguracionServicioFormPage() {
 
       setLoading(true);
 
-      const [prods, tars, ums, plantilla, configs] = await Promise.all([
-
+      const [prods, tars, ums, plantilla, configs, tiposOrden] = await Promise.all([
         ProductoService.getProductos(undefined, undefined, true),
-
         ConfiguracionServicioService.getTareas({ soloActivas: true }),
-
         UnidadMedidaService.getUnidadesMedida(undefined, true),
-
         isEditMode && id ? ConfiguracionServicioService.getPlantillaById(id) : Promise.resolve(null),
-
         ConfiguracionServicioService.getPlantillas({ soloActivos: true }),
-
+        TipoOrdenService.getTiposOrden({ soloActivos: true }),
       ]);
+      setCatalogoTiposOrden(tiposOrden || []);
 
       setCatalogoProductos(prods);
 
@@ -342,6 +348,8 @@ export function ConfiguracionServicioFormPage() {
       setConfiguracionesExistentes(configs || []);
 
       if (plantilla) {
+        if (plantilla.tipoOrdenId) setTipoOrdenId(plantilla.tipoOrdenId);
+        else setTipoOrdenId("");
 
         setNombre(plantilla.nombre);
 
@@ -473,7 +481,24 @@ export function ConfiguracionServicioFormPage() {
 
   }, [cargarCatalogosYDatos]);
 
-  // Lista de servicios de catálogo que NO tienen configuración activa en otra plantilla y no están ya agregados
+  
+  const opcionesTiposOrden: OpcionEntidadRelacionada[] = useMemo(
+    () =>
+      catalogoTiposOrden.map((t) => ({
+        id: t.id,
+        nombre: t.nombre,
+        detalle: t.descripcion || undefined,
+      })),
+    [catalogoTiposOrden]
+  );
+
+  const tipoOrdenSeleccionado: OpcionEntidadRelacionada | null = useMemo(() => {
+    if (!tipoOrdenId) return null;
+    const t = catalogoTiposOrden.find((x) => x.id === tipoOrdenId);
+    return t ? { id: t.id, nombre: t.nombre, detalle: t.descripcion || undefined } : null;
+  }, [catalogoTiposOrden, tipoOrdenId]);
+
+// Lista de servicios de catálogo que NO tienen configuración activa en otra plantilla y no están ya agregados
 
   const productosServicioDisponibles = useMemo(() => {
 
@@ -483,7 +508,7 @@ export function ConfiguracionServicioFormPage() {
 
       configuracionesExistentes
 
-        .filter((c) => c.activo && (!isEditMode || c.id !== id))
+        .filter((c) => c.activo && (!isEditMode || c.id !== id) && (c.tipoOrdenId === (tipoOrdenId || null)))
 
         .flatMap((c) => (c.servicios && c.servicios.length > 0 ? c.servicios.map((s) => s.productoId) : [c.productoId]))
 
@@ -694,6 +719,7 @@ export function ConfiguracionServicioFormPage() {
       const ptsNum = parseFloat(puntos.replace(',', '.'));
 
       const dto: GuardarConfiguracionServicioDto = {
+        tipoOrdenId: tipoOrdenId || null,
 
         nombre: nombre.trim(),
 
@@ -1868,6 +1894,10 @@ export function ConfiguracionServicioFormPage() {
                 },
 
                 {
+                  label: 'Tipo de Orden',
+                  value: catalogoTiposOrden.find((t) => t.id === tipoOrdenId)?.nombre || 'General / No asignado',
+                },
+                {
 
                   label: 'Estado',
 
@@ -2010,6 +2040,24 @@ export function ConfiguracionServicioFormPage() {
                       />
 
                     </D365FormField>
+                    <D365FormField
+                      label="Tipo de Orden de Trabajo"
+                      info="Tipo o naturaleza operativa a la que aplica esta configuración (ej: Instalaciones / Averías, Recupero Desconexiones)."
+                    >
+                      <SelectorEntidadRelacionada
+                        etiquetaGrupo="Tipos de Orden Disponibles"
+                        opciones={opcionesTiposOrden}
+                        seleccionada={tipoOrdenSeleccionado}
+                        textoBusqueda={busquedaTipoOrden}
+                        alCambiarBusqueda={setBusquedaTipoOrden}
+                        alSeleccionar={(newId) => setTipoOrdenId(newId || '')}
+                        alNavegar={(toId) => {
+                          if (toId) navigate(`/servicio-campo/tipos-orden/${toId}`);
+                        }}
+                        textoVacio="No se encontraron tipos de orden"
+                      />
+                    </D365FormField>
+
 
                     <D365FormField
 

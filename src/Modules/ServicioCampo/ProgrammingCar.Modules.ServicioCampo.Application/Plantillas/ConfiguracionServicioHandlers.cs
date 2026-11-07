@@ -23,7 +23,7 @@ public record ActualizarTareaCommand(Guid Id, ActualizarTareaRequest Request) : 
 public record EliminarTareaCommand(Guid Id) : ICommand<Result>;
 
 // Queries
-public record ObtenerConfiguracionesServicioQuery(Guid? ProductoId, bool? SoloActivos, string? Search) : IQuery<Result<List<ConfiguracionServicioListadoDto>>>;
+public record ObtenerConfiguracionesServicioQuery(Guid? ProductoId, bool? SoloActivos, string? Search, Guid? TipoOrdenId = null) : IQuery<Result<List<ConfiguracionServicioListadoDto>>>;
 public record ObtenerConfiguracionServicioPorIdQuery(Guid Id) : IQuery<Result<ConfiguracionServicioDetalleDto>>;
 public record ObtenerTareasQuery(bool? SoloActivas, string? Search) : IQuery<Result<List<TareaDto>>>;
 public record ObtenerTareaPorIdQuery(Guid Id) : IQuery<Result<TareaDto>>;
@@ -49,7 +49,7 @@ public class ConfiguracionServicioHandlers :
     }
 
     private async Task<string?> ValidarConfiguracion(List<Guid> productoIds,
-        List<GuardarConfiguracionTareaDto>? tareas, List<GuardarConfiguracionMaterialDto>? materiales, Guid? id, bool activa, CancellationToken ct)
+        List<GuardarConfiguracionTareaDto>? tareas, List<GuardarConfiguracionMaterialDto>? materiales, Guid? id, bool activa, Guid? tipoOrdenId, CancellationToken ct)
     {
         if (productoIds == null || productoIds.Count == 0)
             return "Debe seleccionar al menos un servicio técnico activo del catálogo.";
@@ -66,12 +66,12 @@ public class ConfiguracionServicioHandlers :
             var colision = await _context.ConfiguracionesServicio
                 .AsNoTracking()
                 .Include(x => x.Servicios)
-                .Where(x => x.Activo && x.Id != id && (productoIds.Contains(x.ProductoId) || x.Servicios.Any(s => productoIds.Contains(s.ProductoId))))
+                .Where(x => x.Activo && x.Id != id && x.TipoOrdenId == tipoOrdenId && (productoIds.Contains(x.ProductoId) || x.Servicios.Any(s => productoIds.Contains(s.ProductoId))))
                 .Select(x => x.Nombre)
                 .FirstOrDefaultAsync(ct);
 
             if (colision != null)
-                return $"Uno de los servicios seleccionados ya cuenta con una configuración activa ('{colision}'). Remuévalo antes de guardar.";
+                return $"Uno de los servicios seleccionados ya cuenta con una configuración activa ('{colision}') para este tipo de orden. Remuévalo antes de guardar.";
         }
 
         foreach (var tarea in tareas ?? [])
@@ -98,7 +98,7 @@ public class ConfiguracionServicioHandlers :
             ? req.ProductoIds.Distinct().Where(x => x != Guid.Empty).ToList()
             : (req.ProductoId != Guid.Empty ? new List<Guid> { req.ProductoId } : new List<Guid>());
 
-        var error = await ValidarConfiguracion(pIds, req.Tareas, req.Materiales, null, true, ct);
+        var error = await ValidarConfiguracion(pIds, req.Tareas, req.Materiales, null, true, req.TipoOrdenId, ct);
         if (error != null) return Result<Guid>.Failure(error);
 
         var plantilla = ConfiguracionServicio.Crear(
@@ -108,7 +108,8 @@ public class ConfiguracionServicioHandlers :
             req.Descripcion,
             req.EsPredeterminada,
             req.SlaHorasResolucion,
-            req.Puntos ?? 1.0m);
+            req.Puntos ?? 1.0m,
+            tipoOrdenId: req.TipoOrdenId);
 
         if (req.Tareas != null)
         {
@@ -159,10 +160,10 @@ public class ConfiguracionServicioHandlers :
             ? req.ProductoIds.Distinct().Where(x => x != Guid.Empty).ToList()
             : (req.ProductoId != Guid.Empty ? new List<Guid> { req.ProductoId } : new List<Guid>());
 
-        var error = await ValidarConfiguracion(pIds, req.Tareas, req.Materiales, command.Id, plantilla.Activo, ct);
+        var error = await ValidarConfiguracion(pIds, req.Tareas, req.Materiales, command.Id, plantilla.Activo, req.TipoOrdenId, ct);
         if (error != null) return Result.Failure(error);
 
-        plantilla.Actualizar(req.Nombre, req.DuracionEstimadaMinutos, req.Descripcion, req.EsPredeterminada, pIds, req.SlaHorasResolucion, req.Puntos);
+        plantilla.Actualizar(req.Nombre, req.DuracionEstimadaMinutos, req.Descripcion, req.EsPredeterminada, pIds, req.SlaHorasResolucion, req.Puntos, req.TipoOrdenId);
 
         if (plantilla.Tareas.Any())
         {
@@ -223,8 +224,8 @@ public class ConfiguracionServicioHandlers :
         if (plantilla == null)
             return Result.Failure("Configuración del servicio no encontrada.");
 
-        if (command.Activo && await _context.ConfiguracionesServicio.AnyAsync(x => x.Id != command.Id && x.ProductoId == plantilla.ProductoId && x.Activo, ct))
-            return Result.Failure("Ya existe una configuración activa para este servicio.");
+        if (command.Activo && await _context.ConfiguracionesServicio.AnyAsync(x => x.Id != command.Id && x.ProductoId == plantilla.ProductoId && x.TipoOrdenId == plantilla.TipoOrdenId && x.Activo, ct))
+            return Result.Failure("Ya existe una configuración activa para este servicio y tipo de orden.");
         if (command.Activo)
             plantilla.Activar();
         else
@@ -300,6 +301,7 @@ public class ConfiguracionServicioHandlers :
     {
         var q = _context.ConfiguracionesServicio
             .AsNoTracking()
+            .Include(p => p.TipoOrden)
             .Include(p => p.Producto)
             .Include(p => p.Servicios).ThenInclude(s => s.Producto)
             .Include(p => p.Tareas)
@@ -308,6 +310,9 @@ public class ConfiguracionServicioHandlers :
 
         if (query.ProductoId.HasValue && query.ProductoId.Value != Guid.Empty)
             q = q.Where(p => p.ProductoId == query.ProductoId.Value || p.Servicios.Any(s => s.ProductoId == query.ProductoId.Value));
+
+        if (query.TipoOrdenId.HasValue && query.TipoOrdenId.Value != Guid.Empty)
+            q = q.Where(p => p.TipoOrdenId == query.TipoOrdenId.Value);
 
         if (query.SoloActivos == true)
             q = q.Where(p => p.Activo);
@@ -353,7 +358,9 @@ public class ConfiguracionServicioHandlers :
                 p.Tareas.Count,
                 p.Materiales.Count,
                 p.CreatedAt,
-                serviciosList
+                serviciosList,
+                p.TipoOrdenId,
+                p.TipoOrden != null ? p.TipoOrden.Nombre : null
             );
         }).ToList();
 
@@ -364,6 +371,7 @@ public class ConfiguracionServicioHandlers :
     {
         var p = await _context.ConfiguracionesServicio
             .AsNoTracking()
+            .Include(x => x.TipoOrden)
             .Include(x => x.Producto)
             .Include(x => x.Servicios).ThenInclude(s => s.Producto)
             .Include(x => x.Tareas)
@@ -434,7 +442,9 @@ public class ConfiguracionServicioHandlers :
             p.CreatedAt,
             tareasDto,
             materialesDto,
-            serviciosList
+            serviciosList,
+            p.TipoOrdenId,
+            p.TipoOrden != null ? p.TipoOrden.Nombre : null
         );
 
         return Result<ConfiguracionServicioDetalleDto>.Success(dto);

@@ -405,7 +405,17 @@ export function ConfiguracionesServicioListPage() {
 
       }),
 
-      createTableColumn<ConfiguracionServicioListadoDto>({
+            createTableColumn<ConfiguracionServicioListadoDto>({
+        columnId: 'tipoOrden',
+        compare: (a, b) => (a.tipoOrdenNombre || '').localeCompare(b.tipoOrdenNombre || ''),
+        renderHeaderCell: () => 'Tipo de Orden',
+        renderCell: (item) => (
+          <TableCellLayout truncate title={item.tipoOrdenNombre || 'General'}>
+            <Text>{item.tipoOrdenNombre || '—'}</Text>
+          </TableCellLayout>
+        ),
+      }),
+createTableColumn<ConfiguracionServicioListadoDto>({
 
         columnId: 'duracion',
 

@@ -13,6 +13,7 @@ public class ConfiguracionServicioConfiguration : IEntityTypeConfiguration<Confi
         builder.HasKey(p => p.Id);
 
         builder.HasIndex(p => p.ProductoId);
+        builder.HasIndex(p => p.TipoOrdenId);
 
         builder.Property(p => p.Nombre)
             .IsRequired()
@@ -40,6 +41,14 @@ public class ConfiguracionServicioConfiguration : IEntityTypeConfiguration<Confi
         builder.Property(p => p.Activo)
             .IsRequired()
             .HasDefaultValue(true);
+
+        builder.Property(p => p.TipoOrdenId)
+            .IsRequired(false);
+
+        builder.HasOne(p => p.TipoOrden)
+            .WithMany()
+            .HasForeignKey(p => p.TipoOrdenId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         builder.Property(p => p.ProductoId)
             .HasColumnName("ServicioId")

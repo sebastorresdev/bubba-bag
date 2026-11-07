@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ProgrammingCar.SharedKernel;
 using ProgrammingCar.Modules.ServicioCampo.Domain.Productos;
+using ProgrammingCar.Modules.ServicioCampo.Domain.Mantenimientos;
 
 namespace ProgrammingCar.Modules.ServicioCampo.Domain.Plantillas;
 
@@ -15,6 +16,13 @@ public class ConfiguracionServicio : Entity<Guid>
 {
     public string Nombre { get; private set; } = default!;
     public string? Descripcion { get; private set; }
+
+    /// <summary>
+    /// Tipo de orden de trabajo al cual está asociada esta configuración/plantilla de servicio.
+    /// Permite agrupar los servicios permitidos y sus recetas según la naturaleza operativa (ej: Instalaciones, Averías, Recupero, etc.).
+    /// </summary>
+    public Guid? TipoOrdenId { get; private set; }
+    public virtual TipoOrdenTrabajo? TipoOrden { get; private set; }
 
     /// <summary>
     /// Producto/Servicio de catálogo al cual aplica esta configuración del servicio.
@@ -67,7 +75,8 @@ public class ConfiguracionServicio : Entity<Guid>
         string? descripcion = null,
         bool esPredeterminada = false,
         int? slaHorasResolucion = null,
-        decimal puntos = 1.0m)
+        decimal puntos = 1.0m,
+        Guid? tipoOrdenId = null)
     {
         if (string.IsNullOrWhiteSpace(nombre))
             throw new ArgumentException("El nombre de la plantilla es obligatorio.", nameof(nombre));
@@ -76,6 +85,7 @@ public class ConfiguracionServicio : Entity<Guid>
         {
             Id = Guid.NewGuid(),
             Nombre = nombre.Trim(),
+            TipoOrdenId = tipoOrdenId,
             DuracionEstimadaMinutos = Math.Max(1, duracionEstimadaMinutos),
             SlaHorasResolucion = slaHorasResolucion is > 0 ? slaHorasResolucion.Value : null,
             Puntos = puntos > 0 ? puntos : 1.0m,
@@ -95,7 +105,8 @@ public class ConfiguracionServicio : Entity<Guid>
         string? descripcion = null,
         bool esPredeterminada = false,
         int? slaHorasResolucion = null,
-        decimal puntos = 1.0m) => Crear(nombre, new[] { productoId }, duracionEstimadaMinutos, descripcion, esPredeterminada, slaHorasResolucion, puntos);
+        decimal puntos = 1.0m,
+        Guid? tipoOrdenId = null) => Crear(nombre, new[] { productoId }, duracionEstimadaMinutos, descripcion, esPredeterminada, slaHorasResolucion, puntos, tipoOrdenId);
 
     public void AsignarServicios(IEnumerable<Guid> productoIds)
     {
@@ -121,12 +132,14 @@ public class ConfiguracionServicio : Entity<Guid>
         bool esPredeterminada,
         IEnumerable<Guid>? productoIds = null,
         int? slaHorasResolucion = null,
-        decimal? puntos = null)
+        decimal? puntos = null,
+        Guid? tipoOrdenId = null)
     {
         if (string.IsNullOrWhiteSpace(nombre))
             throw new ArgumentException("El nombre de la plantilla es obligatorio.", nameof(nombre));
 
         Nombre = nombre.Trim();
+        TipoOrdenId = tipoOrdenId;
         DuracionEstimadaMinutos = Math.Max(1, duracionEstimadaMinutos);
         SlaHorasResolucion = slaHorasResolucion is > 0 ? slaHorasResolucion.Value : null;
         if (puntos.HasValue && puntos.Value > 0)
@@ -147,7 +160,8 @@ public class ConfiguracionServicio : Entity<Guid>
         bool esPredeterminada,
         Guid? productoId,
         int? slaHorasResolucion = null,
-        decimal? puntos = null) => Actualizar(nombre, duracionEstimadaMinutos, descripcion, esPredeterminada, productoId.HasValue ? new[] { productoId.Value } : null, slaHorasResolucion, puntos);
+        decimal? puntos = null,
+        Guid? tipoOrdenId = null) => Actualizar(nombre, duracionEstimadaMinutos, descripcion, esPredeterminada, productoId.HasValue ? new[] { productoId.Value } : null, slaHorasResolucion, puntos, tipoOrdenId);
 
     public void AgregarTarea(Guid tareaId, int ordenSecuencia, bool esObligatoria = true, bool requiereEvidencia = false, string? instrucciones = null)
     {

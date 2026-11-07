@@ -868,10 +868,36 @@ export const OrdenTrabajoFormPage: React.FC = () => {
     }
   }, []);
 
+  const serviciosDisponiblesParaDrawer = useMemo(() => {
+    const serviciosBase = productosServicios.filter((p) => p.tipo === 'Servicio' || p.tipo === 3);
+    if (!tipoOrdenId) return serviciosBase;
+
+    const configsDelTipo = configuracionesServicio.filter((c) => c.activo && c.tipoOrdenId === tipoOrdenId);
+    if (configsDelTipo.length === 0) {
+      return serviciosBase;
+    }
+
+    const allowedIds = new Set<string>();
+    configsDelTipo.forEach((c) => {
+      if (c.productoId) allowedIds.add(c.productoId);
+      if (c.servicios) {
+        c.servicios.forEach((s) => allowedIds.add(s.productoId));
+      }
+    });
+
+    return serviciosBase.filter((p) => allowedIds.has(p.id));
+  }, [productosServicios, configuracionesServicio, tipoOrdenId]);
+
   const handleSeleccionarServicio = async (productoId: string) => {
     setDrawerProductoId(productoId); setDrawerPlantillaDetalle(null); setDrawerServicios([]);
     const producto = productosServicios.find(p => p.id === productoId);
-    const configuracion = configuracionesServicio.find(p => p.productoId === productoId && p.activo);
+    const configuracion = configuracionesServicio.find(p =>
+      (p.productoId === productoId || p.servicios?.some(s => s.productoId === productoId)) &&
+      p.activo &&
+      (!tipoOrdenId || !p.tipoOrdenId || p.tipoOrdenId === tipoOrdenId)
+    ) || configuracionesServicio.find(p =>
+      (p.productoId === productoId || p.servicios?.some(s => s.productoId === productoId)) && p.activo
+    );
     setDrawerPlantillaId(configuracion?.id || '');
     const {tarifa} = resolverTarifa(productoId); setDrawerTarifaBase(tarifa);
     if (producto) setDrawerServicios([{id: producto.id, productoId, productoNombre: producto.nombre, productoCodigo: producto.codigo, tarifa, esPredeterminada: true}]);
@@ -2815,7 +2841,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
               onChange={(_, data) => void handleSeleccionarServicio(data.value)}
             >
               <option value=""></option>
-              {productosServicios.filter((p) => p.tipo === 'Servicio' || p.tipo === 3).map((p) => (
+              {serviciosDisponiblesParaDrawer.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.codigo} — {p.nombre}
                 </option>
