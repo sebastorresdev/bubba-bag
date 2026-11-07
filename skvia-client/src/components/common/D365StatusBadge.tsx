@@ -221,7 +221,7 @@ export const D365StatusBadge: React.FC<D365StatusBadgeProps> = ({
   status,
   text,
   color,
-  appearance = 'tint',
+  appearance = 'ghost',
   shape = 'rounded',
   size = 'medium',
   className,
@@ -238,7 +238,7 @@ export const D365StatusBadge: React.FC<D365StatusBadgeProps> = ({
       shape={shape}
       color={badgeColor}
       size={size}
-      className={`${styles.badgeBase} ${resolved.hasBorder ? styles.badgeSubtleBorder : ''} ${className ?? ''}`}
+      className={`${styles.badgeBase} ${resolved.hasBorder && appearance !== 'ghost' ? styles.badgeSubtleBorder : ''} ${className ?? ''}`}
       style={{ whiteSpace: 'nowrap', ...style }}
     >
       {resolved.isPulsing && <span className={styles.pulseDot} aria-hidden="true" />}
