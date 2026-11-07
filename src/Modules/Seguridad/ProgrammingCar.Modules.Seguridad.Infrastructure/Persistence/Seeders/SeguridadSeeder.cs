@@ -71,6 +71,18 @@ public static class CatalogoRolesSistema
                 "CRM y Clientes",
                 "Operador",
                 "Consulta, registro y actualización básica de clientes en el directorio comercial."
+            ),
+            (
+                Roles.VentasSupervisor,
+                "Ventas",
+                "Supervisor de Ventas",
+                "Gestión comercial y supervisión de solicitudes de atención del equipo a su cargo."
+            ),
+            (
+                Roles.VentasVendedor,
+                "Ventas",
+                "Vendedor / Asesor Comercial",
+                "Registro y seguimiento de solicitudes de atención de clientes y prospectos comerciales."
             )
         };
 

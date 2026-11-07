@@ -14,11 +14,11 @@ public static class RolePermissions
             Permissions.Inventario.AjustesAprobar, Permissions.GestionDatos.Importar, Permissions.GestionDatos.HistorialVer, Permissions.GestionDatos.HistorialVerTodas,
             Permissions.Inventario.Acceso, Permissions.Inventario.CatalogosGestionar,
             Permissions.Inventario.Operar, Permissions.Inventario.AccesosGestionar,
-            Permissions.Inventario.ComprasGestionar,
+            Permissions.Inventario.ComprasGestionar, Permissions.ServicioCampo.OrdenesLiquidarMateriales,
         },
         [Roles.InventarioAlmacenero] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            Permissions.Inventario.Acceso, Permissions.Inventario.Operar,
+            Permissions.Inventario.Acceso, Permissions.Inventario.Operar, Permissions.ServicioCampo.Acceso, Permissions.ServicioCampo.OrdenesLiquidarMateriales,
         },
         // 1. SuperAdmin: acceso absoluto a todo (bypass implementado en handler también)
         [Roles.SuperAdmin] = new HashSet<string>(Permissions.GetAll(), StringComparer.OrdinalIgnoreCase),
@@ -40,6 +40,10 @@ public static class RolePermissions
             Permissions.ServicioCampo.OrdenesAsignar,
             Permissions.ServicioCampo.OrdenesCerrar,
             Permissions.ServicioCampo.CatalogosGestionar,
+            Permissions.ServicioCampo.SolicitudesCrear,
+            Permissions.ServicioCampo.SolicitudesVerPropias,
+            Permissions.ServicioCampo.SolicitudesVerEquipo,
+            Permissions.ServicioCampo.OrdenesLiquidarMateriales,
 
             Permissions.Crm.Acceso,
             Permissions.Crm.ClientesVer,
@@ -88,6 +92,10 @@ public static class RolePermissions
             Permissions.ServicioCampo.OrdenesOperarCampo,
             Permissions.ServicioCampo.OrdenesCerrar,
             Permissions.ServicioCampo.CatalogosGestionar,
+            Permissions.ServicioCampo.SolicitudesCrear,
+            Permissions.ServicioCampo.SolicitudesVerPropias,
+            Permissions.ServicioCampo.SolicitudesVerEquipo,
+            Permissions.ServicioCampo.OrdenesLiquidarMateriales,
 
             // También necesita ver y gestionar clientes para el servicio
             Permissions.Crm.Acceso,
@@ -106,6 +114,10 @@ public static class RolePermissions
             Permissions.ServicioCampo.OrdenesAsignar,
             Permissions.ServicioCampo.OrdenesOperarCampo,
             Permissions.ServicioCampo.OrdenesCerrar,
+            Permissions.ServicioCampo.SolicitudesCrear,
+            Permissions.ServicioCampo.SolicitudesVerPropias,
+            Permissions.ServicioCampo.SolicitudesVerEquipo,
+            Permissions.ServicioCampo.OrdenesLiquidarMateriales,
 
             Permissions.Crm.Acceso,
             Permissions.Crm.ClientesVer,
@@ -119,6 +131,7 @@ public static class RolePermissions
             Permissions.ServicioCampo.Acceso,
             Permissions.ServicioCampo.OrdenesVerAsignadas,
             Permissions.ServicioCampo.OrdenesOperarCampo,
+            Permissions.ServicioCampo.OrdenesLiquidarMateriales,
 
             Permissions.Crm.Acceso,
             Permissions.Crm.ClientesVer,
@@ -139,6 +152,32 @@ public static class RolePermissions
         // 9. CRM: Operador
         [Roles.CrmOperador] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
+            Permissions.Crm.Acceso,
+            Permissions.Crm.ClientesVer,
+            Permissions.Crm.ClientesCrear,
+            Permissions.Crm.ClientesEditar,
+        },
+
+        // 10. Ventas: Supervisor de Ventas
+        [Roles.VentasSupervisor] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            Permissions.ServicioCampo.Acceso,
+            Permissions.ServicioCampo.SolicitudesCrear,
+            Permissions.ServicioCampo.SolicitudesVerPropias,
+            Permissions.ServicioCampo.SolicitudesVerEquipo,
+            Permissions.Crm.Acceso,
+            Permissions.Crm.ClientesVer,
+            Permissions.Crm.ClientesCrear,
+            Permissions.Crm.ClientesEditar,
+            Permissions.Crm.SegmentacionAvanzada,
+        },
+
+        // 11. Ventas: Vendedor / Asesor Comercial
+        [Roles.VentasVendedor] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            Permissions.ServicioCampo.Acceso,
+            Permissions.ServicioCampo.SolicitudesCrear,
+            Permissions.ServicioCampo.SolicitudesVerPropias,
             Permissions.Crm.Acceso,
             Permissions.Crm.ClientesVer,
             Permissions.Crm.ClientesCrear,

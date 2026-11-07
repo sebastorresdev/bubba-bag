@@ -21,7 +21,18 @@ export function canAccessPath(path: string, permisos: readonly string[]): boolea
   if (path.startsWith('/recursos-humanos') || path.startsWith('/rrhh')) return has('rrhh.acceso');
   if (path.startsWith('/crm')) return has('crm.acceso');
   if (path.startsWith('/servicio-campo/clientes')) return has('crm.acceso');
-  if (path.startsWith('/servicio-campo/solicitud-atencion')) return has('serviciocampo.acceso') || has('crm.acceso');
+  if (path.startsWith('/servicio-campo/solicitud-atencion')) {
+    if (path.endsWith('/nuevo')) {
+      return has('serviciocampo.solicitudes.crear') || has('serviciocampo.ordenes.crear');
+    }
+    return (
+      has('serviciocampo.solicitudes.ver_propias') ||
+      has('serviciocampo.solicitudes.ver_equipo') ||
+      has('serviciocampo.ordenes.ver_todas') ||
+      has('serviciocampo.acceso') ||
+      has('crm.acceso')
+    );
+  }
   if (path.startsWith('/servicio-campo/ordenes') || path.startsWith('/servicio-campo/trabajos') || path === '/dashboard') return has('serviciocampo.acceso')
     && (!path.endsWith('/nuevo') || has('serviciocampo.ordenes.crear'));
   if (

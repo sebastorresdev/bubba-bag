@@ -24,5 +24,6 @@ public interface IAuthService
     Task<Result<Guid>> CrearRolAsync(string nombreVisible, string? codigo, string modulo, string descripcion, IEnumerable<string> permisos);
     Task<Result<bool>> ActualizarRolAsync(Guid rolId, string nombreVisible, string modulo, string descripcion, IEnumerable<string> permisos);
     Task<Result<bool>> EliminarRolAsync(Guid rolId);
+    Task<Result<List<Guid>>> ObtenerSubordinadosIdsAsync(Guid supervisorId);
     Task<Result<List<PermisoDefinicionDto>>> ObtenerCatalogoPermisosAsync();
 }

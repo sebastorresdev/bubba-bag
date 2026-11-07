@@ -26,6 +26,31 @@ public static class WebApplicationExtensions
         // 1. Aplicar migraciones formales de base de datos
         await seguridadDbContext.Database.MigrateAsync();
 
+        // Asegurar columna SupervisorId en seguridad."AspNetUsers"
+        try
+        {
+            await seguridadDbContext.Database.ExecuteSqlRawAsync(@"
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_schema = 'seguridad' 
+                          AND table_name = 'AspNetUsers' 
+                          AND column_name = 'SupervisorId'
+                    ) THEN
+                        ALTER TABLE seguridad.""AspNetUsers"" 
+                        ADD COLUMN ""SupervisorId"" uuid NULL 
+                        REFERENCES seguridad.""AspNetUsers""(""Id"") ON DELETE SET NULL;
+                        
+                        CREATE INDEX IF NOT EXISTS ""IX_AspNetUsers_SupervisorId"" 
+                        ON seguridad.""AspNetUsers"" (""SupervisorId"");
+                    END IF;
+                END $$;
+            ");
+        }
+        catch { }
+
+
         var rrhhDbContext = scope.ServiceProvider.GetRequiredService<RecursosHumanosDbContext>();
         await rrhhDbContext.Database.MigrateAsync();
 

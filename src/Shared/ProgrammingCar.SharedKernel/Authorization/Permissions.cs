@@ -36,6 +36,10 @@ public static class Permissions
         public const string OrdenesOperarCampo = "serviciocampo.ordenes.operar_campo";
         public const string OrdenesCerrar = "serviciocampo.ordenes.cerrar";
         public const string CatalogosGestionar = "serviciocampo.catalogos.gestionar";
+        public const string SolicitudesCrear = "serviciocampo.solicitudes.crear";
+        public const string SolicitudesVerPropias = "serviciocampo.solicitudes.ver_propias";
+        public const string SolicitudesVerEquipo = "serviciocampo.solicitudes.ver_equipo";
+        public const string OrdenesLiquidarMateriales = "serviciocampo.ordenes.liquidar_materiales";
     }
 
     // =========================================================================

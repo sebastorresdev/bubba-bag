@@ -393,6 +393,15 @@ public class AuthService(UserManager<Usuario> usuarios, RoleManager<Rol> roles, 
         onCommit(() => RolePermissions.RemoveRole(nombreRol));
         return Result<bool>.Success(true);
     });
+    public async Task<Result<List<Guid>>> ObtenerSubordinadosIdsAsync(Guid supervisorId)
+    {
+        var ids = await usuarios.Users.AsNoTracking()
+            .Where(u => u.SupervisorId == supervisorId)
+            .Select(u => u.Id)
+            .ToListAsync();
+        return Result<List<Guid>>.Success(ids);
+    }
+
     public Task<Result<List<PermisoDefinicionDto>>> ObtenerCatalogoPermisosAsync()
     {
         var catalogo = new List<PermisoDefinicionDto>
@@ -418,6 +427,10 @@ public class AuthService(UserManager<Usuario> usuarios, RoleManager<Rol> roles, 
             new(Permissions.ServicioCampo.OrdenesOperarCampo, "Servicio de Campo", "Completar trabajos y tareas de campo", "Completar tareas y trabajos dentro de las órdenes autorizadas. Requiere acceso a Servicio de Campo y autorización de consulta sobre la orden."),
             new(Permissions.ServicioCampo.OrdenesCerrar, "Servicio de Campo", "Completar o cancelar órdenes", "Cambiar una orden autorizada a Completado o Cancelado. El cierre conserva las validaciones de trabajos pendientes; programar requiere un permiso separado."),
             new(Permissions.ServicioCampo.CatalogosGestionar, "Servicio de Campo", "Administrar tipos de orden y servicios", "Crear y editar tipos de orden, tareas, motivos de incidencia y configuraciones de servicio. Requiere acceso a Servicio de Campo."),
+            new(Permissions.ServicioCampo.SolicitudesCrear, "Servicio de Campo", "Crear solicitudes de atención", "Registrar requerimientos comerciales y solicitudes de servicio técnico para clientes y prospectos."),
+            new(Permissions.ServicioCampo.SolicitudesVerPropias, "Servicio de Campo", "Consultar mis solicitudes de atención", "Ver el listado y estado de las solicitudes creadas por el usuario autenticado."),
+            new(Permissions.ServicioCampo.SolicitudesVerEquipo, "Servicio de Campo", "Consultar solicitudes de atención del equipo", "Supervisar las solicitudes comerciales registradas por los colaboradores a cargo."),
+            new(Permissions.ServicioCampo.OrdenesLiquidarMateriales, "Servicio de Campo", "Liquidar y descargar materiales", "Registrar y confirmar la liquidación, retiro o consumo de materiales y equipos de una orden de trabajo."),
 
             // CRM y Clientes
             new(Permissions.Crm.Acceso, "CRM y Clientes", "Acceder a CRM y Clientes", "Entrar al módulo de clientes. Seleccione Consultar clientes para abrir el directorio y las fichas; crear y editar requieren sus propios permisos."),

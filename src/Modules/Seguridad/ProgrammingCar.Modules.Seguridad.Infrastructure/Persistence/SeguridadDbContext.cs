@@ -22,6 +22,15 @@ public class SeguridadDbContext : IdentityDbContext<Usuario, Rol, Guid>
         // Configuraciones adicionales de Identity (cambiar nombres de tablas si se desea)
         builder.HasDefaultSchema("seguridad");
 
+        builder.Entity<Usuario>(entity =>
+        {
+            entity.HasOne(u => u.Supervisor)
+                .WithMany()
+                .HasForeignKey(u => u.SupervisorId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(u => u.SupervisorId);
+        });
+
         builder.Entity<VistaUsuario>(entity =>
         {
             entity.ToTable("VistasUsuario");

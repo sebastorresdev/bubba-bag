@@ -125,15 +125,31 @@ public class OrdenTrabajo : Entity<Guid>
             VisitaActual.IniciarAtencion();
             EstadoSistema = nuevo; Estado = EstadoOrdenTrabajo.EnProgreso;
         }
-        else if (nuevo == EstadoSistema.Completado && EstadoSistema == EstadoSistema.EnProgreso)
+        else if (nuevo == EstadoSistema.Completado && (EstadoSistema == EstadoSistema.EnProgreso || EstadoSistema == EstadoSistema.Programado))
         {
             ValidarCierreTrabajos();
-            if (TipoOrden.ExigeEvidenciasFotograficas && !EvidenciasConfirmadas
-                || TipoOrden.ExigeFirmaCliente && string.IsNullOrWhiteSpace(FirmaClienteUrl))
+            bool faltanEvidenciasOFirma = (TipoOrden.ExigeEvidenciasFotograficas && !EvidenciasConfirmadas)
+                || (TipoOrden.ExigeFirmaCliente && string.IsNullOrWhiteSpace(FirmaClienteUrl));
+
+            // Si faltan evidencias o firma técnica en campo, solo se permite completar si hay una justificación/observación (cierre administrativo por backoffice)
+            if (faltanEvidenciasOFirma && string.IsNullOrWhiteSpace(observaciones) && !motivoId.HasValue)
                 throw new InvalidOperationException("Faltan evidencias o firma del cliente para completar la orden.");
-            if (DescargaMaterialesObligatoria && !DescargaMaterialesConfirmada)
-                throw new InvalidOperationException("Confirme la liquidación de materiales antes de completar la orden.");
-            EstadoSistema = nuevo; Estado = EstadoOrdenTrabajo.Finalizada;
+
+            bool materialesListos = DescargaMaterialesConfirmada || !DescargaMaterialesObligatoria;
+            if (materialesListos && !faltanEvidenciasOFirma)
+            {
+                EstadoSistema = EstadoSistema.Completado;
+                Estado = EstadoOrdenTrabajo.Finalizada;
+                ObservacionesCierre = !string.IsNullOrWhiteSpace(observaciones) ? observaciones.Trim() : "Orden completada y liquidada satisfactoriamente.";
+            }
+            else
+            {
+                // Cierre técnico / trabajo culminado en campo: la orden queda Completada técnicamente,
+                // pero en subestado Completa a la espera de la descarga física de materiales por almacén o regularización.
+                EstadoSistema = EstadoSistema.Completado;
+                Estado = EstadoOrdenTrabajo.Completa;
+                ObservacionesCierre = !string.IsNullOrWhiteSpace(observaciones) ? observaciones.Trim() : "Trabajos completados en campo; pendiente de descarga de materiales por almacén.";
+            }
         }
         else throw new InvalidOperationException("La transición de estado solicitada no está permitida.");
         UpdatedAt = DateTime.UtcNow;
@@ -641,10 +657,14 @@ public class OrdenTrabajo : Entity<Guid>
 
     public void VerificarPromocionAFinalizada()
     {
-        if (Estado == EstadoOrdenTrabajo.Completa && EvidenciasConfirmadas && DescargaMaterialesConfirmada)
+        bool materialesListos = DescargaMaterialesConfirmada || !DescargaMaterialesObligatoria;
+        if ((Estado == EstadoOrdenTrabajo.Completa || EstadoSistema == EstadoSistema.Completado) && materialesListos)
         {
             Estado = EstadoOrdenTrabajo.Finalizada;
-            ObservacionesCierre = "Instalación completada y regularizada satisfactoriamente.";
+            if (string.IsNullOrWhiteSpace(ObservacionesCierre) || ObservacionesCierre.Contains("pendiente de descarga"))
+            {
+                ObservacionesCierre = "Instalación completada y materiales regularizados satisfactoriamente.";
+            }
             EstadoSistema = EstadoSistema.Completado;
         }
     }

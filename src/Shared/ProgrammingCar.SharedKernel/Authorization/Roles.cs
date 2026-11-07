@@ -20,6 +20,10 @@ public static class Roles
     public const string CrmAdmin = "CrmAdmin";
     public const string CrmOperador = "CrmOperador";
 
+    // Ventas / Comercial
+    public const string VentasSupervisor = "VentasSupervisor";
+    public const string VentasVendedor = "VentasVendedor";
+
     public const string InventarioAdmin = "InventarioAdmin";
     public const string InventarioAlmacenero = "InventarioAlmacenero";
 
@@ -34,6 +38,8 @@ public static class Roles
         ServicioCampoTecnico,
         CrmAdmin,
         CrmOperador,
+        VentasSupervisor,
+        VentasVendedor,
         InventarioAdmin,
         InventarioAlmacenero
     };
@@ -41,6 +47,7 @@ public static class Roles
     // Agrupaciones para compatibilidad
     public static readonly string[] AccesoRrhhConfidencial = { SuperAdmin, Gerencia, RrhhAdmin };
     public static readonly string[] AccesoRrhhModulo = { SuperAdmin, Gerencia, RrhhAdmin, RrhhAsistente };
-    public static readonly string[] AccesoServicioCampo = { SuperAdmin, Gerencia, ServicioCampoAdmin, ServicioCampoBackoffice, ServicioCampoTecnico };
+    public static readonly string[] AccesoServicioCampo = { SuperAdmin, Gerencia, ServicioCampoAdmin, ServicioCampoBackoffice, ServicioCampoTecnico, VentasSupervisor, VentasVendedor };
+    public static readonly string[] AccesoVentas = { SuperAdmin, Gerencia, VentasSupervisor, VentasVendedor };
     public static readonly string[] AccesoCrm = { SuperAdmin, Gerencia, CrmAdmin, CrmOperador };
 }

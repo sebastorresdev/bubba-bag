@@ -13,6 +13,7 @@ using ProgrammingCar.Modules.ServicioCampo.Domain.Productos;
 using ProgrammingCar.Modules.ServicioCampo.Infrastructure.Services;
 using ProgrammingCar.SharedKernel.Authorization;
 using ProgrammingCar.SharedKernel;
+using ProgrammingCar.Modules.Seguridad.Application.Auth;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -34,7 +35,7 @@ public static class OrdenesTrabajoEndpoints
             .WithTags("Servicio de Campo - Trabajos")
             .RequireAuthorization(Permissions.ServicioCampo.Acceso);
         group.MapGet("/{id:guid}", ObtenerOrdenTrabajoPorId);
-        group.MapPost("/", CrearOrdenTrabajo).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear);
+        group.MapPost("/", CrearOrdenTrabajo);
         group.MapPut("/{id:guid}", ActualizarOrdenTrabajo).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear);
         group.MapPatch("/{id:guid}/estado-sistema", CambiarEstadoSistema);
         group.MapPost("/{id:guid}/programar", ProgramarOrdenTrabajo).RequireAuthorization(Permissions.ServicioCampo.OrdenesAsignar);
@@ -49,7 +50,7 @@ public static class OrdenesTrabajoEndpoints
         group.MapPut("/{id:guid}/trabajos/{trabajoId:guid}/tareas/{tareaId:guid}", CompletarTarea).RequireAuthorization(Permissions.ServicioCampo.OrdenesOperarCampo);
         group.MapDelete("/{id:guid}/trabajos/{trabajoId:guid}", EliminarTrabajoDeOrden).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear);
         group.MapGet("/{id:guid}/acta-pdf", GenerarActaServicioPdf);
-        group.MapPost("/{id:guid}/liquidar", LiquidarOrdenTrabajo).RequireAuthorization(Permissions.ServicioCampo.OrdenesOperarCampo);
+        group.MapPost("/{id:guid}/liquidar", LiquidarOrdenTrabajo);
         group.MapPost("/{id:guid}/visitas/{visitaId:guid}/reprogramar", ReprogramarVisita).RequireAuthorization(Permissions.ServicioCampo.OrdenesAsignar);
         group.MapPost("/{id:guid}/visitas/{visitaId:guid}/cancelar", CancelarVisita).RequireAuthorization(Permissions.ServicioCampo.OrdenesAsignar);
         group.MapPost("/importar-siebel", ImportarOrdenesSiebel).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear).DisableAntiforgery();
@@ -331,6 +332,7 @@ public static class OrdenesTrabajoEndpoints
 
     private static async Task<IResult> ObtenerOrdenesTrabajo(
         IServicioCampoDbContext db, ICurrentUser currentUser,
+        IAuthService authService,
         string? search,
         string? estadoSistema,
         string? vista,
@@ -341,7 +343,14 @@ public static class OrdenesTrabajoEndpoints
         bool? soloMisSolicitudes,
         CancellationToken ct)
     {
-        var query = OrdenesAcceso.Consultables(db, currentUser)
+        List<Guid>? subordinados = null;
+        if (currentUser.HasPermission(Permissions.ServicioCampo.SolicitudesVerEquipo) && !currentUser.HasPermission(Permissions.ServicioCampo.OrdenesVerTodas))
+        {
+            var resSub = await authService.ObtenerSubordinadosIdsAsync(currentUser.Id);
+            if (resSub.IsSuccess) subordinados = resSub.Value;
+        }
+
+        var query = OrdenesAcceso.Consultables(db, currentUser, subordinados)
             .AsNoTracking()
             .Include(o => o.TipoOrden)
             .Include(o => o.ClienteFacturacion)
@@ -883,6 +892,7 @@ public static class OrdenesTrabajoEndpoints
         CancellationToken ct)
     {
         if (!currentUser.IsAuthenticated || currentUser.Id == Guid.Empty) return Results.Unauthorized();
+        if (!currentUser.HasPermission(Permissions.ServicioCampo.OrdenesCrear) && !currentUser.HasPermission(Permissions.ServicioCampo.SolicitudesCrear)) return Results.Forbid();
         if (request.RecursoTecnicoId.HasValue && !currentUser.HasPermission(Permissions.ServicioCampo.OrdenesAsignar)) return Results.Forbid();
         Guid creadoPorId = currentUser.Id;
 
@@ -1109,9 +1119,21 @@ public static class OrdenesTrabajoEndpoints
 
         if (!Enum.TryParse<EstadoSistema>(request.NuevoEstadoSistema, true, out var nuevoEstadoSis) || !Enum.IsDefined(nuevoEstadoSis))
             return Results.BadRequest(new { message = $"Estado del sistema inválido: '{request.NuevoEstadoSistema}'." });
-        var permisoEstado = nuevoEstadoSis is EstadoSistema.Completado or EstadoSistema.Cancelado
-            ? Permissions.ServicioCampo.OrdenesCerrar : Permissions.ServicioCampo.OrdenesAsignar;
-        if (!currentUser.HasPermission(permisoEstado)) return Results.Forbid();
+        bool autorizado = false;
+        if (nuevoEstadoSis == EstadoSistema.Completado)
+        {
+            autorizado = currentUser.HasPermission(Permissions.ServicioCampo.OrdenesCerrar)
+                      || currentUser.HasPermission(Permissions.ServicioCampo.OrdenesOperarCampo);
+        }
+        else if (nuevoEstadoSis == EstadoSistema.Cancelado)
+        {
+            autorizado = currentUser.HasPermission(Permissions.ServicioCampo.OrdenesCerrar);
+        }
+        else
+        {
+            autorizado = currentUser.HasPermission(Permissions.ServicioCampo.OrdenesAsignar);
+        }
+        if (!autorizado) return Results.Forbid();
 
         try
         {
@@ -1271,6 +1293,14 @@ public static class OrdenesTrabajoEndpoints
         ICurrentUser currentUser,
         CancellationToken ct)
     {
+        if (!currentUser.HasPermission(Permissions.ServicioCampo.OrdenesLiquidarMateriales)
+            && !currentUser.HasPermission(Permissions.ServicioCampo.OrdenesOperarCampo)
+            && !currentUser.HasPermission(Permissions.ServicioCampo.OrdenesCerrar)
+            && !currentUser.HasPermission(Permissions.Inventario.Operar))
+        {
+            return Results.Forbid();
+        }
+
         await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
 
         var orden = await db.OrdenesTrabajo
