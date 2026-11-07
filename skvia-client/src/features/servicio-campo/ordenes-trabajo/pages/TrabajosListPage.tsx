@@ -206,7 +206,8 @@ const filterFields: D365FilterField[] = [
 
 
 
-  { id: 'codigoContrato', label: 'Cód. Abonado / Cliente', type: 'string' },
+  { id: 'codigoAbonado', label: 'Cód. Abonado', type: 'string' },
+  { id: 'codigoContrato', label: 'Cód. Contrato', type: 'string' },
 
 
 
@@ -520,6 +521,7 @@ export const TrabajosListPage: React.FC = () => {
 
 
 
+          (t.clienteServicioCodigo && t.clienteServicioCodigo.toLowerCase().includes(q)) ||
           (t.codigoContrato && t.codigoContrato.toLowerCase().includes(q)) ||
 
 
@@ -664,7 +666,7 @@ export const TrabajosListPage: React.FC = () => {
 
 
 
-      { header: 'Técnico Asignado', accessor: (t) => t.recursoTecnicoNombre || 'Sin asignar' },
+      { header: 'Técnico Asignado', accessor: (t) => t.recursoTecnicoNombre || '---' },
 
 
 
@@ -1099,82 +1101,27 @@ export const TrabajosListPage: React.FC = () => {
 
 
 
-      createTableColumn<TrabajoListadoItemDto>({
-
-
-
+            createTableColumn<TrabajoListadoItemDto>({
         columnId: 'clienteServicioNombre',
-
-
-
         compare: (a, b) => a.clienteServicioNombre.localeCompare(b.clienteServicioNombre),
-
-
-
         renderHeaderCell: () => 'Abonado / Contacto',
-
-
-
-        renderCell: (item) => {
-
-
-
-          const cod = item.clienteServicioCodigo || item.codigoContrato;
-
-
-
-          return (
-
-
-
-            <TableCellLayout truncate>
-
-
-
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-
-
-
-                <Text weight="medium">{item.clienteServicioNombre}</Text>
-
-
-
-                {cod && (
-
-
-
-                  <Text style={{ fontSize: tokens.fontSizeBase100, color: tokens.colorNeutralForeground3 }}>
-
-
-
-                    Abonado: {cod}
-
-
-
-                  </Text>
-
-
-
-                )}
-
-
-
-              </div>
-
-
-
-            </TableCellLayout>
-
-
-
-          );
-
-
-
-        },
-
-
-
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Text weight="medium">{item.clienteServicioNombre}</Text>
+          </TableCellLayout>
+        ),
+      }),
+      createTableColumn<TrabajoListadoItemDto>({
+        columnId: 'codigoAbonado',
+        compare: (a, b) => (a.clienteServicioCodigo || a.codigoContrato || '').localeCompare(b.clienteServicioCodigo || b.codigoContrato || ''),
+        renderHeaderCell: () => 'Cód. Abonado',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Text style={{ fontSize: tokens.fontSizeBase200 }}>
+              {item.clienteServicioCodigo || item.codigoContrato || '---'}
+            </Text>
+          </TableCellLayout>
+        ),
       }),
 
 
@@ -1243,7 +1190,7 @@ export const TrabajosListPage: React.FC = () => {
 
 
 
-            <Text>{item.recursoTecnicoNombre || 'Sin asignar'}</Text>
+            <Text>{item.recursoTecnicoNombre || '---'}</Text>
 
 
 

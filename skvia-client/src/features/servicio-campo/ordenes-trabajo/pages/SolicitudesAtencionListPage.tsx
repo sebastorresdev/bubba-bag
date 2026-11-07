@@ -176,22 +176,28 @@ export const SolicitudesAtencionListPage: React.FC = () => {
         ),
       }),
 
-      createTableColumn<OrdenTrabajoListadoItemDto>({
+            createTableColumn<OrdenTrabajoListadoItemDto>({
         columnId: 'clienteServicioNombre',
         compare: (a, b) => a.clienteServicioNombre.localeCompare(b.clienteServicioNombre),
         renderHeaderCell: () => 'Cliente / Solicitante',
         renderCell: (item) => (
           <TableCellLayout truncate>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <Text weight="semibold" size={200}>
-                {item.clienteServicioNombre}
-              </Text>
-              {(item.clienteServicioCodigoExterno || item.codigoContrato) && (
-                <Text size={100} style={{ color: tokens.colorNeutralForeground4 }}>
-                  Contrato/Abonado: {item.clienteServicioCodigoExterno || item.codigoContrato}
-                </Text>
-              )}
-            </div>
+            <Text weight="semibold" size={200}>
+              {item.clienteServicioNombre}
+            </Text>
+          </TableCellLayout>
+        ),
+      }),
+
+      createTableColumn<OrdenTrabajoListadoItemDto>({
+        columnId: 'codigoAbonado',
+        compare: (a, b) => (a.clienteServicioCodigoExterno || a.codigoContrato || '').localeCompare(b.clienteServicioCodigoExterno || b.codigoContrato || ''),
+        renderHeaderCell: () => 'Cód. Abonado',
+        renderCell: (item) => (
+          <TableCellLayout truncate>
+            <Text size={200}>
+              {item.clienteServicioCodigoExterno || item.codigoContrato || '---'}
+            </Text>
           </TableCellLayout>
         ),
       }),
@@ -295,6 +301,7 @@ export const SolicitudesAtencionListPage: React.FC = () => {
 
   const filterFields: D365FilterField[] = [
     { id: 'codigoWo', label: 'Código Solicitud / WO', type: 'string' },
+    { id: 'codigoAbonado', label: 'Cód. Abonado', type: 'string' },
     { id: 'clienteServicioNombre', label: 'Cliente / Abonado', type: 'string' },
     { id: 'tipoOrdenNombre', label: 'Servicio Solicitado', type: 'string' },
     { id: 'direccionServicio', label: 'Dirección', type: 'string' },

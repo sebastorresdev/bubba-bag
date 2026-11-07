@@ -308,7 +308,7 @@ export const OrdenesTrabajoListPage: React.FC = () => {
 
       { header: 'Zona / Territorio', accessor: (o) => o.zonaOperativaNombre || 'Sin asignar' },
 
-      { header: 'Técnico Asignado', accessor: (o) => o.recursoTecnicoNombre || 'Sin asignar' },
+      { header: 'Técnico Asignado', accessor: (o) => o.recursoTecnicoNombre || '---' },
 
       { header: 'Fecha Cita', accessor: (o) => o.fechaProgramada || '-' },
 
@@ -510,7 +510,7 @@ export const OrdenesTrabajoListPage: React.FC = () => {
 
             <Text style={{ fontSize: tokens.fontSizeBase200, color: item.recursoTecnicoNombre ? tokens.colorNeutralForeground1 : tokens.colorNeutralForeground4 }}>
 
-              {item.recursoTecnicoNombre || 'Sin asignar'}
+              {item.recursoTecnicoNombre || '---'}
 
             </Text>
 

@@ -126,6 +126,12 @@ export function matchFilterCondition<T>(
     candidateValues.push(String(rawValue));
   }
 
+  if (cond.field === 'codigoAbonado' || cond.field === 'codigoContrato') {
+    if (record['clienteServicioCodigo']) candidateValues.push(String(record['clienteServicioCodigo']));
+    if (record['clienteServicioCodigoExterno']) candidateValues.push(String(record['clienteServicioCodigoExterno']));
+    if (record['codigoContrato']) candidateValues.push(String(record['codigoContrato']));
+  }
+
   // Si existe una versión con nombre legible (ej. cond.field + 'Nombre', o 'tipo' -> 'tipoNombre')
   const fieldNombre = record[`${cond.field}Nombre`];
   if (fieldNombre !== null && fieldNombre !== undefined) {
@@ -408,9 +414,13 @@ function D365EntityTableInner<T extends { id: string }>(
         if (Array.isArray(parsed) && parsed.length > 0) {
           const currentMap = new Map(columns.map((c) => [String(c.columnId), c]));
           const merged: D365ColumnConfig[] = parsed.filter((p) => currentMap.has(p.id));
-          currentMap.forEach((_, id) => {
+          currentMap.forEach((colDef, id) => {
             if (!merged.some((m) => m.id === id)) {
-              merged.push({ id, label: id, visible: true });
+              const label =
+                typeof colDef.renderHeaderCell === 'function' && typeof colDef.renderHeaderCell() === 'string'
+                  ? (colDef.renderHeaderCell() as string)
+                  : id;
+              merged.push({ id, label, visible: true });
             }
           });
           return merged;
