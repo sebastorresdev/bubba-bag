@@ -210,12 +210,26 @@ export interface OrdenTrabajoDetalleDto {
   totalPuntos?: number;
 }
 
+export interface DatosClienteOrdenDto {
+  nombreCuenta: string;
+  documentoIdentidad?: string;
+  codigoExterno?: string;
+  telefonoPrincipal?: string;
+  email?: string;
+  direccion?: string;
+  ubigeoCodigo?: string;
+  referenciaUbicacion?: string;
+  coordenadaLat?: number;
+  coordenadaLng?: number;
+}
+
 export interface CrearOrdenTrabajoDto {
   listaPreciosId?: string;
   codigoWo?: string;
   tipoOrdenId: string;
-  clienteFacturacionId: string;
-  clienteServicioId: string;
+  clienteFacturacionId?: string;
+  clienteServicioId?: string;
+  datosCliente?: DatosClienteOrdenDto;
   unidadOrganizativaId?: string;
   zonaOperativaId?: string;
   numeroOrden?: string;

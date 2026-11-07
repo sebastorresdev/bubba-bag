@@ -46,12 +46,11 @@ import { ProductoService } from '../../../inventario/productos/services/producto
 import { ConfiguracionServicioService } from '../../configuraciones-servicio/services/configuracionServicio.service';
 import { ListaPreciosService } from '../../../inventario/listas-precios/services/listaPrecios.service';
 import { OrganizacionService } from '../../../organizacion/services/organizacion.service';
-import type { TipoOrdenTrabajoOpcion, CrearOrdenTrabajoDto } from '../types/ordenTrabajo.types';
+import type { TipoOrdenTrabajoOpcion, CrearOrdenTrabajoDto, DatosClienteOrdenDto } from '../types/ordenTrabajo.types';
 import type {
   ClienteListadoItemDto,
   ContactoDto,
   UbigeoDto,
-  CrearClienteDto,
   ActualizarClienteDto,
 } from '../../../crm/clientes/types/cliente.types';
 import type { ProductoDto } from '../../../inventario/productos/types/producto.types';
@@ -646,6 +645,7 @@ export const SolicitudAtencionFormPage: React.FC = () => {
       let cuentaFinalId = clienteSeleccionadoId;
       const latNum = coordenadaLat.trim() !== '' ? Number(coordenadaLat) : undefined;
       const lngNum = coordenadaLng.trim() !== '' ? Number(coordenadaLng) : undefined;
+      let datosClientePayload: DatosClienteOrdenDto | undefined = undefined;
 
       if (cuentaFinalId) {
         // Actualizar dirección/teléfono/GPS en la cuenta existente por si el cliente envió nueva ubicación por WhatsApp
@@ -666,7 +666,7 @@ export const SolicitudAtencionFormPage: React.FC = () => {
         };
         await ClienteService.actualizarCliente(cuentaFinalId, updateDto);
       } else {
-        // Si no tenía cuenta (ej. venía desde Contacto/Prospecto o es cliente nuevo), buscar si ya existe por documento o crearla
+        // Si no tenía cuenta previa seleccionada, verificar coincidencia por documento
         const docBuscado = documentoIdentidad.trim();
         const coincidenciaDoc = clientesCatalogo.find(
           (c) => c.documentoIdentidad.trim().toLowerCase() === docBuscado.toLowerCase()
@@ -689,23 +689,19 @@ export const SolicitudAtencionFormPage: React.FC = () => {
             esClienteServicio: true,
           });
         } else {
-          const crearCuentaDto: CrearClienteDto = {
-            documentoIdentidad: docBuscado,
+          // Cliente nuevo: se envía dentro de la orden para creación atómica en la misma transacción de BD
+          datosClientePayload = {
+            nombreCuenta: nombreCliente.trim(),
+            documentoIdentidad: docBuscado || undefined,
             codigoExterno: codigoExternoCliente.trim() || undefined,
-            nombres: nombreCliente.trim(),
-            telefonoPrincipal: telefonoPrincipal.trim(),
+            telefonoPrincipal: telefonoPrincipal.trim() || undefined,
             email: emailCliente.trim() || undefined,
-            direccion: direccion.trim(),
-            ubigeoCodigo: ubigeoCodigo.trim(),
+            direccion: direccion.trim() || undefined,
+            ubigeoCodigo: ubigeoCodigo.trim() || undefined,
             referenciaUbicacion: referenciaUbicacion.trim() || undefined,
             coordenadaLat: latNum,
             coordenadaLng: lngNum,
-            contactoPrincipalId: contactoSeleccionadoId || null,
-            esClienteFacturacion: true,
-            esClienteServicio: true,
           };
-          const creada = await ClienteService.crearCliente(crearCuentaDto);
-          cuentaFinalId = creada.id;
         }
       }
 
@@ -743,8 +739,9 @@ export const SolicitudAtencionFormPage: React.FC = () => {
       const crearOrdenDto: CrearOrdenTrabajoDto = {
         tipoOrdenId,
         listaPreciosId: listaPreciosAutoId,
-        clienteServicioId: cuentaFinalId,
-        clienteFacturacionId: facturacionFinalId,
+        clienteServicioId: cuentaFinalId || undefined,
+        clienteFacturacionId: facturacionFinalId || undefined,
+        datosCliente: !cuentaFinalId ? datosClientePayload : undefined,
         unidadOrganizativaId: sedeFinalId,
         codigoContrato:
           codigoContrato.trim() || codigoExternoCliente.trim() || undefined,

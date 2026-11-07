@@ -71,10 +71,26 @@ public static class OrdenesTrabajoEndpoints
         if (servicio == null) throw new BadHttpRequestException("Seleccione un servicio activo del catálogo.");
         var lista = await ObtenerLista(orden.ListaPreciosId, db, ct);
         var precio = await db.ElementosListaPrecios.AsNoTracking().FirstOrDefaultAsync(p => p.ListaPreciosId == lista.Id && p.ProductoId == servicio.Id, ct);
-        if (precio == null) throw new BadHttpRequestException($"El servicio '{servicio.Nombre}' no tiene precio en la lista '{lista.Nombre}'. Configure su precio, incluso si es cero.");
-        if (precio.Monto < 0) throw new BadHttpRequestException("El precio del servicio no puede ser negativo.");
-        if (item.TarifaBase.HasValue && item.TarifaBase.Value != precio.Monto)
-            throw new BadHttpRequestException("El precio cambió o no coincide con la lista de la orden. Actualice antes de guardar.");
+        decimal montoFinal;
+        string origenPrecio;
+        if (precio != null)
+        {
+            if (precio.Monto < 0) throw new BadHttpRequestException("El precio del servicio no puede ser negativo.");
+            montoFinal = precio.Monto;
+            origenPrecio = $"Lista: {lista.Nombre}";
+        }
+        else if (servicio.PrecioBase >= 0)
+        {
+            montoFinal = servicio.PrecioBase;
+            origenPrecio = "Precio Base de Catálogo";
+        }
+        else
+        {
+            throw new BadHttpRequestException($"El servicio '{servicio.Nombre}' no tiene precio en la lista '{lista.Nombre}' ni precio base de catálogo configurado.");
+        }
+
+        if (item.TarifaBase.HasValue && item.TarifaBase.Value != montoFinal)
+            throw new BadHttpRequestException("El precio cambió o no coincide con la tarifa configurada. Actualice antes de guardar.");
         var configuraciones = db.ConfiguracionesServicio.AsNoTracking()
             .Include(p => p.Servicios)
             .Include(p => p.Tareas).ThenInclude(t => t.Tarea)
@@ -97,8 +113,8 @@ public static class OrdenesTrabajoEndpoints
 
         var puntosTrabajo = item.Puntos ?? configuracion?.Puntos ?? 1.0m;
         var trabajo = orden.AgregarTrabajo(codigo, servicio.Id, configuracionServicioId: configuracion?.Id,
-            tarifaBase: precio.Monto, observaciones: item.Observaciones, codigoExterno: item.CodigoExterno,
-            referenciaEquipo: item.ReferenciaEquipo, origenPrecio: $"Lista: {lista.Nombre}", puntos: puntosTrabajo);
+            tarifaBase: montoFinal, observaciones: item.Observaciones, codigoExterno: item.CodigoExterno,
+            referenciaEquipo: item.ReferenciaEquipo, origenPrecio: origenPrecio, puntos: puntosTrabajo);
 
         if (configuracion != null) trabajo.AplicarPlantilla(configuracion);
         if (item.Puntos.HasValue && item.Puntos.Value > 0) trabajo.ActualizarPuntos(item.Puntos.Value);
