@@ -874,7 +874,7 @@ export const DeclaracionDoaPage: React.FC = () => {
                 const alm = docDetalle?.almacenNombre || savedHeader.almacenNombre;
                 const total = docDetalle?.totalEquipos || draftItems.length || 0;
                 const lineasTexto = [
-                  `*DECLARACIÓN DOA / RECLASIFICACIÓN*`,
+                  `*DECLARACIÓN DOA*`,
                   `*N° Documento:* ${num}`,
                   `*Almacén:* ${alm}`,
                   `*Total Equipos:* ${total}`,
@@ -887,7 +887,7 @@ export const DeclaracionDoaPage: React.FC = () => {
                 const num = docDetalle?.numero || id || 'DOA';
                 const alm = docDetalle?.almacenNombre || savedHeader.almacenNombre;
                 const total = docDetalle?.totalEquipos || draftItems.length || 0;
-                const asunto = `Declaración DOA / Reclasificación - ${num}`;
+                const asunto = `Declaración DOA - ${num}`;
                 const cuerpo = [
                   'Estimado(a),',
                   '',
@@ -985,7 +985,7 @@ export const DeclaracionDoaPage: React.FC = () => {
 
       {/* 2. D365 Entity Header con pestañas General / Productos */}
       <D365EntityHeader
-        title={esDetalle ? (docDetalle?.numero || 'Detalle de Declaración DOA') : 'Nueva Declaración DOA / Reclasificación'}
+        title={esDetalle ? (docDetalle?.numero || 'Detalle de Declaración DOA') : 'Nueva Declaración DOA'}
         subtitle="Reclasificación interna de Disponible a Devolución (no devolución a proveedor)"
         avatarIcon={<Warning16Regular />}
         processFlow={<TransferenciaEtapas estado={esDetalle ? 'Cerrada' : 'Borrador'} tipoOperacion="DeclaracionDoa" embedded />}

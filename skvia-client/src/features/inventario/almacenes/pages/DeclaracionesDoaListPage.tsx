@@ -226,7 +226,7 @@ export const DeclaracionesDoaListPage: React.FC = () => {
               <D365CompartirButton
                 onCompartirWhatsApp={() => {
                   const lineasTexto = [
-                    `*DECLARACIÓN DOA / RECLASIFICACIÓN*`,
+                    `*DECLARACIÓN DOA*`,
                     `*N° Documento:* ${item.numero || selId}`,
                     `*Almacén:* ${item.almacenNombre || 'Almacén'}`,
                     `*Total Equipos:* ${item.totalEquipos || 0}`,
@@ -236,7 +236,7 @@ export const DeclaracionesDoaListPage: React.FC = () => {
                   window.open(`https://api.whatsapp.com/send?text=${mensaje}`, '_blank');
                 }}
                 onCompartirCorreo={() => {
-                  const asunto = `Declaración DOA / Reclasificación - ${item.numero || selId}`;
+                  const asunto = `Declaración DOA - ${item.numero || selId}`;
                   const cuerpo = [
                     'Estimado(a),',
                     '',

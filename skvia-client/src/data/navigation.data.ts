@@ -122,7 +122,7 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
               },
               {
                 id: 'declaracion-doa',
-                title: 'Declaración DOA / Reclasificación',
+                title: 'DOA',
                 path: '/servicio-campo/declaracion-doa',
                 iconName: 'Warning',
                 description: 'Pase de equipos disponibles a cuarentena/devolución por avería con motivo de retiro.',
