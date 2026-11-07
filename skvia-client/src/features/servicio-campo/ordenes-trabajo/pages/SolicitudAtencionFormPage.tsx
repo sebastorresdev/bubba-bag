@@ -546,6 +546,28 @@ export const SolicitudAtencionFormPage: React.FC = () => {
     return distritoNombre ? { id: ubigeoCodigo, nombre: distritoNombre } : null;
   }, [ubigeoCodigo, catalogoUbigeos, distritoNombre]);
 
+  const serviciosDisponibles = useMemo(() => {
+    if (!tipoOrdenId) return [];
+
+    const configsDelTipo = configuracionesServicio.filter(
+      (c) => c.activo && c.tipoOrdenId === tipoOrdenId
+    );
+
+    if (configsDelTipo.length === 0) {
+      return serviciosCatalogo;
+    }
+
+    const allowedIds = new Set<string>();
+    configsDelTipo.forEach((c) => {
+      if (c.productoId) allowedIds.add(c.productoId);
+      if (c.servicios && c.servicios.length > 0) {
+        c.servicios.forEach((s) => allowedIds.add(s.productoId));
+      }
+    });
+
+    return serviciosCatalogo.filter((p) => allowedIds.has(p.id));
+  }, [serviciosCatalogo, configuracionesServicio, tipoOrdenId]);
+
   const handleAgregarLineaServicio = () => {
     setServiciosSolicitados((prev) => [
       ...prev,
@@ -696,7 +718,14 @@ export const SolicitudAtencionFormPage: React.FC = () => {
       // 4. Armar los trabajos con su plantilla activa automática
       const trabajosDto = serviciosValidos.map((item) => {
         const conf = configuracionesServicio.find(
-          (p) => p.productoId === item.productoId && p.activo
+          (p) =>
+            (p.productoId === item.productoId || p.servicios?.some((s) => s.productoId === item.productoId)) &&
+            p.activo &&
+            (!tipoOrdenId || !p.tipoOrdenId || p.tipoOrdenId === tipoOrdenId)
+        ) || configuracionesServicio.find(
+          (p) =>
+            (p.productoId === item.productoId || p.servicios?.some((s) => s.productoId === item.productoId)) &&
+            p.activo
         );
         return {
           productoId: item.productoId,
@@ -848,7 +877,33 @@ export const SolicitudAtencionFormPage: React.FC = () => {
                     seleccionada={tipoOrdenSeleccionado}
                     textoBusqueda={busquedaTipoOrden}
                     alCambiarBusqueda={setBusquedaTipoOrden}
-                    alSeleccionar={(nuevoId) => setTipoOrdenId(nuevoId || '')}
+                    alSeleccionar={(nuevoId) => {
+                      const newId = nuevoId || '';
+                      setTipoOrdenId(newId);
+                      if (newId) {
+                        const configsDelNuevo = configuracionesServicio.filter(
+                          (c) => c.activo && c.tipoOrdenId === newId
+                        );
+                        if (configsDelNuevo.length > 0) {
+                          const allowed = new Set<string>();
+                          configsDelNuevo.forEach((c) => {
+                            if (c.productoId) allowed.add(c.productoId);
+                            if (c.servicios) c.servicios.forEach((s) => allowed.add(s.productoId));
+                          });
+                          setServiciosSolicitados((prev) =>
+                            prev.map((item) =>
+                              item.productoId && !allowed.has(item.productoId)
+                                ? { ...item, productoId: '' }
+                                : item
+                            )
+                          );
+                        }
+                      } else {
+                        setServiciosSolicitados((prev) =>
+                          prev.map((item) => ({ ...item, productoId: '' }))
+                        );
+                      }
+                    }}
                     icono={<ClipboardTask24Regular />}
                     textoVacio="No hay tipos de orden activos"
                   />
@@ -921,12 +976,15 @@ export const SolicitudAtencionFormPage: React.FC = () => {
                             aria-label="Servicio a Realizar"
                             className={formStyles.d365ControlFull}
                             value={item.productoId}
+                            disabled={!tipoOrdenId}
                             onChange={(_, d) =>
                               handleCambiarLineaServicio(item.idTemp, 'productoId', d.value)
                             }
                           >
-                            <option value=""></option>
-                            {serviciosCatalogo.map((p) => (
+                            <option value="">
+                              {tipoOrdenId ? '— Seleccione un servicio —' : '— Seleccione primero el Tipo de Orden —'}
+                            </option>
+                            {serviciosDisponibles.map((p) => (
                               <option key={p.id} value={p.id}>
                                 {p.codigo} — {p.nombre}
                               </option>
