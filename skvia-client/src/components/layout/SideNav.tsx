@@ -11,6 +11,7 @@ import {
   MenuPopover,
   Tooltip,
   Button,
+  Avatar,
   NavDrawer,
   NavDrawerBody,
   NavDrawerFooter,
@@ -69,7 +70,9 @@ import {
   ArrowSync20Regular,
   ArrowReply20Filled,
   ArrowReply20Regular,
+  SignOutRegular,
 } from '@fluentui/react-icons';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
 import type { NavArea, NavItem as NavItemData } from '../../types/navigation.types';
 
 // Bundled Fluent UI v9 icons: switches between Filled and Regular automatically on active state
@@ -370,6 +373,7 @@ export const SideNav: React.FC<SideNavProps> = ({
   onToggleNav,
 }) => {
   const styles = useStyles();
+  const currentUser = useCurrentUser();
 
   const handleItemClick = (item: NavItemData) => {
     onSelectItem(item);
@@ -556,8 +560,8 @@ export const SideNav: React.FC<SideNavProps> = ({
       selectedValue={activeItem?.id || ''}
       className={styles.navDrawer}
     >
-      {/* Top: Hamburger icon on the left, clean and minimal */}
-      <div className={styles.topHamburgerRow}>
+      {/* Top: Hamburger icon on the left + Cerrar sesión */}
+      <div className={styles.topHamburgerRow} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: '8px' }}>
         <Tooltip content="Contraer navegación" relationship="label" positioning="after">
           <Button
             appearance="subtle"
@@ -567,6 +571,45 @@ export const SideNav: React.FC<SideNavProps> = ({
             icon={<Navigation20Regular />}
           />
         </Tooltip>
+        <Button
+          size="small"
+          appearance="subtle"
+          icon={<SignOutRegular />}
+          onClick={currentUser.logout}
+          title="Cerrar sesión"
+          aria-label="Cerrar sesión"
+          style={{ fontSize: '12px' }}
+        >
+          Cerrar sesión
+        </Button>
+      </div>
+
+      {/* Perfil del usuario dentro del Drawer */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          padding: '12px 16px',
+          borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+          backgroundColor: tokens.colorNeutralBackground2,
+        }}
+      >
+        <Avatar
+          name={currentUser.nombre}
+          initials={currentUser.initials}
+          color="colorful"
+          size={36}
+          badge={{ status: 'available' }}
+        />
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <Text weight="semibold" size={300} block style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', color: tokens.colorNeutralForeground1 }}>
+            {currentUser.nombre}
+          </Text>
+          <Text size={100} style={{ color: tokens.colorNeutralForeground3 }} block>
+            {currentUser.rol}
+          </Text>
+        </div>
       </div>
 
       {/* Body: Direct group headers and items, NO Home/Recent/Pinned */}

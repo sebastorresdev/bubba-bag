@@ -580,46 +580,48 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
             </Menu>
           </div>
 
-          {/* User Persona dinámico */}
-          <Menu>
-            <MenuTrigger disableButtonEnhancement>
-              <Button appearance="transparent" className={styles.userProfile} title="Perfil del usuario activo">
-                <Avatar
-                  name={currentUser.nombre}
-                  initials={currentUser.initials}
-                  color="colorful"
-                  size={28}
-                  badge={{ status: 'available' }}
-                />
-                <div className={styles.userInfoText}>
-                  <Text weight="semibold" size={200} className={styles.userName}>
-                    {currentUser.nombre}
-                  </Text>
-                  <Text size={100} className={styles.userRole}>
-                    {currentUser.rol}
-                  </Text>
-                </div>
-              </Button>
-            </MenuTrigger>
-            <MenuPopover>
-              <MenuList style={{ minWidth: '240px', padding: '8px' }}>
-                <div style={{ padding: '8px 12px' }}>
-                  <Text weight="semibold" block>{currentUser.nombre}</Text>
-                  <Text size={200} style={{ opacity: 0.7 }} block>{currentUser.email}</Text>
-                  <Badge size="small" appearance="tint" color="informative" style={{ marginTop: '6px' }}>
-                    {currentUser.rol}
-                  </Badge>
-                </div>
-                <Divider style={{ margin: '6px 0' }} />
-                <MenuItem icon={<ArrowClockwise16Regular />} onClick={currentUser.refreshUser}>
-                  Actualizar sesión
-                </MenuItem>
-                <MenuItem icon={<SignOutRegular />} onClick={currentUser.logout}>
-                  Cerrar sesión
-                </MenuItem>
-              </MenuList>
-            </MenuPopover>
-          </Menu>
+          {/* User Persona dinámico (solo en escritorio; en móviles se ubica en el drawer) */}
+          <div className={styles.desktopOnly}>
+            <Menu>
+              <MenuTrigger disableButtonEnhancement>
+                <Button appearance="transparent" className={styles.userProfile} title="Perfil del usuario activo">
+                  <Avatar
+                    name={currentUser.nombre}
+                    initials={currentUser.initials}
+                    color="colorful"
+                    size={28}
+                    badge={{ status: 'available' }}
+                  />
+                  <div className={styles.userInfoText}>
+                    <Text weight="semibold" size={200} className={styles.userName}>
+                      {currentUser.nombre}
+                    </Text>
+                    <Text size={100} className={styles.userRole}>
+                      {currentUser.rol}
+                    </Text>
+                  </div>
+                </Button>
+              </MenuTrigger>
+              <MenuPopover>
+                <MenuList style={{ minWidth: '240px', padding: '8px' }}>
+                  <div style={{ padding: '8px 12px' }}>
+                    <Text weight="semibold" block>{currentUser.nombre}</Text>
+                    <Text size={200} style={{ opacity: 0.7 }} block>{currentUser.email}</Text>
+                    <Badge size="small" appearance="tint" color="informative" style={{ marginTop: '6px' }}>
+                      {currentUser.rol}
+                    </Badge>
+                  </div>
+                  <Divider style={{ margin: '6px 0' }} />
+                  <MenuItem icon={<ArrowClockwise16Regular />} onClick={currentUser.refreshUser}>
+                    Actualizar sesión
+                  </MenuItem>
+                  <MenuItem icon={<SignOutRegular />} onClick={currentUser.logout}>
+                    Cerrar sesión
+                  </MenuItem>
+                </MenuList>
+              </MenuPopover>
+            </Menu>
+          </div>
         </div>
       </header>
 

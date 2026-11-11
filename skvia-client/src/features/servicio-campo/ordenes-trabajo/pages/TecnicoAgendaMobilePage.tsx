@@ -159,34 +159,33 @@ export const TecnicoAgendaMobilePage: React.FC = () => {
           style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr 1fr',
-            gap: '8px',
             marginTop: '16px',
             backgroundColor: 'rgba(0,0,0,0.18)',
             borderRadius: '8px',
-            padding: '10px 12px',
+            padding: '10px 8px',
           }}
         >
-          <div style={{ textAlign: 'center' }}>
-            <Text block weight="bold" size={400} style={{ color: tokens.colorNeutralForegroundOnBrand }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2px 8px' }}>
+            <Text weight="bold" size={400} style={{ color: tokens.colorNeutralForegroundOnBrand, textAlign: 'center' }}>
               {conteos.pendientes}
             </Text>
-            <Text size={100} style={{ color: tokens.colorNeutralForegroundOnBrand, opacity: 0.85 }}>
+            <Text size={100} style={{ color: tokens.colorNeutralForegroundOnBrand, opacity: 0.85, textAlign: 'center', marginTop: '2px' }}>
               Por Atender
             </Text>
           </div>
-          <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.2)', borderRight: '1px solid rgba(255,255,255,0.2)' }}>
-            <Text block weight="bold" size={400} style={{ color: '#ffe082' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2px 12px', borderLeft: '1px solid rgba(255,255,255,0.25)', borderRight: '1px solid rgba(255,255,255,0.25)' }}>
+            <Text weight="bold" size={400} style={{ color: '#ffe082', textAlign: 'center' }}>
               {conteos.enProgreso}
             </Text>
-            <Text size={100} style={{ color: tokens.colorNeutralForegroundOnBrand, opacity: 0.85 }}>
+            <Text size={100} style={{ color: tokens.colorNeutralForegroundOnBrand, opacity: 0.85, textAlign: 'center', marginTop: '2px' }}>
               En Curso
             </Text>
           </div>
-          <div style={{ textAlign: 'center' }}>
-            <Text block weight="bold" size={400} style={{ color: '#a5d6a7' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2px 8px' }}>
+            <Text weight="bold" size={400} style={{ color: '#a5d6a7', textAlign: 'center' }}>
               {conteos.completadas}
             </Text>
-            <Text size={100} style={{ color: tokens.colorNeutralForegroundOnBrand, opacity: 0.85 }}>
+            <Text size={100} style={{ color: tokens.colorNeutralForegroundOnBrand, opacity: 0.85, textAlign: 'center', marginTop: '2px' }}>
               Atendidas
             </Text>
           </div>
