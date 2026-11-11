@@ -12,13 +12,10 @@ import {
 import {
   Clock20Regular,
   Location20Regular,
-  Call20Regular,
-  Chat20Regular,
-  Wrench20Regular,
-  ArrowRight20Regular,
   ArrowClockwise20Regular,
   Search20Regular,
   Person20Regular,
+  ChevronRight20Regular,
 } from '@fluentui/react-icons';
 import { useAuthSession } from '../../../../services/authSession';
 import { OrdenTrabajoService } from '../services/ordenTrabajo.service';
@@ -98,21 +95,16 @@ export const TecnicoAgendaMobilePage: React.FC = () => {
   const getEstadoTexto = (estado: string) => {
     switch (estado) {
       case 'Programado':
-        return 'Cita Programada';
+        return 'Programada';
       case 'EnProgreso':
-        return 'En Atención';
+        return 'En Curso';
       case 'Completado':
-        return 'Trabajo Culminado';
+        return 'Atendida';
       case 'Cancelado':
         return 'Cancelada';
       default:
         return estado;
     }
-  };
-
-  const formatearTelefono = (tel?: string | null) => {
-    if (!tel) return '';
-    return tel.replace(/\D/g, '');
   };
 
   return (
@@ -249,161 +241,77 @@ export const TecnicoAgendaMobilePage: React.FC = () => {
             </Text>
           </div>
         ) : (
-          ordenesFiltradas.map((orden) => {
-            const telLimpio = formatearTelefono(orden.clienteServicioTelefono);
-            const direccionMaps = encodeURIComponent(
-              `${orden.direccionServicio || ''} ${orden.ubigeoTexto || ''}`
-            );
-
-            return (
-              <Card
-                key={orden.id}
-                style={{
-                  padding: '14px 16px',
-                  borderRadius: '10px',
-                  boxShadow: tokens.shadow4,
-                  backgroundColor: tokens.colorNeutralBackground1,
-                  border: `1px solid ${orden.estadoSistema === 'EnProgreso' ? tokens.colorBrandStroke1 : tokens.colorNeutralStroke2}`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px',
-                }}
-              >
-                {/* Header de la Cita */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Clock20Regular style={{ color: tokens.colorBrandForeground1, fontSize: '18px' }} />
-                    <Text weight="semibold" size={200} style={{ color: tokens.colorBrandForeground1 }}>
-                      {orden.bloqueHorario || 'Horario Flexible'}
-                    </Text>
-                    {orden.fechaProgramada && (
-                      <Text size={100} style={{ color: tokens.colorNeutralForeground4 }}>
-                        ({orden.fechaProgramada.slice(0, 10)})
-                      </Text>
-                    )}
-                  </div>
-                  <Badge appearance="tint" color={getBadgeColor(orden.estadoSistema)}>
-                    {getEstadoTexto(orden.estadoSistema)}
-                  </Badge>
+          ordenesFiltradas.map((orden) => (
+            <Card
+              key={orden.id}
+              onClick={() => navigate(`/servicio-campo/mis-citas/${orden.id}`)}
+              style={{
+                padding: '12px 14px',
+                borderRadius: '10px',
+                boxShadow: tokens.shadow4,
+                backgroundColor: tokens.colorNeutralBackground1,
+                border: `1px solid ${orden.estadoSistema === 'EnProgreso' ? tokens.colorBrandStroke1 : tokens.colorNeutralStroke2}`,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                cursor: 'pointer',
+              }}
+            >
+              {/* Header de la Cita: Horario y Estado */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Clock20Regular style={{ color: tokens.colorBrandForeground1, fontSize: '16px' }} />
+                  <Text weight="semibold" size={200} style={{ color: tokens.colorBrandForeground1 }}>
+                    {orden.bloqueHorario || 'Horario Flexible'}
+                  </Text>
                 </div>
+                <Badge appearance="tint" color={getBadgeColor(orden.estadoSistema)}>
+                  {getEstadoTexto(orden.estadoSistema)}
+                </Badge>
+              </div>
 
-                {/* Datos del Cliente y Servicio */}
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Person20Regular style={{ color: tokens.colorNeutralForeground3, fontSize: '16px' }} />
-                    <Text weight="bold" size={400} style={{ lineHeight: '1.3' }}>
-                      {orden.clienteServicioNombre || 'Cliente Sin Asignar'}
-                    </Text>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        backgroundColor: orden.tipoOrdenColor || tokens.colorBrandBackground,
-                      }}
-                    />
-                    <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground2 }}>
-                      {orden.codigoWo}
-                    </Text>
-                    <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                      • {orden.tipoOrdenNombre || 'Servicio General'}
-                    </Text>
-                  </div>
+              {/* Cliente y Flecha */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                  <Person20Regular style={{ color: tokens.colorNeutralForeground3, fontSize: '18px', flexShrink: 0 }} />
+                  <Text weight="bold" size={400} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {orden.clienteServicioNombre || 'Cliente Sin Asignar'}
+                  </Text>
                 </div>
+                <ChevronRight20Regular style={{ color: tokens.colorNeutralForeground4, flexShrink: 0 }} />
+              </div>
 
-                {/* Dirección con acceso a GPS */}
-                {orden.direccionServicio && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '6px',
-                      backgroundColor: tokens.colorNeutralBackground3,
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                    }}
-                  >
-                    <Location20Regular style={{ color: tokens.colorPaletteRedForeground1, fontSize: '16px', marginTop: '2px', flexShrink: 0 }} />
-                    <div style={{ flex: 1 }}>
-                      <Text size={200} style={{ lineHeight: '1.3', color: tokens.colorNeutralForeground1 }}>
-                        {orden.direccionServicio}
-                      </Text>
-                      {orden.clienteServicioReferencia && (
-                        <Text block size={100} style={{ color: tokens.colorNeutralForeground3 }}>
-                          Ref: {orden.clienteServicioReferencia}
-                        </Text>
-                      )}
-                    </div>
-                    <Button
-                      size="small"
-                      appearance="subtle"
-                      style={{ fontSize: '11px', color: tokens.colorBrandForeground1, padding: '0 6px', height: '26px' }}
-                      onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${direccionMaps}`, '_blank')}
-                    >
-                      Mapa 📍
-                    </Button>
-                  </div>
-                )}
-
-                {/* Barra de Contacto Directo */}
-                {telLimpio && (
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
-                    <Button
-                      size="small"
-                      appearance="outline"
-                      icon={<Call20Regular />}
-                      style={{ flex: 1, borderRadius: '6px', height: '32px' }}
-                      onClick={() => window.open(`tel:${telLimpio}`, '_self')}
-                    >
-                      Llamar ({telLimpio})
-                    </Button>
-                    <Button
-                      size="small"
-                      appearance="primary"
-                      icon={<Chat20Regular />}
-                      style={{ backgroundColor: '#25D366', borderColor: '#25D366', color: '#ffffff', height: '32px' }}
-                      onClick={() => window.open(`https://wa.me/51${telLimpio}?text=Hola,%20me%20comunico%20del%20servicio%20técnico%20para%20su%20atención%20programada.`, '_blank')}
-                    >
-                      WhatsApp
-                    </Button>
-                  </div>
-                )}
-
-                {/* Botón de Acción Principal para el Pulgar */}
-                <Button
-                  size="medium"
-                  appearance="primary"
-                  icon={<Wrench20Regular />}
-                  iconPosition="before"
+              {/* Tipo de Orden y Código */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span
                   style={{
-                    backgroundColor:
-                      orden.estadoSistema === 'EnProgreso'
-                        ? tokens.colorPaletteGreenBackground3
-                        : orden.estadoSistema === 'Completado'
-                        ? tokens.colorNeutralBackground5
-                        : tokens.colorBrandBackground,
-                    color: tokens.colorNeutralForegroundOnBrand,
-                    borderRadius: '8px',
-                    fontWeight: 600,
-                    marginTop: '4px',
-                    height: '42px',
+                    display: 'inline-block',
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: orden.tipoOrdenColor || tokens.colorBrandBackground,
+                    flexShrink: 0,
                   }}
-                  onClick={() => navigate(`/servicio-campo/mis-citas/${orden.id}`)}
-                >
-                  {orden.estadoSistema === 'Programado'
-                    ? '▶ Iniciar Visita Técnica'
-                    : orden.estadoSistema === 'EnProgreso'
-                    ? '⚡ Continuar Atención en Sitio'
-                    : '✔ Ver Detalle de Orden'}
-                  <ArrowRight20Regular style={{ marginLeft: 'auto' }} />
-                </Button>
-              </Card>
-            );
-          })
+                />
+                <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground2 }}>
+                  {orden.codigoWo}
+                </Text>
+                <Text size={200} style={{ color: tokens.colorNeutralForeground3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  • {orden.tipoOrdenNombre || 'Servicio General'}
+                </Text>
+              </div>
+
+              {/* Dirección en 1 línea limpia */}
+              {orden.direccionServicio && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                  <Location20Regular style={{ color: tokens.colorPaletteRedForeground1, fontSize: '16px', flexShrink: 0 }} />
+                  <Text size={200} style={{ color: tokens.colorNeutralForeground2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {orden.direccionServicio}
+                  </Text>
+                </div>
+              )}
+            </Card>
+          ))
         )}
       </div>
     </div>

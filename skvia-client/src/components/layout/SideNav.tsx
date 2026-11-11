@@ -560,7 +560,7 @@ export const SideNav: React.FC<SideNavProps> = ({
       selectedValue={activeItem?.id || ''}
       className={styles.navDrawer}
     >
-      {/* Top: Hamburger icon on the left + Cerrar sesión */}
+      {/* Top: Hamburger icon on the left (y Cerrar sesión solo en mobile overlay) */}
       <div className={styles.topHamburgerRow} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: '8px' }}>
         <Tooltip content="Contraer navegación" relationship="label" positioning="after">
           <Button
@@ -571,46 +571,50 @@ export const SideNav: React.FC<SideNavProps> = ({
             icon={<Navigation20Regular />}
           />
         </Tooltip>
-        <Button
-          size="small"
-          appearance="subtle"
-          icon={<SignOutRegular />}
-          onClick={currentUser.logout}
-          title="Cerrar sesión"
-          aria-label="Cerrar sesión"
-          style={{ fontSize: '12px' }}
-        >
-          Cerrar sesión
-        </Button>
+        {type === 'overlay' && (
+          <Button
+            size="small"
+            appearance="subtle"
+            icon={<SignOutRegular />}
+            onClick={currentUser.logout}
+            title="Cerrar sesión"
+            aria-label="Cerrar sesión"
+            style={{ fontSize: '12px' }}
+          >
+            Cerrar sesión
+          </Button>
+        )}
       </div>
 
-      {/* Perfil del usuario dentro del Drawer */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          padding: '12px 16px',
-          borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-          backgroundColor: tokens.colorNeutralBackground2,
-        }}
-      >
-        <Avatar
-          name={currentUser.nombre}
-          initials={currentUser.initials}
-          color="colorful"
-          size={36}
-          badge={{ status: 'available' }}
-        />
-        <div style={{ flex: 1, overflow: 'hidden' }}>
-          <Text weight="semibold" size={300} block style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', color: tokens.colorNeutralForeground1 }}>
-            {currentUser.nombre}
-          </Text>
-          <Text size={100} style={{ color: tokens.colorNeutralForeground3 }} block>
-            {currentUser.rol}
-          </Text>
+      {/* Perfil del usuario dentro del Drawer SOLO en modo móvil (overlay) */}
+      {type === 'overlay' && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '12px 16px',
+            borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+            backgroundColor: tokens.colorNeutralBackground2,
+          }}
+        >
+          <Avatar
+            name={currentUser.nombre}
+            initials={currentUser.initials}
+            color="colorful"
+            size={36}
+            badge={{ status: 'available' }}
+          />
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <Text weight="semibold" size={300} block style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', color: tokens.colorNeutralForeground1 }}>
+              {currentUser.nombre}
+            </Text>
+            <Text size={100} style={{ color: tokens.colorNeutralForeground3 }} block>
+              {currentUser.rol}
+            </Text>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Body: Direct group headers and items, NO Home/Recent/Pinned */}
       <NavDrawerBody className={styles.drawerBody}>
