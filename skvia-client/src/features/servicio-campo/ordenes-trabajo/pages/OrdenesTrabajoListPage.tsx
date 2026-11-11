@@ -86,6 +86,8 @@ import { ImportarSiebelDrawer } from '../components/ImportarSiebelDrawer';
 
 type VistaOrdenes =
   | 'activas'
+  | 'todas'
+  | 'completadas'
   | 'mis_asignadas'
   | 'pendientes_liquidacion'
   | 'pendientes'
@@ -93,12 +95,13 @@ type VistaOrdenes =
   | 'en_progreso'
   | 'borrador'
   | 'finalizadas_mes'
-  | 'finalizadas_3meses';
-
-
+  | 'finalizadas_3meses'
+  | 'canceladas';
 
 const vistasSistemaOrdenes = [
   { key: 'activas', label: 'Órdenes activas (Pendientes por trabajar)' },
+  { key: 'todas', label: 'Todas las órdenes (Histórico Completo)' },
+  { key: 'completadas', label: 'Órdenes completadas / cerradas' },
   { key: 'mis_asignadas', label: 'Mis Asignaciones (Técnico en Campo)' },
   { key: 'pendientes_liquidacion', label: 'Pendientes de Liquidación / Descarga (Almacén)' },
   { key: 'pendientes', label: 'Pendientes de programar' },
@@ -107,56 +110,35 @@ const vistasSistemaOrdenes = [
   { key: 'borrador', label: 'Borradores (Draft)' },
   { key: 'finalizadas_mes', label: 'Órdenes finalizadas del mes' },
   { key: 'finalizadas_3meses', label: 'Órdenes finalizadas últimos 3 meses' },
+  { key: 'canceladas', label: 'Órdenes canceladas' },
 ];
 
 const filterFields: D365FilterField[] = [
-
   { id: 'codigoWo', label: 'Código WO', type: 'string' },
-
   { id: 'numeroOrden', label: 'N° Orden Siebel / Ext.', type: 'string' },
-
   { id: 'codigoExternoTrabajo', label: 'N° WO IBS', type: 'string' },
-
   { id: 'codigoContrato', label: 'Cód. Cliente Abonado', type: 'string' },
-
   { id: 'clienteFacturacionNombre', label: 'Cliente Facturación', type: 'string' },
-
   { id: 'clienteServicioNombre', label: 'Abonado / Contacto', type: 'string' },
-
   { id: 'tipoOrdenNombre', label: 'Tipo de Orden', type: 'string' },
-
   { id: 'unidadOrganizativaNombre', label: 'Sede Operativa', type: 'string' },
-
   { id: 'zonaOperativaNombre', label: 'Zona / Territorio', type: 'string' },
-
   { id: 'recursoTecnicoNombre', label: 'Técnico Asignado', type: 'string' },
-
   {
-
     id: 'estadoSistema',
-
     label: 'Estado del Sistema',
-
     type: 'string',
-
     options: [
-
       { value: 'Borrador', label: 'Borrador' },
-
       { value: 'PendienteProgramar', label: 'Sin Programar' },
-
       { value: 'Programado', label: 'Programado' },
-
       { value: 'EnProgreso', label: 'En Progreso' },
-
       { value: 'Completado', label: 'Completado' },
-
       { value: 'Cancelado', label: 'Cancelado' },
-
     ],
-
   },
-
+  { id: 'fechaProgramada', label: 'Fecha Cita Programada', type: 'date' },
+  { id: 'fechaCreacion', label: 'Fecha Registro / Creación', type: 'date' },
 ];
 
 

@@ -407,7 +407,19 @@ public static class OrdenesTrabajoEndpoints
 
         var vistaNormalizada = (vista ?? string.Empty).Trim().ToLowerInvariant();
 
-        if (vistaNormalizada == "finalizadas_mes")
+        if (vistaNormalizada == "todas" || vistaNormalizada == "historico" || vistaNormalizada == "todos")
+        {
+            // Histórico completo: NO excluir completadas ni canceladas
+        }
+        else if (vistaNormalizada == "completadas" || vistaNormalizada == "completados" || vistaNormalizada == "finalizadas")
+        {
+            query = query.Where(o => o.EstadoSistema == EstadoSistema.Completado || o.Estado == EstadoOrdenTrabajo.Completa);
+        }
+        else if (vistaNormalizada == "canceladas" || vistaNormalizada == "anuladas")
+        {
+            query = query.Where(o => o.EstadoSistema == EstadoSistema.Cancelado || o.Estado == EstadoOrdenTrabajo.Cancelada);
+        }
+        else if (vistaNormalizada == "finalizadas_mes")
         {
             var limiteMes = DateTime.UtcNow.AddDays(-30);
             query = query.Where(o => (o.EstadoSistema == EstadoSistema.Completado || o.EstadoSistema == EstadoSistema.Cancelado)
@@ -588,7 +600,15 @@ public static class OrdenesTrabajoEndpoints
 
         var vistaTrabajoNormalizada = (vista ?? string.Empty).Trim().ToLowerInvariant();
 
-        if (vistaTrabajoNormalizada == "finalizadas_mes" || vistaTrabajoNormalizada == "finalizados_mes")
+        if (vistaTrabajoNormalizada == "todos" || vistaTrabajoNormalizada == "todas" || vistaTrabajoNormalizada == "historico")
+        {
+            // Histórico completo sin exclusiones
+        }
+        else if (vistaTrabajoNormalizada == "completados" || vistaTrabajoNormalizada == "completadas" || vistaTrabajoNormalizada == "finalizados")
+        {
+            query = query.Where(t => t.Estado == EstadoTrabajo.Completado);
+        }
+        else if (vistaTrabajoNormalizada == "finalizadas_mes" || vistaTrabajoNormalizada == "finalizados_mes")
         {
             var limiteMes = DateTime.UtcNow.AddDays(-30);
             query = query.Where(t => (t.Estado == EstadoTrabajo.Completado || t.Estado == EstadoTrabajo.Cancelado || t.Estado == EstadoTrabajo.Rechazado)

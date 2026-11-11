@@ -165,21 +165,18 @@ import { ImportarSiebelDrawer } from '../components/ImportarSiebelDrawer';
 
 
 type VistaTrabajos =
-
   | 'activos'
-
+  | 'todos'
+  | 'completados'
   | 'pendientes'
-
   | 'en_progreso'
-
   | 'finalizados_mes'
-
   | 'finalizados_3meses';
-
-
 
 const vistasSistemaTrabajos = [
   { key: 'activos', label: 'Trabajos activos (Pendientes por trabajar)' },
+  { key: 'todos', label: 'Todos los trabajos (Histórico Completo)' },
+  { key: 'completados', label: 'Trabajos completados / finalizados' },
   { key: 'pendientes', label: 'Trabajos pendientes' },
   { key: 'en_progreso', label: 'Trabajos en curso (In Progress)' },
   { key: 'finalizados_mes', label: 'Trabajos finalizados del mes' },
@@ -332,13 +329,9 @@ const filterFields: D365FilterField[] = [
 
 
     ],
-
-
-
   },
-
-
-
+  { id: 'fechaProgramada', label: 'Fecha Cita Programada', type: 'date' },
+  { id: 'fechaCreacion', label: 'Fecha Registro / Creación', type: 'date' },
 ];
 
 

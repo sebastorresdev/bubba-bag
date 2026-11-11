@@ -33,12 +33,16 @@ import {
   CheckmarkCircle20Regular,
   Signature20Regular,
   Box20Regular,
+  Box24Regular,
   TaskListSquareLtr20Regular,
   Info20Regular,
   ArrowClockwise20Regular,
   Play20Regular,
+  Checkmark20Regular,
+  CheckmarkCircle20Filled,
 } from '@fluentui/react-icons';
 import { D365SignatureCanvas } from '../../../../components/common/D365SignatureCanvas';
+import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
 import { OrdenTrabajoService } from '../services/ordenTrabajo.service';
 import type { OrdenTrabajoDetalleDto, OrdenTrabajoVisitaDto } from '../types/ordenTrabajo.types';
 
@@ -139,6 +143,26 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
       await cargar();
     } catch (err: any) {
       dispatchToast(<Toast><ToastTitle>Error al actualizar tarea: {err?.message || 'Error'}</ToastTitle></Toast>, { intent: 'error' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Marcar Trabajo Directo como Completado (cuando no tiene subtareas desglosadas)
+  const handleCompletarTrabajoDirecto = async (trabajoId: string) => {
+    if (!id || orden?.estadoSistema !== 'EnProgreso') {
+      if (orden?.estadoSistema === 'Programado') {
+        dispatchToast(<Toast><ToastTitle>Inicie la visita técnica antes de completar labores.</ToastTitle></Toast>, { intent: 'warning' });
+      }
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await OrdenTrabajoService.completarTrabajo(id, trabajoId);
+      dispatchToast(<Toast><ToastTitle>Labor técnica completada con éxito.</ToastTitle></Toast>, { intent: 'success' });
+      await cargar();
+    } catch (err: any) {
+      dispatchToast(<Toast><ToastTitle>Error al completar labor: {err?.message || 'Error'}</ToastTitle></Toast>, { intent: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -252,7 +276,14 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
 
   const todasTareas = orden.trabajos?.flatMap((t) => t.tareas || []) || [];
   const tareasCompletadas = todasTareas.filter((tt) => tt.estadoTarea === 'Completa' || tt.estadoTarea === 'Completado').length;
-  const progresoPorcentaje = todasTareas.length > 0 ? Math.round((tareasCompletadas / todasTareas.length) * 100) : 100;
+  const todosTrabajos = orden.trabajos || [];
+  const trabajosCompletados = todosTrabajos.filter((t) => t.estado === 'Completado').length;
+
+  const progresoPorcentaje = todasTareas.length > 0
+    ? Math.round((tareasCompletadas / todasTareas.length) * 100)
+    : todosTrabajos.length > 0
+      ? Math.round((trabajosCompletados / todosTrabajos.length) * 100)
+      : (orden.estadoSistema === 'Completado' ? 100 : 0);
 
   return (
     <div
@@ -386,7 +417,7 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
           style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}` }}
         >
           <Tab value="tareas" icon={<TaskListSquareLtr20Regular />}>
-            Tareas ({tareasCompletadas}/{todasTareas.length})
+            Tareas ({todasTareas.length > 0 ? `${tareasCompletadas}/${todasTareas.length}` : `${trabajosCompletados}/${todosTrabajos.length}`})
           </Tab>
           <Tab value="evidencias" icon={<Camera20Regular />}>
             Fotos ({ultimaVisita?.evidencias?.length ?? 0})
@@ -395,7 +426,7 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
             Firma {ultimaVisita?.firmaClienteUrl ? '✔' : ''}
           </Tab>
           <Tab value="materiales" icon={<Box20Regular />}>
-            Materiales
+            Materiales ({orden.materiales?.length ?? 0})
           </Tab>
           <Tab value="info" icon={<Info20Regular />}>
             Detalle
@@ -421,17 +452,27 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
 
             {orden.trabajos?.map((t) => (
               <Card key={t.id} style={{ padding: '14px', borderRadius: '10px', backgroundColor: tokens.colorNeutralBackground1, border: `1px solid ${tokens.colorNeutralStroke2}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text weight="bold" size={300} style={{ color: tokens.colorBrandForeground1 }}>
-                    {t.codigoTrabajo}: {t.productoNombre}
-                  </Text>
-                  <Badge appearance="tint" color={t.estado === 'Completado' ? 'success' : 'informative'}>
-                    {t.estado}
-                  </Badge>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                      <Text size={200} weight="semibold" style={{ color: tokens.colorBrandForeground1 }}>
+                        {t.codigoTrabajo}
+                      </Text>
+                      {t.puntos !== undefined && (
+                        <Badge size="small" appearance="tint" color="brand">
+                          {t.puntos} {t.puntos === 1 ? 'pto' : 'pts'}
+                        </Badge>
+                      )}
+                    </div>
+                    <Text weight="bold" size={300} style={{ color: tokens.colorNeutralForeground1, display: 'block', wordBreak: 'break-word', lineHeight: '20px' }}>
+                      {t.productoNombre}
+                    </Text>
+                  </div>
+                  <D365StatusBadge status={t.estado} size="medium" style={{ flexShrink: 0 }} />
                 </div>
 
                 {t.tareas && t.tareas.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
                     {t.tareas.map((tarea) => {
                       const done = tarea.estadoTarea === 'Completa' || tarea.estadoTarea === 'Completado';
                       return (
@@ -471,9 +512,34 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
                     })}
                   </div>
                 ) : (
-                  <Text size={200} style={{ color: tokens.colorNeutralForeground3, marginTop: '8px' }}>
-                    Sin subtareas registradas para este trabajo.
-                  </Text>
+                  <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: `1px dashed ${tokens.colorNeutralStroke2}` }}>
+                    {t.estado === 'Completado' ? (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '6px', backgroundColor: tokens.colorPaletteGreenBackground1, border: `1px solid ${tokens.colorPaletteGreenBorder1}` }}>
+                        <CheckmarkCircle20Filled style={{ color: tokens.colorPaletteGreenForeground1 }} />
+                        <Text size={200} weight="medium" style={{ color: tokens.colorPaletteGreenForeground1 }}>
+                          Labor técnica realizada en sitio
+                        </Text>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                          Sin subtareas registradas para este trabajo.
+                        </Text>
+                        {orden.estadoSistema === 'EnProgreso' && (
+                          <Button
+                            appearance="secondary"
+                            icon={<Checkmark20Regular />}
+                            size="small"
+                            disabled={submitting}
+                            onClick={() => void handleCompletarTrabajoDirecto(t.id)}
+                            style={{ alignSelf: 'flex-start' }}
+                          >
+                            Marcar labor como realizada
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
               </Card>
             ))}
@@ -612,13 +678,16 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
         {/* PESTAÑA: MATERIALES */}
         {tab === 'materiales' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <Card style={{ padding: '14px', borderRadius: '10px', backgroundColor: tokens.colorNeutralBackground1 }}>
-              <Text weight="bold" size={300}>📦 Materiales Previstos</Text>
-              <Text block size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                Si no liquida materiales en la app, el Almacenero los descargará al final de la jornada.
+            <Card style={{ padding: '16px', borderRadius: '10px', backgroundColor: tokens.colorNeutralBackground1, border: `1px solid ${tokens.colorNeutralStroke2}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <Box24Regular style={{ color: tokens.colorBrandForeground1 }} />
+                <Text weight="bold" size={300}>Materiales y Repuestos Previstos</Text>
+              </div>
+              <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                Si utilizas materiales no previstos de tu inventario móvil, el Almacenero los descargará al final de la jornada durante la liquidación en almacén.
               </Text>
 
-              <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {orden.materiales && orden.materiales.length > 0 ? (
                   orden.materiales.map((m, idx) => (
                     <div
@@ -626,6 +695,7 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
                       style={{
                         padding: '10px 12px',
                         borderRadius: '6px',
+                        backgroundColor: tokens.colorNeutralBackground2,
                         border: `1px solid ${tokens.colorNeutralStroke2}`,
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -644,9 +714,23 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
                     </div>
                   ))
                 ) : (
-                  <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                    No se especificaron materiales en la configuración del servicio.
-                  </Text>
+                  <div
+                    style={{
+                      padding: '24px 16px',
+                      textAlign: 'center',
+                      backgroundColor: tokens.colorNeutralBackground2,
+                      borderRadius: '8px',
+                      border: `1px dashed ${tokens.colorNeutralStroke2}`,
+                      marginTop: '6px',
+                    }}
+                  >
+                    <Text weight="semibold" size={200} block style={{ color: tokens.colorNeutralForeground2, marginBottom: '4px' }}>
+                      Sin materiales previstos asignados
+                    </Text>
+                    <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                      La configuración técnica de este servicio no incluye insumos precargados. Todo material adicional utilizado en sitio se concilia con Almacén.
+                    </Text>
+                  </div>
                 )}
               </div>
             </Card>
