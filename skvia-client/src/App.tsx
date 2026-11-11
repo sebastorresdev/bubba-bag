@@ -63,6 +63,8 @@ const OrdenesTrabajoListPage = lazy(() => import('./features/servicio-campo/orde
 const TrabajosListPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/TrabajosListPage').then((m) => ({ default: m.TrabajosListPage })));
 const OrdenTrabajoFormPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/OrdenTrabajoFormPage').then((m) => ({ default: m.OrdenTrabajoFormPage })));
 const SolicitudesAtencionListPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/SolicitudesAtencionListPage').then((m) => ({ default: m.SolicitudesAtencionListPage })));
+const TecnicoAgendaMobilePage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/TecnicoAgendaMobilePage').then((m) => ({ default: m.TecnicoAgendaMobilePage })));
+const TecnicoAtencionMobilePage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/TecnicoAtencionMobilePage').then((m) => ({ default: m.TecnicoAtencionMobilePage })));
 const SolicitudAtencionFormPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/SolicitudAtencionFormPage').then((m) => ({ default: m.SolicitudAtencionFormPage })));
 
 // Configuración Operativa (Tipos de Orden y Configuraciones de servicio)
@@ -110,6 +112,8 @@ const router = createBrowserRouter(createRoutesFromElements(
               <Route index element={<Navigate to="/servicio-campo/productos" replace />} />
 
               {/* Servicio de Campo - Órdenes de Trabajo (Work Orders) */}
+              <Route path="servicio-campo/mis-citas" element={<TecnicoAgendaMobilePage />} />
+              <Route path="servicio-campo/mis-citas/:id" element={<TecnicoAtencionMobilePage />} />
               <Route path="servicio-campo/ordenes" element={<OrdenesTrabajoListPage />} />
               <Route path="servicio-campo/trabajos" element={<TrabajosListPage />} />
               <Route path="servicio-campo/ordenes/nuevo" element={<OrdenTrabajoFormPage />} />

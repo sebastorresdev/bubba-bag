@@ -21,6 +21,9 @@ export function canAccessPath(path: string, permisos: readonly string[]): boolea
   if (path.startsWith('/recursos-humanos') || path.startsWith('/rrhh')) return has('rrhh.acceso');
   if (path.startsWith('/crm')) return has('crm.acceso');
   if (path.startsWith('/servicio-campo/clientes')) return has('crm.acceso');
+  if (path.startsWith('/servicio-campo/mis-citas')) {
+    return has('serviciocampo.acceso') || has('serviciocampo.ordenes.operar_campo') || has('serviciocampo.ordenes.ver_asignadas');
+  }
   if (path.startsWith('/servicio-campo/solicitud-atencion')) {
     if (path.endsWith('/nuevo')) {
       return has('serviciocampo.solicitudes.crear') || has('serviciocampo.ordenes.crear');
@@ -72,6 +75,9 @@ export function availableApps(permisos: readonly string[]): EnterpriseApp[] {
   }).filter(area => area.groups.length > 0) })).filter(app => app.areas.length > 0);
 }
 export function homePath(permisos: readonly string[]): string {
+  if (permisos.includes('serviciocampo.ordenes.operar_campo') && !permisos.includes('serviciocampo.ordenes.ver_todas')) {
+    return '/servicio-campo/mis-citas';
+  }
   if (permisos.includes('seguridad.usuarios.gestionar')) return '/configuracion/usuarios';
   if (permisos.includes('inventario.acceso')) return '/servicio-campo/inventario-productos';
   return availableApps(permisos)[0]?.areas[0]?.defaultPath ?? '/sin-acceso';

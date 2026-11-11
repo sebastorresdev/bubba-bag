@@ -1,0 +1,17 @@
+{
+  "name": "ProgrammingCar Field Service Mobile",
+  "short_name": "FieldService",
+  "start_url": "/servicio-campo/mis-citas",
+  "display": "standalone",
+  "background_color": "#0f6cbd",
+  "theme_color": "#0f6cbd",
+  "description": "Aplicación móvil y PWA para técnicos de campo de ProgrammingCar.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

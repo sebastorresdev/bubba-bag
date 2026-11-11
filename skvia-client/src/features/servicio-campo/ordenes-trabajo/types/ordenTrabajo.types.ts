@@ -47,6 +47,8 @@ export interface OrdenTrabajoListadoItemDto {
   clienteServicioCodigo?: string | null;
   clienteServicioCodigoExterno?: string | null;
   codigoExternoTrabajo?: string | null;
+  clienteServicioTelefono?: string | null;
+  clienteServicioReferencia?: string | null;
 }
 
 export type EstadoTrabajo =

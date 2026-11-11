@@ -40,6 +40,14 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
             title: 'Programación y Despacho',
             items: [
               {
+                id: 'mis-citas',
+                title: 'Mis Citas (Móvil Técnico)',
+                path: '/servicio-campo/mis-citas',
+                iconName: 'VehicleTruckProfile',
+                badge: 'PWA',
+                description: 'Agenda diaria, evidencias fotográficas y firma del cliente en sitio.',
+              },
+              {
                 id: 'ordenes',
                 title: 'Órdenes de Trabajo',
                 path: '/servicio-campo/ordenes',

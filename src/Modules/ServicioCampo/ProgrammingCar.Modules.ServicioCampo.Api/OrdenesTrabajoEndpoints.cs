@@ -54,6 +54,7 @@ public static class OrdenesTrabajoEndpoints
         group.MapPost("/{id:guid}/visitas/{visitaId:guid}/reprogramar", ReprogramarVisita).RequireAuthorization(Permissions.ServicioCampo.OrdenesAsignar);
         group.MapPost("/{id:guid}/visitas/{visitaId:guid}/cancelar", CancelarVisita).RequireAuthorization(Permissions.ServicioCampo.OrdenesAsignar);
         group.MapPost("/{id:guid}/visitas/{visitaId:guid}/evidencias", AgregarEvidenciaVisita);
+        group.MapPost("/{id:guid}/visitas/{visitaId:guid}/firma", RegistrarFirmaVisita);
         group.MapPost("/importar-siebel", ImportarOrdenesSiebel).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear).DisableAntiforgery();
     }
 
@@ -523,7 +524,9 @@ public static class OrdenesTrabajoEndpoints
                 TotalPuntos: o.TotalPuntos,
                 ClienteServicioCodigo: o.ClienteServicio?.CodigoCliente,
                 ClienteServicioCodigoExterno: o.ClienteServicio?.CodigoExterno ?? o.CodigoContrato,
-                CodigoExternoTrabajo: primerTrabajoCodExt ?? o.ReferenciaExterna
+                CodigoExternoTrabajo: primerTrabajoCodExt ?? o.ReferenciaExterna,
+                ClienteServicioTelefono: o.ClienteServicio?.TelefonoPrincipal,
+                ClienteServicioReferencia: o.ClienteServicio?.ReferenciaUbicacion
             );
         }).ToList();
 
@@ -1129,6 +1132,40 @@ public static class OrdenesTrabajoEndpoints
 
         await ((DbContext)db).SaveChangesAsync(ct);
         return Results.Ok(new { message = "Orden de trabajo actualizada con éxito." });
+    }
+
+    private static async Task<IResult> RegistrarFirmaVisita(
+        Guid id,
+        Guid visitaId,
+        RegistrarFirmaVisitaRequest request,
+        IServicioCampoDbContext db,
+        ICurrentUser currentUser,
+        CancellationToken ct)
+    {
+        await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
+
+        var orden = await db.OrdenesTrabajo
+            .Include(o => o.Visitas)
+            .FirstOrDefaultAsync(o => o.Id == id, ct);
+
+        if (orden == null) return Results.NotFound(new { message = $"No se encontró la orden {id}." });
+
+        var visita = orden.Visitas.FirstOrDefault(v => v.Id == visitaId);
+        if (visita == null) return Results.NotFound(new { message = $"No se encontró la visita {visitaId}." });
+
+        if (string.IsNullOrWhiteSpace(request.FirmaUrl))
+            return Results.BadRequest(new { message = "El trazo o imagen de la firma es obligatorio." });
+
+        visita.CompletarVisita(
+            firmaUrl: request.FirmaUrl,
+            firmadoPor: request.FirmadoPor ?? "Cliente Titular",
+            nombreFirmante: request.NombreFirmante,
+            dniFirmante: request.DniFirmante,
+            observaciones: request.Observaciones
+        );
+
+        await ((DbContext)db).SaveChangesAsync(ct);
+        return Results.Ok(new { message = "Firma del cliente registrada correctamente." });
     }
 
     private static async Task<IResult> AgregarEvidenciaVisita(
@@ -1880,7 +1917,9 @@ public record OrdenTrabajoListadoItemDto(
     decimal TotalPuntos = 0m,
     string? ClienteServicioCodigo = null,
     string? ClienteServicioCodigoExterno = null,
-    string? CodigoExternoTrabajo = null
+    string? CodigoExternoTrabajo = null,
+    string? ClienteServicioTelefono = null,
+    string? ClienteServicioReferencia = null
 );
 
 public record OrdenTrabajoItemDto(
@@ -2055,6 +2094,14 @@ public record CambiarEstadoSistemaRequest(
     string? Observaciones = null,
     bool? CompletarTrabajosPendientes = null,
     bool? FinalizarDirecto = null
+);
+
+public record RegistrarFirmaVisitaRequest(
+    string FirmaUrl,
+    string? FirmadoPor = "Cliente Titular",
+    string? NombreFirmante = null,
+    string? DniFirmante = null,
+    string? Observaciones = null
 );
 
 public record AgregarEvidenciaVisitaRequest(

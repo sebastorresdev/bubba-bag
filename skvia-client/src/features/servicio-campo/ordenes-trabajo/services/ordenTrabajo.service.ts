@@ -70,6 +70,7 @@ export const OrdenTrabajoService = {
   },
   completarTarea(id: string, trabajoId: string, tareaId: string, data: { evidenciaUrl?: string; observaciones?: string }): Promise<void> { return modificar(id, `${base}/${id}/trabajos/${trabajoId}/tareas/${tareaId}`, 'PUT', data); },
   liquidarMateriales(id: string, payload: LiquidarOrdenTrabajoDto): Promise<void> { return modificar(id, `${base}/${id}/liquidar`, 'POST', payload); },
+  registrarFirmaVisita(id: string, visitaId: string, payload: { firmaUrl: string; firmadoPor?: string; nombreFirmante?: string; dniFirmante?: string; observaciones?: string }): Promise<void> { return modificar(id, `${base}/${id}/visitas/${visitaId}/firma`, 'POST', payload); },
   agregarEvidenciaVisita(id: string, visitaId: string, payload: { nombre: string; url: string; esObligatoria?: boolean; observaciones?: string; coordenadasGps?: string }): Promise<{ id: string; mensaje: string }> { return modificar(id, `${base}/${id}/visitas/${visitaId}/evidencias`, 'POST', payload); },
   reprogramarVisita(id: string, visitaId: string, payload: ReprogramarVisitaDto): Promise<void> { return modificar(id, `${base}/${id}/visitas/${visitaId}/reprogramar`, 'POST', payload); },
   cancelarVisita(id: string, visitaId: string, payload: CancelarVisitaDto): Promise<void> { return modificar(id, `${base}/${id}/visitas/${visitaId}/cancelar`, 'POST', payload); },
