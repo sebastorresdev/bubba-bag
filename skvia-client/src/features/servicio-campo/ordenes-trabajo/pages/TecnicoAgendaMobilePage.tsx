@@ -48,14 +48,21 @@ export const TecnicoAgendaMobilePage: React.FC = () => {
     void cargarCitas();
   }, [cargarCitas]);
 
-  const hoyStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const hoyStr = useMemo(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
 
   const ordenesFiltradas = useMemo(() => {
     return ordenes.filter((o) => {
-      // Filtro de fecha
+      // Filtro de fecha: incluir citas de hoy o las que ya están en progreso
       if (filtroFecha === 'hoy') {
+        if (o.estadoSistema === 'EnProgreso') return true;
         const fechaOrden = o.fechaProgramada ? o.fechaProgramada.slice(0, 10) : '';
-        if (fechaOrden && fechaOrden !== hoyStr) return false;
+        if (fechaOrden !== hoyStr) return false;
       }
       // Filtro de búsqueda
       if (busqueda.trim()) {
