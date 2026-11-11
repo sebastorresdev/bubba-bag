@@ -40,11 +40,28 @@ import {
   Play20Regular,
   Checkmark20Regular,
   CheckmarkCircle20Filled,
+  Add16Regular,
+  Subtract16Regular,
+  Delete16Regular,
+  Search16Regular,
 } from '@fluentui/react-icons';
 import { D365SignatureCanvas } from '../../../../components/common/D365SignatureCanvas';
 import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
 import { OrdenTrabajoService } from '../services/ordenTrabajo.service';
+import { ProductoService } from '../../../inventario/productos/services/producto.service';
+import type { ProductoDto } from '../../../inventario/productos/types/producto.types';
 import type { OrdenTrabajoDetalleDto, OrdenTrabajoVisitaDto } from '../types/ordenTrabajo.types';
+
+export interface MaterialItemEditable {
+  id?: string;
+  productoId: string;
+  codigoProducto: string;
+  nombreProducto: string;
+  cantidadSugerida: number;
+  cantidadUtilizada: number;
+  numeroSerie?: string;
+  esExtra?: boolean;
+}
 
 export const TecnicoAtencionMobilePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -72,6 +89,17 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
   const [dialogCerrarOpen, setDialogCerrarOpen] = useState(false);
   const [obsCierre, setObsCierre] = useState('');
 
+  // Materiales interactivos
+  const [materialesEditables, setMaterialesEditables] = useState<MaterialItemEditable[]>([]);
+  const [guardandoMateriales, setGuardandoMateriales] = useState(false);
+  const [dialogMaterialOpen, setDialogMaterialOpen] = useState(false);
+  const [busquedaProd, setBusquedaProd] = useState('');
+  const [productosResultados, setProductosResultados] = useState<ProductoDto[]>([]);
+  const [buscandoProd, setBuscandoProd] = useState(false);
+  const [prodSeleccionado, setProdSeleccionado] = useState<ProductoDto | null>(null);
+  const [cantExtra, setCantExtra] = useState(1);
+  const [serieExtra, setSerieExtra] = useState('');
+
   const cargar = useCallback(async () => {
     if (!id) return;
     try {
@@ -84,6 +112,22 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
         setFirmaUrl(ultimaVisita.firmaClienteUrl);
         setNombreFirmante(ultimaVisita.nombreFirmante || '');
         setDniFirmante(ultimaVisita.dniFirmante || '');
+      }
+
+      if (data.materiales && data.materiales.length > 0) {
+        setMaterialesEditables((prev) => {
+          if (prev.length > 0) return prev;
+          return data.materiales.map((m) => ({
+            id: m.id,
+            productoId: m.productoId,
+            codigoProducto: m.codigoProducto,
+            nombreProducto: m.nombreProducto,
+            cantidadSugerida: Number(m.cantidad || 0),
+            cantidadUtilizada: Number(m.cantidad || 0),
+            numeroSerie: m.numeroSerie || '',
+            esExtra: false,
+          }));
+        });
       }
     } catch (err: any) {
       console.error(err);
@@ -198,6 +242,83 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
     } catch (err: any) {
       setSubiendoFoto(false);
       dispatchToast(<Toast><ToastTitle>Error al leer archivo: {err?.message || 'Error'}</ToastTitle></Toast>, { intent: 'error' });
+    }
+  };
+
+  // Gestión de Materiales del Técnico
+  const handleBuscarProductos = async (q: string) => {
+    setBusquedaProd(q);
+    if (!q.trim() || q.trim().length < 2) {
+      setProductosResultados([]);
+      return;
+    }
+    try {
+      setBuscandoProd(true);
+      const prods = await ProductoService.buscarInventariables(q.trim());
+      setProductosResultados(prods);
+    } catch {
+      setProductosResultados([]);
+    } finally {
+      setBuscandoProd(false);
+    }
+  };
+
+  const handleAgregarMaterialExtra = () => {
+    if (!prodSeleccionado) return;
+    const nuevo: MaterialItemEditable = {
+      productoId: prodSeleccionado.id,
+      codigoProducto: prodSeleccionado.codigo,
+      nombreProducto: prodSeleccionado.nombre,
+      cantidadSugerida: 0,
+      cantidadUtilizada: Number(cantExtra) || 1,
+      numeroSerie: serieExtra.trim() || undefined,
+      esExtra: true,
+    };
+    setMaterialesEditables((prev) => [...prev, nuevo]);
+    setDialogMaterialOpen(false);
+    setProdSeleccionado(null);
+    setBusquedaProd('');
+    setCantExtra(1);
+    setSerieExtra('');
+    dispatchToast(<Toast><ToastTitle>Material "{nuevo.nombreProducto}" agregado a la lista.</ToastTitle></Toast>, { intent: 'success' });
+  };
+
+  const handleCambiarCantidad = (index: number, delta: number) => {
+    setMaterialesEditables((prev) =>
+      prev.map((m, i) => {
+        if (i !== index) return m;
+        const nueva = Math.max(0, m.cantidadUtilizada + delta);
+        return { ...m, cantidadUtilizada: nueva };
+      })
+    );
+  };
+
+  const handleQuitarMaterial = (index: number) => {
+    setMaterialesEditables((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleGuardarMateriales = async () => {
+    if (!id) return;
+    try {
+      setGuardandoMateriales(true);
+      const consumos = materialesEditables
+        .filter((m) => m.cantidadUtilizada > 0)
+        .map((m) => ({
+          productoId: m.productoId,
+          cantidad: Number(m.cantidadUtilizada),
+          numeroSerie: m.numeroSerie?.trim() || undefined,
+        }));
+
+      await OrdenTrabajoService.liquidarMateriales(id, {
+        consumos,
+        observaciones: 'Reporte de materiales utilizados en sitio por técnico',
+      });
+      dispatchToast(<Toast><ToastTitle>Materiales utilizados registrados con éxito.</ToastTitle></Toast>, { intent: 'success' });
+      await cargar();
+    } catch (err: any) {
+      dispatchToast(<Toast><ToastTitle>Error al guardar materiales: {err?.message || 'Error'}</ToastTitle></Toast>, { intent: 'error' });
+    } finally {
+      setGuardandoMateriales(false);
     }
   };
 
@@ -679,38 +800,125 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
         {tab === 'materiales' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <Card style={{ padding: '16px', borderRadius: '10px', backgroundColor: tokens.colorNeutralBackground1, border: `1px solid ${tokens.colorNeutralStroke2}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                <Box24Regular style={{ color: tokens.colorBrandForeground1 }} />
-                <Text weight="bold" size={300}>Materiales y Repuestos Previstos</Text>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Box24Regular style={{ color: tokens.colorBrandForeground1 }} />
+                  <Text weight="bold" size={300}>Materiales de la Atención</Text>
+                </div>
+                {orden.estadoSistema !== 'Completado' && (
+                  <Button
+                    size="small"
+                    appearance="subtle"
+                    icon={<Add16Regular />}
+                    onClick={() => setDialogMaterialOpen(true)}
+                  >
+                    + Agregar
+                  </Button>
+                )}
               </div>
               <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                Si utilizas materiales no previstos de tu inventario móvil, el Almacenero los descargará al final de la jornada durante la liquidación en almacén.
+                Lo previsto es una sugerencia. Ingresa la cantidad real consumida de tu stock móvil.
               </Text>
 
-              <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {orden.materiales && orden.materiales.length > 0 ? (
-                  orden.materiales.map((m, idx) => (
+              <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {materialesEditables.length > 0 ? (
+                  materialesEditables.map((m, idx) => (
                     <div
-                      key={m.id || idx}
+                      key={m.productoId + idx}
                       style={{
-                        padding: '10px 12px',
-                        borderRadius: '6px',
+                        padding: '12px',
+                        borderRadius: '8px',
                         backgroundColor: tokens.colorNeutralBackground2,
                         border: `1px solid ${tokens.colorNeutralStroke2}`,
                         display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
+                        flexDirection: 'column',
+                        gap: '8px',
                       }}
                     >
-                      <div>
-                        <Text weight="semibold" size={200} block>{m.nombreProducto}</Text>
-                        <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
-                          Código: {m.codigoProducto}
-                        </Text>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <Text weight="semibold" size={200} block style={{ color: tokens.colorNeutralForeground1, wordBreak: 'break-word' }}>
+                            {m.nombreProducto}
+                          </Text>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '2px' }}>
+                            <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
+                              Cód: {m.codigoProducto}
+                            </Text>
+                            {m.cantidadSugerida > 0 ? (
+                              <Badge size="small" appearance="tint" color="informative">
+                                Sugerido: {m.cantidadSugerida}
+                              </Badge>
+                            ) : (
+                              <Badge size="small" appearance="tint" color="warning">
+                                Extra en sitio
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        {m.esExtra && orden.estadoSistema !== 'Completado' && (
+                          <Button
+                            size="small"
+                            appearance="subtle"
+                            icon={<Delete16Regular />}
+                            style={{ color: tokens.colorStatusDangerForeground1 }}
+                            onClick={() => handleQuitarMaterial(idx)}
+                            title="Quitar material"
+                          />
+                        )}
                       </div>
-                      <Badge appearance="tint" color="brand">
-                        Cant: {m.cantidad}
-                      </Badge>
+
+                      {/* Stepper para cantidad utilizada */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                        <Text size={200} weight="medium" style={{ color: tokens.colorNeutralForeground2 }}>
+                          Gastado / Utilizado:
+                        </Text>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Button
+                            size="small"
+                            appearance="outline"
+                            icon={<Subtract16Regular />}
+                            disabled={orden.estadoSistema === 'Completado' || m.cantidadUtilizada <= 0}
+                            onClick={() => handleCambiarCantidad(idx, -1)}
+                            style={{ minWidth: '32px', height: '32px', padding: 0 }}
+                          />
+                          <Input
+                            size="small"
+                            type="number"
+                            value={String(m.cantidadUtilizada)}
+                            disabled={orden.estadoSistema === 'Completado'}
+                            onChange={(_, d) => {
+                              const val = Math.max(0, Number(d.value) || 0);
+                              setMaterialesEditables((prev) =>
+                                prev.map((item, i) => (i === idx ? { ...item, cantidadUtilizada: val } : item))
+                              );
+                            }}
+                            style={{ width: '64px', textAlign: 'center' }}
+                          />
+                          <Button
+                            size="small"
+                            appearance="outline"
+                            icon={<Add16Regular />}
+                            disabled={orden.estadoSistema === 'Completado'}
+                            onClick={() => handleCambiarCantidad(idx, 1)}
+                            style={{ minWidth: '32px', height: '32px', padding: 0 }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Si tiene serie */}
+                      {m.numeroSerie !== undefined && (
+                        <Input
+                          size="small"
+                          placeholder="N° de Serie instalado (ej: SN123456)"
+                          value={m.numeroSerie}
+                          disabled={orden.estadoSistema === 'Completado'}
+                          onChange={(_, d) => {
+                            setMaterialesEditables((prev) =>
+                              prev.map((item, i) => (i === idx ? { ...item, numeroSerie: d.value } : item))
+                            );
+                          }}
+                        />
+                      )}
                     </div>
                   ))
                 ) : (
@@ -721,15 +929,46 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
                       backgroundColor: tokens.colorNeutralBackground2,
                       borderRadius: '8px',
                       border: `1px dashed ${tokens.colorNeutralStroke2}`,
-                      marginTop: '6px',
                     }}
                   >
                     <Text weight="semibold" size={200} block style={{ color: tokens.colorNeutralForeground2, marginBottom: '4px' }}>
-                      Sin materiales previstos asignados
+                      Sin materiales previstos en catálogo
                     </Text>
-                    <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                      La configuración técnica de este servicio no incluye insumos precargados. Todo material adicional utilizado en sitio se concilia con Almacén.
+                    <Text size={200} style={{ color: tokens.colorNeutralForeground3, display: 'block', marginBottom: '12px' }}>
+                      Si utilizaste insumos de tu stock móvil (conectores, cable, splitters, etc.), agrégalos con el botón inferior.
                     </Text>
+                    {orden.estadoSistema !== 'Completado' && (
+                      <Button
+                        appearance="primary"
+                        icon={<Add16Regular />}
+                        size="small"
+                        onClick={() => setDialogMaterialOpen(true)}
+                      >
+                        Agregar Material Utilizado
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {materialesEditables.length > 0 && orden.estadoSistema !== 'Completado' && (
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    <Button
+                      size="medium"
+                      appearance="primary"
+                      style={{ flex: 1, backgroundColor: tokens.colorPaletteGreenBackground3, color: tokens.colorNeutralForegroundOnBrand }}
+                      disabled={guardandoMateriales}
+                      onClick={handleGuardarMateriales}
+                    >
+                      {guardandoMateriales ? 'Guardando...' : 'Guardar Materiales Utilizados'}
+                    </Button>
+                    <Button
+                      size="medium"
+                      appearance="outline"
+                      icon={<Add16Regular />}
+                      onClick={() => setDialogMaterialOpen(true)}
+                    >
+                      + Extra
+                    </Button>
                   </div>
                 )}
               </div>
@@ -834,6 +1073,99 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
               </Button>
               <Button appearance="primary" onClick={handleConfirmarCierre} disabled={submitting}>
                 {submitting ? 'Cerrando...' : 'Confirmar Cierre'}
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
+      {/* DIÁLOGO: AGREGAR MATERIAL EXTRA DE CUSTODIA */}
+      <Dialog open={dialogMaterialOpen} onOpenChange={(_, { open }) => setDialogMaterialOpen(open)}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Añadir Material o Repuesto Utilizado</DialogTitle>
+            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
+              <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                Busca el producto o insumo utilizado de tu stock móvil (camioneta/custodia).
+              </Text>
+
+              <Input
+                contentBefore={<Search16Regular />}
+                placeholder="Buscar por nombre o código (ej: cable, conector, splitter)..."
+                value={busquedaProd}
+                onChange={(_, d) => void handleBuscarProductos(d.value)}
+              />
+
+              {buscandoProd && <Spinner size="tiny" label="Buscando insumos..." />}
+
+              {productosResultados.length > 0 && !prodSeleccionado && (
+                <div style={{ maxHeight: '180px', overflowY: 'auto', border: `1px solid ${tokens.colorNeutralStroke2}`, borderRadius: '6px' }}>
+                  {productosResultados.map((p) => (
+                    <div
+                      key={p.id}
+                      onClick={() => {
+                        setProdSeleccionado(p);
+                        setBusquedaProd(p.nombre);
+                        setProductosResultados([]);
+                      }}
+                      style={{
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        borderBottom: `1px solid ${tokens.colorNeutralStroke3}`,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div>
+                        <Text weight="semibold" size={200} block>{p.nombre}</Text>
+                        <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Cód: {p.codigo}</Text>
+                      </div>
+                      <Badge size="small" appearance="tint" color="brand">Elegir</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {prodSeleccionado && (
+                <div style={{ padding: '10px', backgroundColor: tokens.colorNeutralBackground3, borderRadius: '6px' }}>
+                  <Text weight="bold" size={200} block>{prodSeleccionado.nombre}</Text>
+                  <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>Código: {prodSeleccionado.codigo}</Text>
+
+                  <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Text size={200} weight="medium">Cantidad gastada:</Text>
+                    <Input
+                      type="number"
+                      size="small"
+                      value={String(cantExtra)}
+                      onChange={(_, d) => setCantExtra(Math.max(1, Number(d.value) || 1))}
+                      style={{ width: '80px' }}
+                    />
+                  </div>
+
+                  {prodSeleccionado.esSeriado && (
+                    <div style={{ marginTop: '8px' }}>
+                      <Input
+                        size="small"
+                        placeholder="N° de Serie (obligatorio para seriados)"
+                        value={serieExtra}
+                        onChange={(_, d) => setSerieExtra(d.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button appearance="secondary" onClick={() => { setDialogMaterialOpen(false); setProdSeleccionado(null); }}>
+                Cancelar
+              </Button>
+              <Button
+                appearance="primary"
+                disabled={!prodSeleccionado}
+                onClick={handleAgregarMaterialExtra}
+              >
+                Agregar a la lista
               </Button>
             </DialogActions>
           </DialogBody>

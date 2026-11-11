@@ -243,6 +243,7 @@ export interface D365EntityTableProps<T extends { id: string }> {
   filterFields?: D365FilterField[];
   onRowDoubleClick?: (item: T) => void;
   showToolbarTools?: boolean;
+  emptyState?: React.ReactNode;
 }
 
 export interface D365TableConfiguration {
@@ -386,6 +387,7 @@ function D365EntityTableInner<T extends { id: string }>(
     filterFields,
     onRowDoubleClick,
     showToolbarTools = false,
+    emptyState,
   }: D365EntityTableProps<T>,
   ref: React.Ref<D365EntityTableRef>
 ) {
@@ -745,7 +747,7 @@ function D365EntityTableInner<T extends { id: string }>(
               {sortColumn && <Button aria-label={sortDirection === 'asc' ? 'Cambiar a orden descendente' : 'Cambiar a orden ascendente'} icon={sortDirection === 'asc' ? <ArrowSortUp16Regular /> : <ArrowSortDown16Regular />} onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')} />}
               {selectionMode === 'multiselect' && processedItems.length > 0 && <Button onClick={event => onSelectionChange?.(event, { selectedItems: processedItems.every(item => selectedItems?.has(item.id)) ? new Set() : new Set(processedItems.map(item => item.id)) })}>{processedItems.every(item => selectedItems?.has(item.id)) ? 'Quitar selección' : 'Seleccionar todos'}</Button>}
             </div>
-            {processedItems.length === 0 ? <TableEmptyState /> : <D365MobileRecords items={processedItems} columns={activeColumns} getRowId={item => item.id} selectionMode={selectionMode} selectedItems={selectedItems} onSelectionChange={onSelectionChange} onOpen={onRowDoubleClick} label={entityName} />}
+            {processedItems.length === 0 ? (emptyState || <TableEmptyState />) : <D365MobileRecords items={processedItems} columns={activeColumns} getRowId={item => item.id} selectionMode={selectionMode} selectedItems={selectedItems} onSelectionChange={onSelectionChange} onOpen={onRowDoubleClick} label={entityName} />}
           </> : <DataGrid
             items={processedItems}
             columns={activeColumns}
@@ -809,7 +811,7 @@ function D365EntityTableInner<T extends { id: string }>(
               </DataGridRow>
             </DataGridHeader>
             {processedItems.length === 0 ? (
-              <TableEmptyState />
+              emptyState || <TableEmptyState />
             ) : (
               <DataGridBody<T>>
                 {({ item, rowId }) => (

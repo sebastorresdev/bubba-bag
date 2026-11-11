@@ -474,8 +474,12 @@ public static class OrdenesTrabajoEndpoints
         else
         {
             // Vista por defecto ('activas' o sin especificar):
-            // Solo órdenes operables / pendientes que se pueden trabajar (NO finalizadas)
-            query = query.Where(o => o.EstadoSistema != EstadoSistema.Completado && o.EstadoSistema != EstadoSistema.Cancelado);
+            // Si el usuario ingresó un término de búsqueda específico (código, abonado, etc.),
+            // buscar en todo el histórico para que la búsqueda encuentre órdenes sin importar su estado.
+            if (string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(o => o.EstadoSistema != EstadoSistema.Completado && o.EstadoSistema != EstadoSistema.Cancelado);
+            }
         }
 
         if (clienteId.HasValue)
@@ -642,9 +646,12 @@ public static class OrdenesTrabajoEndpoints
         else
         {
             // Vista por defecto: Solo trabajos activos / pendientes no finalizados y cuya orden no esté cerrada/cancelada
-            query = query.Where(t => (t.Estado == EstadoTrabajo.Pendiente || t.Estado == EstadoTrabajo.EnProgreso)
-                && t.OrdenTrabajo.EstadoSistema != EstadoSistema.Completado
-                && t.OrdenTrabajo.EstadoSistema != EstadoSistema.Cancelado);
+            if (string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(t => (t.Estado == EstadoTrabajo.Pendiente || t.Estado == EstadoTrabajo.EnProgreso)
+                    && t.OrdenTrabajo.EstadoSistema != EstadoSistema.Completado
+                    && t.OrdenTrabajo.EstadoSistema != EstadoSistema.Cancelado);
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(estadoSistemaOrden) && Enum.TryParse<EstadoSistema>(estadoSistemaOrden, true, out var estSis))
@@ -1453,8 +1460,8 @@ public static class OrdenesTrabajoEndpoints
 
         orden.ValidarEditable();
 
-        if (orden.Estado != EstadoOrdenTrabajo.Completa && orden.EstadoSistema != EstadoSistema.Completado)
-            return Results.BadRequest(new { message = "Solo se pueden liquidar materiales cuando la labor técnica en campo ha sido completada." });
+        if (orden.Estado != EstadoOrdenTrabajo.Completa && orden.EstadoSistema != EstadoSistema.Completado && orden.EstadoSistema != EstadoSistema.EnProgreso)
+            return Results.BadRequest(new { message = "Solo se pueden liquidar materiales cuando la labor técnica en campo ha sido completada o está en progreso." });
 
         if (orden.DescargaMaterialesConfirmada)
             return Results.BadRequest(new { message = "Los materiales de esta orden ya han sido liquidados previamente." });
