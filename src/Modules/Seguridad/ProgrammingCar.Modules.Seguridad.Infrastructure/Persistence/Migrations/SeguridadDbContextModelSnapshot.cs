@@ -122,6 +122,9 @@ namespace ProgrammingCar.Modules.Seguridad.Infrastructure.Persistence.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
+                    b.Property<Guid?>("SupervisorId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedEmail")
@@ -130,6 +133,8 @@ namespace ProgrammingCar.Modules.Seguridad.Infrastructure.Persistence.Migrations
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
+
+                    b.HasIndex("SupervisorId");
 
                     b.ToTable("AspNetUsers", "seguridad");
                 });
@@ -413,6 +418,16 @@ namespace ProgrammingCar.Modules.Seguridad.Infrastructure.Persistence.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("ProgrammingCar.Modules.Seguridad.Domain.Entities.Usuario", b =>
+                {
+                    b.HasOne("ProgrammingCar.Modules.Seguridad.Domain.Entities.Usuario", "Supervisor")
+                        .WithMany()
+                        .HasForeignKey("SupervisorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Supervisor");
                 });
 #pragma warning restore 612, 618
         }

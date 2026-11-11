@@ -50,15 +50,30 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 });
 
-builder.AddNpgsqlDbContext<ProgrammingCar.Modules.Seguridad.Infrastructure.Persistence.SeguridadDbContext>("sqldb");
-builder.AddNpgsqlDbContext<ProgrammingCar.Modules.RecursosHumanos.Infrastructure.Database.RecursosHumanosDbContext>("sqldb");
+builder.AddNpgsqlDbContext<ProgrammingCar.Modules.Seguridad.Infrastructure.Persistence.SeguridadDbContext>("sqldb",
+    configureSettings: null,
+    configureDbContextOptions: options =>
+    {
+        options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+    });
+builder.AddNpgsqlDbContext<ProgrammingCar.Modules.RecursosHumanos.Infrastructure.Database.RecursosHumanosDbContext>("sqldb",
+    configureSettings: null,
+    configureDbContextOptions: options =>
+    {
+        options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+    });
 builder.AddNpgsqlDbContext<ProgrammingCar.Modules.ServicioCampo.Infrastructure.Database.ServicioCampoDbContext>("sqldb",
     configureSettings: null,
     configureDbContextOptions: options =>
     {
         options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
     });
-builder.AddNpgsqlDbContext<ProgrammingCar.Modules.GestionDatos.Infrastructure.Database.GestionDatosDbContext>("sqldb");
+builder.AddNpgsqlDbContext<ProgrammingCar.Modules.GestionDatos.Infrastructure.Database.GestionDatosDbContext>("sqldb",
+    configureSettings: null,
+    configureDbContextOptions: options =>
+    {
+        options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+    });
 builder.Services.AddProgrammingCarServices(builder.Configuration);
 
 ProgrammingCar.Modules.RecursosHumanos.Api.RecursosHumanosModule.AddRecursosHumanosModule(builder.Services);
