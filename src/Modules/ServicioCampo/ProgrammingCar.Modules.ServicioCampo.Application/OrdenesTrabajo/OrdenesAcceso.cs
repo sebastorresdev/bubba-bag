@@ -27,8 +27,9 @@ public static class OrdenesAcceso
         var creador = user.HasPermission(Permissions.ServicioCampo.OrdenesCrear);
         var verPropias = user.HasPermission(Permissions.ServicioCampo.SolicitudesVerPropias);
         var verEquipo = user.HasPermission(Permissions.ServicioCampo.SolicitudesVerEquipo);
-        var liquidador = user.HasPermission(Permissions.ServicioCampo.OrdenesLiquidarMateriales)
-                      || user.HasPermission(Permissions.Inventario.Operar);
+        var liquidadorAlmacen = (user.HasPermission(Permissions.ServicioCampo.OrdenesLiquidarMateriales)
+                              || user.HasPermission(Permissions.Inventario.Operar))
+                              && !user.HasPermission(Permissions.ServicioCampo.OrdenesOperarCampo);
 
         var equipoList = equipoUserIds?.ToList() ?? new List<Guid>();
 
@@ -38,7 +39,7 @@ public static class OrdenesAcceso
             (asignadas && o.Visitas.Any(v =>
                 v.NumeroVisita == o.Visitas.Max(x => x.NumeroVisita) && v.Estado != EstadoVisita.Cancelada
                 && v.Recurso.Activo && v.Recurso.UsuarioId == user.Id)) ||
-            (liquidador && o.DescargaMaterialesObligatoria)
+            (liquidadorAlmacen && o.DescargaMaterialesObligatoria)
         );
     }
 
