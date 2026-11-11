@@ -121,7 +121,7 @@ export const TecnicoAgendaMobilePage: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         minHeight: '100vh',
-        backgroundColor: '#f5f5f7',
+        backgroundColor: tokens.colorNeutralBackground2,
         fontFamily: 'Segoe UI, -apple-system, sans-serif',
         paddingBottom: '40px',
       }}
@@ -129,25 +129,25 @@ export const TecnicoAgendaMobilePage: React.FC = () => {
       {/* 1. HEADER DYNAMICS 365 MOBILE */}
       <div
         style={{
-          backgroundColor: '#0f6cbd',
-          color: '#ffffff',
+          backgroundColor: tokens.colorBrandBackground,
+          color: tokens.colorNeutralForegroundOnBrand,
           padding: '16px 16px 20px 16px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          boxShadow: tokens.shadow8,
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <Text size={200} style={{ color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <Text size={200} style={{ color: tokens.colorNeutralForegroundOnBrand, opacity: 0.85, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               Dynamics 365 Field Service
             </Text>
-            <Text block weight="bold" size={500} style={{ color: '#ffffff', marginTop: '2px' }}>
+            <Text block weight="bold" size={500} style={{ color: tokens.colorNeutralForegroundOnBrand, marginTop: '2px' }}>
               Hola, {usuario?.nombreCompleto || 'Técnico de Campo'}
             </Text>
           </div>
           <Button
             size="small"
             appearance="transparent"
-            style={{ color: '#ffffff' }}
+            style={{ color: tokens.colorNeutralForegroundOnBrand }}
             icon={<ArrowClockwise20Regular />}
             onClick={() => void cargarCitas()}
             title="Actualizar agenda"
@@ -161,16 +161,16 @@ export const TecnicoAgendaMobilePage: React.FC = () => {
             gridTemplateColumns: '1fr 1fr 1fr',
             gap: '8px',
             marginTop: '16px',
-            backgroundColor: 'rgba(255,255,255,0.12)',
+            backgroundColor: 'rgba(0,0,0,0.18)',
             borderRadius: '8px',
             padding: '10px 12px',
           }}
         >
           <div style={{ textAlign: 'center' }}>
-            <Text block weight="bold" size={400} style={{ color: '#ffffff' }}>
+            <Text block weight="bold" size={400} style={{ color: tokens.colorNeutralForegroundOnBrand }}>
               {conteos.pendientes}
             </Text>
-            <Text size={100} style={{ color: 'rgba(255,255,255,0.85)' }}>
+            <Text size={100} style={{ color: tokens.colorNeutralForegroundOnBrand, opacity: 0.85 }}>
               Por Atender
             </Text>
           </div>
@@ -178,7 +178,7 @@ export const TecnicoAgendaMobilePage: React.FC = () => {
             <Text block weight="bold" size={400} style={{ color: '#ffe082' }}>
               {conteos.enProgreso}
             </Text>
-            <Text size={100} style={{ color: 'rgba(255,255,255,0.85)' }}>
+            <Text size={100} style={{ color: tokens.colorNeutralForegroundOnBrand, opacity: 0.85 }}>
               En Curso
             </Text>
           </div>
@@ -186,7 +186,7 @@ export const TecnicoAgendaMobilePage: React.FC = () => {
             <Text block weight="bold" size={400} style={{ color: '#a5d6a7' }}>
               {conteos.completadas}
             </Text>
-            <Text size={100} style={{ color: 'rgba(255,255,255,0.85)' }}>
+            <Text size={100} style={{ color: tokens.colorNeutralForegroundOnBrand, opacity: 0.85 }}>
               Atendidas
             </Text>
           </div>
@@ -235,7 +235,7 @@ export const TecnicoAgendaMobilePage: React.FC = () => {
             style={{
               textAlign: 'center',
               padding: '40px 20px',
-              backgroundColor: '#ffffff',
+              backgroundColor: tokens.colorNeutralBackground1,
               borderRadius: '12px',
               border: `1px dashed ${tokens.colorNeutralStroke2}`,
               marginTop: '12px',
@@ -262,8 +262,8 @@ export const TecnicoAgendaMobilePage: React.FC = () => {
                 style={{
                   padding: '14px 16px',
                   borderRadius: '10px',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-                  backgroundColor: '#ffffff',
+                  boxShadow: tokens.shadow4,
+                  backgroundColor: tokens.colorNeutralBackground1,
                   border: `1px solid ${orden.estadoSistema === 'EnProgreso' ? tokens.colorBrandStroke1 : tokens.colorNeutralStroke2}`,
                   display: 'flex',
                   flexDirection: 'column',
@@ -273,8 +273,8 @@ export const TecnicoAgendaMobilePage: React.FC = () => {
                 {/* Header de la Cita */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Clock20Regular style={{ color: '#0f6cbd', fontSize: '18px' }} />
-                    <Text weight="semibold" size={200} style={{ color: '#0f6cbd' }}>
+                    <Clock20Regular style={{ color: tokens.colorBrandForeground1, fontSize: '18px' }} />
+                    <Text weight="semibold" size={200} style={{ color: tokens.colorBrandForeground1 }}>
                       {orden.bloqueHorario || 'Horario Flexible'}
                     </Text>
                     {orden.fechaProgramada && (
@@ -304,7 +304,7 @@ export const TecnicoAgendaMobilePage: React.FC = () => {
                         width: '8px',
                         height: '8px',
                         borderRadius: '50%',
-                        backgroundColor: orden.tipoOrdenColor || '#0f6cbd',
+                        backgroundColor: orden.tipoOrdenColor || tokens.colorBrandBackground,
                       }}
                     />
                     <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground2 }}>
@@ -323,12 +323,12 @@ export const TecnicoAgendaMobilePage: React.FC = () => {
                       display: 'flex',
                       alignItems: 'flex-start',
                       gap: '6px',
-                      backgroundColor: '#f9f9fb',
+                      backgroundColor: tokens.colorNeutralBackground3,
                       padding: '8px 10px',
                       borderRadius: '6px',
                     }}
                   >
-                    <Location20Regular style={{ color: '#d13438', fontSize: '16px', marginTop: '2px', flexShrink: 0 }} />
+                    <Location20Regular style={{ color: tokens.colorPaletteRedForeground1, fontSize: '16px', marginTop: '2px', flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
                       <Text size={200} style={{ lineHeight: '1.3', color: tokens.colorNeutralForeground1 }}>
                         {orden.direccionServicio}
@@ -342,7 +342,7 @@ export const TecnicoAgendaMobilePage: React.FC = () => {
                     <Button
                       size="small"
                       appearance="subtle"
-                      style={{ fontSize: '11px', color: '#0f6cbd', padding: '0 6px', height: '26px' }}
+                      style={{ fontSize: '11px', color: tokens.colorBrandForeground1, padding: '0 6px', height: '26px' }}
                       onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${direccionMaps}`, '_blank')}
                     >
                       Mapa 📍
@@ -383,10 +383,11 @@ export const TecnicoAgendaMobilePage: React.FC = () => {
                   style={{
                     backgroundColor:
                       orden.estadoSistema === 'EnProgreso'
-                        ? '#107c41'
+                        ? tokens.colorPaletteGreenBackground3
                         : orden.estadoSistema === 'Completado'
-                        ? '#5c2d91'
-                        : '#0f6cbd',
+                        ? tokens.colorNeutralBackground5
+                        : tokens.colorBrandBackground,
+                    color: tokens.colorNeutralForegroundOnBrand,
                     borderRadius: '8px',
                     fontWeight: 600,
                     marginTop: '4px',

@@ -31,13 +31,16 @@ export function canAccessPath(path: string, permisos: readonly string[]): boolea
     return (
       has('serviciocampo.solicitudes.ver_propias') ||
       has('serviciocampo.solicitudes.ver_equipo') ||
-      has('serviciocampo.ordenes.ver_todas') ||
-      has('serviciocampo.acceso') ||
-      has('crm.acceso')
+      has('serviciocampo.ordenes.ver_todas')
     );
   }
-  if (path.startsWith('/servicio-campo/ordenes') || path.startsWith('/servicio-campo/trabajos') || path === '/dashboard') return has('serviciocampo.acceso')
-    && (!path.endsWith('/nuevo') || has('serviciocampo.ordenes.crear'));
+  if (path.startsWith('/servicio-campo/ordenes') || path.startsWith('/servicio-campo/trabajos') || path === '/dashboard') {
+    if (has('serviciocampo.ordenes.operar_campo') && !has('serviciocampo.ordenes.ver_todas') && !has('serviciocampo.ordenes.asignar')) {
+      return false; // El técnico de campo puro utiliza exclusivamente su aplicación móvil /servicio-campo/mis-citas
+    }
+    return has('serviciocampo.acceso')
+      && (!path.endsWith('/nuevo') || has('serviciocampo.ordenes.crear'));
+  }
   if (
     path.startsWith('/servicio-campo/motivos-retiro') ||
     path.startsWith('/servicio-campo/fallas-equipo') ||

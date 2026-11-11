@@ -260,7 +260,7 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         minHeight: '100vh',
-        backgroundColor: '#f5f5f7',
+        backgroundColor: tokens.colorNeutralBackground2,
         fontFamily: 'Segoe UI, -apple-system, sans-serif',
         paddingBottom: '80px', // espacio para la barra de acción inferior fija
       }}
@@ -270,10 +270,10 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
       {/* 1. TOP BAR MÓVIL DYNAMICS 365 */}
       <div
         style={{
-          backgroundColor: '#0f6cbd',
-          color: '#ffffff',
+          backgroundColor: tokens.colorBrandBackground,
+          color: tokens.colorNeutralForegroundOnBrand,
           padding: '12px 16px',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+          boxShadow: tokens.shadow8,
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
@@ -285,15 +285,15 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
         <Button
           appearance="transparent"
           icon={<ArrowLeft20Regular />}
-          style={{ color: '#ffffff', minWidth: '36px', padding: 0 }}
+          style={{ color: tokens.colorNeutralForegroundOnBrand, minWidth: '36px', padding: 0 }}
           onClick={() => navigate('/servicio-campo/mis-citas')}
           aria-label="Volver"
         />
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          <Text block weight="bold" size={300} style={{ color: '#ffffff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+          <Text block weight="bold" size={300} style={{ color: tokens.colorNeutralForegroundOnBrand, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
             {orden.codigoWo} — {orden.clienteServicioNombre}
           </Text>
-          <Text size={100} style={{ color: 'rgba(255,255,255,0.85)' }}>
+          <Text size={100} style={{ color: tokens.colorNeutralForegroundOnBrand, opacity: 0.85 }}>
             {orden.tipoOrdenNombre} • Cita {ultimaVisita?.codigoVisita || 'V1'}
           </Text>
         </div>
@@ -301,14 +301,14 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
           size="small"
           appearance="transparent"
           icon={<ArrowClockwise20Regular />}
-          style={{ color: '#ffffff', minWidth: '32px' }}
+          style={{ color: tokens.colorNeutralForegroundOnBrand, minWidth: '32px' }}
           onClick={() => void cargar()}
         />
       </div>
 
       {/* 2. CARD RESUMEN DEL CLIENTE CON ACCESOS DIRECTOS */}
       <div style={{ padding: '12px 16px 6px 16px' }}>
-        <Card style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: '#ffffff', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <Card style={{ padding: '12px 14px', borderRadius: '10px', backgroundColor: tokens.colorNeutralBackground1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Badge
               appearance="filled"
@@ -326,13 +326,13 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
                 ? '✔ Trabajo Culminado'
                 : '📅 Cita Programada'}
             </Badge>
-            <Text weight="semibold" size={200} style={{ color: '#0f6cbd' }}>
+            <Text weight="semibold" size={200} style={{ color: tokens.colorBrandForeground1 }}>
               ⏰ {orden.bloqueHorario || 'Horario Flexible'}
             </Text>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-            <Location20Regular style={{ color: '#d13438', fontSize: '18px', marginTop: '2px', flexShrink: 0 }} />
+            <Location20Regular style={{ color: tokens.colorPaletteRedForeground1, fontSize: '18px', marginTop: '2px', flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
               <Text weight="semibold" size={200} style={{ lineHeight: '1.3' }}>
                 {orden.direccionServicio || 'Dirección no especificada'}
@@ -409,20 +409,20 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
         {tab === 'tareas' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {/* Barra de Progreso */}
-            <div style={{ backgroundColor: '#ffffff', padding: '10px 14px', borderRadius: '8px', border: `1px solid ${tokens.colorNeutralStroke2}` }}>
+            <div style={{ backgroundColor: tokens.colorNeutralBackground1, padding: '10px 14px', borderRadius: '8px', border: `1px solid ${tokens.colorNeutralStroke2}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                 <Text size={200} weight="semibold">Progreso de Labores</Text>
-                <Text size={200} weight="bold" style={{ color: '#0f6cbd' }}>{progresoPorcentaje}%</Text>
+                <Text size={200} weight="bold" style={{ color: tokens.colorBrandForeground1 }}>{progresoPorcentaje}%</Text>
               </div>
-              <div style={{ width: '100%', height: '8px', backgroundColor: '#e0e0e0', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ width: `${progresoPorcentaje}%`, height: '100%', backgroundColor: '#107c41', transition: 'width 0.3s ease' }} />
+              <div style={{ width: '100%', height: '8px', backgroundColor: tokens.colorNeutralBackground4, borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ width: `${progresoPorcentaje}%`, height: '100%', backgroundColor: tokens.colorPaletteGreenBackground3, transition: 'width 0.3s ease' }} />
               </div>
             </div>
 
             {orden.trabajos?.map((t) => (
-              <Card key={t.id} style={{ padding: '14px', borderRadius: '10px', backgroundColor: '#ffffff', border: `1px solid ${tokens.colorNeutralStroke2}` }}>
+              <Card key={t.id} style={{ padding: '14px', borderRadius: '10px', backgroundColor: tokens.colorNeutralBackground1, border: `1px solid ${tokens.colorNeutralStroke2}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text weight="bold" size={300} style={{ color: '#0f6cbd' }}>
+                  <Text weight="bold" size={300} style={{ color: tokens.colorBrandForeground1 }}>
                     {t.codigoTrabajo}: {t.productoNombre}
                   </Text>
                   <Badge appearance="tint" color={t.estado === 'Completado' ? 'success' : 'informative'}>
@@ -443,8 +443,8 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
                             gap: '10px',
                             padding: '8px 10px',
                             borderRadius: '6px',
-                            backgroundColor: done ? '#f1f8f4' : '#fafafa',
-                            border: `1px solid ${done ? '#c8e6c9' : tokens.colorNeutralStroke2}`,
+                            backgroundColor: done ? tokens.colorPaletteGreenBackground1 : tokens.colorNeutralBackground3,
+                            border: `1px solid ${done ? tokens.colorPaletteGreenBorder1 : tokens.colorNeutralStroke2}`,
                           }}
                         >
                           <Checkbox
@@ -456,7 +456,7 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
                             <Text
                               weight="medium"
                               size={200}
-                              style={{ textDecoration: done ? 'line-through' : 'none', color: done ? '#2e7d32' : tokens.colorNeutralForeground1 }}
+                              style={{ textDecoration: done ? 'line-through' : 'none', color: done ? tokens.colorPaletteGreenForeground1 : tokens.colorNeutralForeground1 }}
                             >
                               {tarea.nombreTarea}
                             </Text>
@@ -483,7 +483,7 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
         {/* PESTAÑA: EVIDENCIAS FOTOGRÁFICAS */}
         {tab === 'evidencias' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <Card style={{ padding: '14px', borderRadius: '10px', backgroundColor: '#ffffff', border: `1px solid ${tokens.colorNeutralStroke2}` }}>
+            <Card style={{ padding: '14px', borderRadius: '10px', backgroundColor: tokens.colorNeutralBackground1, border: `1px solid ${tokens.colorNeutralStroke2}` }}>
               <Text weight="bold" size={300}>📸 Registrar Foto en Sitio</Text>
               <Text block size={200} style={{ color: tokens.colorNeutralForeground3, marginTop: '2px' }}>
                 Capture fotos de la instalación, medidor, equipo instalado o acta física.
@@ -512,7 +512,7 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
                   icon={<Camera20Regular />}
                   onClick={() => fileInputRef.current?.click()}
                   disabled={subiendoFoto || !ultimaVisita}
-                  style={{ height: '42px', backgroundColor: '#0f6cbd' }}
+                  style={{ height: '42px' }}
                 >
                   {subiendoFoto ? 'Guardando foto...' : 'Abrir Cámara y Tomar Foto'}
                 </Button>
@@ -524,7 +524,7 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
               <Text weight="bold" size={300}>Fotos Registradas ({ultimaVisita?.evidencias?.length ?? 0})</Text>
 
               {(!ultimaVisita?.evidencias || ultimaVisita.evidencias.length === 0) ? (
-                <div style={{ textAlign: 'center', padding: '30px', backgroundColor: '#ffffff', borderRadius: '8px' }}>
+                <div style={{ textAlign: 'center', padding: '30px', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '8px' }}>
                   <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
                     Aún no se han capturado fotos para esta visita.
                   </Text>
@@ -535,11 +535,11 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
                     <div
                       key={ev.id}
                       style={{
-                        backgroundColor: '#ffffff',
+                        backgroundColor: tokens.colorNeutralBackground1,
                         borderRadius: '8px',
                         overflow: 'hidden',
                         border: `1px solid ${tokens.colorNeutralStroke2}`,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                        boxShadow: tokens.shadow2,
                       }}
                     >
                       <img
@@ -564,7 +564,7 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
         {/* PESTAÑA: FIRMA DEL CLIENTE */}
         {tab === 'firma' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <Card style={{ padding: '16px', borderRadius: '10px', backgroundColor: '#ffffff', border: `1px solid ${tokens.colorNeutralStroke2}` }}>
+            <Card style={{ padding: '16px', borderRadius: '10px', backgroundColor: tokens.colorNeutralBackground1, border: `1px solid ${tokens.colorNeutralStroke2}` }}>
               <Text weight="bold" size={300}>✍ Firma Digital de Conformidad</Text>
               <Text block size={200} style={{ color: tokens.colorNeutralForeground3, marginTop: '2px' }}>
                 Pida al cliente o persona receptora que firme con el dedo en el recuadro.
@@ -597,7 +597,7 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
                   <Button
                     size="medium"
                     appearance="primary"
-                    style={{ backgroundColor: '#107c41', height: '40px', marginTop: '8px' }}
+                    style={{ backgroundColor: tokens.colorPaletteGreenBackground3, color: tokens.colorNeutralForegroundOnBrand, height: '40px', marginTop: '8px' }}
                     onClick={handleGuardarFirma}
                     disabled={submitting || !firmaUrl}
                   >
@@ -612,7 +612,7 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
         {/* PESTAÑA: MATERIALES */}
         {tab === 'materiales' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <Card style={{ padding: '14px', borderRadius: '10px', backgroundColor: '#ffffff' }}>
+            <Card style={{ padding: '14px', borderRadius: '10px', backgroundColor: tokens.colorNeutralBackground1 }}>
               <Text weight="bold" size={300}>📦 Materiales Previstos</Text>
               <Text block size={200} style={{ color: tokens.colorNeutralForeground3 }}>
                 Si no liquida materiales en la app, el Almacenero los descargará al final de la jornada.
@@ -656,7 +656,7 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
         {/* PESTAÑA: DETALLE / INFORMACIÓN */}
         {tab === 'info' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <Card style={{ padding: '14px', borderRadius: '10px', backgroundColor: '#ffffff' }}>
+            <Card style={{ padding: '14px', borderRadius: '10px', backgroundColor: tokens.colorNeutralBackground1 }}>
               <Text weight="bold" size={300}>Información Comercial y Operativa</Text>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px', fontSize: '13px' }}>
                 <div><strong>N° Orden Siebel:</strong> {orden.numeroOrden || '—'}</div>
@@ -677,10 +677,10 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: '#ffffff',
+          backgroundColor: tokens.colorNeutralBackground1,
           borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
           padding: '10px 16px',
-          boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
+          boxShadow: tokens.shadow8,
           display: 'flex',
           gap: '12px',
           zIndex: 99,
@@ -691,7 +691,7 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
             size="large"
             appearance="primary"
             icon={<Play20Regular />}
-            style={{ flex: 1, height: '48px', backgroundColor: '#0f6cbd', fontWeight: 'bold', fontSize: '15px' }}
+            style={{ flex: 1, height: '48px', fontWeight: 'bold', fontSize: '15px' }}
             onClick={handleIniciarAtencion}
             disabled={submitting}
           >
@@ -704,7 +704,7 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
             size="large"
             appearance="primary"
             icon={<CheckmarkCircle20Regular />}
-            style={{ flex: 1, height: '48px', backgroundColor: '#107c41', fontWeight: 'bold', fontSize: '15px' }}
+            style={{ flex: 1, height: '48px', backgroundColor: tokens.colorPaletteGreenBackground3, color: tokens.colorNeutralForegroundOnBrand, fontWeight: 'bold', fontSize: '15px' }}
             onClick={() => setDialogCerrarOpen(true)}
             disabled={submitting}
           >
@@ -716,7 +716,7 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
           <Button
             size="large"
             appearance="outline"
-            style={{ flex: 1, height: '48px', fontWeight: 'bold', fontSize: '14px', color: '#107c41', borderColor: '#107c41' }}
+            style={{ flex: 1, height: '48px', fontWeight: 'bold', fontSize: '14px', color: tokens.colorPaletteGreenForeground1, borderColor: tokens.colorPaletteGreenBorder1 }}
             onClick={() => navigate('/servicio-campo/mis-citas')}
           >
             ✔ Orden Culminada — Volver a Agenda
@@ -748,7 +748,7 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
               <Button appearance="secondary" onClick={() => setDialogCerrarOpen(false)} disabled={submitting}>
                 Volver
               </Button>
-              <Button appearance="primary" onClick={handleConfirmarCierre} disabled={submitting} style={{ backgroundColor: '#107c41' }}>
+              <Button appearance="primary" onClick={handleConfirmarCierre} disabled={submitting}>
                 {submitting ? 'Cerrando...' : 'Confirmar Cierre'}
               </Button>
             </DialogActions>

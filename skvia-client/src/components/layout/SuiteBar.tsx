@@ -106,6 +106,9 @@ const useStyles = makeStyles({
     alignItems: 'center',
     userSelect: 'none',
     lineHeight: '48px',
+    '@media (max-width: 900px)': {
+      display: 'none',
+    },
   },
   divider: {
     height: '18px',
@@ -113,6 +116,9 @@ const useStyles = makeStyles({
     marginRight: '4px',
     flexShrink: 0,
     opacity: 0.35,
+    '@media (max-width: 900px)': {
+      display: 'none',
+    },
   },
   appTitle: {
     fontSize: semanticTokens.typography.body,
@@ -121,6 +127,16 @@ const useStyles = makeStyles({
     letterSpacing: '-0.2px',
     paddingLeft: '8px',
     paddingRight: '16px',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    maxWidth: '180px',
+    '@media (max-width: 600px)': {
+      maxWidth: '120px',
+      fontSize: '12px',
+      paddingLeft: '4px',
+      paddingRight: '6px',
+    },
   },
   appsDrawer: {
     width: '320px',
@@ -220,6 +236,9 @@ const useStyles = makeStyles({
     flexGrow: 1,
     maxWidth: '480px',
     margin: '0 16px',
+    '@media (max-width: 768px)': {
+      display: 'none',
+    },
   },
   searchInput: {
     width: '100%',
@@ -234,6 +253,15 @@ const useStyles = makeStyles({
     display: 'flex',
     alignItems: 'center',
     gap: '4px',
+    flexShrink: 0,
+    '@media (max-width: 600px)': {
+      gap: '2px',
+    },
+  },
+  desktopOnly: {
+    '@media (max-width: 768px)': {
+      display: 'none',
+    },
   },
   actionBtn: {
     minWidth: '36px',
@@ -272,8 +300,13 @@ const useStyles = makeStyles({
     border: 'none',
     backgroundColor: 'transparent',
     cursor: 'pointer',
+    flexShrink: 0,
     ':hover': {
       backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    },
+    '@media (max-width: 850px)': {
+      padding: '2px 4px',
+      gap: 0,
     },
   },
   userInfoText: {
@@ -282,6 +315,9 @@ const useStyles = makeStyles({
     alignItems: 'flex-start',
     textAlign: 'left',
     lineHeight: '1.2',
+    '@media (max-width: 850px)': {
+      display: 'none',
+    },
   },
   userName: {
     color: semanticTokens.navigation.foreground,
@@ -355,7 +391,8 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
       };
     }
     return {
-      backgroundColor: tokens.colorBrandBackgroundStatic,
+      backgroundColor: isDarkMode ? tokens.colorNeutralBackground4 : tokens.colorBrandBackground,
+      borderBottom: isDarkMode ? `1px solid ${tokens.colorNeutralStroke2}` : undefined,
     };
   };
 
@@ -386,15 +423,17 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
             />
           )}
 
-          {/* Waffle Launcher Button - always persistent Teal */}
-          <Button
-            appearance="transparent"
-            className={styles.waffleBtn}
-            onClick={() => setAppsDrawerOpen(true)}
-            title="Iniciador de aplicaciones (Apps)"
-            aria-label="Iniciador de aplicaciones"
-            icon={<Apps20Regular />}
-          />
+          {/* Waffle Launcher Button - solo para usuarios con múltiples aplicaciones corporativas (no técnicos) */}
+          {apps && apps.length > 1 && !currentUser.rol?.toLowerCase().includes('tecnico') && (
+            <Button
+              appearance="transparent"
+              className={styles.waffleBtn}
+              onClick={() => setAppsDrawerOpen(true)}
+              title="Iniciador de aplicaciones (Apps)"
+              aria-label="Iniciador de aplicaciones"
+              icon={<Apps20Regular />}
+            />
+          )}
 
           {/* PROGRAMMING CAR Brand Text */}
           <span className={styles.brandText}>PROGRAMMING CAR</span>
@@ -476,66 +515,70 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
           </Menu>
 
           {/* Ayuda y Soporte */}
-          <Menu>
-            <MenuTrigger disableButtonEnhancement>
-              <Tooltip content="Ayuda y documentación técnica" relationship="label">
-                <Button
-                  appearance="transparent"
-                  className={styles.actionBtn}
-                  aria-label="Ayuda"
-                  icon={<QuestionCircle20Regular />}
-                />
-              </Tooltip>
-            </MenuTrigger>
-            <MenuPopover>
-              <MenuList style={{ minWidth: '260px', padding: '8px' }}>
-                <div style={{ padding: '6px 12px' }}>
-                  <Text weight="semibold" size={300} block>
-                    Centro de Ayuda
-                  </Text>
-                  <Text size={100} style={{ opacity: 0.7 }} block>
-                    PROGRAMMING CAR ERP v1.0.0
-                  </Text>
-                </div>
-                <Divider style={{ margin: '6px 0' }} />
-                <MenuItem onClick={() => navigate('/gestion-datos/importaciones')}>
-                  Importaciones
-                </MenuItem>
-                <MenuItem onClick={() => navigate('/servicio-campo/productos')}>
-                  Catálogo de Productos y Precios
-                </MenuItem>
-              </MenuList>
-            </MenuPopover>
-          </Menu>
+          <div className={styles.desktopOnly}>
+            <Menu>
+              <MenuTrigger disableButtonEnhancement>
+                <Tooltip content="Ayuda y documentación técnica" relationship="label">
+                  <Button
+                    appearance="transparent"
+                    className={styles.actionBtn}
+                    aria-label="Ayuda"
+                    icon={<QuestionCircle20Regular />}
+                  />
+                </Tooltip>
+              </MenuTrigger>
+              <MenuPopover>
+                <MenuList style={{ minWidth: '260px', padding: '8px' }}>
+                  <div style={{ padding: '6px 12px' }}>
+                    <Text weight="semibold" size={300} block>
+                      Centro de Ayuda
+                    </Text>
+                    <Text size={100} style={{ opacity: 0.7 }} block>
+                      PROGRAMMING CAR ERP v1.0.0
+                    </Text>
+                  </div>
+                  <Divider style={{ margin: '6px 0' }} />
+                  <MenuItem onClick={() => navigate('/gestion-datos/importaciones')}>
+                    Importaciones
+                  </MenuItem>
+                  <MenuItem onClick={() => navigate('/servicio-campo/productos')}>
+                    Catálogo de Productos y Precios
+                  </MenuItem>
+                </MenuList>
+              </MenuPopover>
+            </Menu>
+          </div>
 
           {/* Configuración Rápida */}
-          <Menu>
-            <MenuTrigger disableButtonEnhancement>
-              <Tooltip content="Configuración global del entorno" relationship="label">
-                <Button
-                  appearance="transparent"
-                  className={styles.actionBtn}
-                  aria-label="Configuración"
-                  icon={<Settings20Regular />}
-                />
-              </Tooltip>
-            </MenuTrigger>
-            <MenuPopover>
-              <MenuList style={{ minWidth: '240px', padding: '8px' }}>
-                <div style={{ padding: '6px 12px' }}>
-                  <Text weight="semibold" size={300} block>
-                    Configuración del Entorno
-                  </Text>
-                </div>
-                <Divider style={{ margin: '6px 0' }} />
-                <MenuItem onClick={toggleDarkMode}>
-                  {isDarkMode ? 'Cambiar a tema Claro' : 'Cambiar a tema Oscuro'}
-                </MenuItem>
-                <MenuItem disabled>📐 Densidad: Estándar (D365)</MenuItem>
-                <MenuItem disabled>🇵🇪 Moneda: Soles (PEN - S/.)</MenuItem>
-              </MenuList>
-            </MenuPopover>
-          </Menu>
+          <div className={styles.desktopOnly}>
+            <Menu>
+              <MenuTrigger disableButtonEnhancement>
+                <Tooltip content="Configuración global del entorno" relationship="label">
+                  <Button
+                    appearance="transparent"
+                    className={styles.actionBtn}
+                    aria-label="Configuración"
+                    icon={<Settings20Regular />}
+                  />
+                </Tooltip>
+              </MenuTrigger>
+              <MenuPopover>
+                <MenuList style={{ minWidth: '240px', padding: '8px' }}>
+                  <div style={{ padding: '6px 12px' }}>
+                    <Text weight="semibold" size={300} block>
+                      Configuración del Entorno
+                    </Text>
+                  </div>
+                  <Divider style={{ margin: '6px 0' }} />
+                  <MenuItem onClick={toggleDarkMode}>
+                    {isDarkMode ? 'Cambiar a tema Claro' : 'Cambiar a tema Oscuro'}
+                  </MenuItem>
+                  <MenuItem disabled>📐 Densidad: Estándar (D365)</MenuItem>
+                  <MenuItem disabled>🇵🇪 Moneda: Soles (PEN - S/.)</MenuItem>
+                </MenuList>
+              </MenuPopover>
+            </Menu>
+          </div>
 
           {/* User Persona dinámico */}
           <Menu>
