@@ -529,7 +529,7 @@ export const OrdenesTrabajoListPage: React.FC = () => {
 
           <TableCellLayout>
 
-            <Badge appearance="ghost" shape="rounded" color="brand">
+            <Badge appearance="tint" shape="rounded" color="brand">
 
               {item.totalPuntos ?? 0} pts
 

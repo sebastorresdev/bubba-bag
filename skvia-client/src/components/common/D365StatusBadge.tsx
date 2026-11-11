@@ -63,6 +63,14 @@ const useStyles = makeStyles({
     display: 'inline-flex',
     alignItems: 'center',
   },
+  badgeSubtleTint: {
+    backgroundColor: `${tokens.colorNeutralBackground3} !important`,
+    color: `${tokens.colorNeutralForeground1} !important`,
+    border: `1px solid ${tokens.colorNeutralStroke2} !important`,
+  },
+  badgeSubtleGhost: {
+    color: `${tokens.colorNeutralForeground1} !important`,
+  },
 });
 
 /**
@@ -221,7 +229,7 @@ export const D365StatusBadge: React.FC<D365StatusBadgeProps> = ({
   status,
   text,
   color,
-  appearance = 'ghost',
+  appearance = 'tint',
   shape = 'rounded',
   size = 'medium',
   className,
@@ -232,13 +240,20 @@ export const D365StatusBadge: React.FC<D365StatusBadgeProps> = ({
   const badgeColor = color ?? resolved.color;
   const badgeLabel = text ?? resolved.label;
 
+  const isSubtle = badgeColor === 'subtle';
+  const subtleStyleClass = isSubtle
+    ? appearance === 'ghost'
+      ? styles.badgeSubtleGhost
+      : styles.badgeSubtleTint
+    : '';
+
   return (
     <Badge
       appearance={appearance}
       shape={shape}
       color={badgeColor}
       size={size}
-      className={`${styles.badgeBase} ${resolved.hasBorder && appearance !== 'ghost' ? styles.badgeSubtleBorder : ''} ${className ?? ''}`}
+      className={`${styles.badgeBase} ${subtleStyleClass} ${className ?? ''}`}
       style={{ whiteSpace: 'nowrap', ...style }}
     >
       {resolved.isPulsing && <span className={styles.pulseDot} aria-hidden="true" />}

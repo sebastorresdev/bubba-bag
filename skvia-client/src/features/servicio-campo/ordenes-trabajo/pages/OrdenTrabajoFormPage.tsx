@@ -2174,7 +2174,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
           { label: 'Estado Operativo', value: <D365StatusBadge status={estadoOperativo} size="small" /> },
           { label: 'Técnico', value: recursoTecnicoNombre || '---' },
           { label: 'Fecha Cita', value: fechaProgramada ? `${fechaProgramada}${bloqueHorario ? ` (${bloqueHorario})` : ''}` : '—' },
-          { label: 'Puntos', value: <Badge appearance="ghost" shape="rounded" color="brand">{orden?.totalPuntos ?? trabajos.reduce((acc, t) => acc + (t.puntos ?? 1), 0)} pts</Badge> },
+          { label: 'Puntos', value: <Badge appearance="tint" shape="rounded" color="brand">{orden?.totalPuntos ?? trabajos.reduce((acc, t) => acc + (t.puntos ?? 1), 0)} pts</Badge> },
         ]}
         processFlow={
           <WorkOrderEtapas
