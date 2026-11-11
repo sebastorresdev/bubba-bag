@@ -15,6 +15,7 @@ import {
   Input,
   Radio,
   RadioGroup,
+  Select,
   Spinner,
   Tab,
   TabList,
@@ -92,6 +93,8 @@ export function UsuarioFormPage() {
   const [catalogo, setCatalogo] = useState<RolDto[]>([]);
   const [catalogoPermisos, setCatalogoPermisos] = useState<PermisoDefinicionDto[]>([]);
   const [activo, setActivo] = useState(true);
+  const [supervisorId, setSupervisorId] = useState<string>("");
+  const [supervisoresList, setSupervisoresList] = useState<UsuarioDto[]>([]);
 
   // Configuración de contraseña en línea (Paso inicial estilo Microsoft 365 / Dynamics)
   const [passwordModo, setPasswordModo] = useState<'automatica' | 'manual'>('automatica');
@@ -142,6 +145,12 @@ export function UsuarioFormPage() {
         setEmail(u?.email ?? '');
         setRoles(u?.roles ?? []);
         setActivo(u?.esActivo ?? true);
+        setSupervisorId(u?.supervisorId ?? '');
+        void SeguridadService.usuarios().then((users) => {
+          if (current) {
+            setSupervisoresList(users.filter((usr) => usr.id !== id && usr.esActivo));
+          }
+        });
       })
       .catch((e) => {
         if (current) setError(e instanceof Error ? e.message : 'Error al cargar usuario.');
@@ -252,6 +261,7 @@ export function UsuarioFormPage() {
           nombreCompleto: nombre.trim(),
           email: email.trim(),
           roles,
+          supervisorId: supervisorId || null,
         });
         draft.markSaved(savedDraft);
       } else {
@@ -483,6 +493,26 @@ navigate('/configuracion/usuarios'); }
                       contentAfter={!canEdit ? <LockClosed16Regular /> : undefined}
                       onChange={(_, d) => setEmail(d.value)}
                     />
+                  </D365FormField>
+
+                  <D365FormField
+                    label="Supervisor / Jefatura a Cargo"
+                    htmlFor="usuario-supervisor"
+                  >
+                    <Select
+                      id="usuario-supervisor"
+                      className={styles.d365ControlFull}
+                      value={supervisorId}
+                      disabled={!canEdit || busy}
+                      onChange={(_, d) => setSupervisorId(d.value)}
+                    >
+                      <option value="">— Sin supervisor asignado (Directo / Gerencia) —</option>
+                      {supervisoresList.map((sup) => (
+                        <option key={sup.id} value={sup.id}>
+                          {sup.nombreCompleto} ({sup.email})
+                        </option>
+                      ))}
+                    </Select>
                   </D365FormField>
 
                   {/* CONFIGURACIÓN DE CONTRASEÑA EN LÍNEA (Solo al crear usuario) */}

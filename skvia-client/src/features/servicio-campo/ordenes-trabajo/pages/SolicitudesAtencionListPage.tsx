@@ -37,6 +37,7 @@ import { exportToExcel, exportToCSV, type ExportColumn } from '../../../../utils
 
 type VistaSolicitudes =
   | 'mis_solicitudes'
+  | 'equipo'
   | 'todas'
   | 'borrador'
   | 'por_programar'
@@ -45,6 +46,7 @@ type VistaSolicitudes =
 
 const vistasSistemaSolicitudes = [
   { key: 'mis_solicitudes', label: 'Mis Solicitudes activas' },
+  { key: 'equipo', label: 'Solicitudes de mi equipo a cargo' },
   { key: 'todas', label: 'Todas las solicitudes comerciales' },
   { key: 'borrador', label: 'Borradores / Por coordinar' },
   { key: 'por_programar', label: 'Enviadas a Despacho (Pendientes programar)' },
@@ -75,6 +77,7 @@ export const SolicitudesAtencionListPage: React.FC = () => {
       else if (activeView === 'por_programar') vistaBackend = 'pendientes';
       else if (activeView === 'en_curso') vistaBackend = 'en_progreso';
       else if (activeView === 'finalizadas') vistaBackend = 'finalizadas_mes';
+      else if (activeView === 'equipo') vistaBackend = 'equipo';
 
       const data = await OrdenTrabajoService.obtenerOrdenes({
         search: searchKeyword.trim() || undefined,

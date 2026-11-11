@@ -19,7 +19,7 @@ export const SeguridadService = {
     apiClient<void>(`${base}/roles/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   eliminarRol: (id: string) => apiClient<void>(`${base}/roles/${id}`, { method: 'DELETE' }),
   crear: (data: { email: string; nombreCompleto: string; password: string; roles: string[] }) => apiClient<{ usuarioId: string }>(`${base}/usuarios`, { method: 'POST', body: JSON.stringify(data) }),
-  editar: (id: string, data: { email: string; nombreCompleto: string; roles: string[] }) => apiClient<void>(`${base}/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  editar: (id: string, data: { email: string; nombreCompleto: string; roles: string[]; supervisorId?: string | null }) => apiClient<void>(`${base}/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   asignarRoles: (id: string, roles: string[]) => apiClient<void>(`${base}/usuarios/${id}/roles`, { method: 'PUT', body: JSON.stringify({ roles }) }),
   estado: (id: string, esActivo: boolean) => apiClient<void>(`${base}/usuarios/${id}/estado`, { method: 'PATCH', body: JSON.stringify({ esActivo }) }),
   password: (id: string, nuevaPassword: string) => apiClient<void>(`${base}/usuarios/${id}/password`, { method: 'PUT', body: JSON.stringify({ nuevaPassword }) }),

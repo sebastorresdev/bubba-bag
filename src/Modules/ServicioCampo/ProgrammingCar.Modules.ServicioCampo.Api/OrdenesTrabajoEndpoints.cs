@@ -53,6 +53,7 @@ public static class OrdenesTrabajoEndpoints
         group.MapPost("/{id:guid}/liquidar", LiquidarOrdenTrabajo);
         group.MapPost("/{id:guid}/visitas/{visitaId:guid}/reprogramar", ReprogramarVisita).RequireAuthorization(Permissions.ServicioCampo.OrdenesAsignar);
         group.MapPost("/{id:guid}/visitas/{visitaId:guid}/cancelar", CancelarVisita).RequireAuthorization(Permissions.ServicioCampo.OrdenesAsignar);
+        group.MapPost("/{id:guid}/visitas/{visitaId:guid}/evidencias", AgregarEvidenciaVisita);
         group.MapPost("/importar-siebel", ImportarOrdenesSiebel).RequireAuthorization(Permissions.ServicioCampo.OrdenesCrear).DisableAntiforgery();
     }
 
@@ -432,6 +433,21 @@ public static class OrdenesTrabajoEndpoints
         else if (vistaNormalizada == "borrador")
         {
             query = query.Where(o => o.EstadoSistema == EstadoSistema.Borrador);
+        }
+        else if (vistaNormalizada == "pendientes_liquidacion")
+        {
+            query = query.Where(o => (o.EstadoSistema == EstadoSistema.Completado || o.Estado == EstadoOrdenTrabajo.Completa)
+                && o.DescargaMaterialesObligatoria && !o.DescargaMaterialesConfirmada);
+        }
+        else if (vistaNormalizada == "mis_asignadas")
+        {
+            query = query.Where(o => o.Visitas.Any(v =>
+                v.NumeroVisita == o.Visitas.Max(x => x.NumeroVisita) && v.Estado != EstadoVisita.Cancelada
+                && v.Recurso.Activo && v.Recurso.UsuarioId == currentUser.Id));
+        }
+        else if (vistaNormalizada == "equipo" && subordinados != null && subordinados.Count > 0)
+        {
+            query = query.Where(o => o.CreadoPorId == currentUser.Id || subordinados.Contains(o.CreadoPorId));
         }
         else if (!string.IsNullOrWhiteSpace(estadoSistema) && Enum.TryParse<EstadoSistema>(estadoSistema, true, out var estadoSis))
         {
@@ -876,7 +892,20 @@ public static class OrdenesTrabajoEndpoints
                 RecursoNombre: v.Recurso?.NombreCompleto ?? "Técnico",
                 FechaProgramada: v.FechaProgramada.ToString("yyyy-MM-dd"),
                 BloqueHorario: v.BloqueHorario,
-                Estado: v.Estado.ToString()
+                Estado: v.Estado.ToString(),
+                FirmaClienteUrl: v.FirmaClienteUrl,
+                NombreFirmante: v.NombreFirmante,
+                DniFirmante: v.DniFirmante,
+                EvidenciasConfirmadas: v.EvidenciasConfirmadas,
+                Evidencias: v.Evidencias.Select(ev => new EvidenciaDto(
+                    ev.Id,
+                    ev.Nombre,
+                    ev.Url,
+                    ev.EsObligatoria,
+                    ev.Observaciones,
+                    ev.CoordenadasGps,
+                    ev.CreatedAt
+                )).ToList()
             )).ToList(),
             UnidadOrganizativaId: orden.UnidadOrganizativaId ?? orden.ZonaOperativa?.SucursalId,
             UnidadOrganizativaNombre: orden.UnidadOrganizativa?.Nombre
@@ -1102,6 +1131,35 @@ public static class OrdenesTrabajoEndpoints
         return Results.Ok(new { message = "Orden de trabajo actualizada con éxito." });
     }
 
+    private static async Task<IResult> AgregarEvidenciaVisita(
+        Guid id,
+        Guid visitaId,
+        AgregarEvidenciaVisitaRequest request,
+        IServicioCampoDbContext db,
+        ICurrentUser currentUser,
+        CancellationToken ct)
+    {
+        await OrdenesAcceso.ExigirAsync(db, currentUser, id, ct);
+
+        var orden = await db.OrdenesTrabajo
+            .Include(o => o.Visitas).ThenInclude(v => v.Evidencias)
+            .FirstOrDefaultAsync(o => o.Id == id, ct);
+
+        if (orden == null) return Results.NotFound(new { message = $"No se encontró la orden de trabajo {id}." });
+
+        var visita = orden.Visitas.FirstOrDefault(v => v.Id == visitaId);
+        if (visita == null) return Results.NotFound(new { message = $"No se encontró la visita {visitaId}." });
+
+        if (string.IsNullOrWhiteSpace(request.Url))
+            return Results.BadRequest(new { message = "La URL o archivo de la evidencia es obligatorio." });
+
+        var nombre = string.IsNullOrWhiteSpace(request.Nombre) ? "Evidencia fotográfica" : request.Nombre.Trim();
+        var ev = visita.AgregarEvidencia(nombre, request.Url.Trim(), request.EsObligatoria, request.Observaciones, request.CoordenadasGps);
+        
+        await ((DbContext)db).SaveChangesAsync(ct);
+        return Results.Ok(new { id = ev.Id, mensaje = "Evidencia registrada correctamente." });
+    }
+
     private static async Task<IResult> CambiarEstadoSistema(
         Guid id,
         CambiarEstadoSistemaRequest request,
@@ -1123,6 +1181,12 @@ public static class OrdenesTrabajoEndpoints
         if (nuevoEstadoSis == EstadoSistema.Completado)
         {
             autorizado = currentUser.HasPermission(Permissions.ServicioCampo.OrdenesCerrar)
+                      || currentUser.HasPermission(Permissions.ServicioCampo.OrdenesOperarCampo)
+                      || currentUser.HasPermission(Permissions.ServicioCampo.OrdenesLiquidarMateriales);
+        }
+        else if (nuevoEstadoSis == EstadoSistema.EnProgreso)
+        {
+            autorizado = currentUser.HasPermission(Permissions.ServicioCampo.OrdenesAsignar)
                       || currentUser.HasPermission(Permissions.ServicioCampo.OrdenesOperarCampo);
         }
         else if (nuevoEstadoSis == EstadoSistema.Cancelado)
@@ -1151,7 +1215,22 @@ public static class OrdenesTrabajoEndpoints
                 var visita = orden.ProgramarVisita($"{orden.CodigoWo}-V1", request.RecursoTecnicoId.Value, fechaProg, request.BloqueHorario);
                 ((DbContext)db).Entry(visita).State = EntityState.Added;
             }
-            else orden.CambiarEstadoSistema(nuevoEstadoSis, request.MotivoId, request.Observaciones);
+            else
+            {
+                if (nuevoEstadoSis == EstadoSistema.Completado && request.CompletarTrabajosPendientes == true)
+                {
+                    foreach (var tr in orden.Trabajos.Where(t => t.Estado is EstadoTrabajo.Pendiente or EstadoTrabajo.EnProgreso))
+                    {
+                        tr.Completar(request.Observaciones);
+                    }
+                }
+                orden.CambiarEstadoSistema(nuevoEstadoSis, request.MotivoId, request.Observaciones);
+
+                if (nuevoEstadoSis == EstadoSistema.Completado && request.FinalizarDirecto == true)
+                {
+                    orden.VerificarPromocionAFinalizada();
+                }
+            }
         }
         catch (InvalidOperationException ex) { return Results.BadRequest(new { message = ex.Message }); }
         await ((DbContext)db).SaveChangesAsync(ct);
@@ -1905,7 +1984,12 @@ public record OrdenTrabajoVisitaDto(
     string RecursoNombre,
     string FechaProgramada,
     string? BloqueHorario,
-    string Estado
+    string Estado,
+    string? FirmaClienteUrl = null,
+    string? NombreFirmante = null,
+    string? DniFirmante = null,
+    bool EvidenciasConfirmadas = false,
+    List<EvidenciaDto>? Evidencias = null
 );
 
 public record CrearOrdenTrabajoItemRequest(
@@ -1964,11 +2048,31 @@ public record ActualizarOrdenTrabajoRequest(
 
 public record CambiarEstadoSistemaRequest(
     string NuevoEstadoSistema,
-    Guid? RecursoTecnicoId,
-    string? FechaProgramada,
-    string? BloqueHorario,
+    Guid? RecursoTecnicoId = null,
+    string? FechaProgramada = null,
+    string? BloqueHorario = null,
     Guid? MotivoId = null,
-    string? Observaciones = null
+    string? Observaciones = null,
+    bool? CompletarTrabajosPendientes = null,
+    bool? FinalizarDirecto = null
+);
+
+public record AgregarEvidenciaVisitaRequest(
+    string Nombre,
+    string Url,
+    bool EsObligatoria = false,
+    string? Observaciones = null,
+    string? CoordenadasGps = null
+);
+
+public record EvidenciaDto(
+    Guid Id,
+    string Nombre,
+    string Url,
+    bool EsObligatoria,
+    string? Observaciones,
+    string? CoordenadasGps,
+    DateTime CreatedAt
 );
 
 public record ProgramarOrdenTrabajoRequest(

@@ -44,6 +44,13 @@ import {
   MenuTrigger,
   MessageBar,
   MessageBarBody,
+  Checkbox,
+  Dialog,
+  DialogSurface,
+  DialogBody,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@fluentui/react-components';
 import {
   ArrowLeft16Regular,
@@ -172,6 +179,13 @@ export const OrdenTrabajoFormPage: React.FC = () => {
   const puedeGestionar = permisos.includes('serviciocampo.ordenes.crear');
   const puedeAsignar = permisos.includes('serviciocampo.ordenes.asignar');
   const puedeCerrar = permisos.includes('serviciocampo.ordenes.cerrar');
+  const puedeOperarCampo = permisos.includes('serviciocampo.ordenes.operar_campo');
+  const puedeLiquidar =
+    permisos.includes('serviciocampo.ordenes.liquidar_materiales') ||
+    permisos.includes('inventario.operar') ||
+    puedeCerrar;
+  const puedeCompletar = puedeCerrar || puedeOperarCampo;
+  const puedeIniciarAtencion = puedeAsignar || puedeOperarCampo;
   const formStyles = useD365FormStyles();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -394,6 +408,10 @@ export const OrdenTrabajoFormPage: React.FC = () => {
 
   // Estados para Liquidación de Materiales
   const [drawerLiquidacionOpen, setDrawerLiquidacionOpen] = useState(false);
+  const [dialogCompletarOpen, setDialogCompletarOpen] = useState(false);
+  const [obsCierreAdministrativo, setObsCierreAdministrativo] = useState("");
+  const [completarTrabajosPendientes, setCompletarTrabajosPendientes] = useState(true);
+  const [urlEvidenciaCierre, setUrlEvidenciaCierre] = useState("");
   const [draftConsumos, setDraftConsumos] = useState<LiquidacionConsumoDraft[]>([]);
   const [draftRetiros, setDraftRetiros] = useState<LiquidacionRetiroDraft[]>([]);
   const [obsLiquidacion, setObsLiquidacion] = useState('');
@@ -1896,6 +1914,56 @@ export const OrdenTrabajoFormPage: React.FC = () => {
     }
   };
 
+  const handleAbrirCompletarOrden = () => {
+    const hayTrabajosSinCompletar = trabajos.some(
+      (t) => t.estado === 'Pendiente' || t.estado === 'EnProgreso'
+    );
+    if (hayTrabajosSinCompletar || puedeCerrar) {
+      setObsCierreAdministrativo('');
+      setUrlEvidenciaCierre('');
+      setCompletarTrabajosPendientes(true);
+      setDialogCompletarOpen(true);
+    } else {
+      void handleCambiarEstado('Completado');
+    }
+  };
+
+  const handleConfirmarCompletarOrden = async () => {
+    if (!id || esNuevo) return;
+    try {
+      setSubmitting(true);
+      const visList = orden?.visitas || [];
+      if (urlEvidenciaCierre.trim() && visList.length > 0) {
+        const ultimaVis = visList[visList.length - 1];
+        try {
+          await OrdenTrabajoService.agregarEvidenciaVisita(id, ultimaVis.id, {
+            nombre: 'Evidencia de Cierre Técnico / Conformidad',
+            url: urlEvidenciaCierre.trim(),
+            observaciones: obsCierreAdministrativo.trim() || undefined,
+          });
+        } catch { }
+      }
+
+      await OrdenTrabajoService.cambiarEstadoSistema(id, {
+        nuevoEstadoSistema: 'Completado',
+        observaciones: obsCierreAdministrativo.trim() || undefined,
+        completarTrabajosPendientes,
+      });
+
+      setDialogCompletarOpen(false);
+      setEstadoSistema('Completado');
+      notifySuccess('Orden completada satisfactoriamente (pendiente de liquidación logística).');
+      await cargarOrden();
+    } catch (err: any) {
+      dispatchToast(
+        <Toast><ToastTitle>Error al completar orden: {err?.message || 'Error desconocido'}</ToastTitle></Toast>,
+        { intent: 'error' }
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleAbrirCancelarOrden = () => {
     const primerMotivo = motivosCancelacionOrden[0]?.codigo || 'ORD-CAN-01';
     setMotivoCancelarOrden(primerMotivo);
@@ -2023,7 +2091,7 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                   icon={<Play16Regular />}
                   tone="brand"
                   onClick={() => void handleCambiarEstado('EnProgreso')}
-                  disabled={submitting || !puedeAsignar}
+                  disabled={submitting || !puedeIniciarAtencion}
                 >
                   Iniciar Atención en Campo
                 </D365CommandButton>
@@ -2033,10 +2101,22 @@ export const OrdenTrabajoFormPage: React.FC = () => {
                 <D365CommandButton
                   icon={<CheckmarkCircle16Regular />}
                   tone="create"
-                  onClick={() => void handleCambiarEstado('Completado')}
-                  disabled={submitting || !puedeCerrar}
+                  onClick={handleAbrirCompletarOrden}
+                  disabled={submitting || !puedeCompletar}
                 >
                   Completar Orden
+                </D365CommandButton>
+              )}
+
+              {estaCompleta && !yaLiquidada && (
+                <D365CommandButton
+                  icon={<Box20Regular />}
+                  tone="brand"
+                  onClick={handleAbrirLiquidacion}
+                  disabled={submitting || !puedeLiquidar}
+                  title="Descargar materiales usados del almacén móvil del técnico o del almacén central y finalizar orden"
+                >
+                  Descargar Materiales (Almacén)
                 </D365CommandButton>
               )}
 
@@ -3397,6 +3477,55 @@ export const OrdenTrabajoFormPage: React.FC = () => {
           </Button>
         </DrawerFooter>
       </OverlayDrawer>
+
+      {/* DIÁLOGO COMPLETAR ORDEN (BACKOFFICE Y CAMPO) */}
+      <Dialog open={dialogCompletarOpen} onOpenChange={(_, { open }) => setDialogCompletarOpen(open)}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Completar Atención de la Orden de Trabajo</DialogTitle>
+            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '12px' }}>
+              <Text size={300}>
+                Confirme que las labores técnicas en campo han sido realizadas. La orden pasará a estado <strong>Completa</strong> para que posteriormente Almacén descargue los materiales usados y la finalice.
+              </Text>
+
+              {trabajos.some((t) => t.estado === 'Pendiente' || t.estado === 'EnProgreso') && (
+                <Checkbox
+                  checked={completarTrabajosPendientes}
+                  onChange={(_, d) => setCompletarTrabajosPendientes(!!d.checked)}
+                  label="Marcar automáticamente todos los trabajos y tareas pendientes como realizados"
+                />
+              )}
+
+              <D365FormField label="Observaciones de Cierre / Conformidad" htmlFor="obs-cierre-admin">
+                <Textarea
+                  id="obs-cierre-admin"
+                  rows={3}
+                  value={obsCierreAdministrativo}
+                  onChange={(_, d) => setObsCierreAdministrativo(d.value)}
+                  placeholder="Ej: Trabajo verificado por llamada telefónica con el cliente, instalación operativa conforme."
+                />
+              </D365FormField>
+
+              <D365FormField label="URL de Evidencia o Foto de Conformidad (Opcional)" htmlFor="url-evidencia-cierre">
+                <Input
+                  id="url-evidencia-cierre"
+                  value={urlEvidenciaCierre}
+                  onChange={(_, d) => setUrlEvidenciaCierre(d.value)}
+                  placeholder="https://... o enlace a foto/acta en Google Drive / SharePoint"
+                />
+              </D365FormField>
+            </DialogContent>
+            <DialogActions>
+              <Button appearance="secondary" onClick={() => setDialogCompletarOpen(false)} disabled={submitting}>
+                Cancelar
+              </Button>
+              <Button appearance="primary" onClick={() => void handleConfirmarCompletarOrden()} disabled={submitting}>
+                {submitting ? 'Guardando...' : 'Confirmar y Completar'}
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
 
       {/* 9. DRAWER LIQUIDACIÓN DE MATERIALES E INVENTARIO */}
       <OverlayDrawer

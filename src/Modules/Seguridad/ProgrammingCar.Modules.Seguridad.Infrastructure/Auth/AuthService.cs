@@ -126,7 +126,16 @@ public class AuthService(UserManager<Usuario> usuarios, RoleManager<Rol> roles, 
         if (!usuario.EsActivo || !await usuarios.IsInRoleAsync(usuario, Roles.SuperAdmin)) return false;
         return !(await usuarios.GetUsersInRoleAsync(Roles.SuperAdmin)).Any(x => x.Id != usuario.Id && x.EsActivo);
     }
-    private async Task<UsuarioDto> DtoAsync(Usuario usuario) => new(usuario.Id, usuario.Email ?? "", usuario.NombreCompleto, usuario.EsActivo, (await usuarios.GetRolesAsync(usuario)).ToList());
+    private async Task<UsuarioDto> DtoAsync(Usuario usuario)
+    {
+        string? supervisorNombre = null;
+        if (usuario.SupervisorId.HasValue)
+        {
+            var sup = await usuarios.FindByIdAsync(usuario.SupervisorId.Value.ToString());
+            supervisorNombre = sup?.NombreCompleto;
+        }
+        return new(usuario.Id, usuario.Email ?? "", usuario.NombreCompleto, usuario.EsActivo, (await usuarios.GetRolesAsync(usuario)).ToList(), usuario.SupervisorId, supervisorNombre);
+    }
     public async Task<Result<List<UsuarioDto>>> ObtenerUsuariosAsync(string? busqueda = null, bool? soloActivos = null)
     {
         var consulta = usuarios.Users.AsNoTracking();
@@ -159,7 +168,9 @@ public class AuthService(UserManager<Usuario> usuarios, RoleManager<Rol> roles, 
             u.Email ?? "",
             u.NombreCompleto,
             u.EsActivo,
-            lookupRoles[u.Id].ToList()
+            lookupRoles[u.Id].ToList(),
+            u.SupervisorId,
+            null
         )).ToList();
 
         return Result<List<UsuarioDto>>.Success(lista);
@@ -169,7 +180,7 @@ public class AuthService(UserManager<Usuario> usuarios, RoleManager<Rol> roles, 
         var usuario = await usuarios.FindByIdAsync(usuarioId.ToString());
         return usuario == null ? Result<UsuarioDto>.Failure("Usuario no encontrado.") : Result<UsuarioDto>.Success(await DtoAsync(usuario));
     }
-    public Task<Result<bool>> ActualizarUsuarioAsync(Guid usuarioId, string nombreCompleto, string email, IEnumerable<string>? rolesUsuario = null) => EscribirAsync(async () =>
+    public Task<Result<bool>> ActualizarUsuarioAsync(Guid usuarioId, string nombreCompleto, string email, IEnumerable<string>? rolesUsuario = null, Guid? supervisorId = null) => EscribirAsync(async () =>
     {
         var usuario = await usuarios.FindByIdAsync(usuarioId.ToString());
         if (usuario == null) return Result<bool>.Failure("Usuario no encontrado.");
@@ -181,7 +192,7 @@ public class AuthService(UserManager<Usuario> usuarios, RoleManager<Rol> roles, 
             var resultadoRoles = await AsignarRolesInternoAsync(usuario, rolesUsuario);
             if (resultadoRoles.IsFailure) return resultadoRoles;
         }
-        usuario.NombreCompleto = nombreCompleto.Trim(); usuario.Email = email.Trim(); usuario.UserName = email.Trim();
+        usuario.NombreCompleto = nombreCompleto.Trim(); usuario.Email = email.Trim(); usuario.UserName = email.Trim(); usuario.SupervisorId = supervisorId;
         var resultado = await usuarios.UpdateAsync(usuario);
         if (resultado.Succeeded) resultado = await usuarios.UpdateSecurityStampAsync(usuario);
         return resultado.Succeeded ? Result<bool>.Success(true) : Result<bool>.Failure(Errores(resultado));

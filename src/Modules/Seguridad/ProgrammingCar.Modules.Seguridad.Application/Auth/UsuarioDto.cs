@@ -8,13 +8,16 @@ public record UsuarioDto(
     string Email,
     string NombreCompleto,
     bool EsActivo,
-    List<string> Roles
+    List<string> Roles,
+    Guid? SupervisorId = null,
+    string? SupervisorNombre = null
 );
 
 public record ActualizarUsuarioRequest(
     string NombreCompleto,
     string Email,
-    List<string>? Roles = null
+    List<string>? Roles = null,
+    Guid? SupervisorId = null
 );
 
 public record CambiarPasswordRequest(

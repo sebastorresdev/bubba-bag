@@ -4,6 +4,8 @@ export interface UsuarioDto {
   email: string;
   esActivo: boolean;
   roles: string[];
+  supervisorId?: string | null;
+  supervisorNombre?: string | null;
 }
 
 export interface PermisoDefinicionDto {

@@ -119,6 +119,16 @@ export interface OrdenTrabajoTareaDto {
   trabajoCodigo?: string | null;
 }
 
+export interface EvidenciaDto {
+  id: string;
+  nombre: string;
+  url: string;
+  esObligatoria: boolean;
+  observaciones?: string | null;
+  coordenadasGps?: string | null;
+  createdAt?: string;
+}
+
 export interface OrdenTrabajoVisitaDto {
   id: string;
   codigoVisita: string;
@@ -128,6 +138,11 @@ export interface OrdenTrabajoVisitaDto {
   fechaProgramada: string;
   bloqueHorario?: string | null;
   estado: string;
+  firmaClienteUrl?: string | null;
+  nombreFirmante?: string | null;
+  dniFirmante?: string | null;
+  evidenciasConfirmadas?: boolean;
+  evidencias?: EvidenciaDto[];
 }
 
 export interface OrdenTrabajoItemDto {
@@ -262,6 +277,8 @@ export interface CambiarEstadoSistemaDto {
   motivoId?: string;
   observaciones?: string;
   puntos?: number;
+  completarTrabajosPendientes?: boolean;
+  finalizarDirecto?: boolean;
 }
 
 export interface TipoOrdenTrabajoOpcion {

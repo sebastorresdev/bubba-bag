@@ -187,7 +187,7 @@ public static class SeguridadEndpoints
 
     private static async Task<IResult> ActualizarUsuario(Guid id, ActualizarUsuarioRequest request, IAuthService authService)
     {
-        var result = await authService.ActualizarUsuarioAsync(id, request.NombreCompleto, request.Email, request.Roles);
+        var result = await authService.ActualizarUsuarioAsync(id, request.NombreCompleto, request.Email, request.Roles, request.SupervisorId);
         if (result.IsFailure)
         {
             return Results.BadRequest(new ProgrammingCar.SharedKernel.Http.ErrorResponse(400, "Error al actualizar usuario", result.Error));

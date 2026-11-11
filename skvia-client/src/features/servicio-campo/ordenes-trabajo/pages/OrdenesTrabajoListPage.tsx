@@ -85,25 +85,22 @@ import { ImportarSiebelDrawer } from '../components/ImportarSiebelDrawer';
 
 
 type VistaOrdenes =
-
   | 'activas'
-
+  | 'mis_asignadas'
+  | 'pendientes_liquidacion'
   | 'pendientes'
-
   | 'programadas'
-
   | 'en_progreso'
-
   | 'borrador'
-
   | 'finalizadas_mes'
-
   | 'finalizadas_3meses';
 
 
 
 const vistasSistemaOrdenes = [
   { key: 'activas', label: 'Órdenes activas (Pendientes por trabajar)' },
+  { key: 'mis_asignadas', label: 'Mis Asignaciones (Técnico en Campo)' },
+  { key: 'pendientes_liquidacion', label: 'Pendientes de Liquidación / Descarga (Almacén)' },
   { key: 'pendientes', label: 'Pendientes de programar' },
   { key: 'programadas', label: 'Órdenes programadas' },
   { key: 'en_progreso', label: 'Órdenes en curso (In Progress)' },
