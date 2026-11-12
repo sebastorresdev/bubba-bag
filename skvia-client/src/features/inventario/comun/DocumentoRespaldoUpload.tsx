@@ -21,6 +21,7 @@ import {
   CheckmarkCircle16Filled,
   Warning16Filled,
 } from '@fluentui/react-icons';
+import { comprimirImagenAFile } from '../../../utils/imageCompressor';
 
 const useStyles = makeStyles({
   container: {
@@ -106,8 +107,14 @@ export const DocumentoRespaldoUpload: React.FC<DocumentoRespaldoUploadProps> = (
       setSubiendo(true);
       setError(null);
 
+      // Si es una foto o imagen, comprimir inteligentemente a máx 1800px y 85% calidad
+      // Los documentos PDF se envían exactamente intactos
+      const archivoAEnviar = file.type.startsWith('image/')
+        ? await comprimirImagenAFile(file, { maxWidth: 1800, maxHeight: 1800, quality: 0.85 })
+        : file;
+
       const formData = new FormData();
-      formData.append('archivo', file);
+      formData.append('archivo', archivoAEnviar);
 
       // Usar apiClient o fetch nativo con auth
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');

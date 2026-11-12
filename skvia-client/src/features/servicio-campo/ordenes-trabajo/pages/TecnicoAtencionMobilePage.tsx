@@ -48,6 +48,7 @@ import {
 import { D365SignatureCanvas } from '../../../../components/common/D365SignatureCanvas';
 import { D365StatusBadge } from '../../../../components/common/D365StatusBadge';
 import { OrdenTrabajoService } from '../services/ordenTrabajo.service';
+import { comprimirImagen } from '../../../../utils/imageCompressor';
 import { ProductoService } from '../../../inventario/productos/services/producto.service';
 import type { ProductoDto } from '../../../inventario/productos/types/producto.types';
 import type { OrdenTrabajoDetalleDto, OrdenTrabajoVisitaDto } from '../types/ordenTrabajo.types';
@@ -212,36 +213,33 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
     }
   };
 
-  // Subir Evidencia con Cámara
+  // Subir Evidencia con Cámara (Con compresión y redimensionamiento en cliente)
   const handleFotoSeleccionada = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !id || !ultimaVisita) return;
 
     try {
       setSubiendoFoto(true);
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const dataUrl = String(reader.result);
-          await OrdenTrabajoService.agregarEvidenciaVisita(id, ultimaVisita.id, {
-            nombre: nombreEvidencia.trim() || 'Foto de servicio en sitio',
-            url: dataUrl,
-            observaciones: obsEvidencia.trim() || undefined,
-          });
-          dispatchToast(<Toast><ToastTitle>Foto de evidencia guardada con éxito.</ToastTitle></Toast>, { intent: 'success' });
-          setNombreEvidencia('Evidencia Fotográfica');
-          setObsEvidencia('');
-          await cargar();
-        } catch (err: any) {
-          dispatchToast(<Toast><ToastTitle>Error al registrar foto: {err?.message || 'Error'}</ToastTitle></Toast>, { intent: 'error' });
-        } finally {
-          setSubiendoFoto(false);
-        }
-      };
-      reader.readAsDataURL(file);
+
+      // Comprimir foto de cámara a resolución máxima 1600px y calidad 82%
+      // Reduce fotos pesadas de 8MB a ~200KB antes de subir por red móvil
+      const dataUrl = await comprimirImagen(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.82 });
+
+      await OrdenTrabajoService.agregarEvidenciaVisita(id, ultimaVisita.id, {
+        nombre: nombreEvidencia.trim() || 'Foto de servicio en sitio',
+        url: dataUrl,
+        observaciones: obsEvidencia.trim() || undefined,
+      });
+
+      dispatchToast(<Toast><ToastTitle>Foto de evidencia guardada con éxito.</ToastTitle></Toast>, { intent: 'success' });
+      setNombreEvidencia('Evidencia Fotográfica');
+      setObsEvidencia('');
+      await cargar();
     } catch (err: any) {
+      dispatchToast(<Toast><ToastTitle>Error al registrar foto: {err?.message || 'Error'}</ToastTitle></Toast>, { intent: 'error' });
+    } finally {
       setSubiendoFoto(false);
-      dispatchToast(<Toast><ToastTitle>Error al leer archivo: {err?.message || 'Error'}</ToastTitle></Toast>, { intent: 'error' });
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 

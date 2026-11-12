@@ -1319,6 +1319,8 @@ public static class OrdenesTrabajoEndpoints
             else if (header.Contains("image/webp", StringComparison.OrdinalIgnoreCase)) extension = ".webp";
 
             var bytes = Convert.FromBase64String(base64Content);
+            if (bytes.Length > 10 * 1024 * 1024)
+                throw new InvalidOperationException("La imagen o archivo no debe superar el límite de 10 MB.");
 
             var baseUploadDir = Path.Combine(Directory.GetCurrentDirectory(), "uploads", subcarpeta);
             if (!Directory.Exists(baseUploadDir))
