@@ -6,6 +6,7 @@ export * from './components/PermisosDrawer';
 export * from './components/ManageUserRolesDialog';
 export * from './components/ManageRolePermissionsDialog';
 export * from './components/ResetPasswordDialog';
+export * from './components/CambiarMiPasswordDialog';
 export * from './components/UsuarioAlmacenesPanel';
 export * from './pages/LoginPage';
 export * from './pages/UsuariosListPage';

@@ -34,6 +34,7 @@ import {
   ArrowClockwise16Regular,
   SignOutRegular,
   Dismiss20Regular,
+  Key16Regular,
 } from '@fluentui/react-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
@@ -335,6 +336,7 @@ interface SuiteBarProps {
   isNavOpen?: boolean;
   onToggleNav?: () => void;
   isMobile?: boolean;
+  onAbrirCambiarPassword?: () => void;
 }
 
 export const SuiteBar: React.FC<SuiteBarProps> = ({
@@ -344,6 +346,7 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
   isNavOpen,
   onToggleNav,
   isMobile = false,
+  onAbrirCambiarPassword,
 }) => {
   const styles = useStyles();
   const navigate = useNavigate();
@@ -612,6 +615,9 @@ export const SuiteBar: React.FC<SuiteBarProps> = ({
                     </Badge>
                   </div>
                   <Divider style={{ margin: '6px 0' }} />
+                  <MenuItem icon={<Key16Regular />} onClick={() => onAbrirCambiarPassword?.()}>
+                    Cambiar mi contraseña
+                  </MenuItem>
                   <MenuItem icon={<ArrowClockwise16Regular />} onClick={currentUser.refreshUser}>
                     Actualizar sesión
                   </MenuItem>

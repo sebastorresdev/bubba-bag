@@ -1,31 +1,34 @@
 import { useSyncExternalStore } from 'react';
 
 export interface SessionUser { id: string; nombreCompleto: string; email: string; esActivo: boolean; roles: string[] }
-export interface AuthSession { usuario: SessionUser | null; permisos: string[]; cargando: boolean }
+export interface AuthSession { usuario: SessionUser | null; permisos: string[]; cargando: boolean; esClaveGenerica?: boolean }
 const TOKEN_KEY = 'skvia_auth_token';
 const USER_KEY = 'skvia_auth_user';
 const PERMS_KEY = 'skvia_auth_perms';
+const CLAVE_GENERICA_KEY = 'skvia_auth_clave_gen';
 
 function getInitialSession(): AuthSession {
   const token = localStorage.getItem(TOKEN_KEY);
-  if (!token) return { usuario: null, permisos: [], cargando: false };
+  if (!token) return { usuario: null, permisos: [], cargando: false, esClaveGenerica: false };
   try {
     const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
     if (typeof payload.exp === 'number' && payload.exp * 1000 > Date.now()) {
       const cachedUser = localStorage.getItem(USER_KEY);
       const cachedPerms = localStorage.getItem(PERMS_KEY);
+      const cachedGen = localStorage.getItem(CLAVE_GENERICA_KEY) === 'true';
       if (cachedUser) {
         return {
           usuario: JSON.parse(cachedUser),
           permisos: cachedPerms ? JSON.parse(cachedPerms) : [],
           cargando: false,
+          esClaveGenerica: cachedGen,
         };
       }
     }
   } catch {
     // ignore
   }
-  return { usuario: null, permisos: [], cargando: !!token };
+  return { usuario: null, permisos: [], cargando: !!token, esClaveGenerica: false };
 }
 
 let session: AuthSession = getInitialSession();
@@ -40,7 +43,8 @@ export function clearSession() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem(PERMS_KEY);
-  publish({ usuario: null, permisos: [], cargando: false });
+  localStorage.removeItem(CLAVE_GENERICA_KEY);
+  publish({ usuario: null, permisos: [], cargando: false, esClaveGenerica: false });
 }
 export function readToken(): string | null {
   const token = localStorage.getItem(TOKEN_KEY);
@@ -67,15 +71,17 @@ export async function loadSession(): Promise<void> {
       if (current === generation) publish({ ...session, cargando: false });
       throw new Error(`Error en el servidor al verificar sesión (${response.status}).`);
     }
-    const data: { usuario: SessionUser; permisos: string[] } = await response.json();
+    const data: { usuario: SessionUser; permisos: string[]; esClaveGenerica?: boolean } = await response.json();
     if (current === generation) {
+      const esGen = !!data.esClaveGenerica;
       try {
         localStorage.setItem(USER_KEY, JSON.stringify(data.usuario));
         localStorage.setItem(PERMS_KEY, JSON.stringify(data.permisos));
+        localStorage.setItem(CLAVE_GENERICA_KEY, esGen ? 'true' : 'false');
       } catch {
         // ignore storage errors
       }
-      publish({ usuario: data.usuario, permisos: data.permisos, cargando: false });
+      publish({ usuario: data.usuario, permisos: data.permisos, cargando: false, esClaveGenerica: esGen });
     }
   } catch (error) {
     if (current === generation) {

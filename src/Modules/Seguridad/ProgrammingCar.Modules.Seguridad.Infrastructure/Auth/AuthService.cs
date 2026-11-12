@@ -208,6 +208,26 @@ public class AuthService(UserManager<Usuario> usuarios, RoleManager<Rol> roles, 
         if (resultado.Succeeded) resultado = await usuarios.ResetAccessFailedCountAsync(usuario);
         return resultado.Succeeded ? Result<bool>.Success(true) : Result<bool>.Failure(Errores(resultado));
     });
+    public Task<Result<bool>> CambiarMiPasswordAsync(Guid usuarioId, string passwordActual, string nuevaPassword) => EscribirAsync(async () =>
+    {
+        var usuario = await usuarios.FindByIdAsync(usuarioId.ToString());
+        if (usuario == null) return Result<bool>.Failure("Usuario no encontrado.");
+        if (string.IsNullOrWhiteSpace(passwordActual)) return Result<bool>.Failure("Ingrese su contraseña actual.");
+        if (string.IsNullOrWhiteSpace(nuevaPassword)) return Result<bool>.Failure("Ingrese la nueva contraseña.");
+        if (nuevaPassword.Trim().Length < 6) return Result<bool>.Failure("La nueva contraseña debe tener al menos 6 caracteres.");
+
+        var resultado = await usuarios.ChangePasswordAsync(usuario, passwordActual, nuevaPassword);
+        if (!resultado.Succeeded) return Result<bool>.Failure(Errores(resultado));
+
+        await usuarios.UpdateSecurityStampAsync(usuario);
+        return Result<bool>.Success(true);
+    });
+    public async Task<bool> EsPasswordGenericaAsync(Guid usuarioId)
+    {
+        var usuario = await usuarios.FindByIdAsync(usuarioId.ToString());
+        if (usuario == null) return false;
+        return await usuarios.CheckPasswordAsync(usuario, "Admin123*!");
+    }
     public Task<Result<bool>> CambiarEstadoAsync(Guid usuarioId, bool esActivo) => EscribirAsync(async () =>
     {
         var usuario = await usuarios.FindByIdAsync(usuarioId.ToString());

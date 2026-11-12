@@ -23,6 +23,11 @@ export const SeguridadService = {
   asignarRoles: (id: string, roles: string[]) => apiClient<void>(`${base}/usuarios/${id}/roles`, { method: 'PUT', body: JSON.stringify({ roles }) }),
   estado: (id: string, esActivo: boolean) => apiClient<void>(`${base}/usuarios/${id}/estado`, { method: 'PATCH', body: JSON.stringify({ esActivo }) }),
   password: (id: string, nuevaPassword: string) => apiClient<void>(`${base}/usuarios/${id}/password`, { method: 'PUT', body: JSON.stringify({ nuevaPassword }) }),
+  cambiarMiPassword: (data: { passwordActual: string; nuevaPassword: string }) =>
+    apiClient<{ success: boolean; message: string }>(`${base}/mi-password`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 };
 export async function publicSecurityRequest<T>(endpoint: string, data?: unknown): Promise<T> {
   const response = await fetch(`${base}/${endpoint}`, data === undefined ? {} : {

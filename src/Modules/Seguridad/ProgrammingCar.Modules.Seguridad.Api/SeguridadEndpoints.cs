@@ -20,6 +20,7 @@ public static class SeguridadEndpoints
         group.MapGet("/configuracion-inicial", ObtenerEstadoConfiguracion).AllowAnonymous();
         group.MapPost("/configuracion-inicial", ConfigurarAdministrador).AllowAnonymous();
         group.MapGet("/sesion", ObtenerSesion).RequireAuthorization();
+        group.MapPut("/mi-password", CambiarMiPassword).RequireAuthorization();
 
         group.MapPost("/login", IniciarSesion)
             .AllowAnonymous();
@@ -93,8 +94,24 @@ public static class SeguridadEndpoints
     private static async Task<IResult> ObtenerSesion(IAuthService authService, ICurrentUser usuario)
     {
         var resultado = await authService.ObtenerUsuarioPorIdAsync(usuario.Id);
-        return resultado.IsSuccess ? Results.Ok(new { Usuario = resultado.Value, Permisos = RolePermissions.GetPermissionsForRoles(resultado.Value.Roles) })
-            : Results.Unauthorized();
+        if (resultado.IsFailure) return Results.Unauthorized();
+        var esClaveGenerica = await authService.EsPasswordGenericaAsync(usuario.Id);
+        return Results.Ok(new 
+        { 
+            Usuario = resultado.Value, 
+            Permisos = RolePermissions.GetPermissionsForRoles(resultado.Value.Roles),
+            EsClaveGenerica = esClaveGenerica
+        });
+    }
+
+    private static async Task<IResult> CambiarMiPassword(CambiarMiPasswordRequest request, IAuthService authService, ICurrentUser currentUser)
+    {
+        var result = await authService.CambiarMiPasswordAsync(currentUser.Id, request.PasswordActual, request.NuevaPassword);
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new ProgrammingCar.SharedKernel.Http.ErrorResponse(400, "Error al cambiar contraseña", result.Error));
+        }
+        return Results.Ok(new { Success = true, Message = "Contraseña actualizada exitosamente." });
     }
 
     private static async Task<IResult> IniciarSesion(LoginRequest request, IAuthService authService)

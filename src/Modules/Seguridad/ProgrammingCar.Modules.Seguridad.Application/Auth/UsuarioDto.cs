@@ -24,6 +24,11 @@ public record CambiarPasswordRequest(
     string NuevaPassword
 );
 
+public record CambiarMiPasswordRequest(
+    string PasswordActual,
+    string NuevaPassword
+);
+
 public record CambiarEstadoUsuarioRequest(
     bool EsActivo
 );

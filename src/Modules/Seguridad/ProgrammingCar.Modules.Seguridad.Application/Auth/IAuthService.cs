@@ -16,6 +16,8 @@ public interface IAuthService
     Task<Result<UsuarioDto>> ObtenerUsuarioPorIdAsync(Guid usuarioId);
     Task<Result<bool>> ActualizarUsuarioAsync(Guid usuarioId, string nombreCompleto, string email, IEnumerable<string>? roles = null, Guid? supervisorId = null);
     Task<Result<bool>> CambiarPasswordAsync(Guid usuarioId, string nuevaPassword);
+    Task<Result<bool>> CambiarMiPasswordAsync(Guid usuarioId, string passwordActual, string nuevaPassword);
+    Task<bool> EsPasswordGenericaAsync(Guid usuarioId);
     Task<Result<bool>> CambiarEstadoAsync(Guid usuarioId, bool esActivo);
     Task<Result<bool>> AsignarRolesAsync(Guid usuarioId, IEnumerable<string> roles);
     Task<Result<List<string>>> ObtenerRolesUsuarioAsync(Guid usuarioId);

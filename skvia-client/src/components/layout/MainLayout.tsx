@@ -1,11 +1,14 @@
 import { UnsavedChangesGuard } from '../common/UnsavedChangesGuard';
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
-import { makeStyles, tokens, Spinner } from '@fluentui/react-components';
+import { makeStyles, tokens, Spinner, Button } from '@fluentui/react-components';
+import { Warning16Filled } from '@fluentui/react-icons';
 import { SuiteBar } from './SuiteBar';
 import { SideNav } from './SideNav';
 import { availableApps } from '../../features/seguridad/services/securityAccess';
 import { useAuthSession } from '../../services/authSession';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
+import { CambiarMiPasswordDialog } from '../../features/seguridad/components/CambiarMiPasswordDialog';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { dismissError, resolveConfirmation } from '../../services/uiFeedback';
 import type { NavArea, NavItem, EnterpriseApp } from '../../types/navigation.types';
@@ -40,6 +43,8 @@ const useStyles = makeStyles({
 export const MainLayout: React.FC = () => {
   const styles = useStyles();
   const { permisos } = useAuthSession();
+  const currentUser = useCurrentUser();
+  const [cambiarPasswordOpen, setCambiarPasswordOpen] = useState(false);
   const apps = useMemo(() => availableApps(permisos), [permisos]);
   const location = useLocation();
   useEffect(() => {
@@ -135,7 +140,43 @@ export const MainLayout: React.FC = () => {
         isNavOpen={navOpen}
         onToggleNav={handleToggleNav}
         isMobile={isMobile}
+        onAbrirCambiarPassword={() => setCambiarPasswordOpen(true)}
       />
+
+      {/* Alerta de Seguridad si el usuario usa la contraseña genérica */}
+      {currentUser.esClaveGenerica && (
+        <div
+          style={{
+            backgroundColor: '#fff4ce',
+            borderBottom: '1px solid #fed86f',
+            padding: '7px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            fontSize: '13px',
+            color: '#323130',
+            zIndex: 10,
+            flexShrink: 0,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Warning16Filled style={{ color: '#795b00', fontSize: '16px', flexShrink: 0 }} />
+            <span>
+              <strong>Aviso de Seguridad:</strong> Su cuenta está utilizando la contraseña inicial genérica (<code>Admin123*!</code>). 
+              Le recomendamos cambiarla ahora para proteger el acceso a su sistema.
+            </span>
+          </div>
+          <Button
+            size="small"
+            appearance="primary"
+            onClick={() => setCambiarPasswordOpen(true)}
+            style={{ flexShrink: 0 }}
+          >
+            Cambiar Contraseña
+          </Button>
+        </div>
+      )}
 
       {/* Main Body */}
       <div className={styles.body}>
@@ -177,6 +218,12 @@ export const MainLayout: React.FC = () => {
           </Suspense>
         </main>
       </div>
+
+      <CambiarMiPasswordDialog
+        open={cambiarPasswordOpen}
+        onOpenChange={setCambiarPasswordOpen}
+        esAlertaInicial={currentUser.esClaveGenerica}
+      />
     </div>
   );
 };
