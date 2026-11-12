@@ -41,8 +41,8 @@ services:
       - JwtSettings__Issuer=ProgrammingCar
       - JwtSettings__Audience=ProgrammingCarApp
       - JwtSettings__ExpiryMinutes=120
-      - InitialAdmin__Email=${INITIAL_ADMIN_EMAIL:-admin@programmingcar.com}
-      - InitialAdmin__Password=${INITIAL_ADMIN_PASSWORD:-Admin1234*!}
+      - InitialAdmin__Email=${INITIAL_ADMIN_EMAIL:-admin@admin.pe}
+      - InitialAdmin__Password=${INITIAL_ADMIN_PASSWORD:-Admin123*!}
       - InitialAdmin__NombreCompleto=${INITIAL_ADMIN_NAME:-Super Administrador}
       - Cors__AllowedOrigins__0=https://${APP_DOMAIN}
       - Cors__AllowedOrigins__1=http://${APP_DOMAIN}

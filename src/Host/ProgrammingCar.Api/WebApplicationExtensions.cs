@@ -258,8 +258,8 @@ public static class WebApplicationExtensions
         var superAdmins = await userManager.GetUsersInRoleAsync(Roles.SuperAdmin);
         if (superAdmins.Count == 0)
         {
-            var email = configuration["InitialAdmin:Email"] ?? "admin@programmingcar.com";
-            var password = configuration["InitialAdmin:Password"] ?? "Admin1234*!";
+            var email = configuration["InitialAdmin:Email"] ?? "admin@admin.pe";
+            var password = configuration["InitialAdmin:Password"] ?? "Admin123*!";
             var nombreCompleto = configuration["InitialAdmin:NombreCompleto"] ?? "Super Administrador";
 
             var usuarioExistente = await userManager.FindByEmailAsync(email);

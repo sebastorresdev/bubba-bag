@@ -42,7 +42,7 @@ public class VistasService : IVistasService
         }
 
         // 3. Fallback en desarrollo: usuario SuperAdmin por defecto
-        var admin = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == "admin@bubbabag.com");
+        var admin = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == "admin@admin.pe");
         if (admin != null)
         {
             return admin.Id;
