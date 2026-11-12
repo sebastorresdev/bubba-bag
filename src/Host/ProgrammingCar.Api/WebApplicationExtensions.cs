@@ -1,12 +1,16 @@
 using System;
 using System.Threading.Tasks;
 using ProgrammingCar.Modules.RecursosHumanos.Infrastructure.Database;
+using ProgrammingCar.Modules.Seguridad.Domain.Entities;
 using ProgrammingCar.Modules.Seguridad.Infrastructure.Persistence;
 using ProgrammingCar.Modules.Seguridad.Infrastructure.Persistence.Seeders;
 using ProgrammingCar.Modules.ServicioCampo.Infrastructure.Database;
 using ProgrammingCar.Modules.GestionDatos.Infrastructure.Database;
+using ProgrammingCar.SharedKernel.Authorization;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -215,8 +219,9 @@ public static class WebApplicationExtensions
             catch { }
         }
 
-        // 2. Catálogo de roles del sistema
+        // 2. Catálogo de roles del sistema y usuario SuperAdmin inicial
         await CatalogoRolesSistema.AsegurarAsync(scope.ServiceProvider);
+        await AsegurarSuperAdminInicialAsync(scope.ServiceProvider, app.Configuration);
 
         // 3. Seeders esenciales de Servicio de Campo e Inventario
         if (servicioCampoDbContext != null)
@@ -284,5 +289,41 @@ public static class WebApplicationExtensions
                 END IF;
             END $$;
         ");
+    }
+
+    private static async Task AsegurarSuperAdminInicialAsync(IServiceProvider serviceProvider, IConfiguration configuration)
+    {
+        var userManager = serviceProvider.GetRequiredService<UserManager<Usuario>>();
+        var superAdmins = await userManager.GetUsersInRoleAsync(Roles.SuperAdmin);
+        if (superAdmins.Count == 0)
+        {
+            var email = configuration["InitialAdmin:Email"] ?? "admin@programmingcar.com";
+            var password = configuration["InitialAdmin:Password"] ?? "Admin1234*!";
+            var nombreCompleto = configuration["InitialAdmin:NombreCompleto"] ?? "Super Administrador";
+
+            var usuarioExistente = await userManager.FindByEmailAsync(email);
+            if (usuarioExistente == null)
+            {
+                var admin = new Usuario
+                {
+                    UserName = email,
+                    Email = email,
+                    NombreCompleto = nombreCompleto,
+                    EsActivo = true,
+                    LockoutEnabled = true,
+                    EmailConfirmed = true
+                };
+
+                var createRes = await userManager.CreateAsync(admin, password);
+                if (createRes.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(admin, Roles.SuperAdmin);
+                }
+            }
+            else
+            {
+                await userManager.AddToRoleAsync(usuarioExistente, Roles.SuperAdmin);
+            }
+        }
     }
 }

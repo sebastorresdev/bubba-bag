@@ -83,6 +83,10 @@ builder.Services.AddGestionDatosModule();
 var app = builder.Build();
 
 app.UseExceptionHandler();
+app.UseForwardedHeaders(new Microsoft.AspNetCore.HttpOverrides.ForwardedHeadersOptions
+{
+    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+});
 app.MapDefaultEndpoints();
 await app.ApplyMigrationsAsync();
 

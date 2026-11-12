@@ -1,0 +1,48 @@
+name: Integración Continua (CI)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-backend:
+    name: Compilación Backend (.NET 10)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Instalar .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restaurar dependencias
+        run: dotnet restore src/Host/ProgrammingCar.Api/ProgrammingCar.Api.csproj
+
+      - name: Compilar solución en Release
+        run: dotnet build src/Host/ProgrammingCar.Api/ProgrammingCar.Api.csproj -c Release --no-restore
+
+  build-frontend:
+    name: Compilación Frontend (React / Vite)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: skvia-client/package-lock.json
+
+      - name: Instalar dependencias del cliente
+        working-directory: skvia-client
+        run: npm ci
+
+      - name: Compilar frontend
+        working-directory: skvia-client
+        run: npm run build

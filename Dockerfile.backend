@@ -1,0 +1,45 @@
+# ==============================================================================
+# Dockerfile para Backend Web API (ASP.NET Core .NET 10)
+# ==============================================================================
+
+# Etapa 1: Restaurar y compilar la aplicación
+FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
+WORKDIR /src
+
+# Copiar archivos de solución y proyectos para aprovechar caché de capas Docker
+COPY ProgrammingCar.slnx ./
+COPY src/Host/ProgrammingCar.Api/*.csproj src/Host/ProgrammingCar.Api/
+COPY src/Host/ProgrammingCar.ServiceDefaults/*.csproj src/Host/ProgrammingCar.ServiceDefaults/
+COPY src/Shared/ProgrammingCar.SharedKernel/*.csproj src/Shared/ProgrammingCar.SharedKernel/
+COPY src/Modules/Seguridad/*/*.csproj src/Modules/Seguridad/
+COPY src/Modules/ServicioCampo/*/*.csproj src/Modules/ServicioCampo/
+COPY src/Modules/RecursosHumanos/*/*.csproj src/Modules/RecursosHumanos/
+COPY src/Modules/GestionDatos/*/*.csproj src/Modules/GestionDatos/
+
+# Restaurar dependencias NuGet
+RUN dotnet restore src/Host/ProgrammingCar.Api/ProgrammingCar.Api.csproj
+
+# Copiar el código fuente completo
+COPY src/ ./src/
+
+# Publicar en modo Release
+WORKDIR /src/src/Host/ProgrammingCar.Api
+RUN dotnet publish -c Release -o /app/publish /p:UseAppHost=false
+
+# ==============================================================================
+# Etapa 2: Imagen de ejecución (Runtime ligera y segura)
+# ==============================================================================
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS final
+WORKDIR /app
+
+# Puerto interno estándar para .NET 8+
+ENV ASPNETCORE_HTTP_PORTS=8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+EXPOSE 8080
+
+COPY --from=build /app/publish .
+
+# Ejecutar como usuario no privilegiado
+USER app
+
+ENTRYPOINT ["dotnet", "ProgrammingCar.Api.dll"]

@@ -1,0 +1,103 @@
+services:
+  # ============================================================================
+  # 1. Base de Datos PostgreSQL
+  # ============================================================================
+  db:
+    image: postgres:16-alpine
+    container_name: programmingcar_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sqldb}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Debe configurar POSTGRES_PASSWORD en el archivo .env}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-sqldb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal_network
+
+  # ============================================================================
+  # 2. Backend API (.NET 10 Web API)
+  # ============================================================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: programmingcar_api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ConnectionStrings__sqldb=Host=db;Port=5432;Database=${POSTGRES_DB:-sqldb};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}
+      - JwtSettings__Secret=${JWT_SECRET:?Debe configurar JWT_SECRET de minimo 32 caracteres en .env}
+      - JwtSettings__Issuer=ProgrammingCar
+      - JwtSettings__Audience=ProgrammingCarApp
+      - JwtSettings__ExpiryMinutes=120
+      - InitialAdmin__Email=${INITIAL_ADMIN_EMAIL:-admin@programmingcar.com}
+      - InitialAdmin__Password=${INITIAL_ADMIN_PASSWORD:-Admin1234*!}
+      - InitialAdmin__NombreCompleto=${INITIAL_ADMIN_NAME:-Super Administrador}
+      - Cors__AllowedOrigins__0=https://${APP_DOMAIN}
+      - Cors__AllowedOrigins__1=http://${APP_DOMAIN}
+    networks:
+      - internal_network
+
+  # ============================================================================
+  # 3. Frontend Web SPA (Nginx + React Vite)
+  # ============================================================================
+  frontend:
+    build:
+      context: ./skvia-client
+      dockerfile: Dockerfile
+    container_name: programmingcar_web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - APP_DOMAIN=${APP_DOMAIN:-localhost}
+    networks:
+      - internal_network
+
+  # ============================================================================
+  # 4. Respaldo Diario Automatizado de Base de Datos (pg_dump)
+  # ============================================================================
+  db-backup:
+    image: prodrigestivill/postgres-backup-local:16-alpine
+    container_name: programmingcar_db_backup
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backups:/backups
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=${POSTGRES_DB:-sqldb}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - SCHEDULE=@daily
+      - BACKUP_KEEP_DAYS=14
+      - BACKUP_KEEP_WEEKS=4
+      - BACKUP_KEEP_MONTHS=6
+      - HEALTHCHECK_PORT=8080
+    networks:
+      - internal_network
+
+volumes:
+  postgres_data:
+    name: programmingcar_postgres_data
+
+networks:
+  internal_network:
+    name: programmingcar_network
+    driver: bridge
