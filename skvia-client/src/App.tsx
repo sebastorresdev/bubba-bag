@@ -86,6 +86,7 @@ const DepartamentosListPage = lazy(() => import('./features/rrhh/catalogos/pages
 const CargosListPage = lazy(() => import('./features/rrhh/catalogos/pages/CargosListPage').then((m) => ({ default: m.CargosListPage })));
 const TurnosListPage = lazy(() => import('./features/rrhh/turnos/pages/TurnosListPage').then((m) => ({ default: m.TurnosListPage })));
 const MarcacionAsistenciaPage = lazy(() => import('./features/rrhh/asistencia/pages/MarcacionAsistenciaPage').then((m) => ({ default: m.MarcacionAsistenciaPage })));
+const PlanillaListPage = lazy(() => import('./features/rrhh/nomina/pages/PlanillaListPage').then((m) => ({ default: m.PlanillaListPage })));
 
 const PlaceholderPage = lazy(() => import('./components/common/PlaceholderPage').then((m) => ({ default: m.PlaceholderPage })));
 
@@ -258,11 +259,13 @@ const router = createBrowserRouter(createRoutesFromElements(
               <Route path="rrhh/turnos" element={<TurnosListPage />} />
               <Route path="rrhh/asistencia" element={<MarcacionAsistenciaPage />} />
               <Route path="rrhh/marcaciones" element={<MarcacionAsistenciaPage />} />
+              <Route path="rrhh/planilla" element={<PlanillaListPage />} />
               <Route path="recursos-humanos/empleados" element={<Navigate to="/rrhh/empleados" replace />} />
               <Route path="recursos-humanos/departamentos" element={<Navigate to="/rrhh/departamentos" replace />} />
               <Route path="recursos-humanos/cargos" element={<Navigate to="/rrhh/cargos" replace />} />
               <Route path="recursos-humanos/turnos" element={<Navigate to="/rrhh/turnos" replace />} />
               <Route path="recursos-humanos/asistencia" element={<Navigate to="/rrhh/asistencia" replace />} />
+              <Route path="recursos-humanos/planilla" element={<Navigate to="/rrhh/planilla" replace />} />
 
               {/* Vistas en construcción o rutas no mapeadas */}
               <Route path="*" element={<PlaceholderPage />} />
