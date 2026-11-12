@@ -4,11 +4,11 @@ import {
   makeStyles,
   tokens,
   Text,
-  Card,
   Button,
   ProgressBar,
   Spinner,
-  Select,
+  Dropdown,
+  Option,
   Badge,
 } from '@fluentui/react-components';
 import {
@@ -16,7 +16,7 @@ import {
   CalendarToday24Regular,
   PlayCircle24Regular,
   CheckmarkCircle24Regular,
-  Add20Regular,
+  Add16Regular,
   ArrowRight16Regular,
   Box20Regular,
   VehicleCarProfile20Regular,
@@ -24,43 +24,38 @@ import {
   DocumentTable20Regular,
   Person16Regular,
   Alert16Regular,
+  Board24Regular,
+  CalendarClock20Regular,
+  ChevronRight16Regular,
 } from '@fluentui/react-icons';
+import { D365CommandBar, D365CommandButton } from '../../../components/common/D365CommandBar';
+import { useD365ListStyles } from '../../../styles/d365ListStyles';
 import { OrdenTrabajoService } from '../../servicio-campo/ordenes-trabajo/services/ordenTrabajo.service';
 import type { OrdenTrabajoListadoItemDto } from '../../servicio-campo/ordenes-trabajo/types/ordenTrabajo.types';
 import { D365StatusBadge } from '../../../components/common/D365StatusBadge';
 
 const useStyles = makeStyles({
   container: {
-    padding: '24px 32px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '24px',
-    maxWidth: '1440px',
-    margin: '0 auto',
+    height: '100%',
     width: '100%',
-    boxSizing: 'border-box',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: '12px',
-  },
-  filterBar: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '10px 16px',
     backgroundColor: tokens.colorNeutralBackground2,
-    border: `1px solid ${tokens.colorNeutralStroke2}`,
-    borderRadius: '6px',
-    flexWrap: 'wrap',
-    gap: '10px',
+    overflowY: 'auto',
+  },
+  content: {
+    padding: '20px 28px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+    width: '100%',
+    maxWidth: '1600px',
+    margin: '0 auto',
+    boxSizing: 'border-box',
   },
   kpiGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
     gap: '16px',
   },
   kpiCard: {
@@ -71,7 +66,20 @@ const useStyles = makeStyles({
     boxShadow: tokens.shadow2,
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px',
+    gap: '10px',
+    position: 'relative',
+    overflow: 'hidden',
+    transition: 'box-shadow 0.2s ease, transform 0.15s ease',
+    ':hover': {
+      boxShadow: tokens.shadow4,
+    },
+  },
+  kpiAccent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '3px',
   },
   kpiHeader: {
     display: 'flex',
@@ -79,24 +87,54 @@ const useStyles = makeStyles({
     alignItems: 'center',
   },
   kpiIconWrapper: {
-    width: '42px',
-    height: '42px',
+    width: '40px',
+    height: '40px',
     borderRadius: '8px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  kpiValue: {
+    fontSize: '28px',
+    lineHeight: '34px',
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground1,
+  },
   twoColumnLayout: {
     display: 'grid',
-    gridTemplateColumns: '1.9fr 1.1fr',
+    gridTemplateColumns: '1.85fr 1.15fr',
     gap: '20px',
-    '@media (max-width: 950px)': {
+    '@media (max-width: 1024px)': {
       gridTemplateColumns: '1fr',
     },
+  },
+  sectionCard: {
+    padding: '20px',
+    backgroundColor: tokens.colorNeutralBackground1,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    borderRadius: '8px',
+    boxShadow: tokens.shadow2,
+  },
+  sectionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '16px',
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
+  },
+  tableTh: {
+    backgroundColor: tokens.colorNeutralBackground2,
+    padding: '10px 12px',
+    fontSize: '11px',
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground2,
+    borderBottom: `2px solid ${tokens.colorNeutralStroke2}`,
+    textTransform: 'uppercase',
+    letterSpacing: '0.4px',
+    textAlign: 'left',
   },
   tableRow: {
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
@@ -110,20 +148,52 @@ const useStyles = makeStyles({
     padding: '10px 12px',
     fontSize: '13px',
   },
+  emptyStateBox: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '36px 20px',
+    gap: '10px',
+    textAlign: 'center',
+  },
+  emptyStateIcon: {
+    width: '44px',
+    height: '44px',
+    borderRadius: '50%',
+    backgroundColor: tokens.colorNeutralBackground3,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   quickActionGrid: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '10px',
+    gap: '8px',
   },
   quickActionBtn: {
-    justifyContent: 'flex-start',
-    padding: '12px 16px',
+    justifyContent: 'space-between',
+    padding: '12px 14px',
     height: 'auto',
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    borderRadius: '6px',
+    backgroundColor: tokens.colorNeutralBackground1,
+    ':hover': {
+      backgroundColor: tokens.colorNeutralBackground1Hover,
+    },
   },
 });
 
+const PERIODO_LABELS: Record<'hoy' | '7dias' | 'mes' | 'todos', string> = {
+  hoy: 'Jornada de Hoy',
+  '7dias': 'Últimos 7 días',
+  mes: 'Mes actual',
+  todos: 'Histórico Completo',
+};
+
 export const DashboardPage: React.FC = () => {
   const styles = useStyles();
+  const listStyles = useD365ListStyles();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -226,363 +296,465 @@ export const DashboardPage: React.FC = () => {
     {
       title: 'Órdenes en Periodo',
       value: ordenesPeriodo.length,
-      subtitle: `${pendientes.length} por programar / ${programadas.length} agendadas`,
-      icon: <ClipboardTask24Regular style={{ color: '#0f6cbd' }} />,
-      bgIcon: '#ebf3fc',
+      subtitle: `${pendientes.length} por programar · ${programadas.length} agendadas`,
+      icon: <ClipboardTask24Regular style={{ color: tokens.colorBrandForeground1 }} />,
+      bgIcon: tokens.colorBrandBackground2,
+      accentColor: tokens.colorBrandStroke1,
     },
     {
       title: 'Citas para Hoy',
       value: citasHoy.length,
       subtitle: `${citasHoy.filter((c) => c.estadoSistema === 'Completado').length} finalizadas hoy`,
       icon: <CalendarToday24Regular style={{ color: '#8764b8' }} />,
-      bgIcon: '#f3edfc',
+      bgIcon: tokens.colorNeutralBackground3,
+      accentColor: '#8764b8',
     },
     {
       title: 'En Curso (Campo)',
       value: enProgreso.length,
       subtitle: 'Técnicos realizando labor en vivo',
-      icon: <PlayCircle24Regular style={{ color: '#0078d4' }} />,
-      bgIcon: '#e6f2fb',
+      icon: <PlayCircle24Regular style={{ color: tokens.colorPaletteBlueForeground2 }} />,
+      bgIcon: tokens.colorNeutralBackground3,
+      accentColor: tokens.colorPaletteBlueBorderActive,
     },
     {
       title: 'Efectividad y Cierre',
       value: `${efectividad}%`,
       subtitle: `${completadas.length} completadas de ${ordenesPeriodo.length}`,
-      icon: <CheckmarkCircle24Regular style={{ color: '#107c41' }} />,
-      bgIcon: '#ebf7ee',
+      icon: <CheckmarkCircle24Regular style={{ color: tokens.colorPaletteGreenForeground1 }} />,
+      bgIcon: tokens.colorNeutralBackground3,
+      accentColor: tokens.colorPaletteGreenBorderActive,
     },
   ];
 
   return (
     <div className={styles.container}>
-      {/* 1. Header */}
-      <div className={styles.header}>
-        <div>
-          <Text size={600} weight="bold" block>
-            Panel de Control de Supervisión
-          </Text>
-          <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-            Dynamics 365 Field Service &bull; Visión ejecutiva y analítica de campo
-          </Text>
-        </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <Button
-            appearance="secondary"
-            icon={<DocumentTable20Regular />}
-            onClick={() => navigate('/servicio-campo/reportes')}
-          >
-            Centro de Reportes
-          </Button>
-          <Button
-            appearance="subtle"
-            icon={<ArrowClockwise16Regular />}
-            onClick={() => void cargarDatos()}
-            disabled={loading}
-          >
-            Actualizar
-          </Button>
-          <Button
-            appearance="primary"
-            icon={<Add20Regular />}
-            onClick={() => navigate('/servicio-campo/ordenes/nuevo')}
-          >
-            Nueva Orden
-          </Button>
-        </div>
-      </div>
+      {/* 1. D365 Command Bar Oficial */}
+      <D365CommandBar ariaLabel="Comandos del Panel de Control">
+        <D365CommandButton
+          tone="create"
+          icon={<Add16Regular />}
+          onClick={() => navigate('/servicio-campo/ordenes/nuevo')}
+        >
+          Nueva Orden
+        </D365CommandButton>
+        <D365CommandButton
+          icon={<ArrowClockwise16Regular />}
+          onClick={() => void cargarDatos()}
+          disabled={loading}
+        >
+          Actualizar
+        </D365CommandButton>
+        <D365CommandButton
+          icon={<DocumentTable20Regular />}
+          onClick={() => navigate('/servicio-campo/reportes')}
+        >
+          Centro de Reportes
+        </D365CommandButton>
+        <D365CommandButton
+          icon={<CalendarToday24Regular />}
+          onClick={() => navigate('/servicio-campo/programacion')}
+        >
+          Tablero de Programación
+        </D365CommandButton>
+      </D365CommandBar>
 
-      {/* 2. Barra de Filtro de Periodo */}
-      <div className={styles.filterBar}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Text size={200} weight="semibold">Periodo analizado:</Text>
-          <Select
-            size="small"
-            value={periodo}
-            onChange={(_, d) => setPeriodo(d.value as any)}
-          >
-            <option value="hoy">Jornada de Hoy</option>
-            <option value="7dias">Últimos 7 días</option>
-            <option value="mes">Mes actual</option>
-            <option value="todos">Histórico Completo</option>
-          </Select>
-        </div>
-
-        <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-          Carga técnica acumulada:{' '}
-          <strong style={{ color: tokens.colorBrandForeground1 }}>{totalPuntos} puntos técnicos</strong>
-        </Text>
-      </div>
-
-      {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-          <Spinner label="Consolidando métricas operativas..." />
-        </div>
-      ) : (
-        <>
-          {/* 3. Tarjetas KPI */}
-          <div className={styles.kpiGrid}>
-            {kpis.map((kpi, idx) => (
-              <div key={idx} className={styles.kpiCard}>
-                <div className={styles.kpiHeader}>
-                  <Text size={200} weight="medium" style={{ color: tokens.colorNeutralForeground2 }}>
-                    {kpi.title}
-                  </Text>
-                  <div className={styles.kpiIconWrapper} style={{ backgroundColor: kpi.bgIcon }}>
-                    {kpi.icon}
-                  </div>
-                </div>
-                <Text size={700} weight="bold" block>
-                  {kpi.value}
-                </Text>
-                <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
-                  {kpi.subtitle}
-                </Text>
-              </div>
-            ))}
+      {/* 2. D365 View Header */}
+      <div className={listStyles.viewHeader}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Board24Regular style={{ color: tokens.colorBrandForeground1 }} />
+          <div>
+            <Text size={400} weight="semibold" block>
+              Panel de Control de Supervisión
+            </Text>
+            <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
+              Dynamics 365 Field Service &bull; Visión ejecutiva y analítica de campo
+            </Text>
           </div>
+        </div>
 
-          {/* 4. Layout Principal */}
-          <div className={styles.twoColumnLayout}>
-            {/* Columna Izquierda: Órdenes Recientes y Ranking Técnico */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Órdenes Recientes */}
-              <Card style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <div>
-                    <Text size={400} weight="semibold" block>
-                      Órdenes en Operación ({ordenesPeriodo.length})
+        {/* Selector de Periodo con Fluent UI Dropdown */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground2 }}>
+            Periodo analizado:
+          </Text>
+          <Dropdown
+            size="small"
+            value={PERIODO_LABELS[periodo]}
+            selectedOptions={[periodo]}
+            onOptionSelect={(_, data) => {
+              if (data.optionValue) setPeriodo(data.optionValue as any);
+            }}
+            style={{ minWidth: '170px' }}
+          >
+            <Option value="hoy" text="Jornada de Hoy">Jornada de Hoy</Option>
+            <Option value="7dias" text="Últimos 7 días">Últimos 7 días</Option>
+            <Option value="mes" text="Mes actual">Mes actual</Option>
+            <Option value="todos" text="Histórico Completo">Histórico Completo</Option>
+          </Dropdown>
+          <Badge appearance="tint" color="brand" style={{ padding: '6px 12px' }}>
+            {totalPuntos} pts acumulados
+          </Badge>
+        </div>
+      </div>
+
+      <div className={styles.content}>
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '80px' }}>
+            <Spinner label="Consolidando métricas operativas de campo..." />
+          </div>
+        ) : (
+          <>
+            {/* 3. Tarjetas KPI */}
+            <div className={styles.kpiGrid}>
+              {kpis.map((kpi, idx) => (
+                <div key={idx} className={styles.kpiCard}>
+                  <div className={styles.kpiAccent} style={{ backgroundColor: kpi.accentColor }} />
+                  <div className={styles.kpiHeader}>
+                    <Text size={200} weight="semibold" style={{ color: tokens.colorNeutralForeground2 }}>
+                      {kpi.title}
                     </Text>
-                    <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
-                      Monitoreo de citas y estados en tiempo real
-                    </Text>
+                    <div className={styles.kpiIconWrapper} style={{ backgroundColor: kpi.bgIcon }}>
+                      {kpi.icon}
+                    </div>
                   </div>
-                  <Button
-                    appearance="subtle"
-                    size="small"
-                    icon={<ArrowRight16Regular />}
-                    iconPosition="after"
-                    onClick={() => navigate('/servicio-campo/ordenes')}
-                  >
-                    Ver grilla completa
-                  </Button>
-                </div>
-
-                {ordenesPeriodo.length === 0 ? (
+                  <div className={styles.kpiValue}>
+                    {kpi.value}
+                  </div>
                   <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                    No hay órdenes registradas para el periodo seleccionado.
+                    {kpi.subtitle}
                   </Text>
-                ) : (
-                  <div style={{ overflowX: 'auto' }}>
-                    <table className={styles.table}>
-                      <thead>
-                        <tr style={{ borderBottom: `2px solid ${tokens.colorNeutralStroke2}`, textAlign: 'left' }}>
-                          <th className={styles.tableCell}><Text size={200} weight="semibold">Código WO</Text></th>
-                          <th className={styles.tableCell}><Text size={200} weight="semibold">Cliente / Abonado</Text></th>
-                          <th className={styles.tableCell}><Text size={200} weight="semibold">Técnico</Text></th>
-                          <th className={styles.tableCell}><Text size={200} weight="semibold">Fecha Cita</Text></th>
-                          <th className={styles.tableCell}><Text size={200} weight="semibold">Estado</Text></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {ordenesPeriodo.slice(0, 6).map((o) => (
-                          <tr
-                            key={o.id}
-                            className={styles.tableRow}
-                            onClick={() => navigate(`/servicio-campo/ordenes/${o.id}`)}
-                          >
-                            <td className={styles.tableCell}>
-                              <Text size={200} weight="semibold" style={{ color: tokens.colorBrandForeground1 }}>
-                                {o.codigoWo}
-                              </Text>
-                            </td>
-                            <td className={styles.tableCell}>
-                              <Text size={200} block style={{ maxWidth: '190px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {o.clienteServicioNombre || o.clienteFacturacionNombre}
-                              </Text>
-                            </td>
-                            <td className={styles.tableCell}>
-                              <Text size={200} style={{ color: tokens.colorNeutralForeground2 }}>
-                                {o.recursoTecnicoNombre || 'Sin asignar'}
-                              </Text>
-                            </td>
-                            <td className={styles.tableCell}>
-                              <Text size={200}>
-                                {o.fechaProgramada || 'Por programar'}
-                              </Text>
-                            </td>
-                            <td className={styles.tableCell}>
-                              <D365StatusBadge status={o.estadoSistema} />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </Card>
-
-              {/* Ranking de Productividad por Técnico */}
-              <Card style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <div>
-                    <Text size={400} weight="semibold" block>
-                      Top Técnicos en Rendimiento
-                    </Text>
-                    <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
-                      Puntos y efectividad de liquidación en el periodo
-                    </Text>
-                  </div>
-                  <Button
-                    appearance="subtle"
-                    size="small"
-                    icon={<ArrowRight16Regular />}
-                    iconPosition="after"
-                    onClick={() => navigate('/servicio-campo/reportes')}
-                  >
-                    Ver informe completo
-                  </Button>
                 </div>
-
-                {rankingTecnicos.length === 0 ? (
-                  <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                    No hay asignaciones técnicas registradas.
-                  </Text>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {rankingTecnicos.map((t, idx) => (
-                      <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '150px' }}>
-                          <Person16Regular style={{ color: tokens.colorBrandForeground1 }} />
-                          <Text size={200} weight="semibold">{t.nombre}</Text>
-                        </div>
-                        <div style={{ flexGrow: 1, maxWidth: '200px' }}>
-                          <ProgressBar
-                            value={t.ordenes > 0 ? t.completadas / t.ordenes : 0}
-                            color={t.completadas === t.ordenes ? 'success' : 'brand'}
-                          />
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '130px', justifyContent: 'flex-end' }}>
-                          <Badge appearance="tint" color="subtle">
-                            {t.completadas}/{t.ordenes} WOs
-                          </Badge>
-                          <Text size={200} weight="bold" style={{ color: tokens.colorBrandForeground1 }}>
-                            {t.puntos} pts
-                          </Text>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
+              ))}
             </div>
 
-            {/* Columna Derecha: Alertas SLA, Desglose y Accesos Rápidos */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Alertas SLA / Citas en Riesgo */}
-              <Card style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                  <Alert16Regular style={{ color: tokens.colorPaletteDarkOrangeForeground1 }} />
-                  <Text size={300} weight="semibold">
-                    Citas Críticas / Requieren Atención ({citasAlerta.length})
-                  </Text>
-                </div>
-                {citasAlerta.length === 0 ? (
-                  <Text size={100} style={{ color: tokens.colorPaletteGreenForeground1 }}>
-                    ✓ Todas las citas están al día según su programación.
-                  </Text>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {citasAlerta.map((c) => (
-                      <div
-                        key={c.id}
-                        style={{
-                          padding: '8px 10px',
-                          backgroundColor: tokens.colorNeutralBackground2,
-                          borderLeft: `3px solid ${tokens.colorPaletteDarkOrangeForeground1}`,
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                        }}
-                        onClick={() => navigate(`/servicio-campo/ordenes/${c.id}`)}
+            {/* 4. Layout Principal */}
+            <div className={styles.twoColumnLayout}>
+              {/* Columna Izquierda: Órdenes Recientes y Ranking Técnico */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Órdenes en Operación */}
+                <div className={styles.sectionCard}>
+                  <div className={styles.sectionHeader}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Text size={400} weight="semibold">
+                          Órdenes en Operación
+                        </Text>
+                        <Badge appearance="tint" color="brand">
+                          {ordenesPeriodo.length}
+                        </Badge>
+                      </div>
+                      <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
+                        Monitoreo de citas y estados en tiempo real
+                      </Text>
+                    </div>
+                    <Button
+                      appearance="subtle"
+                      size="small"
+                      icon={<ArrowRight16Regular />}
+                      iconPosition="after"
+                      onClick={() => navigate('/servicio-campo/ordenes')}
+                    >
+                      Ver grilla completa
+                    </Button>
+                  </div>
+
+                  {ordenesPeriodo.length === 0 ? (
+                    <div className={styles.emptyStateBox}>
+                      <div className={styles.emptyStateIcon}>
+                        <ClipboardTask24Regular style={{ color: tokens.colorNeutralForeground3 }} />
+                      </div>
+                      <Text size={300} weight="semibold" style={{ color: tokens.colorNeutralForeground1 }}>
+                        No hay órdenes registradas para el periodo seleccionado
+                      </Text>
+                      <Text size={200} style={{ color: tokens.colorNeutralForeground3, maxWidth: '400px' }}>
+                        Las órdenes de trabajo creadas o programadas en este rango de fechas se listarán aquí automáticamente.
+                      </Text>
+                      <Button
+                        appearance="outline"
+                        size="small"
+                        icon={<Add16Regular />}
+                        onClick={() => navigate('/servicio-campo/ordenes/nuevo')}
+                        style={{ marginTop: '4px' }}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Text size={200} weight="semibold" style={{ color: tokens.colorBrandForeground1 }}>
-                            {c.codigoWo}
-                          </Text>
-                          <Badge size="small" appearance="tint" color="warning">
-                            {c.fechaProgramada}
-                          </Badge>
+                        Crear Orden de Trabajo
+                      </Button>
+                    </div>
+                  ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table className={styles.table}>
+                        <thead>
+                          <tr>
+                            <th className={styles.tableTh}>Código WO</th>
+                            <th className={styles.tableTh}>Cliente / Abonado</th>
+                            <th className={styles.tableTh}>Técnico</th>
+                            <th className={styles.tableTh}>Fecha Cita</th>
+                            <th className={styles.tableTh}>Estado</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ordenesPeriodo.slice(0, 6).map((o) => (
+                            <tr
+                              key={o.id}
+                              className={styles.tableRow}
+                              onClick={() => navigate(`/servicio-campo/ordenes/${o.id}`)}
+                            >
+                              <td className={styles.tableCell}>
+                                <Text size={200} weight="semibold" style={{ color: tokens.colorBrandForeground1 }}>
+                                  {o.codigoWo}
+                                </Text>
+                              </td>
+                              <td className={styles.tableCell}>
+                                <Text size={200} block style={{ maxWidth: '190px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {o.clienteServicioNombre || o.clienteFacturacionNombre}
+                                </Text>
+                              </td>
+                              <td className={styles.tableCell}>
+                                <Text size={200} style={{ color: tokens.colorNeutralForeground2 }}>
+                                  {o.recursoTecnicoNombre || 'Sin asignar'}
+                                </Text>
+                              </td>
+                              <td className={styles.tableCell}>
+                                <Text size={200}>
+                                  {o.fechaProgramada || 'Por programar'}
+                                </Text>
+                              </td>
+                              <td className={styles.tableCell}>
+                                <D365StatusBadge status={o.estadoSistema} />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Ranking de Productividad por Técnico */}
+                <div className={styles.sectionCard}>
+                  <div className={styles.sectionHeader}>
+                    <div>
+                      <Text size={400} weight="semibold" block>
+                        Top Técnicos en Rendimiento
+                      </Text>
+                      <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
+                        Puntos técnicos acumulados y efectividad de liquidación
+                      </Text>
+                    </div>
+                    <Button
+                      appearance="subtle"
+                      size="small"
+                      icon={<ArrowRight16Regular />}
+                      iconPosition="after"
+                      onClick={() => navigate('/servicio-campo/reportes')}
+                    >
+                      Ver informe completo
+                    </Button>
+                  </div>
+
+                  {rankingTecnicos.length === 0 ? (
+                    <div className={styles.emptyStateBox}>
+                      <div className={styles.emptyStateIcon}>
+                        <Person16Regular style={{ color: tokens.colorNeutralForeground3 }} />
+                      </div>
+                      <Text size={300} weight="semibold" style={{ color: tokens.colorNeutralForeground1 }}>
+                        Sin asignaciones técnicas registradas
+                      </Text>
+                      <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                        No se registran órdenes asignadas a técnicos en el periodo seleccionado.
+                      </Text>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      {rankingTecnicos.map((t, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '12px',
+                            padding: '8px 12px',
+                            backgroundColor: tokens.colorNeutralBackground2,
+                            borderRadius: '6px',
+                            border: `1px solid ${tokens.colorNeutralStroke2}`,
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '160px' }}>
+                            <Badge appearance="filled" color={idx === 0 ? 'brand' : 'subtle'} size="small">
+                              #{idx + 1}
+                            </Badge>
+                            <Text size={200} weight="semibold">{t.nombre}</Text>
+                          </div>
+                          <div style={{ flexGrow: 1, maxWidth: '220px' }}>
+                            <ProgressBar
+                              value={t.ordenes > 0 ? t.completadas / t.ordenes : 0}
+                              color={t.completadas === t.ordenes ? 'success' : 'brand'}
+                            />
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '140px', justifyContent: 'flex-end' }}>
+                            <Badge appearance="tint" color="subtle">
+                              {t.completadas}/{t.ordenes} WOs
+                            </Badge>
+                            <Text size={200} weight="bold" style={{ color: tokens.colorBrandForeground1 }}>
+                              {t.puntos} pts
+                            </Text>
+                          </div>
                         </div>
-                        <Text size={100} block style={{ color: tokens.colorNeutralForeground3 }}>
-                          {c.clienteServicioNombre} &bull; {c.recursoTecnicoNombre || 'Sin técnico'}
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Columna Derecha: Alertas SLA, Desglose y Accesos Rápidos */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Alertas SLA / Citas en Riesgo */}
+                <div className={styles.sectionCard}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <Alert16Regular style={{ color: tokens.colorPaletteDarkOrangeForeground1 }} />
+                    <Text size={300} weight="semibold">
+                      Citas Críticas / Requieren Atención ({citasAlerta.length})
+                    </Text>
+                  </div>
+                  {citasAlerta.length === 0 ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '12px 14px',
+                        backgroundColor: tokens.colorNeutralBackground2,
+                        borderRadius: '6px',
+                        border: `1px solid ${tokens.colorNeutralStroke2}`,
+                      }}
+                    >
+                      <CheckmarkCircle24Regular style={{ color: tokens.colorPaletteGreenForeground1 }} />
+                      <div>
+                        <Text size={200} weight="semibold" block style={{ color: tokens.colorPaletteGreenForeground1 }}>
+                          Sin alertas de programación
+                        </Text>
+                        <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
+                          Todas las citas se encuentran al día según su programación y SLA.
                         </Text>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
-
-              {/* Desglose por Tipo de Servicio */}
-              <Card style={{ padding: '20px' }}>
-                <Text size={300} weight="semibold" block style={{ marginBottom: '12px' }}>
-                  Distribución de Servicios
-                </Text>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {desgloseServicios.map((s, idx) => (
-                    <div key={idx}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                        <Text size={100}>{s.tipo}</Text>
-                        <Text size={100} weight="semibold">{s.count} ({s.porcentaje}%)</Text>
-                      </div>
-                      <ProgressBar value={s.porcentaje / 100} color="brand" />
                     </div>
-                  ))}
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {citasAlerta.map((c) => (
+                        <div
+                          key={c.id}
+                          style={{
+                            padding: '10px 12px',
+                            backgroundColor: tokens.colorNeutralBackground2,
+                            borderLeft: `3px solid ${tokens.colorPaletteDarkOrangeForeground1}`,
+                            borderRadius: '4px',
+                            borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+                            borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
+                            borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+                            cursor: 'pointer',
+                          }}
+                          onClick={() => navigate(`/servicio-campo/ordenes/${c.id}`)}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Text size={200} weight="semibold" style={{ color: tokens.colorBrandForeground1 }}>
+                              {c.codigoWo}
+                            </Text>
+                            <Badge size="small" appearance="tint" color="warning">
+                              {c.fechaProgramada}
+                            </Badge>
+                          </div>
+                          <Text size={100} block style={{ color: tokens.colorNeutralForeground3, marginTop: '2px' }}>
+                            {c.clienteServicioNombre} &bull; {c.recursoTecnicoNombre || 'Sin técnico'}
+                          </Text>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </Card>
 
-              {/* Accesos Rápidos */}
-              <Card style={{ padding: '20px' }}>
-                <Text size={300} weight="semibold" block style={{ marginBottom: '12px' }}>
-                  Accesos Rápidos de Supervisión
-                </Text>
-                <div className={styles.quickActionGrid}>
-                  <Button
-                    className={styles.quickActionBtn}
-                    appearance="subtle"
-                    icon={<DocumentTable20Regular />}
-                    onClick={() => navigate('/servicio-campo/reportes')}
-                  >
-                    Centro de Reportes y Liquidación
-                  </Button>
-                  <Button
-                    className={styles.quickActionBtn}
-                    appearance="subtle"
-                    icon={<CalendarToday24Regular />}
-                    onClick={() => navigate('/servicio-campo/mis-citas')}
-                  >
-                    Mis Citas de Hoy (Móvil Técnico)
-                  </Button>
-                  <Button
-                    className={styles.quickActionBtn}
-                    appearance="subtle"
-                    icon={<VehicleCarProfile20Regular />}
-                    onClick={() => navigate('/servicio-campo/despacho-tecnicos')}
-                  >
-                    Despacho de Materiales a Técnicos
-                  </Button>
-                  <Button
-                    className={styles.quickActionBtn}
-                    appearance="subtle"
-                    icon={<Box20Regular />}
-                    onClick={() => navigate('/servicio-campo/inventario-productos')}
-                  >
-                    Stock e Inventario por Almacén
-                  </Button>
+                {/* Desglose por Tipo de Servicio */}
+                <div className={styles.sectionCard}>
+                  <Text size={300} weight="semibold" block style={{ marginBottom: '14px' }}>
+                    Distribución de Servicios
+                  </Text>
+                  {desgloseServicios.length === 0 ? (
+                    <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                      Sin datos de tipos de orden en este periodo.
+                    </Text>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {desgloseServicios.map((s, idx) => (
+                        <div key={idx}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <Text size={200}>{s.tipo}</Text>
+                            <Text size={200} weight="semibold">{s.count} ({s.porcentaje}%)</Text>
+                          </div>
+                          <ProgressBar value={s.porcentaje / 100} color="brand" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </Card>
+
+                {/* Accesos Rápidos de Supervisión */}
+                <div className={styles.sectionCard}>
+                  <Text size={300} weight="semibold" block style={{ marginBottom: '14px' }}>
+                    Accesos Rápidos de Supervisión
+                  </Text>
+                  <div className={styles.quickActionGrid}>
+                    <Button
+                      className={styles.quickActionBtn}
+                      appearance="subtle"
+                      icon={<DocumentTable20Regular style={{ color: tokens.colorBrandForeground1 }} />}
+                      onClick={() => navigate('/servicio-campo/reportes')}
+                    >
+                      <span style={{ flexGrow: 1, textAlign: 'left', marginLeft: '6px' }}>Centro de Reportes y Liquidación</span>
+                      <ChevronRight16Regular style={{ color: tokens.colorNeutralForeground4 }} />
+                    </Button>
+                    <Button
+                      className={styles.quickActionBtn}
+                      appearance="subtle"
+                      icon={<CalendarToday24Regular style={{ color: '#8764b8' }} />}
+                      onClick={() => navigate('/servicio-campo/mis-citas')}
+                    >
+                      <span style={{ flexGrow: 1, textAlign: 'left', marginLeft: '6px' }}>Mis Citas de Hoy (Móvil Técnico)</span>
+                      <ChevronRight16Regular style={{ color: tokens.colorNeutralForeground4 }} />
+                    </Button>
+                    <Button
+                      className={styles.quickActionBtn}
+                      appearance="subtle"
+                      icon={<CalendarClock20Regular style={{ color: tokens.colorPaletteBlueForeground2 }} />}
+                      onClick={() => navigate('/servicio-campo/programacion')}
+                    >
+                      <span style={{ flexGrow: 1, textAlign: 'left', marginLeft: '6px' }}>Tablero de Programación de Rutas</span>
+                      <ChevronRight16Regular style={{ color: tokens.colorNeutralForeground4 }} />
+                    </Button>
+                    <Button
+                      className={styles.quickActionBtn}
+                      appearance="subtle"
+                      icon={<VehicleCarProfile20Regular style={{ color: tokens.colorPaletteDarkOrangeForeground1 }} />}
+                      onClick={() => navigate('/servicio-campo/despacho-tecnicos')}
+                    >
+                      <span style={{ flexGrow: 1, textAlign: 'left', marginLeft: '6px' }}>Despacho de Materiales a Técnicos</span>
+                      <ChevronRight16Regular style={{ color: tokens.colorNeutralForeground4 }} />
+                    </Button>
+                    <Button
+                      className={styles.quickActionBtn}
+                      appearance="subtle"
+                      icon={<Box20Regular style={{ color: tokens.colorPaletteGreenForeground1 }} />}
+                      onClick={() => navigate('/servicio-campo/inventario-productos')}
+                    >
+                      <span style={{ flexGrow: 1, textAlign: 'left', marginLeft: '6px' }}>Stock e Inventario por Almacén</span>
+                      <ChevronRight16Regular style={{ color: tokens.colorNeutralForeground4 }} />
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

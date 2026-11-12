@@ -5,7 +5,8 @@ import {
   Text,
   TabList,
   Tab,
-  Select,
+  Dropdown,
+  Option,
   Button,
   Badge,
   ProgressBar,
@@ -61,18 +62,31 @@ const useStyles = makeStyles({
   },
   kpiRow: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
     gap: '14px',
   },
   kpiBox: {
     padding: '14px 18px',
     backgroundColor: tokens.colorNeutralBackground1,
     border: `1px solid ${tokens.colorNeutralStroke2}`,
-    borderRadius: '6px',
+    borderRadius: '8px',
     boxShadow: tokens.shadow2,
     display: 'flex',
     flexDirection: 'column',
-    gap: '4px',
+    gap: '6px',
+    position: 'relative',
+    overflow: 'hidden',
+    transition: 'box-shadow 0.15s ease',
+    ':hover': {
+      boxShadow: tokens.shadow4,
+    },
+  },
+  kpiAccent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '3px',
   },
   tableWrapper: {
     backgroundColor: tokens.colorNeutralBackground1,
@@ -119,6 +133,22 @@ export interface TecnicoProductividad {
   totalPuntos: number;
   tasaEfectividad: number;
 }
+
+const PERIODO_LABELS: Record<'hoy' | '7dias' | 'mes' | 'todos', string> = {
+  hoy: 'Hoy',
+  '7dias': 'Últimos 7 días',
+  mes: 'Mes actual',
+  todos: 'Todo el historial',
+};
+
+const ESTADO_LABELS: Record<string, string> = {
+  todos: 'Todos los estados',
+  Completado: 'Completadas',
+  EnProgreso: 'En Progreso',
+  Programado: 'Programadas',
+  PendienteProgramar: 'Sin Programar',
+  Cancelado: 'Canceladas',
+};
 
 export const ReportesSupervisionPage: React.FC = () => {
   const styles = useStyles();
@@ -360,60 +390,76 @@ export const ReportesSupervisionPage: React.FC = () => {
         <div className={styles.filterBar}>
           <div className={styles.filterItem}>
             <Text size={200} weight="medium">Periodo:</Text>
-            <Select
+            <Dropdown
               size="small"
-              value={filtroPeriodo}
-              onChange={(_, d) => setFiltroPeriodo(d.value as any)}
+              value={PERIODO_LABELS[filtroPeriodo]}
+              selectedOptions={[filtroPeriodo]}
+              onOptionSelect={(_, d) => {
+                if (d.optionValue) setFiltroPeriodo(d.optionValue as any);
+              }}
+              style={{ minWidth: '150px' }}
             >
-              <option value="hoy">Hoy</option>
-              <option value="7dias">Últimos 7 días</option>
-              <option value="mes">Mes actual</option>
-              <option value="todos">Todo el historial</option>
-            </Select>
+              <Option value="hoy" text="Hoy">Hoy</Option>
+              <Option value="7dias" text="Últimos 7 días">Últimos 7 días</Option>
+              <Option value="mes" text="Mes actual">Mes actual</Option>
+              <Option value="todos" text="Todo el historial">Todo el historial</Option>
+            </Dropdown>
           </div>
 
           <div className={styles.filterItem}>
             <Text size={200} weight="medium">Sede:</Text>
-            <Select
+            <Dropdown
               size="small"
-              value={filtroSede}
-              onChange={(_, d) => setFiltroSede(d.value)}
+              value={filtroSede === 'todas' ? 'Todas las sedes' : filtroSede}
+              selectedOptions={[filtroSede]}
+              onOptionSelect={(_, d) => {
+                if (d.optionValue) setFiltroSede(d.optionValue);
+              }}
+              style={{ minWidth: '160px' }}
             >
-              <option value="todas">Todas las sedes</option>
+              <Option value="todas" text="Todas las sedes">Todas las sedes</Option>
               {sedesDisponibles.map((s) => (
-                <option key={s} value={s}>{s}</option>
+                <Option key={s} value={s} text={s}>{s}</Option>
               ))}
-            </Select>
+            </Dropdown>
           </div>
 
           <div className={styles.filterItem}>
             <Text size={200} weight="medium">Técnico:</Text>
-            <Select
+            <Dropdown
               size="small"
-              value={filtroTecnico}
-              onChange={(_, d) => setFiltroTecnico(d.value)}
+              value={filtroTecnico === 'todos' ? 'Todos los técnicos' : filtroTecnico}
+              selectedOptions={[filtroTecnico]}
+              onOptionSelect={(_, d) => {
+                if (d.optionValue) setFiltroTecnico(d.optionValue);
+              }}
+              style={{ minWidth: '180px' }}
             >
-              <option value="todos">Todos los técnicos</option>
+              <Option value="todos" text="Todos los técnicos">Todos los técnicos</Option>
               {tecnicosDisponibles.map((t) => (
-                <option key={t} value={t}>{t}</option>
+                <Option key={t} value={t} text={t}>{t}</Option>
               ))}
-            </Select>
+            </Dropdown>
           </div>
 
           <div className={styles.filterItem}>
             <Text size={200} weight="medium">Estado:</Text>
-            <Select
+            <Dropdown
               size="small"
-              value={filtroEstado}
-              onChange={(_, d) => setFiltroEstado(d.value)}
+              value={ESTADO_LABELS[filtroEstado] || filtroEstado}
+              selectedOptions={[filtroEstado]}
+              onOptionSelect={(_, d) => {
+                if (d.optionValue) setFiltroEstado(d.optionValue);
+              }}
+              style={{ minWidth: '160px' }}
             >
-              <option value="todos">Todos los estados</option>
-              <option value="Completado">Completadas</option>
-              <option value="EnProgreso">En Progreso</option>
-              <option value="Programado">Programadas</option>
-              <option value="PendienteProgramar">Sin Programar</option>
-              <option value="Cancelado">Canceladas</option>
-            </Select>
+              <Option value="todos" text="Todos los estados">Todos los estados</Option>
+              <Option value="Completado" text="Completadas">Completadas</Option>
+              <Option value="EnProgreso" text="En Progreso">En Progreso</Option>
+              <Option value="Programado" text="Programadas">Programadas</Option>
+              <Option value="PendienteProgramar" text="Sin Programar">Sin Programar</Option>
+              <Option value="Cancelado" text="Canceladas">Canceladas</Option>
+            </Dropdown>
           </div>
 
           <div style={{ marginLeft: 'auto' }}>
@@ -436,25 +482,29 @@ export const ReportesSupervisionPage: React.FC = () => {
         {/* 4. Tarjetas KPI de Resumen */}
         <div className={styles.kpiRow}>
           <div className={styles.kpiBox}>
-            <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>TOTAL ÓRDENES FILTRADAS</Text>
-            <Text size={600} weight="bold">{totalOrdenes}</Text>
+            <div className={styles.kpiAccent} style={{ backgroundColor: tokens.colorBrandStroke1 }} />
+            <Text size={100} weight="semibold" style={{ color: tokens.colorNeutralForeground3 }}>TOTAL ÓRDENES FILTRADAS</Text>
+            <Text size={700} weight="bold">{totalOrdenes}</Text>
           </div>
           <div className={styles.kpiBox}>
-            <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>ÓRDENES COMPLETADAS</Text>
-            <Text size={600} weight="bold" style={{ color: tokens.colorPaletteGreenForeground1 }}>
+            <div className={styles.kpiAccent} style={{ backgroundColor: tokens.colorPaletteGreenBorderActive }} />
+            <Text size={100} weight="semibold" style={{ color: tokens.colorNeutralForeground3 }}>ÓRDENES COMPLETADAS</Text>
+            <Text size={700} weight="bold" style={{ color: tokens.colorPaletteGreenForeground1 }}>
               {totalCompletadas}
             </Text>
           </div>
           <div className={styles.kpiBox}>
-            <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>TASA DE EFECTIVIDAD GLOBAL</Text>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Text size={600} weight="bold">{efectividadGlobal}%</Text>
-              <ProgressBar value={efectividadGlobal / 100} color={efectividadGlobal >= 80 ? 'success' : 'warning'} style={{ width: '60px' }} />
+            <div className={styles.kpiAccent} style={{ backgroundColor: efectividadGlobal >= 80 ? tokens.colorPaletteGreenBorderActive : tokens.colorPaletteDarkOrangeBorderActive }} />
+            <Text size={100} weight="semibold" style={{ color: tokens.colorNeutralForeground3 }}>TASA DE EFECTIVIDAD GLOBAL</Text>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Text size={700} weight="bold">{efectividadGlobal}%</Text>
+              <ProgressBar value={efectividadGlobal / 100} color={efectividadGlobal >= 80 ? 'success' : 'warning'} style={{ width: '80px' }} />
             </div>
           </div>
           <div className={styles.kpiBox}>
-            <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>CARGA TÉCNICA TOTAL</Text>
-            <Text size={600} weight="bold" style={{ color: tokens.colorBrandForeground1 }}>
+            <div className={styles.kpiAccent} style={{ backgroundColor: tokens.colorBrandStroke1 }} />
+            <Text size={100} weight="semibold" style={{ color: tokens.colorNeutralForeground3 }}>CARGA TÉCNICA TOTAL</Text>
+            <Text size={700} weight="bold" style={{ color: tokens.colorBrandForeground1 }}>
               {totalPuntosGlobal} pts
             </Text>
           </div>
