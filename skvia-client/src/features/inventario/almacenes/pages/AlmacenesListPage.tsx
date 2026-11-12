@@ -452,13 +452,6 @@ export const AlmacenesListPage: React.FC<AlmacenesListPageProps> = ({
           }
         }}
       />
-
-      {/* 4. BOTTOM STATUS BAR */}
-      <footer className={styles.footer}>
-        <div>
-          {filteredAlmacenes.length} almacenes ({selectedIds.size} seleccionados)
-        </div>
-      </footer>
     </div>
   );
 };

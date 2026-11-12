@@ -368,11 +368,6 @@ export function RolesListPage() {
         onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
       />
 
-      <div className={styles.footer}>
-        <span>{filtered.length} roles</span>
-        {selectedIds.size > 0 && <span>{selectedIds.size} seleccionado(s)</span>}
-      </div>
-
       <PermisosDrawer
         open={!!selectedDrawer}
         onClose={() => setSelectedDrawer(null)}

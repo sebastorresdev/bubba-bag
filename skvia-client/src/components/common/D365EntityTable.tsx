@@ -46,6 +46,17 @@ import {
 export { type D365FilterField, type D365FilterCondition, type D365ColumnConfig };
 
 const useStyles = makeStyles({
+  tableRoot: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
+    minHeight: 0,
+    minWidth: 0,
+    overflow: 'hidden',
+    position: 'relative',
+    height: '100%',
+    width: '100%',
+  },
   headerCell: {
     cursor: 'pointer',
     transitionProperty: 'background-color',
@@ -802,187 +813,198 @@ function D365EntityTableInner<T extends { id: string }>(
         </div>
       )}
 
-      <div className={styles.gridWrapper}>
-        <D365ListState loading={loading} error={error} onRetry={onRetry}>
-          {isMobile ? <>
-            <div style={{ display: 'flex', gap: '8px', padding: '12px 16px', flexWrap: 'wrap' }}>
-              <Select aria-label="Ordenar por" value={sortColumn ?? ''} onChange={(_, data) => { setSortColumn(data.value || null); setSortDirection('asc'); }}>
-                <option value="">Sin orden</option>
-                {activeColumns.map(column => <option key={column.columnId} value={String(column.columnId)}>{defaultColumnsConfig.find(c => c.id === String(column.columnId))?.label}</option>)}
-              </Select>
-              {sortColumn && <Button aria-label={sortDirection === 'asc' ? 'Cambiar a orden descendente' : 'Cambiar a orden ascendente'} icon={sortDirection === 'asc' ? <ArrowSortUp16Regular /> : <ArrowSortDown16Regular />} onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')} />}
-              {selectionMode === 'multiselect' && processedItems.length > 0 && <Button onClick={event => onSelectionChange?.(event, { selectedItems: processedItems.every(item => selectedItems?.has(item.id)) ? new Set() : new Set(processedItems.map(item => item.id)) })}>{processedItems.every(item => selectedItems?.has(item.id)) ? 'Quitar selección' : 'Seleccionar todos'}</Button>}
-            </div>
-            {processedItems.length === 0 ? (emptyState || <TableEmptyState />) : <D365MobileRecords items={pagedItems} columns={activeColumns} getRowId={item => item.id} selectionMode={selectionMode} selectedItems={selectedItems} onSelectionChange={onSelectionChange} onOpen={onRowDoubleClick} label={entityName} />}
-          </> : <DataGrid
-            items={pagedItems}
-            columns={activeColumns}
-            getRowId={(item) => item.id}
-            selectionMode={selectionMode}
-            selectedItems={selectedItems}
-            onSelectionChange={onSelectionChange}
-            className={styles.table}
-          >
-            <DataGridHeader style={{ position: 'sticky', top: 0, zIndex: 2, backgroundColor: tokens.colorNeutralBackground2 }}>
-              <DataGridRow selectionCell={selectionMode ? {} : undefined}>
-                {({ renderHeaderCell, columnId }) => {
-                  const idStr = String(columnId);
-                  const isSorted = sortColumn === idStr;
-                  const width = columnWidths[idStr];
+      <div className={customStyles.tableRoot}>
+        <div className={styles.gridWrapper} style={{ flexGrow: 1, minHeight: 0, overflow: 'auto' }}>
+          <D365ListState loading={loading} error={error} onRetry={onRetry}>
+            {isMobile ? <>
+              <div style={{ display: 'flex', gap: '8px', padding: '12px 16px', flexWrap: 'wrap' }}>
+                <Select aria-label="Ordenar por" value={sortColumn ?? ''} onChange={(_, data) => { setSortColumn(data.value || null); setSortDirection('asc'); }}>
+                  <option value="">Sin orden</option>
+                  {activeColumns.map(column => <option key={column.columnId} value={String(column.columnId)}>{defaultColumnsConfig.find(c => c.id === String(column.columnId))?.label}</option>)}
+                </Select>
+                {sortColumn && <Button aria-label={sortDirection === 'asc' ? 'Cambiar a orden descendente' : 'Cambiar a orden ascendente'} icon={sortDirection === 'asc' ? <ArrowSortUp16Regular /> : <ArrowSortDown16Regular />} onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')} />}
+                {selectionMode === 'multiselect' && processedItems.length > 0 && <Button onClick={event => onSelectionChange?.(event, { selectedItems: processedItems.every(item => selectedItems?.has(item.id)) ? new Set() : new Set(processedItems.map(item => item.id)) })}>{processedItems.every(item => selectedItems?.has(item.id)) ? 'Quitar selección' : 'Seleccionar todos'}</Button>}
+              </div>
+              {processedItems.length === 0 ? (emptyState || <TableEmptyState />) : <D365MobileRecords items={pagedItems} columns={activeColumns} getRowId={item => item.id} selectionMode={selectionMode} selectedItems={selectedItems} onSelectionChange={onSelectionChange} onOpen={onRowDoubleClick} label={entityName} />}
+            </> : <DataGrid
+              items={pagedItems}
+              columns={activeColumns}
+              getRowId={(item) => item.id}
+              selectionMode={selectionMode}
+              selectedItems={selectedItems}
+              onSelectionChange={onSelectionChange}
+              className={styles.table}
+            >
+              <DataGridHeader style={{ position: 'sticky', top: 0, zIndex: 2, backgroundColor: tokens.colorNeutralBackground2 }}>
+                <DataGridRow selectionCell={selectionMode ? {} : undefined}>
+                  {({ renderHeaderCell, columnId }) => {
+                    const idStr = String(columnId);
+                    const isSorted = sortColumn === idStr;
+                    const width = columnWidths[idStr];
 
-                  return (
-                    <DataGridHeaderCell
-                      sortIcon={null}
-                      aria-sort={isSorted ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
-                      className={customStyles.headerCell}
-                      onClick={() => handleToggleSort(idStr)}
-                      style={{
-                        width: width ? `${width}px` : undefined,
-                        minWidth: width ? `${width}px` : '70px',
-                        maxWidth: width ? `${width}px` : undefined,
-                        flex: width ? `0 0 ${width}px` : undefined,
-                        boxSizing: 'border-box',
-                        position: 'relative',
-                        overflow: 'visible',
-                      }}
+                    return (
+                      <DataGridHeaderCell
+                        sortIcon={null}
+                        aria-sort={isSorted ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+                        className={customStyles.headerCell}
+                        onClick={() => handleToggleSort(idStr)}
+                        style={{
+                          width: width ? `${width}px` : undefined,
+                          minWidth: width ? `${width}px` : '70px',
+                          maxWidth: width ? `${width}px` : undefined,
+                          flex: width ? `0 0 ${width}px` : undefined,
+                          boxSizing: 'border-box',
+                          position: 'relative',
+                          overflow: 'visible',
+                        }}
+                      >
+                        <div className={customStyles.headerCellContent}>
+                          <button
+                            type="button"
+                            className={customStyles.headerTitleBtn}
+                            style={{ background: 'transparent', color: 'inherit', border: 0, padding: 0, font: 'inherit', textAlign: 'left', cursor: 'pointer' }}
+                            title="Haga clic para ordenar"
+                            onClick={event => { event.stopPropagation(); handleToggleSort(idStr); }}
+                          >
+                            {renderHeaderCell()}
+                            {isSorted &&
+                              (sortDirection === 'asc' ? (
+                                <ArrowSortUp16Regular className={customStyles.sortIcon} />
+                              ) : (
+                                <ArrowSortDown16Regular className={customStyles.sortIcon} />
+                              ))}
+                          </button>
+
+                          {/* Control de redimensionamiento de columna */}
+                          <div
+                            className={customStyles.resizeHandle}
+                            onMouseDown={(e) => handleResizeStart(idStr, e)}
+                            onClick={(e) => e.stopPropagation()}
+                            title="Arrastrar para redimensionar columna"
+                          />
+                        </div>
+                      </DataGridHeaderCell>
+                    );
+                  }}
+                </DataGridRow>
+              </DataGridHeader>
+              {processedItems.length === 0 ? (
+                emptyState || <TableEmptyState />
+              ) : (
+                <DataGridBody<T>>
+                  {({ item, rowId }) => (
+                    <DataGridRow<T>
+                      key={rowId}
+                      className={styles.dataRow}
+                      onDoubleClick={() => onRowDoubleClick?.(item)}
+                      onKeyDown={event => { if (event.key === 'Enter' && onRowDoubleClick && !(event.target as HTMLElement).closest('button, input, a')) { event.preventDefault(); onRowDoubleClick(item); } }}
                     >
-                      <div className={customStyles.headerCellContent}>
-                        <button
-                          type="button"
-                          className={customStyles.headerTitleBtn}
-                          style={{ background: 'transparent', color: 'inherit', border: 0, padding: 0, font: 'inherit', textAlign: 'left', cursor: 'pointer' }}
-                          title="Haga clic para ordenar"
-                          onClick={event => { event.stopPropagation(); handleToggleSort(idStr); }}
-                        >
-                          {renderHeaderCell()}
-                          {isSorted &&
-                            (sortDirection === 'asc' ? (
-                              <ArrowSortUp16Regular className={customStyles.sortIcon} />
-                            ) : (
-                              <ArrowSortDown16Regular className={customStyles.sortIcon} />
-                            ))}
-                        </button>
+                      {({ renderCell, columnId }) => {
+                        const idStr = String(columnId);
+                        const width = columnWidths[idStr];
+                        return (
+                          <DataGridCell
+                            className={styles.dataCell}
+                            style={{
+                              width: width ? `${width}px` : undefined,
+                              minWidth: width ? `${width}px` : '70px',
+                              maxWidth: width ? `${width}px` : undefined,
+                              flex: width ? `0 0 ${width}px` : undefined,
+                              boxSizing: 'border-box',
+                            }}
+                            onClick={(e) => {
+                              if ((e.target as HTMLElement).closest('a, button, [role="button"], input, select, textarea')) {
+                                e.stopPropagation();
+                              }
+                            }}
+                          >
+                            {renderCell(item)}
+                          </DataGridCell>
+                        );
+                      }}
+                    </DataGridRow>
+                  )}
+                </DataGridBody>
+              )}
+            </DataGrid>}
+          </D365ListState>
+        </div>
 
-                        {/* Control de redimensionamiento de columna */}
-                        <div
-                          className={customStyles.resizeHandle}
-                          onMouseDown={(e) => handleResizeStart(idStr, e)}
-                          onClick={(e) => e.stopPropagation()}
-                          title="Arrastrar para redimensionar columna"
-                        />
-                      </div>
-                    </DataGridHeaderCell>
-                  );
-                }}
-              </DataGridRow>
-            </DataGridHeader>
-            {processedItems.length === 0 ? (
-              emptyState || <TableEmptyState />
-            ) : (
-              <DataGridBody<T>>
-                {({ item, rowId }) => (
-                  <DataGridRow<T>
-                    key={rowId}
-                    className={styles.dataRow}
-                    onDoubleClick={() => onRowDoubleClick?.(item)}
-                    onKeyDown={event => { if (event.key === 'Enter' && onRowDoubleClick && !(event.target as HTMLElement).closest('button, input, a')) { event.preventDefault(); onRowDoubleClick(item); } }}
-                  >
-                    {({ renderCell, columnId }) => {
-                      const idStr = String(columnId);
-                      const width = columnWidths[idStr];
-                      return (
-                        <DataGridCell
-                          className={styles.dataCell}
-                          style={{
-                            width: width ? `${width}px` : undefined,
-                            minWidth: width ? `${width}px` : '70px',
-                            maxWidth: width ? `${width}px` : undefined,
-                            flex: width ? `0 0 ${width}px` : undefined,
-                            boxSizing: 'border-box',
-                          }}
-                          onClick={(e) => {
-                            if ((e.target as HTMLElement).closest('a, button, [role="button"], input, select, textarea')) {
-                              e.stopPropagation();
-                            }
-                          }}
-                        >
-                          {renderCell(item)}
-                        </DataGridCell>
-                      );
-                    }}
-                  </DataGridRow>
-                )}
-              </DataGridBody>
-            )}
-          </DataGrid>}
-        </D365ListState>
-
-        {paginationEnabled && processedItems.length > 0 && (
+        {paginationEnabled && (
           <div className={customStyles.paginationBar}>
             <div className={customStyles.paginationLeft}>
               <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
-                Mostrando {Math.min((currentPage - 1) * pageSize + 1, processedItems.length)} - {Math.min(currentPage * pageSize, processedItems.length)} de {processedItems.length} registros
+                {processedItems.length === 0
+                  ? '0 registros'
+                  : `Mostrando ${Math.min((currentPage - 1) * pageSize + 1, processedItems.length)} - ${Math.min(currentPage * pageSize, processedItems.length)} de ${processedItems.length} registros`}
               </Text>
-            </div>
-            <div className={customStyles.paginationRight}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>Filas por página:</Text>
-                <Select
-                  size="small"
-                  value={String(pageSize)}
-                  onChange={(_, d) => {
-                    const newSize = Number(d.value) || 25;
-                    setPageSize(newSize);
-                    setCurrentPage(1);
-                  }}
-                >
-                  {pageSizeOptions.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </Select>
-              </div>
-              <div className={customStyles.paginationControls}>
-                <Button
-                  appearance="subtle"
-                  size="small"
-                  icon={<ChevronDoubleLeft16Regular />}
-                  disabled={currentPage <= 1}
-                  onClick={() => setCurrentPage(1)}
-                  title="Primera página"
-                  aria-label="Primera página"
-                />
-                <Button
-                  appearance="subtle"
-                  size="small"
-                  icon={<ChevronLeft16Regular />}
-                  disabled={currentPage <= 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  title="Página anterior"
-                  aria-label="Página anterior"
-                />
-                <Text size={200} weight="semibold" style={{ margin: '0 8px' }}>
-                  Página {currentPage} de {totalPages}
+              {selectedItems && selectedItems.size > 0 && (
+                <Text size={200} weight="semibold" style={{ color: tokens.colorBrandForeground1 }}>
+                  ({selectedItems.size} seleccionado{selectedItems.size > 1 ? 's' : ''})
                 </Text>
-                <Button
-                  appearance="subtle"
-                  size="small"
-                  icon={<ChevronRight16Regular />}
-                  disabled={currentPage >= totalPages}
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  title="Página siguiente"
-                  aria-label="Página siguiente"
-                />
-                <Button
-                  appearance="subtle"
-                  size="small"
-                  icon={<ChevronDoubleRight16Regular />}
-                  disabled={currentPage >= totalPages}
-                  onClick={() => setCurrentPage(totalPages)}
-                  title="Última página"
-                  aria-label="Última página"
-                />
-              </div>
+              )}
             </div>
+            {processedItems.length > 0 && (
+              <div className={customStyles.paginationRight}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>Filas por página:</Text>
+                  <Select
+                    size="small"
+                    value={String(pageSize)}
+                    onChange={(_, d) => {
+                      const newSize = Number(d.value) || 25;
+                      setPageSize(newSize);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    {pageSizeOptions.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </Select>
+                </div>
+                <div className={customStyles.paginationControls}>
+                  <Button
+                    appearance="subtle"
+                    size="small"
+                    icon={<ChevronDoubleLeft16Regular />}
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage(1)}
+                    title="Primera página"
+                    aria-label="Primera página"
+                  />
+                  <Button
+                    appearance="subtle"
+                    size="small"
+                    icon={<ChevronLeft16Regular />}
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    title="Página anterior"
+                    aria-label="Página anterior"
+                  />
+                  <Text size={200} weight="semibold" style={{ margin: '0 8px' }}>
+                    Página {currentPage} de {totalPages}
+                  </Text>
+                  <Button
+                    appearance="subtle"
+                    size="small"
+                    icon={<ChevronRight16Regular />}
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    title="Página siguiente"
+                    aria-label="Página siguiente"
+                  />
+                  <Button
+                    appearance="subtle"
+                    size="small"
+                    icon={<ChevronDoubleRight16Regular />}
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage(totalPages)}
+                    title="Última página"
+                    aria-label="Última página"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

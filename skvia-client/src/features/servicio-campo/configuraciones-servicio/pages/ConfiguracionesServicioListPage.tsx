@@ -744,23 +744,6 @@ createTableColumn<ConfiguracionServicioListadoDto>({
         onRowDoubleClick={(row) => navigate(`/servicio-campo/configuraciones-servicio/${row.id}`)}
 
       />
-
-
-
-      <footer className={styles.footer}>
-
-        <div>
-
-          1-{filtrados.length} de {filtrados.length}
-
-          {seleccionados.size > 0 && ` (${seleccionados.size} seleccionados)`}
-
-        </div>
-
-        <div>Página 1</div>
-
-      </footer>
-
     </div>
 
   );

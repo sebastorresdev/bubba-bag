@@ -305,13 +305,6 @@ export const ContactosListPage: React.FC = () => {
         entityName="contactos"
         tableId="contactos-grid"
       />
-
-      {/* 4. FOOTER */}
-      <div className={styles.footer}>
-        <Text>
-          {filteredContactos.length} {filteredContactos.length === 1 ? 'contacto' : 'contactos'}
-        </Text>
-      </div>
     </div>
   );
 };

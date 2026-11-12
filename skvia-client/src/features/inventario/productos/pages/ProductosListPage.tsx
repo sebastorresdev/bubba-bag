@@ -353,14 +353,6 @@ export const ProductosListPage: React.FC<ProductosListPageProps> = ({
         }}
       />
 
-      {/* 4. BOTTOM STATUS BAR */}
-      <footer className={styles.footer}>
-        <div>
-          1-{filteredProductos.length} de {filteredProductos.length} ({selectedIds.size} seleccionados)
-        </div>
-        <div>Página 1</div>
-      </footer>
-
       {/* 5. IMPORT DATA DRAWER LATERAL DERECHO (DYNAMICS 365) */}
       <ImportacionDrawer
         open={importDrawerOpen}

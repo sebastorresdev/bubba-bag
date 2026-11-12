@@ -272,11 +272,6 @@ export function UsuariosListPage() {
         onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
       />
 
-      <div className={styles.footer}>
-        <span>{filtered.length} usuarios</span>
-        {selectedIds.size > 0 && <span>{selectedIds.size} seleccionado(s)</span>}
-      </div>
-
       <ImportacionDrawer open={importOpen} onOpenChange={setImportOpen} targetEntityName="Usuario" onSuccess={() => { setImportOpen(false); void load(); }} />
 
       <ManageUserRolesDialog

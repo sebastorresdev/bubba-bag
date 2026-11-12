@@ -108,14 +108,6 @@ export function InventarioProductosPage() {
     }));
   }, [registrosFiltrados]);
 
-  const totales = useMemo(() => registrosFiltrados.reduce(
-    (acumulado, registro) => ({
-      cantidad: acumulado.cantidad + registro.cantidadTotal,
-      valor: acumulado.valor + registro.valorInventario,
-    }),
-    { cantidad: 0, valor: 0 },
-  ), [registrosFiltrados]);
-
   const columns: TableColumnDefinition<InventarioProductoItem>[] = useMemo(() => [
     createTableColumn({
       columnId: 'codigoProducto',
@@ -382,15 +374,6 @@ export function InventarioProductosPage() {
         onSelectionChange={(_, data) => setSeleccionados(data.selectedItems)}
         onRowDoubleClick={(item) => navigate(`/servicio-campo/productos/${item.productoId}`)}
       />
-
-      <footer className={styles.footer}>
-        <div>
-          1-{registrosFiltrados.length} de {registrosFiltrados.length} ({seleccionados.size} seleccionados)
-        </div>
-        <div>
-          Cantidad: {formatoCantidad.format(totales.cantidad)} · Valor: {formatoMoneda.format(totales.valor)}
-        </div>
-      </footer>
 
       <SeriesAlmacenDrawer item={itemParaVerSeries} alCerrar={() => setItemParaVerSeries(null)} />
     </div>

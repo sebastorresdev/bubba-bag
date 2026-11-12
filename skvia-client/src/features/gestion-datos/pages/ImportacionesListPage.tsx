@@ -391,14 +391,6 @@ export const ImportacionesListPage: React.FC = () => {
         onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
       />
 
-      <footer className={styles.footer}>
-        <div>
-          1-{filteredJobs.length} de {filteredJobs.length}
-          {selectedIds.size > 0 && ` (${selectedIds.size} seleccionados)`}
-        </div>
-        <div>Página 1</div>
-      </footer>
-
       {/* Asistente de importación compartido con las listas de entidad */}
       <ImportacionDrawer
         open={drawerOpen}

@@ -151,13 +151,6 @@ export const UnidadesMedidaListPage: React.FC<UnidadesMedidaListPageProps> = ({ 
         selectedItems={selectedIds}
         onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
       />
-      <footer className={styles.footer}>
-        <div>
-          1-{filtered.length} de {filtered.length}
-          {selectedIds.size > 0 && ` (${selectedIds.size} seleccionados)`}
-        </div>
-        <div>Página 1</div>
-      </footer>
       <CrearGrupoModal
         abierto={createOpen}
         alCerrar={() => setCreateOpen(false)}

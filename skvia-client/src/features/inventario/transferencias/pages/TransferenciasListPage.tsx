@@ -543,13 +543,6 @@ export function TransferenciasListPage({ tipoFiltro }: TransferenciasListPagePro
         onRowDoubleClick={(item) => navigate(getRutaDetalle(item))}
       />
 
-      <footer className={styles.footer}>
-        <div>
-          1-{filtrados.length} de {filtrados.length} ({seleccionados.size} seleccionados)
-        </div>
-        <div>Página 1</div>
-      </footer>
-
       <DetalleMaterialesTransferenciaDrawer
         open={Boolean(drawerTransferencia)}
         transferencia={drawerTransferencia}

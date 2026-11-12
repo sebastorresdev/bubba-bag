@@ -356,14 +356,6 @@ export const MotivosRetiroEquipoListPage: React.FC<MotivosRetiroEquipoListPagePr
         }}
       />
 
-      {/* 4. Bottom Status Bar */}
-      <footer className={styles.footer}>
-        <div>
-          1-{filteredMotivos.length} de {filteredMotivos.length} ({selectedIds.size} seleccionados)
-        </div>
-        <div>Página 1</div>
-      </footer>
-
       {/* Confirmation Dialog for Delete */}
       <Dialog open={deleteDialogOpen} onOpenChange={(_, data) => setDeleteDialogOpen(data.open)}>
         <DialogSurface>

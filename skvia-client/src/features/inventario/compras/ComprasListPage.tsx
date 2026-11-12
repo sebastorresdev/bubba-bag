@@ -216,7 +216,6 @@ export function ComprasListPage() {
       onSelectionChange={(_, data) => setSeleccionados(data.selectedItems)}
       onRowDoubleClick={(item) => navigate(`/servicio-campo/recepciones-compra/${item.id}`)}
     />
-    <footer className={styles.footer}><div>1-{filtrados.length} de {filtrados.length} ({seleccionados.size} seleccionados)</div><div>Página 1</div></footer>
 
     <Dialog
       open={Boolean(comprasAEliminar && comprasAEliminar.length > 0)}

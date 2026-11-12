@@ -372,13 +372,6 @@ export const ClientesListPage: React.FC<ClientesListPageProps> = () => {
         entityName="cuentas"
         tableId="cuentas-grid"
       />
-
-      {/* 4. FOOTER */}
-      <div className={styles.footer}>
-        <Text>
-          {filteredClientes.length} {filteredClientes.length === 1 ? 'cuenta' : 'cuentas'}
-        </Text>
-      </div>
     </div>
   );
 };

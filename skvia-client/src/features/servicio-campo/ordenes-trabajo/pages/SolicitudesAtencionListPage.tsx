@@ -402,13 +402,6 @@ export const SolicitudesAtencionListPage: React.FC = () => {
         entityName="solicitudes"
         tableId="solicitudes-atencion-grid"
       />
-
-      {/* 4. Footer */}
-      <div className={styles.footer}>
-        <Text>
-          {filteredOrdenes.length} {filteredOrdenes.length === 1 ? 'solicitud' : 'solicitudes'}
-        </Text>
-      </div>
     </div>
   );
 };

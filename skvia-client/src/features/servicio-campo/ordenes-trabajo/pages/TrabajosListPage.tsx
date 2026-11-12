@@ -1769,42 +1769,6 @@ export const TrabajosListPage: React.FC = () => {
 
 
 
-      {/* 4. Barra de Estado Inferior */}
-
-
-
-      <footer className={styles.footer}>
-
-
-
-        <div>
-
-
-
-          1-{filteredTrabajos.length} de {filteredTrabajos.length}
-
-
-
-          {selectedIds.size > 0 && ` (${selectedIds.size} seleccionados)`}
-
-
-
-        </div>
-
-
-
-        <div>Página 1</div>
-
-
-
-      </footer>
-
-
-
-
-
-
-
       {/* 5. Drawer de Importación Siebel / IBS */}
 
 

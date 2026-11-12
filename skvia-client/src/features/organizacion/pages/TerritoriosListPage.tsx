@@ -291,14 +291,6 @@ export function TerritoriosListPage() {
         onSelectionChange={(_, data) => setSeleccionados(data.selectedItems)}
       />
 
-      <footer className={styles.footer}>
-        <div>
-          1-{filtrados.length} de {filtrados.length}
-          {seleccionados.size > 0 && ` (${seleccionados.size} seleccionados)`}
-        </div>
-        <div>Página 1</div>
-      </footer>
-
       <ImportacionDrawer
         open={importDrawerOpen}
         onOpenChange={setImportDrawerOpen}

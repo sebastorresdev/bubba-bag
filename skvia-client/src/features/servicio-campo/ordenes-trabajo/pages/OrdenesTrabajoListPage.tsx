@@ -6,7 +6,6 @@ import { useNavigate } from 'react-router-dom';
 
 import {
   Badge,
-  Button,
   Link,
   TableCellLayout,
   Text,
@@ -67,7 +66,6 @@ import type { OrdenTrabajoListadoItemDto } from '../types/ordenTrabajo.types';
 import { exportToExcel, exportToCSV, type ExportColumn } from '../../../../utils/exportUtils';
 
 import { ImportarSiebelDrawer } from '../components/ImportarSiebelDrawer';
-import { TableEmptyState } from '../../../../components/common/TableEmptyState';
 
 
 
@@ -715,59 +713,15 @@ export const OrdenesTrabajoListPage: React.FC = () => {
         filterFields={filterFields}
         entityName="ordenes"
         tableId="ordenes-grid"
-        emptyState={
-          <TableEmptyState
-            message={
-              searchKeyword.trim()
-                ? `No se encontraron órdenes que coincidan con "${searchKeyword}".`
-                : activeView !== 'todas'
-                ? `No hay órdenes en la vista "${vistasSistemaOrdenes.find((v) => v.key === activeView)?.label || activeView}".`
-                : 'No hay órdenes registradas.'
-            }
-          >
-            {activeView !== 'todas' && !searchKeyword.trim() && (
-              <Button
-                appearance="subtle"
-                style={{ color: tokens.colorBrandForeground1, marginTop: '8px' }}
-                onClick={() => setActiveView('todas')}
-              >
-                Buscar en todo el histórico (Todas las órdenes)
-              </Button>
-            )}
-          </TableEmptyState>
-        }
       />
-
-
 
       <ImportarSiebelDrawer
-
         open={importarSiebelOpen}
-
         onOpenChange={setImportarSiebelOpen}
-
         onSuccess={() => void cargar()}
-
       />
-
-
-
-      {/* 4. FOOTER */}
-
-      <div className={styles.footer}>
-
-        <Text>
-
-          {filteredOrdenes.length} {filteredOrdenes.length === 1 ? 'orden' : 'órdenes'}
-
-        </Text>
-
-      </div>
-
     </div>
-
   );
-
 };
 
 
