@@ -12,6 +12,14 @@ import {
   Switch,
   Spinner,
   Text,
+  Menu,
+  MenuTrigger,
+  MenuPopover,
+  MenuList,
+  MenuItem,
+  MenuDivider,
+  MenuGroup,
+  MenuGroupHeader,
   createTableColumn,
   type TableColumnDefinition,
 } from '@fluentui/react-components';
@@ -24,6 +32,8 @@ import {
   Delete16Regular,
   CheckmarkCircle16Regular,
   DismissCircle16Regular,
+  ChevronDown16Regular,
+  Checkmark16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
@@ -66,9 +76,21 @@ export const CargosListPage: React.FC = () => {
   const [departamentos, setDepartamentos] = useState<DepartamentoDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [selectedDeptoId, setSelectedDeptoId] = useState<string>('todos');
+  const [activeView, setActiveView] = useState<string>('activos');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const currentViewLabel = useMemo(() => {
+    if (activeView === 'activos') return 'Puestos y cargos activos';
+    if (activeView === 'inactivos') return 'Puestos y cargos inactivos';
+    if (activeView === 'todos') return 'Todos los puestos y cargos';
+    if (activeView.startsWith('depto_')) {
+      const dId = activeView.replace('depto_', '');
+      const d = departamentos.find((dept) => dept.id === dId);
+      return d ? `Cargos: ${d.nombre}` : 'Puestos y cargos';
+    }
+    return 'Puestos y cargos';
+  }, [activeView, departamentos]);
 
   // Modal Crear / Editar
   const [modalOpen, setModalOpen] = useState<boolean>(false);
@@ -182,8 +204,11 @@ export const CargosListPage: React.FC = () => {
   // Filtrado
   const itemsFiltrados = useMemo(() => {
     return cargos.filter((c) => {
-      if (selectedDeptoId !== 'todos' && c.departamentoId !== selectedDeptoId) {
-        return false;
+      if (activeView === 'activos' && !c.activo) return false;
+      if (activeView === 'inactivos' && c.activo) return false;
+      if (activeView.startsWith('depto_')) {
+        const dId = activeView.replace('depto_', '');
+        if (c.departamentoId !== dId) return false;
       }
       if (searchTerm.trim()) {
         const q = searchTerm.toLowerCase();
@@ -193,7 +218,7 @@ export const CargosListPage: React.FC = () => {
       }
       return true;
     });
-  }, [cargos, selectedDeptoId, searchTerm]);
+  }, [cargos, activeView, searchTerm]);
 
   // Exportar a Excel
   const handleExport = () => {
@@ -304,33 +329,65 @@ export const CargosListPage: React.FC = () => {
         </D365CommandButton>
       </D365CommandBar>
 
+      {/* 2. Header & Search Row (Selector de Vista D365) */}
       <div className={styles.viewHeader}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Briefcase20Regular style={{ color: 'var(--colorBrandForeground1)' }} />
-          <Text size={400} weight="semibold">
-            Puestos y Cargos
-          </Text>
-          <div style={{ marginLeft: 16, display: 'inline-block' }}>
-            <Select
-              size="small"
-              value={selectedDeptoId}
-              onChange={(_, d) => setSelectedDeptoId(d.value)}
-            >
-              <option value="todos">Todos los departamentos</option>
-              {departamentos.map((d) => (
-                <option key={d.id} value={d.id}>{d.nombre}</option>
-              ))}
-            </Select>
-          </div>
-          <Text size={200} style={{ color: '#605e5c', marginLeft: 8 }}>
-            ({itemsFiltrados.length} registros)
-          </Text>
-        </div>
+        <Menu>
+          <MenuTrigger disableButtonEnhancement>
+            <div className={styles.viewSelectorTab} title="Seleccionar vista">
+              <Text weight="semibold" size={400}>
+                {currentViewLabel}
+              </Text>
+              <ChevronDown16Regular />
+            </div>
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList className={styles.viewMenuPopover}>
+              <MenuGroup>
+                <MenuGroupHeader>Vistas del sistema</MenuGroupHeader>
+                <MenuItem
+                  icon={activeView === 'activos' ? <Checkmark16Regular /> : undefined}
+                  onClick={() => setActiveView('activos')}
+                >
+                  Puestos y cargos activos
+                </MenuItem>
+                <MenuItem
+                  icon={activeView === 'inactivos' ? <Checkmark16Regular /> : undefined}
+                  onClick={() => setActiveView('inactivos')}
+                >
+                  Puestos y cargos inactivos
+                </MenuItem>
+                <MenuItem
+                  icon={activeView === 'todos' ? <Checkmark16Regular /> : undefined}
+                  onClick={() => setActiveView('todos')}
+                >
+                  Todos los puestos y cargos
+                </MenuItem>
+              </MenuGroup>
+              {departamentos.length > 0 && (
+                <>
+                  <MenuDivider />
+                  <MenuGroup>
+                    <MenuGroupHeader>Por departamento</MenuGroupHeader>
+                    {departamentos.map((d) => (
+                      <MenuItem
+                        key={d.id}
+                        icon={activeView === `depto_${d.id}` ? <Checkmark16Regular /> : undefined}
+                        onClick={() => setActiveView(`depto_${d.id}`)}
+                      >
+                        {d.nombre}
+                      </MenuItem>
+                    ))}
+                  </MenuGroup>
+                </>
+              )}
+            </MenuList>
+          </MenuPopover>
+        </Menu>
         <D365TableToolbarTools
           tableRef={tableRef}
           searchValue={searchTerm}
           onSearchChange={setSearchTerm}
-          searchPlaceholder="Buscar por cargo o área..."
+          searchPlaceholder="Buscar"
         />
       </div>
 

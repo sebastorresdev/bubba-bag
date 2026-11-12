@@ -12,6 +12,11 @@ import {
   Spinner,
   Text,
   Badge,
+  Menu,
+  MenuTrigger,
+  MenuPopover,
+  MenuList,
+  MenuItem,
   createTableColumn,
   type TableColumnDefinition,
 } from '@fluentui/react-components';
@@ -24,6 +29,8 @@ import {
   Delete16Regular,
   CheckmarkCircle16Regular,
   DismissCircle16Regular,
+  ChevronDown16Regular,
+  Checkmark16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
@@ -64,6 +71,7 @@ export const TurnosListPage: React.FC = () => {
   const [turnos, setTurnos] = useState<TurnoDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [activeView, setActiveView] = useState<'activos' | 'inactivos' | 'todos'>('activos');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -185,14 +193,18 @@ export const TurnosListPage: React.FC = () => {
   };
 
   const itemsFiltrados = useMemo(() => {
-    if (!searchTerm.trim()) return turnos;
-    const q = searchTerm.toLowerCase();
-    return turnos.filter(
-      (t) =>
-        t.nombre.toLowerCase().includes(q) ||
-        t.codigo.toLowerCase().includes(q)
-    );
-  }, [turnos, searchTerm]);
+    return turnos.filter((t) => {
+      if (activeView === 'activos' && !t.activo) return false;
+      if (activeView === 'inactivos' && t.activo) return false;
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase();
+        const matchesNombre = t.nombre.toLowerCase().includes(q);
+        const matchesCodigo = t.codigo.toLowerCase().includes(q);
+        if (!matchesNombre && !matchesCodigo) return false;
+      }
+      return true;
+    });
+  }, [turnos, activeView, searchTerm]);
 
   const handleExport = () => {
     const columns: ExportColumn<TurnoDto>[] = [
@@ -312,21 +324,49 @@ export const TurnosListPage: React.FC = () => {
         </D365CommandButton>
       </D365CommandBar>
 
+      {/* 2. Header & Search Row (Selector de Vista D365) */}
       <div className={styles.viewHeader}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Clock20Regular style={{ color: 'var(--colorBrandForeground1)' }} />
-          <Text size={400} weight="semibold">
-            Horarios y Turnos Laborales
-          </Text>
-          <Text size={200} style={{ color: '#605e5c', marginLeft: 8 }}>
-            ({itemsFiltrados.length} registros)
-          </Text>
-        </div>
+        <Menu>
+          <MenuTrigger disableButtonEnhancement>
+            <div className={styles.viewSelectorTab} title="Seleccionar vista">
+              <Text weight="semibold" size={400}>
+                {activeView === 'activos'
+                  ? 'Horarios y turnos activos'
+                  : activeView === 'inactivos'
+                  ? 'Horarios y turnos inactivos'
+                  : 'Todos los turnos'}
+              </Text>
+              <ChevronDown16Regular />
+            </div>
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList className={styles.viewMenuPopover}>
+              <MenuItem
+                icon={activeView === 'activos' ? <Checkmark16Regular /> : undefined}
+                onClick={() => setActiveView('activos')}
+              >
+                Horarios y turnos activos
+              </MenuItem>
+              <MenuItem
+                icon={activeView === 'inactivos' ? <Checkmark16Regular /> : undefined}
+                onClick={() => setActiveView('inactivos')}
+              >
+                Horarios y turnos inactivos
+              </MenuItem>
+              <MenuItem
+                icon={activeView === 'todos' ? <Checkmark16Regular /> : undefined}
+                onClick={() => setActiveView('todos')}
+              >
+                Todos los turnos
+              </MenuItem>
+            </MenuList>
+          </MenuPopover>
+        </Menu>
         <D365TableToolbarTools
           tableRef={tableRef}
           searchValue={searchTerm}
           onSearchChange={setSearchTerm}
-          searchPlaceholder="Buscar por código o nombre..."
+          searchPlaceholder="Buscar"
         />
       </div>
 

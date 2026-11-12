@@ -13,6 +13,11 @@ import {
   Spinner,
   Text,
   Badge,
+  Menu,
+  MenuTrigger,
+  MenuPopover,
+  MenuList,
+  MenuItem,
   createTableColumn,
   type TableColumnDefinition,
 } from '@fluentui/react-components';
@@ -25,6 +30,8 @@ import {
   Delete16Regular,
   CheckmarkCircle16Regular,
   DismissCircle16Regular,
+  ChevronDown16Regular,
+  Checkmark16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
@@ -65,6 +72,7 @@ export const DepartamentosListPage: React.FC = () => {
   const [departamentos, setDepartamentos] = useState<DepartamentoDto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [activeView, setActiveView] = useState<'activos' | 'inactivos' | 'todos'>('activos');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -161,16 +169,20 @@ export const DepartamentosListPage: React.FC = () => {
     }
   };
 
-  // Filtrado por buscador
+  // Filtrado por vista y buscador
   const itemsFiltrados = useMemo(() => {
-    if (!searchTerm.trim()) return departamentos;
-    const q = searchTerm.toLowerCase();
-    return departamentos.filter(
-      (d) =>
-        d.nombre.toLowerCase().includes(q) ||
-        (d.descripcion && d.descripcion.toLowerCase().includes(q))
-    );
-  }, [departamentos, searchTerm]);
+    return departamentos.filter((d) => {
+      if (activeView === 'activos' && !d.activo) return false;
+      if (activeView === 'inactivos' && d.activo) return false;
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase();
+        const matchesNombre = d.nombre.toLowerCase().includes(q);
+        const matchesDesc = d.descripcion && d.descripcion.toLowerCase().includes(q);
+        if (!matchesNombre && !matchesDesc) return false;
+      }
+      return true;
+    });
+  }, [departamentos, activeView, searchTerm]);
 
   // Exportar a Excel
   const handleExport = () => {
@@ -273,21 +285,49 @@ export const DepartamentosListPage: React.FC = () => {
         </D365CommandButton>
       </D365CommandBar>
 
+      {/* 2. Header & Search Row (Selector de Vista D365) */}
       <div className={styles.viewHeader}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Building20Regular style={{ color: 'var(--colorBrandForeground1)' }} />
-          <Text size={400} weight="semibold">
-            Departamentos y Áreas
-          </Text>
-          <Text size={200} style={{ color: '#605e5c', marginLeft: 8 }}>
-            ({itemsFiltrados.length} registros)
-          </Text>
-        </div>
+        <Menu>
+          <MenuTrigger disableButtonEnhancement>
+            <div className={styles.viewSelectorTab} title="Seleccionar vista">
+              <Text weight="semibold" size={400}>
+                {activeView === 'activos'
+                  ? 'Departamentos activos'
+                  : activeView === 'inactivos'
+                  ? 'Departamentos inactivos'
+                  : 'Todos los departamentos'}
+              </Text>
+              <ChevronDown16Regular />
+            </div>
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList className={styles.viewMenuPopover}>
+              <MenuItem
+                icon={activeView === 'activos' ? <Checkmark16Regular /> : undefined}
+                onClick={() => setActiveView('activos')}
+              >
+                Departamentos activos
+              </MenuItem>
+              <MenuItem
+                icon={activeView === 'inactivos' ? <Checkmark16Regular /> : undefined}
+                onClick={() => setActiveView('inactivos')}
+              >
+                Departamentos inactivos
+              </MenuItem>
+              <MenuItem
+                icon={activeView === 'todos' ? <Checkmark16Regular /> : undefined}
+                onClick={() => setActiveView('todos')}
+              >
+                Todos los departamentos
+              </MenuItem>
+            </MenuList>
+          </MenuPopover>
+        </Menu>
         <D365TableToolbarTools
           tableRef={tableRef}
           searchValue={searchTerm}
           onSearchChange={setSearchTerm}
-          searchPlaceholder="Buscar por nombre o descripción..."
+          searchPlaceholder="Buscar"
         />
       </div>
 
