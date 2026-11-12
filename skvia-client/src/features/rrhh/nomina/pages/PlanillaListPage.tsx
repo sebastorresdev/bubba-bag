@@ -9,7 +9,6 @@ import {
   DialogContent,
   DialogActions,
   Divider,
-  Input,
   Text,
   Badge,
   Menu,
@@ -21,6 +20,7 @@ import {
   createTableColumn,
   type TableColumnDefinition,
 } from '@fluentui/react-components';
+import { DatePicker } from '@fluentui/react-datepicker-compat';
 import {
   ArrowClockwise16Regular,
   ArrowDownload16Regular,
@@ -30,6 +30,8 @@ import {
   Calculator16Regular,
   ChevronDown16Regular,
   Checkmark16Regular,
+  ChevronLeft16Regular,
+  ChevronRight16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton, D365CommandDivider } from '../../../../components/common/D365CommandBar';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
@@ -117,10 +119,18 @@ export const PlanillaListPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [activeView, setActiveView] = useState<'activos' | 'cesados' | 'previsional'>('activos');
-  const [mesSeleccionado, setMesSeleccionado] = useState<string>(() => {
+  const [fechaPeriodo, setFechaPeriodo] = useState<Date>(() => {
     const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    return new Date(d.getFullYear(), d.getMonth(), 1);
   });
+
+  const mesSeleccionado = useMemo(() => {
+    return `${fechaPeriodo.getFullYear()}-${String(fechaPeriodo.getMonth() + 1).padStart(2, '0')}`;
+  }, [fechaPeriodo]);
+
+  const handleCambiarMes = (delta: number) => {
+    setFechaPeriodo((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+  };
 
   const [empleados, setEmpleados] = useState<EmpleadoDto[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -645,16 +655,40 @@ export const PlanillaListPage: React.FC = () => {
             </MenuPopover>
           </Menu>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Text size={200} style={{ color: tokens.colorNeutralForeground3, fontWeight: 'medium' }}>
               Período:
             </Text>
-            <Input
-              type="month"
+            <Button
               size="small"
-              value={mesSeleccionado}
-              onChange={(_, d) => setMesSeleccionado(d.value)}
-              style={{ width: 140 }}
+              appearance="subtle"
+              icon={<ChevronLeft16Regular />}
+              onClick={() => handleCambiarMes(-1)}
+              title="Mes anterior"
+              aria-label="Mes anterior"
+            />
+            <DatePicker
+              size="small"
+              value={fechaPeriodo}
+              onSelectDate={(d) => {
+                if (d) {
+                  setFechaPeriodo(new Date(d.getFullYear(), d.getMonth(), 1));
+                }
+              }}
+              formatDate={(d) => {
+                if (!d) return '';
+                const m = d.toLocaleDateString('es-PE', { month: 'long' });
+                return `${m.charAt(0).toUpperCase() + m.slice(1)} de ${d.getFullYear()}`;
+              }}
+              style={{ minWidth: 175 }}
+            />
+            <Button
+              size="small"
+              appearance="subtle"
+              icon={<ChevronRight16Regular />}
+              onClick={() => handleCambiarMes(1)}
+              title="Mes siguiente"
+              aria-label="Mes siguiente"
             />
           </div>
         </div>
