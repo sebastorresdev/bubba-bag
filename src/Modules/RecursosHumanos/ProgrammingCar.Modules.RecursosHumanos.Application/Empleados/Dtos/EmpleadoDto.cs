@@ -30,5 +30,7 @@ public record EmpleadoDto(
     string? Cuspp,
     string? EntidadFinanciera,
     string? CuentaBancaria,
-    string? CuentaInterbancaria
+    string? CuentaInterbancaria,
+    Guid? TurnoId = null,
+    string? TurnoNombre = null
 );

@@ -34,7 +34,7 @@ export function canAccessPath(path: string, permisos: readonly string[]): boolea
       has('serviciocampo.ordenes.ver_todas')
     );
   }
-  if (path.startsWith('/servicio-campo/ordenes') || path.startsWith('/servicio-campo/trabajos') || path === '/dashboard') {
+  if (path.startsWith('/servicio-campo/ordenes') || path.startsWith('/servicio-campo/trabajos') || path === '/dashboard' || path.startsWith('/servicio-campo/reportes')) {
     if (has('serviciocampo.ordenes.operar_campo') && !has('serviciocampo.ordenes.ver_todas') && !has('serviciocampo.ordenes.asignar')) {
       return false; // El técnico de campo puro utiliza exclusivamente su aplicación móvil /servicio-campo/mis-citas
     }

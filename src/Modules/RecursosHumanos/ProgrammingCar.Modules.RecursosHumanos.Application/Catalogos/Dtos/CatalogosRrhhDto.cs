@@ -22,6 +22,13 @@ public record EstadoEmpleadoCatalogoDto(
     string Color
 );
 
+public record TurnoCatalogoDto(
+    Guid Id,
+    string Codigo,
+    string Nombre,
+    string Horario
+);
+
 public record CatalogosRrhhDto(
     List<DepartamentoCatalogoDto> Departamentos,
     List<string> TiposDocumento,
@@ -29,5 +36,6 @@ public record CatalogosRrhhDto(
     List<string> RegimenesPensionarios,
     List<string> EntidadesFinancieras,
     List<EstadoEmpleadoCatalogoDto> Estados,
-    List<string> MotivosCese
+    List<string> MotivosCese,
+    List<TurnoCatalogoDto>? Turnos = null
 );

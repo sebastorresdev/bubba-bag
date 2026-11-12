@@ -1,5 +1,14 @@
 using System;
 using System.Threading.Tasks;
+using ProgrammingCar.Modules.RecursosHumanos.Application.Asistencia.Marcaciones.Commands.RegistrarMarcacion;
+using ProgrammingCar.Modules.RecursosHumanos.Application.Asistencia.Marcaciones.Queries.ObtenerConsolidadoAsistencias;
+using ProgrammingCar.Modules.RecursosHumanos.Application.Asistencia.Marcaciones.Queries.ObtenerMiAsistenciaHoy;
+using ProgrammingCar.Modules.RecursosHumanos.Application.Asistencia.Turnos.Commands.ActualizarTurno;
+using ProgrammingCar.Modules.RecursosHumanos.Application.Asistencia.Turnos.Commands.CambiarEstadoTurno;
+using ProgrammingCar.Modules.RecursosHumanos.Application.Asistencia.Turnos.Commands.CrearTurno;
+using ProgrammingCar.Modules.RecursosHumanos.Application.Asistencia.Turnos.Commands.EliminarTurno;
+using ProgrammingCar.Modules.RecursosHumanos.Application.Asistencia.Turnos.Queries.ObtenerTurnoPorId;
+using ProgrammingCar.Modules.RecursosHumanos.Application.Asistencia.Turnos.Queries.ObtenerTurnos;
 using ProgrammingCar.Modules.RecursosHumanos.Application.Catalogos.Dtos;
 using ProgrammingCar.Modules.RecursosHumanos.Application.Catalogos.Queries.ObtenerCatalogosRrhh;
 
@@ -75,6 +84,21 @@ public static class RecursosHumanosEndpoints
         empleadosGroup.MapPost("/{id:guid}/reactivar", ReactivarEmpleado).RequireAuthorization(ProgrammingCar.SharedKernel.Authorization.Permissions.Rrhh.ColaboradoresGestionar);
         empleadosGroup.MapDelete("/{id:guid}", EliminarEmpleado)
             .RequireAuthorization(ProgrammingCar.SharedKernel.Authorization.Permissions.Rrhh.ColaboradoresGestionar, ProgrammingCar.SharedKernel.Authorization.Permissions.Rrhh.SalariosConfidencial);
+
+        // Turnos y Horarios
+        var turnosGroup = rootGroup.MapGroup("/turnos");
+        turnosGroup.MapGet("/", ObtenerTurnos);
+        turnosGroup.MapGet("/{id:guid}", ObtenerTurnoPorId);
+        turnosGroup.MapPost("/", CrearTurno).RequireAuthorization(ProgrammingCar.SharedKernel.Authorization.Permissions.Rrhh.CatalogosGestionar);
+        turnosGroup.MapPut("/{id:guid}", ActualizarTurno).RequireAuthorization(ProgrammingCar.SharedKernel.Authorization.Permissions.Rrhh.CatalogosGestionar);
+        turnosGroup.MapPatch("/{id:guid}/estado", CambiarEstadoTurno).RequireAuthorization(ProgrammingCar.SharedKernel.Authorization.Permissions.Rrhh.CatalogosGestionar);
+        turnosGroup.MapDelete("/{id:guid}", EliminarTurno).RequireAuthorization(ProgrammingCar.SharedKernel.Authorization.Permissions.Rrhh.CatalogosGestionar);
+
+        // Asistencia y Marcaciones
+        var asistenciaGroup = rootGroup.MapGroup("/asistencia");
+        asistenciaGroup.MapGet("/mi-dia", ObtenerMiAsistenciaHoy);
+        asistenciaGroup.MapPost("/marcar", RegistrarMarcacion);
+        asistenciaGroup.MapGet("/consolidado", ObtenerConsolidadoAsistencias).RequireAuthorization(ProgrammingCar.SharedKernel.Authorization.Permissions.Rrhh.ColaboradoresVer);
     }
 
     private static async Task<IResult> ObtenerCatalogos(IDispatcher dispatcher)
@@ -323,7 +347,136 @@ public static class RecursosHumanosEndpoints
         }
         return Results.Ok(new { Id = result.Value, Mensaje = "Estado del cargo actualizado exitosamente." });
     }
+
+    // Handlers de Turnos
+    private static async Task<IResult> ObtenerTurnos(
+        IDispatcher dispatcher,
+        string? searchTerm,
+        bool? activo)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerTurnosQuery(searchTerm, activo));
+        return Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> ObtenerTurnoPorId(
+        IDispatcher dispatcher,
+        Guid id)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerTurnoPorIdQuery(id));
+        if (result.IsFailure)
+        {
+            return Results.NotFound(new ProgrammingCar.SharedKernel.Http.ErrorResponse(404, "Turno no encontrado", result.Error));
+        }
+        return Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> CrearTurno(
+        IDispatcher dispatcher,
+        CrearTurnoCommand command)
+    {
+        var result = await dispatcher.SendAsync(command);
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new ProgrammingCar.SharedKernel.Http.ErrorResponse(400, "Error al crear turno", result.Error));
+        }
+        return Results.Created($"/api/rrhh/turnos/{result.Value}", result.Value);
+    }
+
+    private static async Task<IResult> ActualizarTurno(
+        IDispatcher dispatcher,
+        Guid id,
+        ActualizarTurnoRequest request)
+    {
+        var command = new ActualizarTurnoCommand(
+            id,
+            request.Nombre,
+            request.HoraInicio,
+            request.HoraFin,
+            request.MinutosRefrigerio,
+            request.MinutosToleranciaEntrada,
+            request.MinutosToleranciaRefrigerio,
+            request.Activo
+        );
+        var result = await dispatcher.SendAsync(command);
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new ProgrammingCar.SharedKernel.Http.ErrorResponse(400, "Error al actualizar turno", result.Error));
+        }
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> CambiarEstadoTurno(
+        IDispatcher dispatcher,
+        Guid id,
+        CambiarEstadoCatalogoRequest request)
+    {
+        var result = await dispatcher.SendAsync(new CambiarEstadoTurnoCommand(id, request.Activo));
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new ProgrammingCar.SharedKernel.Http.ErrorResponse(400, "Error al cambiar estado de turno", result.Error));
+        }
+        return Results.Ok(new { Id = id, Mensaje = "Estado del turno actualizado exitosamente." });
+    }
+
+    private static async Task<IResult> EliminarTurno(
+        IDispatcher dispatcher,
+        Guid id)
+    {
+        var result = await dispatcher.SendAsync(new EliminarTurnoCommand(id));
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new ProgrammingCar.SharedKernel.Http.ErrorResponse(400, "Error al eliminar turno", result.Error));
+        }
+        return Results.NoContent();
+    }
+
+    // Handlers de Asistencia y Marcación
+    private static async Task<IResult> ObtenerMiAsistenciaHoy(
+        IDispatcher dispatcher,
+        Guid? empleadoId)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerMiAsistenciaHoyQuery(empleadoId));
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new ProgrammingCar.SharedKernel.Http.ErrorResponse(400, "Error al consultar asistencia", result.Error));
+        }
+        return Results.Ok(result.Value);
+    }
+
+    private static async Task<IResult> RegistrarMarcacion(
+        IDispatcher dispatcher,
+        RegistrarMarcacionCommand command)
+    {
+        var result = await dispatcher.SendAsync(command);
+        if (result.IsFailure)
+        {
+            return Results.BadRequest(new ProgrammingCar.SharedKernel.Http.ErrorResponse(400, "Error al registrar marcación", result.Error));
+        }
+        return Results.Ok(new { MarcacionId = result.Value, Mensaje = "Marcación registrada exitosamente." });
+    }
+
+    private static async Task<IResult> ObtenerConsolidadoAsistencias(
+        IDispatcher dispatcher,
+        DateOnly? fechaInicio,
+        DateOnly? fechaFin,
+        Guid? empleadoId,
+        Guid? departamentoId,
+        int? estado)
+    {
+        var result = await dispatcher.QueryAsync(new ObtenerConsolidadoAsistenciasQuery(fechaInicio, fechaFin, empleadoId, departamentoId, estado));
+        return Results.Ok(result.Value);
+    }
 }
+
+public record ActualizarTurnoRequest(
+    string Nombre,
+    string HoraInicio,
+    string HoraFin,
+    int MinutosRefrigerio,
+    int MinutosToleranciaEntrada,
+    int MinutosToleranciaRefrigerio,
+    bool Activo = true
+);
 
 public record DarDeBajaRequest(DateOnly FechaCese, string MotivoCese, string? ObservacionesCese);
 public record ActualizarDepartamentoRequest(string Nombre, string? Descripcion, bool Activo = true);

@@ -5,34 +5,20 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 
 import {
-
   Badge,
-
+  Button,
   Link,
-
   TableCellLayout,
-
   Text,
-
   createTableColumn,
-
   Menu,
-
   MenuTrigger,
-
   MenuPopover,
-
   MenuList,
-
   MenuItem,
-
-
   tokens,
-
   type TableColumnDefinition,
-
   type SelectionItemId,
-
 } from '@fluentui/react-components';
 
 import {
@@ -81,6 +67,7 @@ import type { OrdenTrabajoListadoItemDto } from '../types/ordenTrabajo.types';
 import { exportToExcel, exportToCSV, type ExportColumn } from '../../../../utils/exportUtils';
 
 import { ImportarSiebelDrawer } from '../components/ImportarSiebelDrawer';
+import { TableEmptyState } from '../../../../components/common/TableEmptyState';
 
 
 
@@ -117,7 +104,8 @@ const filterFields: D365FilterField[] = [
   { id: 'codigoWo', label: 'Código WO', type: 'string' },
   { id: 'numeroOrden', label: 'N° Orden Siebel / Ext.', type: 'string' },
   { id: 'codigoExternoTrabajo', label: 'N° WO IBS', type: 'string' },
-  { id: 'codigoContrato', label: 'Cód. Cliente Abonado', type: 'string' },
+  { id: 'codigoAbonado', label: 'Cód. Cliente Abonado', type: 'string' },
+  { id: 'codigoContrato', label: 'Cód. Contrato / Abonado', type: 'string' },
   { id: 'clienteFacturacionNombre', label: 'Cliente Facturación', type: 'string' },
   { id: 'clienteServicioNombre', label: 'Abonado / Contacto', type: 'string' },
   { id: 'tipoOrdenNombre', label: 'Tipo de Orden', type: 'string' },
@@ -172,37 +160,25 @@ export const OrdenesTrabajoListPage: React.FC = () => {
 
 
   const cargar = useCallback(async () => {
-
     try {
-
       setLoading(true);
-
       setError(null);
 
-
+      // Si el usuario escribe un término de búsqueda (ej. WO, IBS, Cód. Abonado, Cliente),
+      // buscamos en todo el histórico ('todas') para no ocultar órdenes ya completadas o cerradas.
+      const vistaEfectiva = searchKeyword.trim() ? 'todas' : activeView;
 
       const data = await OrdenTrabajoService.obtenerOrdenes({
-
         search: searchKeyword.trim() || undefined,
-
-        vista: activeView,
-
+        vista: vistaEfectiva,
       });
-
       setOrdenes(data);
-
     } catch (e) {
-
       console.error(e);
-
       setError('No se pudo cargar la lista de órdenes de trabajo.');
-
     } finally {
-
       setLoading(false);
-
     }
-
   }, [activeView, searchKeyword]);
 
 
@@ -700,61 +676,66 @@ export const OrdenesTrabajoListPage: React.FC = () => {
       {/* 2. VIEW HEADER ROW (Selector + Tools) */}
 
       <div className={styles.viewHeader}>
-        <D365ViewSelector
-          entityName="ordenes"
-          vistasSistema={vistasSistemaOrdenes}
-          activeViewKey={activeView}
-          onSelectSystemView={(key) => setActiveView(key as VistaOrdenes)}
-          tableRef={tableRef}
-          onRefreshData={cargar}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <D365ViewSelector
+            entityName="ordenes"
+            vistasSistema={vistasSistemaOrdenes}
+            activeViewKey={activeView}
+            onSelectSystemView={(key) => setActiveView(key as VistaOrdenes)}
+            tableRef={tableRef}
+            onRefreshData={cargar}
+          />
+          {searchKeyword.trim() && (
+            <Badge appearance="tint" color="informative" size="small">
+              Buscando en todo el histórico
+            </Badge>
+          )}
+        </div>
 
         <D365TableToolbarTools
-
           tableRef={tableRef}
-
           searchValue={searchKeyword}
-
           onSearchChange={setSearchKeyword}
-
           searchPlaceholder="Buscar órdenes por código, cliente, técnico..."
-
         />
-
       </div>
 
-
-
       {/* 3. GRID PRINCIPAL */}
-
       <D365EntityTable<OrdenTrabajoListadoItemDto>
-
         ref={tableRef}
-
         items={filteredOrdenes}
-
         columns={columns}
-
         loading={loading}
-
         error={error}
-
         onRetry={cargar}
-
         selectionMode="multiselect"
-
         selectedItems={selectedIds}
-
         onSelectionChange={(_, data) => setSelectedIds(data.selectedItems)}
-
         onRowDoubleClick={(item) => navigate(`/servicio-campo/ordenes/${item.id}`)}
-
         filterFields={filterFields}
-
         entityName="ordenes"
-
         tableId="ordenes-grid"
-
+        emptyState={
+          <TableEmptyState
+            message={
+              searchKeyword.trim()
+                ? `No se encontraron órdenes que coincidan con "${searchKeyword}".`
+                : activeView !== 'todas'
+                ? `No hay órdenes en la vista "${vistasSistemaOrdenes.find((v) => v.key === activeView)?.label || activeView}".`
+                : 'No hay órdenes registradas.'
+            }
+          >
+            {activeView !== 'todas' && !searchKeyword.trim() && (
+              <Button
+                appearance="subtle"
+                style={{ color: tokens.colorBrandForeground1, marginTop: '8px' }}
+                onClick={() => setActiveView('todas')}
+              >
+                Buscar en todo el histórico (Todas las órdenes)
+              </Button>
+            )}
+          </TableEmptyState>
+        }
       />
 
 

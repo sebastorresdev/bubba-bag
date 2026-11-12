@@ -354,13 +354,6 @@ public static class OrdenesTrabajoEndpoints
 
         var query = OrdenesAcceso.Consultables(db, currentUser, subordinados)
             .AsNoTracking()
-            .Include(o => o.TipoOrden)
-            .Include(o => o.ClienteFacturacion)
-            .Include(o => o.ClienteServicio)
-            .Include(o => o.UnidadOrganizativa)
-            .Include(o => o.ZonaOperativa)
-            .Include(o => o.Visitas).ThenInclude(v => v.Recurso)
-            .Include(o => o.Trabajos)
             .AsQueryable();
 
         if (esSolicitudAtencion == true)
@@ -497,52 +490,97 @@ public static class OrdenesTrabajoEndpoints
             query = query.Where(o => o.ZonaOperativaId == zonaOperativaId);
         }
 
-        var items = await query
+        var itemsRaw = await query
             .OrderByDescending(o => o.CreatedAt)
-            .Take(200)
+            .Take(500)
+            .Select(o => new
+            {
+                o.Id,
+                o.CodigoWo,
+                o.TipoOrdenId,
+                TipoOrdenNombre = o.TipoOrden != null ? o.TipoOrden.Nombre : "Servicio General",
+                TipoOrdenColor = o.TipoOrden != null ? o.TipoOrden.ColorHex : "#0f6cbd",
+                o.ClienteFacturacionId,
+                CliFactRazonSocial = o.ClienteFacturacion != null ? o.ClienteFacturacion.RazonSocial : null,
+                CliFactNombres = o.ClienteFacturacion != null ? o.ClienteFacturacion.Nombres : null,
+                CliFactApellidos = o.ClienteFacturacion != null ? o.ClienteFacturacion.Apellidos : null,
+                o.ClienteServicioId,
+                CliServRazonSocial = o.ClienteServicio != null ? o.ClienteServicio.RazonSocial : null,
+                CliServNombres = o.ClienteServicio != null ? o.ClienteServicio.Nombres : null,
+                CliServApellidos = o.ClienteServicio != null ? o.ClienteServicio.Apellidos : null,
+                CliServCodigo = o.ClienteServicio != null ? o.ClienteServicio.CodigoCliente : null,
+                CliServCodigoExterno = o.ClienteServicio != null ? o.ClienteServicio.CodigoExterno : null,
+                CliServDireccion = o.ClienteServicio != null ? o.ClienteServicio.Direccion : null,
+                CliServUbigeo = o.ClienteServicio != null ? o.ClienteServicio.UbigeoCodigo : null,
+                CliServTelefono = o.ClienteServicio != null ? o.ClienteServicio.TelefonoPrincipal : null,
+                CliServReferencia = o.ClienteServicio != null ? o.ClienteServicio.ReferenciaUbicacion : null,
+                o.ZonaOperativaId,
+                ZonaOperativaNombre = o.ZonaOperativa != null ? o.ZonaOperativa.Nombre : null,
+                ZonaOperativaSucursalId = o.ZonaOperativa != null ? (Guid?)o.ZonaOperativa.SucursalId : null,
+                o.NumeroOrden,
+                o.ReferenciaExterna,
+                o.CodigoContrato,
+                o.NumeroPedido,
+                Estado = o.Estado.ToString(),
+                EstadoSistema = o.EstadoSistema.ToString(),
+                UltimaVisita = o.Visitas.OrderByDescending(v => v.NumeroVisita).Select(v => new
+                {
+                    v.RecursoId,
+                    RecursoNombre = v.Recurso != null ? v.Recurso.NombreCompleto : null,
+                    v.FechaProgramada,
+                    v.BloqueHorario
+                }).FirstOrDefault(),
+                o.CreatedAt,
+                o.UnidadOrganizativaId,
+                UnidadOrganizativaNombre = o.UnidadOrganizativa != null ? o.UnidadOrganizativa.Nombre : null,
+                o.TotalPuntos,
+                PrimerTrabajoCodExt = o.Trabajos.Where(t => t.CodigoExterno != null && t.CodigoExterno != "").Select(t => t.CodigoExterno).FirstOrDefault()
+            })
             .ToListAsync(ct);
 
-        var response = items.Select(o =>
+        var response = itemsRaw.Select(o =>
         {
-            var ultimaVisita = o.Visitas.OrderByDescending(v => v.NumeroVisita).FirstOrDefault();
-            var cliFactNombre = o.ClienteFacturacion?.RazonSocial ?? $"{o.ClienteFacturacion?.Nombres} {o.ClienteFacturacion?.Apellidos}".Trim();
-            var cliServNombre = o.ClienteServicio?.RazonSocial ?? $"{o.ClienteServicio?.Nombres} {o.ClienteServicio?.Apellidos}".Trim();
+            var cliFactNombre = !string.IsNullOrWhiteSpace(o.CliFactRazonSocial)
+                ? o.CliFactRazonSocial
+                : $"{o.CliFactNombres} {o.CliFactApellidos}".Trim();
 
-            var primerTrabajoCodExt = o.Trabajos.FirstOrDefault(t => !string.IsNullOrWhiteSpace(t.CodigoExterno))?.CodigoExterno;
+            var cliServNombre = !string.IsNullOrWhiteSpace(o.CliServRazonSocial)
+                ? o.CliServRazonSocial
+                : $"{o.CliServNombres} {o.CliServApellidos}".Trim();
 
             return new OrdenTrabajoListadoItemDto(
                 Id: o.Id,
                 CodigoWo: o.CodigoWo,
                 TipoOrdenId: o.TipoOrdenId,
-                TipoOrdenNombre: o.TipoOrden?.Nombre ?? "Servicio General",
-                TipoOrdenColor: o.TipoOrden?.ColorHex ?? "#0f6cbd",
+                TipoOrdenNombre: o.TipoOrdenNombre,
+                TipoOrdenColor: o.TipoOrdenColor,
                 ClienteFacturacionId: o.ClienteFacturacionId,
                 ClienteFacturacionNombre: string.IsNullOrWhiteSpace(cliFactNombre) ? "Sin Asignar" : cliFactNombre,
                 ClienteServicioId: o.ClienteServicioId,
                 ClienteServicioNombre: string.IsNullOrWhiteSpace(cliServNombre) ? "Sin Asignar" : cliServNombre,
                 ZonaOperativaId: o.ZonaOperativaId,
-                ZonaOperativaNombre: o.ZonaOperativa?.Nombre,
+                ZonaOperativaNombre: o.ZonaOperativaNombre,
                 NumeroOrden: o.NumeroOrden,
                 ReferenciaExterna: o.ReferenciaExterna,
                 CodigoContrato: o.CodigoContrato,
                 NumeroPedido: o.NumeroPedido,
-                Estado: o.Estado.ToString(),
-                EstadoSistema: o.EstadoSistema.ToString(),
-                RecursoTecnicoId: ultimaVisita?.RecursoId,
-                RecursoTecnicoNombre: ultimaVisita?.Recurso?.NombreCompleto,
-                FechaProgramada: ultimaVisita?.FechaProgramada.ToString("yyyy-MM-dd"),
-                BloqueHorario: ultimaVisita?.BloqueHorario,
-                DireccionServicio: o.ClienteServicio?.Direccion,
-                UbigeoTexto: o.ClienteServicio?.UbigeoCodigo,
+                Estado: o.Estado,
+                EstadoSistema: o.EstadoSistema,
+                RecursoTecnicoId: o.UltimaVisita?.RecursoId,
+                RecursoTecnicoNombre: o.UltimaVisita?.RecursoNombre,
+                FechaProgramada: o.UltimaVisita?.FechaProgramada.ToString("yyyy-MM-dd"),
+                BloqueHorario: o.UltimaVisita?.BloqueHorario,
+                DireccionServicio: o.CliServDireccion,
+                UbigeoTexto: o.CliServUbigeo,
                 FechaCreacion: o.CreatedAt,
-                UnidadOrganizativaId: o.UnidadOrganizativaId ?? o.ZonaOperativa?.SucursalId,
-                UnidadOrganizativaNombre: o.UnidadOrganizativa?.Nombre,
+                UnidadOrganizativaId: o.UnidadOrganizativaId ?? o.ZonaOperativaSucursalId,
+                UnidadOrganizativaNombre: o.UnidadOrganizativaNombre,
                 TotalPuntos: o.TotalPuntos,
-                ClienteServicioCodigo: o.ClienteServicio?.CodigoCliente,
-                ClienteServicioCodigoExterno: o.ClienteServicio?.CodigoExterno ?? o.CodigoContrato,
-                CodigoExternoTrabajo: primerTrabajoCodExt ?? o.ReferenciaExterna,
-                ClienteServicioTelefono: o.ClienteServicio?.TelefonoPrincipal,
-                ClienteServicioReferencia: o.ClienteServicio?.ReferenciaUbicacion
+                ClienteServicioCodigo: o.CliServCodigo,
+                ClienteServicioCodigoExterno: o.CliServCodigoExterno ?? o.CodigoContrato,
+                CodigoExternoTrabajo: o.PrimerTrabajoCodExt ?? o.ReferenciaExterna,
+                ClienteServicioTelefono: o.CliServTelefono,
+                ClienteServicioReferencia: o.CliServReferencia
             );
         }).ToList();
 
@@ -567,16 +605,6 @@ public static class OrdenesTrabajoEndpoints
         var query = db.Trabajos
             .AsNoTracking()
             .Where(t => ordenesConsultablesIds.Contains(t.OrdenTrabajoId))
-            .Include(t => t.Producto)
-            .Include(t => t.ConfiguracionServicio)
-            .Include(t => t.Tareas)
-            .Include(t => t.Materiales)
-            .Include(t => t.OrdenTrabajo).ThenInclude(o => o.TipoOrden)
-            .Include(t => t.OrdenTrabajo).ThenInclude(o => o.ClienteFacturacion)
-            .Include(t => t.OrdenTrabajo).ThenInclude(o => o.ClienteServicio)
-            .Include(t => t.OrdenTrabajo).ThenInclude(o => o.UnidadOrganizativa)
-            .Include(t => t.OrdenTrabajo).ThenInclude(o => o.ZonaOperativa)
-            .Include(t => t.OrdenTrabajo).ThenInclude(o => o.Visitas).ThenInclude(v => v.Recurso)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -685,51 +713,96 @@ public static class OrdenesTrabajoEndpoints
             query = query.Where(t => t.OrdenTrabajo.Visitas.Any(v => v.RecursoId == recursoId.Value));
         }
 
-        var items = await query
+        var itemsRaw = await query
             .OrderByDescending(t => t.CreatedAt)
-            .Take(300)
+            .Take(500)
+            .Select(t => new
+            {
+                t.Id,
+                t.OrdenTrabajoId,
+                t.CodigoTrabajo,
+                t.CodigoExterno,
+                CodigoWo = t.OrdenTrabajo.CodigoWo,
+                NumeroOrden = t.OrdenTrabajo.NumeroOrden,
+                CodigoContrato = t.OrdenTrabajo.CodigoContrato,
+                t.ProductoId,
+                ProductoCodigo = t.Producto != null ? t.Producto.Codigo : "",
+                ProductoNombre = t.Producto != null ? t.Producto.Nombre : "Servicio",
+                Estado = t.Estado.ToString(),
+                EstadoSistemaOrden = t.OrdenTrabajo.EstadoSistema.ToString(),
+                TipoOrdenNombre = t.OrdenTrabajo.TipoOrden != null ? t.OrdenTrabajo.TipoOrden.Nombre : "Servicio General",
+                TipoOrdenColor = t.OrdenTrabajo.TipoOrden != null ? t.OrdenTrabajo.TipoOrden.ColorHex : "#0f6cbd",
+                CliFactRazonSocial = t.OrdenTrabajo.ClienteFacturacion != null ? t.OrdenTrabajo.ClienteFacturacion.RazonSocial : null,
+                CliFactNombres = t.OrdenTrabajo.ClienteFacturacion != null ? t.OrdenTrabajo.ClienteFacturacion.Nombres : null,
+                CliFactApellidos = t.OrdenTrabajo.ClienteFacturacion != null ? t.OrdenTrabajo.ClienteFacturacion.Apellidos : null,
+                CliServRazonSocial = t.OrdenTrabajo.ClienteServicio != null ? t.OrdenTrabajo.ClienteServicio.RazonSocial : null,
+                CliServNombres = t.OrdenTrabajo.ClienteServicio != null ? t.OrdenTrabajo.ClienteServicio.Nombres : null,
+                CliServApellidos = t.OrdenTrabajo.ClienteServicio != null ? t.OrdenTrabajo.ClienteServicio.Apellidos : null,
+                CliServCodigo = t.OrdenTrabajo.ClienteServicio != null ? t.OrdenTrabajo.ClienteServicio.CodigoCliente : null,
+                CliServDireccion = t.OrdenTrabajo.ClienteServicio != null ? t.OrdenTrabajo.ClienteServicio.Direccion : null,
+                UltimaVisita = t.OrdenTrabajo.Visitas.OrderByDescending(v => v.NumeroVisita).Select(v => new
+                {
+                    v.RecursoId,
+                    RecursoNombre = v.Recurso != null ? v.Recurso.NombreCompleto : null,
+                    v.FechaProgramada,
+                    v.BloqueHorario
+                }).FirstOrDefault(),
+                t.Puntos,
+                TarifaBase = t.TarifaBaseCongelada,
+                t.FechaInicio,
+                t.FechaFin,
+                UnidadOrganizativaNombre = t.OrdenTrabajo.UnidadOrganizativa != null ? t.OrdenTrabajo.UnidadOrganizativa.Nombre : null,
+                ZonaOperativaNombre = t.OrdenTrabajo.ZonaOperativa != null ? t.OrdenTrabajo.ZonaOperativa.Nombre : null,
+                CantidadTareas = t.Tareas.Count(),
+                CantidadTareasCompletadas = t.Tareas.Count(x => x.Estado == EstadoTarea.Completa),
+                CantidadMateriales = t.Materiales.Count(),
+                FechaCreacion = t.CreatedAt
+            })
             .ToListAsync(ct);
 
-        var response = items.Select(t =>
+        var response = itemsRaw.Select(t =>
         {
-            var o = t.OrdenTrabajo;
-            var ultimaVisita = o.Visitas.OrderByDescending(v => v.NumeroVisita).FirstOrDefault();
-            var cliFactNombre = o.ClienteFacturacion?.RazonSocial ?? $"{o.ClienteFacturacion?.Nombres} {o.ClienteFacturacion?.Apellidos}".Trim();
-            var cliServNombre = o.ClienteServicio?.RazonSocial ?? $"{o.ClienteServicio?.Nombres} {o.ClienteServicio?.Apellidos}".Trim();
+            var cliFactNombre = !string.IsNullOrWhiteSpace(t.CliFactRazonSocial)
+                ? t.CliFactRazonSocial
+                : $"{t.CliFactNombres} {t.CliFactApellidos}".Trim();
+
+            var cliServNombre = !string.IsNullOrWhiteSpace(t.CliServRazonSocial)
+                ? t.CliServRazonSocial
+                : $"{t.CliServNombres} {t.CliServApellidos}".Trim();
 
             return new TrabajoListadoItemDto(
                 Id: t.Id,
-                OrdenTrabajoId: o.Id,
+                OrdenTrabajoId: t.OrdenTrabajoId,
                 CodigoTrabajo: t.CodigoTrabajo,
                 CodigoExterno: t.CodigoExterno,
-                CodigoWo: o.CodigoWo,
-                NumeroOrden: o.NumeroOrden,
-                CodigoContrato: o.CodigoContrato,
+                CodigoWo: t.CodigoWo,
+                NumeroOrden: t.NumeroOrden,
+                CodigoContrato: t.CodigoContrato,
                 ProductoId: t.ProductoId,
-                ProductoCodigo: t.Producto?.Codigo ?? "",
-                ProductoNombre: t.Producto?.Nombre ?? "Servicio",
-                Estado: t.Estado.ToString(),
-                EstadoSistemaOrden: o.EstadoSistema.ToString(),
-                TipoOrdenNombre: o.TipoOrden?.Nombre ?? "Servicio General",
-                TipoOrdenColor: o.TipoOrden?.ColorHex ?? "#0f6cbd",
+                ProductoCodigo: t.ProductoCodigo,
+                ProductoNombre: t.ProductoNombre,
+                Estado: t.Estado,
+                EstadoSistemaOrden: t.EstadoSistemaOrden,
+                TipoOrdenNombre: t.TipoOrdenNombre,
+                TipoOrdenColor: t.TipoOrdenColor,
                 ClienteFacturacionNombre: string.IsNullOrWhiteSpace(cliFactNombre) ? "Sin Asignar" : cliFactNombre,
                 ClienteServicioNombre: string.IsNullOrWhiteSpace(cliServNombre) ? "Sin Asignar" : cliServNombre,
-                ClienteServicioCodigo: o.ClienteServicio?.CodigoCliente,
-                ClienteServicioDireccion: o.ClienteServicio?.Direccion,
-                RecursoTecnicoId: ultimaVisita?.RecursoId,
-                RecursoTecnicoNombre: ultimaVisita?.Recurso?.NombreCompleto,
-                FechaProgramada: ultimaVisita?.FechaProgramada.ToString("yyyy-MM-dd"),
-                BloqueHorario: ultimaVisita?.BloqueHorario,
+                ClienteServicioCodigo: t.CliServCodigo,
+                ClienteServicioDireccion: t.CliServDireccion,
+                RecursoTecnicoId: t.UltimaVisita?.RecursoId,
+                RecursoTecnicoNombre: t.UltimaVisita?.RecursoNombre,
+                FechaProgramada: t.UltimaVisita?.FechaProgramada.ToString("yyyy-MM-dd"),
+                BloqueHorario: t.UltimaVisita?.BloqueHorario,
                 Puntos: t.Puntos,
-                TarifaBase: t.TarifaBaseCongelada,
+                TarifaBase: t.TarifaBase,
                 FechaInicio: t.FechaInicio,
                 FechaFin: t.FechaFin,
-                UnidadOrganizativaNombre: o.UnidadOrganizativa?.Nombre,
-                ZonaOperativaNombre: o.ZonaOperativa?.Nombre,
-                CantidadTareas: t.Tareas.Count,
-                CantidadTareasCompletadas: t.Tareas.Count(x => x.Estado == EstadoTarea.Completa),
-                CantidadMateriales: t.Materiales.Count,
-                FechaCreacion: t.CreatedAt
+                UnidadOrganizativaNombre: t.UnidadOrganizativaNombre,
+                ZonaOperativaNombre: t.ZonaOperativaNombre,
+                CantidadTareas: t.CantidadTareas,
+                CantidadTareasCompletadas: t.CantidadTareasCompletadas,
+                CantidadMateriales: t.CantidadMateriales,
+                FechaCreacion: t.FechaCreacion
             );
         }).ToList();
 

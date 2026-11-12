@@ -89,7 +89,9 @@ public class ObtenerEmpleadosHandler : IQueryHandler<ObtenerEmpleadosQuery, Resu
                 tieneAccesoConfidencial ? e.Cuspp : null,
                 tieneAccesoConfidencial ? e.EntidadFinanciera : null,
                 tieneAccesoConfidencial ? e.CuentaBancaria : null,
-                tieneAccesoConfidencial ? e.CuentaInterbancaria : null
+                tieneAccesoConfidencial ? e.CuentaInterbancaria : null,
+                e.TurnoId,
+                e.Turno != null ? e.Turno.Nombre : null
             ))
             .ToListAsync(cancellationToken);
 

@@ -25,6 +25,7 @@ public class ObtenerEmpleadoHandler : IQueryHandler<ObtenerEmpleadoQuery, Result
             .AsNoTracking()
             .Include(e => e.Departamento)
             .Include(e => e.Cargo)
+            .Include(e => e.Turno)
             .FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
 
         if (empleado is null)
@@ -62,7 +63,9 @@ public class ObtenerEmpleadoHandler : IQueryHandler<ObtenerEmpleadoQuery, Result
             tieneAccesoConfidencial ? empleado.Cuspp : null,
             tieneAccesoConfidencial ? empleado.EntidadFinanciera : null,
             tieneAccesoConfidencial ? empleado.CuentaBancaria : null,
-            tieneAccesoConfidencial ? empleado.CuentaInterbancaria : null
+            tieneAccesoConfidencial ? empleado.CuentaInterbancaria : null,
+            empleado.TurnoId,
+            empleado.Turno?.Nombre
         ));
     }
 }

@@ -76,6 +76,16 @@ const TareasListPage = lazy(() => import('./features/servicio-campo/tareas/pages
 const TareaFormPage = lazy(() => import('./features/servicio-campo/tareas/pages/TareaFormPage').then((m) => ({ default: m.TareaFormPage })));
 const MotivosRetiroEquipoListPage = lazy(() => import('./features/servicio-campo/motivos-retiro-equipo/pages/MotivosRetiroEquipoListPage').then((m) => ({ default: m.MotivosRetiroEquipoListPage })));
 const MotivoRetiroEquipoFormPage = lazy(() => import('./features/servicio-campo/motivos-retiro-equipo/pages/MotivoRetiroEquipoFormPage').then((m) => ({ default: m.MotivoRetiroEquipoFormPage })));
+const DashboardPage = lazy(() => import('./features/dashboard/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })));
+const ReportesSupervisionPage = lazy(() => import('./features/servicio-campo/reportes/pages/ReportesSupervisionPage').then((m) => ({ default: m.ReportesSupervisionPage })));
+
+// Recursos Humanos (RRHH)
+const EmpleadosListPage = lazy(() => import('./features/rrhh/empleados/pages/EmpleadosListPage').then((m) => ({ default: m.EmpleadosListPage })));
+const EmpleadoFormPage = lazy(() => import('./features/rrhh/empleados/pages/EmpleadoFormPage').then((m) => ({ default: m.EmpleadoFormPage })));
+const DepartamentosListPage = lazy(() => import('./features/rrhh/catalogos/pages/DepartamentosListPage').then((m) => ({ default: m.DepartamentosListPage })));
+const CargosListPage = lazy(() => import('./features/rrhh/catalogos/pages/CargosListPage').then((m) => ({ default: m.CargosListPage })));
+const TurnosListPage = lazy(() => import('./features/rrhh/turnos/pages/TurnosListPage').then((m) => ({ default: m.TurnosListPage })));
+const MarcacionAsistenciaPage = lazy(() => import('./features/rrhh/asistencia/pages/MarcacionAsistenciaPage').then((m) => ({ default: m.MarcacionAsistenciaPage })));
 
 const PlaceholderPage = lazy(() => import('./components/common/PlaceholderPage').then((m) => ({ default: m.PlaceholderPage })));
 
@@ -109,7 +119,9 @@ const router = createBrowserRouter(createRoutesFromElements(
               <Route path="configuracion/roles/nuevo" element={<RolFormPage />} />
               <Route path="configuracion/roles/:id" element={<RolFormPage />} />
               <Route path="configuracion/empresa" element={<ConfiguracionEmpresaPage />} />
-              <Route index element={<Navigate to="/servicio-campo/productos" replace />} />
+              <Route path="dashboard" element={<DashboardPage />} />
+              <Route path="servicio-campo/reportes" element={<ReportesSupervisionPage />} />
+              <Route index element={<Navigate to="/dashboard" replace />} />
 
               {/* Servicio de Campo - Órdenes de Trabajo (Work Orders) */}
               <Route path="servicio-campo/mis-citas" element={<TecnicoAgendaMobilePage />} />
@@ -236,6 +248,21 @@ const router = createBrowserRouter(createRoutesFromElements(
               <Route path="configuracion/gestion-datos/imports/:id" element={<ImportacionDetallePage />} />
               <Route path="configuracion/data-management/imports" element={<Navigate to="/gestion-datos/importaciones" replace />} />
               <Route path="configuracion/data-management/imports/:id" element={<ImportacionDetallePage />} />
+
+              {/* Recursos Humanos (RRHH) */}
+              <Route path="rrhh/empleados" element={<EmpleadosListPage />} />
+              <Route path="rrhh/empleados/nuevo" element={<EmpleadoFormPage />} />
+              <Route path="rrhh/empleados/:id" element={<EmpleadoFormPage />} />
+              <Route path="rrhh/departamentos" element={<DepartamentosListPage />} />
+              <Route path="rrhh/cargos" element={<CargosListPage />} />
+              <Route path="rrhh/turnos" element={<TurnosListPage />} />
+              <Route path="rrhh/asistencia" element={<MarcacionAsistenciaPage />} />
+              <Route path="rrhh/marcaciones" element={<MarcacionAsistenciaPage />} />
+              <Route path="recursos-humanos/empleados" element={<Navigate to="/rrhh/empleados" replace />} />
+              <Route path="recursos-humanos/departamentos" element={<Navigate to="/rrhh/departamentos" replace />} />
+              <Route path="recursos-humanos/cargos" element={<Navigate to="/rrhh/cargos" replace />} />
+              <Route path="recursos-humanos/turnos" element={<Navigate to="/rrhh/turnos" replace />} />
+              <Route path="recursos-humanos/asistencia" element={<Navigate to="/rrhh/asistencia" replace />} />
 
               {/* Vistas en construcción o rutas no mapeadas */}
               <Route path="*" element={<PlaceholderPage />} />

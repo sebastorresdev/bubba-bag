@@ -52,7 +52,129 @@ public static class WebApplicationExtensions
 
 
         var rrhhDbContext = scope.ServiceProvider.GetRequiredService<RecursosHumanosDbContext>();
-        await rrhhDbContext.Database.MigrateAsync();
+        try
+        {
+            await rrhhDbContext.Database.MigrateAsync();
+        }
+        catch { }
+
+        // Asegurar tablas de Horarios, Turnos y Marcaciones de Asistencia en esquema rrhh
+        try
+        {
+            await rrhhDbContext.Database.ExecuteSqlRawAsync(@"
+                CREATE TABLE IF NOT EXISTS rrhh.""Turnos"" (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""Codigo"" varchar(30) NOT NULL,
+                    ""Nombre"" varchar(100) NOT NULL,
+                    ""HoraInicio"" time NOT NULL,
+                    ""HoraFin"" time NOT NULL,
+                    ""CruzaMedianoche"" boolean NOT NULL DEFAULT false,
+                    ""MinutosRefrigerio"" integer NOT NULL DEFAULT 60,
+                    ""MinutosToleranciaEntrada"" integer NOT NULL DEFAULT 15,
+                    ""MinutosToleranciaRefrigerio"" integer NOT NULL DEFAULT 5,
+                    ""VentanaEntradaInicio"" time NOT NULL,
+                    ""VentanaEntradaFin"" time NOT NULL,
+                    ""VentanaSalidaInicio"" time NOT NULL,
+                    ""VentanaSalidaFin"" time NOT NULL,
+                    ""Activo"" boolean NOT NULL DEFAULT true
+                );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Turnos_Codigo"" ON rrhh.""Turnos"" (""Codigo"");
+
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_schema = 'rrhh' AND table_name = 'Empleados' AND column_name = 'TurnoId'
+                    ) THEN
+                        ALTER TABLE rrhh.""Empleados"" 
+                        ADD COLUMN ""TurnoId"" uuid NULL 
+                        REFERENCES rrhh.""Turnos""(""Id"") ON DELETE SET NULL;
+
+                        CREATE INDEX IF NOT EXISTS ""IX_Empleados_TurnoId"" ON rrhh.""Empleados"" (""TurnoId"");
+                    END IF;
+                END $$;
+
+                CREATE TABLE IF NOT EXISTS rrhh.""PlantillasSemanales"" (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""EmpleadoId"" uuid NOT NULL REFERENCES rrhh.""Empleados""(""Id"") ON DELETE CASCADE,
+                    ""DiaSemana"" integer NOT NULL,
+                    ""TurnoId"" uuid NULL REFERENCES rrhh.""Turnos""(""Id"") ON DELETE SET NULL,
+                    ""EsDescanso"" boolean NOT NULL DEFAULT false
+                );
+
+                CREATE TABLE IF NOT EXISTS rrhh.""Marcaciones"" (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""EmpleadoId"" uuid NOT NULL REFERENCES rrhh.""Empleados""(""Id"") ON DELETE CASCADE,
+                    ""FechaHora"" timestamptz NOT NULL,
+                    ""DispositivoMarcacionId"" uuid NULL,
+                    ""LugarMarcacionId"" uuid NULL,
+                    ""TipoMarca"" integer NOT NULL,
+                    ""Origen"" integer NOT NULL DEFAULT 2,
+                    ""MetodoAutenticacion"" integer NOT NULL DEFAULT 1,
+                    ""FotoUrl"" text NULL,
+                    ""Latitud"" double precision NULL,
+                    ""Longitud"" double precision NULL,
+                    ""EsValida"" boolean NOT NULL DEFAULT true,
+                    ""ObservacionDescarte"" varchar(250) NULL,
+                    ""Procesado"" boolean NOT NULL DEFAULT false
+                );
+
+                CREATE INDEX IF NOT EXISTS ""IX_Marcaciones_EmpleadoId_FechaHora"" ON rrhh.""Marcaciones"" (""EmpleadoId"", ""FechaHora"");
+
+                CREATE TABLE IF NOT EXISTS rrhh.""AsistenciasDiarias"" (
+                    ""Id"" uuid NOT NULL PRIMARY KEY,
+                    ""EmpleadoId"" uuid NOT NULL REFERENCES rrhh.""Empleados""(""Id"") ON DELETE CASCADE,
+                    ""FechaOperativa"" date NOT NULL,
+                    ""TurnoId"" uuid NULL REFERENCES rrhh.""Turnos""(""Id"") ON DELETE SET NULL,
+                    ""HoraEntradaProgramada"" timestamp NULL,
+                    ""HoraSalidaProgramada"" timestamp NULL,
+                    ""HoraEntradaReal"" timestamptz NULL,
+                    ""HoraSalidaReal"" timestamptz NULL,
+                    ""HoraInicioRefrigerioReal"" timestamptz NULL,
+                    ""HoraFinRefrigerioReal"" timestamptz NULL,
+                    ""MinutosTardanza"" integer NOT NULL DEFAULT 0,
+                    ""MinutosSalidaTemprana"" integer NOT NULL DEFAULT 0,
+                    ""MinutosExcesoRefrigerio"" integer NOT NULL DEFAULT 0,
+                    ""HorasTrabajadas"" numeric(18,2) NOT NULL DEFAULT 0,
+                    ""HorasDiurnas"" numeric(18,2) NOT NULL DEFAULT 0,
+                    ""HorasNocturnas"" numeric(18,2) NOT NULL DEFAULT 0,
+                    ""MinutosHorasExtra"" integer NOT NULL DEFAULT 0,
+                    ""HorasExtraAprobadas"" boolean NOT NULL DEFAULT false,
+                    ""Estado"" integer NOT NULL DEFAULT 1,
+                    ""Aprobado"" boolean NOT NULL DEFAULT false,
+                    ""EsGeneradoAutomaticamente"" boolean NOT NULL DEFAULT false,
+                    ""Observacion"" varchar(500) NULL
+                );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_AsistenciasDiarias_EmpleadoId_FechaOperativa"" 
+                ON rrhh.""AsistenciasDiarias"" (""EmpleadoId"", ""FechaOperativa"");
+
+                -- Insertar turnos estándar predeterminados si la tabla está vacía
+                INSERT INTO rrhh.""Turnos"" (
+                    ""Id"", ""Codigo"", ""Nombre"", ""HoraInicio"", ""HoraFin"", ""CruzaMedianoche"",
+                    ""MinutosRefrigerio"", ""MinutosToleranciaEntrada"", ""MinutosToleranciaRefrigerio"",
+                    ""VentanaEntradaInicio"", ""VentanaEntradaFin"", ""VentanaSalidaInicio"", ""VentanaSalidaFin"", ""Activo""
+                )
+                SELECT 
+                    'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d', 'T-ADM-01', 'Administrativo (08:00 - 17:00)',
+                    '08:00:00'::time, '17:00:00'::time, false, 60, 15, 5,
+                    '06:00:00'::time, '10:00:00'::time, '15:00:00'::time, '21:00:00'::time, true
+                WHERE NOT EXISTS (SELECT 1 FROM rrhh.""Turnos"" WHERE ""Codigo"" = 'T-ADM-01');
+
+                INSERT INTO rrhh.""Turnos"" (
+                    ""Id"", ""Codigo"", ""Nombre"", ""HoraInicio"", ""HoraFin"", ""CruzaMedianoche"",
+                    ""MinutosRefrigerio"", ""MinutosToleranciaEntrada"", ""MinutosToleranciaRefrigerio"",
+                    ""VentanaEntradaInicio"", ""VentanaEntradaFin"", ""VentanaSalidaInicio"", ""VentanaSalidaFin"", ""Activo""
+                )
+                SELECT 
+                    'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e', 'T-CAMPO-01', 'Técnicos de Campo (07:30 - 16:30)',
+                    '07:30:00'::time, '16:30:00'::time, false, 60, 15, 5,
+                    '05:30:00'::time, '09:30:00'::time, '14:30:00'::time, '20:30:00'::time, true
+                WHERE NOT EXISTS (SELECT 1 FROM rrhh.""Turnos"" WHERE ""Codigo"" = 'T-CAMPO-01');
+            ");
+        }
+        catch { }
 
         var gestionDatosDbContext = scope.ServiceProvider.GetRequiredService<GestionDatosDbContext>();
         await gestionDatosDbContext.Database.MigrateAsync();

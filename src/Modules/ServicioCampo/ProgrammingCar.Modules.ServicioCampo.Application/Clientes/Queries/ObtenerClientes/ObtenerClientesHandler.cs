@@ -53,6 +53,7 @@ public class ObtenerClientesHandler : IQueryHandler<ObtenerClientesQuery, Result
 
         var list = await query
             .OrderBy(c => c.Nombres)
+            .Take(500)
             .Select(c => new ClienteListadoItemDto(
                 c.Id,
                 c.CodigoCliente,

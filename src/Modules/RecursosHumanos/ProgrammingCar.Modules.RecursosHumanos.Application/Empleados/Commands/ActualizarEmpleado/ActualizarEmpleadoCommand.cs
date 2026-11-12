@@ -28,5 +28,6 @@ public record ActualizarEmpleadoCommand(
     string? EntidadFinanciera,
     string? CuentaBancaria,
     string? CuentaInterbancaria,
-    EstadoEmpleado Estado
+    EstadoEmpleado Estado,
+    Guid? TurnoId = null
 ) : ICommand<Result<Guid>>;

@@ -51,7 +51,7 @@ public class CrearEmpleadoHandler : ICommandHandler<CrearEmpleadoCommand, Result
         {
             empleado.ActualizarFoto(request.FotoUrl);
         }
-        empleado.ActualizarDatosLaborales(request.FechaIngreso, request.DepartamentoId, request.CargoId, request.TipoContrato);
+        empleado.ActualizarDatosLaborales(request.FechaIngreso, request.DepartamentoId, request.CargoId, request.TipoContrato, request.TurnoId);
 
         var tieneAccesoConfidencial = _currentUser.HasPermission(ProgrammingCar.SharedKernel.Authorization.Permissions.Rrhh.SalariosConfidencial);
         if (tieneAccesoConfidencial)

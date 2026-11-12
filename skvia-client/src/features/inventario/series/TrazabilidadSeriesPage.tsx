@@ -31,6 +31,7 @@ import {
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton } from '../../../components/common/D365CommandBar';
 import { D365StatusBadge } from '../../../components/common/D365StatusBadge';
+import { useD365ListStyles } from '../../../styles/d365ListStyles';
 import { apiClient } from '../../../services/apiClient';
 
 export interface MovimientoHistorialItemDto {
@@ -271,6 +272,7 @@ const useStyles = makeStyles({
 
 export function TrazabilidadSeriesPage() {
   const styles = useStyles();
+  const listStyles = useD365ListStyles();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSerie = searchParams.get('serie') || '';
 
@@ -409,39 +411,49 @@ export function TrazabilidadSeriesPage() {
         </D365CommandButton>
       </D365CommandBar>
 
-      <div className={styles.content}>
-        {/* 2. Buscador Directo */}
-        <div className={styles.searchCard}>
-          <div className={styles.searchRow}>
-            <Input
-              className={styles.searchInput}
-              size="large"
-              value={serieInput}
-              onChange={(_, data) => setSerieInput(data.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  void consultarSerie();
-                }
-              }}
-              autoFocus
-            />
-            <Button
-              appearance="primary"
-              size="large"
-              icon={<Search16Regular />}
-              onClick={() => void consultarSerie()}
-              disabled={!serieInput.trim() || loading}
-            >
-              Consultar
-            </Button>
-          </div>
+      {/* 2. Barra de Encabezado y Búsqueda Estilo Dynamics 365 */}
+      <div className={listStyles.viewHeader}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Tag16Regular style={{ color: tokens.colorBrandForeground1 }} />
+          <Text size={400} weight="semibold">
+            Trazabilidad de Series e Historial
+          </Text>
         </div>
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Input
+            size="medium"
+            contentBefore={<Search16Regular />}
+            placeholder="Buscar por N° de Serie, SmartCard o MAC..."
+            aria-label="Buscar serie"
+            value={serieInput}
+            onChange={(_, data) => setSerieInput(data.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                void consultarSerie();
+              }
+            }}
+            style={{ width: '340px' }}
+            autoFocus
+          />
+          <Button
+            appearance="primary"
+            size="medium"
+            icon={<Search16Regular />}
+            onClick={() => void consultarSerie()}
+            disabled={!serieInput.trim() || loading}
+          >
+            Buscar
+          </Button>
+        </div>
+      </div>
+
+      <div className={styles.content}>
         {/* 3. Estados de Carga / Error */}
         {loading && (
           <div className={styles.emptyState}>
-            <Spinner size="large" label="Consultando..." />
+            <Spinner size="large" label="Consultando serie..." />
           </div>
         )}
 
@@ -453,6 +465,19 @@ export function TrazabilidadSeriesPage() {
                 {error}
               </Text>
             </div>
+          </div>
+        )}
+
+        {/* Estado Inicial de Bienvenida */}
+        {!historial && !loading && !error && (
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: tokens.colorNeutralForeground3 }}>
+            <Tag16Regular style={{ width: '48px', height: '48px', color: tokens.colorNeutralStroke1Hover, marginBottom: '16px' }} />
+            <Text size={400} weight="semibold" block style={{ color: tokens.colorNeutralForeground1, marginBottom: '8px' }}>
+              Consulta la Hoja de Vida y Movimientos de un Equipo
+            </Text>
+            <Text size={200} block style={{ maxWidth: '520px', margin: '0 auto', lineHeight: '1.5' }}>
+              Ingresa el número de serie, smartcard o dirección MAC en el cuadro de búsqueda superior para auditar su ubicación actual, técnico en custodia, historial de instalaciones y despachos.
+            </Text>
           </div>
         )}
 

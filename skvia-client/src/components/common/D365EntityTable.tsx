@@ -15,12 +15,17 @@ import {
   Badge,
   Input,
   Select,
+  Text,
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
 import {
   ArrowSortDown16Regular,
   ArrowSortUp16Regular,
+  ChevronLeft16Regular,
+  ChevronRight16Regular,
+  ChevronDoubleLeft16Regular,
+  ChevronDoubleRight16Regular,
   DataFunnel20Regular,
   Search16Regular,
   TableEdit16Regular,
@@ -97,6 +102,36 @@ const useStyles = makeStyles({
   resizingLine: {
     backgroundColor: tokens.colorCompoundBrandBackground,
   },
+  paginationBar: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '6px 16px',
+    backgroundColor: tokens.colorNeutralBackground2,
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+    flexWrap: 'wrap',
+    gap: '8px',
+    minHeight: '42px',
+    boxSizing: 'border-box',
+    userSelect: 'none',
+  },
+  paginationLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  paginationRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flexWrap: 'wrap',
+  },
+  paginationControls: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    marginLeft: '8px',
+  },
 });
 
 export function matchFilterCondition<T>(
@@ -130,6 +165,13 @@ export function matchFilterCondition<T>(
     if (record['clienteServicioCodigo']) candidateValues.push(String(record['clienteServicioCodigo']));
     if (record['clienteServicioCodigoExterno']) candidateValues.push(String(record['clienteServicioCodigoExterno']));
     if (record['codigoContrato']) candidateValues.push(String(record['codigoContrato']));
+  }
+
+  if (cond.field === 'codigoExternoTrabajo' || cond.field === 'numeroOrden' || cond.field === 'referenciaExterna') {
+    if (record['codigoExternoTrabajo']) candidateValues.push(String(record['codigoExternoTrabajo']));
+    if (record['numeroOrden']) candidateValues.push(String(record['numeroOrden']));
+    if (record['referenciaExterna']) candidateValues.push(String(record['referenciaExterna']));
+    if (record['primerTrabajoCodExt']) candidateValues.push(String(record['primerTrabajoCodExt']));
   }
 
   // Si existe una versión con nombre legible (ej. cond.field + 'Nombre', o 'tipo' -> 'tipoNombre')
@@ -244,6 +286,7 @@ export interface D365EntityTableProps<T extends { id: string }> {
   onRowDoubleClick?: (item: T) => void;
   showToolbarTools?: boolean;
   emptyState?: React.ReactNode;
+  pagination?: boolean | { pageSize?: number; pageSizeOptions?: number[] };
 }
 
 export interface D365TableConfiguration {
@@ -388,6 +431,7 @@ function D365EntityTableInner<T extends { id: string }>(
     onRowDoubleClick,
     showToolbarTools = false,
     emptyState,
+    pagination,
   }: D365EntityTableProps<T>,
   ref: React.Ref<D365EntityTableRef>
 ) {
@@ -395,6 +439,13 @@ function D365EntityTableInner<T extends { id: string }>(
   const styles = useD365ListStyles();
   const customStyles = useStyles();
   const storageId = tableId || entityName.toLowerCase().replace(/\s+/g, '_');
+
+  // Paginación
+  const paginationEnabled = pagination !== false;
+  const initialPageSize = typeof pagination === 'object' && pagination?.pageSize ? pagination.pageSize : 25;
+  const pageSizeOptions = typeof pagination === 'object' && pagination?.pageSizeOptions ? pagination.pageSizeOptions : [15, 25, 50, 100];
+  const [pageSize, setPageSize] = useState<number>(initialPageSize);
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   // 1. Columnas y persistencia
   const defaultColumnsConfig = useMemo<D365ColumnConfig[]>(() => {
@@ -644,6 +695,21 @@ function D365EntityTableInner<T extends { id: string }>(
     return result;
   }, [items, advancedConditions, advancedLogicalOp, sortColumn, sortDirection, columns, derivedFields]);
 
+  // Paginación de items procesados
+  const totalPages = Math.max(1, Math.ceil(processedItems.length / pageSize));
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
+  const pagedItems = useMemo(() => {
+    if (!paginationEnabled) return processedItems;
+    const startIndex = (currentPage - 1) * pageSize;
+    return processedItems.slice(startIndex, startIndex + pageSize);
+  }, [processedItems, paginationEnabled, currentPage, pageSize]);
+
   // Columnas visibles y ordenadas
   const activeColumns = useMemo(() => {
     const colMap = new Map(columns.map((c) => [String(c.columnId), c]));
@@ -747,9 +813,9 @@ function D365EntityTableInner<T extends { id: string }>(
               {sortColumn && <Button aria-label={sortDirection === 'asc' ? 'Cambiar a orden descendente' : 'Cambiar a orden ascendente'} icon={sortDirection === 'asc' ? <ArrowSortUp16Regular /> : <ArrowSortDown16Regular />} onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')} />}
               {selectionMode === 'multiselect' && processedItems.length > 0 && <Button onClick={event => onSelectionChange?.(event, { selectedItems: processedItems.every(item => selectedItems?.has(item.id)) ? new Set() : new Set(processedItems.map(item => item.id)) })}>{processedItems.every(item => selectedItems?.has(item.id)) ? 'Quitar selección' : 'Seleccionar todos'}</Button>}
             </div>
-            {processedItems.length === 0 ? (emptyState || <TableEmptyState />) : <D365MobileRecords items={processedItems} columns={activeColumns} getRowId={item => item.id} selectionMode={selectionMode} selectedItems={selectedItems} onSelectionChange={onSelectionChange} onOpen={onRowDoubleClick} label={entityName} />}
+            {processedItems.length === 0 ? (emptyState || <TableEmptyState />) : <D365MobileRecords items={pagedItems} columns={activeColumns} getRowId={item => item.id} selectionMode={selectionMode} selectedItems={selectedItems} onSelectionChange={onSelectionChange} onOpen={onRowDoubleClick} label={entityName} />}
           </> : <DataGrid
-            items={processedItems}
+            items={pagedItems}
             columns={activeColumns}
             getRowId={(item) => item.id}
             selectionMode={selectionMode}
@@ -850,6 +916,75 @@ function D365EntityTableInner<T extends { id: string }>(
             )}
           </DataGrid>}
         </D365ListState>
+
+        {paginationEnabled && processedItems.length > 0 && (
+          <div className={customStyles.paginationBar}>
+            <div className={customStyles.paginationLeft}>
+              <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
+                Mostrando {Math.min((currentPage - 1) * pageSize + 1, processedItems.length)} - {Math.min(currentPage * pageSize, processedItems.length)} de {processedItems.length} registros
+              </Text>
+            </div>
+            <div className={customStyles.paginationRight}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>Filas por página:</Text>
+                <Select
+                  size="small"
+                  value={String(pageSize)}
+                  onChange={(_, d) => {
+                    const newSize = Number(d.value) || 25;
+                    setPageSize(newSize);
+                    setCurrentPage(1);
+                  }}
+                >
+                  {pageSizeOptions.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </Select>
+              </div>
+              <div className={customStyles.paginationControls}>
+                <Button
+                  appearance="subtle"
+                  size="small"
+                  icon={<ChevronDoubleLeft16Regular />}
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage(1)}
+                  title="Primera página"
+                  aria-label="Primera página"
+                />
+                <Button
+                  appearance="subtle"
+                  size="small"
+                  icon={<ChevronLeft16Regular />}
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  title="Página anterior"
+                  aria-label="Página anterior"
+                />
+                <Text size={200} weight="semibold" style={{ margin: '0 8px' }}>
+                  Página {currentPage} de {totalPages}
+                </Text>
+                <Button
+                  appearance="subtle"
+                  size="small"
+                  icon={<ChevronRight16Regular />}
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  title="Página siguiente"
+                  aria-label="Página siguiente"
+                />
+                <Button
+                  appearance="subtle"
+                  size="small"
+                  icon={<ChevronDoubleRight16Regular />}
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage(totalPages)}
+                  title="Última página"
+                  aria-label="Última página"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Drawer Filtros Avanzados (Dynamics 365) */}

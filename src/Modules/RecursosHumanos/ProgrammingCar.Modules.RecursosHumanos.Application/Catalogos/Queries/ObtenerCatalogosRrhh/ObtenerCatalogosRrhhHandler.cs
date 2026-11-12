@@ -93,6 +93,13 @@ public class ObtenerCatalogosRrhhHandler : IQueryHandler<ObtenerCatalogosRrhhQue
             "Jubilación"
         };
 
+        var turnos = await _context.Turnos
+            .AsNoTracking()
+            .Where(t => t.Activo)
+            .OrderBy(t => t.Nombre)
+            .Select(t => new TurnoCatalogoDto(t.Id, t.Codigo, t.Nombre, $"{t.HoraInicio.ToString("HH:mm")} - {t.HoraFin.ToString("HH:mm")}"))
+            .ToListAsync(cancellationToken);
+
         var catalogos = new CatalogosRrhhDto(
             departamentosDto,
             tiposDocumento,
@@ -100,7 +107,8 @@ public class ObtenerCatalogosRrhhHandler : IQueryHandler<ObtenerCatalogosRrhhQue
             regimenesPensionarios,
             entidadesFinancieras,
             estados,
-            motivosCese
+            motivosCese,
+            turnos
         );
 
         return Result<CatalogosRrhhDto>.Success(catalogos);

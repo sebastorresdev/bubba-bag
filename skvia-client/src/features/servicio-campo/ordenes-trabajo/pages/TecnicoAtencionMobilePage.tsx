@@ -1143,7 +1143,7 @@ export const TecnicoAtencionMobilePage: React.FC = () => {
                     />
                   </div>
 
-                  {prodSeleccionado.esSeriado && (
+                  {prodSeleccionado.esSerializado && (
                     <div style={{ marginTop: '8px' }}>
                       <Input
                         size="small"

@@ -1,4 +1,5 @@
 using System;
+using ProgrammingCar.Modules.RecursosHumanos.Domain.Asistencia.TurnosYReglas;
 using ProgrammingCar.Modules.RecursosHumanos.Domain.Organizacion;
 using ProgrammingCar.SharedKernel;
 
@@ -27,6 +28,8 @@ public class Empleado : Entity<Guid>
     public Guid? CargoId { get; private set; }
     public Cargo? Cargo { get; private set; }
     public string? TipoContrato { get; private set; }
+    public Guid? TurnoId { get; private set; }
+    public Turno? Turno { get; private set; }
     
     // Datos de Cese / Baja (Solo cuando Estado == Cesado)
     public DateOnly? FechaCese { get; private set; }
@@ -89,12 +92,18 @@ public class Empleado : Entity<Guid>
         FotoUrl = NormalizeOptional(fotoUrl);
     }
 
-    public void ActualizarDatosLaborales(DateOnly? fechaIngreso, Guid? departamentoId, Guid? cargoId, string? tipoContrato)
+    public void ActualizarDatosLaborales(DateOnly? fechaIngreso, Guid? departamentoId, Guid? cargoId, string? tipoContrato, Guid? turnoId = null)
     {
         FechaIngreso = fechaIngreso;
         DepartamentoId = departamentoId;
         CargoId = cargoId;
         TipoContrato = NormalizeOptional(tipoContrato);
+        TurnoId = turnoId;
+    }
+
+    public void AsignarTurno(Guid? turnoId)
+    {
+        TurnoId = turnoId;
     }
 
     public void ActualizarPlanilla(decimal? salarioBase, string? monedaSalario, bool tieneAsignacionFamiliar, string? regimenPensionario, string? cuspp)

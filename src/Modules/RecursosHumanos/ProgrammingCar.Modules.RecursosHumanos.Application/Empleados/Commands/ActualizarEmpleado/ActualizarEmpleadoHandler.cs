@@ -59,7 +59,7 @@ public class ActualizarEmpleadoHandler : ICommandHandler<ActualizarEmpleadoComma
         empleado.ActualizarDatosBasicos(request.Nombres, request.Apellidos, request.TipoDocumento, request.NumeroDocumento);
         empleado.ActualizarDatosContacto(request.Email, request.Telefono, request.Direccion, request.FechaNacimiento);
         empleado.ActualizarFoto(request.FotoUrl);
-        empleado.ActualizarDatosLaborales(request.FechaIngreso, request.DepartamentoId, request.CargoId, request.TipoContrato);
+        empleado.ActualizarDatosLaborales(request.FechaIngreso, request.DepartamentoId, request.CargoId, request.TipoContrato, request.TurnoId);
 
         var tieneAccesoConfidencial = _currentUser.HasPermission(ProgrammingCar.SharedKernel.Authorization.Permissions.Rrhh.SalariosConfidencial);
         if (tieneAccesoConfidencial)

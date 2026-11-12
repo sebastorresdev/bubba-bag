@@ -43,6 +43,11 @@ public class EmpleadoConfiguration : IEntityTypeConfiguration<Empleado>
             .HasForeignKey(e => e.CargoId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        builder.HasOne(e => e.Turno)
+            .WithMany()
+            .HasForeignKey(e => e.TurnoId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // Datos de Cese / Baja
         builder.Property(e => e.MotivoCese).HasMaxLength(100);
         builder.Property(e => e.ObservacionesCese).HasMaxLength(500);

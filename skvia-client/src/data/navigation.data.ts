@@ -33,6 +33,13 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
                 iconName: 'Board',
                 description: 'Métricas clave, indicadores de despacho y actividad diaria.',
               },
+              {
+                id: 'reportes-supervision',
+                title: 'Reportes y Analítica',
+                path: '/servicio-campo/reportes',
+                iconName: 'DocumentTable',
+                description: 'Informes de productividad técnica, liquidación y consolidado de órdenes.',
+              },
             ],
           },
           {
@@ -337,6 +344,26 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
               },
             ],
           },
+          {
+            id: 'org-structure',
+            title: 'Organización & Puestos',
+            items: [
+              {
+                id: 'departamentos',
+                title: 'Departamentos',
+                path: '/rrhh/departamentos',
+                iconName: 'Building',
+                description: 'Áreas y unidades organizacionales de la empresa.',
+              },
+              {
+                id: 'cargos',
+                title: 'Puestos y Cargos',
+                path: '/rrhh/cargos',
+                iconName: 'Briefcase',
+                description: 'Catálogo de cargos, jerarquías y salarios referenciales.',
+              },
+            ],
+          },
         ],
       },
       {
@@ -353,10 +380,17 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
             items: [
               {
                 id: 'asistencia',
-                title: 'Marcaciones y Turnos',
+                title: 'Marcaciones y Asistencia',
                 path: '/rrhh/asistencia',
                 iconName: 'Clock',
-                description: 'Control biométrico, registro de ingresos, tardanzas y horas extras.',
+                description: 'Marcación de ingreso, refrigerio, salida y consolidado diario.',
+              },
+              {
+                id: 'turnos',
+                title: 'Horarios y Turnos',
+                path: '/rrhh/turnos',
+                iconName: 'Calendar',
+                description: 'Definición de turnos, tolerancias de entrada y refrigerio.',
               },
             ],
           },
