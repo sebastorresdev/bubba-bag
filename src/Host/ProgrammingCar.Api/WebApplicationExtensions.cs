@@ -24,9 +24,6 @@ public static class WebApplicationExtensions
 
         var seguridadDbContext = scope.ServiceProvider.GetRequiredService<SeguridadDbContext>();
 
-        // Sincronizar historial si la base de datos ya tenía tablas previas al reinicio de migraciones
-        await SincronizarHistorialMigracionesAsync(seguridadDbContext.Database);
-
         // 1. Aplicar migraciones formales de base de datos
         await seguridadDbContext.Database.MigrateAsync();
 
@@ -253,42 +250,6 @@ public static class WebApplicationExtensions
                 await servicioCampoDbContext.SaveChangesAsync();
             }
         }
-    }
-
-    private static async Task SincronizarHistorialMigracionesAsync(Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade database)
-    {
-        await database.ExecuteSqlRawAsync(@"
-            CREATE TABLE IF NOT EXISTS ""__EFMigrationsHistory"" (
-                ""MigrationId"" character varying(150) NOT NULL PRIMARY KEY,
-                ""ProductVersion"" character varying(32) NOT NULL
-            );
-
-            DELETE FROM ""__EFMigrationsHistory""
-            WHERE ""MigrationId"" IN (
-                '20261012213457_InicialGestionDatos',
-                '20261014163556_AutorImportacionAutenticado',
-                '20261014200830_ReintentosImportacionInventario',
-                '20261022040929_InicialServicioCampo'
-            );
-
-            DO $$
-            BEGIN
-                IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'gestiondatos' AND table_name = 'DataImportJobs') THEN
-                    INSERT INTO ""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"")
-                    VALUES ('20261030015202_InicialGestionDatos', '10.0.12')
-                    ON CONFLICT (""MigrationId"") DO NOTHING;
-                END IF;
-            END $$;
-
-            DO $$
-            BEGIN
-                IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'serviciocampo' AND table_name = 'ordenes_trabajo') THEN
-                    INSERT INTO ""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"")
-                    VALUES ('20261030014955_InicialServicioCampo', '10.0.12')
-                    ON CONFLICT (""MigrationId"") DO NOTHING;
-                END IF;
-            END $$;
-        ");
     }
 
     private static async Task AsegurarSuperAdminInicialAsync(IServiceProvider serviceProvider, IConfiguration configuration)
