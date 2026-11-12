@@ -417,20 +417,21 @@ export const CargosListPage: React.FC = () => {
 
       {/* MODAL CREAR / EDITAR CARGO */}
       <Dialog open={modalOpen} onOpenChange={(_, d) => setModalOpen(d.open)}>
-        <DialogSurface>
+        <DialogSurface style={{ width: '540px', maxWidth: '95vw' }}>
           <DialogBody>
             <DialogTitle>{editingCargo ? 'Editar Cargo' : 'Nuevo Puesto / Cargo'}</DialogTitle>
             <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 12 }}>
               <D365FormField label="Nombre del Puesto / Cargo" required>
                 <Input
+                  style={{ width: '100%' }}
                   value={formNombre}
                   onChange={(_, d) => setFormNombre(d.value)}
-                  placeholder="Ej. Técnico de Campo Senior, Supervisor de Cuadrilla, Analista..."
                 />
               </D365FormField>
 
               <D365FormField label="Departamento / Área" required>
                 <Select
+                  style={{ width: '100%' }}
                   value={formDeptoId}
                   onChange={(_, d) => setFormDeptoId(d.value)}
                 >
@@ -444,10 +445,10 @@ export const CargosListPage: React.FC = () => {
               {canViewSalarios && (
                 <D365FormField label="Salario Referencial (PEN)">
                   <Input
+                    style={{ width: '100%' }}
                     type="number"
                     value={formSalarioRef}
                     onChange={(_, d) => setFormSalarioRef(d.value)}
-                    placeholder="0.00"
                   />
                 </D365FormField>
               )}

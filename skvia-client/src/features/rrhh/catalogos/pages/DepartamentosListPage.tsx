@@ -357,7 +357,7 @@ export const DepartamentosListPage: React.FC = () => {
 
       {/* MODAL CREAR / EDITAR DEPARTAMENTO */}
       <Dialog open={modalOpen} onOpenChange={(_, d) => setModalOpen(d.open)}>
-        <DialogSurface>
+        <DialogSurface style={{ width: '540px', maxWidth: '95vw' }}>
           <DialogBody>
             <DialogTitle>
               {editingDept ? 'Editar Departamento' : 'Nuevo Departamento'}
@@ -365,17 +365,17 @@ export const DepartamentosListPage: React.FC = () => {
             <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 12 }}>
               <D365FormField label="Nombre del Departamento" required>
                 <Input
+                  style={{ width: '100%' }}
                   value={formNombre}
                   onChange={(_, d) => setFormNombre(d.value)}
-                  placeholder="Ej. Operaciones y Campo, Tecnología, Finanzas..."
                 />
               </D365FormField>
 
               <D365FormField label="Descripción">
                 <Textarea
+                  style={{ width: '100%' }}
                   value={formDescripcion}
                   onChange={(_, d) => setFormDescripcion(d.value)}
-                  placeholder="Breve detalle de las funciones del área..."
                   rows={3}
                 />
               </D365FormField>

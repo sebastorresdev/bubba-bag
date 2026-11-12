@@ -17,6 +17,7 @@ import {
   MenuPopover,
   MenuList,
   MenuItem,
+  tokens,
   createTableColumn,
   type TableColumnDefinition,
 } from '@fluentui/react-components';
@@ -86,6 +87,21 @@ export const TurnosListPage: React.FC = () => {
   const [formTolerancia, setFormTolerancia] = useState<number>(15);
   const [formActivo, setFormActivo] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
+
+  const horasCalculadas = useMemo(() => {
+    if (!formHoraInicio || !formHoraFin) return '---';
+    const [hIni, mIni] = formHoraInicio.split(':').map(Number);
+    const [hFin, mFin] = formHoraFin.split(':').map(Number);
+    if (isNaN(hIni) || isNaN(mIni) || isNaN(hFin) || isNaN(mFin)) return '---';
+
+    let totalMinutos = (hFin * 60 + mFin) - (hIni * 60 + mIni);
+    if (totalMinutos < 0) totalMinutos += 24 * 60;
+
+    const netMinutos = Math.max(0, totalMinutos - (formRefrigerio || 0));
+    const horas = Math.floor(netMinutos / 60);
+    const minutos = netMinutos % 60;
+    return `${horas}h ${minutos > 0 ? `${minutos}m` : ''} netas`;
+  }, [formHoraInicio, formHoraFin, formRefrigerio]);
 
   const cargarTurnos = useCallback(async () => {
     try {
@@ -396,62 +412,85 @@ export const TurnosListPage: React.FC = () => {
 
       {/* MODAL CREAR / EDITAR TURNO */}
       <Dialog open={modalOpen} onOpenChange={(_, d) => setModalOpen(d.open)}>
-        <DialogSurface>
+        <DialogSurface style={{ width: '560px', maxWidth: '95vw' }}>
           <DialogBody>
             <DialogTitle>{editingTurno ? 'Editar Turno Laboral' : 'Nuevo Turno de Trabajo'}</DialogTitle>
             <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 12 }}>
               {!editingTurno && (
                 <D365FormField label="Código de Turno" required>
                   <Input
+                    style={{ width: '100%' }}
                     value={formCodigo}
                     onChange={(_, d) => setFormCodigo(d.value)}
-                    placeholder="Ej. T-ADM-01, T-CAMPO-MAÑANA"
                   />
                 </D365FormField>
               )}
 
               <D365FormField label="Nombre del Turno" required>
                 <Input
+                  style={{ width: '100%' }}
                   value={formNombre}
                   onChange={(_, d) => setFormNombre(d.value)}
-                  placeholder="Ej. Administrativo (08:00 - 17:00)"
                 />
               </D365FormField>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                <D365FormField label="Hora de Entrada" required>
-                  <Input
-                    type="time"
-                    value={formHoraInicio}
-                    onChange={(_, d) => setFormHoraInicio(d.value)}
-                  />
-                </D365FormField>
+              <D365FormField label="Hora de Entrada" required>
+                <Input
+                  style={{ width: '100%' }}
+                  type="time"
+                  value={formHoraInicio}
+                  onChange={(_, d) => setFormHoraInicio(d.value)}
+                />
+              </D365FormField>
 
-                <D365FormField label="Hora de Salida" required>
-                  <Input
-                    type="time"
-                    value={formHoraFin}
-                    onChange={(_, d) => setFormHoraFin(d.value)}
-                  />
-                </D365FormField>
-              </div>
+              <D365FormField label="Hora de Salida" required>
+                <Input
+                  style={{ width: '100%' }}
+                  type="time"
+                  value={formHoraFin}
+                  onChange={(_, d) => setFormHoraFin(d.value)}
+                />
+              </D365FormField>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                <D365FormField label="Refrigerio (Minutos)">
-                  <Input
-                    type="number"
-                    value={String(formRefrigerio)}
-                    onChange={(_, d) => setFormRefrigerio(Number(d.value) || 0)}
-                  />
-                </D365FormField>
+              <D365FormField label="Refrigerio (Minutos)">
+                <Input
+                  style={{ width: '100%' }}
+                  type="number"
+                  value={String(formRefrigerio)}
+                  onChange={(_, d) => setFormRefrigerio(Number(d.value) || 0)}
+                />
+              </D365FormField>
 
-                <D365FormField label="Tolerancia Entrada (Min)">
-                  <Input
-                    type="number"
-                    value={String(formTolerancia)}
-                    onChange={(_, d) => setFormTolerancia(Number(d.value) || 0)}
-                  />
-                </D365FormField>
+              <D365FormField label="Tolerancia Entrada (Min)">
+                <Input
+                  style={{ width: '100%' }}
+                  type="number"
+                  value={String(formTolerancia)}
+                  onChange={(_, d) => setFormTolerancia(Number(d.value) || 0)}
+                />
+              </D365FormField>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 14px',
+                  borderRadius: 6,
+                  backgroundColor: tokens.colorNeutralBackground3,
+                  border: `1px solid ${tokens.colorNeutralStroke2}`,
+                  marginTop: 4,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Clock20Regular style={{ color: tokens.colorBrandForeground1 }} />
+                  <Text size={200} weight="semibold">
+                    Jornada neta de trabajo:
+                  </Text>
+                </div>
+                <Badge appearance="tint" color="informative" size="large">
+                  {horasCalculadas}
+                </Badge>
               </div>
 
               {editingTurno && (
