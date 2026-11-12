@@ -299,8 +299,8 @@ export const TurnosListPage: React.FC = () => {
     <div className={styles.root}>
       <D365CommandBar ariaLabel="Comandos de Turnos y Horarios">
         {canManage && (
-          <D365CommandButton icon={<Add16Regular />} onClick={handleOpenNuevo}>
-            Nuevo Turno
+          <D365CommandButton icon={<Add16Regular />} tone="create" onClick={handleOpenNuevo}>
+            Nuevo
           </D365CommandButton>
         )}
         <D365CommandButton icon={<ArrowClockwise16Regular />} onClick={cargarTurnos}>

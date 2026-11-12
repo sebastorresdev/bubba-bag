@@ -260,8 +260,8 @@ export const DepartamentosListPage: React.FC = () => {
     <div className={styles.root}>
       <D365CommandBar ariaLabel="Comandos de Departamentos">
         {canManage && (
-          <D365CommandButton icon={<Add16Regular />} onClick={handleOpenNuevo}>
-            Nuevo Departamento
+          <D365CommandButton icon={<Add16Regular />} tone="create" onClick={handleOpenNuevo}>
+            Nuevo
           </D365CommandButton>
         )}
         <D365CommandButton icon={<ArrowClockwise16Regular />} onClick={cargarDepartamentos}>

@@ -18,6 +18,7 @@ import {
   Switch,
   tokens,
 } from '@fluentui/react-components';
+import { DatePicker } from '@fluentui/react-datepicker-compat';
 import {
   ArrowLeft16Regular,
   Save16Regular,
@@ -54,12 +55,34 @@ export const EmpleadoFormPage: React.FC = () => {
   const formStyles = useD365FormStyles();
   const { permisos } = useAuthSession();
 
+  const parseIsoDate = (val?: string | null): Date | null => {
+    if (!val) return null;
+    const parts = val.split('T')[0].split('-');
+    if (parts.length === 3) {
+      const year = Number(parts[0]);
+      const month = Number(parts[1]) - 1;
+      const day = Number(parts[2]);
+      if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+        return new Date(year, month, day);
+      }
+    }
+    return null;
+  };
+
+  const formatToIsoDate = (d?: Date | null): string => {
+    if (!d) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const canManage = permisos?.includes('rrhh.colaboradores.gestionar') ?? true;
   const canViewSalarios = permisos?.includes('rrhh.salarios.confidencial') ?? false;
 
   const [loading, setLoading] = useState<boolean>(!isNuevo);
   const [saving, setSaving] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'general' | 'laboral' | 'compensacion' | 'cese'>('general');
+  const [activeTab, setActiveTab] = useState<'personal' | 'laboral' | 'compensacion' | 'cese'>('personal');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -300,10 +323,11 @@ export const EmpleadoFormPage: React.FC = () => {
       <D365CommandBar ariaLabel="Comandos de ficha de colaborador">
         <D365CommandButton
           icon={<ArrowLeft16Regular />}
+          tone="brand"
+          aria-label="Atrás"
+          title="Atrás"
           onClick={() => navigate('/rrhh/empleados')}
-        >
-          Volver
-        </D365CommandButton>
+        />
         <D365CommandDivider />
         <D365CommandButton
           icon={<Save16Regular />}
@@ -376,6 +400,24 @@ export const EmpleadoFormPage: React.FC = () => {
               ]
             : []),
         ]}
+        tabs={
+          <TabList selectedValue={activeTab} onTabSelect={(_, data) => setActiveTab(data.value as any)}>
+            <Tab value="personal" icon={<Person20Regular />}>
+              Información Personal
+            </Tab>
+            <Tab value="laboral" icon={<Briefcase20Regular />}>
+              Laboral & Contrato
+            </Tab>
+            <Tab value="compensacion" icon={<Payment20Regular />}>
+              Compensación & Banco
+            </Tab>
+            {esCesado && (
+              <Tab value="cese" icon={<DismissCircle20Regular />}>
+                Detalles de Cese
+              </Tab>
+            )}
+          </TabList>
+        }
       />
 
       {/* Mensajes de Notificación */}
@@ -394,31 +436,11 @@ export const EmpleadoFormPage: React.FC = () => {
         </div>
       )}
 
-      {/* Navegación por Pestañas */}
-      <div style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, padding: '0 24px', backgroundColor: tokens.colorNeutralBackground1 }}>
-        <TabList selectedValue={activeTab} onTabSelect={(_, data) => setActiveTab(data.value as any)}>
-          <Tab value="general" icon={<Person20Regular />}>
-            Información Personal
-          </Tab>
-          <Tab value="laboral" icon={<Briefcase20Regular />}>
-            Laboral & Contrato
-          </Tab>
-          <Tab value="compensacion" icon={<Payment20Regular />}>
-            Compensación & Banco
-          </Tab>
-          {esCesado && (
-            <Tab value="cese" icon={<DismissCircle20Regular />}>
-              Detalles de Cese
-            </Tab>
-          )}
-        </TabList>
-      </div>
-
       {/* Contenido del Formulario */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
         <D365FormContent>
-          {/* PESTAÑA: GENERAL */}
-          {activeTab === 'general' && (
+          {/* PESTAÑA: PERSONAL */}
+          {activeTab === 'personal' && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 24 }}>
               {/* Sección Datos Personales */}
               <div className={formStyles.card}>
@@ -426,59 +448,59 @@ export const EmpleadoFormPage: React.FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <D365FormField label="Nombres" required>
                     <Input
+                      className={formStyles.d365ControlFull}
                       value={formData.nombres}
                       onChange={(_, d) => handleChange('nombres', d.value)}
-                      placeholder="Ej. Juan Carlos"
                       disabled={!canManage}
                     />
                   </D365FormField>
 
                   <D365FormField label="Apellidos" required>
                     <Input
+                      className={formStyles.d365ControlFull}
                       value={formData.apellidos}
                       onChange={(_, d) => handleChange('apellidos', d.value)}
-                      placeholder="Ej. Pérez García"
                       disabled={!canManage}
                     />
                   </D365FormField>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 12 }}>
-                    <D365FormField label="Tipo Doc." required>
-                      <Select
-                        value={formData.tipoDocumento}
-                        onChange={(_, d) => handleChange('tipoDocumento', d.value)}
-                        disabled={!canManage}
-                      >
-                        {catalogos?.tiposDocumento.map((td) => (
-                          <option key={td} value={td}>{td}</option>
-                        ))}
-                      </Select>
-                    </D365FormField>
+                  <D365FormField label="Tipo de Documento" required>
+                    <Select
+                      className={formStyles.d365ControlFull}
+                      value={formData.tipoDocumento}
+                      onChange={(_, d) => handleChange('tipoDocumento', d.value)}
+                      disabled={!canManage}
+                    >
+                      {catalogos?.tiposDocumento.map((td) => (
+                        <option key={td} value={td}>{td}</option>
+                      ))}
+                    </Select>
+                  </D365FormField>
 
-                    <D365FormField label="N° de Documento" required>
-                      <Input
-                        value={formData.numeroDocumento}
-                        onChange={(_, d) => handleChange('numeroDocumento', d.value)}
-                        placeholder="DNI / Carné Ext."
-                        disabled={!canManage}
-                      />
-                    </D365FormField>
-                  </div>
+                  <D365FormField label="N° de Documento" required>
+                    <Input
+                      className={formStyles.d365ControlFull}
+                      value={formData.numeroDocumento}
+                      onChange={(_, d) => handleChange('numeroDocumento', d.value)}
+                      disabled={!canManage}
+                    />
+                  </D365FormField>
 
                   <D365FormField label="Fecha de Nacimiento">
-                    <Input
-                      type="date"
-                      value={formData.fechaNacimiento}
-                      onChange={(_, d) => handleChange('fechaNacimiento', d.value)}
+                    <DatePicker
+                      className={formStyles.d365ControlFull}
+                      value={parseIsoDate(formData.fechaNacimiento)}
+                      onSelectDate={(d) => handleChange('fechaNacimiento', formatToIsoDate(d))}
+                      formatDate={(d) => (d ? d.toLocaleDateString('es-PE') : '')}
                       disabled={!canManage}
                     />
                   </D365FormField>
 
                   <D365FormField label="URL Foto de Perfil">
                     <Input
+                      className={formStyles.d365ControlFull}
                       value={formData.fotoUrl}
                       onChange={(_, d) => handleChange('fotoUrl', d.value)}
-                      placeholder="https://..."
                       disabled={!canManage}
                     />
                   </D365FormField>
@@ -491,28 +513,28 @@ export const EmpleadoFormPage: React.FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <D365FormField label="Correo Electrónico">
                     <Input
+                      className={formStyles.d365ControlFull}
                       type="email"
                       value={formData.email}
                       onChange={(_, d) => handleChange('email', d.value)}
-                      placeholder="ejemplo@empresa.com"
                       disabled={!canManage}
                     />
                   </D365FormField>
 
                   <D365FormField label="Teléfono / Celular">
                     <Input
+                      className={formStyles.d365ControlFull}
                       value={formData.telefono}
                       onChange={(_, d) => handleChange('telefono', d.value)}
-                      placeholder="+51 987 654 321"
                       disabled={!canManage}
                     />
                   </D365FormField>
 
                   <D365FormField label="Dirección de Domicilio">
                     <Textarea
+                      className={formStyles.d365ControlFull}
                       value={formData.direccion}
                       onChange={(_, d) => handleChange('direccion', d.value)}
-                      placeholder="Av. Principal 123, Urb. Los Rosales..."
                       rows={3}
                       disabled={!canManage}
                     />
@@ -603,10 +625,11 @@ export const EmpleadoFormPage: React.FC = () => {
                   </D365FormField>
 
                   <D365FormField label="Fecha de Ingreso" required>
-                    <Input
-                      type="date"
-                      value={formData.fechaIngreso}
-                      onChange={(_, d) => handleChange('fechaIngreso', d.value)}
+                    <DatePicker
+                      className={formStyles.d365ControlFull}
+                      value={parseIsoDate(formData.fechaIngreso)}
+                      onSelectDate={(d) => handleChange('fechaIngreso', formatToIsoDate(d))}
+                      formatDate={(d) => (d ? d.toLocaleDateString('es-PE') : '')}
                       disabled={!canManage}
                     />
                   </D365FormField>
@@ -642,31 +665,31 @@ export const EmpleadoFormPage: React.FC = () => {
                   <div className={formStyles.card}>
                     <div className={formStyles.cardSectionTitle}>Remuneración y Régimen Previsional</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 12 }}>
-                        <D365FormField label="Moneda">
-                          <Select
-                            value={formData.monedaSalario}
-                            onChange={(_, d) => handleChange('monedaSalario', d.value)}
-                            disabled={!canManage}
-                          >
-                            <option value="PEN">Soles (PEN)</option>
-                            <option value="USD">Dólares (USD)</option>
-                          </Select>
-                        </D365FormField>
+                      <D365FormField label="Moneda de Salario">
+                        <Select
+                          className={formStyles.d365ControlFull}
+                          value={formData.monedaSalario}
+                          onChange={(_, d) => handleChange('monedaSalario', d.value)}
+                          disabled={!canManage}
+                        >
+                          <option value="PEN">Soles (PEN)</option>
+                          <option value="USD">Dólares (USD)</option>
+                        </Select>
+                      </D365FormField>
 
-                        <D365FormField label="Salario Base Bruto">
-                          <Input
-                            type="number"
-                            value={formData.salarioBase}
-                            onChange={(_, d) => handleChange('salarioBase', d.value)}
-                            placeholder="0.00"
-                            disabled={!canManage}
-                          />
-                        </D365FormField>
-                      </div>
+                      <D365FormField label="Remuneración Bruta">
+                        <Input
+                          className={formStyles.d365ControlFull}
+                          type="number"
+                          value={formData.salarioBase}
+                          onChange={(_, d) => handleChange('salarioBase', d.value)}
+                          disabled={!canManage}
+                        />
+                      </D365FormField>
 
                       <D365FormField label="Régimen Pensionario">
                         <Select
+                          className={formStyles.d365ControlFull}
                           value={formData.regimenPensionario}
                           onChange={(_, d) => handleChange('regimenPensionario', d.value)}
                           disabled={!canManage}
@@ -679,9 +702,9 @@ export const EmpleadoFormPage: React.FC = () => {
 
                       <D365FormField label="Código CUSPP (AFP)">
                         <Input
+                          className={formStyles.d365ControlFull}
                           value={formData.cuspp}
                           onChange={(_, d) => handleChange('cuspp', d.value)}
-                          placeholder="Ej. 123456ABCDE0"
                           disabled={!canManage}
                         />
                       </D365FormField>
@@ -693,6 +716,7 @@ export const EmpleadoFormPage: React.FC = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                       <D365FormField label="Entidad Financiera">
                         <Select
+                          className={formStyles.d365ControlFull}
                           value={formData.entidadFinanciera}
                           onChange={(_, d) => handleChange('entidadFinanciera', d.value)}
                           disabled={!canManage}
@@ -705,18 +729,18 @@ export const EmpleadoFormPage: React.FC = () => {
 
                       <D365FormField label="N° Cuenta Bancaria">
                         <Input
+                          className={formStyles.d365ControlFull}
                           value={formData.cuentaBancaria}
                           onChange={(_, d) => handleChange('cuentaBancaria', d.value)}
-                          placeholder="Ej. 191-12345678-0-12"
                           disabled={!canManage}
                         />
                       </D365FormField>
 
                       <D365FormField label="Código de Cuenta Interbancaria (CCI)">
                         <Input
+                          className={formStyles.d365ControlFull}
                           value={formData.cuentaInterbancaria}
                           onChange={(_, d) => handleChange('cuentaInterbancaria', d.value)}
-                          placeholder="20 dígitos (002-191-...)"
                           disabled={!canManage}
                         />
                       </D365FormField>
@@ -734,20 +758,20 @@ export const EmpleadoFormPage: React.FC = () => {
                 <div className={formStyles.cardSectionTitle}>Historial de Baja / Término de Vínculo</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <D365FormField label="Fecha de Cese Efectivo">
-                    <Input
-                      type="date"
-                      value={empleado.fechaCese ? empleado.fechaCese.split('T')[0] : ''}
-                      readOnly
+                    <DatePicker
+                      className={formStyles.d365ControlFull}
+                      value={parseIsoDate(empleado.fechaCese)}
+                      formatDate={(d) => (d ? d.toLocaleDateString('es-PE') : '')}
                       disabled
                     />
                   </D365FormField>
 
                   <D365FormField label="Motivo del Cese">
-                    <Input value={empleado.motivoCese || '---'} readOnly disabled />
+                    <Input className={formStyles.d365ControlFull} value={empleado.motivoCese || '---'} readOnly disabled />
                   </D365FormField>
 
                   <D365FormField label="Observaciones / Liquidación">
-                    <Textarea value={empleado.observacionesCese || 'Sin observaciones'} rows={4} readOnly disabled />
+                    <Textarea className={formStyles.d365ControlFull} value={empleado.observacionesCese || 'Sin observaciones'} rows={4} readOnly disabled />
                   </D365FormField>
                 </div>
               </div>
@@ -767,15 +791,17 @@ export const EmpleadoFormPage: React.FC = () => {
               </Text>
 
               <D365FormField label="Fecha de Cese" required>
-                <Input
-                  type="date"
-                  value={bajaFecha}
-                  onChange={(_, d) => setBajaFecha(d.value)}
+                <DatePicker
+                  className={formStyles.d365ControlFull}
+                  value={parseIsoDate(bajaFecha)}
+                  onSelectDate={(d) => setBajaFecha(formatToIsoDate(d))}
+                  formatDate={(d) => (d ? d.toLocaleDateString('es-PE') : '')}
                 />
               </D365FormField>
 
               <D365FormField label="Motivo de Cese" required>
                 <Select
+                  className={formStyles.d365ControlFull}
                   value={bajaMotivo}
                   onChange={(_, d) => setBajaMotivo(d.value)}
                 >
@@ -787,9 +813,9 @@ export const EmpleadoFormPage: React.FC = () => {
 
               <D365FormField label="Observaciones adicionales">
                 <Textarea
+                  className={formStyles.d365ControlFull}
                   value={bajaObservaciones}
                   onChange={(_, d) => setBajaObservaciones(d.value)}
-                  placeholder="Detalles sobre entrega de fotocheck, equipos o liquidación..."
                   rows={3}
                 />
               </D365FormField>

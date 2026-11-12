@@ -4,6 +4,11 @@ import {
   Avatar,
   Text,
   Badge,
+  Menu,
+  MenuTrigger,
+  MenuPopover,
+  MenuList,
+  MenuItem,
   createTableColumn,
   type TableColumnDefinition,
   type SelectionItemId,
@@ -12,7 +17,8 @@ import {
   Add16Regular,
   ArrowClockwise16Regular,
   ArrowDownload16Regular,
-  PeopleCommunity20Regular,
+  ChevronDown16Regular,
+  Checkmark16Regular,
 } from '@fluentui/react-icons';
 import { D365CommandBar, D365CommandButton } from '../../../../components/common/D365CommandBar';
 import { useD365ListStyles } from '../../../../styles/d365ListStyles';
@@ -245,9 +251,10 @@ export const EmpleadosListPage: React.FC = () => {
         {canManage && (
           <D365CommandButton
             icon={<Add16Regular />}
+            tone="create"
             onClick={() => navigate('/rrhh/empleados/nuevo')}
           >
-            Nuevo Colaborador
+            Nuevo
           </D365CommandButton>
         )}
         <D365CommandButton
@@ -266,54 +273,59 @@ export const EmpleadosListPage: React.FC = () => {
         </D365CommandButton>
       </D365CommandBar>
 
-      {/* 2. Header & Search Row */}
+      {/* 2. Header & Search Row (Selector de Vista D365) */}
       <div className={styles.viewHeader}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <PeopleCommunity20Regular style={{ color: 'var(--colorBrandForeground1)' }} />
-          <Text size={400} weight="semibold">
-            Colaboradores de la Empresa
-          </Text>
-          <div style={{ display: 'flex', gap: '4px', marginLeft: '12px' }}>
-            <Badge
-              appearance={activeView === 'activos' ? 'filled' : 'tint'}
-              color={activeView === 'activos' ? 'brand' : 'subtle'}
-              style={{ cursor: 'pointer' }}
-              onClick={() => setActiveView('activos')}
-            >
-              Activos
-            </Badge>
-            <Badge
-              appearance={activeView === 'vacaciones' ? 'filled' : 'tint'}
-              color={activeView === 'vacaciones' ? 'brand' : 'subtle'}
-              style={{ cursor: 'pointer' }}
-              onClick={() => setActiveView('vacaciones')}
-            >
-              Vacaciones / Licencia
-            </Badge>
-            <Badge
-              appearance={activeView === 'cesados' ? 'filled' : 'tint'}
-              color={activeView === 'cesados' ? 'brand' : 'subtle'}
-              style={{ cursor: 'pointer' }}
-              onClick={() => setActiveView('cesados')}
-            >
-              Cesados
-            </Badge>
-            <Badge
-              appearance={activeView === 'todos' ? 'filled' : 'tint'}
-              color={activeView === 'todos' ? 'brand' : 'subtle'}
-              style={{ cursor: 'pointer' }}
-              onClick={() => setActiveView('todos')}
-            >
-              Todos ({empleados.length})
-            </Badge>
-          </div>
-        </div>
+        <Menu>
+          <MenuTrigger disableButtonEnhancement>
+            <div className={styles.viewSelectorTab} title="Seleccionar vista">
+              <Text weight="semibold" size={400}>
+                {activeView === 'activos'
+                  ? 'Colaboradores Activos'
+                  : activeView === 'vacaciones'
+                  ? 'En Vacaciones / Licencia'
+                  : activeView === 'cesados'
+                  ? 'Colaboradores Cesados'
+                  : 'Todos los Colaboradores'}
+              </Text>
+              <ChevronDown16Regular />
+            </div>
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList className={styles.viewMenuPopover}>
+              <MenuItem
+                icon={activeView === 'activos' ? <Checkmark16Regular /> : undefined}
+                onClick={() => setActiveView('activos')}
+              >
+                Colaboradores Activos
+              </MenuItem>
+              <MenuItem
+                icon={activeView === 'vacaciones' ? <Checkmark16Regular /> : undefined}
+                onClick={() => setActiveView('vacaciones')}
+              >
+                En Vacaciones / Licencia
+              </MenuItem>
+              <MenuItem
+                icon={activeView === 'cesados' ? <Checkmark16Regular /> : undefined}
+                onClick={() => setActiveView('cesados')}
+              >
+                Colaboradores Cesados
+              </MenuItem>
+              <MenuItem
+                icon={activeView === 'todos' ? <Checkmark16Regular /> : undefined}
+                onClick={() => setActiveView('todos')}
+              >
+                Todos los Colaboradores
+              </MenuItem>
+            </MenuList>
+          </MenuPopover>
+        </Menu>
 
         <D365TableToolbarTools
           tableRef={tableRef}
           searchValue={searchKeyword}
           onSearchChange={setSearchKeyword}
-          searchPlaceholder="Buscar por nombres, DNI o cargo..."
+          searchPlaceholder="Buscar"
+          searchAriaLabel="Buscar colaboradores"
         />
       </div>
 
