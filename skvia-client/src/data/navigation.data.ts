@@ -47,6 +47,14 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
             title: 'Programación y Despacho',
             items: [
               {
+                id: 'tablero-programacion',
+                title: 'Tablero de Programación',
+                path: '/servicio-campo/programacion',
+                iconName: 'Clock',
+                badge: 'Gantt',
+                description: 'Visión visual tipo Gantt, avance de técnicos en ruta y despacho en tiempo real.',
+              },
+              {
                 id: 'mis-citas',
                 title: 'Mis Citas (Móvil Técnico)',
                 path: '/servicio-campo/mis-citas',

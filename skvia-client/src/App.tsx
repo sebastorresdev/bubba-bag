@@ -59,6 +59,7 @@ const ContactosListPage = lazy(() => import('./features/crm/clientes/pages/Conta
 const ContactoFormPage = lazy(() => import('./features/crm/clientes/pages/ContactoFormPage').then((m) => ({ default: m.ContactoFormPage })));
 
 // Servicio de Campo - Órdenes de Trabajo (Field Service Work Orders)
+const TableroProgramacionPage = lazy(() => import('./features/servicio-campo/programacion/pages/TableroProgramacionPage').then((m) => ({ default: m.TableroProgramacionPage })));
 const OrdenesTrabajoListPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/OrdenesTrabajoListPage').then((m) => ({ default: m.OrdenesTrabajoListPage })));
 const TrabajosListPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/TrabajosListPage').then((m) => ({ default: m.TrabajosListPage })));
 const OrdenTrabajoFormPage = lazy(() => import('./features/servicio-campo/ordenes-trabajo/pages/OrdenTrabajoFormPage').then((m) => ({ default: m.OrdenTrabajoFormPage })));
@@ -125,6 +126,7 @@ const router = createBrowserRouter(createRoutesFromElements(
               <Route index element={<Navigate to="/dashboard" replace />} />
 
               {/* Servicio de Campo - Órdenes de Trabajo (Work Orders) */}
+              <Route path="servicio-campo/programacion" element={<TableroProgramacionPage />} />
               <Route path="servicio-campo/mis-citas" element={<TecnicoAgendaMobilePage />} />
               <Route path="servicio-campo/mis-citas/:id" element={<TecnicoAtencionMobilePage />} />
               <Route path="servicio-campo/ordenes" element={<OrdenesTrabajoListPage />} />
