@@ -1256,8 +1256,10 @@ public static class OrdenesTrabajoEndpoints
         if (string.IsNullOrWhiteSpace(request.FirmaUrl))
             return Results.BadRequest(new { message = "El trazo o imagen de la firma es obligatorio." });
 
+        var firmaUrlFinal = await GuardarSiEsBase64Async(request.FirmaUrl, "firmas", $"firma_{visitaId}");
+
         visita.CompletarVisita(
-            firmaUrl: request.FirmaUrl,
+            firmaUrl: firmaUrlFinal,
             firmadoPor: request.FirmadoPor ?? "Cliente Titular",
             nombreFirmante: request.NombreFirmante,
             dniFirmante: request.DniFirmante,
@@ -1290,11 +1292,49 @@ public static class OrdenesTrabajoEndpoints
         if (string.IsNullOrWhiteSpace(request.Url))
             return Results.BadRequest(new { message = "La URL o archivo de la evidencia es obligatorio." });
 
+        var urlFinal = await GuardarSiEsBase64Async(request.Url, "evidencias", $"evid_{visitaId}");
+
         var nombre = string.IsNullOrWhiteSpace(request.Nombre) ? "Evidencia fotográfica" : request.Nombre.Trim();
-        var ev = visita.AgregarEvidencia(nombre, request.Url.Trim(), request.EsObligatoria, request.Observaciones, request.CoordenadasGps);
+        var ev = visita.AgregarEvidencia(nombre, urlFinal, request.EsObligatoria, request.Observaciones, request.CoordenadasGps);
         
         await ((DbContext)db).SaveChangesAsync(ct);
         return Results.Ok(new { id = ev.Id, mensaje = "Evidencia registrada correctamente." });
+    }
+
+    private static async Task<string> GuardarSiEsBase64Async(string dataUrl, string subcarpeta, string prefijo)
+    {
+        if (string.IsNullOrWhiteSpace(dataUrl)) return dataUrl;
+        if (!dataUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase)) return dataUrl;
+
+        try
+        {
+            var commaIndex = dataUrl.IndexOf(',');
+            if (commaIndex == -1) return dataUrl;
+
+            var header = dataUrl.Substring(0, commaIndex);
+            var base64Content = dataUrl.Substring(commaIndex + 1);
+
+            var extension = ".jpg";
+            if (header.Contains("image/png", StringComparison.OrdinalIgnoreCase)) extension = ".png";
+            else if (header.Contains("image/webp", StringComparison.OrdinalIgnoreCase)) extension = ".webp";
+
+            var bytes = Convert.FromBase64String(base64Content);
+
+            var baseUploadDir = Path.Combine(Directory.GetCurrentDirectory(), "uploads", subcarpeta);
+            if (!Directory.Exists(baseUploadDir))
+                Directory.CreateDirectory(baseUploadDir);
+
+            var uniqueName = $"{DateTime.UtcNow:yyyyMMddHHmmss}_{prefijo}_{Guid.NewGuid():N}{extension}";
+            var filePath = Path.Combine(baseUploadDir, uniqueName);
+
+            await File.WriteAllBytesAsync(filePath, bytes);
+
+            return $"/api/inventario/archivos/{subcarpeta}/{uniqueName}";
+        }
+        catch
+        {
+            return dataUrl;
+        }
     }
 
     private static async Task<IResult> CambiarEstadoSistema(

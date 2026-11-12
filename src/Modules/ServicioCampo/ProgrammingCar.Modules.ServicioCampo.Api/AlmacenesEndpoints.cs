@@ -99,6 +99,7 @@ public static class AlmacenesEndpoints
             .WithTags("Servicio de Campo - Archivos y Comprobantes");
         archivosGroup.MapPost("/subir", SubirArchivoComprobante).DisableAntiforgery().RequireAuthorization(Permissions.Inventario.Operar);
         archivosGroup.MapGet("/{nombreArchivo}", ObtenerArchivoComprobante);
+        archivosGroup.MapGet("/{subcarpeta}/{nombreArchivo}", ObtenerArchivoSubcarpeta);
     }
 
     private static async Task<IResult> ObtenerCompras(
@@ -726,6 +727,29 @@ public static class AlmacenesEndpoints
             return Results.NotFound(new { mensaje = "Archivo no encontrado." });
 
         var extension = Path.GetExtension(sanitized).ToLowerInvariant();
+        var contentType = extension switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            ".pdf" => "application/pdf",
+            _ => "application/octet-stream"
+        };
+
+        return Results.File(filePath, contentType);
+    }
+
+    private static IResult ObtenerArchivoSubcarpeta(string subcarpeta, string nombreArchivo)
+    {
+        var sanitizedSub = Path.GetFileName(subcarpeta);
+        var sanitizedFile = Path.GetFileName(nombreArchivo);
+        var uploadDir = Path.Combine(Directory.GetCurrentDirectory(), "uploads", sanitizedSub);
+        var filePath = Path.Combine(uploadDir, sanitizedFile);
+
+        if (!File.Exists(filePath))
+            return Results.NotFound(new { mensaje = "Archivo no encontrado." });
+
+        var extension = Path.GetExtension(sanitizedFile).ToLowerInvariant();
         var contentType = extension switch
         {
             ".jpg" or ".jpeg" => "image/jpeg",
