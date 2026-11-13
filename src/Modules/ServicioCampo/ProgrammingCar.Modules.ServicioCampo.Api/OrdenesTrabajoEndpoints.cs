@@ -1942,12 +1942,18 @@ public static class OrdenesTrabajoEndpoints
         CancellationToken ct)
     {
         Stream? fileStream = null;
+        Guid? tipoOrdenId = null;
         try
         {
             if (httpRequest.HasFormContentType && httpRequest.Form.Files.Count > 0)
             {
                 var file = httpRequest.Form.Files[0];
                 fileStream = file.OpenReadStream();
+
+                if (httpRequest.Form.TryGetValue("tipoOrdenId", out var tipoVal) && Guid.TryParse(tipoVal, out var parsedId))
+                {
+                    tipoOrdenId = parsedId;
+                }
             }
             else
             {
@@ -1958,6 +1964,7 @@ public static class OrdenesTrabajoEndpoints
                     {
                         var body = await httpRequest.ReadFromJsonAsync<ImportarSiebelRequest>(cancellationToken: ct);
                         ruta = body?.RutaArchivo;
+                        tipoOrdenId = body?.TipoOrdenId;
                     }
                 }
                 catch { }
@@ -1976,7 +1983,7 @@ public static class OrdenesTrabajoEndpoints
             }
 
             var userId = currentUser.Id;
-            var resultado = await importador.ImportarDesdeStreamAsync(fileStream, userId, ct);
+            var resultado = await importador.ImportarDesdeStreamAsync(fileStream, userId, tipoOrdenId, ct);
             return Results.Ok(resultado);
         }
         catch (Exception ex)
@@ -2310,5 +2317,5 @@ public record CancelarVisitaRequest(
     string? Observaciones = null
 );
 
-public record ImportarSiebelRequest(string? RutaArchivo);
+public record ImportarSiebelRequest(string? RutaArchivo, Guid? TipoOrdenId = null);
 

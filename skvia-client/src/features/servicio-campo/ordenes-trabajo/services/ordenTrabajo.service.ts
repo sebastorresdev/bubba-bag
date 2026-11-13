@@ -85,13 +85,14 @@ export const OrdenTrabajoService = {
     const url = window.URL.createObjectURL(blob);
     window.open(url, '_blank');
   },
-  importarSiebel(file?: File, rutaArchivo?: string): Promise<ResultadoImportacionSiebel> {
+  importarSiebel(file?: File, rutaArchivo?: string, tipoOrdenId?: string): Promise<ResultadoImportacionSiebel> {
     if (file) {
       const formData = new FormData();
       formData.append('file', file);
+      if (tipoOrdenId) formData.append('tipoOrdenId', tipoOrdenId);
       return apiClientUpload<ResultadoImportacionSiebel>('/api/serviciocampo/ordenes/importar-siebel', formData);
     }
-    return apiClient<ResultadoImportacionSiebel>('/api/serviciocampo/ordenes/importar-siebel', write('POST', { rutaArchivo }));
+    return apiClient<ResultadoImportacionSiebel>('/api/serviciocampo/ordenes/importar-siebel', write('POST', { rutaArchivo, tipoOrdenId }));
   },
 };
 

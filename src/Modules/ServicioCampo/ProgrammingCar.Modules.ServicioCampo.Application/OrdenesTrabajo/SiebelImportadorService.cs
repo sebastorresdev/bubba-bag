@@ -58,6 +58,7 @@ public class SiebelImportadorService
     public async Task<ResultadoImportacionSiebel> ImportarDesdeStreamAsync(
         Stream stream,
         Guid usuarioEjecutorId,
+        Guid? tipoOrdenId = null,
         CancellationToken ct = default)
     {
         var errores = new List<string>();
@@ -335,16 +336,26 @@ public class SiebelImportadorService
         var todosTiposOrden = await _db.TiposOrdenTrabajo.Where(t => t.Activo).ToListAsync(ct);
         var tiposOrdenPorId = todosTiposOrden.ToDictionary(t => t.Id);
 
-        var tipoOrden = todosTiposOrden.FirstOrDefault(t => t.Nombre.Contains("Instalaciones") || t.Nombre.Contains("Averias") || t.Nombre.Contains("Averías"))
-            ?? todosTiposOrden.FirstOrDefault(t => !t.Nombre.Contains("Recupero") && !t.Nombre.Contains("Desconexiones"))
-            ?? todosTiposOrden.FirstOrDefault();
-        if (tipoOrden == null)
+        TipoOrdenTrabajo? tipoOrdenSeleccionado = null;
+        if (tipoOrdenId.HasValue && tipoOrdenId.Value != Guid.Empty)
         {
-            tipoOrden = TipoOrdenTrabajo.Crear("Servicio Siebel DirecTV", true, true, true, "Órdenes de servicio importadas de Siebel", "#0078D4");
-            _db.TiposOrdenTrabajo.Add(tipoOrden);
-            await _db.SaveChangesAsync(ct);
-            todosTiposOrden.Add(tipoOrden);
-            tiposOrdenPorId[tipoOrden.Id] = tipoOrden;
+            tiposOrdenPorId.TryGetValue(tipoOrdenId.Value, out tipoOrdenSeleccionado);
+        }
+
+        if (tipoOrdenSeleccionado == null)
+        {
+            tipoOrdenSeleccionado = todosTiposOrden.FirstOrDefault(t => t.Nombre.Contains("DIRECTV", StringComparison.OrdinalIgnoreCase))
+                ?? todosTiposOrden.FirstOrDefault(t => t.Nombre.Contains("Instalaciones") || t.Nombre.Contains("Averias") || t.Nombre.Contains("Averías"))
+                ?? todosTiposOrden.FirstOrDefault();
+
+            if (tipoOrdenSeleccionado == null)
+            {
+                tipoOrdenSeleccionado = TipoOrdenTrabajo.Crear("Servicios DIRECTV", true, true, true, "Órdenes de servicio importadas de Siebel", "#0078D4");
+                _db.TiposOrdenTrabajo.Add(tipoOrdenSeleccionado);
+                await _db.SaveChangesAsync(ct);
+                todosTiposOrden.Add(tipoOrdenSeleccionado);
+                tiposOrdenPorId[tipoOrdenSeleccionado.Id] = tipoOrdenSeleccionado;
+            }
         }
 
         var listaPrecios = await _db.ListasPrecios.FirstOrDefaultAsync(l => l.Activo, ct);
@@ -379,6 +390,9 @@ public class SiebelImportadorService
         var configsExistentes = await _db.ConfiguracionesServicio
             .Include(c => c.Producto)
             .Include(c => c.Servicios).ThenInclude(s => s.Producto)
+            .Include(c => c.Tareas).ThenInclude(t => t.Tarea)
+            .Include(c => c.Materiales).ThenInclude(m => m.Producto).ThenInclude(p => p.UnidadMedidaDefecto)
+            .Include(c => c.Materiales).ThenInclude(m => m.UnidadMedida)
             .Where(c => c.Activo)
             .ToListAsync(ct);
 
@@ -546,27 +560,7 @@ public class SiebelImportadorService
                     }
                 }
 
-                // Determinar el Tipo de Orden correspondiente según los servicios de la orden
-                TipoOrdenTrabajo tipoOrdenParaEstaWo = tipoOrden;
-                foreach (var filaItemTuple in filasWo)
-                {
-                    var slCode = GetVal(filaItemTuple.Row, "codigodesl", "sl");
-                    if (!string.IsNullOrWhiteSpace(slCode))
-                    {
-                        var cfgMatch = configsExistentes.FirstOrDefault(c =>
-                            c.TipoOrdenId.HasValue &&
-                            ((c.Producto != null && c.Producto.Codigo.Equals(slCode, StringComparison.OrdinalIgnoreCase)) ||
-                             c.Servicios.Any(s => s.Producto != null && s.Producto.Codigo.Equals(slCode, StringComparison.OrdinalIgnoreCase))));
-
-                        if (cfgMatch?.TipoOrdenId != null && tiposOrdenPorId.TryGetValue(cfgMatch.TipoOrdenId.Value, out var tipoEncontrado))
-                        {
-                            tipoOrdenParaEstaWo = tipoEncontrado;
-                            break;
-                        }
-                    }
-                }
-
-                // C) Crear Orden de Trabajo
+                // C) Crear Orden de Trabajo bajo el Tipo de Orden seleccionado
                 totalOrdenesCount++;
                 var codigoWo = $"WO-{totalOrdenesCount:D6}";
                 var estadoSiebel = GetVal(primeraFila, "estadodeordendetrabajo", "estado");
@@ -576,7 +570,7 @@ public class SiebelImportadorService
 
                 var orden = OrdenTrabajo.Crear(
                     codigoWo: codigoWo,
-                    tipoOrdenId: tipoOrdenParaEstaWo.Id,
+                    tipoOrdenId: tipoOrdenSeleccionado.Id,
                     creadoPorId: usuarioEjecutorId,
                     clienteFacturacionId: clienteDirectv.Id, // DIRECTV SRL
                     clienteServicioId: clienteAbonado.Id,    // Abonado/Cliente de servicio
@@ -632,24 +626,19 @@ public class SiebelImportadorService
                         preciosPorProductoId[prodServicio.Id] = elem;
                     }
 
-                    // Resolver Configuración de Servicio (Plantilla) tomando los puntos configurados
-                    var configServicio = configsExistentes.FirstOrDefault(c => (c.ProductoId == prodServicio.Id || c.Servicios.Any(s => s.ProductoId == prodServicio.Id)) && c.EsPredeterminada)
-                        ?? configsExistentes.FirstOrDefault(c => c.ProductoId == prodServicio.Id || c.Servicios.Any(s => s.ProductoId == prodServicio.Id));
-
-                    if (configServicio == null)
-                    {
-                        configServicio = ConfiguracionServicio.Crear(
-                            nombre: $"Plantilla {prodServicio.Nombre}",
-                            productoId: prodServicio.Id,
-                            duracionEstimadaMinutos: 60,
-                            descripcion: "Configuración generada automáticamente para atención de servicio.",
-                            esPredeterminada: true,
-                            puntos: 1.0m,
-                            tipoOrdenId: tipoOrdenParaEstaWo.Id
-                        );
-                        _db.ConfiguracionesServicio.Add(configServicio);
-                        configsExistentes.Add(configServicio);
-                    }
+                    // Buscar si existe Configuración de Servicio (Plantilla) para este servicio y tipo de orden
+                    var configServicio = configsExistentes.FirstOrDefault(c =>
+                        c.TipoOrdenId == tipoOrdenSeleccionado.Id &&
+                        (c.ProductoId == prodServicio.Id || c.Servicios.Any(s => s.ProductoId == prodServicio.Id)) &&
+                        c.EsPredeterminada)
+                        ?? configsExistentes.FirstOrDefault(c =>
+                            c.TipoOrdenId == tipoOrdenSeleccionado.Id &&
+                            (c.ProductoId == prodServicio.Id || c.Servicios.Any(s => s.ProductoId == prodServicio.Id)))
+                        ?? configsExistentes.FirstOrDefault(c =>
+                            (c.ProductoId == prodServicio.Id || c.Servicios.Any(s => s.ProductoId == prodServicio.Id)) &&
+                            c.EsPredeterminada)
+                        ?? configsExistentes.FirstOrDefault(c =>
+                            c.ProductoId == prodServicio.Id || c.Servicios.Any(s => s.ProductoId == prodServicio.Id));
 
                     // Cód. Externo del Trabajo = N° de WO de IBS sin puntos (ej. 10.593.321 -> 10593321)
                     var woItemIbs = GetVal(filaItem, "nodewodeibs", "nowodeibs", "wodeibs", "nrodewodeibs");
@@ -657,20 +646,40 @@ public class SiebelImportadorService
                         ? woItemIbs.Replace(".", "").Trim()
                         : nroWoIbsLimpio;
                     var codigoTrabajo = $"{orden.CodigoWo}-T{itemIdx:D2}";
-                    var puntosTrabajo = configServicio.Puntos;
 
-                    var trabajo = orden.AgregarTrabajo(
-                        codigoTrabajo: codigoTrabajo,
-                        servicioId: prodServicio.Id,
-                        itemNumero: itemIdx,
-                        configuracionServicioId: configServicio.Id,
-                        tarifaBase: 0m,
-                        observaciones: GetVal(filaItem, "descripciondeibs"),
-                        codigoExterno: woItemIbsLimpio,
-                        puntos: puntosTrabajo
-                    );
+                    if (configServicio != null)
+                    {
+                        var puntosTrabajo = configServicio.Puntos;
+                        var trabajo = orden.AgregarTrabajo(
+                            codigoTrabajo: codigoTrabajo,
+                            servicioId: prodServicio.Id,
+                            itemNumero: itemIdx,
+                            configuracionServicioId: configServicio.Id,
+                            tarifaBase: 0m,
+                            observaciones: GetVal(filaItem, "descripciondeibs"),
+                            codigoExterno: woItemIbsLimpio,
+                            puntos: puntosTrabajo
+                        );
 
-                    trabajo.AplicarPlantilla(configServicio);
+                        // Copiar toda la receta: puntos, tareas secuenciales y materiales previstos
+                        trabajo.AplicarPlantilla(configServicio);
+                    }
+                    else
+                    {
+                        // Si no hay configuración previa, NO se crea automáticamente;
+                        // se copia el servicio directamente sin receta ni puntos previstos.
+                        orden.AgregarTrabajo(
+                            codigoTrabajo: codigoTrabajo,
+                            servicioId: prodServicio.Id,
+                            itemNumero: itemIdx,
+                            configuracionServicioId: null,
+                            tarifaBase: 0m,
+                            observaciones: GetVal(filaItem, "descripciondeibs"),
+                            codigoExterno: woItemIbsLimpio,
+                            puntos: 0m
+                        );
+                    }
+
                     itemIdx++;
                 }
 

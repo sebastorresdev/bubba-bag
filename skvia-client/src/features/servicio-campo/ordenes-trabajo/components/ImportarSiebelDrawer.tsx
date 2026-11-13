@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   OverlayDrawer,
   DrawerHeader,
@@ -11,6 +11,8 @@ import {
   tokens,
   makeStyles,
   Badge,
+  Dropdown,
+  Option,
 } from '@fluentui/react-components';
 import {
   DismissRegular,
@@ -22,7 +24,7 @@ import {
   DocumentArrowUp20Regular,
 } from '@fluentui/react-icons';
 import { OrdenTrabajoService } from '../services/ordenTrabajo.service';
-import type { ResultadoImportacionSiebel, FilaDetalleImportacionSiebel } from '../types/ordenTrabajo.types';
+import type { ResultadoImportacionSiebel, FilaDetalleImportacionSiebel, TipoOrdenTrabajoOpcion } from '../types/ordenTrabajo.types';
 
 const useStyles = makeStyles({
   drawer: {
@@ -135,11 +137,35 @@ export const ImportarSiebelDrawer: React.FC<ImportarSiebelDrawerProps> = ({
   const styles = useStyles();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [tiposOrden, setTiposOrden] = useState<TipoOrdenTrabajoOpcion[]>([]);
+  const [tipoOrdenId, setTipoOrdenId] = useState<string>('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [resultado, setResultado] = useState<ResultadoImportacionSiebel | null>(null);
   const [filtroDetalle, setFiltroDetalle] = useState<'todos' | 'errores' | 'creadas' | 'omitidas'>('todos');
+
+  // Cargar tipos de orden al abrir el drawer
+  useEffect(() => {
+    if (open) {
+      void OrdenTrabajoService.obtenerTiposOrden()
+        .then((tipos) => {
+          setTiposOrden(tipos);
+          if (tipos.length > 0) {
+            // Preseleccionar si existe uno con DIRECTV, sino el primero
+            const matchDirectv = tipos.find((t) => t.nombre.toLowerCase().includes('directv'));
+            if (matchDirectv) {
+              setTipoOrdenId(matchDirectv.id);
+            } else {
+              setTipoOrdenId(tipos[0].id);
+            }
+          }
+        })
+        .catch((err) => {
+          console.error('Error cargando tipos de orden:', err);
+        });
+    }
+  }, [open]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -150,6 +176,11 @@ export const ImportarSiebelDrawer: React.FC<ImportarSiebelDrawerProps> = ({
   };
 
   const handleProcesar = async (useDefaultPath = false) => {
+    if (!tipoOrdenId) {
+      setErrorMsg('Debe seleccionar el Tipo de Orden de Trabajo antes de importar.');
+      return;
+    }
+
     setLoading(true);
     setErrorMsg(null);
     setResultado(null);
@@ -157,9 +188,9 @@ export const ImportarSiebelDrawer: React.FC<ImportarSiebelDrawerProps> = ({
     try {
       let res: ResultadoImportacionSiebel;
       if (useDefaultPath) {
-        res = await OrdenTrabajoService.importarSiebel(undefined, 'c:\\Users\\sebas\\Downloads\\output.csv');
+        res = await OrdenTrabajoService.importarSiebel(undefined, 'c:\\Users\\sebas\\Downloads\\output.csv', tipoOrdenId);
       } else if (selectedFile) {
-        res = await OrdenTrabajoService.importarSiebel(selectedFile);
+        res = await OrdenTrabajoService.importarSiebel(selectedFile, undefined, tipoOrdenId);
       } else {
         setErrorMsg('Seleccione un archivo CSV de Siebel o use el archivo de muestra.');
         setLoading(false);
@@ -286,6 +317,32 @@ export const ImportarSiebelDrawer: React.FC<ImportarSiebelDrawerProps> = ({
       </DrawerHeader>
 
       <DrawerBody className={styles.drawerBody}>
+        {/* Selector Obligatorio de Tipo de Orden de Trabajo */}
+        {!resultado && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <Text size={200} weight="semibold">
+              Tipo de Orden de Trabajo *
+            </Text>
+            <Dropdown
+              placeholder="Seleccione el Tipo de Orden de Trabajo..."
+              value={tiposOrden.find((t) => t.id === tipoOrdenId)?.nombre || ''}
+              selectedOptions={tipoOrdenId ? [tipoOrdenId] : []}
+              onOptionSelect={(_, data) => {
+                if (data.optionValue) setTipoOrdenId(data.optionValue);
+              }}
+            >
+              {tiposOrden.map((t) => (
+                <Option key={t.id} value={t.id} text={t.nombre}>
+                  {t.nombre}
+                </Option>
+              ))}
+            </Dropdown>
+            <Text size={100} style={{ color: tokens.colorNeutralForeground3 }}>
+              Las órdenes importadas se registrarán bajo este Tipo de Orden y buscarán su configuración de receta técnica (puntos, tareas y materiales previstos). Si un servicio no tiene plantilla configurada, se copiará directamente sin configuración previa.
+            </Text>
+          </div>
+        )}
+
         {/* Zona de Carga de Archivo */}
         {!resultado && (
           <>
@@ -573,7 +630,7 @@ export const ImportarSiebelDrawer: React.FC<ImportarSiebelDrawerProps> = ({
             <Button
               appearance="primary"
               icon={<ArrowUpload20Regular />}
-              disabled={!selectedFile || loading}
+              disabled={!selectedFile || !tipoOrdenId || loading}
               onClick={() => handleProcesar(false)}
             >
               Importar Archivo
