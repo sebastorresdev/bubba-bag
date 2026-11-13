@@ -61,6 +61,7 @@ export const ENTERPRISE_APPS: EnterpriseApp[] = [
                 iconName: 'VehicleTruckProfile',
                 badge: 'PWA',
                 description: 'Agenda diaria, evidencias fotográficas y firma del cliente en sitio.',
+                rolesPermitidos: ['Técnico de Campo', 'Tecnico'],
               },
               {
                 id: 'ordenes',

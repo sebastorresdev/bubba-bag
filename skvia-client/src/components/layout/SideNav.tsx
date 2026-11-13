@@ -395,6 +395,14 @@ export const SideNav: React.FC<SideNavProps> = ({
     return false;
   };
 
+  const isItemVisible = (item: NavItemData): boolean => {
+    if (!item.rolesPermitidos || item.rolesPermitidos.length === 0) return true;
+    const userRoles = currentUser.roles?.length ? currentUser.roles : (currentUser.rol ? [currentUser.rol] : []);
+    return item.rolesPermitidos.some((reqRole) =>
+      userRoles.some((ur) => ur.toLowerCase().includes(reqRole.toLowerCase()))
+    );
+  };
+
   const handleToggle = () => {
     if (onToggleNav) {
       onToggleNav();
@@ -423,12 +431,15 @@ export const SideNav: React.FC<SideNavProps> = ({
 
         {/* Body: Item icons only */}
         <div className={styles.compactBody}>
-          {activeArea.groups.map((group, groupIdx) => (
-            <React.Fragment key={group.id}>
-              {groupIdx > 0 && <div className={styles.compactDivider} role="separator" />}
-              {group.items.map((item) => {
-                const IconComponent = ICONS_MAP[item.iconName] || ICONS_MAP.Box;
-                const isSelected = isItemActive(item);
+          {activeArea.groups.map((group, groupIdx) => {
+            const visibleItems = group.items.filter(isItemVisible);
+            if (visibleItems.length === 0) return null;
+            return (
+              <React.Fragment key={group.id}>
+                {groupIdx > 0 && <div className={styles.compactDivider} role="separator" />}
+                {visibleItems.map((item) => {
+                  const IconComponent = ICONS_MAP[item.iconName] || ICONS_MAP.Box;
+                  const isSelected = isItemActive(item);
 
                 if (item.subItems && item.subItems.length > 0) {
                   return (
@@ -499,7 +510,8 @@ export const SideNav: React.FC<SideNavProps> = ({
                 );
               })}
             </React.Fragment>
-          ))}
+          );
+        })}
         </div>
 
         {/* Footer: Area badge switcher */}
@@ -622,7 +634,7 @@ export const SideNav: React.FC<SideNavProps> = ({
           selectedValue={activeItem?.id || ''}
           onNavItemSelect={(_, data) => {
             for (const grp of activeArea.groups) {
-              for (const itm of grp.items) {
+              for (const itm of grp.items.filter(isItemVisible)) {
                 if (itm.id === data.value) {
                   handleItemClick(itm);
                   return;
@@ -638,61 +650,65 @@ export const SideNav: React.FC<SideNavProps> = ({
             }
           }}
         >
-          {activeArea.groups.map((group) => (
-            <React.Fragment key={group.id}>
-              <NavSectionHeader className={styles.sectionHeader}>
-                {group.title}
-              </NavSectionHeader>
+          {activeArea.groups.map((group) => {
+            const visibleItems = group.items.filter(isItemVisible);
+            if (visibleItems.length === 0) return null;
+            return (
+              <React.Fragment key={group.id}>
+                <NavSectionHeader className={styles.sectionHeader}>
+                  {group.title}
+                </NavSectionHeader>
 
-              {group.items.map((item) => {
-                const IconComponent = ICONS_MAP[item.iconName] || ICONS_MAP.Box;
+                {visibleItems.map((item) => {
+                  const IconComponent = ICONS_MAP[item.iconName] || ICONS_MAP.Box;
 
-                if (item.subItems && item.subItems.length > 0) {
+                  if (item.subItems && item.subItems.length > 0) {
+                    return (
+                      <NavCategory key={item.id} value={item.id}>
+                        <NavCategoryItem icon={<IconComponent />}>
+                          {item.title}
+                        </NavCategoryItem>
+                        <NavSubItemGroup>
+                          {item.subItems.map((subItem) => (
+                            <NavSubItem
+                              key={subItem.id}
+                              value={subItem.id}
+                              href={subItem.path}
+                              onClick={(e: React.MouseEvent) => {
+                                if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                                  e.preventDefault();
+                                  handleItemClick(subItem);
+                                }
+                              }}
+                            >
+                              {subItem.title}
+                            </NavSubItem>
+                          ))}
+                        </NavSubItemGroup>
+                      </NavCategory>
+                    );
+                  }
+
                   return (
-                    <NavCategory key={item.id} value={item.id}>
-                      <NavCategoryItem icon={<IconComponent />}>
-                        {item.title}
-                      </NavCategoryItem>
-                      <NavSubItemGroup>
-                        {item.subItems.map((subItem) => (
-                          <NavSubItem
-                            key={subItem.id}
-                            value={subItem.id}
-                            href={subItem.path}
-                            onClick={(e: React.MouseEvent) => {
-                              if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                                e.preventDefault();
-                                handleItemClick(subItem);
-                              }
-                            }}
-                          >
-                            {subItem.title}
-                          </NavSubItem>
-                        ))}
-                      </NavSubItemGroup>
-                    </NavCategory>
+                    <NavItem
+                      key={item.id}
+                      value={item.id}
+                      icon={<IconComponent />}
+                      href={item.path}
+                      onClick={(e: React.MouseEvent) => {
+                        if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                          e.preventDefault();
+                          handleItemClick(item);
+                        }
+                      }}
+                    >
+                      {item.title}
+                    </NavItem>
                   );
-                }
-
-                return (
-                  <NavItem
-                    key={item.id}
-                    value={item.id}
-                    icon={<IconComponent />}
-                    href={item.path}
-                    onClick={(e: React.MouseEvent) => {
-                      if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                        e.preventDefault();
-                        handleItemClick(item);
-                      }
-                    }}
-                  >
-                    {item.title}
-                  </NavItem>
-                );
-              })}
-            </React.Fragment>
-          ))}
+                })}
+              </React.Fragment>
+            );
+          })}
         </Nav>
       </NavDrawerBody>
 

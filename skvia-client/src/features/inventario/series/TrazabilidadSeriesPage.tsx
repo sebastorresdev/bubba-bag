@@ -285,7 +285,11 @@ export function TrazabilidadSeriesPage() {
 
   const consultarSerie = useCallback(async (target?: string) => {
     const raw = (target !== undefined ? target : serieInput).trim().toUpperCase();
-    if (!raw) return;
+    if (!raw) {
+      setError('Por favor, ingresa el número de serie, SmartCard o MAC que deseas consultar.');
+      setHistorial(null);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -427,7 +431,10 @@ export function TrazabilidadSeriesPage() {
             placeholder="Buscar por N° de Serie, SmartCard o MAC..."
             aria-label="Buscar serie"
             value={serieInput}
-            onChange={(_, data) => setSerieInput(data.value)}
+            onChange={(_, data) => {
+              setSerieInput(data.value);
+              if (error) setError(null);
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
@@ -442,7 +449,7 @@ export function TrazabilidadSeriesPage() {
             size="medium"
             icon={<Search16Regular />}
             onClick={() => void consultarSerie()}
-            disabled={!serieInput.trim() || loading}
+            disabled={loading}
           >
             Buscar
           </Button>
@@ -469,8 +476,8 @@ export function TrazabilidadSeriesPage() {
         )}
 
         {/* Estado Inicial de Bienvenida */}
-        {!historial && !loading && !error && (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: tokens.colorNeutralForeground3 }}>
+        {!historial && !loading && (
+          <div style={{ textAlign: 'center', padding: error ? '32px 20px' : '60px 20px', color: tokens.colorNeutralForeground3 }}>
             <Tag16Regular style={{ width: '48px', height: '48px', color: tokens.colorNeutralStroke1Hover, marginBottom: '16px' }} />
             <Text size={400} weight="semibold" block style={{ color: tokens.colorNeutralForeground1, marginBottom: '8px' }}>
               Consulta la Hoja de Vida y Movimientos de un Equipo

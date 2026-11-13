@@ -715,10 +715,10 @@ export const DashboardPage: React.FC = () => {
                     <Button
                       className={styles.quickActionBtn}
                       appearance="subtle"
-                      icon={<CalendarToday24Regular style={{ color: '#8764b8' }} />}
-                      onClick={() => navigate('/servicio-campo/mis-citas')}
+                      icon={<ClipboardTask24Regular style={{ color: tokens.colorBrandForeground1 }} />}
+                      onClick={() => navigate('/servicio-campo/ordenes')}
                     >
-                      <span style={{ flexGrow: 1, textAlign: 'left', marginLeft: '6px' }}>Mis Citas de Hoy (Móvil Técnico)</span>
+                      <span style={{ flexGrow: 1, textAlign: 'left', marginLeft: '6px' }}>Órdenes de Trabajo de Campo</span>
                       <ChevronRight16Regular style={{ color: tokens.colorNeutralForeground4 }} />
                     </Button>
                     <Button

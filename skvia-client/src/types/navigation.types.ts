@@ -5,6 +5,7 @@ export interface NavItem {
   iconName: string;
   badge?: string;
   description?: string;
+  rolesPermitidos?: string[];
   subItems?: NavItem[];
 }
 
